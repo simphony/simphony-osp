@@ -77,7 +77,7 @@ packages = [
     'cuds.ontology.tools',
     'testing'
 ]
-print("we are here")
+
 # main setup configuration class
 setup(
     name=NAME,
@@ -92,6 +92,7 @@ setup(
         'install': Install,
         'develop': Develop
     },
+    print("we are here")
     test_suite='testing',
     entry_points={
         'console_scripts': [
