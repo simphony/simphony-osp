@@ -20,9 +20,8 @@ build:
         - python setup.py install
 
 test:
-    stage: test
+    stage: build
     
     script:
-        - source env/bin/activate
         - python setup.py test
 
