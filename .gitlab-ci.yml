@@ -1,6 +1,9 @@
 image: python 2.7
 
 before_script:
+    cache:
+        paths:
+              - env/
     - virtualenv env
     - source env/bin/activate
     - pip install --upgrade pip
@@ -13,19 +16,15 @@ stages:
 
 build:
     stage: build
-    cache:
-        paths:
-              - venv/
+   
     script:
-        - source venv/bin/activate
+        - source env/bin/activate
         - python setup.py install
 
 test:
     stage: test
-    cache:
-        paths:
-              - venv/
+    
     script:
-        - source venv/bin/activate
+        - source env/bin/activate
         - python setup.py test
 
