@@ -13,11 +13,9 @@ build:
         - pip install flake8
         - pip install -r requirements.txt
         - python setup.py install
-        - deactivate
 
 test:
     stage: test
     script:
-        - source venv/bin/activate
         - python setup.py test
         - deactivate
