@@ -1,4 +1,0 @@
-[console_scripts]
-cuds2dot = cuds.ontology.tools.cuds2dot:main
-simphony-class-generator = cuds.metatools.class_generator:main
-
