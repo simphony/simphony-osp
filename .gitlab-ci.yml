@@ -7,14 +7,17 @@ stages:
 build:
     stage: build
     script:
+        - virtualenv venv
+        - source venv/bin/activate
         - pip install --upgrade pip
         - pip install flake8
         - pip install -r requirements.txt
-        - virtualenv venv
-        - source venv/bin/activate
         - python setup.py install
+        - deactivate
 
 test:
     stage: test
     script:
+        - source venv/bin/activate
         - python setup.py test
+        - deactivate
