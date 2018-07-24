@@ -77,7 +77,7 @@ packages = [
     'cuds.ontology.tools',
     'testing'
 ]
-
+echo "we are here"
 # main setup configuration class
 setup(
     name=NAME,
