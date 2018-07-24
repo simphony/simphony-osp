@@ -6,6 +6,9 @@ stages:
 
 build:
     stage: build
+    cache:
+        paths:
+              - venv/
     script:
         - virtualenv venv
         - source venv/bin/activate
@@ -16,6 +19,9 @@ build:
 
 test:
     stage: test
+    cache:
+        paths:
+              - venv/
     script:
+        - source venv/bin/activate
         - python setup.py test
-        - deactivate
