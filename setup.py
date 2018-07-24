@@ -92,8 +92,7 @@ setup(
         'install': Install,
         'develop': Develop
     },
-    print("we are here")
-    test_suite='testing',
+    #test_suite='testing',
     entry_points={
         'console_scripts': [
             'simphony-class-generator = cuds.metatools.class_generator:main',
