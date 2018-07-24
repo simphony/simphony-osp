@@ -2,7 +2,7 @@ image: python 2.7
 
 stages:
     - build 
-    #- test
+    - test
 
 build:
     stage: build
@@ -11,8 +11,10 @@ build:
         - pip install flake8
         - pip install -r requirements.txt
         - virtualenv venv
-        - cd venv
-        - source bin/activate
-        - cd ..
+        - source venv/bin/activate
         - python setup.py install
+
+test:
+    stage: test
+    script:
         - python setup.py test
