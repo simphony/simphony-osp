@@ -16,7 +16,6 @@ build:
 test:
     stage: test
     script:
-        - pip install -r dev_requirements.txt
         - flake8 .
         - mkdir _test
         - pushd _test
