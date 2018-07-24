@@ -3,16 +3,6 @@ image: python 2.7
 stages:
     - build 
     #- test
-    
-cache:
-    stage: build
-    directories:
-        - "$HOME/.ccache"
-before_install:
-    stage: build
-        - ccache -s
-        - export PATH=/usr/lib/ccache:${PATH}
-
 
 build:
     stage: build
@@ -20,4 +10,7 @@ build:
         - pip install --upgrade pip
         - pip install flake8
         - pip install -r requirements.txt
+        - virtualenv venv
+        - cd venv
+        - source bin/activate
         - python setup.py install
