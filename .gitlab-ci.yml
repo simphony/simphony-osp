@@ -7,13 +7,11 @@ stages:
 cache:
     stage: build
     directories:
-        - "$HOME/.cache"
         - "$HOME/.ccache"
 before_install:
     stage: build
         - ccache -s
         - export PATH=/usr/lib/ccache:${PATH}
-
 
 
 build:
