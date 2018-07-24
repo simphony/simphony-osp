@@ -4,6 +4,18 @@ stages:
     - build 
     #- test
     
+cache:
+    stage: build
+    directories:
+        - "$HOME/.cache"
+        - "$HOME/.ccache"
+before_install:
+    stage: build
+        - ccache -s
+        - export PATH=/usr/lib/ccache:${PATH}
+
+
+
 build:
     stage: build
     script:
@@ -11,5 +23,3 @@ build:
         - pip install flake8
         - pip install -r requirements.txt
         - python setup.py install
-
-    
