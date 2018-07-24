@@ -13,4 +13,5 @@ build:
         - virtualenv venv
         - cd venv
         - source bin/activate
+        - cd ..
         - python setup.py install
