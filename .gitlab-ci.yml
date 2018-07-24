@@ -10,7 +10,6 @@ before_script:
 
 stages:
     - build 
-    - test
 
 build:
     stage: build
@@ -19,7 +18,7 @@ build:
         - source env/bin/activate
         - python setup.py install
 
-test:
+testing:
     stage: build
     
     script:
