@@ -17,10 +17,5 @@ build:
     script:
         - source env/bin/activate
         - python setup.py install
-
-testing:
-    stage: build
-    
-    script:
         - python setup.py test
 
