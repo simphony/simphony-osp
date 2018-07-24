@@ -1,0 +1,635 @@
+---
+VERSION: "2.0"
+
+CUDS: Common Universal Data Structure
+
+Purpose: CUDS provides a bridge between EMMO and SimPhoNy-FORCE-MARKETPLACE data models
+
+Resources:
+  CUDS 2.0 (1st Edition): http://simphony.eu/cuds/1.0/  # does not exist
+  CUDS Issues Page: https://github.com/simphony/simphony-metadata/issues
+  CUDS Mailing List: simphony-ssb@fraunhofer.de
+  CUDS Reference Parser: https://github.com/simphony/simphony-metadata/cparser  # ?
+
+CUDS_ONTOLOGY:
+
+  ENTITY:
+    definition: the basic ontologicial entity, a thing. BFO
+    parent:
+
+  CUDS_ENTITY:
+    definition: Root of all CUDS classes
+    parent: CUBA.ENTITY
+    CUBA.UID:
+      scope: CUBA.SYSTEM
+    CUBA.DESCRIPTION:
+      default: ""
+    CUBA.NAME:
+      default: ""
+
+  # UUID:
+  #   definition: a unique universal identifier
+  #   parent: CUBA.CUDS_ENTITY # should be QUALITY
+
+  CONTINUANT:
+    definition: BFO continuant
+    parent: CUBA.CUDS_ENTITY
+
+  INDEPENDENT_CONTINUANT:
+    definition: bfo
+    parent: CUBA.CONTINUANT
+
+  GENERICALLY_DEPENDENT_CONTINUANT:
+    definition: bfo
+    parent: CUBA.CONTINUANT
+
+  SPECIFICALLY_DEPENDENT_CONTINUANT:
+    definition: bfo
+    parent: CUBA.CONTINUANT
+
+  MATERIAL_ENTITY:
+    definition: bfo
+    parent: CUBA.INDEPENDENT_CONTINUANT
+
+  OBJECT:
+    definition: bfo
+    parent: CUBA.MATERIAL_ENTITY
+
+  OBJECT_AGGREGATE:
+    definition: bfo
+    parent: CUBA.MATERIAL_ENTITY
+
+  FIAT_OBJECT_PART:
+    definition: bfo
+    parent: CUBA.MATERIAL_ENTITY
+
+  IMMATERIAL_ENTITY:
+    definition: bfo
+    parent: CUBA.INDEPENDENT_CONTINUANT
+
+  SITE:
+    definition: bfo
+    parent: CUBA.IMMATERIAL_ENTITY
+
+  CONTINUANT_FIAT_BOUNDARY:
+    definition: bfo
+    parent: CUBA.IMMATERIAL_ENTITY
+
+  ZERO_DIMENSIONAL_CONTINUANT_FIAT_BOUNDARY:
+    definition: bfo
+    parent: CUBA.CONTINUANT_FIAT_BOUNDARY
+
+  ONE_DIMENSIONAL_CONTINUANT_FIAT_BOUNDARY:
+    definition: bfo
+    parent: CUBA.CONTINUANT_FIAT_BOUNDARY
+
+  TWO_DIMENSIONAL_CONTINUANT_FIAT_BOUNDARY:
+    definition: bfo
+    parent: CUBA.CONTINUANT_FIAT_BOUNDARY
+
+  SPATIAL_REGION:
+    definition: bfo
+    parent: CUBA.IMMATERIAL_ENTITY
+
+  ZERO_DIMENSIONAL_SPATIAL_REGION:
+    definition: bfo
+    parent: CUBA.SPATIAL_REGION
+
+  ONE_DIMENSIONAL_SPATIAL_REGION:
+    definition: bfo
+    parent: CUBA.SPATIAL_REGION
+
+  TWO_DIMENSIONAL_SPATIAL_REGION:
+    definition: bfo
+    parent: CUBA.SPATIAL_REGION
+
+  THREE_DIMENSIONAL_SPATIAL_REGION:
+    definition: bfo
+    parent: CUBA.SPATIAL_REGION
+
+  QUALITY:
+    definition: BFO
+    parent: CUBA.SPECIFICALLY_DEPENDENT_CONTINUANT
+
+  RELATIONAL_QUALITY:
+    definition: BFO
+    parent: CUBA.QUALITY
+
+  REALIZABLE_ENTITY:
+    definition: BFO
+    parent: CUBA.SPECIFICALLY_DEPENDENT_CONTINUANT
+
+  ROLE:
+    definition: BFO
+    parent: CUBA.REALIZABLE_ENTITY
+
+  DISPOSITION:
+    definition: BFO
+    parent: CUBA.REALIZABLE_ENTITY
+
+  FUNCTION:
+    definition: BFO
+    parent: CUBA.DISPOSITION
+
+  OCCURRENT:
+    definition: bfo
+    parent: CUBA.CUDS_ENTITY
+
+  PROCESS:
+    definition: bfo
+    parent: CUBA.OCCURRENT
+
+  PROCESS_BOUNDARY:
+    definition: bfo
+    parent: CUBA.OCCURRENT
+
+  TEMPORAL_REGION:
+    definition: bfo
+    parent: CUBA.OCCURRENT
+
+  SPATIOTEMPORAL_REGION:
+    definition: bfo
+    parent: CUBA.OCCURRENT
+
+  ZERO_DIMENSIONAL_TEMPORAL_REGION:
+    definition: bfo
+    parent: CUBA.TEMPORAL_REGION
+
+  ONE_DIMENSIONAL_TEMPORAL_REGION:
+    definition: bfo
+    parent: CUBA.TEMPORAL_REGION
+
+  PROCESS_PROFILE:
+    definition: bfo
+    parent: CUBA.PROCESS
+
+  DETERMINABLE:
+    definition: bfo, some quality that can be determined such as temperature, mass
+    parent: CUBA.QUALITY
+
+  DETERMINATE:
+    definition: bfo, some quality that can be determined such as temperature, mass. Note this is equivalent to r instance of universal spatial region with volume w == soatrial region r has volume w.
+    parent: CUBA.DETERMINABLE
+    CUBA.VALUE:
+    CUBA.UNIT:
+
+  VALUE:
+    definition: a value of a property (entity), can be numeric, alphanumeric or string, root of all values, leaves. Allows creating proper determinabte universals from determinables.
+    parent: CUBA.GENERICALLY_DEPENDENT_CONTINUANT
+
+  INFORMATION_CONTENT_ENTITY:
+    definition: BFO-IAO, a generically dependent continuant that is about some thing.
+    parent: CUBA.GENERICALLY_DEPENDENT_CONTINUANT
+
+  DATUM_LABEL:
+    definition: A label is a symbol that is part of some other datum and is used to either partially define  the denotation of that datum or to provide a means for identifying the datum as a member of the set of data with the same label
+    parent: CUBA.INFORMATION_CONTENT_ENTITY
+
+  DATUM_UNIT_LABEL:
+    definition: A datum label that designates a relative measure of a datum quantity
+    parent: CUBA.DATUM_LABEL
+
+  UNIT_SYSTEM_LABEL:
+    definition: see NASA QUDT, a label designating a unit system used to specify determinables
+    parent: CUBA.DATUM_LABEL
+    CUBA.TIME_UNIT:
+    CUBA.LENGTH_UNIT:
+    CUBA.MASS_UNIT:
+    CUBA.ELECTRIC_CURRENT_UNIT:
+    CUBA.TEMPERATURE_UNIT:
+    CUBA.SUBSTANCE_AMOUNT_UNIT:
+    CUBA.LIGHT_INTENSITY_UNIT:
+
+  LENGTH_UNIT:
+    definition: A unit which is a standard measure of the distance between two points. Used to designate unit system universals
+    parent: CUBA.DATUM_UNIT_LABEL
+
+  MASS_UNIT:
+    definition: A unit which is a standard measure of the mass
+    parent: CUBA.DATUM_UNIT_LABEL
+
+  TIME_UNIT:
+    definition: A unit which is a standard measure of ...
+    parent: CUBA.DATUM_UNIT_LABEL
+
+  ELECTRIC_CURRENT_UNIT:
+    definition: A unit which is a standard measure of ...
+    parent: CUBA.DATUM_UNIT_LABEL
+
+  TEMPERATURE_UNIT:
+    definition: A unit which is a standard measure of ...
+    parent: CUBA.DATUM_UNIT_LABEL
+
+  SUBSTANCE_AMOUNT_UNIT:
+    definition: A unit which is a standard measure of ...
+    parent: CUBA.DATUM_UNIT_LABEL
+
+  LIGHT_INTENSITY_UNIT:
+    definition: A unit which is a standard measure of ...
+    parent: CUBA.DATUM_UNIT_LABEL
+
+  KILOGRAMM:
+    definition: The kilogram (symbol, kg), used to measure mass defined as...
+    parent: CUBA.MASS_UNIT
+
+  METER:
+    definition: the meter (symbol, m), used to measure distance as ...
+    parent: CUBA.LENGTH_UNIT
+
+  CENTIMETER:
+    definition: the meter (symbol, m), used to measure distance as ...
+    parent: CUBA.LENGTH_UNIT
+
+  MILLIMETER:
+    definition: the meter (symbol, m), used to measure distance as ...
+    parent: CUBA.LENGTH_UNIT
+
+  SECOND:
+    definition: the meter (symbol, m), used to measure distance as ...
+    parent: CUBA.TIME_UNIT
+
+  MINUTE:
+    definition: the meter (symbol, m), used to measure distance as ...
+    parent: CUBA.TIME_UNIT
+
+  HOUR:
+    definition: the meter (symbol, m), used to measure distance as ...
+    parent: CUBA.TIME_UNIT
+
+  DAY:
+    definition: the meter (symbol, m), used to measure distance as ...
+    parent: CUBA.TIME_UNIT
+
+  # to do, review and  complete all units
+
+  PHYSICAL_QUALITY:
+    definition: PATO, A quality of a physical entity that exists through action of continuants at the physical level of organisation in relation to other entities. ROMM, CWA, Physics QUANTITY
+    parent: CUBA.DETERMINATE
+
+  TIME:
+    definition: PATO, A quality in which events occur in sequence.
+    parent: CUBA.PHYSICAL_QUALITY
+
+  HYDROPHILICITY:
+   definition: A physical quality inhering in a bearer by virtue the bearer disposition to having an affinity for water; it is readily absorbing or dissolving in water.
+   parent: CUBA.PHYSICAL_QUALITY
+
+  MASS:
+    definition: A physical quality that inheres in a bearer by virtue of the proportion of the bearers amount of matter.
+    parent: CUBA.PHYSICAL_QUALITY
+
+  DISTANCE:
+    definition: A quality that is the extent of space between two entities.
+    parent:  CUBA.PHYSICAL_QUALITY
+
+  ENERGY:
+    definition: energy
+    parent: CUBA.PHYSICAL_QUALITY
+
+  FORCE:
+    definition: To Be Determined
+    parent: CUBA.PHYSICAL_QUALITY
+
+  VELOCITY:
+    definition: To Be Determined
+    parent: CUBA.PHYSICAL_QUALITY
+
+  COLOR:
+    definition: To Be Determined
+    parent: CUBA.PHYSICAL_QUALITY
+
+  CHARGE:
+    definition: To Be Determined
+    parent: CUBA.PHYSICAL_QUALITY
+
+  VISCOSITY:
+    definition: To Be Determined
+    parent: CUBA.PHYSICAL_QUALITY
+
+  ELASTICITY:
+    definition: To Be Determined
+    parent: CUBA.PHYSICAL_QUALITY
+
+  TEMPERATURE:
+    definition: To Be Determined
+    parent: CUBA.PHYSICAL_QUALITY
+
+  TIME:
+    definition: A time quality, in units with origin t=0
+    parent: CUBA.PHYSICAL_QUALITY
+    CUBA.VALUE:
+      range: CUBA.REAL
+
+  POSITION:
+    definition: position of an entity
+    parent: CUBA.PHYSICAL_QUALITY
+    CUBA.VALUE:
+      range: CUBA.REAL_VECTOR
+
+  VELOCITY:
+    definition: the velocity of an entity
+    parent: CUBA.PHYSICAL_QUALITY
+    CUBA.VALUE:
+      range: CUBA.VECTOR
+
+  MOMENTUM:
+    definition: the kinetic momentum of an entity
+    parent: CUBA.PHYSICAL_QUALITY
+    CUBA.VALUE:
+      range: CUBA.REAL
+
+  ACCELERATION:
+    definition: the time derivative of the velocity of an entity
+    parent: CUBA.PHYSICAL_QUALITY
+    CUBA.VALUE:
+      range: CUBA.VECTOR
+
+  MOMENT_OF_INERTIA:
+    definition: the moment of intertia
+    parent: CUBA.QUALITY
+
+  TORQUE:
+    definition: mechanical toruque
+    parent: CUBA.QUALITY
+
+  ANGULAR_VELOCITY:
+    definition: angular velocity of an entity
+    parent: CUBA.QUALITY
+
+  MASS:
+    definition: mass of an entity
+    parent: CUBA.QUALITY
+    CUBA.VALUE:
+      range: CUBA.REAL
+
+  STRESS_TENSOR:
+    definition: a matrix wit 9 components for the tensor in ...
+    parent: CUBA.PHYSICAL_QUALITY
+
+  DYNAMIC_PRESSURE:
+    definition: the time changing force per unit area on a surface
+    parent: CUBA.QUALITY
+
+  VOLUME_FRACTION:
+    definition: the portion of mater in a unit volume of the material.
+    parent: CUBA.QUALITY
+
+  MODEL_ENTITY:
+    definition: CWA, self-contained, internally frozen, structure-less representational unit of a material
+    parent: CUBA.MATERIAL_ENTITY
+
+  ELECTRONIC_ENTITY:
+    definition: CWA, a representation of an electron [SOURCE IEV 113-05-18]
+    parent: CUBA.MODEL_ENTITY
+
+  ELECTRON:
+    definition: a representation of an electron
+    parent: CUBA.ELECTRONIC_ENTITY
+
+  MOLECULE:
+    definition: To Be Determined
+    parent: CUBA.MODEL_ENTITY
+
+  ATOMISTIC_MOLECULE:
+    definition: To Be Determined
+    parent: CUBA.MOLECULE
+    CUBA.ATOM:
+      shape: (:)
+    CUBA.BOND:
+      shape: (:)
+      scope: CUBA.BY_REFERENCE
+
+  MESOSCOPIC_MOLECULE:
+    definition: To Be Determined
+    parent: CUBA.MOLECULE
+    CUBA.PARTICLE:
+      shape: (:)
+    CUBA.BOND:
+      shape: (:)
+      scope: CUBA.BY_REFERENCE
+
+  ATOMISTIC_ENTITY:
+    definition: a representation of an atom [SOURCE IEV 113-05-20]
+    parent: CUBA.MODEL_ENTITY
+    CUBA.POSITION:
+    CUBA.VELOCITY:
+
+  ATOM:
+    definition: Atom
+    parent: CUBA.ATOMISTIC_ENTITY
+
+  MESOSCOPIC_ENTITY:
+    definition: a representation of a set of bounded atoms (e.g. group of atoms, molecule, bead, cluster)
+    parent: CUBA.MODEL_ENTITY
+
+  COARSEGRAINED_ATOM:
+    definition: To Be Determined
+    parent: CUBA.MESOSCOPIC_ENTITY
+
+  UNITED_ATOM:
+    definition: To Be Determined
+    parent: CUBA.MESOSCOPIC_ENTITY
+
+  SPHERICAL_PARTICLE:
+    definition: To Be Determined
+    parent: CUBA.MESOSCOPIC_ENTITY
+    CUBA.RADIUS:
+
+  CONTINUUM_ENTITY:
+    definition: a representation of the material bounded in a region of space within which the material is considered by the modeller to be described by the same set of properties
+    parent: CUBA.MODEL_ENTITY
+
+  CONTINUUM_VOLUME:
+    definition: To Be Determined
+    parent: CUBA.CONTINUUM_ENTITY
+
+  PHYSICS_BASED_EQUATION:
+    definition: mathematical equation based on a fundamental physics theory which defines the relations between physics quantities of an entity
+    parent: CUBA.MATHEMATICAL_EQUATION
+    CUBA.MODEL_ENTITY:
+      shape: (:)
+
+  PHYSICS_EQUATION:
+    definition: mathematical equation based on a fundamental physics theory which defines the relations between physics quantities of an entity
+    parent: CUBA.PHYSICS_BASED_EQUATION
+
+  MATERIAL_RELATION:
+    definition: To Be Determined
+    parent: CUBA.PHYSICS_BASED_EQUATION
+    CUBA.MATERIAL:
+      shape: (:)
+
+  PHYSICS_BASED_MODEL:
+    definition: solvable set of one physics equation and one or more materials relations
+    parent: CUBA.PHYSICS_BASED_EQUATION
+    CUBA.PHYSICS_EQUATION:
+      shape: (:)
+    CUBA.MATERIAL_RELATION:
+      shape: (:)
+    CUBA.MODEL_ENTITY:
+      shape: [1]   # note coupled models may have more than one ENTITY, and may couple physics and non physics based models.
+
+  MODEL_EQUATION:
+    definition: To Be Determined
+    parent: CUBA.PHYSICS_BASED_MODEL
+
+  ELECTRONIC_MODEL:
+    definition: physics-based model based on a physics equation describing the behaviour of electron entities
+    parent: CUBA.PHYSICS_BASED_MODEL
+
+  KOHN_SHAM_DENSITY_FUNCTIONAL_THORY:
+    definition: KS_DFT
+    parent: CUBA.ELECTRONIC_MODEL
+
+  ATOMISTIC_MODEL:
+    definition: physics-based model based on a physics equation describing the behaviour of atom entities
+    parent: CUBA.PHYSICS_BASED_MODEL
+    model_entity: [CUBA.ATOM]
+
+  MOLECULAR_DYNAMICS:
+    definition: To Be Determined
+    parent: CUBA.PHYSICS_BASED_MODEL
+    CUBA.PHYSICS_EQUATION:
+      default: CUBA.NEWTON_CLASSICAL_EQUATION
+    CUBA.MATERIAL_RELATION:
+      default: [CUBA.LENNARD_JONES_6_12]
+    CUBA.MODEL_ENTITY: [CUBA.ATOM]
+
+  NEWTON_CLASSICAL_EQUATION:
+    definition: To Be Determined
+    parent: CUBA.PHYSICS_EQUATION
+
+  MATHEMATICAL_EQUATION:
+    definition: a mathematical equation
+    parent: CUBA.CAUSAL_RELATION
+    CUBA.MATH_VARIABLES:
+    CUBA.MATH_FORMULA:
+
+  CAUSAL_RELATION:
+    definition: relations between entities and qualities like equations expressing some fundamental truth about the behaviour of the entities within a certain  view of the world
+    parent: CUBA.OCCURRENT
+
+  CAUSAL_DEPENDENCE:
+      definition: causal dependence relating to multiple entities and qualities, for example the reciprocal causal dependence between the pressure and temperature of a portion of gas;
+      parent: CUBA.CAUSAL_RELATION
+
+  CAUSAL_TRIGGERING:
+    definition: causal triggering, where a process is the trigger for a second process which is the realization of a disposition.
+    parent: CUBA.CAUSAL_RELATION
+
+  CUDS:
+    definition: A material system representation using CUDS objects. Can be seen as either ICE or a material aggregate represented as a Data Container i.e., a knowledge-based data object of semantic concepts used to agglomerate relevant data and information. An aggregate object or object in the BFO sense.
+    note: change name to something more material, like material_system?
+    parent: CUBA.OBJECT_AGGREGATE
+
+  SIMULATION:
+    definition: CWA, all components of the simulation that are needed to run the model
+    note: this is not the process of running the simulation, this is only the actual specification of all neded information of the simultion.
+    parent: CUBA.CUDS
+
+  PARTICLE_AGGRGATE:
+    definition: To Be Determined
+    parent: CUBA.CUDS
+    CUBA.PARTICLE:
+      shape: (:)
+
+  PARTICLE_BOND:
+    definition: A bond between two or more atoms or particles
+    parent: CUBA.CUDS_ENTITY
+    CUBA.PARTICLE:
+      shape: (:)
+      scope: CUBA.BY_REFERENCE
+
+  MATERIAL:
+    definition: a material (materials science) and its properties in the data container
+    parent: CUBA.MATERIAL_ENTITY
+
+  COMPUTATIONAL_BOUNDARY:
+    definition: A computational (not real) boundary in the system
+    parent: CUBA.TWO_DIMENSIONAL_CONTINUANT_FIAT_BOUNDARY
+    CUBA.CONDITION:
+      shape: (:)
+      default: []
+      scope:  CUBA.BY_REFERENCE
+
+  CONDITION:
+    definition: Condition on boundaries or model entities (ie., part of the physics equation add ons)
+    parent: CUBA.CAUSAL_DEPENDENCE
+
+  PHYSICAL_SYSTEM:
+    definition: (CWA) collection of entities used to represent a (whole) material. A representation of the physics state in terms of the entities and their properties (quantitis)
+    parent: CUBA.CUDS
+
+  PHYSICAL_SYSTEM_STATE:
+    definition: is a physical system at specific time i.e., with values of the physics quantities for a physical system at an instant of time
+    parent: CUBA.PHYSICAL_SYSTEM
+    CUBA.TIME:
+
+  INTERATOMIC_POTENTIAL:
+    definition: Interatomic Potentials
+    parent: CUBA.MATERIAL_RELATION
+    model_entity: [CUBA.ATOMISTIC_ENTITY]
+
+  PAIR_POTENTIAL:
+    definition: Pair Interatomic Potential
+    parent: CUBA.INTERATOMIC_POTENTIAL
+    model_entity: [CUBA.ATOMISTIC_ENTITY]
+    CUBA.MATERIAL:
+      shape: [2]
+
+  LENNARD_JONES_6_12:
+    parent: CUBA.PAIR_POTENTIAL
+    definition: A Lennard-Jones 6-12 Potential
+    model_entity: [CUBA.ATOMISTIC_ENTITY]
+    variables: [CUBA.POSITION, CUBA.POTENTIAL_ENERGY]
+    CUBA.CUTOFF_DISTANCE:
+      default: 1.0
+    CUBA.ENERGY_WELL_DEPTH:
+      default: 1.0
+    CUBA.VAN_DER_WAALS_RADIUS:
+      default: 1.0
+
+  THERMOSTAT:
+    definition: A thermostat is a model that describes the thermal interaction of a material with the environment or a heat reservoir
+    parent: CUBA.CONDITION
+    model_entity: [CUBA.ATOMISTIC_ENTITY, CUBA.MESOSCOPIC_ENTITY]
+
+  NOSE_HOOVER:
+    definition: Add an extra term to the equation of motion to model the interaction with an external heat bath. The coupling time specifies how rapidly the temperature should be coupled to the bath.
+    parent: CUBA.THERMOSTAT
+    model_entity: [CUBA.ATOMISTIC, CUBA.MESOSCOPIC_ENTITY]
+    CUBA.TEMPERATURE:
+      shape: [2]
+      default: [0.0, 0.0]
+    CUBA.COUPLING_TIME:
+      default: 1.0
+
+  BERENDSEN:
+    definition: The Berendsen thermostat model for temperature rescaling of all particles. The coupling time specifies how rapidly the temperature should be relaxed or coupled to the bath.
+    parent: CUBA.THERMOSTAT
+    model_entity: [CUBA.ATOMISTIC, CUBA.MESOSCOPIC_ENTITY]
+    CUBA.TEMPERATURE:
+      shape: [2]
+      default: [0.0, 0.0]
+    CUBA.COUPLING_TIME:
+      default: 0.0001
+
+  TEMPERATURE_RESCALING:
+    definition: A simple temperature rescaling thermostat. The coupling time specifies how offen the temperature should be relaxed or coupled to the bath.
+    parent: CUBA.THERMOSTAT
+    model_entity: [CUBA.ATOMISTIC, CUBA.MESOSCOPIC_ENTITY]
+    CUBA.TEMPERATURE:
+      shape: [2]
+      default: [0.0, 0.0]
+    CUBA.COUPLING_TIME:
+      default: 0.000001
+
+  BOX:
+    definition: A simple hexahedron simulation box
+    parent: CUBA.TWO_DIMENSIONAL_CONTINUANT_FIAT_BOUNDARY
+    CUBA.VECTOR:
+      shape: [3]
+      default: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+    CUBA.CONDITION:
+      shape: [3]
+      default: [CUBA.EMPTY_CONDITION, CUBA.EMPTY_CONDITION, CUBA.EMPTY_CONDITION]

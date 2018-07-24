@@ -1,0 +1,176 @@
+---
+VERSION: "1.0"
+
+CUDS: Common Universal Data Structure
+
+Purpose: CUDS provides a bridge between EMMO and SimPhoNy data models
+
+Resources:
+  CUDS 2.0: http://simphony.eu/cuds/2.0/  # does not exist
+  CUDS Issues Page: TBD
+  CUDS Mailing List: simphony-ssb@fraunhofer.de
+
+CUDS_ONTOLOGY:
+
+  ENTITY:
+    definition: the basic ontological entity, a thing.
+    parent:
+
+  CUDS_ENTITY:
+    definition: Root of all CUDS classes, branches of the semantic network tree. An entity that has a unique identifier and can be distinguished, i.e., can be instantiated.
+    parent: CUBA.ENTITY
+    CUBA.UID:
+      scope: CUBA.SYSTEM
+    CUBA.DESCRIPTION:
+      default: ""
+    CUBA.NAME:
+      default: ""
+
+  DATA_SET:
+    definition: something else
+    parent: CUBA.CUDS_ENTITY
+
+# Quantities and properties, leaves.
+  VALUE:
+    definition: a value of a property, can be numeric, alphanumeric or string, root of all values, leaves
+    parent: CUBA.ENTITY
+
+  NUMBER:
+    definition: a value that is a number, can be integer or real
+    parent: CUBA.VALUE
+
+  INTEGER:
+    definition: a number that is integer
+    parent: CUBA.NUMBER
+
+  REAL:
+    definition: a number that is real
+    parent: CUBA.NUMBER
+
+  INDEX:
+    definition: An integer index
+    parent: CUBA.INTEGER
+
+  INDEX_VECTOR:
+    definition: An integer index vector
+    parent: CUBA.INTEGER
+    shape: [3]
+
+  SPECIFICALLY_DEPENDENT_CONTINUAT: # this is not accurate yet, but to demonstrate how it can be done for later.
+    definition: BFO SDC
+    parent: CUBA.CUDS_ENTITY
+
+  QUALITY:
+    definition: A quantity with units, name and value
+    parent: CUBA.SPECIFICALLY_DEPENDENT_CONTINUAT
+    CUBA.VALUE:
+      scope: CUBA.USER
+    CUBA.UNITS:
+      scope: CUBA.USER
+
+  INTEGER_QUALITY:
+    definition: a quantity that takes an integer value
+    parent: CUBA.QUALITY
+    CUBA.VALUE:
+      range: CUBA.INTEGER
+
+  REAL_QUALITY:
+    definition: a quantity that takes an integer value
+    parent: CUBA.QUALITY
+    CUBA.VALUE:
+      range: CUBA.REAL
+
+  POSITION:
+    definition: position of an entity
+    parent: CUBA.QUALITY
+    CUBA.VECTOR:
+      range: CUBA.REAL_VECTOR
+
+  VELOCITY:
+    definition: the velocity of an entity
+    parent: CUBA.QUALITY
+
+  ACCELERATION:
+    definition: the time derivative of the velocity of an entity
+    parent: CUBA.QUALITY
+
+  MASS:
+    definition: mass of an entity
+    parent: CUBA.QUALITY
+    CUBA.REAL_VALUE:
+
+  TENSOR_QUALITY:
+    definition: something
+    parent: CUBA.CUDS_ENTITY
+
+  STRESS_TENSOR:
+    definition: a matrix wit 9 components for the tensor in ...
+    parent: CUBA.TENSOR_QUALITY
+
+  CUDS:
+    definition: CUDS Container, a knowledge-based data object of semantic concepts used to agglomerate relevant data and information. An aggregate object or object in the BFO sense.
+    parent: CUBA.CUDS_ENTITY
+
+  ######################################################
+  # define the terminology used for computational models
+  ######################################################
+
+  MODEL_ENTITY:
+    definition: Model entity according to the RoMM/MODA/CWA categorisation
+    parent: CUBA.CUDS_ENTITY
+  # There are only four categories:
+
+  #####################################
+  # define the components of each CUDS
+  #####################################
+  # each model equation has information on the models it supports
+  MODEL_EQUATION:
+    definition: The model equations is a physics equations and material relation according to the RoMM
+    parent: CUBA.CUDS_ENTITY  # should be
+    CUBA.PHYSICS_EQUATION:
+      shape: (:)
+    CUBA.MATERIAL_RELATION:
+      shape: (:)
+
+  MODEL_EQUATION_COMPONENT:
+    definition: is an equation that is part of a model equation, can be physics or material relation or condition
+    parent: CUBA.CUDS_ENTITY
+    model_entity: []
+    quantities: []
+
+  PHYSICS_EQUATION:
+    definition: Physics equation
+    parent: CUBA.MODEL_EQUATION_COMPONENT
+
+  # each material relation has to have a reference to the Material in its properties (i.e., data)
+  MATERIAL_RELATION:
+    definition: Material relation which together with the Physics equation gives the model equation
+    parent: CUBA.MODEL_EQUATION_COMPONENT
+    CUBA.MATERIAL:
+      shape: (:)
+      default: []
+      scope:  CUBA.BY_REFERENCE
+
+  MATERIAL:
+    definition: a material and its properties in the data container
+    parent: CUBA.CUDS_ENTITY  # should be converted to BFO
+    # the material does not include granularity or representational point of view, not computational details.
+
+  BOUNDARY: # need to separate to materials and immaterial boundaries, physics and computational based....
+    definition: A computational boundary in the system, it includes translated physical boundaries to computational boundaries and a list of conditions operating on it as properties.
+    parent: CUBA.CUDS_ENTITY # should be application or simulation
+    CUBA.CONDITION:
+      shape: (:)
+      default: []
+      scope:  CUBA.BY_REFERENCE
+
+  BOX:
+    definition: A box
+    parent: CUBA.BOUNDARY
+    CUBA.VECTOR:
+        shape: [3]
+        default: [[1, 0, 0], [0, 0, 1]]
+
+  CONDITION:
+    definition: Condition on boundaries or model entities (ie., pat of the physics equation add ons)
+    parent: CUBA.CUDS_ENTITY
