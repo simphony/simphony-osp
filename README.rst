@@ -1,5 +1,3 @@
-[![Coverage report](https://gitlab.com/gitlab-org/gitlab-ce/badges/master/coverage.svg?job=coverage)](http://gitlab-org.gitlab.io/gitlab-ce/coverage-ruby)
-
 core-osp
 ========
 Native implementation of the core cuds object and the class generation by the SimPhoNy team at Fraunhofer IWM.
