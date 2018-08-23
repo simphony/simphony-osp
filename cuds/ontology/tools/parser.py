@@ -136,6 +136,6 @@ class Parser:
             while parent != "":
                 parent = self.get_parent(parent)
                 if parent in descendants:
-                    descendants.add(entity)
+                    descendants.append(entity)
                     break
         return descendants
