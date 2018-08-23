@@ -25,7 +25,7 @@ class ClassGenerator(object):
         self._template = None
         self._parser = Parser(self._yaml_filename)
         # Don't create classes from CUBA.VALUE and its descendants
-        self.not_instantiable = self._parser.get_set_descendants("VALUE")
+        self.not_instantiable = set(self._parser.get_descendants("VALUE"))
         self.output_folder = output_folder
 
     def generate_classes(self):

@@ -79,7 +79,7 @@ class Cuds2Dot:
         """
         for node in self._node:
             if self._height == -1:
-                self._elements.update(self._parser.get_set_ancestors(node))
+                self._elements.update(self._parser.get_ancestors(node))
             else:
                 current_level = 0
                 parent = node
