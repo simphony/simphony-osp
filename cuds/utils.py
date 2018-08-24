@@ -28,7 +28,7 @@ def format_class_name(name):
 
 # Cuds utility methods
 
-def find(uid, cuds_object):
+def find_cuds(uid, cuds_object):
     """
     Recursively finds the element with a given uid inside a container
     :param uid: unique identifier of the wanted element
@@ -39,10 +39,10 @@ def find(uid, cuds_object):
         return cuds_object
     else:
         for sub in cuds_object.iter():
-            return find(uid, sub)
+            return find_cuds(uid, sub)
 
 
-def find_by(criteria, value, cuds_object):
+def find_cuds_by(criteria, value, cuds_object):
     """
     Recursively finds the element with a given uid inside a container
     :param criteria: string with the category of the discriminant
@@ -58,31 +58,40 @@ def find_by(criteria, value, cuds_object):
         pass
     # A contained element could have it
     for sub in cuds_object.iter():
-        return find_by(criteria, value, sub)
-
-
-def u_type(cuds_object):
-    return cuds_object.cuba_key
+        return find_cuds_by(criteria, value, sub)
 
 
 def pretty_print(cuds_object):
-    name = cuds_object.name
-    if name is None:
-        name = "None"
-
-    pp = "Entity named <" + name + ">:"
-    pp += "\n type: " + str(cuds_object.cuba_key)
-    pp += "\n uuid: " + str(cuds_object.uid)
-    pp += "\n description: " + cuds_object.__doc__
-    pp += "\n contains (has a relationship):"
-    pp += format_subelements(cuds_object)
+    pp = pp_entity_name(cuds_object)
+    pp += "\n  uuid: " + str(cuds_object.uid)
+    pp += "\n  type: " + str(cuds_object.cuba_key)
+    pp += "\n  description: " + cuds_object.__doc__
+    pp += pp_subelements(cuds_object)
     print(pp)
 
 
-def format_subelements(cuds_object):
-    subelements_pp = ""
-    for key in cuds_object:
-        subelements_pp += "\n  | " + str(key) + ":"
-        for element in cuds_object[key]:
-            pass
-    return subelements_pp
+def pp_entity_name(cuds_object):
+    # In case it is None, str()
+    name = str(cuds_object.name)
+    return "- Entity named <" + name + ">:"
+
+
+def pp_subelements(cuds_object, level_indentation="\n  "):
+    """
+    Recursively formats the subelements from a cuds_object grouped by cuba_key
+    :param cuds_object: element to inspect
+    :param level_indentation: common characters to left-pad the text
+    :return: string with the pretty printed text
+    """
+    pp_sub = ""
+    if cuds_object:
+        pp_sub += level_indentation + "contains (has a relationship):"
+        for key in cuds_object:
+            pp_sub += level_indentation + " |_" + str(key) + ":"
+            for element in cuds_object.iter(key):
+                indentation = level_indentation + " | "
+                pp_sub += indentation + pp_entity_name(element)
+                indentation += "  "
+                pp_sub += indentation + "uuid: " + str(cuds_object.uid)
+                pp_sub += pp_subelements(element, indentation)
+    return pp_sub
