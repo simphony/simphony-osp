@@ -92,6 +92,6 @@ def pp_subelements(cuds_object, level_indentation="\n  "):
                 indentation = level_indentation + " | "
                 pp_sub += indentation + pp_entity_name(element)
                 indentation += "  "
-                pp_sub += indentation + "uuid: " + str(cuds_object.uid)
+                pp_sub += indentation + "uuid: " + str(element.uid)
                 pp_sub += pp_subelements(element, indentation)
     return pp_sub
