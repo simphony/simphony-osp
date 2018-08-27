@@ -533,7 +533,7 @@ CUDS_ONTOLOGY:
     definition: a material (materials science) and its properties in the data container
     parent: CUBA.MATERIAL_ENTITY
 
-  COMPUTATIONA_BOUNDARY:
+  COMPUTATIONAL_BOUNDARY:
     definition: A computational (not real) boundary in the system
     parent: CUBA.TWO_DIMENSIONAL_CONTINUANT_FIAT_BOUNDARY
     CUBA.CONDITION:
