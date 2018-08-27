@@ -16,6 +16,6 @@ build:
    
     script:
         - source env/bin/activate
-        - python setup.py install
+        - python setup.py install -t
         - python setup.py test
 
