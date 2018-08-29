@@ -47,10 +47,6 @@ CUDS_ONTOLOGY:
     definition: bfo
     parent: CUBA.INDEPENDENT_CONTINUANT
 
-  OBJECT:
-    definition: bfo
-    parent: CUBA.MATERIAL_ENTITY
-
   OBJECT_AGGREGATE:
     definition: bfo
     parent: CUBA.MATERIAL_ENTITY
