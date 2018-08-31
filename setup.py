@@ -92,7 +92,7 @@ setup(
         'install': Install,
         'develop': Develop
     },
-    test_suite='testing.api_test',
+    test_suite='testing',
     entry_points={
         'console_scripts': [
             'simphony-class-generator = cuds.metatools.class_generator:main',
