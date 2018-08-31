@@ -9,13 +9,20 @@ before_script:
     - pip install -r requirements.txt
 
 stages:
-    - build 
+    - build
+    - test
 
-build:
+build_job:
     stage: build
-   
+
     script:
         - source env/bin/activate
         - python setup.py install -t
+
+test_job:
+    stage: test
+
+    script:
+        - source env/bin/activate
         - python setup.py test
 
