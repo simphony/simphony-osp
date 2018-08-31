@@ -1,8 +1,8 @@
 import argparse
+import os.path
 
 from cuds.ontology.tools.parser import Parser
 from cuds.utils import format_class_name
-from os.path import join as join_paths
 from string import Template
 from textwrap import fill
 
@@ -32,30 +32,39 @@ class ClassGenerator(object):
         """
         Generates each individual class file and the CUBA enum file.
         """
-        self.generate_init_file()
-        self.generate_enum_file()
-        self.generate_template_instance()
+        self._generate_attributes_file()
+        self._generate_init_file()
+        self._generate_enum_file()
+        self._generate_template_instance()
         for entity in self._parser.get_entities():
             if entity not in self.not_instantiable:
                 print("Generating {}".format(entity))
-                self.generate_class_file(entity)
+                self._generate_class_file(entity)
 
-    def generate_init_file(self):
+    def _generate_attributes_file(self):
+        filename = os.path.join(os.path.dirname(self.output_folder), "all_cuds_attributes.py")
+        attributes = self.not_instantiable.union({"name", "cuba_key", "uid"})
+        attributes_string = str(attributes).lower()
+        with open(filename, 'w') as f:
+            f.write("all_cuds_attributes = " + attributes_string)
+            f.close()
+
+    def _generate_init_file(self):
         """
         Generates the __init__ file in the cuds folder.
         """
-        init_filename = join_paths(self.output_folder, "__init__.py")
+        init_filename = os.path.join(self.output_folder, "__init__.py")
         with open(init_filename, 'w') as f:
             # Import DataContainer from its folder
             f.write("from ..core.data_container import DataContainer\n")
             f.write("from cuba import CUBA \n")
             f.close()
 
-    def generate_enum_file(self):
+    def _generate_enum_file(self):
         """
         Generates the enum with the entities from the ontology.
         """
-        cuba_filename = join_paths(self.output_folder, "cuba.py")
+        cuba_filename = os.path.join(self.output_folder, "cuba.py")
         enum = "from enum import Enum, unique\n\n"
         enum += "\n@unique\n"
         enum += "class CUBA(Enum):\n"
@@ -66,7 +75,7 @@ class ClassGenerator(object):
             f.write(enum)
             f.close()
 
-    def generate_template_instance(self):
+    def _generate_template_instance(self):
         """
         Opens the template file and reads its content.
         """
@@ -75,7 +84,7 @@ class ClassGenerator(object):
             f.close()
         self._template = Template(template)
 
-    def generate_class_file(self, original_class):
+    def _generate_class_file(self, original_class):
         """
         Creates a class file using the template.
 
@@ -101,7 +110,7 @@ class ClassGenerator(object):
         definition = definition.replace("\n", "\n    ")
 
         arguments_init, attr_sent_super, attr_initialised = self.\
-            get_constructor_attributes(original_class)
+            _get_constructor_attributes(original_class)
 
         content = {
             'parent_module':            parent_module,
@@ -114,10 +123,10 @@ class ClassGenerator(object):
             'attributes_initialised':   attr_initialised
             }
 
-        self.write_content_to_class_file(content, module)
-        self.add_class_import_to_init(module, fixed_class_name)
+        self._write_content_to_class_file(content, module)
+        self._add_class_import_to_init(module, fixed_class_name)
 
-    def write_content_to_class_file(self, content, class_file):
+    def _write_content_to_class_file(self, content, class_file):
         """
         Writes the content of the class to a python file.
 
@@ -128,24 +137,24 @@ class ClassGenerator(object):
         text = self._template.safe_substitute(content)
 
         # Create file from template substitutions
-        filename = join_paths(self.output_folder, class_file + ".py")
+        filename = os.path.join(self.output_folder, class_file + ".py")
         with open(filename, 'w') as f:
             f.write(text)
             f.close()
 
-    def add_class_import_to_init(self, module_name, class_name):
+    def _add_class_import_to_init(self, module_name, class_name):
         """
         Adds the import to the init file.
 
         :param module_name: name of the class file (module)
         :param class_name: name of the class
         """
-        init_file = join_paths(self.output_folder, "__init__.py")
+        init_file = os.path.join(self.output_folder, "__init__.py")
         with open(init_file, 'a+') as f:
             f.write("from " + module_name + " import " + class_name + "\n")
             f.close()
 
-    def get_constructor_attributes(self, cuba_key):
+    def _get_constructor_attributes(self, cuba_key):
         """
         Returns the attributes (own and inherited) used in the constructor.
 
