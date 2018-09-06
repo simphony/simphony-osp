@@ -75,7 +75,7 @@ packages = [
     'cuds.classes.generated',
     'cuds.ontology',
     'cuds.ontology.tools',
-    'testing'
+    'cuds.testing'
 ]
 
 # main setup configuration class
@@ -92,7 +92,7 @@ setup(
         'install': Install,
         'develop': Develop
     },
-    test_suite='testing',
+    test_suite='cuds.testing',
     entry_points={
         'console_scripts': [
             'simphony-class-generator = cuds.metatools.class_generator:main',
