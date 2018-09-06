@@ -22,4 +22,5 @@ test_job:
   stage: test
 
   script:
+    - source env/bin/activate
     - python setup.py test
