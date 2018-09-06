@@ -17,10 +17,11 @@ build_job:
   script:
     - source env/bin/activate
     - python setup.py install -t
-
-test_job:
-  stage: test
-
-  script:
-    - source env/bin/activate
     - python setup.py test
+
+#test_job:
+#  stage: test
+#
+#  script:
+#    - source env/bin/activate
+#    - python setup.py test
