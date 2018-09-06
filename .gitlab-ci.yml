@@ -17,4 +17,9 @@ build_job:
   script:
     - source env/bin/activate
     - python setup.py install -t
+
+test_job:
+  stage: test
+
+  script:
     - python setup.py test
