@@ -35,7 +35,7 @@ class DataContainer(dict):
         if key in self.restricted_keys:
             super(DataContainer, self).__setitem__(key, value)
         else:
-            message = "Key {!r} is not in the supported keywords"
+            message = 'Key {!r} is not in the supported keywords'
             raise ValueError(message.format(key))
 
     def add(self, *args):
@@ -125,7 +125,7 @@ class DataContainer(dict):
             try:
                 self.__getitem__(key)[arg.uid] = arg
             except KeyError:
-                message = "{} does not exist. Add it first"
+                message = '{} does not exist. Add it first'
                 raise ValueError(message.format(arg))
 
     def iter(self, cuba_key=None):

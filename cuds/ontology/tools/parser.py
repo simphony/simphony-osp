@@ -43,7 +43,7 @@ class Parser:
         :param entity: entity whose definition to return
         :return: str with the definition
         """
-        definition = self._ontology[entity]["definition"]
+        definition = self._ontology[entity]['definition']
         return definition if definition is not None else "To Be Determined"
 
     def get_parent(self, entity):
@@ -55,9 +55,9 @@ class Parser:
         :raises KeyError: the queried entity does not exist
         """
         try:
-            parent = self._ontology[entity]["parent"]
+            parent = self._ontology[entity]['parent']
         except KeyError:
-            message = "{!r} does not exist. Try again."
+            message = '{!r} does not exist. Try again.'
             raise KeyError(message.format(entity))
         # Erase "CUBA." prefix
         parent = "" if parent is None else parent.replace("CUBA.", "")
