@@ -34,7 +34,7 @@ Testing is included in setuptools::
 They can also be ran manually::
 
     # manually run tests
-    python -m testing.test_api
+    python -m cuds.testing.test_api
 
 Documentation
 -------------
