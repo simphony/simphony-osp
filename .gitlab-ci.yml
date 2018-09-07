@@ -30,6 +30,6 @@ test_job:
   stage: test
 
   script:
-    - source env/bin/activate
-    - python setup.py install -t
+#    - source env/bin/activate
+#    - python setup.py install -t
     - python setup.py test
