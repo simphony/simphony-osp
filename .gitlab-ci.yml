@@ -9,8 +9,8 @@ stages:
   - test
 
 before_script:
-  - virtualenv env
-  - source env/bin/activate
+  - virtualenv venv
+  - source venv/bin/activate
 
 build_job:
   stage: build
