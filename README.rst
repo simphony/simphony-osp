@@ -34,7 +34,7 @@ Testing is included in setuptools::
 They can also be ran manually::
 
     # manually run tests
-    python -m testing.api_test
+    python -m testing.test_api
 
 Documentation
 -------------
@@ -49,12 +49,13 @@ Directory structure
   - metatools -- class generator and template file.
   - ontology -- ontological representation of the cuds.
     - tools -- scripts that work on the ontology files
+  - testing -- unittesting of the code.
 - doc -- documentation related files.
 - examples -- examples of usage. Can be run with::
 
         python -m examples.api_example
 
-- testing -- unittesting of the code.
+
 
 Data structure
 --------------
