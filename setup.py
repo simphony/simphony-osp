@@ -70,9 +70,9 @@ except OSError:
 packages = [
     'cuds',
     'cuds.classes',
-    'cuds.metatools',
     'cuds.classes.core',
     'cuds.classes.generated',
+    'cuds.metatools',
     'cuds.ontology',
     'cuds.ontology.tools',
     'cuds.testing'

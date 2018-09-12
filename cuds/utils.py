@@ -28,9 +28,6 @@ def format_class_name(name):
 
 # Cuds utility methods
 
-def print_definition(cuds_object):
-    print(cuds_object.__doc__)
-
 
 def find_cuds(uid, cuds_object):
     """
@@ -65,11 +62,25 @@ def find_cuds_by(criteria, value, cuds_object):
         return find_cuds_by(criteria, value, sub)
 
 
+def get_definition(cuds_object):
+    return cuds_object.__doc__
+
+
+def get_ancestors(cuds_object):
+    ancestors = []
+    parent = cuds_object.__class__.__bases__[0]
+    while parent != dict:
+        ancestors.append(parent.__name__)
+        parent = parent.__bases__[0]
+    return ancestors
+
+
 def pretty_print(cuds_object):
     pp = pp_entity_name(cuds_object)
     pp += "\n  uuid: " + str(cuds_object.uid)
     pp += "\n  type: " + str(cuds_object.cuba_key)
-    pp += "\n  description: " + cuds_object.__doc__
+    pp += "\n  ancestors: " + ", ".join(get_ancestors(cuds_object))
+    pp += "\n  description: " + get_definition(cuds_object)
     pp += pp_subelements(cuds_object)
     print(pp)
 
