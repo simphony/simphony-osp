@@ -59,7 +59,9 @@ def find_cuds_by(criteria, value, cuds_object):
         pass
     # A contained element could have it
     for sub in cuds_object.iter():
-        return find_cuds_by(criteria, value, sub)
+        result = find_cuds_by(criteria, value, sub)
+        if result is not None:
+            return result
 
 
 def get_definition(cuds_object):
@@ -86,7 +88,7 @@ def pretty_print(cuds_object):
 
 
 def pp_entity_name(cuds_object):
-    # In case it is None, str()
+    # In case it is None, street()
     name = str(cuds_object.name)
     return "- Entity named <" + name + ">:"
 
