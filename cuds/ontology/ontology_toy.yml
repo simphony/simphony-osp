@@ -609,7 +609,7 @@ CUDS_ONTOLOGY:
     CUBA.COUPLING_TIME:
       default: 0.000001
 
-  BOX:
+  SIMULATION_BOX:
     definition: A simple hexahedron simulation box
     parent: CUBA.TWO_DIMENSIONAL_CONTINUANT_FIAT_BOUNDARY
     CUBA.VECTOR_X:
