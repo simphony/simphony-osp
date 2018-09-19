@@ -634,10 +634,3 @@ CUDS_ONTOLOGY:
       shape: [3]
       default: [CUBA.EMPTY_CONDITION, CUBA.EMPTY_CONDITION, CUBA.EMPTY_CONDITION]
 
-  FORCE_DATA_SPACE:
-    definition: The Force Data Space
-    parent: CUBA.ENTITY
-
-  SIMULATION_DATA_SPACE:
-    definition:
-    parent: CUBA.ENTITY

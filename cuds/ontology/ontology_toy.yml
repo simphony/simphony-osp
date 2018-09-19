@@ -697,6 +697,15 @@ CUDS_ONTOLOGY:
 
 
   # Added for the demo
+
+  FORCE_DATA_SPACE:
+    definition: The Force Data Space
+    parent: CUBA.ENTITY
+
+  SIMULATION_DATA_SPACE:
+    definition:
+    parent: CUBA.ENTITY
+
   CITY:
     definition: area in which a large number of people live fairly close together.
     parent: CUBA.ENTITY
