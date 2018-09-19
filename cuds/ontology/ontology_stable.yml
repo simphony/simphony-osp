@@ -641,35 +641,3 @@ CUDS_ONTOLOGY:
   SIMULATION_DATA_SPACE:
     definition:
     parent: CUBA.ENTITY
-
-
-# Added for the demo
-  CITY:
-    definition: area in which a large number of people live fairly close together.
-    parent: CUBA.ENTITY
-
-  NEIGHBOURHOOD:
-    definition: a district or community within a town or city
-    parent: CUBA.ENTITY
-
-  STREET:
-    definition: a public road in a city, town, or village, typically with houses and buildings on one or both sides
-    parent: CUBA.ENTITY
-
-  BUILDING:
-    definition: a structure with a roof and walls, such as a house or factory
-    parent: CUBA.ENTITY
-
-  FLOOR:
-    definition: all the rooms or areas on the same level of a building; a storey
-    parent: CUBA.ENTITY
-
-  APARTMENT:
-    definition: a suite of rooms forming one residence; a flat
-    parent: CUBA.ENTITY
-
-  CITIZEN:
-    definition: a legally recognized subject or national of a state or commonwealth, either native or naturalized
-    parent: CUBA.ENTITY
-
-
