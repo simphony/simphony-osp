@@ -45,7 +45,8 @@ def find_cuds(uid, cuds_object):
 
 def find_cuds_by(criteria, value, cuds_object):
     """
-    Recursively finds the element with a given uid inside a container
+    Recursively finds the element with a given value inside a container
+
     :param criteria: string with the category of the discriminant
     :param value: discriminant value
     :param cuds_object: container in which to search
@@ -62,6 +63,32 @@ def find_cuds_by(criteria, value, cuds_object):
         result = find_cuds_by(criteria, value, sub)
         if result is not None:
             return result
+
+
+def find_all_cuds_by(criteria, value, cuds_object):
+    """
+    Recursively finds all the elements with a given value inside a container
+
+    :param criteria: string with the category of the discriminant
+    :param value: discriminant value
+    :param cuds_object: container in which to search
+    :return: the element(s) if found
+    """
+
+    output = []
+    try:
+        if getattr(cuds_object, criteria) == value:
+            # FIXME: None TypeError with hdf5
+            output.append(cuds_object)
+    # If container does not have 'criteria'
+    except AttributeError:
+        pass
+    # A contained element could have it
+    for sub in cuds_object.iter():
+        result = find_all_cuds_by(criteria, value, sub)
+        if result is not None:
+            output.extend(result)
+    return output
 
 
 def get_definition(cuds_object):
