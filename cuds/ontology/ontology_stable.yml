@@ -634,3 +634,56 @@ CUDS_ONTOLOGY:
       shape: [3]
       default: [CUBA.EMPTY_CONDITION, CUBA.EMPTY_CONDITION, CUBA.EMPTY_CONDITION]
 
+  # Added for storing images of microscopy
+
+  INSTRUCTNAME:
+    definition: Device Name is Hitachi SEM S-3400 (Room C0.43 REM 2 (Hitachi); responsible are preu, lrei)
+    parent: CUBA.ENTITY
+
+  SERIALNUMBER:
+    definition: for further information ask preu or lrei
+    parent: CUBA.ENTITY
+
+  IMAGENAME:
+    definition: Name of the image; information content depends on the user
+    parent: CUBA.ENTITY
+
+  TIMESTAMP:
+    definition: Date and Time of the recording
+    parent: CUBA.ENTITY
+
+  DATASIZE:
+    definition: image resolution; most common are 1024x768 and 2560x1920
+    parent: CUBA.ENTITY
+
+  PIXELSIZE:
+    definition: scale --> 1 Pix = 248.0469nm
+    parent: CUBA.ENTITY
+
+  SIGNALNAME:
+    definition: used signal (detector)
+    parent: CUBA.ENTITY
+
+  ACCELERATINGVOLTAGE:
+    definition: accelerating voltage in V; important for interpretation or reproduction
+    parent: CUBA.ENTITY
+
+  MAGNIFICATION:
+    definition: magnification; useful for a first approximation (what can I see in this image)
+    parent: CUBA.ENTITY
+
+  WORKINGDISTANCE:
+    definition: distance between sample and cathode; important for interpretation or reproduction
+    parent: CUBA.ENTITY
+
+  EMISSIONCURRENT:
+    definition: Emission Current of the cathode (63mikroA is fairly low -> old cathode (may influence the img))
+    parent: CUBA.ENTITY
+
+  COMMENT:
+    definition: the user can add a comment for every image
+    parent: CUBA.ENTITY
+
+  KEYWORD:
+    definition: some users add a keyword for internal database (may help with sorting the images)
+    parent: CUBA.ENTITY
