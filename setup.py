@@ -38,16 +38,20 @@ def create_ontology_classes(ontology):
 class Install(install):
     # The format is (long option, short option, description).
     user_options = install.user_options + [
-        ('toy', 't', 'install using toy ontology')
+        ('toy', 't', 'install using toy ontology'),
+        ('city', 'c', 'install using city ontology')
     ]
 
     def initialize_options(self):
         install.initialize_options(self)
         self.toy = ''
+        self.city = ''
 
     def run(self):
         if self.toy:
             create_ontology_classes('ontology_toy.yml')
+        elif self.city:
+            create_ontology_classes('ontology_city.yml')
         else:
             create_ontology_classes('ontology_stable.yml')
         install.run(self)

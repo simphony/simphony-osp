@@ -1,0 +1,75 @@
+---
+VERSION: "0.0.1"
+
+CUDS_ONTOLOGY:
+
+  ENTITY:
+    definition: the basic ontologicial entity, a thing. BFO
+    parent:
+
+  CUDS_ENTITY:
+    definition: Root of all CUDS classes
+    parent: CUBA.ENTITY
+    CUBA.NAME:
+      default: ""
+
+  VALUE:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+
+  NUMBER:
+    definition:
+    parent: CUBA.VALUE
+
+  ADDRESS:
+    definition:
+    parent: CUBA.VALUE
+
+  SIMULATION_DATA_SPACE:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+
+  GEOGRAPHICAL_PLACE:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+    CUBA.ADDRESS:
+
+  POPULATED_PLACE:
+    definition:
+    parent: CUBA.GEOGRAPHICAL_PLACE
+  
+  CITY:
+    definition:
+    parent: CUBA.POPULATED_PLACE
+    CUBA.NEIGHBOURHOOD:
+
+  NEIGHBOURHOOD:
+    definition:
+    parent: CUBA.POPULATED_PLACE
+    CUBA.STREET:
+
+  STREET:
+    definition:
+    parent: CUBA.POPULATED_PLACE
+
+  ARCHITECTURAL_STRUCTURE:
+    definition:
+    parent: CUBA.GEOGRAPHICAL_PLACE
+    CUBA.ARCHITECTURAL_COMPONENTS:
+
+  BUILDING:
+    definition:
+    parent: CUBA.ARCHITECTURAL_STRUCTURE
+    CUBA.FLOOR:
+
+  ARCHITECTURAL_COMPONENT:
+     definition:
+     parent: CUBA.CUDS_ENTITY
+
+  FLOOR:
+    definition:
+    parent: CUBA.ARCHITECTURAL_COMPONENT
+    CUBA.NUMBER:
+
+  
+  
