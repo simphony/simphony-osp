@@ -25,10 +25,6 @@ CUDS_ONTOLOGY:
     definition:
     parent: CUBA.VALUE
 
-  SIMULATION_DATA_SPACE:
-    definition:
-    parent: CUBA.CUDS_ENTITY
-
   GEOGRAPHICAL_PLACE:
     definition:
     parent: CUBA.CUDS_ENTITY
