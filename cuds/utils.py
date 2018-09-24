@@ -56,7 +56,7 @@ def find_cuds_by(criteria, value, cuds_object):
         if getattr(cuds_object, criteria) == value:
             return cuds_object
     # If container does not have 'criteria'
-    except AttributeError:
+    except (AttributeError, KeyError):
         pass
     # A contained element could have it
     for sub in cuds_object.iter():
