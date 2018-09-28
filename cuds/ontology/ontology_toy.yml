@@ -694,3 +694,8 @@ CUDS_ONTOLOGY:
   FIXED:
     definition: fixed boundary condition
     parent: CUBA.CUDS_ENTITY
+
+  PREDECESSOR:
+    definition: a list of uuids defining the predecessor of current cuds
+    parent: CUBA.CUDS_ENTITY
+    CUBA.VALUE:
