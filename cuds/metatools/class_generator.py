@@ -49,7 +49,7 @@ class ClassGenerator(object):
         filename = os.path.join(os.path.dirname(self.output_folder),
                                 "all_cuds_attributes.py")
         attributes = self.not_instantiable.union({"name", "cuba_key", "uid"})
-        attributes_string = str(attributes).lower()
+        attributes_string = str(attributes).lower() + "\n"
         with open(filename, 'w') as f:
             f.write("all_cuds_attributes = " + attributes_string)
             f.close()
@@ -60,7 +60,6 @@ class ClassGenerator(object):
         """
         init_filename = os.path.join(self.output_folder, "__init__.py")
         with open(init_filename, 'w') as f:
-            f.write("from ..core.data_container import DataContainer\n")
             f.write("from cuba import CUBA \n")
             f.close()
 
@@ -126,7 +125,6 @@ class ClassGenerator(object):
             'attributes_sent_super': attr_sent_super,
             'attributes_initialised': attr_initialised
         }
-
         self._write_content_to_class_file(content, module)
         self._add_class_import_to_init(module, fixed_class_name)
 

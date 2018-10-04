@@ -2,7 +2,7 @@ import cuds.classes as cuds
 
 """
 The objects without any other entities added are shown as
-empty dictionaries "{}". This is so because the uid, name and other
+empty dictionaries '{}'. This is so because the uid, name and other
 properties are stored elsewhere and not shown.
 
 This example shows some options how to use the API

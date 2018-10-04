@@ -28,7 +28,6 @@ def format_class_name(name):
 
 # Cuds utility methods
 
-
 def find_cuds(uid, cuds_object):
     """
     Recursively finds the element with a given uid inside a container.
