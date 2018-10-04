@@ -12,7 +12,7 @@ c.add(boundary_a, boundary_b)
 
 # Add in a loop
 for i in range(6):
-    c.add(ComputationalBoundary(name="Computational Boundary number {}".format(i)))
+    c.add(ComputationalBoundary(name="Comp_Boundary number {}".format(i)))
 
 # Iterate
 for el in c.iter():

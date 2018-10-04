@@ -36,7 +36,8 @@ def dump_attributes(cuds_object, prefix=""):
     json += prefix + "    {\n"
     attributes = _filter_attr(cuds_object)
     for a in attributes:
-        json += prefix + "     \"" + a + "\": \"" + str(getattr(cuds_object, a)) + "\",\n"
+        json += prefix + "     \"" + a + "\": \""
+        json += str(getattr(cuds_object, a)) + "\",\n"
     json = json[:-2] + "\n"
     json += prefix + "    }"
     return json

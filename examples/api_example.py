@@ -1,8 +1,9 @@
 from cuds.classes.generated import *
 
 """
-The objects without any other entities added are shown as empty dictionaries "{}".
-This is so because the uid, name and other properties are stored elsewhere and not shown.
+The objects without any other entities added are shown as
+empty dictionaries "{}". This is so because the uid, name and other
+properties are stored elsewhere and not shown.
 
 This example shows some options how to use the API
 """
@@ -43,4 +44,4 @@ print("\nc without d: " + str(c))
 
 print("\nAdding Computational Boundaries to Cuds object in a loop:")
 for i in range(6):
-    c.add(ComputationalBoundary(name="Computational Boundary number {}".format(i)))
+    c.add(ComputationalBoundary(name="Comp_Boundary number {}".format(i)))

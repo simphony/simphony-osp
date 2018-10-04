@@ -46,7 +46,8 @@ class ClassGenerator(object):
         """
         Generates a file with all the attributes from the generated cuds.
         """
-        filename = os.path.join(os.path.dirname(self.output_folder), "all_cuds_attributes.py")
+        filename = os.path.join(os.path.dirname(self.output_folder),
+                                "all_cuds_attributes.py")
         attributes = self.not_instantiable.union({"name", "cuba_key", "uid"})
         attributes_string = str(attributes).lower()
         with open(filename, 'w') as f:
@@ -176,14 +177,14 @@ class ClassGenerator(object):
         attr_sent_super = ""
         attr_initialised = ""
 
-        for attr in all_attr:
+        for a in all_attr:
             # Check that they are not instantiable classes
-            if attr.upper() in self.not_instantiable:
-                arguments_init += ", " + attr
-                if attr in inherited_attr:
-                    attr_sent_super += attr + ", "
-                elif attr in own_attr:
-                    attr_initialised += "\n        self.{} = {}".format(attr, attr)
+            if a.upper() in self.not_instantiable:
+                arguments_init += ", " + a
+                if a in inherited_attr:
+                    attr_sent_super += a + ", "
+                elif a in own_attr:
+                    attr_initialised += "\n        self.{} = {}".format(a, a)
         if attr_initialised:
             attr_initialised += "\n"
 
@@ -197,10 +198,12 @@ def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("YAML_file", help="Input YAML file")
     arg_parser.add_argument("template_file", help="Template class file")
-    arg_parser.add_argument("output_folder", help="Root folder for the generated files")
+    help_info = "Root folder for the generated files"
+    arg_parser.add_argument("output_folder", help=help_info)
     args = arg_parser.parse_args()
 
-    generator = ClassGenerator(args.YAML_file, args.template_file, args.output_folder)
+    generator = ClassGenerator(args.YAML_file, args.template_file,
+                               args.output_folder)
     generator.generate_classes()
 
 
