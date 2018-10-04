@@ -41,11 +41,11 @@ class DataContainer(dict):
     def add(self, *args):
         """
         Adds (a) cuds object(s) to their respective CUBA key entries.
+        Before adding, check for invalid keys to aviod inconsistencies later.
 
         :param args: object(s) to add
         :raises ValueError: adding an element already there
         """
-        # Check now for invalid keys to avoid inconsistencies later
         check_arguments(DataContainer, *args)
         for arg in args:
             key = arg.cuba_key
@@ -69,16 +69,13 @@ class DataContainer(dict):
         check_arguments((uuid.UUID, CUBA), *keys)
         output = []
         for key in keys:
-            # get by UID
             if isinstance(key, uuid.UUID):
                 for element in self.values():
                     if key in element:
                         output.append(element[key])
                         break
-                # if not found
                 else:
                     output.append(None)
-            # get by CUBA key
             else:
                 try:
                     output.extend(self.__getitem__(key).values())
@@ -89,7 +86,8 @@ class DataContainer(dict):
 
     def remove(self, *args):
         """
-        Removes an element from the DataContainer.
+        Removes an element from the DataContainer and thus
+        also its contained elements.
 
         :param args: object or UID of the object to remove
         """
@@ -121,7 +119,6 @@ class DataContainer(dict):
         check_arguments(DataContainer, *args)
         for arg in args:
             key = arg.cuba_key
-            # Update the entry for the entity's key
             try:
                 self.__getitem__(key)[arg.uid] = arg
             except KeyError:

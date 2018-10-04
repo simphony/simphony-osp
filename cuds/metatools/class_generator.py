@@ -19,6 +19,7 @@ class ClassGenerator(object):
 
         :param yaml_filename: File with the ontology
         :param template_filename: File with the structure of the classes
+        :param output_folder: Folder for the generated classes
         """
         self._yaml_filename = yaml_filename
         self._template_filename = template_filename
@@ -42,6 +43,9 @@ class ClassGenerator(object):
                 self._generate_class_file(entity)
 
     def _generate_attributes_file(self):
+        """
+        Generates a file with all the attributes from the generated cuds.
+        """
         filename = os.path.join(os.path.dirname(self.output_folder), "all_cuds_attributes.py")
         attributes = self.not_instantiable.union({"name", "cuba_key", "uid"})
         attributes_string = str(attributes).lower()
@@ -55,7 +59,6 @@ class ClassGenerator(object):
         """
         init_filename = os.path.join(self.output_folder, "__init__.py")
         with open(init_filename, 'w') as f:
-            # Import DataContainer from its folder
             f.write("from ..core.data_container import DataContainer\n")
             f.write("from cuba import CUBA \n")
             f.close()
@@ -177,12 +180,10 @@ class ClassGenerator(object):
             # Check that they are not instantiable classes
             if attr.upper() in self.not_instantiable:
                 arguments_init += ", " + attr
-
                 if attr in inherited_attr:
                     attr_sent_super += attr + ", "
                 elif attr in own_attr:
                     attr_initialised += "\n        self.{} = {}".format(attr, attr)
-
         if attr_initialised:
             attr_initialised += "\n"
 

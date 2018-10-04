@@ -5,12 +5,14 @@ from .parser import Parser
 
 
 class Cuds2Dot:
-    """Class that parses a YAML file and finds information about the
-    entities contained. It can also save it to a dot format file"""
+    """
+    Class that parses a YAML file and finds information about the
+    entities contained. It can also save it to a dot format file.
+    """
 
     def __init__(self, filename, node, depth=-1, height=-1, inheritance=False):
         """
-        Constructor. Receives the name of the file with the ontology
+        Constructor. Receives the name of the file with the ontology.
 
         :param filename: name of the YAML file with the ontology
         :param node: set with the nodes to be represented

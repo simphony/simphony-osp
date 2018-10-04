@@ -66,8 +66,7 @@ class Parser:
     def get_attributes(self, entity, inheritance=True):
         """
         Computes a list of attributes of an entity.
-
-        If inheritance is set, it will add the attributes from the parents
+        If inheritance is set, it will add the attributes from the parents.
 
         :param entity: entity that has the wanted attributes
         :param inheritance: whether inherited attributes should be added or not
@@ -111,7 +110,7 @@ class Parser:
     def get_ancestors(self, leaf_entity):
         """
         Computes all the entities above a given one.
-        
+
         :param leaf_entity: entity at the base
         :return: list(str) with the parent entity and its parent until the root
         """
