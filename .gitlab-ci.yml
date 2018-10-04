@@ -14,8 +14,10 @@ build_job:
     - virtualenv venv
     - source venv/bin/activate
     - pip install --upgrade pip
+    - pip install flake8
     - pip install -r requirements.txt
     - python setup.py install -t
+    - flake8 .
 
 
 test_job:
