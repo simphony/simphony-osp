@@ -1,18 +1,18 @@
-from cuds.classes.generated import *
+import cuds.classes as cuds
 
 
 # Creating a Cuds object
-c = Cuds("test CUDS")
+c = cuds.Cuds("test CUDS")
 
-boundary_a = ComputationalBoundary(name="ComputationalBoundary a")
-boundary_b = ComputationalBoundary(name="ComputationalBoundary b")
+boundary_a = cuds.ComputationalBoundary(name="ComputationalBoundary a")
+boundary_b = cuds.ComputationalBoundary(name="ComputationalBoundary b")
 
 # Add
 c.add(boundary_a, boundary_b)
 
 # Add in a loop
 for i in range(6):
-    c.add(ComputationalBoundary(name="Comp_Boundary number {}".format(i)))
+    c.add(cuds.ComputationalBoundary(name="Comp_Boundary number {}".format(i)))
 
 # Iterate
 for el in c.iter():
@@ -22,7 +22,7 @@ for el in c.iter():
 get_boundary_a = c.get(boundary_a.uid)
 
 # Getting by CUBA key
-all_boundaries = c.get(CUBA.COMPUTATIONAL_BOUNDARY)
+all_boundaries = c.get(cuds.CUBA.COMPUTATIONAL_BOUNDARY)
 
 # Remove
 c.remove(boundary_a.uid)

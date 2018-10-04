@@ -117,14 +117,14 @@ class ClassGenerator(object):
             _get_constructor_attributes(original_class)
 
         content = {
-            'parent_module':            parent_module,
-            'parent':                   fixed_parent,
-            'class':                    fixed_class_name,
-            'definition':               definition,
-            'cuba_key':                 original_class,
-            'arguments_init':           arguments_init,
-            'attributes_sent_super':    attr_sent_super,
-            'attributes_initialised':   attr_initialised
+            'parent_module': parent_module,
+            'parent': fixed_parent,
+            'class': fixed_class_name,
+            'definition': definition,
+            'cuba_key': original_class,
+            'arguments_init': arguments_init,
+            'attributes_sent_super': attr_sent_super,
+            'attributes_initialised': attr_initialised
         }
 
         self._write_content_to_class_file(content, module)
