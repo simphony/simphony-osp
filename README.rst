@@ -8,9 +8,13 @@ Requirements
 - enum34
 - PyYaml
 
-*To run cuds2dot, graphviz must be installed in the system::
+\*To run cuds2dot, `graphviz` must be installed in the system::
 
     sudo apt-get install graphviz
+
+If you want to visualise the graph in a more interactive way than just the png, `xdot` can be used::
+
+    sudo apt-get install xdot
 
 Installation
 ------------
@@ -51,11 +55,7 @@ Directory structure
     - tools -- scripts that work on the ontology files
   - testing -- unittesting of the code.
 - doc -- documentation related files.
-- examples -- examples of usage. Can be run with::
-
-        python -m examples.api_example
-
-
+- examples -- examples of usage.
 
 Data structure
 --------------
