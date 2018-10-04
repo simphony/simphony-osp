@@ -36,7 +36,8 @@ class TestAPI(unittest.TestCase):
 
     def test_set_throws_exception(self):
         """
-        Tests that setting a value for a key not in restricted keys throws and exception
+        Tests that setting a value for a key not in restricted
+        keys throws an exception.
         """
         c = Cuds("Cuds")
         self.assertRaises(ValueError, c.__setitem__, "not an allowed key", 15)
@@ -51,15 +52,18 @@ class TestAPI(unittest.TestCase):
         c.add(d)
         self.assertEqual(str(c), "{<CUBA.COMPUTATIONAL_BOUNDARY: "
                                  "'COMPUTATIONAL_BOUNDARY'>: "
-                                 "{UUID('61d5422a-884a-4986-aef5-25419482d959'): "
+                                 "{UUID('61d5422a-884a-4986-aef5-25419482d959'"
+                                 "): "
                                  "{}}}")
         e = ComputationalBoundary()
         e.uid = UUID('07d5422a-884a-4986-aef5-25419482d959')
         c.add(e)
         self.assertEqual(str(c), "{<CUBA.COMPUTATIONAL_BOUNDARY: "
                                  "'COMPUTATIONAL_BOUNDARY'>: {"
-                                 "UUID('61d5422a-884a-4986-aef5-25419482d959'): {}, "
-                                 "UUID('07d5422a-884a-4986-aef5-25419482d959'): "
+                                 "UUID('61d5422a-884a-4986-aef5-25419482d959')"
+                                 ": {}, "
+                                 "UUID('07d5422a-884a-4986-aef5-25419482d959'"
+                                 "): "
                                  "{}}}")
 
     def test_add_throws_exception(self):
