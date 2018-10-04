@@ -5,6 +5,7 @@ cache:
 
 stages:
   - build
+  - style
   - test
 
 
@@ -18,6 +19,11 @@ build_job:
     - pip install -r requirements.txt
     - python setup.py install -t
 
+
+style_job:
+  stage: style
+  script:
+    - flake8
 
 test_job:
   stage: test
