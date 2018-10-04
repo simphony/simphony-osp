@@ -125,7 +125,7 @@ class ClassGenerator(object):
             'arguments_init':           arguments_init,
             'attributes_sent_super':    attr_sent_super,
             'attributes_initialised':   attr_initialised
-            }
+        }
 
         self._write_content_to_class_file(content, module)
         self._add_class_import_to_init(module, fixed_class_name)

@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from .parser import Parser
+from parser import Parser
 
 
 class Cuds2Dot:
@@ -16,8 +16,8 @@ class Cuds2Dot:
 
         :param filename: name of the YAML file with the ontology
         :param node: set with the nodes to be represented
-        :param depth: starting from the given node(s), of elements to graph (down)
-        :param height: starting from the given node(s), of elements to graph (up)
+        :param depth: starting from given node(s), of elements to graph (down)
+        :param height: starting from given node(s), of elements to graph (up)
         :param inheritance: whether to show the inherited attributes or not
         """
         self._filename = filename
@@ -99,7 +99,8 @@ class Cuds2Dot:
         :param item: item for which to compute and format the parameters
         :return: dot formatted string of the attributes
         """
-        attributes = "\"" + item + "\"\n    [label=\n    <<table border='1' cellborder='0' cellspacing='0'>\n"
+        attributes = "\"" + item + "\"\n    [label=\n    <<table border='1' "
+        attributes += "cellborder='0' cellspacing='0'>\n"
         attributes += "      <tr><td bgcolor='grey'>" + item + "</td></tr>\n"
         for att in self._parser.get_attributes(item, self._inheritance):
             attributes += "      <tr><td align='left' >" + att + "</td></tr>\n"
@@ -123,10 +124,14 @@ class Cuds2Dot:
 def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("filename", help="Input YAML file")
-    arg_parser.add_argument("-n", help="node(s) to be inspected", type=str, nargs='*', default=[])
-    arg_parser.add_argument("-d", help="depth of the nodes to show", type=int, default=-1)
-    arg_parser.add_argument("-u", help="height of the nodes to show", type=int, default=-1)
-    arg_parser.add_argument("-i", help="show inheritance of properties", action="store_true", default=False)
+    arg_parser.add_argument("-n", help="node(s) to be inspected", type=str,
+                            nargs='*', default=[])
+    arg_parser.add_argument("-d", help="depth of the nodes to show", type=int,
+                            default=-1)
+    arg_parser.add_argument("-u", help="height of the nodes to show", type=int,
+                            default=-1)
+    arg_parser.add_argument("-i", help="show inheritance of properties",
+                            action="store_true", default=False)
     args = arg_parser.parse_args()
 
     # Convert to upper case the root(s)
@@ -140,7 +145,8 @@ def main():
     directory = os.path.dirname(args.filename)
 
     # Call the command to create the graph from the file
-    command = "dot -Tpng " + filename_clean + ".dot -o " + filename_clean + ".png"
+    command = "dot -Tpng " + filename_clean + ".dot -o " + filename_clean
+    command += ".png"
     os.system(command)
     print(".png and .dot files successfully added to " + directory + "!")
 

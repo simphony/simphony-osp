@@ -24,15 +24,16 @@ def create_ontology_classes(ontology):
         'cuds', 'metatools', 'template')
 
     if not os.path.exists(ontology_file):
-        message = 'Unrecoverable error. Cannot find ' + ontology + ' file in {}'
-        raise RuntimeError(message.format(ontology_file))
+        text = 'Unrecoverable error. Cannot find ' + ontology + ' file in {}'
+        raise RuntimeError(text.format(ontology_file))
 
     if not os.path.exists(template_file):
-        message = 'Unrecoverable error. Cannot find \'template\' file in {}'
-        raise RuntimeError(message.format(template_file))
+        text = 'Unrecoverable error. Cannot find \'template\' file in {}'
+        raise RuntimeError(text.format(template_file))
 
     print('Building classes from ontology...')
-    ClassGenerator(ontology_file, template_file, "cuds/classes/generated").generate_classes()
+    path = "cuds/classes/generated"
+    ClassGenerator(ontology_file, template_file, path).generate_classes()
 
 
 class Install(install):
