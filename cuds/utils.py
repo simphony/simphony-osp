@@ -37,11 +37,13 @@ def filter_cuds_attr(cuds_object):
     # Filter the magic functions
     attributes = [a for a in dir(cuds_object) if not a.startswith("__")]
     # Filter the added methods
-    attributes = [a for a in attributes if not callable(getattr(cuds_object, a))]
+    attributes = \
+        [a for a in attributes if not callable(getattr(cuds_object, a))]
     # Filter the explicitly unwanted attributes
     attributes = [a for a in attributes if a not in {'restricted_keys'}]
 
     return set(attributes)
+
 
 def find_cuds(uid, cuds_object):
     """
