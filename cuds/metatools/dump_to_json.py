@@ -1,3 +1,4 @@
+import cuds.utils as utils
 """
 The resulting JSON file represents the internal structure of the CUDS.
 """
@@ -34,7 +35,7 @@ def dump_attributes(cuds_object, prefix=""):
     """
     json = prefix + "\"" + attribute_key + "\": \n"
     json += prefix + "    {\n"
-    attributes = _filter_attr(cuds_object)
+    attributes = utils.filter_cuds_attr(cuds_object)
     for a in attributes:
         json += prefix + "     \"" + a + "\": \""
         json += str(getattr(cuds_object, a)) + "\",\n"
@@ -59,18 +60,3 @@ def dump_cuds_same_key(cuds_same_key, prefix=""):
     json = json[:-2] + "\n"
     json += prefix + "}"
     return json
-
-
-def _filter_attr(item):
-    """
-    Filters the non-relevant information from an object:
-    The magic functions, the added methods and the explicitly
-    unwanted attributes.
-
-    :return: set with the filtered, relevant attributes
-    """
-    attributes = [a for a in dir(item) if not a.startswith("__")]
-    attributes = [a for a in attributes if not callable(getattr(item, a))]
-    attributes = [a for a in attributes if a not in {'restricted_keys'}]
-
-    return attributes

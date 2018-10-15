@@ -28,6 +28,21 @@ def format_class_name(name):
 
 # Cuds utility methods
 
+def filter_cuds_attr(cuds_object):
+    """
+    Filters the non-relevant attributes from a cuds object.
+
+    :return: set with the filtered, relevant attributes
+    """
+    # Filter the magic functions
+    attributes = [a for a in dir(cuds_object) if not a.startswith("__")]
+    # Filter the added methods
+    attributes = [a for a in attributes if not callable(getattr(cuds_object, a))]
+    # Filter the explicitly unwanted attributes
+    attributes = [a for a in attributes if a not in {'restricted_keys'}]
+
+    return set(attributes)
+
 def find_cuds(uid, cuds_object):
     """
     Recursively finds the element with a given uid inside a container.
