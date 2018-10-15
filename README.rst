@@ -50,11 +50,15 @@ TODO
 Directory structure
 -------------------
 - cuds -- files necessary for the creation and usage of the cuds.
+
   - classes -- python classes required for using the cuds.
+
     - core -- common low level classes and utility code.
     - generated -- generated native cuds implementations.
+
   - metatools -- class generator and template file.
   - ontology -- ontological representation of the cuds.
+
     - tools -- scripts that work on the ontology files
   - testing -- unittesting of the code.
 - doc -- documentation related files.
