@@ -23,6 +23,9 @@ The package requires python 2.7.x, installation is based on setuptools::
     # build and install
     python setup.py install
 
+    # using toy ontology
+    python setup.py install -t
+
 or::
 
     # build for in-place development

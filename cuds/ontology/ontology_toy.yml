@@ -258,9 +258,6 @@ CUDS_ONTOLOGY:
     definition: PATO, A quality of a physical entity that exists through action of continuants at the physical level of organisation in relation to other entities. ROMM, CWA, Physics QUANTITY
     parent: CUBA.DETERMINATE
 
-  TIME:
-    definition: PATO, A quality in which events occur in sequence.
-    parent: CUBA.PHYSICAL_QUALITY
 
   HYDROPHILICITY:
    definition: A physical quality inhering in a bearer by virtue the bearer disposition to having an affinity for water; it is readily absorbing or dissolving in water.
@@ -283,9 +280,6 @@ CUDS_ONTOLOGY:
     definition:
     parent: CUBA.PHYSICAL_QUALITY
 
-  VELOCITY:
-    definition:
-    parent: CUBA.PHYSICAL_QUALITY
 
   COLOR:
     definition:
