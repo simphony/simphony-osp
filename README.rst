@@ -6,10 +6,9 @@ Builds up on the previous version, simphony-common (SimPhoNy, EU FP7 Project (Nr
 
 Copyright (c) 2018, Adham Hashibon and Materials Informatics Team at Fraunhofer IWM.
 All rights reserved.
-Redistribution and use is limited to the scope and context agreed with the end user.
+Redistribution and use are limited to the scope agreed with the end user.
 No parts of this software may be used outside of this context.
-No redistribution to third parties is allowed without explicit written permission.
-
+No redistribution is allowed without explicit written permission.
 
 Requirements
 ------------
