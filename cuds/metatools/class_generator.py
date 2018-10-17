@@ -7,11 +7,11 @@
 
 import argparse
 import os.path
+from string import Template
+from textwrap import fill
 
 from cuds.ontology.tools.parser import Parser
 from cuds.utils import format_class_name
-from string import Template
-from textwrap import fill
 
 
 class ClassGenerator(object):

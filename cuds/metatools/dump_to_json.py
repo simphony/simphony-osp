@@ -1,8 +1,6 @@
 import cuds.utils as utils
-"""
-The resulting JSON file represents the internal structure of the CUDS.
-"""
 
+# The resulting JSON file represents the internal structure of the CUDS.
 
 attribute_key = "attributes"
 
