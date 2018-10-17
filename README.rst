@@ -3,6 +3,14 @@ core-osp
 Native implementation of the core cuds object and the class generation by the SimPhoNy team at Fraunhofer IWM.
 Builds up on the previous version, simphony-common (SimPhoNy, EU FP7 Project (Nr. 604005) www.simphony-project.eu)
 
+
+Copyright (c) 2018, Adham Hashibon and Materials Informatics Team at Fraunhofer IWM.
+All rights reserved.
+Redistribution and use is limited to the scope and context agreed with the end user.
+No parts of this software may be used outside of this context.
+No redistribution to third parties is allowed without explicit written permission.
+
+
 Requirements
 ------------
 - enum34
