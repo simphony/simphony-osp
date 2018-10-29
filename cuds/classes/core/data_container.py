@@ -51,6 +51,7 @@ class DataContainer(dict):
         Before adding, check for invalid keys to aviod inconsistencies later.
 
         :param args: object(s) to add
+        :return: reference to itself
         :raises ValueError: adding an element already there
         """
         check_arguments(DataContainer, *args)
@@ -65,6 +66,7 @@ class DataContainer(dict):
                     raise ValueError(message.format(arg))
             else:
                 self.__setitem__(key, {arg.uid: arg})
+        return self
 
     def get(self, *keys):
         """
