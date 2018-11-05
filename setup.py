@@ -86,7 +86,7 @@ setup(
     author='SimPhoNy, EU FP7 Project (Nr. 604005)',
     url='www.simphony-project.eu',
     description='The native implementation of the SimPhoNy cuds objects',
-    keywords='simphony, cuds, Fraunhofer IWM, Marketplace',
+    keywords='simphony, cuds, Fraunhofer IWM',
     long_description=README_TEXT,
     packages=packages,
     cmdclass={
@@ -97,6 +97,7 @@ setup(
     entry_points={
         'console_scripts': [
             'simphony-class-generator = cuds.metatools.class_generator:main',
-            'cuds2dot = cuds.ontology.tools.cuds2dot:main']
+            'cuds2dot = cuds.ontology.tools.cuds2dot:main'],
+        'wrappers': 'osp-core = cuds.classes.core:DataContainer'
     }
 )
