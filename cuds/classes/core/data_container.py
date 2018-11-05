@@ -54,7 +54,7 @@ class DataContainer(dict):
         :return: reference to itself
         :raises ValueError: adding an element already there
         """
-        check_arguments(DataContainer, *args)
+        check_arguments('all_simphony_wrappers', *args)
         for arg in args:
             key = arg.cuba_key
             # There are already entries for that CUBA key
@@ -125,7 +125,7 @@ class DataContainer(dict):
         :param args: element(s) to update
         :raises ValueError: if an element to update does not exist
         """
-        check_arguments(DataContainer, *args)
+        check_arguments('all_simphony_wrappers', *args)
         for arg in args:
             key = arg.cuba_key
             try:

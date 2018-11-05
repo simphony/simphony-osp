@@ -4,6 +4,8 @@
 # Redistribution and use are limited to the scope agreed with the end user.
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
+import pkg_resources
+
 
 # General utility methods
 
@@ -16,6 +18,8 @@ def check_arguments(types, *args):
     :param args: instances to check
     :raises TypeError: if the arguments are not of the correct type
     """
+    if types == 'all_simphony_wrappers':
+        types = tuple((wrapper.load() for wrapper in pkg_resources.iter_entry_points('wrappers')))
     for arg in args:
         if not isinstance(arg, types):
             message = '{!r} is not a correct object of allowed types {}'
