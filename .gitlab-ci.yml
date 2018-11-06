@@ -11,7 +11,7 @@ stages:
 build_job:
   stage: build
   script:
-    - rm /cuds/classes/all_cuds_attributes.py
+    - rm ./cuds/classes/all_cuds_attributes.py
     - virtualenv venv
     - source venv/bin/activate
     - pip install --upgrade pip
