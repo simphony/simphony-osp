@@ -7,8 +7,8 @@
 
 import argparse
 import os.path
+import textwrap
 from string import Template
-from textwrap import fill
 
 from cuds.ontology.tools.parser import Parser
 from cuds.utils import format_class_name
@@ -35,6 +35,7 @@ class ClassGenerator(object):
         # Don't create classes from CUBA.VALUE and its descendants
         self.not_instantiable = set(self._parser.get_descendants("VALUE"))
         self.output_folder = output_folder
+        self._text_wrapper = textwrap.TextWrapper()
 
     def generate_classes(self):
         """
@@ -47,18 +48,15 @@ class ClassGenerator(object):
             if entity not in self.not_instantiable:
                 print("Generating {}".format(entity))
                 self._generate_class_file(entity)
+        self._add_cuds_attributes_to_init()
 
     def _generate_init_file(self):
         """
         Generates the __init__ file in the cuds folder.
         """
         init_filename = os.path.join(self.output_folder, "__init__.py")
-        # Generate a set with the allowed attributes for cuds entities
-        attributes = self.not_instantiable.union({"name", "cuba_key", "uid"})
-        attributes_string = str(attributes).lower() + "\n\n"
 
         with open(init_filename, 'w') as f:
-            f.write("all_cuds_attributes = " + attributes_string)
             f.write("from cuba import CUBA \n")
             f.close()
 
@@ -86,6 +84,18 @@ class ClassGenerator(object):
             f.close()
         self._template = Template(template)
 
+    def _add_cuds_attributes_to_init(self):
+        """
+        Adds a set with all the allowed attributes for cuds entities at the end of the init file
+        """
+        init_filename = os.path.join(self.output_folder, "__init__.py")
+        attributes = self.not_instantiable.union({"name", "cuba_key", "uid"})
+        attributes_string = self._text_wrapper.fill(
+            str(attributes).lower() + "\n")
+        with open(init_filename, 'a+') as f:
+            f.write("\ncuds_attributes = " + attributes_string)
+            f.close()
+
     def _generate_class_file(self, original_class):
         """
         Creates a class file using the template.
@@ -107,7 +117,8 @@ class ClassGenerator(object):
         fixed_class_name = format_class_name(original_class)
 
         # Wraps the text to 70 characters
-        definition = fill(self._parser.get_definition(original_class))
+        definition = self._text_wrapper.fill(
+            self._parser.get_definition(original_class))
         # Add indentation to the new lines
         definition = definition.replace("\n", "\n    ")
 
