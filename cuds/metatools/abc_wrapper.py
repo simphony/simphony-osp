@@ -44,8 +44,8 @@ class ABCWrapper(object):
 
     def __setattr__(self, name, value):
         """
-        Overwrites the dot notation to set the properties, also setting the ones
-        belonging to a cuds entity.
+        Overwrites the dot notation to set the properties,
+        also setting the ones belonging to a cuds entity.
 
         :param name: name of the property
         :param value: value of the property
