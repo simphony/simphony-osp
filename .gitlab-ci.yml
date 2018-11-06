@@ -17,6 +17,7 @@ build_job:
     - pip install flake8
     - pip install -r requirements.txt
     - python setup.py install -t
+    - rm /cuds/classes/all_cuds_attributes.py
     - flake8 --exclude=cuds/classes/generated,venv,./build --ignore=F401,F403,E402
 
 

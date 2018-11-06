@@ -86,7 +86,8 @@ class ClassGenerator(object):
 
     def _add_cuds_attributes_to_init(self):
         """
-        Adds a set with all the allowed attributes for cuds entities at the end of the init file
+        Adds a set with all the allowed attributes for cuds entities
+        at the end of the init file
         """
         init_filename = os.path.join(self.output_folder, "__init__.py")
         attributes = self.not_instantiable.union({"name", "cuba_key", "uid"})
