@@ -141,15 +141,31 @@ class DataContainer(dict):
         :param cuba_key: type of the objects to iterate through
         """
         if cuba_key is None:
-            # Dictionary with entities of the same CUBA key
-            for element in self.values():
-                for item in element.values():
-                    yield item
+            for element in self.iter_all():
+                yield element
         else:
             check_arguments(CUBA, cuba_key)
-            try:
-                for item in self.__getitem__(cuba_key).values():
-                    yield item
-            # No elements for that key
-            except KeyError:
-                pass
+            for element in self.iter_by_key(cuba_key):
+                yield element
+
+    def iter_all(self):
+        """
+        Iterates over all the first level children
+        """
+        # Dictionary with entities of the same CUBA key
+        for element in self.values():
+            for item in element.values():
+                yield item
+
+    def iter_by_key(self, cuba_key):
+        """
+        Iterates over the first level children of a specific type
+
+        :param cuba_key: type of the children to filter
+        """
+        try:
+            for item in self.__getitem__(cuba_key).values():
+                yield item
+        # No elements for that key
+        except KeyError:
+            pass
