@@ -14,14 +14,16 @@ from cuds.utils import check_arguments
 
 class ABCWrapper(object):
     """
-    Abstract Base Class for all SimPhoNy wrappers. Defines the methods to be implemented and their inputs.
+    Abstract Base Class for all SimPhoNy wrappers. Defines the methods to be
+    implemented and their inputs.
     Matches the API followed in osp-core, and checks the input when necessary.
     """
     __metaclass__ = ABCMeta
 
     def __getattr__(self, item):
         """
-        Redefines the dot notation access to access the attributes that belong to a cuds entity.
+        Redefines the dot notation access to access the attributes
+        that belong to a cuds entity.
 
         :param item: attribute to get
         :return: value of that attribute if it belongs to an entity or None
@@ -42,7 +44,8 @@ class ABCWrapper(object):
 
     def __setattr__(self, name, value):
         """
-        Overwrites the dot notation to set the properties, also setting the ones belonging to a cuds entity.
+        Overwrites the dot notation to set the properties, also setting the ones
+        belonging to a cuds entity.
 
         :param name: name of the property
         :param value: value of the property
