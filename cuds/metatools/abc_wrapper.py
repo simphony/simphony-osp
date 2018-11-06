@@ -8,56 +8,155 @@
 from uuid import UUID
 from abc import ABCMeta, abstractmethod
 
+import cuds.classes as cuds
 from cuds.utils import check_arguments
-from cuds.classes import CUBA, DataContainer
 
 
 class ABCWrapper(object):
     """
-
-
+    Abstract Base Class for all SimPhoNy wrappers. Defines the methods to be implemented and their inputs.
+    Matches the API followed in osp-core, and checks the input when necessary.
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self):
-        pass
-
-    @abstractmethod
     def __getattr__(self, item):
-        pass
+        """
+        Redefines the dot notation access to access the attributes that belong to a cuds entity.
+
+        :param item: attribute to get
+        :return: value of that attribute if it belongs to an entity or None
+        :raises AttributeError: the accessed attribute does not exist
+        """
+        if item in cuds.cuds_attributes:
+            return self._get_cuds_attribute(item)
 
     @abstractmethod
+    def _get_cuds_attribute(self, item):
+        """
+        Access the attribute of a cuds object through dot notation
+
+        :param item: cuds attribute to get
+        :return: value of the attribute
+        """
+        pass
+
     def __setattr__(self, name, value):
+        """
+        Overwrites the dot notation to set the properties, also setting the ones belonging to a cuds entity.
+
+        :param name: name of the property
+        :param value: value of the property
+        """
+        if name in cuds.cuds_attributes:
+            self._set_cuds_attribute(name, value)
+        else:
+            self.__dict__[name] = value
+
+    @abstractmethod
+    def _set_cuds_attribute(self, name, value):
+        """
+        Sets the attribute of a cuds object through dot notation
+
+        :param name: name of the cuds attribute
+        :param value: value to set
+        """
         pass
 
     @abstractmethod
     def __str__(self):
+        """
+        Defines the output of str().
+
+        :return: string with the verbose description of the object
+        """
         pass
 
     @abstractmethod
     def add(self, *args):
+        """
+        Adds (a) cuds object(s) to their respective CUBA key entries using
+        a specific function.
+        Before adding, check for invalid keys to aviod inconsistencies later.
+
+        :param args: object(s) to add
+        :return: reference to itself
+        :raises ValueError: adding an element already there
+        """
         check_arguments('all_simphony_wrappers', *args)
 
     @abstractmethod
     def get(self, *keys):
-        check_arguments((UUID, CUBA), *keys)
+        """
+        Returns a wrapped version of the queried elements.
+
+        :param keys: UIDs and/or CUBA types of the elements
+        :return: list of objects of that type/uid, or None
+        """
+        check_arguments((UUID, cuds.CUBA), *keys)
 
     @abstractmethod
     def remove(self, *args):
-        check_arguments((UUID, DataContainer), *args)
+        """
+        Removes subelements of the current object
+
+        :param args: uid/instance of the subelement to remove
+        """
+        check_arguments((UUID, cuds.DataContainer), *args)
 
     @abstractmethod
     def update(self, *args):
+        """
+        Updates the subelements with newer versions
+        :param args: new versions for the subelements
+        :raises ValueError: if an element to update does not exist
+        """
         check_arguments('all_simphony_wrappers', *args)
 
-    @abstractmethod
     def iter(self, cuba_key=None):
+        """
+        Iterates over all the objects contained or over a specific type.
+
+        :param cuba_key: type of the objects to iterate through
+        """
+        if cuba_key is None:
+            for element in self._iter_all():
+                yield element
+        else:
+            check_arguments(cuds.CUBA, cuba_key)
+            for element in self._iter_by_key(cuba_key):
+                yield element
+
+    @abstractmethod
+    def _iter_all(self):
+        """
+        Iterates over all the first level children
+        """
+        pass
+
+    @abstractmethod
+    def _iter_by_key(self, cuba_key):
+        """
+        Iterates over the first level children of a specific type
+
+        :param cuba_key: type of the children to filter
+        """
         pass
 
     @abstractmethod
     def get_cuds(self, *uids):
+        """
+        Recreate the pure unwrapped CUDS object.
+
+        :param uids: uids of the entities to reconstruct
+        :return: list of cuds objects for the provided keys
+        """
         check_arguments(UUID, *uids)
 
     @abstractmethod
     def _wrap(self, *args):
+        """
+        Returns a wrapped proxy to access the subelements
+        :param args: necessary arguments to create the new instance
+        :return: new instance for a subelement
+        """
         pass
