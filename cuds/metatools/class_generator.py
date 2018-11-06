@@ -40,7 +40,6 @@ class ClassGenerator(object):
         """
         Generates each individual class file and the CUBA enum file.
         """
-        self._generate_attributes_file()
         self._generate_init_file()
         self._generate_enum_file()
         self._generate_template_instance()
@@ -49,24 +48,17 @@ class ClassGenerator(object):
                 print("Generating {}".format(entity))
                 self._generate_class_file(entity)
 
-    def _generate_attributes_file(self):
-        """
-        Generates a file with all the attributes from the generated cuds.
-        """
-        filename = os.path.join(os.path.dirname(self.output_folder),
-                                "all_cuds_attributes.py")
-        attributes = self.not_instantiable.union({"name", "cuba_key", "uid"})
-        attributes_string = str(attributes).lower() + "\n"
-        with open(filename, 'w') as f:
-            f.write("all_cuds_attributes = " + attributes_string)
-            f.close()
-
     def _generate_init_file(self):
         """
         Generates the __init__ file in the cuds folder.
         """
         init_filename = os.path.join(self.output_folder, "__init__.py")
+        # Generate a set with the allowed attributes for cuds entities
+        attributes = self.not_instantiable.union({"name", "cuba_key", "uid"})
+        attributes_string = str(attributes).lower() + "\n"
+
         with open(init_filename, 'w') as f:
+            f.write("all_cuds_attributes = " + attributes_string)
             f.write("from cuba import CUBA \n")
             f.close()
 
