@@ -55,7 +55,7 @@ class ClassGenerator(object):
         init_filename = os.path.join(self.output_folder, "__init__.py")
         # Generate a set with the allowed attributes for cuds entities
         attributes = self.not_instantiable.union({"name", "cuba_key", "uid"})
-        attributes_string = str(attributes).lower() + "\n"
+        attributes_string = str(attributes).lower() + "\n\n"
 
         with open(init_filename, 'w') as f:
             f.write("all_cuds_attributes = " + attributes_string)
