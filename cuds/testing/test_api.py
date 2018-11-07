@@ -5,7 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-import unittest
+import unittest2 as unittest
 from uuid import UUID
 
 import cuds.classes as cuds
