@@ -17,7 +17,7 @@ build_job:
     - pip3 install flake8
     - pip3 install -r requirements.txt
     - python3 setup.py install -t
-    - flake8 --exclude=cuds/classes/generated,venv,venv3,./build --ignore=F401,F403,E402
+    - flake8 --exclude=cuds/classes/generated,venv,venv3,build --ignore=F401,F403,E402
 
 
 test_job:
