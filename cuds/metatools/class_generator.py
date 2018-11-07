@@ -57,7 +57,7 @@ class ClassGenerator(object):
         init_filename = os.path.join(self.output_folder, "__init__.py")
 
         with open(init_filename, 'w') as f:
-            f.write("from cuba import CUBA \n")
+            f.write("from .cuba import CUBA \n")
             f.close()
 
     def _generate_enum_file(self):
@@ -106,7 +106,7 @@ class ClassGenerator(object):
         # Get the parent
         original_parent = self._parser.get_parent(original_class)
         if original_parent == "":
-            original_parent = "..core.data_container"
+            original_parent = ".core.data_container"
             fixed_parent = "DataContainer"
         else:
             # Update the names to proper case
@@ -164,7 +164,7 @@ class ClassGenerator(object):
         """
         init_file = os.path.join(self.output_folder, "__init__.py")
         with open(init_file, 'a+') as f:
-            f.write("from " + module_name + " import " + class_name + "\n")
+            f.write("from ." + module_name + " import " + class_name + "\n")
             f.close()
 
     def _get_constructor_attributes(self, cuba_key):

@@ -7,7 +7,7 @@ from setuptools.command.develop import develop
 from packageinfo import VERSION, NAME
 
 # Should be in install_requires, but needed for ClassGenerator import
-check_call(["pip", "install", "-r", "requirements.txt"])
+check_call(["pip3", "install", "-r", "requirements.txt"])
 from cuds.metatools.class_generator import ClassGenerator
 
 # Read description
