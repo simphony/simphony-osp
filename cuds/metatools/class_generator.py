@@ -11,6 +11,7 @@ import textwrap
 from string import Template
 
 from cuds.ontology.tools.parser import Parser
+from cuds.utils import format_class_name
 
 
 class ClassGenerator(object):
@@ -109,12 +110,12 @@ class ClassGenerator(object):
             fixed_parent = "DataContainer"
         else:
             # Update the names to proper case
-            fixed_parent = self._format_class_name(original_parent)
+            fixed_parent = format_class_name(original_parent)
 
         parent_module = original_parent.lower()
         module = original_class.lower()
 
-        fixed_class_name = self._format_class_name(original_class)
+        fixed_class_name = format_class_name(original_class)
 
         # Wraps the text to 70 characters
         definition = self._text_wrapper.fill(
@@ -200,17 +201,6 @@ class ClassGenerator(object):
         attr_sent_super += "name"
 
         return arguments_init, attr_sent_super, attr_initialised
-
-    @staticmethod
-    def _format_class_name(name):
-        """
-        Formats a string to CapWords.
-
-        :param name: string to format
-        :return: string with the name in CapWords
-        """
-        fixed_name = name.title().replace("_", "")
-        return fixed_name
 
 
 def main():
