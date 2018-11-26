@@ -9,7 +9,6 @@ import pkg_resources
 
 # General utility methods
 
-
 def check_arguments(types, *args):
     """
     Checks that the arguments provided are of the certain type(s).
