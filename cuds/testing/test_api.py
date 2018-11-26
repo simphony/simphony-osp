@@ -5,7 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-import unittest
+import unittest2 as unittest
 from uuid import UUID
 
 import cuds.classes as cuds
@@ -67,9 +67,9 @@ class TestAPI(unittest.TestCase):
         c.add(e)
         self.assertEqual(str(c), "{<CUBA.COMPUTATIONAL_BOUNDARY: "
                                  "'COMPUTATIONAL_BOUNDARY'>: {"
-                                 "UUID('61d5422a-884a-4986-aef5-25419482d959')"
+                                 "UUID('07d5422a-884a-4986-aef5-25419482d959')"
                                  ": {}, "
-                                 "UUID('07d5422a-884a-4986-aef5-25419482d959'"
+                                 "UUID('61d5422a-884a-4986-aef5-25419482d959'"
                                  "): "
                                  "{}}}")
 

@@ -25,7 +25,7 @@ If you want to visualise the graph in a more interactive way than just the png, 
 
 Installation
 ------------
-The package requires python 2.7.x, installation is based on setuptools::
+The package requires python 3 (tested for 3.6), installation is based on setuptools::
 
     # build and install
     python setup.py install

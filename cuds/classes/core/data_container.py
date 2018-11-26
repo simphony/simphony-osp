@@ -6,7 +6,8 @@
 # No redistribution is allowed without explicit written permission.
 
 import uuid
-from cuds.utils import check_arguments
+
+from ...utils import check_arguments
 from ..generated.cuba import CUBA
 
 
@@ -23,7 +24,7 @@ class DataContainer(dict):
         """
         Initialization follows the behaviour of the python dict class.
         """
-        super(DataContainer, self).__init__()
+        super().__init__()
 
         # These are the allowed CUBA keys (faster to convert to set for lookup)
         self.restricted_keys = frozenset(CUBA)
@@ -40,7 +41,7 @@ class DataContainer(dict):
         :raises ValueError: unsupported key provided (not a CUBA key)
         """
         if key in self.restricted_keys:
-            super(DataContainer, self).__setitem__(key, value)
+            super().__setitem__(key, value)
         else:
             message = 'Key {!r} is not in the supported keywords'
             raise ValueError(message.format(key))
@@ -141,12 +142,10 @@ class DataContainer(dict):
         :param cuba_key: type of the objects to iterate through
         """
         if cuba_key is None:
-            for element in self.iter_all():
-                yield element
+            yield from self.iter_all()
         else:
             check_arguments(CUBA, cuba_key)
-            for element in self.iter_by_key(cuba_key):
-                yield element
+            yield from self.iter_by_key(cuba_key)
 
     def iter_all(self):
         """
@@ -164,8 +163,7 @@ class DataContainer(dict):
         :param cuba_key: type of the children to filter
         """
         try:
-            for item in self.__getitem__(cuba_key).values():
-                yield item
+            yield from self.__getitem__(cuba_key).values()
         # No elements for that key
         except KeyError:
             pass

@@ -12,13 +12,12 @@ import cuds.classes as cuds
 from cuds.utils import check_arguments
 
 
-class ABCWrapper(object):
+class ABCWrapper(object, metaclass=ABCMeta):
     """
     Abstract Base Class for all SimPhoNy wrappers. Defines the methods to be
     implemented and their inputs.
     Matches the API followed in osp-core, and checks the input when necessary.
     """
-    __metaclass__ = ABCMeta
 
     def __getattr__(self, item):
         """
@@ -122,12 +121,10 @@ class ABCWrapper(object):
         :param cuba_key: type of the objects to iterate through
         """
         if cuba_key is None:
-            for element in self._iter_all():
-                yield element
+            yield from self._iter_all()
         else:
             check_arguments(cuds.CUBA, cuba_key)
-            for element in self._iter_by_key(cuba_key):
-                yield element
+            yield from self._iter_by_key(cuba_key)
 
     @abstractmethod
     def _iter_all(self):
