@@ -28,27 +28,27 @@ Installation
 The package requires python 3 (tested for 3.6), installation is based on setuptools::
 
     # build and install
-    python setup.py install
+    python3 setup.py install
 
     # using toy ontology
-    python setup.py install -t
+    python3 setup.py install -t
 
 or::
 
     # build for in-place development
-    python setup.py develop
+    python3 setup.py develop
 
 Testing
 -------
 Testing is included in setuptools::
 
     # run tests automatically
-    python setup.py test
+    python3 setup.py test
 
 They can also be ran manually::
 
     # manually run tests
-    python -m cuds.testing.test_api
+    python3 -m cuds.testing.test_api
 
 Documentation
 -------------
