@@ -1,5 +1,5 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
+# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team, 
+# Fraunhofer IWM and Didrik Pinte, ENTHOGH Inc. 
 # All rights reserved.
 # Redistribution and use are limited to the scope agreed with the end user.
 # No parts of this software may be used outside of this context.
