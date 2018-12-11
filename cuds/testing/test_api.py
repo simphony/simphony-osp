@@ -57,21 +57,11 @@ class TestAPI(unittest.TestCase):
         d = cuds.ComputationalBoundary(name="ComputationalBoundary")
         d.uid = UUID('61d5422a-884a-4986-aef5-25419482d959')
         c.add(d)
-        self.assertEqual(str(c), "{<CUBA.COMPUTATIONAL_BOUNDARY: "
-                                 "'COMPUTATIONAL_BOUNDARY'>: "
-                                 "{UUID('61d5422a-884a-4986-aef5-25419482d959'"
-                                 "): "
-                                 "{}}}")
+        self.assertEqual(str(c.get(d.uid)[0].uid), '61d5422a-884a-4986-aef5-25419482d959')
         e = cuds.ComputationalBoundary()
         e.uid = UUID('07d5422a-884a-4986-aef5-25419482d959')
         c.add(e)
-        self.assertEqual(str(c), "{<CUBA.COMPUTATIONAL_BOUNDARY: "
-                                 "'COMPUTATIONAL_BOUNDARY'>: {"
-                                 "UUID('61d5422a-884a-4986-aef5-25419482d959')"
-                                 ": {}, "
-                                 "UUID('07d5422a-884a-4986-aef5-25419482d959'"
-                                 "): "
-                                 "{}}}")
+        self.assertEqual(str(c.get(e.uid)[0].uid), '07d5422a-884a-4986-aef5-25419482d959')
 
     def test_add_throws_exception(self):
         """
