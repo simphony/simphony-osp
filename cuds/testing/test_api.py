@@ -49,30 +49,6 @@ class TestAPI(unittest.TestCase):
         c = cuds.Cuds("Cuds")
         self.assertRaises(ValueError, c.__setitem__, "not an allowed key", 15)
 
-    #def test_add(self):
-    #    """
-    #    Tests the standard, normal behaviour of the add() method
-    #    """
-    #    c = cuds.Cuds("Cuds")
-    #    d = cuds.ComputationalBoundary(name="ComputationalBoundary")
-    #    d.uid = UUID('61d5422a-884a-4986-aef5-25419482d959')
-    #    c.add(d)
-    #    self.assertEqual(str(c), "{<CUBA.COMPUTATIONAL_BOUNDARY: "
-    #                             "'COMPUTATIONAL_BOUNDARY'>: "
-    #                             "{UUID('61d5422a-884a-4986-aef5-25419482d959'"
-    #                             "): "
-    #                             "{}}}")
-    #    e = cuds.ComputationalBoundary()
-    #    e.uid = UUID('07d5422a-884a-4986-aef5-25419482d959')
-    #    c.add(e)
-    #    self.assertEqual(str(c), "{<CUBA.COMPUTATIONAL_BOUNDARY: "
-    #                             "'COMPUTATIONAL_BOUNDARY'>: {"
-    #                             "UUID('07d5422a-884a-4986-aef5-25419482d959')"
-    #                             ": {}, "
-    #                             "UUID('61d5422a-884a-4986-aef5-25419482d959'"
-    #                             "): "
-    #                             "{}}}")
-
     def test_add_throws_exception(self):
         """
         Tests the add() method for unusual behaviours.
