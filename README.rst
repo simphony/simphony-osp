@@ -45,7 +45,7 @@ Testing is included in setuptools::
     # run tests automatically
     python3 setup.py test
 
-They can also be ran manually::
+They can also be run manually::
 
     # manually run tests
     python3 -m cuds.testing.test_api
