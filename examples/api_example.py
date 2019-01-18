@@ -44,4 +44,5 @@ print("\nc without d: " + str(c))
 
 print("\nAdding Computational Boundaries to Cuds object in a loop:")
 for i in range(6):
-    c.add(cuds.classes.ComputationalBoundary(name="Comp_Boundary number {}".format(i)))
+    c.add(cuds.classes.ComputationalBoundary(
+        name="Comp_Boundary number {}".format(i)))

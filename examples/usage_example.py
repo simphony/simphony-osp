@@ -12,7 +12,8 @@ c.add(boundary_a, boundary_b)
 
 # Add in a loop
 for i in range(6):
-    c.add(cuds.classes.ComputationalBoundary(name="Comp_Boundary number {}".format(i)))
+    c.add(cuds.classes.ComputationalBoundary(
+        name="Comp_Boundary number {}".format(i)))
 
 # Iterate
 for el in c.iter():
