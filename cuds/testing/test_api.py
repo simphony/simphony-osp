@@ -8,7 +8,7 @@
 import unittest2 as unittest
 from uuid import UUID
 
-import cuds.classes as cuds
+import cuds.classes
 
 
 class TestAPI(unittest.TestCase):
