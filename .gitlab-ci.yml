@@ -2,20 +2,14 @@ image: "registry.gitlab.cc-asp.fraunhofer.de:4567/force/osp-core"
 
 stages:
   - build
-  - test
+  #- test
 
 build_job:
   stage: build
   script:
     - python3 setup.py install -t
     - flake8 cuds/ --exclude=cuds/classes/generated,venv,venv3,build --ignore=F401,F403,E402
-
-
-test_job:
-  stage: test
-  script:
     - python3 setup.py test
-
 
 
 #image: python 3.6
