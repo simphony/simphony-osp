@@ -59,7 +59,7 @@ The idea is that the users can define their own ontology and compare with the st
 The new one will not be added to the python site-packages, and can be imported through relative paths.
 
 If the generated classes are to be added to python for easier importing, the output folder can be set to `site-packages`:
-.. code-block:: python
+.. code:: python
 
     import site
     print(site.getsitepackages())[0] + "/cuds/classes/generated")
@@ -94,7 +94,7 @@ Each entry will enclose the elements contained by said object with the same CUBA
 These will be again in a registry, this time by UID.
 
 For example:
-.. code-block:: JSON
+.. code:: JSON
 
     a_cuds_object = {
 
