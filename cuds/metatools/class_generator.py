@@ -207,8 +207,8 @@ def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("YAML_file", help="Input YAML file")
     arg_parser.add_argument("template_file", help="Template class file")
-    help_info = "Root folder for the generated files"
-    arg_parser.add_argument("output_folder", help=help_info)
+    arg_parser.add_argument("output_folder",
+                            help="Root folder for the generated files")
     args = arg_parser.parse_args()
 
     generator = ClassGenerator(args.YAML_file, args.template_file,
