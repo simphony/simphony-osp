@@ -8,7 +8,7 @@ build_job:
   stage: build
   script:
     - python3 setup.py install -t
-    - flake8 cuds/ --exclude=cuds/classes/generated,venv,venv3,build --ignore=F401,F403,E402
+    - flake8 cuds/ --exclude=cuds/classes/generated,build --ignore=F401,F403,E402
     - python3 setup.py test
 
 
