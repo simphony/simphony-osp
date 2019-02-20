@@ -1,27 +1,12 @@
-image: python 3.6
-
-cache:
-  untracked: true
+image: "registry.gitlab.cc-asp.fraunhofer.de:4567/marketplace/osp-core"
 
 stages:
   - build
-  - test
-
+  #- test
 
 build_job:
   stage: build
   script:
-    - python3 -m venv venv3
-    - source venv3/bin/activate
-    - pip3 install --upgrade pip
-    - pip3 install flake8
-    - pip3 install -r requirements.txt
     - python3 setup.py install -t
-    - flake8 --exclude=cuds/classes/generated,venv,venv3,build --ignore=F401,F403,E402
-
-
-test_job:
-  stage: test
-  script:
-    - source venv3/bin/activate
+    - flake8 cuds/ --exclude=cuds/classes/generated,build --ignore=F401,F403,E402
     - python3 setup.py test
