@@ -50,6 +50,20 @@ They can also be run manually::
     # manually run tests
     python3 -m cuds.testing.test_api
 
+Entry points
+------------
+There is an entry point for the *cuds2dot* tool for graph generation. Use `cuds2dot -h` for help.
+
+The *class generator* can also be run with different ontologies and/or template files.
+The idea is that the users can define their own ontology and compare with the stable one.
+The new one will not be added to the python site-packages, and can be imported through relative paths.
+
+If the generated classes are to be added to python for easier importing, the output folder can be set to `site-packages`:
+.. code:: python
+
+    import site
+    print(site.getsitepackages())[0] + "/cuds/classes/generated")
+
 Documentation
 -------------
 TODO
@@ -75,15 +89,18 @@ Data structure
 --------------
 Each cuds object is represented as a registry (dictionary).
 
-Each entry will contain the elements contained by said object with the same CUBA key.
+Each entry will enclose the elements contained by said object with the same CUBA key.
 
 These will be again in a registry, this time by UID.
 
-For example::
+For example:
+.. code:: JSON
 
-    a_cuds_object := {
-        'CUBA_key1': {'uid1': cuds_object1, 'uid2': cuds_object2},
-        'CUBA_key2': {'uid3': cuds_object3},
-        'CUBA_key3': {'uid4': cuds_object4, 'uid5': cuds_object5, 'uid6': cuds_object6}
+    a_cuds_object = {
+
+        "CUBA_key1": {"uid1": cuds_object1, "uid2": cuds_object2},
+        "CUBA_key2": {"uid3": cuds_object3},
+        "CUBA_key3": {"uid4": cuds_object4, "uid5": cuds_object5, "uid6": cuds_object6}
+
     }
 
