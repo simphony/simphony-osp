@@ -16,7 +16,8 @@ class ABCWrapper(object, metaclass=ABCMeta):
     """
     Abstract Base Class for all SimPhoNy wrappers. Defines the methods to be
     implemented and their inputs.
-    Matches the API followed in the DataContainer, and checks the input when necessary.
+    Matches the API followed in the DataContainer, and checks the input when
+    necessary.
     """
 
     def __getattr__(self, item):
