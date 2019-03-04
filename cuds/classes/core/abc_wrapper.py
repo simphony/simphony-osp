@@ -8,7 +8,7 @@
 from uuid import UUID
 from abc import ABCMeta, abstractmethod
 
-import cuds.classes as cuds
+import cuds.classes
 from cuds.utils import check_arguments
 
 
@@ -16,7 +16,7 @@ class ABCWrapper(object, metaclass=ABCMeta):
     """
     Abstract Base Class for all SimPhoNy wrappers. Defines the methods to be
     implemented and their inputs.
-    Matches the API followed in osp-core, and checks the input when necessary.
+    Matches the API followed in the DataContainer, and checks the input when necessary.
     """
 
     def __getattr__(self, item):
@@ -28,7 +28,7 @@ class ABCWrapper(object, metaclass=ABCMeta):
         :return: value of that attribute if it belongs to an entity or None
         :raises AttributeError: the accessed attribute does not exist
         """
-        if item in cuds.cuds_attributes:
+        if item in cuds.classes.cuds_attributes:
             return self._get_cuds_attribute(item)
 
     @abstractmethod
@@ -49,7 +49,7 @@ class ABCWrapper(object, metaclass=ABCMeta):
         :param name: name of the property
         :param value: value of the property
         """
-        if name in cuds.cuds_attributes:
+        if name in cuds.classes.cuds_attributes:
             self._set_cuds_attribute(name, value)
         else:
             self.__dict__[name] = value
@@ -94,7 +94,7 @@ class ABCWrapper(object, metaclass=ABCMeta):
         :param keys: UIDs and/or CUBA types of the elements
         :return: list of objects of that type/uid, or None
         """
-        check_arguments((UUID, cuds.CUBA), *keys)
+        check_arguments((UUID, cuds.classes.CUBA), *keys)
 
     @abstractmethod
     def remove(self, *args):
@@ -103,7 +103,7 @@ class ABCWrapper(object, metaclass=ABCMeta):
 
         :param args: uid/instance of the subelement to remove
         """
-        check_arguments((UUID, cuds.DataContainer), *args)
+        check_arguments((UUID, cuds.classes.DataContainer), *args)
 
     @abstractmethod
     def update(self, *args):
@@ -123,7 +123,7 @@ class ABCWrapper(object, metaclass=ABCMeta):
         if cuba_key is None:
             yield from self._iter_all()
         else:
-            check_arguments(cuds.CUBA, cuba_key)
+            check_arguments(cuds.classes.CUBA, cuba_key)
             yield from self._iter_by_key(cuba_key)
 
     @abstractmethod
