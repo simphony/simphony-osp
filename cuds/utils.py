@@ -155,6 +155,9 @@ def pretty_print(cuds_object):
     pp += "\n  type: " + str(cuds_object.cuba_key)
     pp += "\n  ancestors: " + ", ".join(get_ancestors(cuds_object))
     pp += "\n  description: " + get_definition(cuds_object)
+    if (hasattr(cuds_object, 'value')):
+        pp += "value--> " + str(cuds_object.value)
+#       pp += "\nunit--> " + str(cuds_object.unit)
     pp += pp_subelements(cuds_object)
     print(pp)
 
@@ -189,5 +192,9 @@ def pp_subelements(cuds_object, level_indentation="\n  "):
                 pp_sub += indentation + pp_entity_name(element)
                 indentation += "  "
                 pp_sub += indentation + "uuid: " + str(element.uid)
+                if (hasattr(element, 'value')):
+                    pp_sub += indentation + "value--> " + str(element.value)
+#                   pp_sub += "\nunit--> " + str(cuds_object.unit)
+
                 pp_sub += pp_subelements(element, indentation)
     return pp_sub

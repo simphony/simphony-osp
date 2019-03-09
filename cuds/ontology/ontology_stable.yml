@@ -27,13 +27,25 @@ CUDS_ONTOLOGY:
     CUBA.NAME:
       default: ""
 
+  BFO_ENTITY:
+    definition: root of all cuds entity that is according to BFO
+    parent: CUBA.CUDS_ENTITY
+
+  EMMO_ENTITY:
+    definition: root of all cuds entity that is according to BFO
+    parent: CUBA.CUDS_ENTITY
+
+  PENDING_ENTITY:
+    definition: root of all cuds entity that is according to BFO
+    parent: CUBA.CUDS_ENTITY
+
   # UUID:
   #   definition: a unique universal identifier
-  #   parent: CUBA.CUDS_ENTITY # should be QUALITY
+  #   parent: CUBA.BFO_ENTITY # should be QUALITY
 
   CONTINUANT:
     definition: BFO continuant
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.BFO_ENTITY
 
   INDEPENDENT_CONTINUANT:
     definition: bfo
@@ -133,7 +145,7 @@ CUDS_ONTOLOGY:
 
   OCCURRENT:
     definition: bfo
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.BFO_ENTITY
 
   PROCESS:
     definition: bfo
@@ -164,7 +176,7 @@ CUDS_ONTOLOGY:
     parent: CUBA.PROCESS
 
   DETERMINABLE:
-    definition: bfo, some quality that can be determined such as temperature, mass
+    definition: bfo, some quality that can be determined such as temperature, mass. EMMO-EQUIV is Quantitative, has a definite value, not subjective.  
     parent: CUBA.QUALITY
 
   DETERMINATE:
@@ -266,7 +278,6 @@ CUDS_ONTOLOGY:
     definition: PATO, A quality of a physical entity that exists through action of continuants at the physical level of organisation in relation to other entities. ROMM, CWA, Physics QUANTITY
     parent: CUBA.DETERMINATE
 
-
   HYDROPHILICITY:
    definition: A physical quality inhering in a bearer by virtue the bearer disposition to having an affinity for water; it is readily absorbing or dissolving in water.
    parent: CUBA.PHYSICAL_QUALITY
@@ -337,19 +348,19 @@ CUDS_ONTOLOGY:
 
   MOMENT_OF_INERTIA:
     definition: the moment of intertia
-    parent: CUBA.QUALITY
+    parent: CUBA.CUBA.PHYSICAL_QUALITY
 
   TORQUE:
     definition: mechanical toruque
-    parent: CUBA.QUALITY
+    parent: CUBA.PHYSICAL_QUALITY
 
   ANGULAR_VELOCITY:
     definition: angular velocity of an entity
-    parent: CUBA.QUALITY
+    parent: CUBA.PHYSICAL_QUALITY
 
   MASS:
     definition: mass of an entity
-    parent: CUBA.QUALITY
+    parent: CUBA.PHYSICAL_QUALITY
     CUBA.VALUE:
       range: CUBA.REAL
 
@@ -359,11 +370,11 @@ CUDS_ONTOLOGY:
 
   DYNAMIC_PRESSURE:
     definition: the time changing force per unit area on a surface
-    parent: CUBA.QUALITY
+    parent: CUBA.PHYSICAL_QUALITY
 
   VOLUME_FRACTION:
     definition: the portion of mater in a unit volume of the material.
-    parent: CUBA.QUALITY
+    parent: CUBA.PHYSICAL_QUALITY
 
   MODEL_ENTITY:
     definition: CWA, self-contained, internally frozen, structure-less representational unit of a material
@@ -391,7 +402,7 @@ CUDS_ONTOLOGY:
       scope: CUBA.BY_REFERENCE
 
   MESOSCOPIC_MOLECULE:
-    definition: To Be Determined
+    definition: EMMO- To Be Determined
     parent: CUBA.MOLECULE
     CUBA.PARTICLE:
       shape: (:)
@@ -475,20 +486,34 @@ CUDS_ONTOLOGY:
   ATOMISTIC_MODEL:
     definition: physics-based model based on a physics equation describing the behaviour of atom entities
     parent: CUBA.PHYSICS_BASED_MODEL
-    model_entity: [CUBA.ATOM]
+    CUBA.MODEL_ENTITY: [CUBA.ATOM]
+
+  MESOSCOPIC_MODEL:
+    definition: physics-based model based on a physics equation describing the behaviour of mesoscopic entities
+    parent: CUBA.PHYSICS_BASED_MODEL
+    CUBA.MODEL_ENTITY: [CUBA.MESOSCOPIC_ENTITY]
+
 
   MOLECULAR_DYNAMICS:
     definition: To Be Determined
-    parent: CUBA.PHYSICS_BASED_MODEL
+    parent: CUBA.ATOMISTIC_MODEL
+    CUBA.PHYSICS_EQUATION:
+      default: CUBA.NEWTON_CLASSICAL_EQUATION
+    CUBA.MATERIAL_RELATION:
+      default: [CUBA.LENNARD_JONES_6_12]
+
+  NEWTON_CLASSICAL_EQUATION:
+    definition: To Be Determined
+    parent: CUBA.PHYSICS_EQUATION
+
+  COARSE_GRAINED_MOLECULAR_DYNAMICS:
+    definition: To Be Determined
+    parent: CUBA.MESOSCOPIC_MODEL
     CUBA.PHYSICS_EQUATION:
       default: CUBA.NEWTON_CLASSICAL_EQUATION
     CUBA.MATERIAL_RELATION:
       default: [CUBA.LENNARD_JONES_6_12]
     CUBA.MODEL_ENTITY: [CUBA.ATOM]
-
-  NEWTON_CLASSICAL_EQUATION:
-    definition: To Be Determined
-    parent: CUBA.PHYSICS_EQUATION
 
   MATHEMATICAL_EQUATION:
     definition: a mathematical equation
@@ -525,8 +550,8 @@ CUDS_ONTOLOGY:
       shape: (:)
 
   PARTICLE_BOND:
-    definition: A bond between two or more atoms or particles
-    parent: CUBA.CUDS_ENTITY
+    definition: A general bond between two or more particles (a particle can be atoms or molecules or grains or Coarse_grained_particle)
+    parent: CUBA.PENDING_ENTITY
     CUBA.PARTICLE:
       shape: (:)
       scope: CUBA.BY_REFERENCE
@@ -629,52 +654,68 @@ CUDS_ONTOLOGY:
 
   INSTRUCTNAME:
     definition: Device Name is Hitachi SEM S-3400 (Room C0.43 REM 2 (Hitachi); responsible are preu, lrei)
-    parent: CUBA.ENTITY
+    parent: CUBA.PENDING_ENTITY
 
   SERIALNUMBER:
     definition: for further information ask preu or lrei
-    parent: CUBA.ENTITY
+    parent: CUBA.PENDING_ENTITY
 
   IMAGENAME:
     definition: Name of the image; information content depends on the user
-    parent: CUBA.ENTITY
+    parent: CUBA.PENDING_ENTITY
 
   TIMESTAMP:
     definition: Date and Time of the recording
-    parent: CUBA.ENTITY
+    parent: CUBA.PENDING_ENTITY
 
   DATASIZE:
     definition: image resolution; most common are 1024x768 and 2560x1920
-    parent: CUBA.ENTITY
+    parent: CUBA.PENDING_ENTITY
 
   PIXELSIZE:
     definition: scale --> 1 Pix = 248.0469nm
-    parent: CUBA.ENTITY
+    parent: CUBA.PENDING_ENTITY
 
   SIGNALNAME:
     definition: used signal (detector)
-    parent: CUBA.ENTITY
+    parent: CUBA.PENDING_ENTITY
 
   ACCELERATINGVOLTAGE:
     definition: accelerating voltage in V; important for interpretation or reproduction
-    parent: CUBA.ENTITY
+    parent: CUBA.PENDING_ENTITY
 
   MAGNIFICATION:
     definition: magnification; useful for a first approximation (what can I see in this image)
-    parent: CUBA.ENTITY
+    parent: CUBA.PENDING_ENTITY
 
-  WORKINGDISTANCE:
+  WORKING_DISTANCE:
     definition: distance between sample and cathode; important for interpretation or reproduction
-    parent: CUBA.ENTITY
+    parent: CUBA.PENDING_ENTITY
 
-  EMISSIONCURRENT:
+  EMISSION_CURRENT:
     definition: Emission Current of the cathode (63mikroA is fairly low -> old cathode (may influence the img))
-    parent: CUBA.ENTITY
+    parent: CUBA.PENDING_ENTITY
 
   COMMENT:
     definition: the user can add a comment for every image
-    parent: CUBA.ENTITY
+    parent: CUBA.PENDING_ENTITY
 
   KEYWORD:
     definition: some users add a keyword for internal database (may help with sorting the images)
-    parent: CUBA.ENTITY
+    parent: CUBA.PENDING_ENTITY
+
+  OBJECTIVE_PROPERTY:
+    definition: emmo
+    parent: CUBA.EMMO_ENTITY
+
+  QUANTITATIVE_PROPERTY:
+    definition: emmo
+    parent: CUBA.OBJECTIVE_PROPERTY
+    
+  PHYSICAL_PROPERTY:
+      definition: emmo
+      parent: CUBA.QUANTITATIVE_PROPERTY
+        
+  EXTENSIVE_PROPERTY:
+    definition: emmo
+    parent: CUBA.PHYSICAL_PROPERTY
