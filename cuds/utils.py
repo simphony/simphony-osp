@@ -191,7 +191,7 @@ def pp_subelements(cuds_object, level_indentation="\n  "):
                 indentation = level_indentation + " | "
                 pp_sub += indentation + pp_entity_name(element)
                 indentation += "  "
-                pp_sub += indentation + "uuid:" + str(element.uid)
+                pp_sub += indentation + "uuid: " + str(element.uid)
                 if (hasattr(element, 'value')):
                     pp_sub += indentation + "value--> " + str(element.value)
 #                   pp_sub += "\nunit--> " + str(cuds_object.unit)
