@@ -137,12 +137,15 @@ def get_ancestors(cuds_object):
     """
     # FIXME: If import in the beginning, loop with DataContainer and check_arguments
     import cuds.classes
+    # object from osp_core
     if isinstance(cuds_object, cuds.classes.core.DataContainer):
         parent = cuds_object.__class__.__bases__[0]
+    # wrapper instance
     else:
-        cuba_key = cuds_object.cuba_key.replace("CUBA.", "")
+        cuba_key = str(cuds_object.cuba_key).replace("CUBA.", "")
         class_name = format_class_name(cuba_key)
         parent = getattr(cuds.classes, class_name).__bases__[0]
+
     ancestors = []
     while parent != dict:
         ancestors.append(parent.__name__)
