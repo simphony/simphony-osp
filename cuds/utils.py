@@ -135,7 +135,8 @@ def get_ancestors(cuds_object):
     :param cuds_object: cuds object of interest
     :return: a list with all the ancestors
     """
-    # FIXME: If import in the beginning, loop with DataContainer and check_arguments
+    # FIXME: If import in the beginning,
+    #  loop with DataContainer and check_arguments
     import cuds.classes
     # object from osp_core
     if isinstance(cuds_object, cuds.classes.core.DataContainer):
