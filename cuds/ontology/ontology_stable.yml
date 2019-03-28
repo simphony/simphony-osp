@@ -179,6 +179,10 @@ CUDS_ONTOLOGY:
     definition: bfo, some quality that can be determined such as temperature, mass. EMMO-EQUIV is Quantitative, has a definite value, not subjective.  
     parent: CUBA.QUALITY
 
+  UNIT: 
+    definition: 
+    parent: CUBA.VALUE
+    
   DETERMINATE:
     definition: bfo, some quality that can be determined such as temperature, mass. Note this is equivalent to r instance of universal spatial region with volume w == soatrial region r has volume w.
     parent: CUBA.DETERMINABLE

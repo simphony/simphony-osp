@@ -27,6 +27,10 @@ CUDS_ONTOLOGY:
     CUBA.NAME:
       default: ""
 
+  H5CUDS:
+    definition: wrapper to an HDF5 object
+    parent:  CUBA.CUDS_ENTITY  # should be a tool. 
+
   CONTINUANT:
     definition: BFO continuant
     parent: CUBA.CUDS_ENTITY

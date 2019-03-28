@@ -168,7 +168,8 @@ def pretty_print(cuds_object):
     pp += "\n  description: " + get_definition(cuds_object)
     if hasattr(cuds_object, 'value'):
         pp += "value--> " + str(cuds_object.value)
-#       pp += "\nunit--> " + str(cuds_object.unit)
+    if (hasattr(cuds_object, 'unit')):
+        pp += "\t unit--> " + str(cuds_object.unit)
     pp += pp_subelements(cuds_object)
     print(pp)
 
@@ -205,6 +206,8 @@ def pp_subelements(cuds_object, level_indentation="\n  "):
                 pp_sub += indentation + "uuid: " + str(element.uid)
                 if hasattr(element, 'value'):
                     pp_sub += indentation + "value--> " + str(element.value)
+                if (hasattr(element, 'unit')):
+                    pp_sub += "\t unit--> " + str(element.unit)
 #                   pp_sub += "\nunit--> " + str(cuds_object.unit)
 
                 pp_sub += pp_subelements(element, indentation)
