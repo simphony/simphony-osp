@@ -168,8 +168,8 @@ def pretty_print(cuds_object):
     pp += "\n  description: " + get_definition(cuds_object)
     if hasattr(cuds_object, 'value'):
         pp += "value--> " + str(cuds_object.value)
-    if (hasattr(cuds_object, 'unit')):
-        pp += "\t unit--> " + str(cuds_object.unit)
+        if hasattr(cuds_object, 'unit'):
+            pp += "\t unit--> " + str(cuds_object.unit)
     pp += pp_subelements(cuds_object)
     print(pp)
 
@@ -197,18 +197,22 @@ def pp_subelements(cuds_object, level_indentation="\n  "):
     pp_sub = ""
     if cuds_object:
         pp_sub += level_indentation + "contains (has a relationship):"
-        for key in cuds_object:
-            pp_sub += level_indentation + " |_" + str(key) + ":"
-            for element in cuds_object.iter(key):
-                indentation = level_indentation + " | "
-                pp_sub += indentation + pp_entity_name(element)
-                indentation += "  "
-                pp_sub += indentation + "uuid: " + str(element.uid)
-                if hasattr(element, 'value'):
-                    pp_sub += indentation + "value--> " + str(element.value)
-                if (hasattr(element, 'unit')):
-                    pp_sub += "\t unit--> " + str(element.unit)
-#                   pp_sub += "\nunit--> " + str(cuds_object.unit)
+        # FIXME: Subelements are no longer grouped by cuba_key,
+        #  for wrapper interoperability
+        current_cuba = ""
+        for element in cuds_object.iter():
+            if current_cuba != element.cuba_key:
+                current_cuba = element.cuba_key
+                pp_sub += level_indentation + " |_" + str(current_cuba) + ":"
 
-                pp_sub += pp_subelements(element, indentation)
+            indentation = level_indentation + " | "
+            pp_sub += indentation + pp_entity_name(element)
+            indentation += "  "
+            pp_sub += indentation + "uuid: " + str(element.uid)
+            if hasattr(element, 'value'):
+                pp_sub += indentation + "value--> " + str(element.value)
+                if hasattr(element, 'unit'):
+                    pp_sub += "\t unit--> " + str(element.unit)
+
+            pp_sub += pp_subelements(element, indentation)
     return pp_sub
