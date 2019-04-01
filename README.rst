@@ -12,7 +12,6 @@ No redistribution is allowed without explicit written permission.
 
 Requirements
 ------------
-- enum34
 - PyYaml
 
 \*To run cuds2dot, `graphviz` must be installed in the system::
