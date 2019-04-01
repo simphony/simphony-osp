@@ -12,7 +12,7 @@ No redistribution is allowed without explicit written permission.
 
 Requirements
 ------------
-- PyYaml
+- PyYaml (on Windows, use https://stackoverflow.com/a/33673823)
 
 \*To run cuds2dot, `graphviz` must be installed in the system::
 
