@@ -1,0 +1,10 @@
+__pycache__/
+build/
+cuds/__pycache__/
+cuds/classes/generated/
+cuds/metatools/__pycache__/
+cuds/ontology/__pycache__/
+cuds/ontology/tools/__pycache__/
+simphony.egg-info/
+*~*
+
