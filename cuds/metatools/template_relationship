@@ -1,0 +1,13 @@
+$parent_import
+from .cuba import CUBA
+
+
+class $class($parent):
+    """
+    $definition
+    """
+
+    cuba_key = CUBA.$cuba_key
+
+    def __init__(self, shape=None):
+        self.shape = shape
