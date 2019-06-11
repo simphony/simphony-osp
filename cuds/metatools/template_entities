@@ -9,6 +9,6 @@ class $class($parent):
 
     cuba_key = CUBA.$cuba_key
 
-    def __init__($arguments_init, name=None):
+    def __init__($arguments_init):
         super().__init__($attributes_sent_super)
 $attributes_initialised

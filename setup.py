@@ -21,7 +21,7 @@ def create_ontology_classes(ontology):
         'cuds', 'ontology', ontology)
     template_file = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        'cuds', 'metatools', 'template')
+        'cuds', 'metatools', 'template_entities')
 
     if not os.path.exists(ontology_file):
         text = 'Unrecoverable error. Cannot find ' + ontology + ' file in {}'
