@@ -71,6 +71,34 @@ def find_cuds(uid, cuds_object):
             return find_cuds(uid, sub)
 
 
+def delete_cuds(uid, cuds_object):
+    """
+    Recursively finds all parents of the element with a given uid inside a
+    container and invokes \ref DataContainer::remove() on it.
+
+    :param uid: unique identifier of the element to be deleted
+    :param cuds_object: container in which to search for the element
+    :return: true, in case one or more instances of the element were deleted
+             false, otherwise
+    """
+    # Method does not allow deletion of the root element of a container
+    if cuds_object.uid == uid:
+        return False
+
+    deleted_flag = False
+    # Search for the element in the first layer of the container
+    for sub_cuds in cuds_object.iter():
+        if sub_cuds.uid == uid:
+            deleted_flag = True
+    if deleted_flag:
+        cuds_object.remove(uid)
+
+    # Recursively visit elements of the container
+    for sub_cuds in cuds_object.iter():
+        deleted_flag |= delete_cuds(uid, sub_cuds)
+    return deleted_flag
+
+
 def find_cuds_by(criteria, value, cuds_object):
     """
     Recursively finds the element with a given value inside a container.
