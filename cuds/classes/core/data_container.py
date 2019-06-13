@@ -19,6 +19,8 @@ class DataContainer(dict):
     are restricted to the instance's `restricted_keys`, default to the CUBA
     enum members.
     """
+    DEFAULT_RELATIONSHIP = CUBA.HAS_PART
+    DEFAULT_REVERSE = CUBA.IS_PART_OF
 
     def __init__(self, name):
         """
@@ -46,53 +48,115 @@ class DataContainer(dict):
             message = 'Key {!r} is not in the supported keywords'
             raise ValueError(message.format(key))
 
-    def add(self, *args):
+    def add(self, *args, rel=None):
         """
         Adds (a) cuds object(s) to their respective CUBA key entries.
         Before adding, check for invalid keys to aviod inconsistencies later.
 
         :param args: object(s) to add
+        :param rel: class of the relationship between the objects
         :return: reference to itself
         :raises ValueError: adding an element already there
         """
         check_arguments('all_simphony_wrappers', *args)
+        # TODO: Check the type of the rel object
+        relationship = self.DEFAULT_RELATIONSHIP if rel is None else rel.cuba_key
+
+        if relationship not in self.keys():
+            self.__setitem__(rel, set())
+
         for arg in args:
-            key = arg.cuba_key
-            # There are already entries for that CUBA key
-            if key in self.keys():
-                if arg.uid not in self.__getitem__(key).keys():
-                    self.__getitem__(key)[arg.uid] = arg
-                else:
-                    message = '{!r} is already in the container'
-                    raise ValueError(message.format(arg))
-            else:
-                self.__setitem__(key, {arg.uid: arg})
+            self._add_direct(arg, relationship)
+            arg.add_reverse(self, relationship)
         return self
 
-    def get(self, *keys):
+    def _add_direct(self, entity, rel):
         """
-        Returns the contained elements of a certain type/uid.
+        Adds an entity to the current instance with a specific relationship
+        :param entity: object to be added
+        :param rel: relationship with the entity to add
+        """
+        if entity not in self.__getitem__(rel):
+            self.__getitem__(rel).add(entity)
+        else:
+            message = '{!r} is already in the container'
+            raise ValueError(message.format(entity))
 
-        :param keys: UIDs and/or CUBA types of the elements
-        :return: list of objects of that type, or None
+    def add_reverse(self, entity, rel):
         """
-        check_arguments((uuid.UUID, CUBA), *keys)
+        Adds the reverse relationship to entity.
+
+        :param entity: container of the normal relationship
+        :param rel: direct relationship
+        """
+        reverse_rel = self.DEFAULT_REVERSE if rel is None else rel.reverse
+        self._add_direct(entity, reverse_rel)
+
+    def get(self, *uids, rel=None, cuba_key=None):
+        """
+        Returns the contained elements of a certain type, uid or relationship.
+        Expected calls are get(*uids), get(cuba_key), get(*uids, rel)
+
+        :param uids: UIDs of the elements
+        :param rel: CUBA key of the relationship
+        :param cuba_key: type of the subelements
+        :return: list of queried objects, or None, if not found
+        """
         output = []
-        for key in keys:
-            if isinstance(key, uuid.UUID):
-                for element in self.values():
-                    if key in element:
-                        output.append(element[key])
-                        break
-                else:
-                    output.append(None)
-            else:
-                try:
-                    output.extend(self.__getitem__(key).values())
-                except KeyError:
-                    # Add None if that key is not contained
-                    output.append(None)
+        if rel is None:
+            # get by cuba_key
+            if not uids:
+                check_arguments(CUBA, cuba_key)
+                for relationship_set in self.values():
+                    for entity in relationship_set:
+                        if entity.cuba_key == cuba_key:
+                            output.append(entity)
+            # get by uids
+            if cuba_key is None:
+                check_arguments(uuid.UUID, *uids)
+                for uid in uids:
+                    output.append(self._get_entity_by_uid(uid))
+        # get by uids and rel
+        elif cuba_key is None:
+            check_arguments(uuid.UUID, *uids)
+            # TODO: check type of rel
+            for uid in uids:
+                relationship_set = self.__getitem__(rel.cuba_key)
+                output.append(
+                    self._get_entity_from_relationship_set(uid,
+                                                           relationship_set))
+        else:
+            message = \
+                'Supported calls are get(*uids), get(cuba_key), get(*uids, rel)'
+            raise TypeError(message)
+
         return output
+
+    def _get_entity_by_uid(self, uid):
+        """
+        Finds an entity in the contained ones by uid.
+
+        :param uid: unique identifier of the wanted entity
+        :return: the entity with that uid or None
+        """
+        for relationship_set in self.values():
+            for entity in relationship_set:
+                if entity.uid == uid:
+                    return entity
+        return None
+
+    def _get_entity_from_relationship_set(self, uid, relationship_set):
+        """
+        Finds an entity under a given relationship set by uid.
+
+        :param uid: unique identifier of the wanted entity
+        :param relationship_set:
+        :return: the entity with that uid or None
+        """
+        for entity in relationship_set:
+            if entity.uid == uid:
+                return entity
+        return None
 
     def remove(self, *args):
         """
