@@ -43,6 +43,16 @@ class Parser:
         """
         return self._ontology.keys()
 
+    def get_value(self, entity, key):
+        """
+        Gets the value for a specific entity and key.
+
+        :param entity: name of the entity in the ontology
+        :param key: key for the value
+        :return: value for that entity and key
+        """
+        return self._ontology[entity][key]
+
     def get_definition(self, entity):
         """
         Getter for the definition associated to an entity.
@@ -50,7 +60,7 @@ class Parser:
         :param entity: entity whose definition to return
         :return: str with the definition
         """
-        definition = self._ontology[entity]['definition']
+        definition = self.get_value(entity, 'definition')
         return definition if definition is not None else "To Be Determined"
 
     def get_parent(self, entity):
@@ -62,13 +72,26 @@ class Parser:
         :raises KeyError: the queried entity does not exist
         """
         try:
-            parent = self._ontology[entity]['parent']
+            parent = self.get_value(entity, 'parent')
         except KeyError:
             message = '{!r} does not exist. Try again.'
             raise KeyError(message.format(entity))
         # Erase "CUBA." prefix
         parent = "" if parent is None else parent.replace("CUBA.", "")
         return parent
+
+    def get_cuba_attributes(self, entity):
+        """
+        Filters the attributes to the CUBA ones and returns the contained info.
+
+        :param entity:
+        :return: dictionary with the attributes that start with CUBA.
+        """
+        cuba_attributes = {}
+        for key in self._ontology[entity].keys():
+            if key.startswith("CUBA."):
+                cuba_attributes[key] = self._ontology[entity][key]
+        return cuba_attributes
 
     def get_attributes(self, entity, inheritance=True):
         """
@@ -144,4 +167,6 @@ class Parser:
                 if parent in descendants:
                     descendants.append(entity)
                     break
+        # Remove the root (only descendants)
+        descendants.remove(root_entity)
         return descendants
