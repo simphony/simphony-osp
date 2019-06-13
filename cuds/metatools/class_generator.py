@@ -7,6 +7,7 @@
 
 import argparse
 import os.path
+import re
 import textwrap
 from string import Template
 
@@ -19,22 +20,38 @@ class ClassGenerator(object):
     Handles the generation of the python classes and other support files from
     the given yaml ontology using a template file.
     """
+    # Default root for not instantiable attributes
+    ROOT_NOT_CLASSES = "VALUE"
+    # Default root of all relationship classes
+    ROOT_RELATIONSHIP = "RELATIONSHIP"
 
-    def __init__(self, yaml_filename, template_filename, output_folder):
+    def __init__(self, yaml_filename, entity_template, relationship_template,
+                 output_folder):
         """
         Constructor. Sets the filenames and creates the parser.
 
         :param yaml_filename: File with the ontology
-        :param template_filename: File with the structure of the classes
+        :param entity_template: File with the structure of the entities
+        :param relationship_template:
+        File with the structure of the relationships
         :param output_folder: Folder for the generated classes
         """
         self._yaml_filename = yaml_filename
-        self._template_filename = template_filename
-        self._template = None
+        self._entity_template = self._get_template(entity_template)
+        self._relationship_template = self._get_template(relationship_template)
         self._parser = Parser(self._yaml_filename)
-        # Don't create classes from CUBA.VALUE and its descendants
-        self.not_instantiable = set(self._parser.get_descendants("VALUE"))
-        self.output_folder = output_folder
+        self._output_folder = output_folder
+
+        # Don't create classes from ROOT_NOT_CLASSES and its descendants
+        not_classes = self._parser.get_descendants(self.ROOT_NOT_CLASSES)
+        not_classes.append(self.ROOT_NOT_CLASSES)
+        self._not_classes = set(not_classes)
+
+        relationships = self._parser.get_descendants(self.ROOT_RELATIONSHIP)
+        relationships.append(self.ROOT_RELATIONSHIP)
+        self._relationships = set(relationships)
+
+        # Create an instance for efficiency
         self._text_wrapper = textwrap.TextWrapper()
 
     def generate_classes(self):
@@ -42,32 +59,31 @@ class ClassGenerator(object):
         Generates each individual class file and the CUBA enum file.
         """
         self._generate_init_file()
-        self._generate_enum_file()
-        self._generate_template_instance()
+        self._generate_cuba_enum_file()
         for entity in self._parser.get_entities():
-            if entity not in self.not_instantiable:
+            if entity not in self._not_classes:
                 print("Generating {}".format(entity))
                 self._generate_class_file(entity)
-        self._add_cuds_attributes_to_init()
+        self._add_attributes_to_init_file()
 
     def _generate_init_file(self):
         """
         Generates the __init__ file in the cuds folder.
         """
-        init_filename = os.path.join(self.output_folder, "__init__.py")
+        init_filename = os.path.join(self._output_folder, "__init__.py")
 
         with open(init_filename, 'w') as f:
-            f.write("from .cuba import CUBA \n")
+            f.write("from .cuba import CUBA\n")
             f.close()
 
-    def _generate_enum_file(self):
+    def _generate_cuba_enum_file(self):
         """
         Generates the enum with the entities from the ontology.
         """
-        cuba_filename = os.path.join(self.output_folder, "cuba.py")
-        enum = "from enum import Enum, unique\n\n"
-        enum += "\n@unique\n"
-        enum += "class CUBA(Enum):\n"
+        cuba_filename = os.path.join(self._output_folder, "cuba.py")
+        enum = "from enum import Enum, unique\n\n" \
+               + "\n@unique\n" \
+               + "class CUBA(Enum):\n"
         for element in self._parser.get_entities():
             enum += "    " + element + " = \"" + element + "\"\n"
 
@@ -75,24 +91,17 @@ class ClassGenerator(object):
             f.write(enum)
             f.close()
 
-    def _generate_template_instance(self):
-        """
-        Opens the template file and reads its content.
-        """
-        with open(self._template_filename, 'r') as f:
-            template = f.read()
-            f.close()
-        self._template = Template(template)
-
-    def _add_cuds_attributes_to_init(self):
+    def _add_attributes_to_init_file(self):
         """
         Adds a set with all the allowed attributes for cuds entities
         at the end of the init file
         """
-        init_filename = os.path.join(self.output_folder, "__init__.py")
-        attributes = self.not_instantiable.union({"name", "cuba_key", "uid"})
-        attributes_string = self._text_wrapper.fill(
-            str(attributes).lower() + "\n")
+        init_filename = os.path.join(self._output_folder, "__init__.py")
+        attributes = self._not_classes.union({"cuba_key", "uid"})
+
+        attributes_string = str(attributes).lower() + "\n"
+        attributes_string = self._text_wrapper.fill(attributes_string)
+
         with open(init_filename, 'a+') as f:
             f.write("\ncuds_attributes = " + attributes_string)
             f.close()
@@ -104,68 +113,95 @@ class ClassGenerator(object):
         :param original_class: uppercase name of the entity
         """
         # Get the parent
-        original_parent = self._parser.get_parent(original_class)
-        if original_parent == "":
-            original_parent = ".core.data_container"
-            fixed_parent = "DataContainer"
+        parent = self._parser.get_parent(original_class)
+        if parent == "":
+            parent_module = "..core.data_container"
+            parent_class = "DataContainer"
+        elif parent == "RELATIONSHIP":
+            parent_module = "builtins"
+            parent_class = "object"
         else:
-            # Update the names to proper case
-            fixed_parent = format_class_name(original_parent)
+            parent_module = "." + parent.lower()
+            parent_class = format_class_name(parent)
 
-        parent_module = original_parent.lower()
-        module = original_class.lower()
-
+        definition = self._get_definition(original_class)
         fixed_class_name = format_class_name(original_class)
 
-        # Wraps the text to 70 characters
-        definition = self._text_wrapper.fill(
-            self._parser.get_definition(original_class))
-        # Add indentation to the new lines
-        definition = definition.replace("\n", "\n    ")
-
-        arguments_init, attr_sent_super, attr_initialised = self.\
-            _get_constructor_attributes(original_class)
-
         content = {
-            'parent_module': parent_module,
-            'parent': fixed_parent,
             'class': fixed_class_name,
-            'definition': definition,
             'cuba_key': original_class,
-            'arguments_init': arguments_init,
-            'attributes_sent_super': attr_sent_super,
-            'attributes_initialised': attr_initialised
+            'definition': definition,
+            'parent': parent_class,
+            'parent_module': parent_module,
         }
-        self._write_content_to_class_file(content, module)
+
+        module = original_class.lower()
+
+        # Get the relationship specific values
+        if original_class in self._relationships:
+            relationship_content = self._generate_relationship(original_class)
+            content.update(relationship_content)
+            self._write_content_to_templated_file(content,
+                                                  self._relationship_template,
+                                                  module)
+        # Get the entity specific values
+        else:
+            entity_content = self._generate_entity(original_class)
+            content.update(entity_content)
+            self._write_content_to_templated_file(content,
+                                                  self._entity_template,
+                                                  module)
+
         self._add_class_import_to_init(module, fixed_class_name)
 
-    def _write_content_to_class_file(self, content, class_file):
+    def _get_definition(self, original_class):
         """
-        Writes the content of the class to a python file.
+        Extracts and formats the definition from the parser.
 
-        :param content: dictionary with the values for the template's keywords
-        :param class_file: name of the class file
+        :param original_class: name of the ontology class
         """
-        # Replace template tokens with specific values
-        text = self._template.safe_substitute(content)
+        definition = self._parser.get_definition(original_class)
+        # Wraps the text to 70 characters
+        definition = self._text_wrapper.fill(definition)
+        # Add indentation to the new lines
+        return definition.replace("\n", "\n    ")
 
-        # Create file from template substitutions
-        filename = os.path.join(self.output_folder, class_file + ".py")
-        with open(filename, 'w') as f:
-            f.write(text)
-            f.close()
-
-    def _add_class_import_to_init(self, module_name, class_name):
+    def _generate_relationship(self, relationship_name):
         """
-        Adds the import to the init file.
+        Defines the value for the relationship only tokens.
 
-        :param module_name: name of the class file (module)
-        :param class_name: name of the class
+        :param relationship_name: name of the relationship
+        :return: dictionary with the content for the template
         """
-        init_file = os.path.join(self.output_folder, "__init__.py")
-        with open(init_file, 'a+') as f:
-            f.write("from ." + module_name + " import " + class_name + "\n")
-            f.close()
+        reverse_relationship = self._parser.get_value(relationship_name, 'reverse')
+
+        content = {
+            'reverse': reverse_relationship,
+        }
+        return content
+
+    def _generate_entity(self, entity_name):
+        """
+        Defines the value for the entity only tokens.
+
+        :param entity_name: name of the entity
+        :return: dictionary with the content for the template
+        """
+
+        arguments_init, attr_sent_super, attr_initialised = self.\
+            _get_constructor_attributes(entity_name)
+
+        # Extract the relationships from the ontology
+        relationships = self._parser.get_cuba_attributes(entity_name)
+        str_relationships = re.sub("'(CUBA.[A-Z_]*)'", "\g<1>", str(relationships))
+
+        content = {
+            'arguments_init': arguments_init,
+            'attributes_sent_super': attr_sent_super,
+            'attributes_initialised': attr_initialised,
+            'relationships': str_relationships,
+        }
+        return content
 
     def _get_constructor_attributes(self, cuba_key):
         """
@@ -188,7 +224,7 @@ class ClassGenerator(object):
 
         for a in all_attr:
             # Check that they are not instantiable classes
-            if a.upper() in self.not_instantiable:
+            if a.upper() in self._not_classes:
                 arguments_init += ", " + a
                 if a in inherited_attr:
                     attr_sent_super += a + ", "
@@ -197,21 +233,63 @@ class ClassGenerator(object):
         if attr_initialised:
             attr_initialised += "\n"
 
-        # Optional name property for all entities
-        attr_sent_super += "name"
-
         return arguments_init, attr_sent_super, attr_initialised
+
+    def _write_content_to_templated_file(self, content, template, class_file):
+        """
+        Writes the content of the class to a python file.
+
+        :param content: dictionary with the values for the template's keywords
+        :param template: instance of the template to fill in
+        :param class_file: name of the class file
+        """
+        # Replace template tokens with specific values
+        text = template.safe_substitute(content)
+
+        # Create file from template substitutions
+        filename = os.path.join(self._output_folder, class_file + ".py")
+        with open(filename, 'w') as f:
+            f.write(text)
+            f.close()
+
+    def _add_class_import_to_init(self, module_name, class_name):
+        """
+        Adds the import to the init file.
+
+        :param module_name: name of the class file (module)
+        :param class_name: name of the class
+        """
+        init_file = os.path.join(self._output_folder, "__init__.py")
+        with open(init_file, 'a+') as f:
+            f.write("from ." + module_name + " import " + class_name + "\n")
+            f.close()
+
+    @staticmethod
+    def _get_template(template_file):
+        """
+        Opens the template file and reads its content.
+        """
+        with open(template_file, 'r') as f:
+            template = f.read()
+            f.close()
+        return Template(template)
 
 
 def main():
     arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument("YAML_file", help="Input YAML file")
-    arg_parser.add_argument("template_file", help="Template class file")
+    arg_parser.add_argument("YAML_file",
+                            help="Input YAML file")
+    arg_parser.add_argument("entity_template",
+                            help="Template for the entities")
+    arg_parser.add_argument("relationship_template",
+                            help="Template for the relationships")
     arg_parser.add_argument("output_folder",
                             help="Root folder for the generated files")
     args = arg_parser.parse_args()
 
-    generator = ClassGenerator(args.YAML_file, args.template_file,
+    generator = ClassGenerator(args.YAML_file,
+                               args.entity_template,
+                               args.relationship_template,
                                args.output_folder)
     generator.generate_classes()
 
