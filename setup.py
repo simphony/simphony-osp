@@ -19,35 +19,47 @@ def create_ontology_classes(ontology):
     ontology_file = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         'cuds', 'ontology', ontology)
-    template_file = os.path.join(
+    entity_template = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         'cuds', 'metatools', 'template_entity')
+    relationship_template = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'cuds', 'metatools', 'template_relationship')
 
     if not os.path.exists(ontology_file):
         text = 'Unrecoverable error. Cannot find ' + ontology + ' file in {}'
         raise RuntimeError(text.format(ontology_file))
 
-    if not os.path.exists(template_file):
+    if not os.path.exists(entity_template):
         text = 'Unrecoverable error. Cannot find \'template\' file in {}'
-        raise RuntimeError(text.format(template_file))
+        raise RuntimeError(text.format(entity_template))
+
+    if not os.path.exists(relationship_template):
+        text = 'Unrecoverable error. Cannot find \'template\' file in {}'
+        raise RuntimeError(text.format(relationship_template))
 
     print('Building classes from ontology...')
     path = "cuds/classes/generated"
-    ClassGenerator(ontology_file, template_file, path).generate_classes()
+    ClassGenerator(ontology_file, entity_template, relationship_template, path)\
+        .generate_classes()
 
 
 class Install(install):
     # The format is (long option, short option, description).
     user_options = install.user_options + [
+        ('city', 'c', 'install using city ontology'),
         ('toy', 't', 'install using toy ontology')
     ]
 
     def initialize_options(self):
         install.initialize_options(self)
+        self.city = ''
         self.toy = ''
 
     def run(self):
-        if self.toy:
+        if self.city:
+            create_ontology_classes('ontology_city.yml')
+        elif self.toy:
             create_ontology_classes('ontology_toy.yml')
         else:
             create_ontology_classes('ontology_stable.yml')

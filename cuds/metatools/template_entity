@@ -1,6 +1,5 @@
-$parent_import
 from .cuba import CUBA
-# from .$parent_module import $parent
+from $parent_module import $parent
 
 
 class $class($parent):

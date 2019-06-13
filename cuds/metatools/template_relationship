@@ -1,5 +1,5 @@
-$parent_import
 from .cuba import CUBA
+from $parent_module import $parent
 
 
 class $class($parent):
@@ -8,6 +8,4 @@ class $class($parent):
     """
 
     cuba_key = CUBA.$cuba_key
-
-    def __init__(self, shape=None):
-        self.shape = shape
+    reverse = $reverse
