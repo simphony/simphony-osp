@@ -67,8 +67,12 @@ def find_cuds(uid, cuds_object):
     if cuds_object.uid == uid:
         return cuds_object
     else:
+        found_object = None
         for sub in cuds_object.iter():
-            return find_cuds(uid, sub)
+            found_object = find_cuds(uid, sub)
+            if found_object is not None:
+                return found_object
+        return found_object
 
 
 def delete_cuds(uid, cuds_object):
