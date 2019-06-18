@@ -95,10 +95,9 @@ CUDS_ONTOLOGY:
   ADDRESS:
     definition:
     parent: CUBA.ENTITY
-    CUBA.HAS_PART:
-      CUBA.NAME:
-      CUBA.NUMBER:
-      CUBA.POSTAL_CODE:
+    CUBA.NAME:
+    CUBA.NUMBER:
+    CUBA.POSTAL_CODE:
 
   POPULATED_PLACE:
     definition:

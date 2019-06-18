@@ -21,25 +21,18 @@ class TestAPI(unittest.TestCase):
         Tests the instantiation and type of the objects
         """
         self.assertRaises(TypeError,
-                          cuds.classes.Cuds, "name", "something else")
+                          cuds.classes.City, "unwanted parameter")
 
-        c = cuds.classes.Cuds(name="CUDS")
-        d = cuds.classes.ComputationalBoundary()
-        self.assertIsInstance(c, cuds.classes.Cuds)
-        self.assertIsInstance(d, cuds.classes.ComputationalBoundary)
-
-    def test_name(self):
-        """
-        Tests that the name is assigned properly
-        """
-        c = cuds.classes.Cuds("Cuds")
-        self.assertEqual(str(c.name), "Cuds")
+        c = cuds.classes.City()
+        p = cuds.classes.Person()
+        self.assertIsInstance(c, cuds.classes.City)
+        self.assertIsInstance(p, cuds.classes.Person)
 
     def test_uid(self):
         """
         Tests that the uid variable contains a UUID object
         """
-        c = cuds.classes.Cuds("Cuds")
+        c = cuds.classes.City()
         self.assertIsInstance(c.uid, UUID)
 
     def test_set_throws_exception(self):
@@ -47,23 +40,23 @@ class TestAPI(unittest.TestCase):
         Tests that setting a value for a key not in restricted
         keys throws an exception.
         """
-        c = cuds.classes.Cuds("Cuds")
+        c = cuds.classes.City()
         self.assertRaises(ValueError, c.__setitem__, "not an allowed key", 15)
 
     def test_add(self):
         """
         Tests the standard, normal behaviour of the add() method
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary(name="ComputationalBoundary")
-        d.uid = UUID('61d5422a-884a-4986-aef5-25419482d959')
-        c.add(d)
-        self.assertEqual(str(c.get(d.uid)[0].uid),
+        c = cuds.classes.City()
+        n = cuds.classes.Neighbourhood()
+        n.uid = UUID('61d5422a-884a-4986-aef5-25419482d959')
+        c.add(n)
+        self.assertEqual(str(c.get(n.uid)[0].uid),
                          '61d5422a-884a-4986-aef5-25419482d959')
-        e = cuds.classes.ComputationalBoundary()
-        e.uid = UUID('07d5422a-884a-4986-aef5-25419482d959')
-        c.add(e)
-        self.assertEqual(str(c.get(e.uid)[0].uid),
+        p = cuds.classes.Citizen()
+        p.uid = UUID('07d5422a-884a-4986-aef5-25419482d959')
+        c.add(n, cuds.classes.CUBA.ENCLOSES)
+        self.assertEqual(str(c.get(p.uid)[0].uid),
                          '07d5422a-884a-4986-aef5-25419482d959')
 
     def test_add_throws_exception(self):
@@ -73,8 +66,8 @@ class TestAPI(unittest.TestCase):
          - Adding an unsupported object
          - Adding an object that is already there
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary(name="ComputationalBoundary")
+        c = cuds.classes.City()
+        d = cuds.classes.ComputationalBoundary()
         self.assertRaises(TypeError, c.add, "Not a CUDS objects")
         c.add(d)
         self.assertRaises(ValueError, c.add, d)
@@ -86,8 +79,8 @@ class TestAPI(unittest.TestCase):
          - By uid
          - By cuba key
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary(name="ComputationalBoundary")
+        c = cuds.classes.City()
+        d = cuds.classes.ComputationalBoundary()
         c.add(d)
         e = cuds.classes.ComputationalBoundary()
         c.add(e)
@@ -105,15 +98,15 @@ class TestAPI(unittest.TestCase):
 
          - Getting with something that is not a uid
         """
-        c = cuds.classes.Cuds("Cuds")
+        c = cuds.classes.City()
         self.assertRaises(TypeError, c.get, "not a proper key")
 
     def test_update(self):
         """
         Tests the standard, normal behaviour of the update() method.
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary(name="ComputationalBoundary")
+        c = cuds.classes.City()
+        d = cuds.classes.ComputationalBoundary()
         c.add(d)
         d.name = "New name"
         c.update(d)
@@ -125,10 +118,10 @@ class TestAPI(unittest.TestCase):
 
          - Update an element that wasn't added before
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary(name="ComputationalBoundary")
+        c = cuds.classes.City()
+        d = cuds.classes.ComputationalBoundary()
         c.add(d)
-        m = cuds.classes.Material("Material not in c")
+        m = cuds.classes.Material()
         self.assertRaises(ValueError, c.update, m)
 
     def test_remove(self):
@@ -137,8 +130,8 @@ class TestAPI(unittest.TestCase):
 
          - Should erase the reference from the given object, not from others
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary("ComputationalBoundary")
+        c = cuds.classes.City()
+        d = cuds.classes.ComputationalBoundary()
         m = cuds.classes.Material()
         d.add(m)
         c.add(d)
@@ -154,8 +147,8 @@ class TestAPI(unittest.TestCase):
          - Removing with a wrong key
          - Removing something non-existent
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary("ComputationalBoundary")
+        c = cuds.classes.City()
+        d = cuds.classes.ComputationalBoundary()
         self.assertRaises(TypeError, c.remove, "not a proper key")
         self.assertRaises(KeyError, c.remove, d.uid)
 
@@ -163,8 +156,8 @@ class TestAPI(unittest.TestCase):
         """
         Tests the iter() method when no cuba key is provided.
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary("ComputationalBoundary")
+        c = cuds.classes.City()
+        d = cuds.classes.ComputationalBoundary()
         m = cuds.classes.Material()
         c.add(d)
         c.add(m)
@@ -175,22 +168,13 @@ class TestAPI(unittest.TestCase):
         """
         Tests the iter() method when a cuba key is provided.
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary("ComputationalBoundary")
+        c = cuds.classes.City()
+        d = cuds.classes.ComputationalBoundary()
         m = cuds.classes.Material()
         c.add(d)
         c.add(m)
-        for obj in c.iter(cuds.classes.CUBA.COMPUTATIONAL_BOUNDARY):
+        for obj in c.iter():
             self.assertIsInstance(obj, cuds.classes.ComputationalBoundary)
-
-    def test_iter_throws_exception(self):
-        """
-        Tests the iter() method for unusual behaviours.
-        """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary("ComputationalBoundary")
-        c.add(d)
-        self.assertRaises(TypeError, next, c.iter("This is not a proper key"))
 
 
 if __name__ == '__main__':
