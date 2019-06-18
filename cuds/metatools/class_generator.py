@@ -173,7 +173,8 @@ class ClassGenerator(object):
         :param relationship_name: name of the relationship
         :return: dictionary with the content for the template
         """
-        reverse_relationship = self._parser.get_value(relationship_name, 'reverse')
+        reverse_relationship = self._parser.get_value(relationship_name,
+                                                      'reverse')
 
         content = {
             'reverse': reverse_relationship,
@@ -192,8 +193,12 @@ class ClassGenerator(object):
             _get_constructor_attributes(entity_name)
 
         # Extract the relationships from the ontology
-        relationships = self._parser.get_cuba_attributes(entity_name)
-        str_relationships = re.sub("'(CUBA.[A-Z_]*)'", "\g<1>", str(relationships))
+        relationships = self._parser.\
+            get_cuba_attributes_filtering(entity_name, self._not_classes)
+
+        str_relationships = re.sub("'(CUBA.[A-Z_]*)'",
+                                   "\g<1>",
+                                   str(relationships))
 
         content = {
             'arguments_init': arguments_init,

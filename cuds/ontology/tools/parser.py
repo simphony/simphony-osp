@@ -13,6 +13,7 @@ class Parser:
     Class that parses a YAML file and finds information about the entities
     contained.
     """
+    ONTOLOGY_KEY = 'CUDS_ONTOLOGY'
 
     def __init__(self, filename):
         """
@@ -31,7 +32,7 @@ class Parser:
         """
         with open(self._filename, 'r') as stream:
             try:
-                self._ontology = yaml.load(stream)['CUDS_ONTOLOGY']
+                self._ontology = yaml.safe_load(stream)[self.ONTOLOGY_KEY]
             except yaml.YAMLError as exc:
                 print(exc)
 
@@ -51,7 +52,12 @@ class Parser:
         :param key: key for the value
         :return: value for that entity and key
         """
-        return self._ontology[entity][key]
+        try:
+            value = self._ontology[entity][key]
+        except KeyError as ke:
+            message = 'Entity {} has no attribute called {}.'
+            raise KeyError(message.format(entity, key)) from ke
+        return value
 
     def get_definition(self, entity):
         """
@@ -80,17 +86,19 @@ class Parser:
         parent = "" if parent is None else parent.replace("CUBA.", "")
         return parent
 
-    def get_cuba_attributes(self, entity):
+    def get_cuba_attributes_filtering(self, entity, not_relevant):
         """
         Filters the attributes to the CUBA ones and returns the contained info.
 
-        :param entity:
+        :param entity: name of the entity whose attributes are wanted
+        :param not_relevant: set of attributes to skip
         :return: dictionary with the attributes that start with CUBA.
         """
         cuba_attributes = {}
         for key in self._ontology[entity].keys():
             if key.startswith("CUBA."):
-                cuba_attributes[key] = self._ontology[entity][key]
+                if key.replace("CUBA.", "") not in not_relevant:
+                    cuba_attributes[key] = self._ontology[entity][key]
         return cuba_attributes
 
     def get_attributes(self, entity, inheritance=True):
