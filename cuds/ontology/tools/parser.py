@@ -114,7 +114,7 @@ class Parser:
         if inheritance:
             inherited = self.get_inherited_attributes(entity)
             attributes.update(inherited)
-        return sorted(attributes)
+        return attributes
 
     def get_own_attributes(self, entity):
         """
@@ -123,11 +123,11 @@ class Parser:
         :param entity: entity whose own attributes should be computed
         :return: list of the names of the attributes
         """
-        own_attributes = set()
-        for key in self._ontology[entity].keys():
+        own_attributes = {}
+        for key, val in self._ontology[entity].items():
             key = key.replace("CUBA.", "")
             if key in self._entities:
-                own_attributes.add(key.lower())
+                own_attributes[key.lower()] = val
         return own_attributes
 
     def get_inherited_attributes(self, entity):
@@ -138,7 +138,7 @@ class Parser:
         :return: list of the names of the inherited attributes
         """
         ancestors = self.get_ancestors(entity)
-        attributes = set()
+        attributes = {}
         for ancestor in ancestors:
             attributes_ancestor = self.get_own_attributes(ancestor)
             if attributes_ancestor:

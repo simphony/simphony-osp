@@ -24,6 +24,8 @@ class ClassGenerator(object):
     ROOT_NOT_CLASSES = "VALUE"
     # Default root of all relationship classes
     ROOT_RELATIONSHIP = "RELATIONSHIP"
+    # Key for the default value in the ontology
+    DEFAULT_ATTRIBUTE_KEY = "default"
 
     def __init__(self, yaml_filename, entity_template, relationship_template,
                  output_folder):
@@ -141,16 +143,16 @@ class ClassGenerator(object):
         if original_class in self._relationships:
             relationship_content = self._generate_relationship(original_class)
             content.update(relationship_content)
-            self._write_content_to_templated_file(content,
-                                                  self._relationship_template,
-                                                  module)
+            self._write_content_to_template_file(content,
+                                                 self._relationship_template,
+                                                 module)
         # Get the entity specific values
         else:
             entity_content = self._generate_entity(original_class)
             content.update(entity_content)
-            self._write_content_to_templated_file(content,
-                                                  self._entity_template,
-                                                  module)
+            self._write_content_to_template_file(content,
+                                                 self._entity_template,
+                                                 module)
 
         self._add_class_import_to_init(module, fixed_class_name)
 
@@ -213,34 +215,56 @@ class ClassGenerator(object):
         Returns the attributes (own and inherited) used in the constructor.
 
         :param cuba_key: key of the entity
-        :return: arguments_init: str all attributes
-                 attr_sent_super: str inherited attributes
-                 attr_initialised: str own, not inherited attributes
+        :return: string_init: str all attributes
+                 string_super: str inherited attributes
+                 string_self: str own, not inherited attributes
         """
+
         all_attr = self._parser.get_attributes(cuba_key)
         # Inherited attributes are sent to parent constructor
         inherited_attr = set(self._parser.get_inherited_attributes(cuba_key))
         # Own attributes are set in the constructor
         own_attr = set(self._parser.get_own_attributes(cuba_key))
 
-        arguments_init = "self"
-        attr_sent_super = ""
-        attr_initialised = ""
+        list_init = ["self"]
+        list_init_default = []
+        list_super = []
+        # Initialise with empty string to add indentation to first element
+        list_self = [""]
 
-        for a in all_attr:
+        for name, properties in all_attr.items():
             # Check that they are not instantiable classes
-            if a.upper() in self._not_classes:
-                arguments_init += ", " + a
-                if a in inherited_attr:
-                    attr_sent_super += a + ", "
-                elif a in own_attr:
-                    attr_initialised += "\n        self.{} = {}".format(a, a)
-        if attr_initialised:
-            attr_initialised += "\n"
+            if name.upper() in self._not_classes:
+                # Default value
+                if properties is not None and \
+                        self.DEFAULT_ATTRIBUTE_KEY in properties:
+                    default = properties[self.DEFAULT_ATTRIBUTE_KEY]
+                    if isinstance(default, str):
+                        list_init_default.append(name + "='" + default + "'")
+                    else:
+                        list_init_default.append(name + "=" + str(default))
+                # No default value
+                else:
+                    list_init.append(name)
+                # Inherited properties go to supper
+                if name in inherited_attr:
+                    list_super.append(name)
+                elif name in own_attr:
+                    list_self.append("self.{} = {}".format(name, name))
 
-        return arguments_init, attr_sent_super, attr_initialised
+        # Add default parameters at the end
+        list_init += list_init_default
 
-    def _write_content_to_templated_file(self, content, template, class_file):
+        string_init = ", ".join(list_init)
+        string_super = ", ".join(list_super)
+        string_self = "\n        ".join(list_self)
+
+        if list_self:
+            string_self += "\n"
+
+        return string_init, string_super, string_self
+
+    def _write_content_to_template_file(self, content, template, class_file):
         """
         Writes the content of the class to a python file.
 

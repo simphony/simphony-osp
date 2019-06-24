@@ -67,8 +67,7 @@ CUDS_ONTOLOGY:
   GEOGRAPHICAL_PLACE:
     definition:
     parent: CUBA.ENTITY
-    CUBA.HAS_PART:
-      CUBA.NAME:
+    CUBA.NAME:
 
   ARCHITECTURAL_COMPONENT:
     definition:
@@ -77,8 +76,8 @@ CUDS_ONTOLOGY:
   LIVING_BEING:
     definition:
     parent: CUBA.ENTITY
-    CUBA.HAS_PART:
-      CUBA.NAME:
+    CUBA.NAME:
+      default: "John Smith"
 
   NUMBER:
     definition:
@@ -96,7 +95,9 @@ CUDS_ONTOLOGY:
     definition:
     parent: CUBA.ENTITY
     CUBA.NAME:
+      default: "Street"
     CUBA.NUMBER:
+      default:
     CUBA.POSTAL_CODE:
 
   POPULATED_PLACE:
