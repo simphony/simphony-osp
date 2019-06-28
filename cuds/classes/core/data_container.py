@@ -58,7 +58,7 @@ class DataContainer(dict):
     def __eq__(self, other):
         """
         Defines the equals.
-        Two instances are the same if they have the same uid and share the class
+        Two instances are the same if they share the uid and the class
 
         :param other: Instance to check
         :return: True if they share the uid and class, false otherwise
@@ -129,7 +129,8 @@ class DataContainer(dict):
                 # get()
                 if not uids:
                     try:
-                        output = list(self.__getitem__(self.DEFAULT_DIRECT_REL))
+                        output = \
+                            list(self.__getitem__(self.DEFAULT_DIRECT_REL))
                     except KeyError:
                         output.append(None)
                 # get(*uids)

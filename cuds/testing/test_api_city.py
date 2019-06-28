@@ -241,7 +241,8 @@ class TestAPICity(unittest.TestCase):
         # Non-existent
         self.assertRaises(KeyError, c.remove, n.uid)
         self.assertRaises(KeyError, c.remove, rel=cuds.classes.HasPart)
-        self.assertRaises(KeyError, c.remove, cuba_key=cuds.classes.CUBA.STREET)
+        self.assertRaises(KeyError, c.remove,
+                          cuba_key=cuds.classes.CUBA.STREET)
         self.assertRaises(KeyError, c.remove, n.uid, rel=cuds.classes.HasPart)
 
         # Wrong arguments
