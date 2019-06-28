@@ -273,10 +273,8 @@ class TestAPICity(unittest.TestCase):
         q = cuds.classes.Citizen("Jane Doe")
         c.add(n, p)
         c.add(q, rel=cuds.classes.Encloses)
-        for obj in c.iter():
-            self.assertIsInstance(obj, (cuds.classes.City,
-                                        cuds.classes.Neighbourhood,
-                                        cuds.classes.Citizen))
+        elements = set(list(c.iter()))
+        self.assertEqual(elements, {n, p, q})
 
 
 if __name__ == '__main__':
