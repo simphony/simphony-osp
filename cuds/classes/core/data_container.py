@@ -20,7 +20,7 @@ class DataContainer(dict):
     enum members.
     """
     DEFAULT_DIRECT_REL = CUBA.HAS_PART
-    DEFAULT_REVERSE_REL = CUBA.IS_PART_OF
+    DEFAULT_INVERSE_REL = CUBA.IS_PART_OF
 
     def __init__(self):
         """
@@ -75,7 +75,7 @@ class DataContainer(dict):
         rel_cuba_key = self.DEFAULT_DIRECT_REL if rel is None else rel.cuba_key
         for arg in args:
             self._add_direct(arg, rel_cuba_key)
-            arg.add_reverse(self)
+            arg.add_inverse(self)
         return self
 
     def _add_direct(self, entity, rel_cuba_key):
@@ -94,15 +94,15 @@ class DataContainer(dict):
             message = '{!r} is already in the container'
             raise ValueError(message.format(entity))
 
-    def add_reverse(self, entity, rel=None):
+    def add_inverse(self, entity, rel=None):
         """
-        Adds the reverse relationship from self to entity.
+        Adds the inverse relationship from self to entity.
 
         :param entity: container of the normal relationship
         :param rel: direct relationship instance
         """
-        reverse_rel = self.DEFAULT_REVERSE_REL if rel is None else rel.reverse
-        self._add_direct(entity, reverse_rel)
+        inverse_rel = self.DEFAULT_INVERSE_REL if rel is None else rel.inverse
+        self._add_direct(entity, inverse_rel)
 
     def get(self, *uids, rel=None, cuba_key=None):
         """
@@ -206,19 +206,19 @@ class DataContainer(dict):
                         # Skip if it is not under that relationship
                         if arg not in relationship_set:
                             continue
-                        # Need entity for reverse. Otherwise just s.remove(uid)
+                        # Need entity for inverse. Otherwise just s.remove(uid)
                         entity = self._get_from_relationship_set(
                             relationship_set, arg)
-                        entity.remove_reverse(self, rel)
+                        entity.remove_inverse(self, rel)
                         relationship_set.remove(entity)
                         modified_relationships.add(rel_cuba_key)
             # remove(rel)
             elif not args:
                 # TODO: check type of rel
                 relationship_set = self.__getitem__(rel.cuba_key)
-                # remove the reverse from the entities
+                # remove the inverse from the entities
                 for entity in relationship_set:
-                    entity.remove_reverse(self, rel)
+                    entity.remove_inverse(self, rel)
                 # remove the relationship
                 self.__delitem__(rel.cuba_key)
                 modified_relationships.add(rel.cuba_key)
@@ -232,10 +232,10 @@ class DataContainer(dict):
                         arg = arg.uid
                     if arg not in relationship_set:
                         continue
-                    # Need entity for reverse. Otherwise just s.remove(uid)
+                    # Need entity for inverse. Otherwise just s.remove(uid)
                     entity = self._get_from_relationship_set(
                         relationship_set, arg)
-                    entity.remove_reverse(self, rel)
+                    entity.remove_inverse(self, rel)
                     relationship_set.remove(entity)
                     modified_relationships.add(rel.cuba_key)
         # remove(cuba_key)
@@ -245,7 +245,7 @@ class DataContainer(dict):
             for rel_cuba_key, relationship_set in self.items():
                 for entity in relationship_set.copy():
                     if entity.cuba_key == cuba_key:
-                        entity.remove_reverse(self)
+                        entity.remove_inverse(self)
                         relationship_set.remove(entity)
                         modified_relationships.add(rel_cuba_key)
         else:
@@ -259,26 +259,26 @@ class DataContainer(dict):
             if not self.__getitem__(modified_rel):
                 self.__delitem__(modified_rel)
 
-    def remove_reverse(self, entity, rel=None):
+    def remove_inverse(self, entity, rel=None):
         """
-        Removes the reverse relationship from self to entity.
+        Removes the inverse relationship from self to entity.
 
         :param entity: container of the normal relationship
         :param rel: direct relationship
         """
-        reverse_rel = None
+        inverse_rel = None
         if rel is None:
             # go through all entities and delete
-            for reverse_rel, relationship_set in self.items():
+            for inverse_rel, relationship_set in self.items():
                 if entity in relationship_set:
                     relationship_set.remove(entity)
         else:
-            reverse_rel = rel.reverse
-            relationship_set = self.__getitem__(reverse_rel)
+            inverse_rel = rel.inverse
+            relationship_set = self.__getitem__(inverse_rel)
             relationship_set.remove(entity)
         # Erase the relationship CUBA key entry if empty
-        if not self.__getitem__(reverse_rel):
-            self.__delitem__(reverse_rel)
+        if not self.__getitem__(inverse_rel):
+            self.__delitem__(inverse_rel)
 
     def update(self, *args, rel=None):
         """

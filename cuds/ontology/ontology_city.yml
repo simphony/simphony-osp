@@ -12,47 +12,47 @@ CUDS_ONTOLOGY:
   RELATIONSHIP:
     definition:
     parent: CUBA.ONTOLOGY
-    reverse:
+    inverse:
 
   ACTIVE_RELATIONSHIP:
     definition:
     parent: CUBA.RELATIONSHIP
-    reverse: CUBA.PASSIVE_RELATIONSHIP
+    inverse: CUBA.PASSIVE_RELATIONSHIP
 
   ENCLOSES:
     definition:
     parent: CUBA.ACTIVE_RELATIONSHIP
-    reverse: CUBA.IS_ENCLOSED_BY
+    inverse: CUBA.IS_ENCLOSED_BY
 
   HAS_PART:
     definition:
     parent: CUBA.ENCLOSES
-    reverse: CUBA.IS_PART_OF
+    inverse: CUBA.IS_PART_OF
 
   INHABITS:
     definition:
     parent: CUBA.ENCLOSES
-    reverse: CUBA.IS_INHABITED_BY
+    inverse: CUBA.IS_INHABITED_BY
 
   PASSIVE_RELATIONSHIP:
     definition:
     parent: CUBA.RELATIONSHIP
-    reverse: CUBA.ACTIVE_RELATIONSHIP
+    inverse: CUBA.ACTIVE_RELATIONSHIP
 
   IS_ENCLOSED_BY:
     definition:
     parent: CUBA.PASSIVE_RELATIONSHIP
-    reverse: CUBA.ENCLOSES
+    inverse: CUBA.ENCLOSES
 
   IS_PART_OF:
     definition:
     parent: CUBA.IS_ENCLOSED_BY
-    reverse: CUBA.HAS_PART
+    inverse: CUBA.HAS_PART
 
   IS_INHABITED_BY:
     definition:
     parent: CUBA.IS_ENCLOSED_BY
-    reverse: CUBA.INHABITS
+    inverse: CUBA.INHABITS
 
  ################
 

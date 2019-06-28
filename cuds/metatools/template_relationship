@@ -8,4 +8,4 @@ class $class($parent):
     """
 
     cuba_key = CUBA.$cuba_key
-    reverse = $reverse
+    inverse = $inverse

@@ -175,11 +175,11 @@ class ClassGenerator(object):
         :param relationship_name: name of the relationship
         :return: dictionary with the content for the template
         """
-        reverse_relationship = self._parser.get_value(relationship_name,
-                                                      'reverse')
+        inverse_relationship = self._parser.get_value(relationship_name,
+                                                      'inverse')
 
         content = {
-            'reverse': reverse_relationship,
+            'inverse': inverse_relationship,
         }
         return content
 
