@@ -273,6 +273,7 @@ class TestAPICity(unittest.TestCase):
         q = cuds.classes.Citizen("Jane Doe")
         c.add(n, p)
         c.add(q, rel=cuds.classes.Encloses)
+
         elements = set(list(c.iter()))
         self.assertEqual(elements, {n, p, q})
 
