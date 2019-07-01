@@ -21,6 +21,7 @@ class DataContainer(dict):
     """
     DEFAULT_DIRECT_REL = CUBA.HAS_PART
     DEFAULT_INVERSE_REL = CUBA.IS_PART_OF
+    cuba_key = None
 
     def __init__(self):
         """
@@ -31,6 +32,35 @@ class DataContainer(dict):
         # These are the allowed CUBA keys (faster to convert to set for lookup)
         self.restricted_keys = frozenset(CUBA)
         self.uid = uuid.uuid4()
+
+    def __str__(self):
+        """
+        Redefines the str() for DataContainer.
+
+        :return: string with the uid, cuba_key and first level children
+        """
+        items = ["uid: " + str(self.uid),
+                 "cuba_key: " + str(self.cuba_key)]
+
+        for name, relationship_set in self.items():
+            items.append(self.str_relationship_set(name, relationship_set))
+
+        string = "{" + ",\n ".join(items) + "}"
+
+        return string
+
+    @staticmethod
+    def str_relationship_set(rel_key, rel_set):
+        """
+
+        :param rel_key: CUBA key of the relationship
+        :param rel_set: set of the objects contained under that relationship
+        :return: string with the uids of the contained elements
+        """
+        string = str(rel_key) + ": {"
+        elements = [str(element.uid) for element in rel_set]
+        string += ",\n\t".join(elements) + "}"
+        return string
 
     def __setitem__(self, key, value):
         """

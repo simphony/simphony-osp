@@ -14,7 +14,7 @@ emmo_town.add(Neighbourhood("Ontology"), rel=Encloses)
 emmo_town.add(Neighbourhood("User cases"), rel=Encloses)
 
 ontology_uid = None
-for neighbourhood in emmo_town.get(CUBA.NEIGHBOURHOOD):
+for neighbourhood in emmo_town.get(cuba_key=CUBA.NEIGHBOURHOOD):
     if neighbourhood.name == "Ontology":
         ontology_uid = neighbourhood.uid
         neighbourhood.add(Building("Relationships"), rel=HasPart)
@@ -23,4 +23,4 @@ for neighbourhood in emmo_town.get(CUBA.NEIGHBOURHOOD):
         # We can go through inverse relationships
         print(neighbourhood.get(rel=IsEnclosedBy)[0].name + ' is my city!')
 
-
+print(emmo_town)
