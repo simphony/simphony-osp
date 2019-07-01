@@ -7,7 +7,7 @@
 
 import uuid
 
-from ...utils import check_arguments
+from ...utils import check_arguments, filter_cuds_attr
 from ..generated.cuba import CUBA
 
 
@@ -39,28 +39,37 @@ class DataContainer(dict):
 
         :return: string with the uid, cuba_key and first level children
         """
-        items = ["uid: " + str(self.uid),
-                 "cuba_key: " + str(self.cuba_key)]
+        items = self._str_attributes()
 
         for name, relationship_set in self.items():
-            items.append(self.str_relationship_set(name, relationship_set))
+            items.append(self._str_relationship_set(name, relationship_set))
 
-        string = "{" + ",\n ".join(items) + "}"
+        return "{\n  " + ",\n  ".join(items) + "\n}"
 
-        return string
+    def _str_attributes(self):
+        """
+        Serialises the relevant attributes from the instance.
+
+        :return: list with the attributes in a key-value form string
+        """
+        attributes = []
+        for attribute in sorted(filter_cuds_attr(self)):
+            attributes.append(attribute + ": " + str(getattr(self, attribute)))
+
+        return attributes
 
     @staticmethod
-    def str_relationship_set(rel_key, rel_set):
+    def _str_relationship_set(rel_key, rel_set):
         """
+        Serialises a relationship set with the given name in a key-value form.
 
         :param rel_key: CUBA key of the relationship
         :param rel_set: set of the objects contained under that relationship
         :return: string with the uids of the contained elements
         """
-        string = str(rel_key) + ": {"
         elements = [str(element.uid) for element in rel_set]
-        string += ",\n\t".join(elements) + "}"
-        return string
+
+        return str(rel_key) + ": {\n\t" + ",\n\t".join(elements) + "\n  }"
 
     def __setitem__(self, key, value):
         """
@@ -145,7 +154,7 @@ class DataContainer(dict):
         """
         Returns the contained elements of a certain type, uid or relationship.
         Expected calls are get(), get(*uids), get(rel), get(cuba_key),
-        get(*uids, rel)
+        get(*uids, rel), get(rel, cuba_key)
 
         :param uids: UIDs of the elements
         :param rel: class of the relationship
@@ -159,9 +168,11 @@ class DataContainer(dict):
                 # get()
                 if not uids:
                     try:
-                        output = \
-                            list(self.__getitem__(self.DEFAULT_DIRECT_REL))
-                    except KeyError:
+                        # Unique elements
+                        unique = set.union(*self.values())
+                        output = list(unique)
+                    # No elements
+                    except TypeError:
                         output.append(None)
                 # get(*uids)
                 else:
@@ -187,18 +198,28 @@ class DataContainer(dict):
                                                             relationship_set))
                     except KeyError:
                         output.append(None)
-        # get(cuba_key)
-        elif (rel is None) and not uids:
-            check_arguments(CUBA, cuba_key)
-            for relationship_set in self.values():
-                for entity in relationship_set:
-                    if entity.cuba_key == cuba_key:
-                        output.append(entity)
-            if not output:
-                output.append(None)
+        elif not uids:
+            # get(cuba_key)
+            if rel is None:
+                check_arguments(CUBA, cuba_key)
+                for relationship_set in self.values():
+                    for entity in relationship_set:
+                        if entity.cuba_key == cuba_key:
+                            output.append(entity)
+                if not output:
+                    output.append(None)
+            # get(rel, cuba_key)
+            else:
+                try:
+                    relationship_set = self.__getitem__(rel.cuba_key)
+                    for entity in relationship_set:
+                        if entity.cuba_key == cuba_key:
+                            output.append(entity)
+                except KeyError:
+                    output.append(None)
         else:
             message = 'Supported calls are get(), get(*uids), get(rel),' \
-                      ' get(cuba_key), get(*uids, rel)'
+                      ' get(cuba_key), get(*uids, rel), get(rel, cuba_key)'
             raise TypeError(message)
         return output
 
@@ -230,8 +251,9 @@ class DataContainer(dict):
     def remove(self, *args, rel=None, cuba_key=None):
         """
         Removes elements from the DataContainer.
-        Expected calls are remove(*uids/DataContainers), remove(rel),
-        remove(cuba_key), remove(*uids/DataContainers, rel)
+        Expected calls are remove(), remove(*uids/DataContainers),
+        remove(rel), remove(cuba_key), remove(*uids/DataContainers, rel),
+        remove(rel, cuba_key)
 
         :param args: UIDs of the elements or the elements themselves
         :param rel: class of the relationship
@@ -241,24 +263,32 @@ class DataContainer(dict):
 
         if cuba_key is None:
             if rel is None:
-                # remove(*uids/Datacontainers)
-                check_arguments((DataContainer, uuid.UUID), *args)
-                for arg in args:
-                    removed = False
-                    if isinstance(arg, DataContainer):
-                        arg = arg.uid
-                    # Will remove multiple occurrences
-                    for rel_cuba_key, relationship_set in self.items():
-                        entity = self._get_from_relationship_set(
-                            arg, relationship_set)
-                        if entity is not None:
-                            entity.remove_inverse(self, rel)
-                            relationship_set.remove(entity)
-                            modified_relationships.add(rel_cuba_key)
-                            removed = True
-                    if not removed:
-                        message = '{} is not an existing element'
-                        raise KeyError(message.format(arg))
+                # remove()
+                if not args:
+                    # Remove inverse from all
+                    for entity in self.iter():
+                        entity.remove_inverse(self)
+                    # Remove all
+                    self.clear()
+                else:
+                    # remove(*uids/Datacontainers)
+                    check_arguments((DataContainer, uuid.UUID), *args)
+                    for arg in args:
+                        removed = False
+                        if isinstance(arg, DataContainer):
+                            arg = arg.uid
+                        # Will remove multiple occurrences
+                        for rel_cuba_key, relationship_set in self.items():
+                            entity = self._get_from_relationship_set(
+                                arg, relationship_set)
+                            if entity is not None:
+                                entity.remove_inverse(self, rel)
+                                relationship_set.remove(entity)
+                                modified_relationships.add(rel_cuba_key)
+                                removed = True
+                        if not removed:
+                            message = '{} is not an existing element'
+                            raise KeyError(message.format(arg))
             # remove(rel)
             elif not args:
                 # TODO: check type of rel
@@ -290,25 +320,35 @@ class DataContainer(dict):
                 if not removed:
                     message = '{} is not an existing elements cuba_key'
                     raise KeyError(message.format(cuba_key))
-        # remove(cuba_key)
-        elif (rel is None) and not args:
-            check_arguments(CUBA, cuba_key)
-            # FIXME: Could be more efficient with another relationship mapping
-            removed = False
-            for rel_cuba_key, relationship_set in self.items():
+        elif not args:
+            # remove(cuba_key)
+            if rel is None:
+                check_arguments(CUBA, cuba_key)
+                # FIXME: Could be more efficient with another relationship mapping
+                removed = False
+                for rel_cuba_key, relationship_set in self.items():
+                    for entity in relationship_set.copy():
+                        if entity.cuba_key == cuba_key:
+                            entity.remove_inverse(self)
+                            relationship_set.remove(entity)
+                            modified_relationships.add(rel_cuba_key)
+                            removed = True
+                if not removed:
+                    message = '{} is not an existing elements cuba_key'
+                    raise KeyError(message.format(cuba_key))
+            # remove(rel, cuba_key)
+            else:
+                relationship_set = self.__getitem__(rel.cuba_key)
                 for entity in relationship_set.copy():
                     if entity.cuba_key == cuba_key:
-                        entity.remove_inverse(self)
+                        entity.remove_inverse(self, rel)
                         relationship_set.remove(entity)
-                        modified_relationships.add(rel_cuba_key)
-                        removed = True
-            if not removed:
-                message = '{} is not an existing elements cuba_key'
-                raise KeyError(message.format(cuba_key))
+                        modified_relationships.add(rel.cuba_key)
+
         else:
             message = 'Supported calls are remove(*uids/DataContainers), ' \
-                      'remove(rel), remove(cuba_key), ' \
-                      'remove(*uids/DataContainers, rel)'
+                      'remove(rel), remove(cuba_key), remove(rel, cuba_key)' \
+                      ', remove(*uids/DataContainers, rel)'
             raise TypeError(message)
 
         # remove the empty relationship entries
@@ -341,38 +381,25 @@ class DataContainer(dict):
         if not self.__getitem__(inverse_rel):
             self.__delitem__(inverse_rel)
 
-    def update(self, *args, rel=None):
+    def update(self, *args):
         """
-        Updates the object with the newer objects.
+        Updates the object with the other versions.
 
-        :param args: entity(ies) to update
-        :param rel: relationship where the entities are
+        :param args: updated entity(ies)
         """
         check_arguments('all_simphony_wrappers', *args)
-        # update(DataContainers, rel)
-        if rel is not None:
-            # TODO: check type of rel
-            relationship_set = self.__getitem__(rel.cuba_key)
-            for arg in args:
+
+        for arg in args:
+            found = False
+            # Updates all instances
+            for relationship_set in self.values():
                 if arg in relationship_set:
                     relationship_set.remove(arg)
                     relationship_set.add(arg)
-                else:
-                    message = '{} does not exist. Add it first'
-                    raise ValueError(message.format(arg))
-        # update(DataContainers)
-        else:
-            for arg in args:
-                found = False
-                # Updates all instances
-                for relationship_set in self.values():
-                    if arg in relationship_set:
-                        relationship_set.remove(arg)
-                        relationship_set.add(arg)
-                        found = True
-                if not found:
-                    message = '{} does not exist. Add it first'
-                    raise ValueError(message.format(arg))
+                    found = True
+            if not found:
+                message = '{} does not exist. Add it first'
+                raise ValueError(message.format(arg))
 
     def iter(self):
         """

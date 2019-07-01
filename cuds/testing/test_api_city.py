@@ -89,6 +89,7 @@ class TestAPICity(unittest.TestCase):
          - get(rel)
          - get(cuba_key)
          - get(*uids, rel)
+         - get(rel, cuba_key)
         """
         c = cuds.classes.City("a city")
         n = cuds.classes.Neighbourhood("a neigbourhood")
@@ -99,7 +100,7 @@ class TestAPICity(unittest.TestCase):
 
         # get()
         get_default = c.get()
-        self.assertEqual(set(get_default), {n, p})
+        self.assertEqual(set(get_default), {n, p, q})
 
         # get(*uids)
         get_p_uid = c.get(p.uid)
@@ -132,6 +133,11 @@ class TestAPICity(unittest.TestCase):
         get_has_part_q = c.get(q.uid, rel=cuds.classes.HasPart)
         self.assertEqual(get_has_part_q, [None])
 
+        # get(rel, cuba_key)
+        get_has_part_citizen = c.get(rel=cuds.classes.HasPart,
+                                     cuba_key=cuds.classes.CUBA.CITIZEN)
+        self.assertEqual(get_has_part_citizen, [p])
+
     def test_get_throws_exception(self):
         """
         Tests the get() method for unusual behaviours.
@@ -144,9 +150,6 @@ class TestAPICity(unittest.TestCase):
         c.add(n)
 
         self.assertRaises(TypeError, c.get, "not a proper key")
-        self.assertRaises(TypeError, c.get,
-                          rel=cuds.classes.Inhabits,
-                          cuba_key=cuds.classes.CUBA.CITIZEN)
         self.assertRaises(TypeError, c.get,
                           n.uid,
                           cuba_key=cuds.classes.CUBA.NEIGHBOURHOOD)
@@ -176,9 +179,11 @@ class TestAPICity(unittest.TestCase):
         """
         Tests the standard, normal behaviour of the remove() method.
 
+         - remove()
          - remove(*uids/DataContainers)
          - remove(rel)
          - remove(cuba_key)
+         - remove(rel, cuba_key)
          - remove(*uids/DataContainers, rel)
         """
         c = cuds.classes.City("a city")
@@ -191,12 +196,21 @@ class TestAPICity(unittest.TestCase):
         self.assertIn(cuds.classes.CUBA.HAS_PART, c)
         self.assertIn(cuds.classes.CUBA.ENCLOSES, c)
 
+        # remove()
+        c.remove()
+        self.assertFalse(c)
+        # inverse
+        get_inverse = p.get(rel=cuds.classes.IsPartOf)
+        self.assertEqual(get_inverse, [None])
+
         # remove(*uids/DataContainers)
-        get_default = c.get()
-        self.assertIn(p, get_default)
+        c.add(n, p)
+        c.add(q, rel=cuds.classes.Encloses)
+        get_all = c.get()
+        self.assertIn(p, get_all)
         c.remove(p.uid)
-        get_default = c.get()
-        self.assertNotIn(p, get_default)
+        get_all = c.get()
+        self.assertNotIn(p, get_all)
         # inverse
         get_inverse = p.get(rel=cuds.classes.IsPartOf)
         self.assertEqual(get_inverse, [None])
@@ -224,6 +238,17 @@ class TestAPICity(unittest.TestCase):
         get_inverse = n.get(rel=cuds.classes.IsPartOf)
         self.assertEqual(get_inverse, [None])
 
+        # remove(rel, cuba_key)
+        c.add(p, n)
+        c.remove(rel=cuds.classes.HasPart, cuba_key=cuds.classes.CUBA.CITIZEN)
+        get_all = c.get()
+        self.assertIn(n, get_all)
+        self.assertNotIn(p, get_all)
+        # inverse
+        get_inverse = p.get(rel=cuds.classes.IsPartOf)
+        self.assertEqual(get_inverse, [None])
+
+
     def test_remove_throws_exception(self):
         """
         Tests the remove() method for unusual behaviours.
@@ -247,8 +272,6 @@ class TestAPICity(unittest.TestCase):
 
         # Wrong arguments
         self.assertRaises(TypeError, c.remove, n.uid,
-                          cuba_key=cuds.classes.CUBA.STREET)
-        self.assertRaises(TypeError, c.remove, rel=cuds.classes.HasPart,
                           cuba_key=cuds.classes.CUBA.STREET)
 
     def test_update_throws_exception(self):

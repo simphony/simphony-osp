@@ -51,7 +51,10 @@ def filter_cuds_attr(cuds_object):
     attributes = \
         [a for a in attributes if not callable(getattr(cuds_object, a))]
     # Filter the explicitly unwanted attributes
-    attributes = [a for a in attributes if a not in {'restricted_keys'}]
+    attributes = [a for a in attributes if a not in {'restricted_keys',
+                                                     'DEFAULT_DIRECT_REL',
+                                                     'supported_relationships',
+                                                     'DEFAULT_INVERSE_REL'}]
 
     return set(attributes)
 
