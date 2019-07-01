@@ -324,7 +324,6 @@ class DataContainer(dict):
             # remove(cuba_key)
             if rel is None:
                 check_arguments(CUBA, cuba_key)
-                # FIXME: Could be more efficient with another relationship mapping
                 removed = False
                 for rel_cuba_key, relationship_set in self.items():
                     for entity in relationship_set.copy():
@@ -369,6 +368,7 @@ class DataContainer(dict):
         """
         inverse_rel = None
         if rel is None:
+            # FIXME: Could be more efficient with different inverse mapping
             # go through all entities and delete
             for inverse_rel, relationship_set in self.items():
                 if entity in relationship_set:

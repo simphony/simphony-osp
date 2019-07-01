@@ -248,7 +248,6 @@ class TestAPICity(unittest.TestCase):
         get_inverse = p.get(rel=cuds.classes.IsPartOf)
         self.assertEqual(get_inverse, [None])
 
-
     def test_remove_throws_exception(self):
         """
         Tests the remove() method for unusual behaviours.
