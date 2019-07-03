@@ -21,7 +21,7 @@ class TestPerformance(unittest.TestCase):
         self.stop = time.time()
         total = self.stop - self.start
         if total > 60:
-            print('Total time: ' + str(total/60) + ' minutes.')
+            print('Total time: ' + str(total / 60) + ' minutes.')
         else:
             print('Total time: ' + str(total) + ' seconds.')
 
