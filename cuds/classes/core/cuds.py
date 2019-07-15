@@ -7,21 +7,27 @@
 
 import uuid
 
+from .session.core_session import CoreSession
 from ...utils import check_arguments, filter_cuds_attr
 from ..generated.cuba import CUBA
+from ..generated.relationship import Relationship
+from ..generated.has_part import HasPart
 
 
-class DataContainer(dict):
+class Cuds(dict):
     """
-    A DataContainer instance
+    A Common Universal Data Structure
 
-    The DataContainer object is implemented as a python dictionary whose keys
-    are restricted to the instance's `restricted_keys`, default to the CUBA
-    enum members.
+    The Cuds object is implemented as a python dictionary whose keys
+    are the relationship between the element and the member.
+
+    The instances of the contained elements are accessible
+    through the shared session
     """
-    DEFAULT_DIRECT_REL = CUBA.HAS_PART
-    DEFAULT_INVERSE_REL = CUBA.IS_PART_OF
+    DEFAULT_REL = HasPart
+    ROOT_REL = Relationship
     cuba_key = None
+    session = CoreSession()
 
     def __init__(self):
         """
@@ -30,15 +36,17 @@ class DataContainer(dict):
         super().__init__()
 
         # These are the allowed CUBA keys (faster to convert to set for lookup)
-        self.restricted_keys = frozenset(CUBA)
+        # self.restricted_keys = frozenset(CUBA)
         self.uid = uuid.uuid4()
+        self.session.add(self)
 
     def __str__(self):
         """
-        Redefines the str() for DataContainer.
+        Redefines the str() for Cuds.
 
         :return: string with the uid, cuba_key and first level children
         """
+        # FIXME: Update to new design
         items = self._str_attributes()
 
         for name, relationship_set in self.items():
@@ -73,21 +81,21 @@ class DataContainer(dict):
 
     def __setitem__(self, key, value):
         """
-        Set/Update the key value only when the key is a CUBA key.
+        Set/Update the key value only when the key is a relationship.
 
         :param key: key in the dictionary
         :param value: new value to assign to the key
-        :raises ValueError: unsupported key provided (not a CUBA key)
+        :raises ValueError: unsupported key provided (not a relationship)
         """
-        if key in self.restricted_keys:
+        if issubclass(key, self.ROOT_REL):
             super().__setitem__(key, value)
         else:
-            message = 'Key {!r} is not in the supported keywords'
+            message = 'Key {!r} is not in the supported relationships'
             raise ValueError(message.format(key))
 
     def __hash__(self):
         """
-        Makes DataContainer objects hashable.
+        Makes Cuds objects hashable.
         Use the hash of the uid of the object
 
         :return: unique hash
@@ -116,38 +124,41 @@ class DataContainer(dict):
         :return: reference to itself
         :raises ValueError: adding an element already there
         """
-        check_arguments('all_simphony_wrappers', *args)
-        # TODO: Check the type of the rel object
-        rel_cuba_key = self.DEFAULT_DIRECT_REL if rel is None else rel.cuba_key
+        check_arguments(Cuds, *args)
+        if rel is None:
+            rel = self.DEFAULT_REL
         for arg in args:
-            self._add_direct(arg, rel_cuba_key)
+            self._add_direct(arg, rel)
             arg.add_inverse(self, rel)
+            # TODO: Propagate changes to registry (through session)
+            if self.session != arg.session:
+                self.session.add(arg)
         return self
 
-    def _add_direct(self, entity, rel_cuba_key):
+    def _add_direct(self, entity, rel):
         """
         Adds an entity to the current instance with a specific relationship
         :param entity: object to be added
-        :param rel_cuba_key: relationship with the entity to add
+        :param rel: relationship with the entity to add
         """
         # First element, create set
-        if rel_cuba_key not in self.keys():
-            self.__setitem__(rel_cuba_key, {entity})
+        if rel not in self.keys():
+            self.__setitem__(rel, {entity.uid: entity.cuba_key})
         # Element not already there
-        elif entity not in self.__getitem__(rel_cuba_key):
-            self.__getitem__(rel_cuba_key).add(entity)
+        elif entity not in self.__getitem__(rel):
+            self.__getitem__(rel)[entity.uid] = entity.cuba_key
         else:
             message = '{!r} is already in the container'
             raise ValueError(message.format(entity))
 
-    def add_inverse(self, entity, rel=None):
+    def add_inverse(self, entity, rel):
         """
         Adds the inverse relationship from self to entity.
 
         :param entity: container of the normal relationship
         :param rel: direct relationship instance
         """
-        inverse_rel = self.DEFAULT_INVERSE_REL if rel is None else rel.inverse
+        inverse_rel = rel.inverse
         self._add_direct(entity, inverse_rel)
 
     def get(self, *uids, rel=None, cuba_key=None):
@@ -181,18 +192,16 @@ class DataContainer(dict):
                         output.append(self._get_by_uid(uid))
             # get(rel)
             elif not uids:
-                # TODO: check type of rel
                 try:
-                    output = list(self.__getitem__(rel.cuba_key))
+                    output = list(self.__getitem__(rel))
                 except KeyError:
                     output.append(None)
             # get(*uids, rel)
             else:
                 check_arguments(uuid.UUID, *uids)
-                # TODO: check type of rel
                 for uid in uids:
                     try:
-                        relationship_set = self.__getitem__(rel.cuba_key)
+                        relationship_set = self.__getitem__(rel)
                         output.append(
                             self._get_from_relationship_set(uid,
                                                             relationship_set))
@@ -211,7 +220,7 @@ class DataContainer(dict):
             # get(rel, cuba_key)
             else:
                 try:
-                    relationship_set = self.__getitem__(rel.cuba_key)
+                    relationship_set = self.__getitem__(rel)
                     for entity in relationship_set:
                         if entity.cuba_key == cuba_key:
                             output.append(entity)
@@ -250,7 +259,7 @@ class DataContainer(dict):
 
     def remove(self, *args, rel=None, cuba_key=None):
         """
-        Removes elements from the DataContainer.
+        Removes elements from the Cuds.
         Expected calls are remove(), remove(*uids/DataContainers),
         remove(rel), remove(cuba_key), remove(*uids/DataContainers, rel),
         remove(rel, cuba_key)
@@ -272,10 +281,10 @@ class DataContainer(dict):
                     self.clear()
                 else:
                     # remove(*uids/Datacontainers)
-                    check_arguments((DataContainer, uuid.UUID), *args)
+                    check_arguments((Cuds, uuid.UUID), *args)
                     for arg in args:
                         removed = False
-                        if isinstance(arg, DataContainer):
+                        if isinstance(arg, Cuds):
                             arg = arg.uid
                         # Will remove multiple occurrences
                         for rel_cuba_key, relationship_set in self.items():
@@ -291,7 +300,6 @@ class DataContainer(dict):
                             raise KeyError(message.format(arg))
             # remove(rel)
             elif not args:
-                # TODO: check type of rel
                 relationship_set = self.__getitem__(rel.cuba_key)
                 # remove the inverse from the entities
                 for entity in relationship_set:
@@ -302,12 +310,11 @@ class DataContainer(dict):
             # remove(*uids/Datacontainers, rel)
             else:
                 removed = True
-                check_arguments((DataContainer, uuid.UUID), *args)
-                # TODO: check type of rel
+                check_arguments((Cuds, uuid.UUID), *args)
                 relationship_set = self.__getitem__(rel.cuba_key)
                 for arg in args:
                     removed = False
-                    if isinstance(arg, DataContainer):
+                    if isinstance(arg, Cuds):
                         arg = arg.uid
 
                     entity = self._get_from_relationship_set(arg,

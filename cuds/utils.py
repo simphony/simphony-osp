@@ -52,10 +52,9 @@ def filter_cuds_attr(cuds_object):
         [a for a in attributes if not callable(getattr(cuds_object, a))]
     # Filter the explicitly unwanted attributes
     attributes = [a for a in attributes if a not in {'restricted_keys',
-                                                     'DEFAULT_DIRECT_REL',
+                                                     'DEFAULT_REL',
                                                      'supported_relationships',
                                                      'DEFAULT_INVERSE_REL'}]
-
     return set(attributes)
 
 
@@ -77,7 +76,7 @@ def find_cuds(uid, cuds_object):
 def delete_cuds(uid, cuds_object):
     """
     Recursively finds all parents of the element with a given uid inside a
-    container and invokes \ref DataContainer::remove() on it.
+    container and invokes \ref Cuds::remove() on it.
 
     :param uid: unique identifier of the element to be deleted
     :param cuds_object: container in which to search for the element
@@ -167,10 +166,10 @@ def get_ancestors(cuds_object):
     :return: a list with all the ancestors
     """
     # FIXME: If import in the beginning,
-    #  loop with DataContainer and check_arguments
+    #  loop with Cuds and check_arguments
     import cuds.classes
     # object from osp_core
-    if isinstance(cuds_object, cuds.classes.core.DataContainer):
+    if isinstance(cuds_object, cuds.classes.core.Cuds):
         parent = cuds_object.__class__.__bases__[0]
     # wrapper instance
     else:

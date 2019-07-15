@@ -1,5 +1,5 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
+# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
+# Fraunhofer IWM.
 # All rights reserved.
 # Redistribution and use are limited to the scope agreed with the end user.
 # No parts of this software may be used outside of this context.
@@ -117,9 +117,9 @@ class ClassGenerator(object):
         # Get the parent
         parent = self._parser.get_parent(original_class)
         if parent == "":
-            parent_module = "..core.data_container"
-            parent_class = "DataContainer"
-        elif parent == "RELATIONSHIP":
+            parent_module = "..core.cuds"
+            parent_class = "Cuds"
+        elif original_class == "RELATIONSHIP":
             parent_module = "builtins"
             parent_class = "object"
         else:

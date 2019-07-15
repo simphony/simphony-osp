@@ -110,6 +110,6 @@ setup(
         'console_scripts': [
             'simphony-class-generator = cuds.metatools.class_generator:main',
             'cuds2dot = cuds.ontology.tools.cuds2dot:main'],
-        'wrappers': 'osp-core = cuds.classes.core:DataContainer'
+        'wrappers': 'osp-core = cuds.classes.core:Cuds'
     }
 )
