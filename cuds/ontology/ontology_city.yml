@@ -97,7 +97,7 @@ CUDS_ONTOLOGY:
     CUBA.NAME:
       default: "Street"
     CUBA.NUMBER:
-      default:
+      default: 7
     CUBA.POSTAL_CODE:
 
   POPULATED_PLACE:
@@ -155,3 +155,16 @@ CUDS_ONTOLOGY:
     CUBA.INHABITS:
       CUBA.POPULATED_PLACE:
         cardinality: 1
+
+  SESSION:
+    definition:
+    parent: CUBA.VALUE
+
+  WRAPPER:
+    definition:
+    parent: CUBA.ENTITY
+    CUBA.SESSION
+
+  LAMMPS_WRAPPER:
+    definition:
+    parent: CUBA.WRAPPER

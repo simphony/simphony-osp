@@ -27,6 +27,7 @@ class Cuds(dict):
     DEFAULT_REL = HasPart
     ROOT_REL = Relationship
     cuba_key = None
+    # TODO: Check that instantiating a wrapper overrides this session
     session = CoreSession()
 
     def __init__(self):
