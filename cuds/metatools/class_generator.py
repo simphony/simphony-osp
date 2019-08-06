@@ -199,7 +199,7 @@ class ClassGenerator(object):
             get_cuba_attributes_filtering(entity_name, self._not_classes)
 
         str_relationships = re.sub("'(CUBA.[A-Z_]*)'",
-                                   "\g<1>",
+                                   r"\g<1>",
                                    str(relationships))
 
         content = {

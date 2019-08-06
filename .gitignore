@@ -7,4 +7,5 @@ cuds/ontology/__pycache__/
 cuds/ontology/tools/__pycache__/
 simphony.egg-info/
 *~*
+.vscode/
 

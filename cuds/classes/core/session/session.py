@@ -32,5 +32,3 @@ class Session(ABC):
 
     def sync(self):
         pass
-
-

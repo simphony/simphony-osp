@@ -22,7 +22,7 @@ class TestPerformance(unittest.TestCase):
     def tearDown(self):
         self.stop = time.time()
         mem_bytes = asizeof.asizeof(self.c)
-        mem_mb = mem_bytes / (1024*1024.0)
+        mem_mb = mem_bytes / (1024 * 1024.0)
         print('Memory usage: ' + str(mem_mb) + ' MegaBytes.')
         total = self.stop - self.start
         if total > 60:

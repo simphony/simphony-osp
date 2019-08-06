@@ -94,7 +94,7 @@ class Cuds2Dot:
                 parent = node
                 while current_level < self._height:
                     parent = self._parser.get_parent(parent)
-                    if parent is "":
+                    if parent == "":
                         break
                     self._elements.add(parent)
                     current_level += 1

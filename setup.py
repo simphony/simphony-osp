@@ -1,13 +1,17 @@
 import os
 
 from setuptools import setup
-from subprocess import check_call
+from subprocess import check_call, CalledProcessError
 from setuptools.command.install import install
 from setuptools.command.develop import develop
 from packageinfo import VERSION, NAME
 
 # Should be in install_requires, but needed for ClassGenerator import
-check_call(["pip3", "install", "-r", "requirements.txt"])
+try:
+    check_call(["pip3", "install", "-r", "requirements.txt"])
+except (FileNotFoundError, CalledProcessError):
+    check_call(["pip", "install", "-r", "requirements.txt"])
+
 from cuds.metatools.class_generator import ClassGenerator
 
 # Read description
