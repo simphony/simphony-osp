@@ -159,7 +159,8 @@ class Cuds(dict):
         :param entity: container of the normal relationship
         :param rel: direct relationship instance
         """
-        inverse_rel = rel.inverse
+        from ..generated.cuba_mapping import CUBA_MAPPING  # TODO avoid circular imports
+        inverse_rel = CUBA_MAPPING[rel.inverse]
         self._add_direct(entity, inverse_rel)
 
     def get(self, *uids, rel=None, cuba_key=None):

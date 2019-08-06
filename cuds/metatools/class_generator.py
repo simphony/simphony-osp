@@ -62,6 +62,7 @@ class ClassGenerator(object):
         """
         self._generate_init_file()
         self._generate_cuba_enum_file()
+        self._generate_cuba_mapping()
         for entity in self._parser.get_entities():
             if entity not in self._not_classes:
                 print("Generating {}".format(entity))
@@ -91,6 +92,23 @@ class ClassGenerator(object):
 
         with open(cuba_filename, 'w+') as f:
             f.write(enum)
+            f.close()
+    
+    def _generate_cuba_mapping(self):
+        cuba_mapping_filename = os.path.join(self._output_folder, "cuba_mapping.py")
+        file_content = "from .cuba import CUBA\n"
+        elements = set(self._parser.get_entities()) - self._not_classes
+        for element in elements:
+            file_content += "from .%s import %s\n" % (element.lower(),
+                                                      format_class_name(element))
+        file_content += "\n\nCUBA_MAPPING = {\n"
+        for element in elements:
+            file_content += "    CUBA.%s: %s, \n" % (element,
+                                                     format_class_name(element))
+        file_content += "}\n"
+
+        with open(cuba_mapping_filename, "w") as f:
+            f.write(file_content)
             f.close()
 
     def _add_attributes_to_init_file(self):

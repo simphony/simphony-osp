@@ -6,7 +6,6 @@
 # No redistribution is allowed without explicit written permission.
 
 from uuid import UUID
-from .cuds import Cuds
 
 
 class Registry(dict):
@@ -26,6 +25,7 @@ class Registry(dict):
         :param cuds
         :raises ValueError: unsupported object provided (not a Cuds object)
         """
+        from .cuds import Cuds  # TODO avoid circular imports
         if isinstance(cuds, Cuds):
             super().__setitem__(cuds.uid, cuds)
         else:
