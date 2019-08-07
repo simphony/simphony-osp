@@ -6,6 +6,7 @@
 # No redistribution is allowed without explicit written permission.
 
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from ..registry import Registry
 
 
@@ -22,13 +23,30 @@ class Session(ABC):
     def __str__(self):
         pass
 
-    def add(self, entity):
+    def store(self, entity):
+        """Store a deepcopy of given entity in the session.
+
+        :param entity: The entity to store.
+        :type entity: Cuds
+        """
+        entity = deepcopy(entity)
+        entity.session = self
         self._registry.put(entity)
         if self.root is None:
             self.root = entity.uid
 
-    def load(self):
-        pass
+    def load(self, *uids):
+        """Load the cuds objects of the given uids.
+
+        :param uids: The uids of the cuds objects to load.
+        :type uids: UUID
+        :return: The fetched Cuds objects.
+        :rtype: List[Cuds]
+        """
+        result = []
+        for uid in uids:
+            result.append(self._registry.get(uid))
+        return result
 
     def sync(self):
         pass

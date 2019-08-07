@@ -6,6 +6,7 @@
 # No redistribution is allowed without explicit written permission.
 
 import uuid
+import inspect
 
 from .session.core_session import CoreSession
 from ...utils import check_arguments, filter_cuds_attr
@@ -39,7 +40,7 @@ class Cuds(dict):
         # These are the allowed CUBA keys (faster to convert to set for lookup)
         # self.restricted_keys = frozenset(CUBA)
         self.uid = uuid.uuid4()
-        self.session.add(self)
+        self.session.store(self)
 
     def __str__(self):
         """
@@ -88,7 +89,7 @@ class Cuds(dict):
         :param value: new value to assign to the key
         :raises ValueError: unsupported key provided (not a relationship)
         """
-        if issubclass(key, self.ROOT_REL):
+        if inspect.isclass(key) and issubclass(key, self.ROOT_REL):
             super().__setitem__(key, value)
         else:
             message = 'Key {!r} is not in the supported relationships'
@@ -131,9 +132,11 @@ class Cuds(dict):
         for arg in args:
             self._add_direct(arg, rel)
             arg.add_inverse(self, rel)
-            # TODO: Propagate changes to registry (through session)
+
+            # TODO recursively add the children to the registry
+            # Propagate changes to registry (through session)
             if self.session != arg.session:
-                self.session.add(arg)
+                self.session.store(arg)
         return self
 
     def _add_direct(self, entity, rel):
@@ -146,7 +149,7 @@ class Cuds(dict):
         if rel not in self.keys():
             self.__setitem__(rel, {entity.uid: entity.cuba_key})
         # Element not already there
-        elif entity not in self.__getitem__(rel):
+        elif entity.uid not in self.__getitem__(rel):
             self.__getitem__(rel)[entity.uid] = entity.cuba_key
         else:
             message = '{!r} is already in the container'
@@ -159,7 +162,8 @@ class Cuds(dict):
         :param entity: container of the normal relationship
         :param rel: direct relationship instance
         """
-        from ..generated.cuba_mapping import CUBA_MAPPING  # TODO avoid circular imports
+        # TODO avoid circular imports
+        from ..generated.cuba_mapping import CUBA_MAPPING
         inverse_rel = CUBA_MAPPING[rel.inverse]
         self._add_direct(entity, inverse_rel)
 
@@ -167,97 +171,84 @@ class Cuds(dict):
         """
         Returns the contained elements of a certain type, uid or relationship.
         Expected calls are get(), get(*uids), get(rel), get(cuba_key),
-        get(*uids, rel), get(rel, cuba_key)
+        get(*uids, rel), get(rel, cuba_key).
+        If uids are specified, the position of each element in the result
+        is determined by to the position of the corresponding uid in the given
+        list of uids.
+        In this case, the result can contain None values if a given uid is not
+        a child of this cuds object.
+        If no uids are specified, the resulting elements are ordered randomly.
 
         :param uids: UIDs of the elements
         :param rel: class of the relationship
         :param cuba_key: CUBA key of the subelements
         :return: list of queried objects, or None, if not found
         """
-        output = []
+        if uids and cuba_key is not None:
+            raise RuntimeError("Do not specify both uids and cuba_key")
 
-        if cuba_key is None:
-            if rel is None:
-                # get()
-                if not uids:
-                    try:
-                        # Unique elements
-                        unique = set.union(*self.values())
-                        output = list(unique)
-                    # No elements
-                    except TypeError:
-                        output.append(None)
-                # get(*uids)
-                else:
-                    check_arguments(uuid.UUID, *uids)
-                    for uid in uids:
-                        output.append(self._get_by_uid(uid))
-            # get(rel)
-            elif not uids:
-                try:
-                    output = list(self.__getitem__(rel))
-                except KeyError:
-                    output.append(None)
-            # get(*uids, rel)
+        if uids:
+            check_arguments(uuid.UUID, *uids)
+
+        if rel is not None and rel not in self.keys():
+            return [] if not uids else [None] * len(uids)
+
+        # consider either only given relationship or all relationships.
+        consider_relationships = [rel]
+        if rel is None:
+            consider_relationships = list(self.keys())
+
+        # iterate over the relationships to get the uids
+        not_found_uids = dict(enumerate(uids)) if uids else None
+        collected_uids = set()
+        for relationship in consider_relationships:
+
+            # Uids are given.
+            # Check which occur as object of current relation.
+            if uids:
+                found_uid_indexes = set()
+                for i, uid in not_found_uids.items():
+                    if uid in self.__getitem__(relationship):
+                        found_uid_indexes.add(i)
+                for i in found_uid_indexes:
+                    del not_found_uids[i]
+
+            # Uids are not given, but the cuba-key is.
+            # Collect all uids who are object of the current relationship.
+            # Possibly filter by Cuba-Key.
             else:
-                check_arguments(uuid.UUID, *uids)
-                for uid in uids:
-                    try:
-                        relationship_set = self.__getitem__(rel)
-                        output.append(
-                            self._get_from_relationship_set(uid,
-                                                            relationship_set))
-                    except KeyError:
-                        output.append(None)
-        elif not uids:
-            # get(cuba_key)
-            if rel is None:
-                check_arguments(CUBA, cuba_key)
-                for relationship_set in self.values():
-                    for entity in relationship_set:
-                        if entity.cuba_key == cuba_key:
-                            output.append(entity)
-                if not output:
-                    output.append(None)
-            # get(rel, cuba_key)
+                collected_uids |= set([
+                    uid for uid, cuba in self.__getitem__(relationship).items()
+                    if cuba_key is None or cuba == cuba_key])
+
+        if uids:
+            collected_uids = [(uid if i not in not_found_uids else None)
+                              for i, uid in enumerate(uids)]
+        return self._load_entities(collected_uids)
+
+    def _load_entities(self, uids):
+        """Load the entities of the given uids from the session.
+        Each in entity is at the same position in the result as
+        the corresponding uid in the given uid list.
+        If the given uids contain None values, there will be
+        None values at the same postion in the result.
+
+        :param uids: The uids to fetch from the session.
+        :type uids: List[UUID]
+        :return: The loaded entities
+        :rtype: List[Cuds]
+        """
+        without_none = [uid for uid in uids if uid is not None]
+        entities = self.session.load(*without_none)
+        result = []
+        i = 0
+        for uid in uids:
+            if uid is None:
+                result.append(None)
             else:
-                try:
-                    relationship_set = self.__getitem__(rel)
-                    for entity in relationship_set:
-                        if entity.cuba_key == cuba_key:
-                            output.append(entity)
-                except KeyError:
-                    output.append(None)
-        else:
-            message = 'Supported calls are get(), get(*uids), get(rel),' \
-                      ' get(cuba_key), get(*uids, rel), get(rel, cuba_key)'
-            raise TypeError(message)
-        return output
-
-    def _get_by_uid(self, uid):
-        """
-        Finds an entity in the contained ones by uid.
-
-        :param uid: unique identifier of the wanted entity
-        :return: the first entity found with that uid or None
-        """
-        for relationship_set in self.values():
-            for entity in relationship_set:
-                if entity.uid == uid:
-                    return entity
-        return None
-
-    def _get_from_relationship_set(self, uid, relationship_set):
-        """
-        Finds an entity under a given relationship set by uid.
-
-        :param uid: unique identifier of the wanted entity
-        :param relationship_set: set of entities under the same relationship
-        :return: the entity found with that uid or None
-        """
-        for entity in relationship_set:
-            if entity.uid == uid:
-                return entity
+                result.append(entities[i])
+                i += 1
+        return result
 
     def remove(self, *args, rel=None, cuba_key=None):
         """
