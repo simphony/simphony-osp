@@ -46,15 +46,9 @@ class Cuds(dict):
         """
         Redefines the str() for Cuds.
 
-        :return: string with the uid, cuba_key and first level children
+        :return: string with the cuba_key and uid
         """
-        # FIXME: Update to new design
-        items = self._str_attributes()
-
-        for name, relationship_set in self.items():
-            items.append(self._str_relationship_set(name, relationship_set))
-
-        return "{\n  " + ",\n  ".join(items) + "\n}"
+        return "%s: %s" % (self.cuba_key, self.uid)
 
     def _str_attributes(self):
         """
