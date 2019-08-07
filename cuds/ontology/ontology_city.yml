@@ -55,6 +55,22 @@ CUDS_ONTOLOGY:
     inverse: CUBA.INHABITS
 
  ################
+  
+  SESSION:
+    definition:
+    parent: CUBA.VALUE
+
+  WRAPPER:
+    definition:
+    parent: CUBA.ENTITY
+    CUBA.SESSION:
+      default: <CoreSession>
+
+  CITY_WRAPPER:
+    definition:
+    parent: CUBA.WRAPPER
+
+  ################
 
   ENTITY:
     definition: the basic ontologicial entity, a thing. BFO

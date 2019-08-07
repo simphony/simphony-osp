@@ -76,6 +76,13 @@ class TestAPICity(unittest.TestCase):
         self.assertRaises(ValueError, c.add, n)
         self.assertRaises(TypeError, c.add, "Not a CUDS objects")
 
+    def test_recursive_add(self):
+        c = cuds.classes.City("City")
+        p1 = cuds.classes.Citizen() 
+        p2 = cuds.classes.Citizen()
+        c.add(p1, p2, rel=cuds.classes.IsInhabitedBy)
+        # TODO finish
+
     def test_get(self):
         """
         Tests the standard, normal behaviour of the get() method.

@@ -24,16 +24,21 @@ class Session(ABC):
         pass
 
     def store(self, entity):
-        """Store a deepcopy of given entity in the session.
+        """Store a copy of given entity in the session.
+        Return the stored object.
 
         :param entity: The entity to store.
         :type entity: Cuds
+        :return: The stored entity.
+        :rtype: Cuds
         """
-        entity = deepcopy(entity)
-        entity.session = self
+        if entity.session != self:
+            entity = deepcopy(entity)
+            entity.session = self
         self._registry.put(entity)
         if self.root is None:
             self.root = entity.uid
+        return entity
 
     def load(self, *uids):
         """Load the cuds objects of the given uids.

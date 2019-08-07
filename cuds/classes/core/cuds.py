@@ -127,11 +127,78 @@ class Cuds(dict):
             self._add_direct(arg, rel)
             arg.add_inverse(self, rel)
 
-            # TODO recursively add the children to the registry
             # Propagate changes to registry (through session)
+            # Recursively add the children to the registry
             if self.session != arg.session:
-                self.session.store(arg)
+                self._recursive_store(arg, rel)
         return self
+
+    def _recursive_store(self, cuds, rel, uids_stored=None):
+        """Recursively store cuds and all its children in the registry of self.
+
+        :param cuds: The cuds to store in the session of self.
+                     Should be a child of self.
+        :type cuds: Cuds
+        :param rel: The relationship that connects self and cuds
+        :type rel: Subclass of Relationship
+        :param uids_added: The uids that have already been added,
+            defaults to None
+        :type uids_stored: set(UUID), optional
+        :return: The uids that have already been stored.
+        :rtype: set(UUID)
+        """
+        # Store the given cuds. Returns the stored copy.
+        stored_cuds = self.session.store(cuds)
+        self._fix_dangling_references(stored_cuds, stored_cuds, rel)
+
+        # Keep track which cuds objects have already been stored
+        if uids_stored is None:
+            uids_stored = set()
+        uids_stored.add(cuds.uid)
+
+        # Recursively add the children
+        for outgoing_rel in cuds.keys():
+            for child_uid in cuds.__getitem__(outgoing_rel).keys():
+                if child_uid not in uids_stored:
+                    child = cuds.get(child_uid, rel=outgoing_rel)[0]
+                    uids_stored |= stored_cuds._recursive_store(child,
+                                                                outgoing_rel,
+                                                                uids_stored)
+        return uids_stored
+
+    def _fix_dangling_references(self, cuds, rel):
+        """Fix all the dangling references to previously stored cuds.
+
+        :param uid: Previously stored cuds,
+                    to which dangling references might be present.
+        :type cuds: Cuds
+        :param rel: The relationship that connects self with cuds
+        :type rel: Subclass of Relationship
+        """
+        # TODO avoid circular imports
+        from ..generated.cuba_mapping import CUBA_MAPPING
+
+        # The previously stored cuds was not present before.
+        # Therefore, no dangling references can exist.
+        if cuds.uid not in self.__getitem__(rel):
+            return
+
+        # Get the old version of the previously stored cuds
+        # and iterate over its children
+        old_cuds = self.__getitem__(rel)[cuds.uid]
+        for outgoing_rel in old_cuds.keys():
+            inverse = CUBA_MAPPING[outgoing_rel.inverse]
+            for child_uid in old_cuds.__getitem__(outgoing_rel).keys():
+
+                # if this child is no longer a child, remove the
+                # dangling reference of the child given by the inverse
+                if outgoing_rel not in cuds or \
+                        child_uid not in outgoing_rel.__getitem__(cuds):
+
+                    # remove the dangling reference and store in session
+                    child = old_cuds.get(child_uid, rel=outgoing_rel)
+                    del child.__getitem__(inverse)[cuds.uid]
+                    self.session.store(child)
 
     def _add_direct(self, entity, rel):
         """
