@@ -7,7 +7,7 @@
 
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from ..registry import Registry
+from cuds.classes.core.registry import Registry
 
 
 class Session(ABC):

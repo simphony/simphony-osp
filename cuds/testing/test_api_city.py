@@ -7,7 +7,7 @@
 
 import unittest2 as unittest
 import uuid
-from copy import deepcopy
+from cuds.classes.core.session.core_session import CoreSession
 
 import cuds.classes
 
@@ -78,10 +78,32 @@ class TestAPICity(unittest.TestCase):
 
     def test_recursive_add(self):
         c = cuds.classes.City("City")
-        p1 = cuds.classes.Citizen() 
+        p1 = cuds.classes.Citizen()
+        c.add(p1)
+
+        second_session = CoreSession()
+        w = cuds.classes.Wrapper(session=second_session)
+        w.add(c)
+        cw = w.get(c.uid)[0]
+        p1w = cw.get(p1.uid)[0]
+        self.assertIs(cw.session, second_session)
+        self.assertIs(p1w.session, second_session)
+        self.assertIsNot(c.session, second_session)
+        self.assertIsNot(p1.session, second_session)
+
         p2 = cuds.classes.Citizen()
-        c.add(p1, p2, rel=cuds.classes.IsInhabitedBy)
-        # TODO finish
+        p3 = cuds.classes.Citizen()
+        # p4 = cuds.classes.Citizen()
+        c.add(p2, p3)
+        p1.add(p2)
+        # p3.add(p2)
+        # p2.add(p4)
+
+        cw.add(p2)
+        self.assertEqual(set(cw[cuds.classes.HasPart].keys()),
+                         set([p1.uid, p2.uid]))
+        self.assertEqual(set([p2.uid]), set(p1w[cuds.classes.HasPart].keys()))
+        # TODO continue
 
     def test_get(self):
         """
