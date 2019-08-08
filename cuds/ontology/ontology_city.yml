@@ -64,7 +64,7 @@ CUDS_ONTOLOGY:
     definition:
     parent: CUBA.ENTITY
     CUBA.SESSION:
-      default: <CoreSession>
+      default: null
 
   CITY_WRAPPER:
     definition:

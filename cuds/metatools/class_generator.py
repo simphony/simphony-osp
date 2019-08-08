@@ -268,6 +268,9 @@ class ClassGenerator(object):
                 # Inherited properties go to supper
                 if name in inherited_attr:
                     list_super.append(name)
+                elif name == "session" and name in own_attr:
+                    list_self.append("if session is not None:")
+                    list_self.append("    self.session = session")
                 elif name in own_attr:
                     list_self.append("self.{} = {}".format(name, name))
 
