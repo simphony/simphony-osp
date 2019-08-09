@@ -32,9 +32,7 @@ class Session(ABC):
         :return: The stored entity.
         :rtype: Cuds
         """
-        if entity.session != self:
-            entity = deepcopy(entity)
-            entity.session = self
+        assert entity.session == self
         self._registry.put(entity)
         if self.root is None:
             self.root = entity.uid
@@ -50,7 +48,10 @@ class Session(ABC):
         """
         result = []
         for uid in uids:
-            result.append(self._registry.get(uid))
+            try:
+                result.append(self._registry.get(uid))
+            except KeyError:
+                result.append(None)
         return result
 
     def sync(self):

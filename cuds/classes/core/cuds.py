@@ -15,6 +15,7 @@ from cuds.classes.generated.relationship import Relationship
 from cuds.classes.generated.active_relationship import ActiveRelationship
 from cuds.classes.generated.passive_relationship import PassiveRelationship
 from cuds.classes.generated.has_part import HasPart
+from copy import deepcopy
 
 
 class Cuds(dict):
@@ -126,6 +127,8 @@ class Cuds(dict):
         if rel is None:
             rel = self.DEFAULT_REL
         for arg in args:
+            if arg.session != self.session:
+                arg = arg._clone()
             self._add_direct(arg, rel)
             arg.add_inverse(self, rel)
             # TODO Propagate changes to registry (through session)
@@ -136,20 +139,23 @@ class Cuds(dict):
         return self
 
     def _recursive_store(self, new_cuds, old_cuds=None, uids_stored=None):
-        """Recursively store cuds and all its children in the registry of self.
-
-        :param cuds: The cuds to store in the session of self.
-                     Should be a child of self.
-        :type cuds: Cuds
-        :param rel: The relationship that connects self and cuds
-        :type rel: Subclass of Relationship
-        :param uids_added: The uids that have already been added,
-            defaults to None
-        :type uids_stored: set(UUID), optional
-        :return: The uids that have already been stored.
-        :rtype: set(UUID)
+        """Recursively store cuds and all its children.
+        # TODO finish
+        
+        :param new_cuds: [description]
+        :type new_cuds: [type]
+        :param old_cuds: [description], defaults to None
+        :type old_cuds: [type], optional
+        :param uids_stored: [description], defaults to None
+        :type uids_stored: [type], optional
+        :return: [description]
+        :rtype: [type]
         """
-        self._fix_parent_connections(new_cuds, old_cuds)
+        # Store copy in registry and fix parent connections
+        new_child_getter = new_cuds
+        new_cuds = new_cuds._clone()
+        new_cuds.session = self.session
+        self._fix_neighbors(new_cuds, old_cuds, self.session)
         stored_cuds = self.session.store(new_cuds)
 
         # Keep track which cuds objects have already been stored
@@ -167,7 +173,8 @@ class Cuds(dict):
             # add children not already added
             for child_uid in new_cuds[outgoing_rel].keys():
                 if child_uid not in uids_stored:
-                    new_child = new_cuds.get(child_uid, rel=outgoing_rel)[0]
+                    new_child = new_child_getter.get(
+                        child_uid, rel=outgoing_rel)[0]
                     old_child = old_cuds.get(child_uid, rel=outgoing_rel)[0] \
                         if old_cuds else None
                     uids_stored |= stored_cuds._recursive_store(new_child,
@@ -175,49 +182,91 @@ class Cuds(dict):
                                                                 uids_stored)
         return uids_stored
 
-    def _fix_parent_connections(self, new_cuds, old_cuds):
-        """Add the connections from the parents of the recently added cuds to cuds.
+    @staticmethod
+    def _fix_neighbors(new_cuds, old_cuds, session):
+        """Fix all the connections of the neighbors of a Cuds objects
+        that is going to be replaced.
 
-        :param cuds: A recently added cuds object.
-        :type cuds: Cuds
-        :raises RuntimeError: The cuds objects has parents,
-            that are not in the session.
+        Concerning the relationships of the new cuds object:
+        - The new cuds object might have connnections to not available parents
+            --> Remove the connection
+        - The new cuds object might have connections to not availbe children
+            --> Do nothing as the children will be recursively added
+
+        Concerning the relationships of the neighbors:
+        - A parent is no longer a parent:
+            --> Remove the relationship of the parent
+        - A child is no longer a child:
+            --> Remove the relationship of the child
+        - A cuds object is suddenly a parent after the replacement
+            --> Add the inverse relationship to the new parent
+        - A cuds object is suddenly a child after the replacement
+            --> Do nothing since the children will get recursively updated
+
+        :param new_cuds: Cuds onbject that will replace the old one
+        :type new_cuds: Cuds
+        :param old_cuds: Cuds object that will be replaced by a new one.
+            Can be None if the new Cuds object does not replace any object.
+        :type old_cuds: Cuds
+        :param session: The session where the adjustments should take place.
+        :type session: Session
         """
         # TODO avoid circular imports
         from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
 
-        # iterate over all new parents
+        # Iterate over all new parents.
+        # Children get recursively updated, so no need to manipulate them.
         old_cuds = old_cuds or dict()
-        for relationship in new_cuds.keys() - old_cuds.keys():
-            if not issubclass(relationship, PassiveRelationship):
-                continue
-            inverse = CUBA_MAPPING[relationship.inverse]
-            # some of the parents might not be in self. Skip those.
-            try:
-                parents = self.session.load(*new_cuds[relationship].keys())
-
-                # add the inverse, active relation to the parents
-                for parent in parents:
-                    if inverse not in parent:
-                        parent[inverse] = dict()
-
-                    # TODO push these changes to the sessions buffers
-                    parent[inverse].update({new_cuds.uid: new_cuds.cuba_key})
-
-            except KeyError:
-                pass  # TODO raise an error if unknown parent is present?
-
-        # iterate over all previous parents, that are no longer parents
-        for relationship in old_cuds.keys() - new_cuds.keys():
+        delete_relationships = set()
+        for relationship in new_cuds.keys():
             if not issubclass(relationship, PassiveRelationship):
                 continue
             inverse = CUBA_MAPPING[relationship.inverse]
 
-            # delete the inverse, active relations of the previous parents
-            parents = self.session.load(old_cuds[relationship].keys())
-            for parent in parents:
-                if inverse in parent:
-                    del parent[inverse][new_cuds.uid]
+            # Get all the parents that were no parent before
+            old_parent_uids = set()
+            if relationship in old_cuds:
+                old_parent_uids = old_cuds[relationship].keys()
+            new_parent_uids = list(
+                new_cuds[relationship].keys() - old_parent_uids)
+            new_parents = session.load(*new_parent_uids)
+
+            # Iterate over the new parents
+            for parent_uid, parent in zip(new_parent_uids, new_parents):
+
+                # Delete connection to parent if parent is not present
+                if parent is None:
+                    del new_cuds[relationship][parent_uid]
+                    if len(new_cuds[relationship]) == 0:
+                        delete_relationships.add(relationship)
+                    continue
+
+                # Add the inverse to the parent
+                if inverse not in parent:
+                    parent[inverse] = dict()
+
+                # TODO push these changes to the sessions buffers
+                parent[inverse].update({new_cuds.uid: new_cuds.cuba_key})
+        for delete in delete_relationships:
+            del new_cuds[delete]
+
+        # iterate over all previous neighbors, that are no longer neighbor.
+        for relationship in old_cuds.keys():
+            inverse = CUBA_MAPPING[relationship.inverse]
+
+            # get all the neighbors that are no longer neigbor
+            new_neighbor_uids = set()
+            if relationship in new_cuds:
+                new_neighbor_uids = new_cuds[relationship].keys()
+            old_neighbors = session.load(
+                *list(old_cuds[relationship].keys() - new_neighbor_uids))
+
+            # delete the inverse of those neighbors
+            for neighbor in old_neighbors:
+                if inverse in neighbor:
+                    del neighbor[inverse][new_cuds.uid]
+                    if len(neighbor[inverse]) == 0:
+                        del neighbor[inverse]
 
     def _add_direct(self, entity, rel, error_if_already_there=True):
         """
@@ -489,37 +538,15 @@ class Cuds(dict):
             for entity in relationship_set:
                 yield entity
 
-    # def _remove_one_way_relationships(self, cuds, rel):
-    #     """Fix all the dangling references to previously stored cuds.
+    def _clone(self):
+        """Avoid that the session gets copied.
 
-    #     :param uid: Previously stored cuds,
-    #                 to which dangling references might be present.
-    #     :type cuds: Cuds
-    #     :param rel: The relationship that connects self with cuds
-    #     :type rel: Subclass of Relationship
-    #     """
-    #     # TODO avoid circular imports
-    #     from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
-
-    #     # The previously stored cuds was not present before.
-    #     # Therefore, no dangling references can exist.
-    #     if cuds.uid not in self.__getitem__(rel):
-    #         return
-
-    #     # Get the old version of the previously stored cuds
-    #     # and iterate over its neighbors
-    #     old_cuds = self.__getitem__(rel)[cuds.uid]
-    #     for outgoing_rel in old_cuds.keys():
-    #         inverse = CUBA_MAPPING[outgoing_rel.inverse]
-    #         for neighbor_uid in old_cuds.__getitem__(outgoing_rel).keys():
-
-    #             # If this neighbor is no longer a neighbor
-    #             # in the updated cuds.
-    #             # Remove the reference.
-    #             if outgoing_rel not in cuds or \
-    #                     neighbor_uid not in outgoing_rel.__getitem__(cuds):
-
-    #                 # remove the dangling reference and store in session
-    #                 neighbor = old_cuds.get(neighbor_uid, rel=outgoing_rel)
-    #                 del neighbor.__getitem__(inverse)[cuds.uid]
-    #                 self.session.store(neighbor)
+        :return: A copy of self with the same session
+        :rtype: Cuds
+        """
+        session = self.session
+        if "session" in self.__dict__:
+            del self.__dict__["session"]
+        clone = deepcopy(self)
+        clone.session = session
+        return clone

@@ -77,6 +77,8 @@ class TestAPICity(unittest.TestCase):
         self.assertRaises(TypeError, c.add, "Not a CUDS objects")
 
     def test_recursive_add(self):
+        """Tests if add() works correctly if added cuds is from another session.
+        """
         c = cuds.classes.City("City")
         p1 = cuds.classes.Citizen()
         c.add(p1)
@@ -93,17 +95,107 @@ class TestAPICity(unittest.TestCase):
 
         p2 = cuds.classes.Citizen()
         p3 = cuds.classes.Citizen()
-        # p4 = cuds.classes.Citizen()
+        p4 = cuds.classes.Citizen()
         c.add(p2, p3)
         p1.add(p2)
-        # p3.add(p2)
-        # p2.add(p4)
+        p3.add(p2)
+        p2.add(p4)
 
         cw.add(p2)
+        p2w, = cw.get(p2.uid)
+        p4w, = p2w.get(p4.uid)
+
+        # check if there are unexpected changes in the first session
+        # first check active relationships
+        self.assertEqual(set(c[cuds.classes.HasPart].keys()),
+                         set([p1.uid, p2.uid, p3.uid]))
+        self.assertEqual(set([p2.uid]), set(p1[cuds.classes.HasPart].keys()))
+        self.assertEqual(set([p2.uid]), set(p3[cuds.classes.HasPart].keys()))
+        self.assertEqual(set([p4.uid]), set(p2[cuds.classes.HasPart].keys()))
+
+        # check passive relationships
+        self.assertEqual(set([c.uid]), set(p1[cuds.classes.IsPartOf].keys()))
+        self.assertEqual(set([c.uid, p1.uid, p3.uid]),
+                         set(p2[cuds.classes.IsPartOf].keys()))
+        self.assertEqual(set([c.uid]), set(p3[cuds.classes.IsPartOf].keys()))
+        self.assertEqual(set([p2.uid]), set(p4[cuds.classes.IsPartOf].keys()))
+
+        # check if items correctly added in second session
+        # active relations
         self.assertEqual(set(cw[cuds.classes.HasPart].keys()),
-                         set([p1.uid, p2.uid]))
-        self.assertEqual(set([p2.uid]), set(p1w[cuds.classes.HasPart].keys()))
-        # TODO continue
+                         set([p1w.uid, p2w.uid]))
+        self.assertEqual(set([p2w.uid]), set(p1w[cuds.classes.HasPart].keys()))
+        self.assertEqual(set([p4w.uid]), set(p2w[cuds.classes.HasPart].keys()))
+
+        # passive relations
+        self.assertEqual(set([cw.uid]), set(p1w[cuds.classes.IsPartOf].keys()))
+        self.assertEqual(set([cw.uid, p1w.uid]),
+                         set(p2w[cuds.classes.IsPartOf].keys()))
+        self.assertEqual(set([p2w.uid]),
+                         set(p4w[cuds.classes.IsPartOf].keys()))
+
+    def test_fix_neighbors(self):
+        w1 = cuds.classes.CityWrapper()
+        w2 = cuds.classes.CityWrapper(session=CoreSession())
+
+        c1w1 = cuds.classes.City("city1")  # parent in both wrappers
+        c2w1 = cuds.classes.City("city2")  # parent in w1, not present in w2
+        c3w1 = cuds.classes.City("city3")  # parent only in w1, present in w2
+        c4w1 = cuds.classes.City("city4")  # parent only in w2
+        p1w1 = cuds.classes.Citizen("citizen")
+        p2w1 = cuds.classes.Citizen("child")
+
+        w2.add(c1w1, c3w1, c4w1)
+        c1w2, c3w2, c4w2 = w2.get(c1w1.uid, c3w1.uid, c4w1.uid)
+        c1w2.add(p1w1)
+        c4w2.add(p1w1)
+        p1w2, = c1w2.get(p1w1.uid)
+        p1w2.add(p2w1)
+        p2w2, = p1w2.get(p2w1.uid)
+
+        w1.add(c1w1, c2w1, c3w1, c4w1)
+        c1w1.add(p1w1)
+        c2w1.add(p1w1)
+        c3w1.add(p1w1)
+
+        self.assertEqual(
+            set(p1w1[cuds.classes.IsPartOf].keys()),
+            set([c1w1.uid, c2w1.uid, c3w1.uid]))
+        self.assertEqual(
+            set(p2w2[cuds.classes.IsPartOf].keys()),
+            set([p1w2.uid]))
+
+        cuds.classes.Cuds._fix_neighbors(new_cuds=p1w1,
+                                         old_cuds=p1w2,
+                                         session=p1w2.session)
+
+        # check if connections cuds objects that are no
+        # longer parents have been removed
+        self.assertEqual(
+            set(p1w1[cuds.classes.IsPartOf].keys()),
+            set([c1w1.uid, c3w1.uid]))
+        self.assertNotIn(cuds.classes.IsPartOf, p2w2)
+
+        # check if there are no unexpected other changes
+        self.assertEqual(
+            set(c1w1[cuds.classes.HasPart].keys()),
+            set([p1w1.uid]))
+        self.assertEqual(
+            set(c2w1[cuds.classes.HasPart].keys()),
+            set([p1w1.uid]))
+        self.assertEqual(
+            set(c3w1[cuds.classes.HasPart].keys()),
+            set([p1w1.uid]))
+        self.assertNotIn(cuds.classes.HasPart, c4w1)
+
+        # check if the parents in w2 have been updated
+        self.assertEqual(
+            set(c1w2[cuds.classes.HasPart].keys()),
+            set([p1w1.uid]))
+        self.assertEqual(
+            set(c3w2[cuds.classes.HasPart].keys()),
+            set([p1w1.uid]))
+        self.assertNotIn(cuds.classes.HasPart, c4w2)
 
     def test_get(self):
         """
