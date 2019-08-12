@@ -140,16 +140,17 @@ class Cuds(dict):
 
     def _recursive_store(self, new_cuds, old_cuds=None, uids_stored=None):
         """Recursively store cuds and all its children.
-        # TODO finish
-        
-        :param new_cuds: [description]
-        :type new_cuds: [type]
-        :param old_cuds: [description], defaults to None
-        :type old_cuds: [type], optional
-        :param uids_stored: [description], defaults to None
-        :type uids_stored: [type], optional
-        :return: [description]
-        :rtype: [type]
+        One-way relationships and dangling references are fixed.
+
+        :param new_cuds: The Cuds object to store recursively.
+        :type new_cuds: Cuds
+        :param old_cuds: The old version of the cuds object, defaults to None
+        :type old_cuds: Cuds, optional
+        :param uids_stored: Remember which cuds objects have already been
+            stored in the recursive call, defaults to None
+        :type uids_stored: Set[UUID], optional
+        :return: The uuids stored by this call
+        :rtype: Set[UUID]
         """
         # Store copy in registry and fix parent connections
         new_child_getter = new_cuds
