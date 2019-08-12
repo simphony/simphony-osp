@@ -25,7 +25,7 @@ class Registry(dict):
         :param cuds
         :raises ValueError: unsupported object provided (not a Cuds object)
         """
-        from .cuds import Cuds  # TODO avoid circular imports
+        from .cuds import Cuds
         if isinstance(cuds, Cuds):
             super().__setitem__(cuds.uid, cuds)
         else:

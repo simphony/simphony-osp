@@ -136,7 +136,7 @@ class TestAPICity(unittest.TestCase):
                          set(p4w[cuds.classes.IsPartOf].keys()))
 
     def test_fix_neighbors(self):
-        w1 = cuds.classes.CityWrapper()
+        w1 = cuds.classes.CityWrapper(session=CoreSession())
         w2 = cuds.classes.CityWrapper(session=CoreSession())
 
         c1w1 = cuds.classes.City("city1")  # parent in both wrappers

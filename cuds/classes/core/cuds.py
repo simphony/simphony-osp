@@ -30,7 +30,6 @@ class Cuds(dict):
     DEFAULT_REL = HasPart
     ROOT_REL = Relationship
     cuba_key = None
-    # TODO: Check that instantiating a wrapper overrides this session
     session = CoreSession()
 
     def __init__(self):
@@ -315,7 +314,6 @@ class Cuds(dict):
         :param session: The session where the adjustments should take place.
         :type session: Session
         """
-        # TODO avoid circular imports
         from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
 
         # Iterate over all new parents.
@@ -367,7 +365,6 @@ class Cuds(dict):
         :param session: The session where the adjustments should take place.
         :type session: Session
         """
-        # TODO avoid circular imports
         from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         # iterate over all previous neighbors, that are no longer neighbor.
         for relationship in old_cuds.keys():
@@ -420,7 +417,6 @@ class Cuds(dict):
         :param entity: container of the normal relationship
         :param rel: direct relationship instance
         """
-        # TODO avoid circular imports
         from ..generated.cuba_mapping import CUBA_MAPPING
         inverse_rel = CUBA_MAPPING[rel.inverse]
         self._add_direct(entity, inverse_rel, error_if_already_there=False)
@@ -542,7 +538,6 @@ class Cuds(dict):
             del self[relationship]
 
     def _remove_inverse(self, relationship, uid):
-        # TODO avoid circular imports
         from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         inverse = CUBA_MAPPING[relationship.inverse]
         self._remove_direct(inverse, uid)
