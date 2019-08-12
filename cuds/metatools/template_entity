@@ -13,3 +13,4 @@ class $class($parent):
     def __init__($arguments_init):
         super().__init__($attributes_sent_super)
 $attributes_initialised
+$properties

@@ -52,5 +52,9 @@ class Session(ABC):
             except KeyError:
                 yield None
 
+    @abstractmethod
+    def _notify_update(self, cuds):
+        pass
+
     def sync(self):
         pass

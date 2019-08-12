@@ -15,3 +15,6 @@ class CoreSession(Session):
     """
     def __str__(self):
         return "<CoreSession object>"
+
+    def _notify_update(self, cuds):
+        pass

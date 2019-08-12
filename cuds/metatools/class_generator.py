@@ -210,8 +210,8 @@ class ClassGenerator(object):
         :return: dictionary with the content for the template
         """
 
-        arguments_init, attr_sent_super, attr_initialised = self.\
-            _get_constructor_attributes(entity_name)
+        arguments_init, attr_sent_super, attr_initialised, properties = \
+            self._get_constructor_attributes(entity_name)
 
         # Extract the relationships from the ontology
         relationships = self._parser.\
@@ -225,6 +225,7 @@ class ClassGenerator(object):
             'arguments_init': arguments_init,
             'attributes_sent_super': attr_sent_super,
             'attributes_initialised': attr_initialised,
+            'properties': properties,
             'relationships': str_relationships,
         }
         return content
@@ -250,6 +251,7 @@ class ClassGenerator(object):
         list_super = []
         # Initialise with empty string to add indentation to first element
         list_self = [""]
+        list_properties = []
 
         for name, properties in all_attr.items():
             # Check that they are not instantiable classes
@@ -272,6 +274,7 @@ class ClassGenerator(object):
                     list_self.append("if session is not None:")
                     list_self.append("    self.session = session")
                 elif name in own_attr:
+                    list_properties.append(name)
                     list_self.append("self.{} = {}".format(name, name))
 
         # Add default parameters at the end
@@ -280,11 +283,27 @@ class ClassGenerator(object):
         string_init = ", ".join(list_init)
         string_super = ", ".join(list_super)
         string_self = "\n        ".join(list_self)
+        string_property = self.get_property_string(list_properties)
 
         if list_self:
             string_self += "\n"
 
-        return string_init, string_super, string_self
+        return string_init, string_super, string_self, string_property
+
+    def get_property_string(self, property_list):
+        result = ""
+        for p in property_list:
+            result += "\n".join(map(lambda x: "    " + x,
+                                    ["@property",
+                                     "def %s(self):" % p,
+                                     "    return self.__%s" % p,
+                                     "",
+                                     "@%s.setter" % p,
+                                     "def %s(self, x):" % p,
+                                     "    self.__%s = x" % p,
+                                     "    self.session._notify_update(self)\n"]
+                                    ))
+        return result
 
     def _write_content_to_template_file(self, content, template, class_file):
         """

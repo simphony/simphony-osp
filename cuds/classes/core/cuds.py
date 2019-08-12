@@ -54,13 +54,26 @@ class Cuds(dict):
     def __setitem__(self, key, value):
         """
         Set/Update the key value only when the key is a relationship.
+        Set/Update only if the value is a dictionary.
+        Notify the session if any changes are made.
 
         :param key: key in the dictionary
         :param value: new value to assign to the key
         :raises ValueError: unsupported key provided (not a relationship)
         """
-        if inspect.isclass(key) and issubclass(key, self.ROOT_REL):
-            super().__setitem__(key, value)
+        class NotifyDict(dict):
+            def __init__(self, *args, cuds=None):
+                self.cuds = cuds
+                super().__init__(*args)
+
+            def __setitem__(self, key, value):
+                super().__setitem__(key, value)
+                self.cuds.session._notify_update(self.cuds)
+
+        if inspect.isclass(key) and issubclass(key, self.ROOT_REL) \
+                and isinstance(value, dict):
+            super().__setitem__(key, NotifyDict(value, cuds=self))
+            self.session._notify_update(self)
         else:
             message = 'Key {!r} is not in the supported relationships'
             raise ValueError(message.format(key))
@@ -104,7 +117,6 @@ class Cuds(dict):
                 arg = arg._clone()
             self._add_direct(arg, rel)
             arg._add_inverse(self, rel)
-            # TODO Propagate changes to registry (through session)
 
             # Recursively add the children to the registry
             if self.session != arg.session:
@@ -346,7 +358,6 @@ class Cuds(dict):
                 if inverse not in parent:
                     parent[inverse] = dict()
 
-                # TODO push these changes to the sessions buffers
                 parent[inverse].update({new_cuds.uid: new_cuds.cuba_key})
         for delete in delete_relationships:
             del new_cuds[delete]
