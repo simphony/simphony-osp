@@ -7,8 +7,9 @@
 
 import unittest2 as unittest
 import uuid
-from cuds.classes.core.session.core_session import CoreSession
+from copy import deepcopy
 
+from cuds.classes.core.session.core_session import CoreSession
 import cuds.classes
 
 
@@ -173,7 +174,7 @@ class TestAPICity(unittest.TestCase):
         # longer parents have been removed
         self.assertEqual(
             set(p1w1[cuds.classes.IsPartOf].keys()),
-            set([c1w1.uid, c3w1.uid]))
+            set([c1w1.uid, c3w1.uid, c4w1.uid]))
         self.assertNotIn(cuds.classes.IsPartOf, p2w2)
 
         # check if there are no unexpected other changes
@@ -195,7 +196,9 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(
             set(c3w2[cuds.classes.HasPart].keys()),
             set([p1w1.uid]))
-        self.assertNotIn(cuds.classes.HasPart, c4w2)
+        self.assertEqual(
+            set(c4w2[cuds.classes.HasPart].keys()),
+            set([p1w1.uid]))
 
     def test_get(self):
         """
@@ -271,140 +274,140 @@ class TestAPICity(unittest.TestCase):
                           n.uid,
                           cuba_key=cuds.classes.CUBA.NEIGHBOURHOOD)
 
-#     def test_update(self):
-#         """
-#         Tests the standard, normal behaviour of the update() method.
-#         """
-#         c = cuds.classes.City("a city")
-#         n = cuds.classes.Neighbourhood("a neigbourhood")
-#         new_n = deepcopy(n)
-#         new_s = cuds.classes.Street("a new street")
-#         new_n.add(new_s)
-#         c.add(n)
+    def test_update(self):
+        """
+        Tests the standard, normal behaviour of the update() method.
+        """
+        c = cuds.classes.City("a city")
+        n = cuds.classes.Neighbourhood("a neigbourhood")
+        new_n = deepcopy(n)
+        new_s = cuds.classes.Street("a new street")
+        new_n.add(new_s)
+        c.add(n)
 
-#         old_neighbourhood = c.get(n.uid)[0]
-#         old_streets = old_neighbourhood.get(
-#             cuba_key=cuds.classes.CUBA.STREET)
-#         self.assertEqual(old_streets, [None])
+        old_neighbourhood = c.get(n.uid)[0]
+        old_streets = old_neighbourhood.get(
+            cuba_key=cuds.classes.CUBA.STREET)
+        self.assertEqual(old_streets, [])
 
-#         c.update(new_n)
+        c.update(new_n)
 
-#         new_neighbourhood = c.get(n.uid)[0]
-#         new_streets = new_neighbourhood.get(
-#             cuba_key=cuds.classes.CUBA.STREET)
-#         self.assertEqual(new_streets, [new_s])
+        new_neighbourhood = c.get(n.uid)[0]
+        new_streets = new_neighbourhood.get(
+            cuba_key=cuds.classes.CUBA.STREET)
+        self.assertEqual(new_streets, [new_s])
 
-#     def test_remove(self):
-#         """
-#         Tests the standard, normal behaviour of the remove() method.
+    def test_remove(self):
+        """
+        Tests the standard, normal behaviour of the remove() method.
 
-#          - remove()
-#          - remove(*uids/DataContainers)
-#          - remove(rel)
-#          - remove(cuba_key)
-#          - remove(rel, cuba_key)
-#          - remove(*uids/DataContainers, rel)
-#         """
-#         c = cuds.classes.City("a city")
-#         n = cuds.classes.Neighbourhood("a neigbourhood")
-#         p = cuds.classes.Citizen("John Smith")
-#         q = cuds.classes.Citizen("Jane Doe")
-#         c.add(n, p)
-#         c.add(q, rel=cuds.classes.Encloses)
+         - remove()
+         - remove(*uids/DataContainers)
+         - remove(rel)
+         - remove(cuba_key)
+         - remove(rel, cuba_key)
+         - remove(*uids/DataContainers, rel)
+        """
+        c = cuds.classes.City("a city")
+        n = cuds.classes.Neighbourhood("a neigbourhood")
+        p = cuds.classes.Citizen("John Smith")
+        q = cuds.classes.Citizen("Jane Doe")
+        c.add(n, p)
+        c.add(q, rel=cuds.classes.Encloses)
 
-#         self.assertIn(cuds.classes.CUBA.HAS_PART, c)
-#         self.assertIn(cuds.classes.CUBA.ENCLOSES, c)
+        self.assertIn(cuds.classes.HasPart, c)
+        self.assertIn(cuds.classes.Encloses, c)
 
-#         # remove()
-#         c.remove()
-#         self.assertFalse(c)
-#         # inverse
-#         get_inverse = p.get(rel=cuds.classes.IsPartOf)
-#         self.assertEqual(get_inverse, [None])
+        # remove()
+        c.remove()
+        self.assertFalse(c)
+        # inverse
+        get_inverse = p.get(rel=cuds.classes.IsPartOf)
+        self.assertEqual(get_inverse, [])
 
-#         # remove(*uids/DataContainers)
-#         c.add(n, p)
-#         c.add(q, rel=cuds.classes.Encloses)
-#         get_all = c.get()
-#         self.assertIn(p, get_all)
-#         c.remove(p.uid)
-#         get_all = c.get()
-#         self.assertNotIn(p, get_all)
-#         # inverse
-#         get_inverse = p.get(rel=cuds.classes.IsPartOf)
-#         self.assertEqual(get_inverse, [None])
+        # remove(*uids/DataContainers)
+        c.add(n, p)
+        c.add(q, rel=cuds.classes.Encloses)
+        get_all = c.get()
+        self.assertIn(p, get_all)
+        c.remove(p.uid)
+        get_all = c.get()
+        self.assertNotIn(p, get_all)
+        # inverse
+        get_inverse = p.get(rel=cuds.classes.IsPartOf)
+        self.assertEqual(get_inverse, [])
 
-#         # remove(rel)
-#         c.remove(rel=cuds.classes.Encloses)
-#         self.assertNotIn(cuds.classes.CUBA.ENCLOSES, c)
-#         # inverse
-#         get_inverse = q.get(rel=cuds.classes.IsEnclosedBy)
-#         self.assertEqual(get_inverse, [None])
+        # remove(rel)
+        c.remove(rel=cuds.classes.Encloses)
+        self.assertNotIn(cuds.classes.CUBA.ENCLOSES, c)
+        # inverse
+        get_inverse = q.get(rel=cuds.classes.IsEnclosedBy)
+        self.assertEqual(get_inverse, [])
 
-#         # remove(cuba_key)
-#         c.remove(cuba_key=cuds.classes.CUBA.NEIGHBOURHOOD)
-#         self.assertNotIn(cuds.classes.CUBA.HAS_PART, c)
-#         # inverse
-#         get_inverse = n.get(rel=cuds.classes.IsPartOf)
-#         self.assertEqual(get_inverse, [None])
+        # remove(cuba_key)
+        c.remove(cuba_key=cuds.classes.CUBA.NEIGHBOURHOOD)
+        self.assertNotIn(cuds.classes.CUBA.HAS_PART, c)
+        # inverse
+        get_inverse = n.get(rel=cuds.classes.IsPartOf)
+        self.assertEqual(get_inverse, [])
 
-#         # remove(*uids/DataContainers, rel)
-#         c.add(n, p)
-#         self.assertIn(cuds.classes.CUBA.HAS_PART, c)
-#         c.remove(n, p, rel=cuds.classes.HasPart)
-#         self.assertNotIn(cuds.classes.CUBA.HAS_PART, c)
-#         # inverse
-#         get_inverse = n.get(rel=cuds.classes.IsPartOf)
-#         self.assertEqual(get_inverse, [None])
+        # remove(*uids/DataContainers, rel)
+        c.add(n, p)
+        self.assertIn(cuds.classes.HasPart, c)
+        c.remove(n, p, rel=cuds.classes.HasPart)
+        self.assertNotIn(cuds.classes.HasPart, c)
+        # inverse
+        get_inverse = n.get(rel=cuds.classes.IsPartOf)
+        self.assertEqual(get_inverse, [])
 
-#         # remove(rel, cuba_key)
-#         c.add(p, n)
-#         c.remove(
-#               rel=cuds.classes.HasPart, cuba_key=cuds.classes.CUBA.CITIZEN)
-#         get_all = c.get()
-#         self.assertIn(n, get_all)
-#         self.assertNotIn(p, get_all)
-#         # inverse
-#         get_inverse = p.get(rel=cuds.classes.IsPartOf)
-#         self.assertEqual(get_inverse, [None])
+        # remove(rel, cuba_key)
+        c.add(p, n)
+        c.remove(rel=cuds.classes.HasPart,
+                 cuba_key=cuds.classes.CUBA.CITIZEN)
+        get_all = c.get()
+        self.assertIn(n, get_all)
+        self.assertNotIn(p, get_all)
+        # inverse
+        get_inverse = p.get(rel=cuds.classes.IsPartOf)
+        self.assertEqual(get_inverse, [])
 
-#     def test_remove_throws_exception(self):
-#         """
-#         Tests the remove() method for unusual behaviours.
+    def test_remove_throws_exception(self):
+        """
+        Tests the remove() method for unusual behaviours.
 
-#          - Removing with a wrong key
-#          - Removing something non-existent
-#          - Removing with a not allowed argument combination
-#         """
-#         c = cuds.classes.City("a city")
-#         n = cuds.classes.Neighbourhood("a neigbourhood")
+         - Removing with a wrong key
+         - Removing something non-existent
+         - Removing with a not allowed argument combination
+        """
+        c = cuds.classes.City("a city")
+        n = cuds.classes.Neighbourhood("a neigbourhood")
 
-#         # Wrong key
-#         self.assertRaises(TypeError, c.remove, "not a proper key")
+        # Wrong key
+        self.assertRaises(TypeError, c.remove, "not a proper key")
 
-#         # Non-existent
-#         self.assertRaises(KeyError, c.remove, n.uid)
-#         self.assertRaises(KeyError, c.remove, rel=cuds.classes.HasPart)
-#         self.assertRaises(KeyError, c.remove,
-#                           cuba_key=cuds.classes.CUBA.STREET)
-#         self.assertRaises(
-#             KeyError, c.remove, n.uid, rel=cuds.classes.HasPart)
+        # Non-existent
+        self.assertRaises(RuntimeError, c.remove, n.uid)
+        self.assertRaises(RuntimeError, c.remove, rel=cuds.classes.HasPart)
+        self.assertRaises(RuntimeError, c.remove,
+                          cuba_key=cuds.classes.CUBA.STREET)
+        self.assertRaises(
+            RuntimeError, c.remove, n.uid, rel=cuds.classes.HasPart)
 
-#         # Wrong arguments
-#         self.assertRaises(TypeError, c.remove, n.uid,
-#                           cuba_key=cuds.classes.CUBA.STREET)
+        # Wrong arguments
+        self.assertRaises(RuntimeError, c.remove, n.uid,
+                          cuba_key=cuds.classes.CUBA.STREET)
 
-#     def test_update_throws_exception(self):
-#         """
-#         Tests the update() method for unusual behaviours.
+    def test_update_throws_exception(self):
+        """
+        Tests the update() method for unusual behaviours.
 
-#          - Update an element that wasn't added before
-#         """
-#         c = cuds.classes.City("a city")
-#         n = cuds.classes.Neighbourhood("a neigbourhood")
-#         c.add(n)
-#         p = cuds.classes.Citizen()
-#         self.assertRaises(ValueError, c.update, p)
+         - Update an element that wasn't added before
+        """
+        c = cuds.classes.City("a city")
+        n = cuds.classes.Neighbourhood("a neigbourhood")
+        c.add(n)
+        p = cuds.classes.Citizen()
+        self.assertRaises(ValueError, c.update, p)
 
 #     def test_iter(self):
 #         """

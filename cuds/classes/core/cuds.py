@@ -10,7 +10,6 @@ import inspect
 
 from cuds.classes.core.session.core_session import CoreSession
 from cuds.utils import check_arguments, filter_cuds_attr
-from cuds.classes.generated.cuba import CUBA
 from cuds.classes.generated.relationship import Relationship
 from cuds.classes.generated.active_relationship import ActiveRelationship
 from cuds.classes.generated.passive_relationship import PassiveRelationship
@@ -52,31 +51,6 @@ class Cuds(dict):
         :return: string with the cuba_key and uid
         """
         return "%s: %s" % (self.cuba_key, self.uid)
-
-    def _str_attributes(self):
-        """
-        Serialises the relevant attributes from the instance.
-
-        :return: list with the attributes in a key-value form string
-        """
-        attributes = []
-        for attribute in sorted(filter_cuds_attr(self)):
-            attributes.append(attribute + ": " + str(getattr(self, attribute)))
-
-        return attributes
-
-    @staticmethod
-    def _str_relationship_set(rel_key, rel_set):
-        """
-        Serialises a relationship set with the given name in a key-value form.
-
-        :param rel_key: CUBA key of the relationship
-        :param rel_set: set of the objects contained under that relationship
-        :return: string with the uids of the contained elements
-        """
-        elements = [str(element.uid) for element in rel_set]
-
-        return str(rel_key) + ": {\n\t" + ",\n\t".join(elements) + "\n  }"
 
     def __setitem__(self, key, value):
         """
@@ -130,13 +104,112 @@ class Cuds(dict):
             if arg.session != self.session:
                 arg = arg._clone()
             self._add_direct(arg, rel)
-            arg.add_inverse(self, rel)
+            arg._add_inverse(self, rel)
             # TODO Propagate changes to registry (through session)
 
             # Recursively add the children to the registry
             if self.session != arg.session:
                 self._recursive_store(arg)
         return self
+
+    def get(self, *uids, rel=None, cuba_key=None):
+        """
+        Returns the contained elements of a certain type, uid or relationship.
+        Expected calls are get(), get(*uids), get(rel), get(cuba_key),
+        get(*uids, rel), get(rel, cuba_key).
+        If uids are specified, the position of each element in the result
+        is determined by to the position of the corresponding uid in the given
+        list of uids.
+        In this case, the result can contain None values if a given uid is not
+        a child of this cuds object.
+        If no uids are specified, the resulting elements are ordered randomly.
+
+        :param uids: UIDs of the elements
+        :param rel: class of the relationship
+        :param cuba_key: CUBA key of the subelements
+        :return: list of queried objects, or None, if not found
+        :rtype: List[Cuds]
+        """
+        collected_uids, _ = self._get(*uids, rel=rel, cuba_key=cuba_key)
+        return self._load_entities(collected_uids)
+
+    def update(self, *args):
+        """
+        Updates the object with the other versions.
+
+        :param args: updated entity(ies)
+        """
+        check_arguments(Cuds, *args)
+        old_objects = self.get(*[arg.uid for arg in args])
+        relationship_sets = deepcopy(list(self.values()))
+
+        for arg, old_cuds in zip(args, old_objects):
+            found = False
+            # Updates all instances
+            for relationship_set in relationship_sets:
+                if arg.uid in relationship_set:
+                    self._recursive_store(arg, old_cuds)
+                    found = True
+            if not found:
+                message = '{} does not exist. Add it first'
+                raise ValueError(message.format(arg))
+
+    def remove(self, *args, rel=None, cuba_key=None):
+        """
+        Removes elements from the Cuds.
+        Expected calls are remove(), remove(*uids/Cuds),
+        remove(rel), remove(cuba_key), remove(*uids/Cuds, rel),
+        remove(rel, cuba_key)
+
+        :param args: UIDs of the elements or the elements themselves
+        :param rel: class of the relationship
+        :param cuba_key: CUBA key of the subelements
+        """
+        uids = [arg.uid if isinstance(arg, Cuds) else arg for arg in args]
+        _, relationship_mapping = self._get(*uids, rel=rel, cuba_key=cuba_key)
+        if not relationship_mapping:
+            raise RuntimeError("Did not remove any Cuds object,"
+                               + "because none matched your filter.")
+        uid_relationships = list(relationship_mapping.items())
+        neighbors = self.session.load(*[uid for uid, _ in uid_relationships])
+        for uid_relationship, neighbor in zip(uid_relationships, neighbors):
+            uid, relationships = uid_relationship
+            for relationship in relationships:
+                self._remove_direct(relationship, uid)
+                neighbor._remove_inverse(relationship, self.uid)
+
+    def iter(self):
+        """
+        Iterates over all the objects contained.
+        """
+        for relationship_set in self.values():
+            for entity in relationship_set:
+                yield entity
+
+    def _str_attributes(self):
+        """
+        Serialises the relevant attributes from the instance.
+
+        :return: list with the attributes in a key-value form string
+        """
+        attributes = []
+        for attribute in sorted(filter_cuds_attr(self)):
+            attributes.append(attribute + ": " + str(getattr(self, attribute)))
+
+        return attributes
+
+    @staticmethod
+    def _str_relationship_set(rel_key, rel_set):
+        """
+        Serialises a relationship set with the given name in a key-value form.
+
+        :param rel_key: CUBA key of the relationship
+        :param rel_set: set of the objects contained under that relationship
+        :return: string with the uids of the contained elements
+        """
+        elements = [str(element.uid) for element in rel_set]
+
+        return str(rel_key) + ": {\n\t" + ",\n\t".join(elements) + "\n  }"
 
     def _recursive_store(self, new_cuds, old_cuds=None, uids_stored=None):
         """Recursively store cuds and all its children.
@@ -195,16 +268,34 @@ class Cuds(dict):
             --> Do nothing as the children will be recursively added
 
         Concerning the relationships of the neighbors:
-        - A parent is no longer a parent:
-            --> Remove the relationship of the parent
-        - A child is no longer a child:
+        - A parent of the old cuds is not a parent in the new one:
+            --> Add a relationship to the new cuds to the parent
+        - A child of the old cuds is not a parent in the new one:
             --> Remove the relationship of the child
         - A cuds object is suddenly a parent after the replacement
             --> Add the inverse relationship to the new parent
         - A cuds object is suddenly a child after the replacement
             --> Do nothing since the children will get recursively updated
 
-        :param new_cuds: Cuds onbject that will replace the old one
+        :param new_cuds: Cuds object that will replace the old one
+        :type new_cuds: Cuds
+        :param old_cuds: Cuds object that will be replaced by a new one.
+            Can be None if the new Cuds object does not replace any object.
+        :type old_cuds: Cuds
+        :param session: The session where the adjustments should take place.
+        :type session: Session
+        """
+        old_cuds = old_cuds or dict()
+        Cuds._fix_new_neighbors(new_cuds, old_cuds, session)
+        Cuds._fix_old_neighbors(new_cuds, old_cuds, session)
+
+    @staticmethod
+    def _fix_new_neighbors(new_cuds, old_cuds, session):
+        """Fix the relationships of Cuds objects, that are neighbors
+        of a Cuds object, that has been added from another session or
+        will replace a cuds object.
+
+        :param new_cuds: Cuds object that will replace the old one
         :type new_cuds: Cuds
         :param old_cuds: Cuds object that will be replaced by a new one.
             Can be None if the new Cuds object does not replace any object.
@@ -217,7 +308,6 @@ class Cuds(dict):
 
         # Iterate over all new parents.
         # Children get recursively updated, so no need to manipulate them.
-        old_cuds = old_cuds or dict()
         delete_relationships = set()
         for relationship in new_cuds.keys():
             if not issubclass(relationship, PassiveRelationship):
@@ -251,6 +341,22 @@ class Cuds(dict):
         for delete in delete_relationships:
             del new_cuds[delete]
 
+    @staticmethod
+    def _fix_old_neighbors(new_cuds, old_cuds, session):
+        """Fix the relationships of Cuds objects that are no longer neighbors after
+        a new Cuds object has been added from another session /
+        a Cuds object has been updated.
+
+        :param new_cuds: Cuds object that will replace the old one
+        :type new_cuds: Cuds
+        :param old_cuds: Cuds object that will be replaced by a new one.
+            Can be None if the new Cuds object does not replace any object.
+        :type old_cuds: Cuds
+        :param session: The session where the adjustments should take place.
+        :type session: Session
+        """
+        # TODO avoid circular imports
+        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         # iterate over all previous neighbors, that are no longer neighbor.
         for relationship in old_cuds.keys():
             inverse = CUBA_MAPPING[relationship.inverse]
@@ -259,15 +365,25 @@ class Cuds(dict):
             new_neighbor_uids = set()
             if relationship in new_cuds:
                 new_neighbor_uids = new_cuds[relationship].keys()
-            old_neighbors = session.load(
-                *list(old_cuds[relationship].keys() - new_neighbor_uids))
 
-            # delete the inverse of those neighbors
-            for neighbor in old_neighbors:
-                if inverse in neighbor:
-                    del neighbor[inverse][new_cuds.uid]
-                    if len(neighbor[inverse]) == 0:
-                        del neighbor[inverse]
+            # delete the inverse if neighbors are children
+            if issubclass(relationship, ActiveRelationship):
+                old_children = session.load(
+                    *list(old_cuds[relationship].keys() - new_neighbor_uids))
+                for child in old_children:
+                    if inverse in child:
+                        child._remove_direct(inverse, new_cuds.uid)
+
+            # if neighbor is parent, add missing relationships
+            else:
+                new_parents = session.load(
+                    *list(new_neighbor_uids - old_cuds[relationship].keys()))
+                if relationship not in new_cuds:
+                    new_cuds[relationship] = dict()
+                for (uid, cuba_key), parent in \
+                        zip(old_cuds[relationship].items(), new_parents):
+                    if parent is not None:
+                        new_cuds[relationship][uid] = cuba_key
 
     def _add_direct(self, entity, rel, error_if_already_there=True):
         """
@@ -285,7 +401,7 @@ class Cuds(dict):
             message = '{!r} is already in the container'
             raise ValueError(message.format(entity))
 
-    def add_inverse(self, entity, rel):
+    def _add_inverse(self, entity, rel):
         """
         Adds the inverse relationship from self to entity.
 
@@ -297,22 +413,20 @@ class Cuds(dict):
         inverse_rel = CUBA_MAPPING[rel.inverse]
         self._add_direct(entity, inverse_rel, error_if_already_there=False)
 
-    def get(self, *uids, rel=None, cuba_key=None):
+    def _get(self, *uids, rel=None, cuba_key=None):
         """
-        Returns the contained elements of a certain type, uid or relationship.
+        Returns the uid of contained elements of a certain type, uid or
+        relationship.
         Expected calls are get(), get(*uids), get(rel), get(cuba_key),
         get(*uids, rel), get(rel, cuba_key).
-        If uids are specified, the position of each element in the result
-        is determined by to the position of the corresponding uid in the given
-        list of uids.
-        In this case, the result can contain None values if a given uid is not
-        a child of this cuds object.
-        If no uids are specified, the resulting elements are ordered randomly.
+        If uids are specified, the result is the input, but
+        non-available uids are replaced by None.
 
         :param uids: UIDs of the elements
         :param rel: class of the relationship
         :param cuba_key: CUBA key of the subelements
-        :return: list of queried objects, or None, if not found
+        :return: list of uids, or None, if not found
+        :rtype: List[UUID]
         """
         if uids and cuba_key is not None:
             raise RuntimeError("Do not specify both uids and cuba_key")
@@ -321,40 +435,74 @@ class Cuds(dict):
             check_arguments(uuid.UUID, *uids)
 
         if rel is not None and rel not in self.keys():
-            return [] if not uids else [None] * len(uids)
+            return ([], dict()) if not uids else ([None] * len(uids), dict())
 
         # consider either only given relationship or all relationships.
         consider_relationships = [rel]
         if rel is None:
             consider_relationships = list(self.keys())
+        if uids:
+            return self._get_by_uids(uids, consider_relationships)
+        return self._get_by_cuba_key(cuba_key, consider_relationships)
 
-        # iterate over the relationships to get the uids
+    def _get_by_uids(self, uids, relationships):
+        """Check for each given uid if it is connected to self by a relationship.
+        If not, replace it with None.
+        Return a mapping from uids to the set of relationships,
+        which connect self and the cuds object with the uid.
+
+        :param uids: The uids to check.
+        :type uids: List[UUID]
+        :param relationships: Only consider these relationships
+        :type relationships: List[Relationship]
+        :return: list of found uids, None for not found UUIDs
+            + Mapping from UUIDs to relationships, which connect self to the
+            respctive Cuds object.
+        :rtype: Tuple[List[UUID], Dict[UUID, Set[Relationship]]]
+        """
         not_found_uids = dict(enumerate(uids)) if uids else None
-        collected_uids = set()
-        for relationship in consider_relationships:
+        relationship_mapping = dict()
+        for relationship in relationships:
 
             # Uids are given.
             # Check which occur as object of current relation.
-            if uids:
-                found_uid_indexes = set()
-                for i, uid in not_found_uids.items():
-                    if uid in self.__getitem__(relationship):
-                        found_uid_indexes.add(i)
-                for i in found_uid_indexes:
-                    del not_found_uids[i]
+            found_uid_indexes = set()
+            for i, uid in not_found_uids.items():
+                if uid in self.__getitem__(relationship):
+                    found_uid_indexes.add(i)
+                    if uid not in relationship_mapping:
+                        relationship_mapping[uid] = set()
+                    relationship_mapping[uid].add(relationship)
+            for i in found_uid_indexes:
+                del not_found_uids[i]
 
-            # Uids are not given, but the cuba-key is.
+        collected_uids = [(uid if i not in not_found_uids else None)
+                          for i, uid in enumerate(uids)]
+        return collected_uids, relationship_mapping
+
+    def _get_by_cuba_key(self, cuba_key, relationships):
+        """Get the cuds with given cuba_key that are connected to self
+        with any of the given relationships.
+
+        :param cuba_key: Filter by the given cuba_key. None means no filter.
+        :type cuba_key: CUBA
+        :param relationships: Filter by list of relationships
+        :type relationships: List[Relationship]
+        :return: The uids of the found Cuds + Mapping from uuid to set of
+            relationsships that connect self with the respective cuds.
+        :rtype: Tuple[List[UUID], Dict[UUID, Set[Relationship]]]
+        """
+        relationship_mapping = dict()
+        for relationship in relationships:
+
             # Collect all uids who are object of the current relationship.
             # Possibly filter by Cuba-Key.
-            else:
-                collected_uids |= set([
-                    uid for uid, cuba in self.__getitem__(relationship).items()
-                    if cuba_key is None or cuba == cuba_key])
-
-        if uids:
-            collected_uids = [(uid if i not in not_found_uids else None)
-                              for i, uid in enumerate(uids)]
-        return self._load_entities(collected_uids)
+            for uid, cuba in self[relationship].items():
+                if cuba_key is None or cuba == cuba_key:
+                    if uid not in relationship_mapping:
+                        relationship_mapping[uid] = set()
+                    relationship_mapping[uid].add(relationship)
+        return list(relationship_mapping.keys()), relationship_mapping
 
     def _load_entities(self, uids):
         """Load the entities of the given uids from the session.
@@ -380,164 +528,16 @@ class Cuds(dict):
                 i += 1
         return result
 
-    def remove(self, *args, rel=None, cuba_key=None):
-        """
-        Removes elements from the Cuds.
-        Expected calls are remove(), remove(*uids/DataContainers),
-        remove(rel), remove(cuba_key), remove(*uids/DataContainers, rel),
-        remove(rel, cuba_key)
+    def _remove_direct(self, relationship, uid):
+        del self[relationship][uid]
+        if not self[relationship]:
+            del self[relationship]
 
-        :param args: UIDs of the elements or the elements themselves
-        :param rel: class of the relationship
-        :param cuba_key: CUBA key of the subelements
-        """
-        modified_relationships = set()
-
-        if cuba_key is None:
-            if rel is None:
-                # remove()
-                if not args:
-                    # Remove inverse from all
-                    for entity in self.iter():
-                        entity.remove_inverse(self)
-                    # Remove all
-                    self.clear()
-                else:
-                    # remove(*uids/Datacontainers)
-                    check_arguments((Cuds, uuid.UUID), *args)
-                    for arg in args:
-                        removed = False
-                        if isinstance(arg, Cuds):
-                            arg = arg.uid
-                        # Will remove multiple occurrences
-                        for rel_cuba_key, relationship_set in self.items():
-                            entity = self._get_from_relationship_set(
-                                arg, relationship_set)
-                            if entity is not None:
-                                entity.remove_inverse(self, rel)
-                                relationship_set.remove(entity)
-                                modified_relationships.add(rel_cuba_key)
-                                removed = True
-                        if not removed:
-                            message = '{} is not an existing element'
-                            raise KeyError(message.format(arg))
-            # remove(rel)
-            elif not args:
-                relationship_set = self.__getitem__(rel.cuba_key)
-                # remove the inverse from the entities
-                for entity in relationship_set:
-                    entity.remove_inverse(self, rel)
-                # remove the relationship
-                self.__delitem__(rel.cuba_key)
-                modified_relationships.add(rel.cuba_key)
-            # remove(*uids/Datacontainers, rel)
-            else:
-                removed = True
-                check_arguments((Cuds, uuid.UUID), *args)
-                relationship_set = self.__getitem__(rel.cuba_key)
-                for arg in args:
-                    removed = False
-                    if isinstance(arg, Cuds):
-                        arg = arg.uid
-
-                    entity = self._get_from_relationship_set(arg,
-                                                             relationship_set)
-                    if entity is not None:
-                        entity.remove_inverse(self, rel)
-                        relationship_set.remove(entity)
-                        modified_relationships.add(rel.cuba_key)
-                        removed = True
-                if not removed:
-                    message = '{} is not an existing elements cuba_key'
-                    raise KeyError(message.format(cuba_key))
-        elif not args:
-            # remove(cuba_key)
-            if rel is None:
-                check_arguments(CUBA, cuba_key)
-                removed = False
-                for rel_cuba_key, relationship_set in self.items():
-                    for entity in relationship_set.copy():
-                        if entity.cuba_key == cuba_key:
-                            entity.remove_inverse(self)
-                            relationship_set.remove(entity)
-                            modified_relationships.add(rel_cuba_key)
-                            removed = True
-                if not removed:
-                    message = '{} is not an existing elements cuba_key'
-                    raise KeyError(message.format(cuba_key))
-            # remove(rel, cuba_key)
-            else:
-                relationship_set = self.__getitem__(rel.cuba_key)
-                for entity in relationship_set.copy():
-                    if entity.cuba_key == cuba_key:
-                        entity.remove_inverse(self, rel)
-                        relationship_set.remove(entity)
-                        modified_relationships.add(rel.cuba_key)
-
-        else:
-            message = 'Supported calls are remove(*uids/DataContainers), ' \
-                      'remove(rel), remove(cuba_key), remove(rel, cuba_key)' \
-                      ', remove(*uids/DataContainers, rel)'
-            raise TypeError(message)
-
-        # remove the empty relationship entries
-        for modified_rel in modified_relationships:
-            try:
-                if not self.__getitem__(modified_rel):
-                    self.__delitem__(modified_rel)
-            except KeyError:
-                # Already removed
-                pass
-
-    def remove_inverse(self, entity, rel=None):
-        """
-        Removes the inverse relationship from self to entity.
-
-        :param entity: container of the normal relationship
-        :param rel: direct relationship
-        """
-        inverse_rel = None
-        if rel is None:
-            # FIXME: Could be more efficient with different inverse mapping
-            # go through all entities and delete
-            for inverse_rel, relationship_set in self.items():
-                if entity in relationship_set:
-                    relationship_set.remove(entity)
-        else:
-            inverse_rel = rel.inverse
-            relationship_set = self.__getitem__(inverse_rel)
-            relationship_set.remove(entity)
-        # Erase the relationship CUBA key entry if empty
-        if not self.__getitem__(inverse_rel):
-            self.__delitem__(inverse_rel)
-
-    def update(self, *args):
-        """
-        Updates the object with the other versions.
-
-        :param args: updated entity(ies)
-        """
-        check_arguments('all_simphony_wrappers', *args)
-
-        for arg in args:
-            found = False
-            # Updates all instances
-            for relationship_set in self.values():
-                if arg in relationship_set:
-                    relationship_set.remove(arg)
-                    relationship_set.add(arg)
-                    found = True
-            if not found:
-                message = '{} does not exist. Add it first'
-                raise ValueError(message.format(arg))
-
-    def iter(self):
-        """
-        Iterates over all the objects contained.
-        """
-        for relationship_set in self.values():
-            for entity in relationship_set:
-                yield entity
+    def _remove_inverse(self, relationship, uid):
+        # TODO avoid circular imports
+        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
+        inverse = CUBA_MAPPING[relationship.inverse]
+        self._remove_direct(inverse, uid)
 
     def _clone(self):
         """Avoid that the session gets copied.
