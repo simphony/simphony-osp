@@ -131,7 +131,7 @@ class Cuds(dict):
         :rtype: List[Cuds]
         """
         collected_uids, _ = self._get(*uids, rel=rel, cuba_key=cuba_key)
-        return self._load_entities(collected_uids)
+        return list(self._load_entities(collected_uids))
 
     def update(self, *args):
         """
@@ -178,13 +178,25 @@ class Cuds(dict):
                 self._remove_direct(relationship, uid)
                 neighbor._remove_inverse(relationship, self.uid)
 
-    def iter(self):
+    def iter(self, *uids, rel=None, cuba_key=None):
         """
-        Iterates over all the objects contained.
+        Iterates over the contained elements of a certain type, uid or
+        relationship. Expected calls are iter(), iter(*uids), iter(rel),
+        iter(cuba_key), iter(*uids, rel), iter(rel, cuba_key).
+        If uids are specified, the each element will be yielded in the order
+        given by list of uids.
+        In this case, elements can be None values if a given uid is not
+        a child of this cuds object.
+        If no uids are specified, the resulting elements are ordered randomly.
+
+        :param uids: UIDs of the elements
+        :param rel: class of the relationship
+        :param cuba_key: CUBA key of the subelements
+        :return: Iterator over of queried objects, or None, if not found
+        :rtype: Iterator[Cuds]
         """
-        for relationship_set in self.values():
-            for entity in relationship_set:
-                yield entity
+        collected_uids, _ = self._get(*uids, rel=rel, cuba_key=cuba_key)
+        yield from self._load_entities(collected_uids)
 
     def _str_attributes(self):
         """
@@ -518,15 +530,11 @@ class Cuds(dict):
         """
         without_none = [uid for uid in uids if uid is not None]
         entities = self.session.load(*without_none)
-        result = []
-        i = 0
         for uid in uids:
             if uid is None:
-                result.append(None)
+                yield None
             else:
-                result.append(entities[i])
-                i += 1
-        return result
+                yield next(entities)
 
     def _remove_direct(self, relationship, uid):
         del self[relationship][uid]

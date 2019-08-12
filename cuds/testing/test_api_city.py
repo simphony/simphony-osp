@@ -409,20 +409,20 @@ class TestAPICity(unittest.TestCase):
         p = cuds.classes.Citizen()
         self.assertRaises(ValueError, c.update, p)
 
-#     def test_iter(self):
-#         """
-#         Tests the iter() method when no cuba key is provided.
-#         """
-#         c = cuds.classes.City("a city")
-#         n = cuds.classes.Neighbourhood("a neigbourhood")
-#         p = cuds.classes.Citizen("John Smith")
-#         q = cuds.classes.Citizen("Jane Doe")
-#         c.add(n, p)
-#         c.add(q, rel=cuds.classes.Encloses)
+    def test_iter(self):
+        """
+        Tests the iter() method when no cuba key is provided.
+        """
+        c = cuds.classes.City("a city")
+        n = cuds.classes.Neighbourhood("a neigbourhood")
+        p = cuds.classes.Citizen("John Smith")
+        q = cuds.classes.Citizen("Jane Doe")
+        c.add(n, p)
+        c.add(q, rel=cuds.classes.Encloses)
 
-#         elements = set(list(c.iter()))
-#         self.assertEqual(elements, {n, p, q})
+        elements = set(list(c.iter()))
+        self.assertEqual(elements, {n, p, q})
 
 
-# if __name__ == '__main__':
-#     unittest.main()
+if __name__ == '__main__':
+    unittest.main()

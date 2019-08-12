@@ -44,15 +44,13 @@ class Session(ABC):
         :param uids: The uids of the cuds objects to load.
         :type uids: UUID
         :return: The fetched Cuds objects.
-        :rtype: List[Cuds]
+        :rtype: Iterator[Cuds]
         """
-        result = []
         for uid in uids:
             try:
-                result.append(self._registry.get(uid))
+                yield self._registry.get(uid)
             except KeyError:
-                result.append(None)
-        return result
+                yield None
 
     def sync(self):
         pass
