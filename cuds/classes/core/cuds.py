@@ -9,6 +9,7 @@ import uuid
 import inspect
 
 from cuds.classes.core.session.core_session import CoreSession
+from cuds.classes.core.relationship_tree import RelationshipTree
 from cuds.utils import check_arguments, filter_cuds_attr
 from cuds.classes.generated.relationship import Relationship
 from cuds.classes.generated.active_relationship import ActiveRelationship
@@ -42,6 +43,7 @@ class Cuds(dict):
         # self.restricted_keys = frozenset(CUBA)
         self.uid = uuid.uuid4()
         self.session.store(self)
+        self._relationship_tree = RelationshipTree(self.ROOT_REL)
 
     def __str__(self):
         """
@@ -51,11 +53,17 @@ class Cuds(dict):
         """
         return "%s: %s" % (self.cuba_key, self.uid)
 
+    def __delitem__(self, key):
+        if inspect.isclass(key) and issubclass(key, self.ROOT_REL):
+            super().__delitem__(key)
+            self._relationship_tree.remove(key)
+        else:
+            message = 'Key {!r} is not in the supported relationships'
+            raise ValueError(message.format(key))
+
     def __setitem__(self, key, value):
         """
         Set/Update the key value only when the key is a relationship.
-        Set/Update only if the value is a dictionary.
-        Notify the session if any changes are made.
 
         :param key: key in the dictionary
         :param value: new value to assign to the key
@@ -73,6 +81,7 @@ class Cuds(dict):
         if inspect.isclass(key) and issubclass(key, self.ROOT_REL) \
                 and isinstance(value, dict):
             super().__setitem__(key, NotifyDict(value, cuds=self))
+            self._relationship_tree.add(key)
             self.session._notify_update(self)
         else:
             message = 'Key {!r} is not in the supported relationships'
@@ -117,13 +126,14 @@ class Cuds(dict):
                 arg = arg._clone()
             self._add_direct(arg, rel)
             arg._add_inverse(self, rel)
+            # TODO Propagate changes to registry (through session)
 
             # Recursively add the children to the registry
             if self.session != arg.session:
                 self._recursive_store(arg)
         return self
 
-    def get(self, *uids, rel=None, cuba_key=None):
+    def get(self, *uids, rel=ActiveRelationship, cuba_key=None):
         """
         Returns the contained elements of a certain type, uid or relationship.
         Expected calls are get(), get(*uids), get(rel), get(cuba_key),
@@ -136,7 +146,8 @@ class Cuds(dict):
         If no uids are specified, the resulting elements are ordered randomly.
 
         :param uids: UIDs of the elements
-        :param rel: class of the relationship
+        :param rel: Only return cuds which are connected by subclass of
+            given relationship.
         :param cuba_key: CUBA key of the subelements
         :return: list of queried objects, or None, if not found
         :rtype: List[Cuds]
@@ -165,7 +176,7 @@ class Cuds(dict):
                 message = '{} does not exist. Add it first'
                 raise ValueError(message.format(arg))
 
-    def remove(self, *args, rel=None, cuba_key=None):
+    def remove(self, *args, rel=ActiveRelationship, cuba_key=None):
         """
         Removes elements from the Cuds.
         Expected calls are remove(), remove(*uids/Cuds),
@@ -173,13 +184,14 @@ class Cuds(dict):
         remove(rel, cuba_key)
 
         :param args: UIDs of the elements or the elements themselves
-        :param rel: class of the relationship
+        :param rel: Only remove cuds which are connected by subclass of
+            given relationship
         :param cuba_key: CUBA key of the subelements
         """
         uids = [arg.uid if isinstance(arg, Cuds) else arg for arg in args]
         _, relationship_mapping = self._get(*uids, rel=rel, cuba_key=cuba_key)
         if not relationship_mapping:
-            raise RuntimeError("Did not remove any Cuds object,"
+            raise RuntimeError("Did not remove any Cuds object, "
                                + "because none matched your filter.")
         uid_relationships = list(relationship_mapping.items())
         neighbors = self.session.load(*[uid for uid, _ in uid_relationships])
@@ -358,6 +370,7 @@ class Cuds(dict):
                 if inverse not in parent:
                     parent[inverse] = dict()
 
+                # TODO push these changes to the sessions buffers
                 parent[inverse].update({new_cuds.uid: new_cuds.cuba_key})
         for delete in delete_relationships:
             del new_cuds[delete]
@@ -453,13 +466,15 @@ class Cuds(dict):
         if uids:
             check_arguments(uuid.UUID, *uids)
 
-        if rel is not None and rel not in self.keys():
-            return ([], dict()) if not uids else ([None] * len(uids), dict())
-
         # consider either only given relationship or all relationships.
-        consider_relationships = [rel]
         if rel is None:
             consider_relationships = list(self.keys())
+        else:
+            consider_relationships = \
+                self._relationship_tree.get_subrelationships(rel)
+        if not consider_relationships:
+            return ([], dict()) if not uids else ([None] * len(uids), dict())
+
         if uids:
             return self._get_by_uids(uids, consider_relationships)
         return self._get_by_cuba_key(cuba_key, consider_relationships)

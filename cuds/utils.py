@@ -17,9 +17,6 @@ def check_arguments(types, *args):
     :param args: instances to check
     :raises TypeError: if the arguments are not of the correct type
     """
-    if types == 'all_simphony_wrappers':
-        installed = pkg_resources.iter_entry_points('wrappers')
-        types = tuple((wrapper.load() for wrapper in installed))
     for arg in args:
         if not isinstance(arg, types):
             message = '{!r} is not a correct object of allowed types {}'

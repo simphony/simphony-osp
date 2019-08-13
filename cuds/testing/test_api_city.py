@@ -236,7 +236,7 @@ class TestAPICity(unittest.TestCase):
         get_has_part = c.get(rel=cuds.classes.HasPart)
         self.assertEqual(set(get_has_part), {n, p})
         get_encloses = c.get(rel=cuds.classes.Encloses)
-        self.assertEqual(get_encloses, [q])
+        self.assertEqual(set(get_encloses), {n, p, q})
         get_inhabits = c.get(rel=cuds.classes.Inhabits)
         self.assertEqual(get_inhabits, [])
 
@@ -338,17 +338,17 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(get_inverse, [])
 
         # remove(rel)
-        c.remove(rel=cuds.classes.Encloses)
-        self.assertNotIn(cuds.classes.CUBA.ENCLOSES, c)
-        # inverse
-        get_inverse = q.get(rel=cuds.classes.IsEnclosedBy)
-        self.assertEqual(get_inverse, [])
-
-        # remove(cuba_key)
-        c.remove(cuba_key=cuds.classes.CUBA.NEIGHBOURHOOD)
+        c.remove(rel=cuds.classes.HasPart)
         self.assertNotIn(cuds.classes.CUBA.HAS_PART, c)
         # inverse
         get_inverse = n.get(rel=cuds.classes.IsPartOf)
+        self.assertEqual(get_inverse, [])
+
+        # remove(cuba_key)
+        c.remove(cuba_key=cuds.classes.CUBA.CITIZEN)
+        self.assertNotIn(cuds.classes.CUBA.CITIZEN, c)
+        # inverse
+        get_inverse = n.get(rel=cuds.classes.IsEnclosedBy)
         self.assertEqual(get_inverse, [])
 
         # remove(*uids/DataContainers, rel)
