@@ -46,16 +46,54 @@ class Registry(dict):
             message = '{!r} is not a proper uuid'
             raise ValueError(message.format(uid))
 
-    def get_subtree(self, uid):
-        """
+    def get_subtree(self, uid, rel=None, skip=None):
+        """Get all the elements in the subtree which is rooted
+        in the cuds element with the given uid.
+        Only consider the given relationship.
 
-        :param uid:
-        :return:
+        :param uid: The root of the subtree.
+        :type uid: UUID
+        :param rel: The relationship to consider defaults to None
+        :type rel: Relationship, optional
+        :param skip: The elements to skip, defaults to None
+        :type skip: Set[Cuds], optional
+        :return: The set of elements in the subtree rooted in the given uid.
+        :rtype: Set[Cuds]
         """
+        skip = skip or set()
         root = super().__getitem__(uid)
         subtree = {root}
-        # TODO: Find all (actively related) children
+        for child in root.iter(rel=rel):
+            if child not in (skip | subtree):
+                subtree |= self.get_subtree(child.uid, rel,
+                                            skip=(skip | subtree))
         return subtree
 
-    def prune(self):
-        pass
+    def prune(self, root_uids, rel=None):
+        """Remove all elements in the registry that are reachable from
+        the given roots by considering relationship rel.
+
+        :param root_uids: Remove all elements not reachable from these root
+            elements.
+        :type root_uids: List[UUID]
+        :param rel: Only consider this relationship.
+        :type rel: Relationship
+        :return: The set of removed elements.
+        :rtype: List[Cuds]
+        """
+        # Get all reachable Cuds objects
+        reachable = set()
+        for uid in root_uids:
+            reachable |= self.get_subtree(uid, rel=rel, skip=reachable)
+        reachable_uids = set([r.uid for r in reachable])
+
+        # Get all the Cuds objects that are not reachable
+        delete = list()
+        for uid in self.keys():
+            if uid not in reachable_uids:
+                delete.append(self[uid])
+
+        # remove the non-reachable ones
+        for cuds in delete:
+            del self[cuds.uid]
+        return delete

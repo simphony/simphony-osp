@@ -21,10 +21,56 @@ class WrapperSession(Session):
     def __init__(self, engine):
         super().__init__()
         self._engine = engine
-        self._added = set()
-        self._updated = set()
-        self._removed = set()
+        self._reset_buffers()
 
-    def add(self, entity):
-        super().add(entity)
-        self._added.add(entity)
+    # OVERRIDE
+    def store(self, entity):
+        """Store the entity in the registry and add it to buffers.
+
+        :param entity: The entity to store.
+        :type entity: Cuds
+        """
+        super().store(entity)
+        if entity.uid in self._deleted:
+            del self._deleted[entity.uid]
+
+        if entity.uid in self._uid_set:
+            self._updated[entity.uid] = entity
+        else:
+            self._added[entity.uid] = entity
+
+    # OVERRIDE
+    def _notify_update(self, entity):
+        """Add the updated entity to the buffers.
+
+        :param entity: The entity that has been updated.
+        :type entity: Cuds
+        :raises RuntimeError: The updated object has been deleted previously.
+        """
+        if entity.uid in self._deleted:
+            raise RuntimeError("Cannot update deleted object")
+
+        if entity.uid in self._uid_set:
+            self._updated[entity.uid] = entity
+        else:
+            self._added[entity.uid] = entity
+
+    # OVERRIDE
+    def _notify_delete(self, entity):
+        """Add the deleted entity to the buffers.
+
+        :param entity: The entity that has been deleted.
+        :type entity: Cuds
+        """
+        if entity.uid in self._added:
+            del self._added[entity.uid]
+        if entity.uid in self._updated:
+            del self._updated[entity.uid]
+        self._deleted[entity.uid] = entity
+
+    def _reset_buffers(self):
+        """Reset the buffers"""
+        self._added = dict()
+        self._updated = dict()
+        self._deleted = dict()
+        self._uid_set = set(self._registry.keys())

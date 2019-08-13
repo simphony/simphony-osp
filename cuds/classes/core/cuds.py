@@ -201,7 +201,7 @@ class Cuds(dict):
                 self._remove_direct(relationship, uid)
                 neighbor._remove_inverse(relationship, self.uid)
 
-    def iter(self, *uids, rel=None, cuba_key=None):
+    def iter(self, *uids, rel=ActiveRelationship, cuba_key=None):
         """
         Iterates over the contained elements of a certain type, uid or
         relationship. Expected calls are iter(), iter(*uids), iter(rel),

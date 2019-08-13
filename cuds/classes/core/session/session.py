@@ -52,8 +52,34 @@ class Session(ABC):
             except KeyError:
                 yield None
 
+    def prune(self, rel=None):
+        """Remove all elements not reachable from the sessions root.
+        Only consider given relationship and its subclasses.
+
+        :param rel: Only consider this relationship to calculate reachability.
+        :type rel: Relationship
+        """
+        deleted = self._registry.prune([self.root], rel)
+        for d in deleted:
+            self._notify_delete(d)
+
     @abstractmethod
-    def _notify_update(self, cuds):
+    def _notify_delete(self, entity):
+        """This method is called if some object from the registry is deleted
+        by the prune() method.
+
+        :param cuds: The entity that has been deleted
+        :type cuds: Cuds
+        """
+        pass
+
+    @abstractmethod
+    def _notify_update(self, entity):
+        """This method is called if some object has been updated-
+
+        :param entity: The entity that has been updated.
+        :type entity: Cuds
+        """
         pass
 
     def sync(self):
