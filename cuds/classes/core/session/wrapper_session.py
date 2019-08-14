@@ -64,9 +64,10 @@ class WrapperSession(Session):
         """
         if entity.uid in self._added:
             del self._added[entity.uid]
-        if entity.uid in self._updated:
+        elif entity.uid in self._updated:
             del self._updated[entity.uid]
-        self._deleted[entity.uid] = entity
+        else:
+            self._deleted[entity.uid] = entity
 
     def _reset_buffers(self):
         """Reset the buffers"""

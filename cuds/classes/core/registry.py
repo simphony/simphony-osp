@@ -46,13 +46,13 @@ class Registry(dict):
             message = '{!r} is not a proper uuid'
             raise ValueError(message.format(uid))
 
-    def get_subtree(self, uid, rel=None, skip=None):
+    def get_subtree(self, root, rel=None, skip=None):
         """Get all the elements in the subtree which is rooted
         in the cuds element with the given uid.
         Only consider the given relationship.
 
-        :param uid: The root of the subtree.
-        :type uid: UUID
+        :param root: The root of the subtree.
+        :type root: Union[UUID, Cuds]
         :param rel: The relationship to consider defaults to None
         :type rel: Relationship, optional
         :param skip: The elements to skip, defaults to None
@@ -60,8 +60,11 @@ class Registry(dict):
         :return: The set of elements in the subtree rooted in the given uid.
         :rtype: Set[Cuds]
         """
+        from .cuds import Cuds
         skip = skip or set()
-        root = super().__getitem__(uid)
+        if not isinstance(root, Cuds):
+            root = super().__getitem__(root)
+        assert root.uid in self
         subtree = {root}
         for child in root.iter(rel=rel):
             if child not in (skip | subtree):
@@ -69,13 +72,13 @@ class Registry(dict):
                                             skip=(skip | subtree))
         return subtree
 
-    def prune(self, root_uids, rel=None):
+    def prune(self, *roots, rel=None):
         """Remove all elements in the registry that are reachable from
         the given roots by considering relationship rel.
 
-        :param root_uids: Remove all elements not reachable from these root
+        :param roots: Remove all elements not reachable from these root
             elements.
-        :type root_uids: List[UUID]
+        :type root_uids: List[Union[UUID, Cuds]]
         :param rel: Only consider this relationship.
         :type rel: Relationship
         :return: The set of removed elements.
@@ -83,17 +86,17 @@ class Registry(dict):
         """
         # Get all reachable Cuds objects
         reachable = set()
-        for uid in root_uids:
-            reachable |= self.get_subtree(uid, rel=rel, skip=reachable)
+        for root in roots:
+            reachable |= self.get_subtree(root, rel=rel, skip=reachable)
         reachable_uids = set([r.uid for r in reachable])
 
         # Get all the Cuds objects that are not reachable
         delete = list()
         for uid in self.keys():
             if uid not in reachable_uids:
-                delete.append(self[uid])
+                delete.append(super().__getitem__(uid))
 
         # remove the non-reachable ones
         for cuds in delete:
-            del self[cuds.uid]
+            super().__delitem__(cuds.uid)
         return delete

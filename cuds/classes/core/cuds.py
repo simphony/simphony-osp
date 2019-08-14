@@ -78,6 +78,10 @@ class Cuds(dict):
                 super().__setitem__(key, value)
                 self.cuds.session._notify_update(self.cuds)
 
+            def update(self, E):
+                super().update(E)
+                self.cuds.session._notify_update(self.cuds)
+
         if inspect.isclass(key) and issubclass(key, self.ROOT_REL) \
                 and isinstance(value, dict):
             super().__setitem__(key, NotifyDict(value, cuds=self))
@@ -126,7 +130,6 @@ class Cuds(dict):
                 arg = arg._clone()
             self._add_direct(arg, rel)
             arg._add_inverse(self, rel)
-            # TODO Propagate changes to registry (through session)
 
             # Recursively add the children to the registry
             if self.session != arg.session:
@@ -370,7 +373,6 @@ class Cuds(dict):
                 if inverse not in parent:
                     parent[inverse] = dict()
 
-                # TODO push these changes to the sessions buffers
                 parent[inverse].update({new_cuds.uid: new_cuds.cuba_key})
         for delete in delete_relationships:
             del new_cuds[delete]

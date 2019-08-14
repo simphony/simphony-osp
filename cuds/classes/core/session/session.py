@@ -59,7 +59,7 @@ class Session(ABC):
         :param rel: Only consider this relationship to calculate reachability.
         :type rel: Relationship
         """
-        deleted = self._registry.prune([self.root], rel)
+        deleted = self._registry.prune(self.root, rel=rel)
         for d in deleted:
             self._notify_delete(d)
 
