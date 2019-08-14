@@ -210,7 +210,8 @@ class ClassGenerator(object):
         :return: dictionary with the content for the template
         """
 
-        arguments_init, attr_sent_super, attr_initialised, properties = \
+        arguments_init, attr_sent_super, attr_initialised, \
+            properties, attribute_list = \
             self._get_constructor_attributes(entity_name)
 
         # Extract the relationships from the ontology
@@ -226,6 +227,7 @@ class ClassGenerator(object):
             'attributes_sent_super': attr_sent_super,
             'attributes_initialised': attr_initialised,
             'properties': properties,
+            'attribute_list': attribute_list,
             'relationships': str_relationships,
         }
         return content
@@ -251,6 +253,7 @@ class ClassGenerator(object):
         list_super = []
         # Initialise with empty string to add indentation to first element
         list_self = [""]
+        self_values = []
         list_properties = []
 
         for name, properties in all_attr.items():
@@ -276,6 +279,7 @@ class ClassGenerator(object):
                 elif name in own_attr:
                     list_properties.append(name)
                     list_self.append("self.{} = {}".format(name, name))
+                    self_values.append("\"%s\"" % name)
 
         # Add default parameters at the end
         list_init += list_init_default
@@ -284,11 +288,17 @@ class ClassGenerator(object):
         string_super = ", ".join(list_super)
         string_self = "\n        ".join(list_self)
         string_property = self.get_property_string(list_properties)
+        string_values = "\n".join(
+            ["        if not hasattr(self, \"_values\"):",
+             "            self._values = list()",
+             "        self._values += [" + ", ".join(self_values) + "]",
+             ""])
 
         if list_self:
             string_self += "\n"
 
-        return string_init, string_super, string_self, string_property
+        return (string_init, string_super, string_self, string_property,
+                string_values)
 
     def get_property_string(self, property_list):
         result = ""

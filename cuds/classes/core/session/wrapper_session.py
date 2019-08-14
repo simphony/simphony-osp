@@ -14,14 +14,14 @@ class WrapperSession(Session):
     Common class for all wrapper sessions.
     Sets the engine and creates the sets with the changed elements
     """
-    @abstractmethod
-    def __str__(self):
-        pass
-
     def __init__(self, engine):
         super().__init__()
         self._engine = engine
         self._reset_buffers()
+
+    @abstractmethod
+    def __str__(self):
+        pass
 
     # OVERRIDE
     def store(self, entity):

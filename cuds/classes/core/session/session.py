@@ -15,6 +15,7 @@ class Session(ABC):
     Abstract Base Class for all Sessions.
     Defines the common standard API and sets the registry.
     """
+
     def __init__(self):
         self._registry = Registry()
         self.root = None
