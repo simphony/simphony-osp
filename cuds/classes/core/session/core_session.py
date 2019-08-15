@@ -16,10 +16,8 @@ class CoreSession(Session):
     def __str__(self):
         return "<CoreSession object>"
 
-    # OVERRIDE
     def _notify_update(self, entity):
         pass
 
-    # OVERRIDE
     def _notify_delete(self, entity):
         pass

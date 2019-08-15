@@ -20,6 +20,12 @@ class Session(ABC):
         self._registry = Registry()
         self.root = None
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
     @abstractmethod
     def __str__(self):
         pass

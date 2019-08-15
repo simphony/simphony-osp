@@ -20,7 +20,14 @@ class DbWrapperSession(WrapperSession):
         self._reset_buffers()
         self.root = None
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
     def commit(self):
+        """Commit the changes in the buffers to the database."""
         self._apply_added()
         self._apply_updated()
         self._apply_deleted()
@@ -30,23 +37,22 @@ class DbWrapperSession(WrapperSession):
     # OVERRIDE
     def store(self, entity):
         super().store(entity)
+
+        # if new root added (new wrapper), create relationships
+        # to first level childrens.
         if self._first_level_connections_to_root:
             for uid, rel in self._first_level_connections_to_root:
                 first_level_entity = self._registry.get(uid)
                 first_level_entity._add_direct(entity, rel)
                 entity._add_inverse(first_level_entity, rel)
-        self._first_level_connections_to_root = None
+            self._first_level_connections_to_root = None
+            self._reset_buffers()
 
     # OVERRIDE
     def load(self, *uids):
-        """Look in the DB if element not in the registry.
-
-        :param uids: The uids of the cuds objects to load.
-        :type uids: UUID
-        :return: The fetched Cuds objects.
-        :rtype: Iterator[Cuds]
-        """
         missing_uids = [uid for uid in uids if uid not in self._registry]
+
+        # Load elements not in the registry from the database
         missing = self._load_missing(*missing_uids)
         for uid in uids:
             if uid in self._registry:
@@ -59,34 +65,81 @@ class DbWrapperSession(WrapperSession):
 
     @abstractmethod
     def close(self):
+        """Close the connection to the database"""
         pass
 
     @abstractmethod
     def _commit(self):
+        """Call the commit command of the database
+        e.g. self._engine.commit()"""
         pass
 
     @abstractmethod
     def _db_select(self, table_name, columns, condition):
+        """Get data from the table of the given names.
+
+        :param table_name: The name of the table.
+        :type table_name: str
+        :param columns: The names of the columns.
+        :type columns: List[str]
+        :param condition: A condition for filtering.
+        :type condition: str
+        """
         pass
 
     @abstractmethod
     def _db_create(self, table_name, columns):
+        """Create a new table with the given name and columns
+
+        :param table_name: The name of the new table.
+        :type table_name: str
+        :param columns: The name of the columns.
+        :type columns: List[str]
+        """
         pass
 
     @abstractmethod
     def _db_insert(self, table_name, columns, values):
+        """Insert data into the table with the given name.
+
+        :param table_name: The table name.
+        :type table_name: str
+        :param columns: The names of the columns.
+        :type columns: List[str]
+        :param values: The data to insert.
+        :type values: List[TODO]
+        """
         pass
 
     @abstractmethod
     def _db_update(self, table_name, columns, values, condition):
+        """Update the data in the given table.
+
+        :param table_name: The name of the table.
+        :type table_name: str
+        :param columns: The names of the columns.
+        :type columns: List[str]
+        :param values: The new updated values.
+        :type values: List[TODO]
+        :param condition: Only update rows that satisfy the condition.
+        :type condition: str
+        """
         pass
 
     @abstractmethod
     def _db_delete(self, table_name, condition):
+        """Delete data from the given table.
+
+        :param table_name: The name of the table.
+        :type table_name: str
+        :param condition: Delete rows that satisfy the condition.
+        :type condition: str
+        """
         pass
 
     @abstractmethod
     def _get_table_names(self):
+        """Get a list of all tables in the database."""
         pass
 
     def _initialize_tables(self):
@@ -170,7 +223,7 @@ class DbWrapperSession(WrapperSession):
                     updated.cuba_key.value,
                     updated.get_attributes(skip="session"),
                     values,
-                    "'uid'=%s" % updated.uid)
+                    "uid='%s'" % updated.uid)
 
             # Update the relationships
             self._db_delete("CUDS_RELATIONSHIPS", "origin='%s'" % updated.uid)
@@ -186,14 +239,14 @@ class DbWrapperSession(WrapperSession):
     def _apply_deleted(self):
         """Perform the SQL-Statements to delete the elements
         in the buffers in the DB."""
-        for deleted in self._updated.values():
+        for deleted in self._deleted.values():
             if deleted.uid == self.root:
                 continue
 
             # Update the values
             if deleted.get_attributes(skip="session"):
                 self._db_delete(deleted.cuba_key.value,
-                                "'uid'=%s" % deleted.uid)
+                                "uid='%s'" % deleted.uid)
 
             self._db_delete("CUDS_MASTER", "uid='%s'" % deleted.uid)
             self._db_delete("CUDS_RELATIONSHIPS", "origin='%s'" % deleted.uid)
@@ -209,6 +262,14 @@ class DbWrapperSession(WrapperSession):
         yield from self._load_many_cuds(uids)
 
     def _load_many_cuds(self, uid_cuba_iterator, connections_to_root=None):
+        """Load the cuds with given uid/uid+cuba.
+
+        :param uid_cuba_iterator: Iterator of uids / uid-cuba_key tuples
+            of the entities to load.
+        :type uid_cuba_iterator: Iterator[Union[UUID, Tuple[UUID, CUBA]]]
+        :param connections_to_root: [description], defaults to None
+        :type connections_to_root: [type], optional
+        """
         for uid_cuba in uid_cuba_iterator:
             if isinstance(uid_cuba, uuid.UUID):
                 uid = uid_cuba
@@ -219,12 +280,16 @@ class DbWrapperSession(WrapperSession):
             yield cuds
 
     def _load_single_cuds(self, uid, cuba=None, connections_to_root=None):
+        """TODO"""
         cuba = cuba or self._get_cuba(uid)
         cuds_class = CUBA_MAPPING[cuba]
         attributes = cuds_class.get_attributes()
 
         c = self._db_select(cuba.value, attributes, "uid='%s'" % uid)
-        cuds = cuds_class(**dict(zip(attributes, next(c))))
+        try:
+            cuds = cuds_class(**dict(zip(attributes, next(c))))
+        except StopIteration:
+            return None
         cuds.session = self
         cuds.uid = uid
         self.store(cuds)
@@ -232,11 +297,13 @@ class DbWrapperSession(WrapperSession):
         return cuds
 
     def _get_cuba(self, uid):
+        """TODO"""
         c = self._db_select("CUDS_MASTER", ["cuba"], "uid='%s'" % uid)
         cuba = CUBA(next(c)[0])
         return cuba
 
     def _load_relationships(self, cuds, connections_to_root):
+        """TODO"""
         c = self._db_select("CUDS_RELATIONSHIPS",
                             ["target", "name", "cuba"],
                             "origin='%s'" % cuds.uid)

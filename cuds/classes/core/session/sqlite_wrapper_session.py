@@ -34,7 +34,7 @@ class SqliteWrapperSession(DbWrapperSession):
 
     def _db_create(self, table_name, columns):
         c = self._engine.cursor()  # TODO consider data types
-        c.execute("CREATE TABLE IF NOT EXISTS %s (%s);" %(
+        c.execute("CREATE TABLE IF NOT EXISTS %s (%s);" % (
             table_name,
             ", ".join(columns)
         ))
