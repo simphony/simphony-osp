@@ -12,7 +12,6 @@ class $class($parent):
 
     def __init__($arguments_init):
 $attributes_initialised
-$attribute_list
         super().__init__($attributes_sent_super)
 
 $properties

@@ -6,7 +6,7 @@
 # No redistribution is allowed without explicit written permission.
 
 import sqlite3
-from .db_wrapper_session import DbWrapperSession
+from cuds.classes.core.session.db_wrapper_session import DbWrapperSession
 
 
 class SqliteWrapperSession(DbWrapperSession):
@@ -17,82 +17,50 @@ class SqliteWrapperSession(DbWrapperSession):
     def __str__(self):
         return "Sqlite Wrapper Session"
 
-    # OVERRIDE
-    def _initialize_tables(self):
+    def close(self):
+        self._engine.close()
+
+    def _commit(self):
+        self._engine.commit()
+
+    def _db_select(self, table_name, columns, condition):
         c = self._engine.cursor()
-        c.execute("CREATE TABLE IF NOT EXISTS CUBA_MASTER "
-                  + "(uid, cuba, first_level);")
-        c.execute("CREATE TABLE IF NOT EXISTS CUBA_RELATIONSHIPS "
-                  + "(origin, target, name, cuba);")
+        c.execute("SELECT %s FROM %s WHERE %s;" % (
+            ", ".join(columns),
+            table_name,
+            condition
+        ))
+        return c
 
-    # OVERRIDE
-    def _load_first_level(self):
-        pass
+    def _db_create(self, table_name, columns):
+        c = self._engine.cursor()  # TODO consider data types
+        c.execute("CREATE TABLE IF NOT EXISTS %s (%s);" %(
+            table_name,
+            ", ".join(columns)
+        ))
 
-    # OVERRIDE
-    def _apply_added(self):
+    def _db_insert(self, table_name, columns, values):
         c = self._engine.cursor()
+        c.execute("INSERT INTO %s (%s) VALUES (%s);" % (
+            table_name,
+            ", ".join(columns),
+            ", ".join(["'%s'" % v for v in values])  # TODO consider type
+        ))
 
-        # Create new tables
+    def _db_update(self, table_name, columns, values, condition):
+        c = self._engine.cursor()
+        c.execute("UPDATE %s SET %s WHERE %s;" % (
+            table_name,  # TODO consider data type of values
+            ", ".join(("%s = '%s'" % (c, v)) for c, v in zip(columns, values)),
+            condition
+        ))
+
+    def _db_delete(self, table_name, condition):
+        c = self._engine.cursor()
+        c.execute("DELETE FROM %s WHERE %s;" % (table_name, condition))
+
+    def _get_table_names(self):
+        c = self._engine.cursor()
         tables = c.execute("SELECT name FROM sqlite_master "
                            + "WHERE type='table';")
-        tables = set([x[0] for x in tables])
-        for added in self._added.values():
-            if added.uid == self.root:
-                continue
-            if added.cuba_key.value not in tables and added._values:
-                tables.add(added.cuba_key.value)
-                sql = "CREATE TABLE %s (uid, %s);" % \
-                    (added.cuba_key.value, ", ".join(added._values))
-                c.execute(sql)
-
-        # Insert the items
-        for added in self._added.values():
-            if added.uid == self.root:
-                continue
-            if added._values:
-                values = [getattr(added, attr) for attr in added._values]
-                sql = "INSERT INTO %s (uid, %s) VALUES ('%s', '%s');" % \
-                    (added.cuba_key.value,
-                     ", ".join(added._values),
-                     added.uid,
-                     "', '".join(values))
-                c.execute(sql)
-
-            # Add to master
-            is_first_level = False
-            root = self._registry.get(self.root)
-            for rel, uids in root.items():
-                if added.uid in uids:
-                    is_first_level = True
-                    break
-            sql = "INSERT INTO CUBA_MASTER (uid, cuba, first_level) " \
-                + "VALUES('%s', '%s', '%s');" % \
-                (added.uid,
-                 added.cuba_key.value,
-                 is_first_level
-                 )
-            c.execute(sql)
-
-            # Insert the relationships
-            for rel, uid_cuba in added.items():
-                for uid, cuba in uid_cuba.items():
-                    if uid == self.root:
-                        continue
-                    sql = "INSERT INTO CUBA_RELATIONSHIPS " \
-                        + "(origin, target, name, cuba) VALUES " \
-                        + "('%s', '%s', '%s', '%s')" % \
-                        (added.uid, uid, rel.__name__, cuba)
-                    c.execute(sql)
-
-    # OVERRIDE
-    def _apply_updated(self):
-        pass
-
-    # OVERRIDE
-    def _apply_deleted(self):
-        pass
-
-    # OVERRIDE
-    def _load_missing(self, *uids):
-        pass
+        return set([x[0] for x in tables])

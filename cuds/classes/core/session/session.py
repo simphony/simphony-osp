@@ -37,7 +37,6 @@ class Session(ABC):
         self._registry.put(entity)
         if self.root is None:
             self.root = entity.uid
-        return entity
 
     def load(self, *uids):
         """Load the cuds objects of the given uids.

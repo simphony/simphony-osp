@@ -42,8 +42,8 @@ class Cuds(dict):
         # These are the allowed CUBA keys (faster to convert to set for lookup)
         # self.restricted_keys = frozenset(CUBA)
         self.uid = uuid.uuid4()
-        self.session.store(self)
         self._relationship_tree = RelationshipTree(self.ROOT_REL)
+        self.session.store(self)
 
     def __str__(self):
         """
@@ -111,6 +111,12 @@ class Cuds(dict):
         if isinstance(other, self.__class__):
             return self.uid == other.uid
         return False
+
+    @classmethod
+    def get_attributes(cls, skip=None):
+        skip = skip or []
+        return [x for x in inspect.getfullargspec(cls.__init__)[0]
+                if x not in skip][1:]
 
     def add(self, *args, rel=None):
         """
@@ -272,7 +278,7 @@ class Cuds(dict):
         new_cuds = new_cuds._clone()
         new_cuds.session = self.session
         self._fix_neighbors(new_cuds, old_cuds, self.session)
-        stored_cuds = self.session.store(new_cuds)
+        self.session.store(new_cuds)
 
         # Keep track which cuds objects have already been stored
         if uids_stored is None:
@@ -293,9 +299,9 @@ class Cuds(dict):
                         child_uid, rel=outgoing_rel)[0]
                     old_child = old_cuds.get(child_uid, rel=outgoing_rel)[0] \
                         if old_cuds else None
-                    uids_stored |= stored_cuds._recursive_store(new_child,
-                                                                old_child,
-                                                                uids_stored)
+                    uids_stored |= new_cuds._recursive_store(new_child,
+                                                             old_child,
+                                                             uids_stored)
         return uids_stored
 
     @staticmethod
@@ -354,6 +360,7 @@ class Cuds(dict):
     def _fix_new_parents(new_cuds, new_parents, new_parent_diff, session):
         """Fix the relationships beetween the added Cuds objects and
         the parents of the added Cuds object.
+        # TODO test
 
         :param new_cuds: The added Cuds object
         :type new_cuds: Cuds
@@ -391,6 +398,7 @@ class Cuds(dict):
                            old_neighbor_diff, session):
         """Fix the relationships beetween the added Cuds objects and
         the Cuds object that were previously neighbors.
+        # TODO test
 
         :param new_cuds: The added Cuds object
         :type new_cuds: Cuds
@@ -431,6 +439,7 @@ class Cuds(dict):
         """Get the uids of neighbors of cuds1 which are no neighbors in cuds2.
         Furthermore get the relationship the neighbors are connected with.
         Optionally filter the considered relationships.
+        # TODO test
 
         :param cuds1: A Cuds object.
         :type cuds1: Cuds
