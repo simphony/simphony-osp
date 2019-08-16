@@ -7,7 +7,8 @@
 
 import sqlite3
 from uuid import UUID
-from cuds.classes.core.session.db_wrapper_session import DbWrapperSession
+from cuds.classes.core.session.db.conditions import EqualsCondition
+from cuds.classes.core.session.db.db_wrapper_session import DbWrapperSession
 
 
 class SqliteWrapperSession(DbWrapperSession):
@@ -29,10 +30,11 @@ class SqliteWrapperSession(DbWrapperSession):
     # OVERRIDE
     def _db_select(self, table_name, columns, condition, datatypes):
         c = self._engine.cursor()
+        condition_str = self._get_condition_string(condition)
         c.execute("SELECT %s FROM %s WHERE %s;" % (
             ", ".join(columns),
             table_name,
-            condition
+            condition_str
         ))
         uuid_columns = [i for i, c in enumerate(columns)
                         if c in datatypes and datatypes[c] == "UUID"]
@@ -57,8 +59,10 @@ class SqliteWrapperSession(DbWrapperSession):
             return "INTEGER"
         if cuds_datatype == "FLOAT":
             return "REAL"
-        else:
+        elif cuds_datatype.startswith("STRING"):
             return "TEXT"
+        else:
+            raise NotImplementedError("Unsupported data type!")
 
     # OVERRIDE
     def _db_insert(self, table_name, columns, values, datatypes):
@@ -73,18 +77,20 @@ class SqliteWrapperSession(DbWrapperSession):
     # OVERRIDE
     def _db_update(self, table_name, columns, values, condition, datatypes):
         c = self._engine.cursor()
+        condition_str = self._get_condition_string(condition)
         c.execute("UPDATE %s SET %s WHERE %s;" % (
             table_name,
             ", ".join(("%s = '%s'" % (c, v)) if isinstance(v, (str, UUID))
                       else ("%s = %s" % (c, v))
                       for c, v in zip(columns, values)),
-            condition
+            condition_str
         ))
 
     # OVERRIDE
     def _db_delete(self, table_name, condition):
         c = self._engine.cursor()
-        c.execute("DELETE FROM %s WHERE %s;" % (table_name, condition))
+        condition_str = self._get_condition_string(condition)
+        c.execute("DELETE FROM %s WHERE %s;" % (table_name, condition_str))
 
     # OVERRIDE
     def _get_table_names(self):
@@ -92,3 +98,13 @@ class SqliteWrapperSession(DbWrapperSession):
         tables = c.execute("SELECT name FROM sqlite_master "
                            + "WHERE type='table';")
         return set([x[0] for x in tables])
+
+    def _get_condition_string(self, condition):
+        if isinstance(condition, EqualsCondition):
+            if isinstance(condition.value, (str, UUID)):
+                return "%s='%s'" % (condition.column_name,
+                                    condition.value)
+            else:
+                return "%s=%s" % (condition.column_name,
+                                  condition.value)
+        raise NotImplementedError("Unsupported condition")

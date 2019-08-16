@@ -7,7 +7,8 @@
 
 from abc import abstractmethod
 import uuid
-from .wrapper_session import WrapperSession
+from cuds.classes.core.session.wrapper_session import WrapperSession
+from cuds.classes.core.session.db.conditions import EqualsCondition
 from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
 from cuds.classes.generated.cuba import CUBA
 
@@ -169,7 +170,7 @@ class DbWrapperSession(WrapperSession):
 
         c = self._db_select("CUDS_MASTER",
                             ["uid", "cuba"],
-                            "first_level",
+                            EqualsCondition("first_level", 1, "INT"),
                             self.datatypes["CUDS_MASTER"])
         list(self._load_many_cuds(
             map(lambda x: (x[0], CUBA(x[1])), c),
@@ -246,11 +247,12 @@ class DbWrapperSession(WrapperSession):
                     updated.cuba_key.value,
                     updated.get_attributes(skip="session"),
                     values,
-                    "uid='%s'" % updated.uid,
+                    EqualsCondition("uid", updated.uid, "UUID"),
                     updated.get_datatypes())
 
             # Update the relationships
-            self._db_delete("CUDS_RELATIONSHIPS", "origin='%s'" % updated.uid)
+            self._db_delete("CUDS_RELATIONSHIPS",
+                            EqualsCondition("origin", updated.uid, "UUID"))
             for rel, uid_cuba in updated.items():
                 for uid, cuba in uid_cuba.items():
                     target_uuid = uid if uid != self.root else uuid.UUID(int=0)
@@ -272,10 +274,12 @@ class DbWrapperSession(WrapperSession):
             # Update the values
             if deleted.get_attributes(skip="session"):
                 self._db_delete(deleted.cuba_key.value,
-                                "uid='%s'" % deleted.uid)
+                                EqualsCondition("uid", deleted.uid, "UUID"))
 
-            self._db_delete("CUDS_MASTER", "uid='%s'" % deleted.uid)
-            self._db_delete("CUDS_RELATIONSHIPS", "origin='%s'" % deleted.uid)
+            self._db_delete("CUDS_MASTER",
+                            EqualsCondition("uid", deleted.uid, "UUID"))
+            self._db_delete("CUDS_RELATIONSHIPS",
+                            EqualsCondition("origin", deleted.uid, "UUID"))
 
     def _load_missing(self, *uids):
         """Load the missing entities from the database.
@@ -325,7 +329,7 @@ class DbWrapperSession(WrapperSession):
 
         c = self._db_select(cuba.value,
                             attributes,
-                            "uid='%s'" % uid,
+                            EqualsCondition("uid", uid, "UUID"),
                             datatypes)
         try:
             cuds = cuds_class(**dict(zip(attributes, next(c))))
@@ -347,7 +351,7 @@ class DbWrapperSession(WrapperSession):
         """
         c = self._db_select("CUDS_MASTER",
                             ["cuba"],
-                            "uid='%s'" % uid,
+                            EqualsCondition("uid", uid, "UUID"),
                             self.datatypes["CUDS_MASTER"])
         cuba = CUBA(next(c)[0])
         return cuba
@@ -363,7 +367,7 @@ class DbWrapperSession(WrapperSession):
         """
         c = self._db_select("CUDS_RELATIONSHIPS",
                             ["target", "name", "cuba"],
-                            "origin='%s'" % cuds.uid,
+                            EqualsCondition("origin", cuds.uid, "UUID"),
                             self.datatypes["CUDS_RELATIONSHIPS"])
         for target, name, target_cuba in c:
             target_cuba = CUBA(target_cuba)

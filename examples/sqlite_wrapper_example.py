@@ -4,7 +4,7 @@
 # %%
 import cuds.classes
 from cuds.classes.generated.cuba import CUBA
-from cuds.classes.core.session.sqlite_wrapper_session import \
+from cuds.classes.core.session.db.sqlite_wrapper_session import \
     SqliteWrapperSession
 
 # %%
