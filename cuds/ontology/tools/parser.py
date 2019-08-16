@@ -86,6 +86,18 @@ class Parser:
         parent = "" if parent is None else parent.replace("CUBA.", "")
         return parent
 
+    def get_datatype(self, entity):
+        try:
+            return self.get_value(entity, "datatype")
+        except KeyError:
+            pass
+
+        try:
+            parent = self.get_parent(entity)
+            return self.get_datatype(parent)
+        except KeyError:
+            return None
+
     def get_cuba_attributes_filtering(self, entity, not_relevant):
         """
         Filters the attributes to the CUBA ones and returns the contained info.

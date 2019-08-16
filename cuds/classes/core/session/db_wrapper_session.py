@@ -13,6 +13,15 @@ from cuds.classes.generated.cuba import CUBA
 
 
 class DbWrapperSession(WrapperSession):
+    datatypes = {
+        "CUDS_MASTER": {"uid": "UUID",
+                        "cuba": "STRING",
+                        "first_level": "INT"},
+        "CUDS_RELATIONSHIPS": {"origin": "UUID",
+                               "target": "UUID",
+                               "name": "STRING",
+                               "cuba": "STRING"}}
+
     def __init__(self, engine):
         super().__init__(engine)
         self._initialize_tables()
@@ -75,7 +84,7 @@ class DbWrapperSession(WrapperSession):
         pass
 
     @abstractmethod
-    def _db_select(self, table_name, columns, condition):
+    def _db_select(self, table_name, columns, condition, datatypes):
         """Get data from the table of the given names.
 
         :param table_name: The name of the table.
@@ -88,18 +97,20 @@ class DbWrapperSession(WrapperSession):
         pass
 
     @abstractmethod
-    def _db_create(self, table_name, columns):
+    def _db_create(self, table_name, columns, datatypes):
         """Create a new table with the given name and columns
 
         :param table_name: The name of the new table.
         :type table_name: str
         :param columns: The name of the columns.
         :type columns: List[str]
+        :param datatypes: Maps columns to datatypes specified in ontology.
+        :type columns: Dict[String, String]
         """
         pass
 
     @abstractmethod
-    def _db_insert(self, table_name, columns, values):
+    def _db_insert(self, table_name, columns, values, datatypes):
         """Insert data into the table with the given name.
 
         :param table_name: The table name.
@@ -112,7 +123,7 @@ class DbWrapperSession(WrapperSession):
         pass
 
     @abstractmethod
-    def _db_update(self, table_name, columns, values, condition):
+    def _db_update(self, table_name, columns, values, condition, datatypes):
         """Update the data in the given table.
 
         :param table_name: The name of the table.
@@ -144,9 +155,12 @@ class DbWrapperSession(WrapperSession):
 
     def _initialize_tables(self):
         """Create master tables if they don't exit"""
-        self._db_create("CUDS_MASTER", ["uid", "cuba", "first_level"])
+        self._db_create("CUDS_MASTER",
+                        ["uid", "cuba", "first_level"],
+                        self.datatypes["CUDS_MASTER"])
         self._db_create("CUDS_RELATIONSHIPS",
-                        ["origin", "target", "name", "cuba"])
+                        ["origin", "target", "name", "cuba"],
+                        self.datatypes["CUDS_RELATIONSHIPS"])
 
     def _load_first_level(self):
         """Load the first level of entities"""
@@ -155,9 +169,10 @@ class DbWrapperSession(WrapperSession):
 
         c = self._db_select("CUDS_MASTER",
                             ["uid", "cuba"],
-                            "first_level='True'")
+                            "first_level",
+                            self.datatypes["CUDS_MASTER"])
         list(self._load_many_cuds(
-            map(lambda x: (uuid.UUID(hex=x[0]), CUBA(x[1])), c),
+            map(lambda x: (x[0], CUBA(x[1])), c),
             connections_to_root))
         self._first_level_connections_to_root = connections_to_root
 
@@ -170,12 +185,16 @@ class DbWrapperSession(WrapperSession):
             if added.uid == self.root:
                 continue
 
+            datatypes = added.get_datatypes()
+            datatypes["uid"] = "INT"
+
             # Create tables
             if added.cuba_key.value not in tables \
                     and added.get_attributes(skip="session"):
                 tables.add(added.cuba_key.value)
                 self._db_create(added.cuba_key.value,
-                                ["uid"] + added.get_attributes(skip="session"))
+                                ["uid"] + added.get_attributes(skip="session"),
+                                datatypes)
 
             # Insert the items
             if added.get_attributes(skip="session"):
@@ -183,7 +202,8 @@ class DbWrapperSession(WrapperSession):
                           for attr in added.get_attributes(skip="session")]
                 self._db_insert(added.cuba_key.value,
                                 ["uid"] + added.get_attributes(skip="session"),
-                                [added.uid] + values)
+                                [added.uid] + values,
+                                added.get_datatypes())
 
             # Add to master
             is_first_level = False
@@ -195,18 +215,21 @@ class DbWrapperSession(WrapperSession):
             self._db_insert(
                 "CUDS_MASTER",
                 ["uid", "cuba", "first_level"],
-                [added.uid, added.cuba_key.value, is_first_level]
+                [added.uid, added.cuba_key.value, is_first_level],
+                self.datatypes["CUDS_MASTER"]
             )
 
             # Insert the relationships
             for rel, uid_cuba in added.items():
                 for uid, cuba in uid_cuba.items():
+                    target_uuid = uid if uid != self.root else uuid.UUID(int=0)
                     self._db_insert("CUDS_RELATIONSHIPS",
                                     ["origin", "target", "name", "cuba"],
                                     [added.uid,
-                                     (uid if uid != self.root else "ROOT"),
+                                     target_uuid,
                                      rel.cuba_key.value,
-                                     cuba.value])
+                                     cuba.value],
+                                    self.datatypes["CUDS_RELATIONSHIPS"])
 
     def _apply_updated(self):
         """Perform the SQL-Statements to update the elements
@@ -223,18 +246,21 @@ class DbWrapperSession(WrapperSession):
                     updated.cuba_key.value,
                     updated.get_attributes(skip="session"),
                     values,
-                    "uid='%s'" % updated.uid)
+                    "uid='%s'" % updated.uid,
+                    updated.get_datatypes())
 
             # Update the relationships
             self._db_delete("CUDS_RELATIONSHIPS", "origin='%s'" % updated.uid)
             for rel, uid_cuba in updated.items():
                 for uid, cuba in uid_cuba.items():
+                    target_uuid = uid if uid != self.root else uuid.UUID(int=0)
                     self._db_insert("CUDS_RELATIONSHIPS",
                                     ["origin", "target", "name", "cuba"],
                                     [updated.uid,
-                                     (uid if uid != self.root else "ROOT"),
+                                     target_uuid,
                                      rel.cuba_key.value,
-                                     cuba.value])
+                                     cuba.value],
+                                    self.datatypes["CUDS_RELATIONSHIPS"])
 
     def _apply_deleted(self):
         """Perform the SQL-Statements to delete the elements
@@ -295,8 +321,12 @@ class DbWrapperSession(WrapperSession):
         cuba = cuba or self._get_cuba(uid)
         cuds_class = CUBA_MAPPING[cuba]
         attributes = cuds_class.get_attributes()
+        datatypes = cuds_class.get_datatypes()
 
-        c = self._db_select(cuba.value, attributes, "uid='%s'" % uid)
+        c = self._db_select(cuba.value,
+                            attributes,
+                            "uid='%s'" % uid,
+                            datatypes)
         try:
             cuds = cuds_class(**dict(zip(attributes, next(c))))
         except StopIteration:
@@ -315,7 +345,10 @@ class DbWrapperSession(WrapperSession):
         :return: The cuba-key.
         :rtype: CUBA
         """
-        c = self._db_select("CUDS_MASTER", ["cuba"], "uid='%s'" % uid)
+        c = self._db_select("CUDS_MASTER",
+                            ["cuba"],
+                            "uid='%s'" % uid,
+                            self.datatypes["CUDS_MASTER"])
         cuba = CUBA(next(c)[0])
         return cuba
 
@@ -330,15 +363,21 @@ class DbWrapperSession(WrapperSession):
         """
         c = self._db_select("CUDS_RELATIONSHIPS",
                             ["target", "name", "cuba"],
-                            "origin='%s'" % cuds.uid)
+                            "origin='%s'" % cuds.uid,
+                            self.datatypes["CUDS_RELATIONSHIPS"])
         for target, name, target_cuba in c:
             target_cuba = CUBA(target_cuba)
             rel = CUBA_MAPPING[CUBA(name)]
 
             if rel not in cuds:
                 cuds[rel] = dict()
-            if target == "ROOT" and connections_to_root is not None:
+            if target == uuid.UUID(int=0) and connections_to_root is not None:
                 connections_to_root.add((cuds.uid, rel))
-            elif target != "ROOT":
-                target = uuid.UUID(hex=target)
+            elif target != uuid.UUID(int=0):
                 cuds[rel][target] = target_cuba
+
+    def _convert_uuid_values(self, values, uuid_columns, from_datatype):
+        result = list(values)
+        for i in uuid_columns:
+            result[i] = uuid.UUID(**{from_datatype: values[i]})
+        return result

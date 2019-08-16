@@ -97,6 +97,7 @@ CUDS_ONTOLOGY:
   NUMBER:
     definition:
     parent: CUBA.VALUE
+    datatype: INT
 
   POSTAL_CODE:
     definition:
@@ -105,6 +106,7 @@ CUDS_ONTOLOGY:
   NAME:
     definition:
     parent: CUBA.VALUE
+    datatype: "STRING:20"
 
   ADDRESS:
     definition:

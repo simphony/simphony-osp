@@ -47,7 +47,8 @@ class ClassGenerator(object):
         # Don't create classes from ROOT_NOT_CLASSES and its descendants
         not_classes = self._parser.get_descendants(self.ROOT_NOT_CLASSES)
         not_classes.append(self.ROOT_NOT_CLASSES)
-        self._not_classes = set(not_classes)
+        self._not_classes = {c: self._parser.get_datatype(c)
+                             for c in not_classes}
 
         relationships = self._parser.get_descendants(self.ROOT_RELATIONSHIP)
         relationships.append(self.ROOT_RELATIONSHIP)
@@ -98,7 +99,7 @@ class ClassGenerator(object):
         cuba_mapping_filename = os.path.join(self._output_folder,
                                              "cuba_mapping.py")
         file_content = "from .cuba import CUBA\n"
-        elements = set(self._parser.get_entities()) - self._not_classes
+        elements = set(self._parser.get_entities()) - self._not_classes.keys()
         for element in elements:
             file_content += "from .%s import %s\n" % (
                 element.lower(), format_class_name(element))
@@ -118,7 +119,7 @@ class ClassGenerator(object):
         at the end of the init file
         """
         init_filename = os.path.join(self._output_folder, "__init__.py")
-        attributes = self._not_classes.union({"cuba_key", "uid"})
+        attributes = set(["cuba_key", "uid"]).union(self._not_classes.keys())
 
         attributes_string = str(attributes).lower() + "\n"
         attributes_string = self._text_wrapper.fill(attributes_string)
@@ -215,7 +216,8 @@ class ClassGenerator(object):
 
         # Extract the relationships from the ontology
         relationships = self._parser.\
-            get_cuba_attributes_filtering(entity_name, self._not_classes)
+            get_cuba_attributes_filtering(entity_name,
+                                          self._not_classes.keys())
 
         str_relationships = re.sub("'(CUBA.[A-Z_]*)'",
                                    r"\g<1>",
@@ -256,17 +258,23 @@ class ClassGenerator(object):
         for name, properties in all_attr.items():
             # Check that they are not instantiable classes
             if name.upper() in self._not_classes:
+                datatype = self._not_classes[name.upper()]
+                annotation = "" if not datatype else ":'%s'" % datatype
                 # Default value
                 if properties is not None and \
                         self.DEFAULT_ATTRIBUTE_KEY in properties:
                     default = properties[self.DEFAULT_ATTRIBUTE_KEY]
                     if isinstance(default, str):
-                        list_init_default.append(name + "='" + default + "'")
+                        list_init_default.append("%s%s='%s'" % (name,
+                                                                annotation,
+                                                                default))
                     else:
-                        list_init_default.append(name + "=" + str(default))
+                        list_init_default.append("%s%s='%s'" % (name,
+                                                                annotation,
+                                                                default))
                 # No default value
                 else:
-                    list_init.append(name)
+                    list_init.append(name + annotation)
                 # Inherited properties go to supper
                 if name in inherited_attr:
                     list_super.append(name)
@@ -274,7 +282,8 @@ class ClassGenerator(object):
                     list_self.append("if session is not None:")
                     list_self.append("    self.session = session")
                 elif name in own_attr:
-                    list_properties.append(name)
+                    list_properties.append((name,
+                                            datatype))
                     list_self.append("self.{} = {}".format(name, name))
 
         # Add default parameters at the end
@@ -292,7 +301,7 @@ class ClassGenerator(object):
 
     def get_property_string(self, property_list):
         result = ""
-        for p in property_list:
+        for p, datatype in property_list:
             result += "\n".join(map(lambda x: "    " + x,
                                     ["@property",
                                      "def %s(self):" % p,
@@ -300,7 +309,8 @@ class ClassGenerator(object):
                                      "",
                                      "@%s.setter" % p,
                                      "def %s(self, x):" % p,
-                                     "    self.__%s = x" % p,
+                                     "    self.__%s = convert(x, \"%s\")"
+                                     % (p, datatype),
                                      "    self.session._notify_update(self)\n"]
                                     ))
         return result

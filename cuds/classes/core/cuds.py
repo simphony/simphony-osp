@@ -115,8 +115,12 @@ class Cuds(dict):
     @classmethod
     def get_attributes(cls, skip=None):
         skip = skip or []
-        return [x for x in inspect.getfullargspec(cls.__init__)[0]
+        return [x for x in inspect.getfullargspec(cls.__init__).args
                 if x not in skip][1:]
+
+    @classmethod
+    def get_datatypes(cls):
+        return inspect.getfullargspec(cls.__init__).annotations
 
     def add(self, *args, rel=None):
         """
