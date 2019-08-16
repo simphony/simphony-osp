@@ -107,5 +107,6 @@ class TestSqliteCity(unittest.TestCase):
                 (str(c.uid), "Freiburg")
             })
 
+
 if __name__ == '__main__':
     unittest.main()
