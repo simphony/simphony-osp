@@ -14,14 +14,16 @@ from cuds.classes.generated.cuba import CUBA
 
 
 class DbWrapperSession(WrapperSession):
+    master_table = "CUDS_MASTER"
+    relationships_table = "CUDS_RELATIONSHIPS"
     datatypes = {
-        "CUDS_MASTER": {"uid": "UUID",
-                        "cuba": "STRING",
-                        "first_level": "INT"},
-        "CUDS_RELATIONSHIPS": {"origin": "UUID",
-                               "target": "UUID",
-                               "name": "STRING",
-                               "cuba": "STRING"}}
+        master_table: {"uid": "UUID",
+                       "cuba": "STRING",
+                       "first_level": "INT"},
+        relationships_table: {"origin": "UUID",
+                              "target": "UUID",
+                              "name": "STRING",
+                              "cuba": "STRING"}}
 
     def __init__(self, engine):
         super().__init__(engine)
@@ -156,22 +158,22 @@ class DbWrapperSession(WrapperSession):
 
     def _initialize_tables(self):
         """Create master tables if they don't exit"""
-        self._db_create("CUDS_MASTER",
+        self._db_create(self.master_table,
                         ["uid", "cuba", "first_level"],
-                        self.datatypes["CUDS_MASTER"])
-        self._db_create("CUDS_RELATIONSHIPS",
+                        self.datatypes[self.master_table])
+        self._db_create(self.relationships_table,
                         ["origin", "target", "name", "cuba"],
-                        self.datatypes["CUDS_RELATIONSHIPS"])
+                        self.datatypes[self.relationships_table])
 
     def _load_first_level(self):
         """Load the first level of entities"""
         self._first_level_connections_to_root = None
         connections_to_root = set()
 
-        c = self._db_select("CUDS_MASTER",
+        c = self._db_select(self.master_table,
                             ["uid", "cuba"],
                             EqualsCondition("first_level", 1, "INT"),
-                            self.datatypes["CUDS_MASTER"])
+                            self.datatypes[self.master_table])
         list(self._load_many_cuds(
             map(lambda x: (x[0], CUBA(x[1])), c),
             connections_to_root))
@@ -214,23 +216,23 @@ class DbWrapperSession(WrapperSession):
                     is_first_level = True
                     break
             self._db_insert(
-                "CUDS_MASTER",
+                self.master_table,
                 ["uid", "cuba", "first_level"],
                 [added.uid, added.cuba_key.value, is_first_level],
-                self.datatypes["CUDS_MASTER"]
+                self.datatypes[self.master_table]
             )
 
             # Insert the relationships
             for rel, uid_cuba in added.items():
                 for uid, cuba in uid_cuba.items():
                     target_uuid = uid if uid != self.root else uuid.UUID(int=0)
-                    self._db_insert("CUDS_RELATIONSHIPS",
+                    self._db_insert(self.relationships_table,
                                     ["origin", "target", "name", "cuba"],
                                     [added.uid,
                                      target_uuid,
                                      rel.cuba_key.value,
                                      cuba.value],
-                                    self.datatypes["CUDS_RELATIONSHIPS"])
+                                    self.datatypes[self.relationships_table])
 
     def _apply_updated(self):
         """Perform the SQL-Statements to update the elements
@@ -251,18 +253,18 @@ class DbWrapperSession(WrapperSession):
                     updated.get_datatypes())
 
             # Update the relationships
-            self._db_delete("CUDS_RELATIONSHIPS",
+            self._db_delete(self.relationships_table,
                             EqualsCondition("origin", updated.uid, "UUID"))
             for rel, uid_cuba in updated.items():
                 for uid, cuba in uid_cuba.items():
                     target_uuid = uid if uid != self.root else uuid.UUID(int=0)
-                    self._db_insert("CUDS_RELATIONSHIPS",
+                    self._db_insert(self.relationships_table,
                                     ["origin", "target", "name", "cuba"],
                                     [updated.uid,
                                      target_uuid,
                                      rel.cuba_key.value,
                                      cuba.value],
-                                    self.datatypes["CUDS_RELATIONSHIPS"])
+                                    self.datatypes[self.relationships_table])
 
     def _apply_deleted(self):
         """Perform the SQL-Statements to delete the elements
@@ -276,9 +278,9 @@ class DbWrapperSession(WrapperSession):
                 self._db_delete(deleted.cuba_key.value,
                                 EqualsCondition("uid", deleted.uid, "UUID"))
 
-            self._db_delete("CUDS_MASTER",
+            self._db_delete(self.master_table,
                             EqualsCondition("uid", deleted.uid, "UUID"))
-            self._db_delete("CUDS_RELATIONSHIPS",
+            self._db_delete(self.relationships_table,
                             EqualsCondition("origin", deleted.uid, "UUID"))
 
     def _load_missing(self, *uids):
@@ -349,10 +351,10 @@ class DbWrapperSession(WrapperSession):
         :return: The cuba-key.
         :rtype: CUBA
         """
-        c = self._db_select("CUDS_MASTER",
+        c = self._db_select(self.master_table,
                             ["cuba"],
                             EqualsCondition("uid", uid, "UUID"),
-                            self.datatypes["CUDS_MASTER"])
+                            self.datatypes[self.master_table])
         cuba = CUBA(next(c)[0])
         return cuba
 
@@ -365,10 +367,10 @@ class DbWrapperSession(WrapperSession):
             the root in this set.
         :type connections_to_root: Set[Tuple[UUID, Relationship]]
         """
-        c = self._db_select("CUDS_RELATIONSHIPS",
+        c = self._db_select(self.relationships_table,
                             ["target", "name", "cuba"],
                             EqualsCondition("origin", cuds.uid, "UUID"),
-                            self.datatypes["CUDS_RELATIONSHIPS"])
+                            self.datatypes[self.relationships_table])
         for target, name, target_cuba in c:
             target_cuba = CUBA(target_cuba)
             rel = CUBA_MAPPING[CUBA(name)]
