@@ -17,12 +17,15 @@ class SqliteWrapperSession(DbWrapperSession):
     def __str__(self):
         return "Sqlite Wrapper Session"
 
+    # OVERRIDE
     def close(self):
         self._engine.close()
 
+    # OVERRIDE
     def _commit(self):
         self._engine.commit()
 
+    # OVERRIDE
     def _db_select(self, table_name, columns, condition):
         c = self._engine.cursor()
         c.execute("SELECT %s FROM %s WHERE %s;" % (
@@ -32,6 +35,7 @@ class SqliteWrapperSession(DbWrapperSession):
         ))
         return c
 
+    # OVERRIDE
     def _db_create(self, table_name, columns):
         c = self._engine.cursor()  # TODO consider data types
         c.execute("CREATE TABLE IF NOT EXISTS %s (%s);" % (
@@ -39,6 +43,7 @@ class SqliteWrapperSession(DbWrapperSession):
             ", ".join(columns)
         ))
 
+    # OVERRIDE
     def _db_insert(self, table_name, columns, values):
         c = self._engine.cursor()
         c.execute("INSERT INTO %s (%s) VALUES (%s);" % (
@@ -47,6 +52,7 @@ class SqliteWrapperSession(DbWrapperSession):
             ", ".join(["'%s'" % v for v in values])  # TODO consider type
         ))
 
+    # OVERRIDE
     def _db_update(self, table_name, columns, values, condition):
         c = self._engine.cursor()
         c.execute("UPDATE %s SET %s WHERE %s;" % (
@@ -55,10 +61,12 @@ class SqliteWrapperSession(DbWrapperSession):
             condition
         ))
 
+    # OVERRIDE
     def _db_delete(self, table_name, condition):
         c = self._engine.cursor()
         c.execute("DELETE FROM %s WHERE %s;" % (table_name, condition))
 
+    # OVERRIDE
     def _get_table_names(self):
         c = self._engine.cursor()
         tables = c.execute("SELECT name FROM sqlite_master "

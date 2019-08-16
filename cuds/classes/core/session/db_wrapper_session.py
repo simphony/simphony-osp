@@ -262,7 +262,7 @@ class DbWrapperSession(WrapperSession):
         yield from self._load_many_cuds(uids)
 
     def _load_many_cuds(self, uid_cuba_iterator, connections_to_root=None):
-        """Load the cuds with given uid/uid+cuba.
+        """Load the Cuds entities with given uids/uid+cuba.
 
         :param uid_cuba_iterator: Iterator of uids / uid-cuba_key tuples
             of the entities to load.
@@ -280,7 +280,18 @@ class DbWrapperSession(WrapperSession):
             yield cuds
 
     def _load_single_cuds(self, uid, cuba=None, connections_to_root=None):
-        """TODO"""
+        """Load the Cuds entity with the given uid/uid+cuba.
+
+        :param uid: The uid of the Cuds to load.
+        :type uid: UUID
+        :param cuba: The Cuba-Key of the cuds object, defaults to None
+        :type cuba: CUBA, optional
+        :param connections_to_root: A set to collect all the relationships to
+            the root, defaults to None
+        :type connections_to_root: Set[Tuple[UUID, Relationship]], optional
+        :return: The loaded Cuds entity.
+        :rtype: Cuds
+        """
         cuba = cuba or self._get_cuba(uid)
         cuds_class = CUBA_MAPPING[cuba]
         attributes = cuds_class.get_attributes()
@@ -297,13 +308,26 @@ class DbWrapperSession(WrapperSession):
         return cuds
 
     def _get_cuba(self, uid):
-        """TODO"""
+        """Get the cuba-key of the given uid from the database.
+
+        :param uid: Load the cuba-key of this uis.
+        :type uid: UUID
+        :return: The cuba-key.
+        :rtype: CUBA
+        """
         c = self._db_select("CUDS_MASTER", ["cuba"], "uid='%s'" % uid)
         cuba = CUBA(next(c)[0])
         return cuba
 
     def _load_relationships(self, cuds, connections_to_root):
-        """TODO"""
+        """Adds the relationships in the db to the given cuds objects.
+
+        :param cuds: Adds the relationships to this cuds object.s
+        :type cuds: Cuds
+        :param connections_to_root: Collect the relationships to
+            the root in this set.
+        :type connections_to_root: Set[Tuple[UUID, Relationship]]
+        """
         c = self._db_select("CUDS_RELATIONSHIPS",
                             ["target", "name", "cuba"],
                             "origin='%s'" % cuds.uid)
