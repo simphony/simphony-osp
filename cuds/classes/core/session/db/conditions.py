@@ -5,6 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+
 class EqualsCondition():
     def __init__(self, column_name, value, datatype):
         self.column_name = column_name
