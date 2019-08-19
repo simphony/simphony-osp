@@ -53,6 +53,14 @@ class SqliteWrapperSession(DbWrapperSession):
         ))
 
     def _to_sqlite_datatype(self, cuds_datatype):
+        """Convert the given Cuds datatype to a datatype of sqlite.
+
+        :param cuds_datatype: The given cuds datatype.
+        :type cuds_datatype: str
+        :raises NotImplementedError: Unsupported datatype given.
+        :return: A sqlite datatype.
+        :rtype: str
+        """
         if cuds_datatype == "UUID":
             return "TEXT"
         if cuds_datatype == "INT":
@@ -67,6 +75,16 @@ class SqliteWrapperSession(DbWrapperSession):
             raise NotImplementedError("Unsupported data type!")
 
     def _to_sqlite_value(self, value, cuds_datatype):
+        """Convert the given value s.t. it can be used in a sqlite query.
+
+        :param value: The value to convert.
+        :type value: Any
+        :param cuds_datatype: The datatype to convert to.
+        :type cuds_datatype: str
+        :raises NotImplementedError: Unsupported datatype.
+        :return: The converted value.
+        :rtype: str
+        """
         if cuds_datatype is None or \
                 cuds_datatype == "UUID" or cuds_datatype.startswith("STRING"):
             return "'%s'" % value

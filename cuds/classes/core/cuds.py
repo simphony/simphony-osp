@@ -57,6 +57,7 @@ class Cuds(dict):
         if inspect.isclass(key) and issubclass(key, self.ROOT_REL):
             super().__delitem__(key)
             self._relationship_tree.remove(key)
+            self.session._notify_update(self)
         else:
             message = 'Key {!r} is not in the supported relationships'
             raise ValueError(message.format(key))
@@ -76,6 +77,10 @@ class Cuds(dict):
 
             def __setitem__(self, key, value):
                 super().__setitem__(key, value)
+                self.cuds.session._notify_update(self.cuds)
+
+            def __delitem__(self, key):
+                super().__delitem__(key)
                 self.cuds.session._notify_update(self.cuds)
 
             def update(self, E):

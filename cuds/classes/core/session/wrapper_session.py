@@ -66,6 +66,7 @@ class WrapperSession(Session):
             del self._added[entity.uid]
         elif entity.uid in self._updated:
             del self._updated[entity.uid]
+            self._deleted[entity.uid] = entity
         else:
             self._deleted[entity.uid] = entity
 
