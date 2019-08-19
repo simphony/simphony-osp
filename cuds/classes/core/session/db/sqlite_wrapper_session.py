@@ -44,7 +44,7 @@ class SqliteWrapperSession(DbWrapperSession):
     # OVERRIDE
     def _db_create(self, table_name, columns, datatypes):
         columns = [c if c not in datatypes
-                   else "%s %s" % (c, self.to_sqlite_datatype(datatypes[c]))
+                   else "%s %s" % (c, self._to_sqlite_datatype(datatypes[c]))
                    for c in columns]
         c = self._engine.cursor()
         c.execute("CREATE TABLE IF NOT EXISTS %s (%s);" % (
@@ -52,11 +52,13 @@ class SqliteWrapperSession(DbWrapperSession):
             ", ".join(columns)
         ))
 
-    def to_sqlite_datatype(self, cuds_datatype):
+    def _to_sqlite_datatype(self, cuds_datatype):
         if cuds_datatype == "UUID":
             return "TEXT"
         if cuds_datatype == "INT":
             return "INTEGER"
+        if cuds_datatype == "BOOL":
+            return "BOOLEAN"
         if cuds_datatype == "FLOAT":
             return "REAL"
         elif cuds_datatype.startswith("STRING"):
@@ -64,26 +66,35 @@ class SqliteWrapperSession(DbWrapperSession):
         else:
             raise NotImplementedError("Unsupported data type!")
 
+    def _to_sqlite_value(self, value, cuds_datatype):
+        if cuds_datatype is None or \
+                cuds_datatype == "UUID" or cuds_datatype.startswith("STRING"):
+            return "'%s'" % value
+        if cuds_datatype in ["INT", "BOOL"]:
+            return str(int(value))
+        if cuds_datatype == "FLOAT":
+            return str(float(value))
+        else:
+            raise NotImplementedError("Unsupported data type!")
+
     # OVERRIDE
     def _db_insert(self, table_name, columns, values, datatypes):
         c = self._engine.cursor()
-        values = [int(v) if isinstance(v, bool) else v for v in values]
         c.execute("INSERT INTO %s (%s) VALUES (%s);" % (
             table_name,
             ", ".join(columns),
-            ", ".join(["'%s'" % v if isinstance(v, (str, UUID)) else str(v)
-                       for v in values])
+            ", ".join([self._to_sqlite_value(v, datatypes.get(c))
+                       for c, v in zip(columns, values)])
         ))
 
     # OVERRIDE
     def _db_update(self, table_name, columns, values, condition, datatypes):
         c = self._engine.cursor()
         condition_str = self._get_condition_string(condition)
-        values = [int(v) if isinstance(v, bool) else v for v in values]
         c.execute("UPDATE %s SET %s WHERE %s;" % (
             table_name,
-            ", ".join(("%s = '%s'" % (c, v)) if isinstance(v, (str, UUID))
-                      else ("%s = %s" % (c, v))
+            ", ".join(("%s = %s" %
+                      (c, self._to_sqlite_value(v, datatypes.get(c))))
                       for c, v in zip(columns, values)),
             condition_str
         ))

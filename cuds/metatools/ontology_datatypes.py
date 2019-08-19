@@ -25,6 +25,7 @@ def to_string(x, maxsize=None):
 
 
 ONTOLOGY_DATATYPES = {
+    "BOOL": bool,
     "INT": int,
     "FLOAT": float,
     "STRING": to_string,
