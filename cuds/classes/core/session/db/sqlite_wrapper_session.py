@@ -67,6 +67,12 @@ class SqliteWrapperSession(DbWrapperSession):
     # OVERRIDE
     def _db_insert(self, table_name, columns, values, datatypes):
         c = self._engine.cursor()
+        print("INSERT INTO %s (%s) VALUES (%s);" % (
+            table_name,
+            ", ".join(columns),
+            ", ".join(["'%s'" % v if isinstance(v, (str, UUID)) else str(v)
+                       for v in values])
+        ))
         c.execute("INSERT INTO %s (%s) VALUES (%s);" % (
             table_name,
             ", ".join(columns),
