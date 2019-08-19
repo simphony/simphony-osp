@@ -67,12 +67,7 @@ class SqliteWrapperSession(DbWrapperSession):
     # OVERRIDE
     def _db_insert(self, table_name, columns, values, datatypes):
         c = self._engine.cursor()
-        print("INSERT INTO %s (%s) VALUES (%s);" % (
-            table_name,
-            ", ".join(columns),
-            ", ".join(["'%s'" % v if isinstance(v, (str, UUID)) else str(v)
-                       for v in values])
-        ))
+        values = [int(v) if isinstance(v, bool) else v for v in values]
         c.execute("INSERT INTO %s (%s) VALUES (%s);" % (
             table_name,
             ", ".join(columns),
@@ -84,6 +79,7 @@ class SqliteWrapperSession(DbWrapperSession):
     def _db_update(self, table_name, columns, values, condition, datatypes):
         c = self._engine.cursor()
         condition_str = self._get_condition_string(condition)
+        values = [int(v) if isinstance(v, bool) else v for v in values]
         c.execute("UPDATE %s SET %s WHERE %s;" % (
             table_name,
             ", ".join(("%s = '%s'" % (c, v)) if isinstance(v, (str, UUID))
