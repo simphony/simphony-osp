@@ -268,7 +268,7 @@ class Cuds(dict):
 
         return str(rel_key) + ": {\n\t" + ",\n\t".join(elements) + "\n  }"
 
-    def _recursive_store(self, new_cuds, old_cuds=None, uids_stored=None):
+    def _recursive_store(self, new_cuds, old_cuds=None):
         """Recursively store cuds and all its children.
         One-way relationships and dangling references are fixed.
 
@@ -278,40 +278,37 @@ class Cuds(dict):
         :type old_cuds: Cuds, optional
         :param uids_stored: Remember which cuds objects have already been
             stored in the recursive call, defaults to None
-        :type uids_stored: Set[UUID], optional
-        :return: The uuids stored by this call
         :rtype: Set[UUID]
         """
-        # Store copy in registry and fix parent connections
-        new_child_getter = new_cuds
-        new_cuds = new_cuds._clone()
-        new_cuds.session = self.session
-        self._fix_neighbors(new_cuds, old_cuds, self.session)
-        self.session.store(new_cuds)
+        # add new_cuds to self and replace old_cuds
+        queue = [(self, new_cuds, old_cuds)]
+        uids_stored = {new_cuds.uid}
+        while queue:
 
-        # Keep track which cuds objects have already been stored
-        if uids_stored is None:
-            uids_stored = set()
-        uids_stored.add(new_cuds.uid)
+            # Store copy in registry and fix parent connections
+            add_to, new_cuds, old_cuds = queue.pop(0)
+            new_child_getter = new_cuds
+            new_cuds = new_cuds._clone()
+            new_cuds.session = add_to.session
+            add_to._fix_neighbors(new_cuds, old_cuds, add_to.session)
+            add_to.session.store(new_cuds)
 
-        # Recursively add the children
-        for outgoing_rel in new_cuds.keys():
+            for outgoing_rel in new_cuds.keys():
 
-            # do not recursively add parents
-            if not issubclass(outgoing_rel, ActiveRelationship):
-                continue
+                # do not recursively add parents
+                if not issubclass(outgoing_rel, ActiveRelationship):
+                    continue
 
-            # add children not already added
-            for child_uid in new_cuds[outgoing_rel].keys():
-                if child_uid not in uids_stored:
-                    new_child = new_child_getter.get(
-                        child_uid, rel=outgoing_rel)[0]
-                    old_child = old_cuds.get(child_uid, rel=outgoing_rel)[0] \
-                        if old_cuds else None
-                    uids_stored |= new_cuds._recursive_store(new_child,
-                                                             old_child,
-                                                             uids_stored)
-        return uids_stored
+                # add children not already added
+                for child_uid in new_cuds[outgoing_rel].keys():
+                    if child_uid not in uids_stored:
+                        new_child = new_child_getter.get(
+                            child_uid, rel=outgoing_rel)[0]
+                        old_child = old_cuds.get(child_uid, rel=outgoing_rel)[0] \
+                            if old_cuds else None
+                        queue.append((new_cuds, new_child, old_child))
+                        uids_stored.add(new_child.uid)
+        return new_cuds
 
     @staticmethod
     def _fix_neighbors(new_cuds, old_cuds, session):

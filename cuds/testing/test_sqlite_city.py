@@ -102,6 +102,72 @@ class TestSqliteCity(unittest.TestCase):
                 (str(c.uid), "Freiburg")
             })
 
+    def test_init(self):
+        c = cuds.classes.City("Freiburg")
+        p1 = cuds.classes.Citizen("Peter")
+        p2 = cuds.classes.Citizen("Anna")
+        p3 = cuds.classes.Citizen("Julia")
+        c.add(p1, p2)
+        p1.add(p3)
+        p2.add(p3)
+
+        with SqliteWrapperSession("test.db") as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            wrapper.add(c)
+            session.commit()
+
+        with SqliteWrapperSession("test.db") as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            self.assertEqual(set(session._registry.keys()),
+                             {c.uid, wrapper.uid})
+            self.assertEqual(wrapper.get(c.uid)[0].name, "Freiburg")
+            self.assertEqual(
+                session._registry.get(c.uid)[cuds.classes.HasPart],
+                {p1.uid: p1.cuba_key, p2.uid: p2.cuba_key})
+            self.assertEqual(
+                session._registry.get(c.uid)[cuds.classes.IsPartOf],
+                {wrapper.uid: wrapper.cuba_key})
+
+    def test_load_missing(self):
+        c = cuds.classes.City("Freiburg")
+        p1 = cuds.classes.Citizen("Peter")
+        p2 = cuds.classes.Citizen("Anna")
+        p3 = cuds.classes.Citizen("Julia")
+        c.add(p1, p2)
+        p1.add(p3)
+        p2.add(p3)
+
+        with SqliteWrapperSession("test.db") as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            wrapper.add(c)
+            session.commit()
+
+        with SqliteWrapperSession("test.db") as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            self.assertEqual(set(session._registry.keys()),
+                             {c.uid, wrapper.uid})
+            cw = wrapper.get(c.uid)[0]
+            p1w = cw.get(p1.uid)[0]
+            p2w = cw.get(p2.uid)[0]
+            p3w = p1w.get(p3.uid)[0]
+            self.assertEqual(set(session._registry.keys()),
+                    {c.uid, wrapper.uid, p1.uid, p2.uid, p3.uid})
+            self.assertEqual(p1w.name, "Peter")
+            self.assertEqual(p2w.name, "Anna")
+            self.assertEqual(p3w.name, "Julia")
+            self.assertEqual(
+                p3w[cuds.classes.IsPartOf],
+                {p1.uid: p1.cuba_key, p2.uid: p2.cuba_key}
+            )
+            self.assertEqual(
+                p2w[cuds.classes.HasPart],
+                {p3.uid: p3.cuba_key}
+            )
+            self.assertEqual(
+                p2w[cuds.classes.IsPartOf],
+                {c.uid: c.cuba_key}
+            )
+
 
 if __name__ == '__main__':
     unittest.main()

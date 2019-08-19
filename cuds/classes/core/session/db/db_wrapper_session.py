@@ -188,16 +188,13 @@ class DbWrapperSession(WrapperSession):
             if added.uid == self.root:
                 continue
 
-            datatypes = added.get_datatypes()
-            datatypes["uid"] = "INT"
-
             # Create tables
             if added.cuba_key.value not in tables \
                     and added.get_attributes(skip="session"):
                 tables.add(added.cuba_key.value)
                 self._db_create(added.cuba_key.value,
                                 ["uid"] + added.get_attributes(skip="session"),
-                                datatypes)
+                                added.get_datatypes())
 
             # Insert the items
             if added.get_attributes(skip="session"):
@@ -324,7 +321,10 @@ class DbWrapperSession(WrapperSession):
         :return: The loaded Cuds entity.
         :rtype: Cuds
         """
-        cuba = cuba or self._get_cuba(uid)
+        try:
+            cuba = cuba or self._get_cuba(uid)
+        except KeyError:
+            return None
         cuds_class = CUBA_MAPPING[cuba]
         attributes = cuds_class.get_attributes()
         datatypes = cuds_class.get_datatypes()
@@ -355,7 +355,10 @@ class DbWrapperSession(WrapperSession):
                             ["cuba"],
                             EqualsCondition("uid", uid, "UUID"),
                             self.datatypes[self.master_table])
-        cuba = CUBA(next(c)[0])
+        try:
+            cuba = CUBA(next(c)[0])
+        except StopIteration as e:
+            raise KeyError("No entry with uid %s in db." % uid) from e
         return cuba
 
     def _load_relationships(self, cuds, connections_to_root):
