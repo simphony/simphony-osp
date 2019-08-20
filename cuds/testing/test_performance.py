@@ -42,7 +42,8 @@
 #         Tests the instantiation and type of the objects
 #         """
 #         for i in range(self.iterations):
-#             self.c.add(cuds.classes.Citizen('citizen ' + str(i)))
+#             self.c.add(cuds.classes.Neighbourhood(
+#                 'neighbourhood ' + str(i)))
 
 #     def test_add_rel(self):
 #         """
@@ -50,7 +51,7 @@
 #         """
 #         for i in range(self.iterations):
 #             self.c.add(cuds.classes.Citizen('citizen ' + str(i)),
-#                        rel=cuds.classes.Encloses)
+#                        rel=cuds.classes.IsInhabitedBy)
 
 
 # if __name__ == '__main__':
