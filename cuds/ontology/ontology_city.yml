@@ -63,6 +63,26 @@ CUDS_ONTOLOGY:
     definition:
     parent: CUBA.IS_PART_OF
     inverse: CUBA.IS_PARENT_OF
+  
+  HAS_WORKER:
+    definition:
+    parent: CUBA.HAS_PART
+    inverse: CUBA.WORKS_IN
+
+  WORKS_IN:
+    definition:
+    parent: CUBA.IS_PART_OF
+    inverse: CUBA.HAS_WORKER
+
+  HAS_MAJOR:
+    definition:
+    parent: CUBA.HAS_WORKER
+    inverse: CUBA.IS_MAJOR_OF
+
+  IS_MAJOR_OF:
+    definition:
+    parent: CUBA.WORKS_IN
+    inverse: CUBA.HAS_MAJOR
 
  ################
   
@@ -145,6 +165,9 @@ CUDS_ONTOLOGY:
     CUBA.IS_INHABITED_BY:
       CUBA.CITIZEN:
        cardinality: many
+    CUBA.HAS_WORKER:
+      CUBA.PERSON:
+        cardinality: many
 
   CITY:
     definition:
@@ -154,7 +177,10 @@ CUDS_ONTOLOGY:
         cardinality: many
     CUBA.IS_PART_OF:
       CUBA.CITY_WRAPPER:
-        cardinality: 1
+        cardinality: 0-1
+    CUBA.HAS_MAJOR:
+      CUBA.CITIZEN:
+        cardinality: 0-1
 
   NEIGHBOURHOOD:
     definition:
@@ -202,10 +228,16 @@ CUDS_ONTOLOGY:
   PERSON:
     definition:
     parent: CUBA.LIVING_BEING
+    CUBA.WORKS_IN:
+      CUBA.POPULATED_PLACE:
+        cardinality: 0-1
 
   CITIZEN:
     definition:
     parent: CUBA.PERSON
     CUBA.INHABITS:
       CUBA.POPULATED_PLACE:
+        cardinality: 1
+    CUBA.IS_MAJOR_OF:
+      CUBA.CITY:
         cardinality: 1

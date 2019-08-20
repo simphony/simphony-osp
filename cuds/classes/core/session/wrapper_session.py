@@ -122,7 +122,8 @@ class WrapperSession(Session):
                            list(ontology_cardinalities[r, o]),
                            observed_cardinalities[r, o]))
 
-    def _parse_cardinality(self, cardinality):
+    @staticmethod
+    def _parse_cardinality(cardinality):
         """Parse the cardinality string given in the ontology:
         Allowed: many = * = 0+ / + = 1+ / a+ / a-b / a
 
@@ -140,7 +141,7 @@ class WrapperSession(Session):
         elif cardinality == "+":
             min_occurences = 1
         elif cardinality.endswith("+"):
-            min_occurences = int(cardinality.split[:-1].strip())
+            min_occurences = int(cardinality[:-1].strip())
         elif "-" in cardinality:
             min_occurences = int(cardinality.split("-")[0].strip())
             max_occurences = int(cardinality.split("-")[1].strip())
@@ -148,7 +149,8 @@ class WrapperSession(Session):
             min_occurences = max_occurences = int(cardinality.strip())
         return min_occurences, max_occurences
 
-    def _get_ontology_cardinalities(self, cuds):
+    @staticmethod
+    def _get_ontology_cardinalities(cuds):
         """Read the cardinalites for the given cuds as specified in the ontology.
 
         :param cuds: The given Cuds object.
@@ -164,8 +166,8 @@ class WrapperSession(Session):
         for rel, objects in cuds.supported_relationships.items():
             for obj, options in objects.items():
                 cardinality = options["cardinality"] \
-                    if "cardinality" in options else "*"
-                cardinality = self._parse_cardinality(cardinality)
+                    if options and "cardinality" in options else "*"
+                cardinality = WrapperSession._parse_cardinality(cardinality)
                 rel_cls = CUBA_MAPPING[rel]
                 obj_cls = CUBA_MAPPING[obj]
                 ontology_cardinalities[rel_cls, obj_cls] = cardinality

@@ -107,6 +107,80 @@ class TestSessionCity(unittest.TestCase):
         self.assertEqual(session._updated, {w.uid: w})
         self.assertEqual(session._deleted, {cw.uid: cw})
 
+    def test_parse_cardinality(self):
+        self.assertEqual(WrapperSession._parse_cardinality("*"),
+                         (0, float("inf")))
+        self.assertEqual(WrapperSession._parse_cardinality("many"),
+                         (0, float("inf")))
+        self.assertEqual(WrapperSession._parse_cardinality("0+"),
+                         (0, float("inf")))
+        self.assertEqual(WrapperSession._parse_cardinality("+"),
+                         (1, float("inf")))
+        self.assertEqual(WrapperSession._parse_cardinality("1+"),
+                         (1, float("inf")))
+        self.assertEqual(WrapperSession._parse_cardinality("5+"),
+                         (5, float("inf")))
+        self.assertEqual(WrapperSession._parse_cardinality("5"),
+                         (5, 5))
+        self.assertEqual(WrapperSession._parse_cardinality(5),
+                         (5, 5))
+        self.assertEqual(WrapperSession._parse_cardinality("5-5"),
+                         (5, 5))
+        self.assertEqual(WrapperSession._parse_cardinality("5-10"),
+                         (5, 10))
+
+    def test_get_ontology_cardinalities(self):
+        c = cuds.classes.City(name="a city")
+        p = cuds.classes.Citizen(name="a person")
+        n = cuds.classes.Neighbourhood(name="a neighbourhood")
+        c.add(p, rel=cuds.classes.IsInhabitedBy)
+        c.add(n)
+        cardinalities, rels = WrapperSession._get_ontology_cardinalities(c)
+        self.assertEqual(rels,
+                         {cuds.classes.IsInhabitedBy, cuds.classes.HasPart})
+        self.assertEqual(cardinalities, {
+            (cuds.classes.HasPart, cuds.classes.Neighbourhood):
+                (0, float("inf")),
+            (cuds.classes.IsPartOf, cuds.classes.CityWrapper):
+                (0, 1),
+            (cuds.classes.IsInhabitedBy, cuds.classes.Citizen):
+                (0, float("inf")),
+            (cuds.classes.HasMajor, cuds.classes.Citizen):
+                (0, 1),
+            (cuds.classes.HasWorker, cuds.classes.Person):
+                (0, float("inf"))})
+
+    def test_check_cardinalities(self):
+        c1 = cuds.classes.City(name="a city")
+        c2 = cuds.classes.City(name="a city")
+        p = cuds.classes.Citizen(name="a person")
+        c1.add(p, rel=cuds.classes.IsInhabitedBy)
+        c2.add(p, rel=cuds.classes.IsInhabitedBy)
+
+        with TestWrapperSession(engine=None) as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            wrapper.add(c1, c2)
+            self.assertRaises(ValueError, session._check_cardinalities)
+            c1w = wrapper.get(c1.uid)[0]
+            c1w.remove(p.uid)
+            session._check_cardinalities()
+
+            wrapper2 = cuds.classes.CityWrapper(session=session)
+            wrapper2.add(c1w)
+            self.assertRaises(ValueError, session._check_cardinalities)
+
+        p.remove(rel=cuds.classes.Inhabits)
+        p.add(c1, rel=cuds.classes.IsMajorOf)
+        p.add(c2, rel=cuds.classes.WorksIn)
+        p.add(c1, rel=cuds.classes.Inhabits)
+        with TestWrapperSession(engine=None) as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            wrapper.add(c1, c2)
+            self.assertRaises(ValueError, session._check_cardinalities)
+            c1w = wrapper.get(c1.uid)[0]
+            c1w.remove(p.uid, rel=cuds.classes.HasMajor)
+            session._check_cardinalities()
+
 
 class TestSession(Session):
     def __init__(self, notify_update=None, notify_delete=None):

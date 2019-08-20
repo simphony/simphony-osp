@@ -584,14 +584,16 @@ class Cuds(dict):
             # Uids are given.
             # Check which occur as object of current relation.
             found_uid_indexes = set()
-            for i, uid in not_found_uids.items():
+            # for i, uid in not_found_uids.items():
+            for i, uid in enumerate(uids):
                 if uid in self.__getitem__(relationship):
                     found_uid_indexes.add(i)
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
                     relationship_mapping[uid].add(relationship)
             for i in found_uid_indexes:
-                del not_found_uids[i]
+                if i in not_found_uids:
+                    del not_found_uids[i]
 
         collected_uids = [(uid if i not in not_found_uids else None)
                           for i, uid in enumerate(uids)]
