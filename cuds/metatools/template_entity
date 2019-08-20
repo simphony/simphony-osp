@@ -9,7 +9,7 @@ class $class($parent):
     """
 
     cuba_key = CUBA.$cuba_key
-    supported_relationships=dict($parent.supported_relationships)
+    supported_relationships = dict($parent.supported_relationships)
     for key, value in $relationships.items():
         if key not in supported_relationships:
             supported_relationships[key] = dict()

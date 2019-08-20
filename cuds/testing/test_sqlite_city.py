@@ -107,7 +107,7 @@ class TestSqliteCity(unittest.TestCase):
         p1 = cuds.classes.Citizen("Peter")
         p2 = cuds.classes.Citizen("Anna")
         p3 = cuds.classes.Citizen("Julia")
-        c.add(p1, p2, rel=cuds.classes.IsInhabitedBy)
+        c.add(p1, p2, p3, rel=cuds.classes.IsInhabitedBy)
         p1.add(p3, rel=cuds.classes.IsParentOf)
         p2.add(p3, rel=cuds.classes.IsParentOf)
 
@@ -123,7 +123,8 @@ class TestSqliteCity(unittest.TestCase):
             self.assertEqual(wrapper.get(c.uid)[0].name, "Freiburg")
             self.assertEqual(
                 session._registry.get(c.uid)[cuds.classes.IsInhabitedBy],
-                {p1.uid: p1.cuba_key, p2.uid: p2.cuba_key})
+                {p1.uid: p1.cuba_key, p2.uid: p2.cuba_key,
+                 p3.uid: p3.cuba_key})
             self.assertEqual(
                 session._registry.get(c.uid)[cuds.classes.IsPartOf],
                 {wrapper.uid: wrapper.cuba_key})
@@ -133,7 +134,7 @@ class TestSqliteCity(unittest.TestCase):
         p1 = cuds.classes.Citizen("Peter")
         p2 = cuds.classes.Citizen("Anna")
         p3 = cuds.classes.Citizen("Julia")
-        c.add(p1, p2, rel=cuds.classes.IsInhabitedBy)
+        c.add(p1, p2, p3, rel=cuds.classes.IsInhabitedBy)
         p1.add(p3, rel=cuds.classes.IsParentOf)
         p2.add(p3, rel=cuds.classes.IsParentOf)
 

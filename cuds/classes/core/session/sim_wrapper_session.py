@@ -15,7 +15,7 @@ class SimWrapperSession(WrapperSession):
         self._ran = False
 
     def run(self):
-        self._check_cuds()
+        self._check_cardinalities()
         self._apply_added()
         self._apply_updated()
         self._apply_deleted()

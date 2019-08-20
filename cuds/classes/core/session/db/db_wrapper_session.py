@@ -40,7 +40,7 @@ class DbWrapperSession(WrapperSession):
 
     def commit(self):
         """Commit the changes in the buffers to the database."""
-        self._check_cuds()
+        self._check_cardinalities()
         self._apply_added()
         self._apply_updated()
         self._apply_deleted()
