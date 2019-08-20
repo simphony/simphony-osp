@@ -150,8 +150,9 @@ class TestSqliteCity(unittest.TestCase):
             p1w = cw.get(p1.uid)[0]
             p2w = cw.get(p2.uid)[0]
             p3w = p1w.get(p3.uid)[0]
-            self.assertEqual(set(session._registry.keys()),
-                    {c.uid, wrapper.uid, p1.uid, p2.uid, p3.uid})
+            self.assertEqual(
+                set(session._registry.keys()),
+                {c.uid, wrapper.uid, p1.uid, p2.uid, p3.uid})
             self.assertEqual(p1w.name, "Peter")
             self.assertEqual(p2w.name, "Anna")
             self.assertEqual(p3w.name, "Julia")

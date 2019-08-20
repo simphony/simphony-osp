@@ -305,7 +305,8 @@ class Cuds(dict):
                     if child_uid not in uids_stored:
                         new_child = new_child_getter.get(
                             child_uid, rel=outgoing_rel)[0]
-                        old_child = old_cuds.get(child_uid, rel=outgoing_rel)[0] \
+                        old_child = old_cuds.get(child_uid,
+                                                 rel=outgoing_rel)[0] \
                             if old_cuds else None
                         queue.append((new_cuds, new_child, old_child))
                         uids_stored.add(new_child.uid)

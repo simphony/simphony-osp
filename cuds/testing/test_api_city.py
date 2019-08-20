@@ -110,8 +110,10 @@ class TestAPICity(unittest.TestCase):
         # first check active relationships
         self.assertEqual(set(c[cuds.classes.IsInhabitedBy].keys()),
                          set([p1.uid, p2.uid, p3.uid]))
-        self.assertEqual(set([p2.uid]), set(p1[cuds.classes.IsParentOf].keys()))
-        self.assertEqual(set([p2.uid]), set(p3[cuds.classes.IsParentOf].keys()))
+        self.assertEqual(set([p2.uid]),
+                         set(p1[cuds.classes.IsParentOf].keys()))
+        self.assertEqual(set([p2.uid]),
+                         set(p3[cuds.classes.IsParentOf].keys()))
         self.assertEqual(set([p4.uid]), set(
             p2[cuds.classes.IsParentOf].keys()))
 
@@ -128,8 +130,10 @@ class TestAPICity(unittest.TestCase):
         # active relations
         self.assertEqual(set(cw[cuds.classes.IsInhabitedBy].keys()),
                          set([p1w.uid, p2w.uid]))
-        self.assertEqual(set([p2w.uid]), set(p1w[cuds.classes.IsParentOf].keys()))
-        self.assertEqual(set([p4w.uid]), set(p2w[cuds.classes.IsParentOf].keys()))
+        self.assertEqual(set([p2w.uid]),
+                         set(p1w[cuds.classes.IsParentOf].keys()))
+        self.assertEqual(set([p4w.uid]),
+                         set(p2w[cuds.classes.IsParentOf].keys()))
 
         # passive relations
         self.assertEqual(set([cw.uid]),
@@ -261,7 +265,7 @@ class TestAPICity(unittest.TestCase):
 
         # get(rel, cuba_key)
         get_inhabited_citizen = c.get(rel=cuds.classes.IsInhabitedBy,
-                                     cuba_key=cuds.classes.CUBA.CITIZEN)
+                                      cuba_key=cuds.classes.CUBA.CITIZEN)
         self.assertEqual(set(get_inhabited_citizen), {p, q})
 
     def test_get_throws_exception(self):
