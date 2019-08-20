@@ -23,7 +23,7 @@ class TestSessionCity(unittest.TestCase):
         """
         updated = set()
         session = TestSession(notify_update=lambda x: updated.add(x))
-        w = cuds.classes.Wrapper(session=session)
+        w = cuds.classes.CityWrapper(session=session)
         c = cuds.classes.City("city 1")
         w.add(c)
         self.assertEqual(updated, set([w]))
@@ -44,7 +44,7 @@ class TestSessionCity(unittest.TestCase):
         """
         deleted = set()
         session = TestSession(notify_delete=lambda x: deleted.add(x))
-        w = cuds.classes.Wrapper(session=session)
+        w = cuds.classes.CityWrapper(session=session)
         cities = list()
         for i in range(3):
             c = cuds.classes.City("city %s" % i)
@@ -82,7 +82,7 @@ class TestSessionCity(unittest.TestCase):
         self.assertEqual(session._updated, dict())
         self.assertEqual(session._deleted, dict())
 
-        w = cuds.classes.Wrapper(session=session)
+        w = cuds.classes.CityWrapper(session=session)
         c = cuds.classes.City("city 1")
         n = cuds.classes.Neighbourhood("neighborhood")
         w.add(c)
@@ -129,3 +129,12 @@ class TestSession(Session):
 class TestWrapperSession(WrapperSession):
     def __str__(self):
         return ""
+
+    def _apply_added(self):
+        pass
+
+    def _apply_deleted(self):
+        pass
+
+    def _apply_updated(self):
+        pass

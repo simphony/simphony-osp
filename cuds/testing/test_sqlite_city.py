@@ -26,7 +26,7 @@ class TestSqliteCity(unittest.TestCase):
         c = cuds.classes.City("Freiburg")
         p1 = cuds.classes.Citizen("Peter")
         p2 = cuds.classes.Citizen("Georg")
-        c.add(p1, p2)
+        c.add(p1, p2, rel=cuds.classes.IsInhabitedBy)
 
         with SqliteWrapperSession("test.db") as session:
             wrapper = cuds.classes.CityWrapper(session)
@@ -38,7 +38,7 @@ class TestSqliteCity(unittest.TestCase):
     def test_update(self):
         c = cuds.classes.City("Paris")
         p1 = cuds.classes.Citizen("Peter")
-        c.add(p1)
+        c.add(p1, rel=cuds.classes.IsInhabitedBy)
 
         with SqliteWrapperSession("test.db") as session:
             wrapper = cuds.classes.CityWrapper(session)
@@ -47,7 +47,7 @@ class TestSqliteCity(unittest.TestCase):
 
             cw, = wrapper.get(c.uid)
             p2 = cuds.classes.Citizen("Georg")
-            cw.add(p2)
+            cw.add(p2, rel=cuds.classes.IsInhabitedBy)
             cw.name = "Freiburg"
             session.commit()
 
@@ -58,7 +58,7 @@ class TestSqliteCity(unittest.TestCase):
         p1 = cuds.classes.Citizen("Peter")
         p2 = cuds.classes.Citizen("Georg")
         p3 = cuds.classes.Citizen("Hans")
-        c.add(p1, p2, p3)
+        c.add(p1, p2, p3, rel=cuds.classes.IsInhabitedBy)
 
         with SqliteWrapperSession("test.db") as session:
             wrapper = cuds.classes.CityWrapper(session)
@@ -88,10 +88,10 @@ class TestSqliteCity(unittest.TestCase):
                            % SqliteWrapperSession.relationships_table)
             result = set(cursor.fetchall())
             self.assertEqual(result, {
-                (str(c.uid), str(p1.uid), "HAS_PART", "CITIZEN"),
-                (str(c.uid), str(p2.uid), "HAS_PART", "CITIZEN"),
-                (str(p1.uid), str(c.uid), "IS_PART_OF", "CITY"),
-                (str(p2.uid), str(c.uid), "IS_PART_OF", "CITY"),
+                (str(c.uid), str(p1.uid), "IS_INHABITED_BY", "CITIZEN"),
+                (str(c.uid), str(p2.uid), "IS_INHABITED_BY", "CITIZEN"),
+                (str(p1.uid), str(c.uid), "INHABITS", "CITY"),
+                (str(p2.uid), str(c.uid), "INHABITS", "CITY"),
                 (str(c.uid), str(uuid.UUID(int=0)),
                     "IS_PART_OF", "CITY_WRAPPER")
             })
@@ -107,9 +107,9 @@ class TestSqliteCity(unittest.TestCase):
         p1 = cuds.classes.Citizen("Peter")
         p2 = cuds.classes.Citizen("Anna")
         p3 = cuds.classes.Citizen("Julia")
-        c.add(p1, p2)
-        p1.add(p3)
-        p2.add(p3)
+        c.add(p1, p2, rel=cuds.classes.IsInhabitedBy)
+        p1.add(p3, rel=cuds.classes.IsParentOf)
+        p2.add(p3, rel=cuds.classes.IsParentOf)
 
         with SqliteWrapperSession("test.db") as session:
             wrapper = cuds.classes.CityWrapper(session=session)
@@ -122,7 +122,7 @@ class TestSqliteCity(unittest.TestCase):
                              {c.uid, wrapper.uid})
             self.assertEqual(wrapper.get(c.uid)[0].name, "Freiburg")
             self.assertEqual(
-                session._registry.get(c.uid)[cuds.classes.HasPart],
+                session._registry.get(c.uid)[cuds.classes.IsInhabitedBy],
                 {p1.uid: p1.cuba_key, p2.uid: p2.cuba_key})
             self.assertEqual(
                 session._registry.get(c.uid)[cuds.classes.IsPartOf],
@@ -133,9 +133,9 @@ class TestSqliteCity(unittest.TestCase):
         p1 = cuds.classes.Citizen("Peter")
         p2 = cuds.classes.Citizen("Anna")
         p3 = cuds.classes.Citizen("Julia")
-        c.add(p1, p2)
-        p1.add(p3)
-        p2.add(p3)
+        c.add(p1, p2, rel=cuds.classes.IsInhabitedBy)
+        p1.add(p3, rel=cuds.classes.IsParentOf)
+        p2.add(p3, rel=cuds.classes.IsParentOf)
 
         with SqliteWrapperSession("test.db") as session:
             wrapper = cuds.classes.CityWrapper(session=session)
@@ -156,15 +156,15 @@ class TestSqliteCity(unittest.TestCase):
             self.assertEqual(p2w.name, "Anna")
             self.assertEqual(p3w.name, "Julia")
             self.assertEqual(
-                p3w[cuds.classes.IsPartOf],
+                p3w[cuds.classes.IsChildOf],
                 {p1.uid: p1.cuba_key, p2.uid: p2.cuba_key}
             )
             self.assertEqual(
-                p2w[cuds.classes.HasPart],
+                p2w[cuds.classes.IsParentOf],
                 {p3.uid: p3.cuba_key}
             )
             self.assertEqual(
-                p2w[cuds.classes.IsPartOf],
+                p2w[cuds.classes.Inhabits],
                 {c.uid: c.cuba_key}
             )
 

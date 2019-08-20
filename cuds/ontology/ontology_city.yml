@@ -31,7 +31,7 @@ CUDS_ONTOLOGY:
 
   INHABITS:
     definition:
-    parent: CUBA.ENCLOSES
+    parent: CUBA.IS_ENCLOSED_BY
     inverse: CUBA.IS_INHABITED_BY
 
   PASSIVE_RELATIONSHIP:
@@ -51,8 +51,18 @@ CUDS_ONTOLOGY:
 
   IS_INHABITED_BY:
     definition:
-    parent: CUBA.IS_ENCLOSED_BY
+    parent: CUBA.ENCLOSES
     inverse: CUBA.INHABITS
+  
+  IS_PARENT_OF:
+    definition:
+    parent: CUBA.HAS_PART
+    inverse: CUBA.IS_CHILD_OF
+
+  IS_CHILD_OF:
+    definition:
+    parent: CUBA.IS_PART_OF
+    inverse: CUBA.IS_PARENT_OF
 
  ################
   
@@ -68,6 +78,9 @@ CUDS_ONTOLOGY:
   CITY_WRAPPER:
     definition:
     parent: CUBA.WRAPPER
+    CUBA.HAS_PART:
+      CUBA.CITY:
+        cardinality: many
 
   ################
 
@@ -93,6 +106,12 @@ CUDS_ONTOLOGY:
     parent: CUBA.ENTITY
     CUBA.NAME:
       default: "John Smith"
+    CUBA.IS_PARENT_OF:
+      CUBA.LIVING_BEING:
+        cardinality: many
+    CUBA.IS_CHILD_OF:
+      CUBA.LIVING_BEING:
+        cardinality: 0-2
 
   NUMBER:
     definition:
@@ -116,6 +135,9 @@ CUDS_ONTOLOGY:
     CUBA.NUMBER:
       default: 7
     CUBA.POSTAL_CODE:
+    CUBA.IS_PART_OF:
+      CUBA.BUILDING:
+        cardinality: 1
 
   POPULATED_PLACE:
     definition:
@@ -130,10 +152,16 @@ CUDS_ONTOLOGY:
     CUBA.HAS_PART:
       CUBA.NEIGHBOURHOOD:
         cardinality: many
+    CUBA.IS_PART_OF:
+      CUBA.CITY_WRAPPER:
+        cardinality: 1
 
   NEIGHBOURHOOD:
     definition:
     parent: CUBA.POPULATED_PLACE
+    CUBA.IS_PART_OF:
+      CUBA.CITY:
+        cardinality: 1
     CUBA.HAS_PART:
       CUBA.STREET:
         cardinality: many
@@ -141,6 +169,12 @@ CUDS_ONTOLOGY:
   STREET:
     definition:
     parent: CUBA.POPULATED_PLACE
+    CUBA.HAS_PART:
+      CUBA.BUILDING:
+        cardinality: many
+    CUBA.IS_PART_OF:
+      CUBA.NEIGHBOURHOOD:
+        cardinality: 1
 
   ARCHITECTURAL_STRUCTURE:
     definition:
@@ -161,6 +195,9 @@ CUDS_ONTOLOGY:
   FLOOR:
     definition:
     parent: CUBA.ARCHITECTURAL_COMPONENT
+    CUBA.IS_PART_OF:
+      CUBA.BUILDING:
+        cardinality: many
 
   PERSON:
     definition:

@@ -24,7 +24,8 @@ class TestRegistryCity(unittest.TestCase):
         p = cuds.classes.Citizen()
         n = cuds.classes.Neighbourhood("a neighborhood")
         s = cuds.classes.Street("The street")
-        c.add(p, n)
+        c.add(p, rel=cuds.classes.IsInhabitedBy)
+        c.add(n)
         n.add(s)
         registry = c.session._registry
         self.assertEqual(

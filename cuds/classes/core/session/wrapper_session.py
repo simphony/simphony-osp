@@ -76,3 +76,23 @@ class WrapperSession(Session):
         self._updated = dict()
         self._deleted = dict()
         self._uid_set = set(self._registry.keys())
+
+    def _check_cuds(self):
+        """Check if there are any inconsistencies in the
+        added or modified cuds."""
+        pass
+
+    @abstractmethod
+    def _apply_added(self):
+        """Add the added cuds to the engine"""
+        pass
+
+    @abstractmethod
+    def _apply_updated(self):
+        """Update the updated cuds in the engine"""
+        pass
+
+    @abstractmethod
+    def _apply_deleted(self):
+        """Delete the deleted cuds from the engine"""
+        pass

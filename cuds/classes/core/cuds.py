@@ -31,6 +31,7 @@ class Cuds(dict):
     DEFAULT_REL = HasPart
     ROOT_REL = Relationship
     cuba_key = None
+    supported_relationships = dict()
     session = CoreSession()
 
     def __init__(self):
@@ -479,6 +480,8 @@ class Cuds(dict):
         :param entity: object to be added
         :param rel: relationship with the entity to add
         """
+        self._check_valid_add(entity, rel)
+
         # First element, create set
         if rel not in self.keys():
             self.__setitem__(rel, {entity.uid: entity.cuba_key})
@@ -488,6 +491,29 @@ class Cuds(dict):
         elif error_if_already_there:
             message = '{!r} is already in the container'
             raise ValueError(message.format(entity))
+
+    def _check_valid_add(self, entity, rel):
+        """Check if adding should be allowed.
+
+        :param entity: The entity to add.
+        :type entity: Cuds
+        :param rel: Relationship with the entity to add.
+        :type rel: Relationship
+        :raises ValueError: Add is illegal.
+        # TODO test
+        """
+        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
+        for supported_relationships, supported_entities in \
+                self.supported_relationships.items():
+            if issubclass(rel, CUBA_MAPPING[supported_relationships]):
+                for supported_entity in supported_entities:
+                    if isinstance(entity, CUBA_MAPPING[supported_entity]):
+                        return
+
+        raise ValueError(
+            ("Cannot add %s to %s with relationship %s: "
+                + "Invalid relationship or object. Check the ontology!")
+            % (entity, self, rel))
 
     def _add_inverse(self, entity, rel):
         """

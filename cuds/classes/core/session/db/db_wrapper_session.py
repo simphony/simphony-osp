@@ -40,6 +40,7 @@ class DbWrapperSession(WrapperSession):
 
     def commit(self):
         """Commit the changes in the buffers to the database."""
+        self._check_cuds()
         self._apply_added()
         self._apply_updated()
         self._apply_deleted()
@@ -179,9 +180,10 @@ class DbWrapperSession(WrapperSession):
             connections_to_root))
         self._first_level_connections_to_root = connections_to_root
 
+    # OVERRIDE
     def _apply_added(self):
-        """Perform the SQL-Statements to add the elements
-        in the buffers to the DB."""
+        # Perform the SQL-Statements to add the elements
+        # in the buffers to the DB.
 
         tables = self._get_table_names()
         for added in self._added.values():
@@ -231,9 +233,10 @@ class DbWrapperSession(WrapperSession):
                                      cuba.value],
                                     self.datatypes[self.relationships_table])
 
+    # OVERRIDE
     def _apply_updated(self):
-        """Perform the SQL-Statements to update the elements
-        in the buffers in the DB."""
+        # Perform the SQL-Statements to update the elements
+        # in the buffers in the DB.
         for updated in self._updated.values():
             if updated.uid == self.root:
                 continue
@@ -263,9 +266,10 @@ class DbWrapperSession(WrapperSession):
                                      cuba.value],
                                     self.datatypes[self.relationships_table])
 
+    # OVERRIDE
     def _apply_deleted(self):
-        """Perform the SQL-Statements to delete the elements
-        in the buffers in the DB."""
+        # Perform the SQL-Statements to delete the elements
+        # in the buffers in the DB.
         for deleted in self._deleted.values():
             if deleted.uid == self.root:
                 continue

@@ -60,7 +60,7 @@ class TestAPICity(unittest.TestCase):
         get_inverse = n.get(rel=cuds.classes.IsPartOf)
         self.assertEqual(get_inverse, [c])
 
-        c.add(p, rel=cuds.classes.Encloses)
+        c.add(p, rel=cuds.classes.IsInhabitedBy)
         self.assertEqual(c.get(p.uid)[0].uid, p.uid)
 
     def test_add_throws_exception(self):
@@ -82,10 +82,10 @@ class TestAPICity(unittest.TestCase):
         """
         c = cuds.classes.City("City")
         p1 = cuds.classes.Citizen()
-        c.add(p1)
+        c.add(p1, rel=cuds.classes.IsInhabitedBy)
 
         second_session = CoreSession()
-        w = cuds.classes.Wrapper(session=second_session)
+        w = cuds.classes.CityWrapper(session=second_session)
         w.add(c)
         cw = w.get(c.uid)[0]
         p1w = cw.get(p1.uid)[0]
@@ -97,43 +97,49 @@ class TestAPICity(unittest.TestCase):
         p2 = cuds.classes.Citizen()
         p3 = cuds.classes.Citizen()
         p4 = cuds.classes.Citizen()
-        c.add(p2, p3)
-        p1.add(p2)
-        p3.add(p2)
-        p2.add(p4)
+        c.add(p2, p3, rel=cuds.classes.IsInhabitedBy)
+        p1.add(p2, rel=cuds.classes.IsParentOf)
+        p3.add(p2, rel=cuds.classes.IsParentOf)
+        p2.add(p4, rel=cuds.classes.IsParentOf)
 
-        cw.add(p2)
+        cw.add(p2, rel=cuds.classes.IsInhabitedBy)
         p2w, = cw.get(p2.uid)
         p4w, = p2w.get(p4.uid)
 
         # check if there are unexpected changes in the first session
         # first check active relationships
-        self.assertEqual(set(c[cuds.classes.HasPart].keys()),
+        self.assertEqual(set(c[cuds.classes.IsInhabitedBy].keys()),
                          set([p1.uid, p2.uid, p3.uid]))
-        self.assertEqual(set([p2.uid]), set(p1[cuds.classes.HasPart].keys()))
-        self.assertEqual(set([p2.uid]), set(p3[cuds.classes.HasPart].keys()))
-        self.assertEqual(set([p4.uid]), set(p2[cuds.classes.HasPart].keys()))
+        self.assertEqual(set([p2.uid]), set(p1[cuds.classes.IsParentOf].keys()))
+        self.assertEqual(set([p2.uid]), set(p3[cuds.classes.IsParentOf].keys()))
+        self.assertEqual(set([p4.uid]), set(
+            p2[cuds.classes.IsParentOf].keys()))
 
         # check passive relationships
-        self.assertEqual(set([c.uid]), set(p1[cuds.classes.IsPartOf].keys()))
-        self.assertEqual(set([c.uid, p1.uid, p3.uid]),
-                         set(p2[cuds.classes.IsPartOf].keys()))
-        self.assertEqual(set([c.uid]), set(p3[cuds.classes.IsPartOf].keys()))
-        self.assertEqual(set([p2.uid]), set(p4[cuds.classes.IsPartOf].keys()))
+        self.assertEqual(set([c.uid]), set(p1[cuds.classes.Inhabits].keys()))
+        self.assertEqual(set([p1.uid, p3.uid]),
+                         set(p2[cuds.classes.IsChildOf].keys()))
+        self.assertEqual(set([c.uid]),
+                         set(p2[cuds.classes.Inhabits].keys()))
+        self.assertEqual(set([c.uid]), set(p3[cuds.classes.Inhabits].keys()))
+        self.assertEqual(set([p2.uid]), set(p4[cuds.classes.IsChildOf].keys()))
 
         # check if items correctly added in second session
         # active relations
-        self.assertEqual(set(cw[cuds.classes.HasPart].keys()),
+        self.assertEqual(set(cw[cuds.classes.IsInhabitedBy].keys()),
                          set([p1w.uid, p2w.uid]))
-        self.assertEqual(set([p2w.uid]), set(p1w[cuds.classes.HasPart].keys()))
-        self.assertEqual(set([p4w.uid]), set(p2w[cuds.classes.HasPart].keys()))
+        self.assertEqual(set([p2w.uid]), set(p1w[cuds.classes.IsParentOf].keys()))
+        self.assertEqual(set([p4w.uid]), set(p2w[cuds.classes.IsParentOf].keys()))
 
         # passive relations
-        self.assertEqual(set([cw.uid]), set(p1w[cuds.classes.IsPartOf].keys()))
-        self.assertEqual(set([cw.uid, p1w.uid]),
-                         set(p2w[cuds.classes.IsPartOf].keys()))
+        self.assertEqual(set([cw.uid]),
+                         set(p1w[cuds.classes.Inhabits].keys()))
+        self.assertEqual(set([p1w.uid]),
+                         set(p2w[cuds.classes.IsChildOf].keys()))
+        self.assertEqual(set([cw.uid]),
+                         set(p2w[cuds.classes.Inhabits].keys()))
         self.assertEqual(set([p2w.uid]),
-                         set(p4w[cuds.classes.IsPartOf].keys()))
+                         set(p4w[cuds.classes.IsChildOf].keys()))
 
     def test_fix_neighbors(self):
         w1 = cuds.classes.CityWrapper(session=CoreSession())
@@ -148,22 +154,22 @@ class TestAPICity(unittest.TestCase):
 
         w2.add(c1w1, c3w1, c4w1)
         c1w2, c3w2, c4w2 = w2.get(c1w1.uid, c3w1.uid, c4w1.uid)
-        c1w2.add(p1w1)
-        c4w2.add(p1w1)
+        c1w2.add(p1w1, rel=cuds.classes.IsInhabitedBy)
+        c4w2.add(p1w1, rel=cuds.classes.IsInhabitedBy)
         p1w2, = c1w2.get(p1w1.uid)
-        p1w2.add(p2w1)
+        p1w2.add(p2w1, rel=cuds.classes.IsParentOf)
         p2w2, = p1w2.get(p2w1.uid)
 
         w1.add(c1w1, c2w1, c3w1, c4w1)
-        c1w1.add(p1w1)
-        c2w1.add(p1w1)
-        c3w1.add(p1w1)
+        c1w1.add(p1w1, rel=cuds.classes.IsInhabitedBy)
+        c2w1.add(p1w1, rel=cuds.classes.IsInhabitedBy)
+        c3w1.add(p1w1, rel=cuds.classes.IsInhabitedBy)
 
         self.assertEqual(
-            set(p1w1[cuds.classes.IsPartOf].keys()),
+            set(p1w1[cuds.classes.Inhabits].keys()),
             set([c1w1.uid, c2w1.uid, c3w1.uid]))
         self.assertEqual(
-            set(p2w2[cuds.classes.IsPartOf].keys()),
+            set(p2w2[cuds.classes.IsChildOf].keys()),
             set([p1w2.uid]))
 
         cuds.classes.Cuds._fix_neighbors(new_cuds=p1w1,
@@ -173,31 +179,31 @@ class TestAPICity(unittest.TestCase):
         # check if connections cuds objects that are no
         # longer parents have been removed
         self.assertEqual(
-            set(p1w1[cuds.classes.IsPartOf].keys()),
+            set(p1w1[cuds.classes.Inhabits].keys()),
             set([c1w1.uid, c3w1.uid, c4w1.uid]))
         self.assertNotIn(cuds.classes.IsPartOf, p2w2)
 
         # check if there are no unexpected other changes
         self.assertEqual(
-            set(c1w1[cuds.classes.HasPart].keys()),
+            set(c1w1[cuds.classes.IsInhabitedBy].keys()),
             set([p1w1.uid]))
         self.assertEqual(
-            set(c2w1[cuds.classes.HasPart].keys()),
+            set(c2w1[cuds.classes.IsInhabitedBy].keys()),
             set([p1w1.uid]))
         self.assertEqual(
-            set(c3w1[cuds.classes.HasPart].keys()),
+            set(c3w1[cuds.classes.IsInhabitedBy].keys()),
             set([p1w1.uid]))
-        self.assertNotIn(cuds.classes.HasPart, c4w1)
+        self.assertNotIn(cuds.classes.IsInhabitedBy, c4w1)
 
         # check if the parents in w2 have been updated
         self.assertEqual(
-            set(c1w2[cuds.classes.HasPart].keys()),
+            set(c1w2[cuds.classes.IsInhabitedBy].keys()),
             set([p1w1.uid]))
         self.assertEqual(
-            set(c3w2[cuds.classes.HasPart].keys()),
+            set(c3w2[cuds.classes.IsInhabitedBy].keys()),
             set([p1w1.uid]))
         self.assertEqual(
-            set(c4w2[cuds.classes.HasPart].keys()),
+            set(c4w2[cuds.classes.IsInhabitedBy].keys()),
             set([p1w1.uid]))
 
     def test_get(self):
@@ -215,8 +221,8 @@ class TestAPICity(unittest.TestCase):
         n = cuds.classes.Neighbourhood("a neigbourhood")
         p = cuds.classes.Citizen("John Smith")
         q = cuds.classes.Citizen("Jane Doe")
-        c.add(n, p)
-        c.add(q, rel=cuds.classes.Encloses)
+        c.add(n)
+        c.add(p, q, rel=cuds.classes.IsInhabitedBy)
 
         # get()
         get_default = c.get()
@@ -233,8 +239,8 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(get_new_uid, [None])
 
         # get(rel)
-        get_has_part = c.get(rel=cuds.classes.HasPart)
-        self.assertEqual(set(get_has_part), {n, p})
+        get_has_part = c.get(rel=cuds.classes.IsInhabitedBy)
+        self.assertEqual(set(get_has_part), {p, q})
         get_encloses = c.get(rel=cuds.classes.Encloses)
         self.assertEqual(set(get_encloses), {n, p, q})
         get_inhabits = c.get(rel=cuds.classes.Inhabits)
@@ -247,16 +253,16 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(get_building, [])
 
         # get(*uids, rel)
-        get_has_part_p = c.get(p.uid, rel=cuds.classes.HasPart)
+        get_has_part_p = c.get(p.uid, rel=cuds.classes.IsInhabitedBy)
         self.assertEqual(get_has_part_p, [p])
 
         get_has_part_q = c.get(q.uid, rel=cuds.classes.HasPart)
         self.assertEqual(get_has_part_q, [None])
 
         # get(rel, cuba_key)
-        get_has_part_citizen = c.get(rel=cuds.classes.HasPart,
+        get_inhabited_citizen = c.get(rel=cuds.classes.IsInhabitedBy,
                                      cuba_key=cuds.classes.CUBA.CITIZEN)
-        self.assertEqual(get_has_part_citizen, [p])
+        self.assertEqual(set(get_inhabited_citizen), {p, q})
 
     def test_get_throws_exception(self):
         """
@@ -312,11 +318,11 @@ class TestAPICity(unittest.TestCase):
         n = cuds.classes.Neighbourhood("a neigbourhood")
         p = cuds.classes.Citizen("John Smith")
         q = cuds.classes.Citizen("Jane Doe")
-        c.add(n, p)
-        c.add(q, rel=cuds.classes.Encloses)
+        c.add(n)
+        c.add(q, p, rel=cuds.classes.IsInhabitedBy)
 
         self.assertIn(cuds.classes.HasPart, c)
-        self.assertIn(cuds.classes.Encloses, c)
+        self.assertIn(cuds.classes.IsInhabitedBy, c)
 
         # remove()
         c.remove()
@@ -326,8 +332,8 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(get_inverse, [])
 
         # remove(*uids/DataContainers)
-        c.add(n, p)
-        c.add(q, rel=cuds.classes.Encloses)
+        c.add(n)
+        c.add(p, q, rel=cuds.classes.IsInhabitedBy)
         get_all = c.get()
         self.assertIn(p, get_all)
         c.remove(p.uid)
@@ -346,29 +352,30 @@ class TestAPICity(unittest.TestCase):
 
         # remove(cuba_key)
         c.remove(cuba_key=cuds.classes.CUBA.CITIZEN)
-        self.assertNotIn(cuds.classes.CUBA.CITIZEN, c)
+        self.assertNotIn(q, c.get())
         # inverse
-        get_inverse = n.get(rel=cuds.classes.IsEnclosedBy)
+        get_inverse = q.get(rel=cuds.classes.Inhabits)
         self.assertEqual(get_inverse, [])
 
         # remove(*uids/DataContainers, rel)
-        c.add(n, p)
-        self.assertIn(cuds.classes.HasPart, c)
-        c.remove(n, p, rel=cuds.classes.HasPart)
-        self.assertNotIn(cuds.classes.HasPart, c)
+        c.add(p, q, rel=cuds.classes.IsInhabitedBy)
+        self.assertIn(cuds.classes.IsInhabitedBy, c)
+        c.remove(q, p, rel=cuds.classes.IsInhabitedBy)
+        self.assertNotIn(cuds.classes.IsInhabitedBy, c)
         # inverse
-        get_inverse = n.get(rel=cuds.classes.IsPartOf)
+        get_inverse = p.get(rel=cuds.classes.Inhabits)
         self.assertEqual(get_inverse, [])
 
         # remove(rel, cuba_key)
-        c.add(p, n)
-        c.remove(rel=cuds.classes.HasPart,
+        c.add(p, rel=cuds.classes.IsInhabitedBy)
+        c.add(n)
+        c.remove(rel=cuds.classes.IsInhabitedBy,
                  cuba_key=cuds.classes.CUBA.CITIZEN)
         get_all = c.get()
         self.assertIn(n, get_all)
         self.assertNotIn(p, get_all)
         # inverse
-        get_inverse = p.get(rel=cuds.classes.IsPartOf)
+        get_inverse = p.get(rel=cuds.classes.Inhabits)
         self.assertEqual(get_inverse, [])
 
     def test_remove_throws_exception(self):
@@ -417,8 +424,8 @@ class TestAPICity(unittest.TestCase):
         n = cuds.classes.Neighbourhood("a neigbourhood")
         p = cuds.classes.Citizen("John Smith")
         q = cuds.classes.Citizen("Jane Doe")
-        c.add(n, p)
-        c.add(q, rel=cuds.classes.Encloses)
+        c.add(n)
+        c.add(p, q, rel=cuds.classes.IsInhabitedBy)
 
         elements = set(list(c.iter()))
         self.assertEqual(elements, {n, p, q})

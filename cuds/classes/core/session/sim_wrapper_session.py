@@ -5,13 +5,30 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+from abc import abstractmethod
 from .wrapper_session import WrapperSession
 
 
 class SimWrapperSession(WrapperSession):
-
-    def __str__(self):
-        return ""
+    def __init__(self, engine):
+        super().__init__(engine)
+        self._ran = False
 
     def run(self):
-        self._engine.run()
+        self._check_cuds()
+        self._apply_added()
+        self._apply_updated()
+        self._apply_deleted()
+        self._run()
+        self._update_cuds_after_run()
+        self._reset_buffers()
+
+    @abstractmethod
+    def _run(self):
+        """Call the run command of the engine. """
+        pass
+
+    @abstractmethod
+    def _update_cuds_after_run(self):
+        """Update the cuds after the engine has been executed. """
+        pass

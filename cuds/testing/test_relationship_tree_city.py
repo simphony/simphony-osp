@@ -57,7 +57,7 @@ class TestRelationshipTree(unittest.TestCase):
         tree.remove(cuds.classes.ActiveRelationship)
         tree.remove(cuds.classes.Encloses)
 
-        self.assertEqual(set([cuds.classes.Inhabits,
+        self.assertEqual(set([cuds.classes.IsInhabitedBy,
                               cuds.classes.HasPart,
                               cuds.classes.PassiveRelationship]),
                          set(tree.children.keys()))
@@ -76,13 +76,13 @@ class TestRelationshipTree(unittest.TestCase):
         self.assertEqual(set([cuds.classes.ActiveRelationship,
                               cuds.classes.Encloses,
                               cuds.classes.HasPart,
-                              cuds.classes.Inhabits]),
+                              cuds.classes.IsInhabitedBy]),
                          tree.get_subrelationships(
                              cuds.classes.ActiveRelationship))
         tree.remove(cuds.classes.ActiveRelationship)
         self.assertEqual(set([cuds.classes.Encloses,
                               cuds.classes.HasPart,
-                              cuds.classes.Inhabits]),
+                              cuds.classes.IsInhabitedBy]),
                          tree.get_subrelationships(
                              cuds.classes.ActiveRelationship))
 
