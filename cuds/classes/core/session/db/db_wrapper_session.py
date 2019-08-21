@@ -122,7 +122,7 @@ class DbWrapperSession(WrapperSession):
         :param columns: The names of the columns.
         :type columns: List[str]
         :param values: The data to insert.
-        :type values: List[TODO]
+        :type values: List[Any]
         """
         pass
 
@@ -135,7 +135,7 @@ class DbWrapperSession(WrapperSession):
         :param columns: The names of the columns.
         :type columns: List[str]
         :param values: The new updated values.
-        :type values: List[TODO]
+        :type values: List[Any]
         :param condition: Only update rows that satisfy the condition.
         :type condition: str
         """

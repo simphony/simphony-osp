@@ -7,11 +7,13 @@
 
 import uuid
 import inspect
+from typing import Union, Type, List, Iterator, Dict, Any
 
 from cuds.classes.core.session.core_session import CoreSession
 from cuds.classes.core.relationship_tree import RelationshipTree
 from cuds.utils import check_arguments, filter_cuds_attr
 from cuds.classes.generated.relationship import Relationship
+from cuds.classes.generated.cuba import CUBA
 from cuds.classes.generated.active_relationship import ActiveRelationship
 from cuds.classes.generated.passive_relationship import PassiveRelationship
 from cuds.classes.generated.has_part import HasPart
@@ -31,12 +33,12 @@ class Cuds(dict):
     DEFAULT_REL = HasPart
     ROOT_REL = Relationship
     cuba_key = None
-    supported_relationships = dict()
+    supported_relationships: Dict[CUBA, Dict[CUBA, Dict[str, Any]]] = dict()
     session = CoreSession()
 
-    def __init__(self, uid=None):
+    def __init__(self, uid: uuid.UUID = None):
         """
-        Initialization follows the behaviour of the python dict class.
+        Initialization follows the behavior of the python dict class.
         """
         super().__init__()
 
@@ -48,10 +50,10 @@ class Cuds(dict):
         self.session.store(self)
 
     @property
-    def uid(self):
+    def uid(self) -> uuid.UUID:
         return self.__uid
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Redefines the str() for Cuds.
 
@@ -59,7 +61,7 @@ class Cuds(dict):
         """
         return "%s: %s" % (self.cuba_key, self.uid)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Type[Relationship]):
         if inspect.isclass(key) and issubclass(key, self.ROOT_REL):
             super().__delitem__(key)
             self._relationship_tree.remove(key)
@@ -68,7 +70,7 @@ class Cuds(dict):
             message = 'Key {!r} is not in the supported relationships'
             raise ValueError(message.format(key))
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Type[Relationship], value: dict):
         """
         Set/Update the key value only when the key is a relationship.
 
@@ -76,23 +78,6 @@ class Cuds(dict):
         :param value: new value to assign to the key
         :raises ValueError: unsupported key provided (not a relationship)
         """
-        class NotifyDict(dict):
-            def __init__(self, *args, cuds=None):
-                self.cuds = cuds
-                super().__init__(*args)
-
-            def __setitem__(self, key, value):
-                super().__setitem__(key, value)
-                self.cuds.session._notify_update(self.cuds)
-
-            def __delitem__(self, key):
-                super().__delitem__(key)
-                self.cuds.session._notify_update(self.cuds)
-
-            def update(self, E):
-                super().update(E)
-                self.cuds.session._notify_update(self.cuds)
-
         if inspect.isclass(key) and issubclass(key, self.ROOT_REL) \
                 and isinstance(value, dict):
             super().__setitem__(key, NotifyDict(value, cuds=self))
@@ -102,7 +87,7 @@ class Cuds(dict):
             message = 'Key {!r} is not in the supported relationships'
             raise ValueError(message.format(key))
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """
         Makes Cuds objects hashable.
         Use the hash of the uid of the object
@@ -124,23 +109,41 @@ class Cuds(dict):
         return False
 
     @classmethod
-    def get_attributes(cls, skip=None):
+    def get_attributes(cls, skip: List[str] = None) -> List[str]:
+        """Get all the attributes of the cuds object.
+
+        :param skip: Do only return attributes not specified here,
+            defaults to None
+        :type skip: List[str], optional
+        :return: A list of the attributes
+        :rtype: List[str]
+        """
         skip = skip or []
         return [x for x in inspect.getfullargspec(cls.__init__).args
                 if x not in skip][1:]
 
     @classmethod
-    def get_datatypes(cls):
+    def get_datatypes(cls) -> List[str]:
+        """Get the datatypes of the attributes of the cuds object.
+
+        :return: The datatypes of the attributes
+        :rtype: List[str]
+        """
         return inspect.getfullargspec(cls.__init__).annotations
 
-    def add(self, *args, rel=None):
+    def add(self,
+            *args: "Cuds",
+            rel: Type[Relationship] = None) -> Union["Cuds", List["Cuds"]]:
         """
         Adds (a) cuds object(s) to their respective CUBA key relationship.
         Before adding, check for invalid keys to avoid inconsistencies later.
 
         :param args: object(s) to add
+        :type args: Cuds
         :param rel: class of the relationship between the objects
-        :return: reference to itself
+        :type rel: Type[Relationship]
+        :return: The added object(s)
+        :rtype: Union[Cuds, List[Cuds]]
         :raises ValueError: adding an element already there
         """
         check_arguments(Cuds, *args)
@@ -159,7 +162,10 @@ class Cuds(dict):
                 result[-1] = self._recursive_store(arg)
         return result[0] if len(args) == 1 else result
 
-    def get(self, *uids, rel=ActiveRelationship, cuba_key=None):
+    def get(self,
+            *uids: uuid.UUID,
+            rel: Type[Relationship] = ActiveRelationship,
+            cuba_key: CUBA = None) -> Union["Cuds", List["Cuds"]]:
         """
         Returns the contained elements of a certain type, uid or relationship.
         Expected calls are get(), get(*uids), get(rel), get(cuba_key),
@@ -175,8 +181,8 @@ class Cuds(dict):
         :param rel: Only return cuds which are connected by subclass of
             given relationship.
         :param cuba_key: CUBA key of the subelements
-        :return: list of queried objects, or None, if not found
-        :rtype: List[Cuds]
+        :return: the queried objects, or None, if not found
+        :rtype: Union[Cuds, List[Cuds]]
         """
         collected_uids = self._get(*uids, rel=rel, cuba_key=cuba_key)
         result = list(self._load_entities(collected_uids))
@@ -184,11 +190,14 @@ class Cuds(dict):
             return result[0]
         return result
 
-    def update(self, *args):
+    def update(self, *args: "Cuds") -> List["Cuds"]:
         """
         Updates the object with the other versions.
 
         :param args: updated entity(ies)
+        :type args: Cuds
+        :return: The updated cuds.
+        :rtype: Union[Cuds, List[Cuds]]
         """
         check_arguments(Cuds, *args)
         old_objects = self.get(*[arg.uid for arg in args])
@@ -196,18 +205,25 @@ class Cuds(dict):
             old_objects = [old_objects]
         relationship_sets = deepcopy(list(self.values()))
 
+        result = list()
         for arg, old_cuds in zip(args, old_objects):
             found = False
             # Updates all instances
             for relationship_set in relationship_sets:
                 if arg.uid in relationship_set:
-                    self._recursive_store(arg, old_cuds)
+                    result.append(self._recursive_store(arg, old_cuds))
                     found = True
             if not found:
-                message = '{} does not exist. Add it first'
+                message = 'Cannot update %s because its not added.' % arg
                 raise ValueError(message.format(arg))
+        if len(args) == 1:
+            return result[0]
+        return result
 
-    def remove(self, *args, rel=ActiveRelationship, cuba_key=None):
+    def remove(self,
+               *args: Union["Cuds", uuid.UUID],
+               rel: Type[Relationship] = ActiveRelationship,
+               cuba_key: CUBA = None):
         """
         Removes elements from the Cuds.
         Expected calls are remove(), remove(*uids/Cuds),
@@ -237,7 +253,10 @@ class Cuds(dict):
                 self._remove_direct(relationship, uid)
                 neighbor._remove_inverse(relationship, self.uid)
 
-    def iter(self, *uids, rel=ActiveRelationship, cuba_key=None):
+    def iter(self,
+             *uids: uuid.UUID,
+             rel: Type[Relationship] = ActiveRelationship,
+             cuba_key: CUBA = None) -> Iterator["Cuds"]:
         """
         Iterates over the contained elements of a certain type, uid or
         relationship. Expected calls are iter(), iter(*uids), iter(rel),
@@ -248,10 +267,10 @@ class Cuds(dict):
         a child of this cuds object.
         If no uids are specified, the resulting elements are ordered randomly.
 
-        :param uids: UIDs of the elements
-        :param rel: class of the relationship
-        :param cuba_key: CUBA key of the subelements
-        :return: Iterator over of queried objects, or None, if not found
+        :param uids: UIDs of the elements.
+        :param rel: class of the relationship.
+        :param cuba_key: CUBA key of the subelements.
+        :return: Iterator over of queried objects, or None, if not found.
         :rtype: Iterator[Cuds]
         """
         collected_uids = self._get(*uids, rel=rel, cuba_key=cuba_key)
@@ -259,7 +278,7 @@ class Cuds(dict):
 
     def _str_attributes(self):
         """
-        Serialises the relevant attributes from the instance.
+        Serializes the relevant attributes from the instance.
 
         :return: list with the attributes in a key-value form string
         """
@@ -272,7 +291,7 @@ class Cuds(dict):
     @staticmethod
     def _str_relationship_set(rel_key, rel_set):
         """
-        Serialises a relationship set with the given name in a key-value form.
+        Serializes a relationship set with the given name in a key-value form.
 
         :param rel_key: CUBA key of the relationship
         :param rel_set: set of the objects contained under that relationship
@@ -485,19 +504,19 @@ class Cuds(dict):
         """
 
         result = list()
-        # Iterate over all new parents.
+        # Iterate over all neighbors that are in cuds1 but not cuds2.
         for relationship in cuds1.keys():
             if rel is not None and not issubclass(relationship, rel):
                 continue
 
-            # Get all the parents that were no parent before
-            old_parent_uids = set()
+            # Get all the neighbors that are no neighbors is cuds2
+            old_neighbor_uids = set()
             if relationship in cuds2:
-                old_parent_uids = cuds2[relationship].keys()
-            new_parent_uids = list(
-                cuds1[relationship].keys() - old_parent_uids)
-            result += list(zip(new_parent_uids,
-                               [relationship] * len(new_parent_uids)))
+                old_neighbor_uids = cuds2[relationship].keys()
+            new_neighbor_uids = list(
+                cuds1[relationship].keys() - old_neighbor_uids)
+            result += list(zip(new_neighbor_uids,
+                               [relationship] * len(new_neighbor_uids)))
         return result
 
     def _add_direct(self, entity, rel, error_if_already_there=True):
@@ -573,7 +592,8 @@ class Cuds(dict):
         if uids:
             check_arguments(uuid.UUID, *uids)
 
-        # consider either only given relationship or all relationships.
+        # consider either given relationship and subclasses
+        # or all relationships.
         if rel is None:
             consider_relationships = list(self.keys())
         else:
@@ -594,16 +614,19 @@ class Cuds(dict):
     def _get_by_uids(self, uids, relationships, return_mapping):
         """Check for each given uid if it is connected to self by a relationship.
         If not, replace it with None.
-        Return a mapping from uids to the set of relationships,
+        Optionally return a mapping from uids to the set of relationships,
         which connect self and the cuds object with the uid.
 
         :param uids: The uids to check.
         :type uids: List[UUID]
         :param relationships: Only consider these relationships
         :type relationships: List[Relationship]
+        :param return_mapping: If mapping from uids to relationships should be
+            returned
+        :type return_mapping: bool
         :return: list of found uids, None for not found UUIDs
-            + Mapping from UUIDs to relationships, which connect self to the
-            respctive Cuds object.
+            (+ Mapping from UUIDs to relationships, which connect self to the
+            respctive Cuds object.)
         :rtype: Tuple[List[UUID], Dict[UUID, Set[Relationship]]]
         """
         not_found_uids = dict(enumerate(uids)) if uids else None
@@ -613,6 +636,9 @@ class Cuds(dict):
             # Uids are given.
             # Check which occur as object of current relation.
             found_uid_indexes = set()
+
+            # we need to iterate over all uids for every
+            # relationship if we compute a mapping
             iterator = enumerate(uids) if relationship_mapping \
                 else not_found_uids.items()
             for i, uid in iterator:
@@ -678,11 +704,26 @@ class Cuds(dict):
                 yield next(entities)
 
     def _remove_direct(self, relationship, uid):
+        """Remove the direct relationship between self and
+        the object with the given uid.
+
+        :param relationship: The relationship to remove.
+        :type relationship: Type[Relationship]
+        :param uid: The uid to remove.
+        :type uid: UUID
+        """
         del self[relationship][uid]
         if not self[relationship]:
             del self[relationship]
 
     def _remove_inverse(self, relationship, uid):
+        """Remove the inverse of the given relationship.
+
+        :param relationship: The relationship to remove.
+        :type relationship: Type[Relationship]
+        :param uid: The uid to remove.
+        :type uid: UUID
+        """
         from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         inverse = CUBA_MAPPING[relationship.inverse]
         self._remove_direct(inverse, uid)
@@ -699,3 +740,24 @@ class Cuds(dict):
         clone = deepcopy(self)
         clone.session = session
         return clone
+
+
+class NotifyDict(dict):
+    """A dictionary that notifies the session if
+    any update occurs.
+    """
+    def __init__(self, *args, cuds=None):
+        self.cuds = cuds
+        super().__init__(*args)
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self.cuds.session._notify_update(self.cuds)
+
+    def __delitem__(self, key):
+        super().__delitem__(key)
+        self.cuds.session._notify_update(self.cuds)
+
+    def update(self, E):
+        super().update(E)
+        self.cuds.session._notify_update(self.cuds)
