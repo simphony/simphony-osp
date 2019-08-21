@@ -277,7 +277,7 @@ class ClassGenerator(object):
                     list_init.append(name + annotation)
                 # Inherited properties go to supper
                 if name in inherited_attr:
-                    list_super.append(name)
+                    list_super.append(name + ", ")
                 elif name == "session" and name in own_attr:
                     list_self.append("if session is not None:")
                     list_self.append("    self.session = session")
@@ -290,7 +290,7 @@ class ClassGenerator(object):
         list_init += list_init_default
 
         string_init = ", ".join(list_init)
-        string_super = ", ".join(list_super)
+        string_super = "".join(list_super)
         string_self = "        " + "\n        ".join(list_self)
         string_property = self.get_property_string(list_properties)
 

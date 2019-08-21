@@ -195,7 +195,7 @@ class DbWrapperSession(WrapperSession):
                     and added.get_attributes(skip="session"):
                 tables.add(added.cuba_key.value)
                 self._db_create(added.cuba_key.value,
-                                ["uid"] + added.get_attributes(skip="session"),
+                                added.get_attributes(skip="session"),
                                 added.get_datatypes())
 
             # Insert the items
@@ -203,8 +203,8 @@ class DbWrapperSession(WrapperSession):
                 values = [getattr(added, attr)
                           for attr in added.get_attributes(skip="session")]
                 self._db_insert(added.cuba_key.value,
-                                ["uid"] + added.get_attributes(skip="session"),
-                                [added.uid] + values,
+                                added.get_attributes(skip="session"),
+                                values,
                                 added.get_datatypes())
 
             # Add to master
@@ -338,11 +338,10 @@ class DbWrapperSession(WrapperSession):
                             EqualsCondition("uid", uid, "UUID"),
                             datatypes)
         try:
-            cuds = cuds_class(**dict(zip(attributes, next(c))))
+            cuds = cuds_class(**dict(zip(attributes, next(c)), uid=uid))
         except StopIteration:
             return None
         cuds.session = self
-        cuds.uid = uid
         self.store(cuds)
         self._load_relationships(cuds, connections_to_root)
         return cuds

@@ -92,11 +92,8 @@ class Registry(dict):
 
         # Get all the Cuds objects that are not reachable
         delete = list()
-        print("-" * 20)
         for uid in self.keys():
             if uid not in reachable_uids:
-                print(uid)
-                assert uid == super().__getitem__(uid)
                 delete.append(super().__getitem__(uid))
 
         # remove the non-reachable ones

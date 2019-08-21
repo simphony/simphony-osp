@@ -68,8 +68,8 @@ class DummySimSession(SimWrapperSession):
             if inhabitant:
                 inhabitant.age = p.age
             else:
-                citizen = cuds.classes.Citizen(name=p.name, age=p.age)
-                citizen.uid = self._person_map[i]
+                citizen = cuds.classes.Citizen(
+                    name=p.name, age=p.age, uid=self._person_map[i])
                 city.add(citizen, rel=cuds.classes.IsInhabitedBy)
 
     # OVERRIDE

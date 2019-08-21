@@ -16,8 +16,8 @@ class $class($parent):
             supported_relationships[key] = dict()
         supported_relationships[key].update(value)
 
-    def __init__($arguments_init):
+    def __init__($arguments_init, uid:"UUID"=None):
 $attributes_initialised
-        super().__init__($attributes_sent_super)
+        super().__init__($attributes_sent_super uid=uid)
 
 $properties
