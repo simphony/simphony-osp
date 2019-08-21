@@ -42,10 +42,9 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteWrapperSession("test.db") as session:
             wrapper = cuds.classes.CityWrapper(session)
-            wrapper.add(c)
+            cw = wrapper.add(c)
             session.commit()
 
-            cw, = wrapper.get(c.uid)
             p2 = cuds.classes.Citizen(name="Georg")
             cw.add(p2, rel=cuds.classes.IsInhabitedBy)
             cw.name = "Freiburg"
@@ -62,10 +61,9 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteWrapperSession("test.db") as session:
             wrapper = cuds.classes.CityWrapper(session)
-            wrapper.add(c)
+            cw = wrapper.add(c)
             session.commit()
 
-            cw, = wrapper.get(c.uid)
             cw.remove(p3.uid)
             session.prune()
             session.commit()
@@ -120,7 +118,7 @@ class TestSqliteCity(unittest.TestCase):
             wrapper = cuds.classes.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
                              {c.uid, wrapper.uid})
-            self.assertEqual(wrapper.get(c.uid)[0].name, "Freiburg")
+            self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(
                 session._registry.get(c.uid)[cuds.classes.IsInhabitedBy],
                 {p1.uid: p1.cuba_key, p2.uid: p2.cuba_key,
@@ -147,10 +145,10 @@ class TestSqliteCity(unittest.TestCase):
             wrapper = cuds.classes.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
                              {c.uid, wrapper.uid})
-            cw = wrapper.get(c.uid)[0]
-            p1w = cw.get(p1.uid)[0]
-            p2w = cw.get(p2.uid)[0]
-            p3w = p1w.get(p3.uid)[0]
+            cw = wrapper.get(c.uid)
+            p1w = cw.get(p1.uid)
+            p2w = cw.get(p2.uid)
+            p3w = p1w.get(p3.uid)
             self.assertEqual(
                 set(session._registry.keys()),
                 {c.uid, wrapper.uid, p1.uid, p2.uid, p3.uid})

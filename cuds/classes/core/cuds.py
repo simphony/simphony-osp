@@ -146,16 +146,18 @@ class Cuds(dict):
         check_arguments(Cuds, *args)
         if rel is None:
             rel = self.DEFAULT_REL
+        result = list()
         for arg in args:
             if arg.session != self.session:
                 arg = arg._clone()
             self._add_direct(arg, rel)
             arg._add_inverse(self, rel)
+            result.append(arg)
 
             # Recursively add the children to the registry
             if self.session != arg.session:
-                self._recursive_store(arg)
-        return self
+                result[-1] = self._recursive_store(arg)
+        return result[0] if len(args) == 1 else result
 
     def get(self, *uids, rel=ActiveRelationship, cuba_key=None):
         """
@@ -176,8 +178,11 @@ class Cuds(dict):
         :return: list of queried objects, or None, if not found
         :rtype: List[Cuds]
         """
-        collected_uids, _ = self._get(*uids, rel=rel, cuba_key=cuba_key)
-        return list(self._load_entities(collected_uids))
+        collected_uids = self._get(*uids, rel=rel, cuba_key=cuba_key)
+        result = list(self._load_entities(collected_uids))
+        if len(uids) == 1:
+            return result[0]
+        return result
 
     def update(self, *args):
         """
@@ -187,6 +192,8 @@ class Cuds(dict):
         """
         check_arguments(Cuds, *args)
         old_objects = self.get(*[arg.uid for arg in args])
+        if len(args) == 1:
+            old_objects = [old_objects]
         relationship_sets = deepcopy(list(self.values()))
 
         for arg, old_cuds in zip(args, old_objects):
@@ -215,7 +222,8 @@ class Cuds(dict):
         uids = [arg.uid if isinstance(arg, Cuds) else arg for arg in args]
 
         # Get mapping from neighbors uids to connecting relationships
-        _, relationship_mapping = self._get(*uids, rel=rel, cuba_key=cuba_key)
+        _, relationship_mapping = self._get(*uids, rel=rel, cuba_key=cuba_key,
+                                            return_mapping=True)
         if not relationship_mapping:
             raise RuntimeError("Did not remove any Cuds object, "
                                + "because none matched your filter.")
@@ -246,7 +254,7 @@ class Cuds(dict):
         :return: Iterator over of queried objects, or None, if not found
         :rtype: Iterator[Cuds]
         """
-        collected_uids, _ = self._get(*uids, rel=rel, cuba_key=cuba_key)
+        collected_uids = self._get(*uids, rel=rel, cuba_key=cuba_key)
         yield from self._load_entities(collected_uids)
 
     def _str_attributes(self):
@@ -290,6 +298,7 @@ class Cuds(dict):
         queue = [(self, new_cuds, old_cuds)]
         uids_stored = {new_cuds.uid}
         missing = dict()
+        result = None
         while queue:
 
             # Store copy in registry and fix parent connections
@@ -301,6 +310,7 @@ class Cuds(dict):
             new_cuds.session = add_to.session
             add_to._fix_neighbors(new_cuds, old_cuds, add_to.session, missing)
             add_to.session.store(new_cuds)
+            result = result if result is not None else new_cuds
 
             for outgoing_rel in new_cuds.keys():
 
@@ -312,9 +322,9 @@ class Cuds(dict):
                 for child_uid in new_cuds[outgoing_rel].keys():
                     if child_uid not in uids_stored:
                         new_child = new_child_getter.get(
-                            child_uid, rel=outgoing_rel)[0]
+                            child_uid, rel=outgoing_rel)
                         old_child = old_cuds.get(child_uid,
-                                                 rel=outgoing_rel)[0] \
+                                                 rel=outgoing_rel) \
                             if old_cuds else None
                         queue.append((new_cuds, new_child, old_child))
                         uids_stored.add(new_child.uid)
@@ -323,7 +333,7 @@ class Cuds(dict):
                 del cuds[rel][uid]
                 if not cuds[rel]:
                     del cuds[rel]
-        return new_cuds
+        return result
 
     @staticmethod
     def _fix_neighbors(new_cuds, old_cuds, session, missing):
@@ -542,7 +552,7 @@ class Cuds(dict):
         inverse_rel = CUBA_MAPPING[rel.inverse]
         self._add_direct(entity, inverse_rel, error_if_already_there=False)
 
-    def _get(self, *uids, rel=None, cuba_key=None):
+    def _get(self, *uids, rel=None, cuba_key=None, return_mapping=False):
         """
         Returns the uid of contained elements of a certain type, uid or
         relationship.
@@ -570,14 +580,18 @@ class Cuds(dict):
             consider_relationships = self._relationship_tree \
                 .get_subrelationships(rel)
 
-        if not consider_relationships:
+        if not consider_relationships and not return_mapping:
+            return [] if not uids else [None] * len(uids)
+        elif not consider_relationships:
             return ([], dict()) if not uids else ([None] * len(uids), dict())
 
         if uids:
-            return self._get_by_uids(uids, consider_relationships)
-        return self._get_by_cuba_key(cuba_key, consider_relationships)
+            return self._get_by_uids(uids, consider_relationships,
+                                     return_mapping=return_mapping)
+        return self._get_by_cuba_key(cuba_key, consider_relationships,
+                                     return_mapping=return_mapping)
 
-    def _get_by_uids(self, uids, relationships):
+    def _get_by_uids(self, uids, relationships, return_mapping):
         """Check for each given uid if it is connected to self by a relationship.
         If not, replace it with None.
         Return a mapping from uids to the set of relationships,
@@ -599,8 +613,9 @@ class Cuds(dict):
             # Uids are given.
             # Check which occur as object of current relation.
             found_uid_indexes = set()
-            # for i, uid in not_found_uids.items():
-            for i, uid in enumerate(uids):
+            iterator = enumerate(uids) if relationship_mapping \
+                else not_found_uids.items()
+            for i, uid in iterator:
                 if uid in self.__getitem__(relationship):
                     found_uid_indexes.add(i)
                     if uid not in relationship_mapping:
@@ -612,9 +627,11 @@ class Cuds(dict):
 
         collected_uids = [(uid if i not in not_found_uids else None)
                           for i, uid in enumerate(uids)]
-        return collected_uids, relationship_mapping
+        if return_mapping:
+            return collected_uids, relationship_mapping
+        return collected_uids
 
-    def _get_by_cuba_key(self, cuba_key, relationships):
+    def _get_by_cuba_key(self, cuba_key, relationships, return_mapping):
         """Get the cuds with given cuba_key that are connected to self
         with any of the given relationships.
 
@@ -636,7 +653,9 @@ class Cuds(dict):
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
                     relationship_mapping[uid].add(relationship)
-        return list(relationship_mapping.keys()), relationship_mapping
+        if return_mapping:
+            return list(relationship_mapping.keys()), relationship_mapping
+        return list(relationship_mapping.keys())
 
     def _load_entities(self, uids):
         """Load the entities of the given uids from the session.

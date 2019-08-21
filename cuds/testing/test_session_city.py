@@ -25,10 +25,9 @@ class TestSessionCity(unittest.TestCase):
         session = TestSession(notify_update=lambda x: updated.add(x))
         w = cuds.classes.CityWrapper(session=session)
         c = cuds.classes.City("city 1")
-        w.add(c)
+        cw = w.add(c)
         self.assertEqual(updated, set([w]))
 
-        cw, = w.get(c.uid)
         cw.name = "city 2"
         self.assertEqual(updated, set([c, w]))
 
@@ -48,13 +47,12 @@ class TestSessionCity(unittest.TestCase):
         cities = list()
         for i in range(3):
             c = cuds.classes.City("city %s" % i)
-            w.add(c)
-            cw, = w.get(c.uid)
+            cw = w.add(c)
             cities.append(cw)
             for j in range(2):
                 n = cuds.classes.Neighbourhood("neighborhood %s %s" % (i, j))
                 cw.add(n)
-                nw, = cw.get(n.uid)
+                nw = cw.get(n.uid)
                 for k in range(2):
                     s = cuds.classes.Street("street %s %s %s" % (i, j, k))
                     nw.add(s)
@@ -85,8 +83,7 @@ class TestSessionCity(unittest.TestCase):
         w = cuds.classes.CityWrapper(session=session)
         c = cuds.classes.City("city 1")
         n = cuds.classes.Neighbourhood("neighborhood")
-        w.add(c)
-        cw, = w.get(c.uid)
+        cw = w.add(c)
         cw.add(n)
         cw.remove(n.uid)
         cw.name = "city 2"
@@ -99,7 +96,7 @@ class TestSessionCity(unittest.TestCase):
         w.session._reset_buffers()
         c2 = cuds.classes.City("city3")
         w.add(c2)
-        cw2, = w.get(c2.uid)
+        cw2 = w.get(c2.uid)
         w.remove(cw.uid)
         w.session.prune()
 
@@ -161,7 +158,7 @@ class TestSessionCity(unittest.TestCase):
             wrapper = cuds.classes.CityWrapper(session=session)
             wrapper.add(c1, c2)
             self.assertRaises(ValueError, session._check_cardinalities)
-            c1w = wrapper.get(c1.uid)[0]
+            c1w = wrapper.get(c1.uid)
             c1w.remove(p.uid)
             session._check_cardinalities()
 
@@ -177,7 +174,7 @@ class TestSessionCity(unittest.TestCase):
             wrapper = cuds.classes.CityWrapper(session=session)
             wrapper.add(c1, c2)
             self.assertRaises(ValueError, session._check_cardinalities)
-            c1w = wrapper.get(c1.uid)[0]
+            c1w = wrapper.get(c1.uid)
             c1w.remove(p.uid, rel=cuds.classes.HasMajor)
             session._check_cardinalities()
 

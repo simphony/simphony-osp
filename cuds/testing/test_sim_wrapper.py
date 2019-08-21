@@ -15,8 +15,7 @@ class TestSimWrapper(unittest.TestCase):
             c = cuds.classes.City(name="Freiburg")
             p1 = cuds.classes.Person(name="Hans", age=34)
             p2 = cuds.classes.Person(name="Renate", age=54)
-            wrapper.add(c, p1, p2)
-            cw = wrapper.get(c.uid)[0]
+            cw, _, _ = wrapper.add(c, p1, p2)
 
             session.run()
 
@@ -26,10 +25,10 @@ class TestSimWrapper(unittest.TestCase):
             self.assertEqual(len(
                 cw.get(cuba_key=cuds.classes.Citizen.cuba_key,
                        rel=cuds.classes.IsInhabitedBy)), 1)
-            self.assertEqual(wrapper.get(p2.uid)[0].name, "Renate")
-            self.assertEqual(wrapper.get(p2.uid)[0].age, 55)
-            self.assertEqual(cw.get(p1.uid)[0].name, "Hans")
-            self.assertEqual(cw.get(p1.uid)[0].age, 35)
+            self.assertEqual(wrapper.get(p2.uid).name, "Renate")
+            self.assertEqual(wrapper.get(p2.uid).age, 55)
+            self.assertEqual(cw.get(p1.uid).name, "Hans")
+            self.assertEqual(cw.get(p1.uid).age, 35)
 
             session.run()
             wrapper.add(cuds.classes.Person(name="Peter"))
@@ -55,7 +54,7 @@ class DummySimSession(SimWrapperSession):
         for i, p in self._engine.get_persons():
             uid = self._person_map[i]
             person_uids.add(uid)
-            root_cuds.get(uid)[0].age = p.age
+            root_cuds.get(uid).age = p.age
         for p in root_cuds.get(cuba_key=CUBA.PERSON):
             if p.uid not in person_uids:
                 root_cuds.remove(p)
@@ -64,7 +63,7 @@ class DummySimSession(SimWrapperSession):
         city = root_cuds.get(cuba_key=CUBA.CITY)[0]
         for i, p in self._engine.get_inhabitants():
             uid = self._person_map[i]
-            inhabitant = city.get(uid)[0]
+            inhabitant = city.get(uid)
             if inhabitant:
                 inhabitant.age = p.age
             else:

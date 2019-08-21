@@ -54,14 +54,14 @@ class TestAPICity(unittest.TestCase):
         p = cuds.classes.Citizen()
 
         c.add(n)
-        self.assertEqual(c.get(n.uid)[0].uid, n.uid)
+        self.assertEqual(c.get(n.uid).uid, n.uid)
 
         # Test the inverse relationship
         get_inverse = n.get(rel=cuds.classes.IsPartOf)
         self.assertEqual(get_inverse, [c])
 
         c.add(p, rel=cuds.classes.IsInhabitedBy)
-        self.assertEqual(c.get(p.uid)[0].uid, p.uid)
+        self.assertEqual(c.get(p.uid).uid, p.uid)
 
     def test_add_throws_exception(self):
         """
@@ -86,9 +86,8 @@ class TestAPICity(unittest.TestCase):
 
         second_session = CoreSession()
         w = cuds.classes.CityWrapper(session=second_session)
-        w.add(c)
-        cw = w.get(c.uid)[0]
-        p1w = cw.get(p1.uid)[0]
+        cw = w.add(c)
+        p1w = cw.get(p1.uid)
         self.assertIs(cw.session, second_session)
         self.assertIs(p1w.session, second_session)
         self.assertIsNot(c.session, second_session)
@@ -103,8 +102,8 @@ class TestAPICity(unittest.TestCase):
         p2.add(p4, rel=cuds.classes.IsParentOf)
 
         cw.add(p2, rel=cuds.classes.IsInhabitedBy)
-        p2w, = cw.get(p2.uid)
-        p4w, = p2w.get(p4.uid)
+        p2w = cw.get(p2.uid)
+        p4w = p2w.get(p4.uid)
 
         # check if there are unexpected changes in the first session
         # first check active relationships
@@ -160,9 +159,9 @@ class TestAPICity(unittest.TestCase):
         c1w2, c3w2, c4w2 = w2.get(c1w1.uid, c3w1.uid, c4w1.uid)
         c1w2.add(p1w1, rel=cuds.classes.IsInhabitedBy)
         c4w2.add(p1w1, rel=cuds.classes.IsInhabitedBy)
-        p1w2, = c1w2.get(p1w1.uid)
+        p1w2 = c1w2.get(p1w1.uid)
         p1w2.add(p2w1, rel=cuds.classes.IsParentOf)
-        p2w2, = p1w2.get(p2w1.uid)
+        p2w2 = p1w2.get(p2w1.uid)
 
         w1.add(c1w1, c2w1, c3w1, c4w1)
         c1w1.add(p1w1, rel=cuds.classes.IsInhabitedBy)
@@ -237,13 +236,13 @@ class TestAPICity(unittest.TestCase):
 
         # get(*uids)
         get_p_uid = c.get(p.uid)
-        self.assertEqual(get_p_uid, [p])
+        self.assertEqual(get_p_uid, p)
         get_q_uid = c.get(q.uid)
-        self.assertEqual(get_q_uid, [q])
+        self.assertEqual(get_q_uid, q)
         get_nq_uid = c.get(n.uid, q.uid)
         self.assertEqual(set(get_nq_uid), {n, q})
         get_new_uid = c.get(uuid.uuid4())
-        self.assertEqual(get_new_uid, [None])
+        self.assertEqual(get_new_uid, None)
 
         # get(rel)
         get_has_part = c.get(rel=cuds.classes.IsInhabitedBy)
@@ -261,10 +260,10 @@ class TestAPICity(unittest.TestCase):
 
         # get(*uids, rel)
         get_has_part_p = c.get(p.uid, rel=cuds.classes.IsInhabitedBy)
-        self.assertEqual(get_has_part_p, [p])
+        self.assertEqual(get_has_part_p, p)
 
         get_has_part_q = c.get(q.uid, rel=cuds.classes.HasPart)
-        self.assertEqual(get_has_part_q, [None])
+        self.assertEqual(get_has_part_q, None)
 
         # get(rel, cuba_key)
         get_inhabited_citizen = c.get(rel=cuds.classes.IsInhabitedBy,
@@ -298,14 +297,14 @@ class TestAPICity(unittest.TestCase):
         new_n.add(new_s)
         c.add(n)
 
-        old_neighbourhood = c.get(n.uid)[0]
+        old_neighbourhood = c.get(n.uid)
         old_streets = old_neighbourhood.get(
             cuba_key=cuds.classes.CUBA.STREET)
         self.assertEqual(old_streets, [])
 
         c.update(new_n)
 
-        new_neighbourhood = c.get(n.uid)[0]
+        new_neighbourhood = c.get(n.uid)
         new_streets = new_neighbourhood.get(
             cuba_key=cuds.classes.CUBA.STREET)
         self.assertEqual(new_streets, [new_s])
