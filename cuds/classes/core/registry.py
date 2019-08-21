@@ -97,8 +97,8 @@ class Registry(dict):
                 delete.append(super().__getitem__(uid))
 
         # remove the non-reachable ones
+        print("-" * 20)
         for cuds in delete:
-            print("-" * 20)
             print(cuds.uid)
             super().__delitem__(cuds.uid)
         return delete
