@@ -176,15 +176,18 @@ class TestAPICity(unittest.TestCase):
             set(p2w2[cuds.classes.IsChildOf].keys()),
             set([p1w2.uid]))
 
+        missing = dict()
         cuds.classes.Cuds._fix_neighbors(new_cuds=p1w1,
                                          old_cuds=p1w2,
-                                         session=p1w2.session)
+                                         session=p1w2.session,
+                                         missing=missing)
 
         # check if connections cuds objects that are no
-        # longer parents have been removed
+        # longer parents are in the missing dict
+        self.assertIn(c2w1.uid, missing)
         self.assertEqual(
             set(p1w1[cuds.classes.Inhabits].keys()),
-            set([c1w1.uid, c3w1.uid, c4w1.uid]))
+            set([c1w1.uid, c2w1.uid, c3w1.uid, c4w1.uid]))
         self.assertNotIn(cuds.classes.IsPartOf, p2w2)
 
         # check if there are no unexpected other changes

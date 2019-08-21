@@ -289,14 +289,17 @@ class Cuds(dict):
         # add new_cuds to self and replace old_cuds
         queue = [(self, new_cuds, old_cuds)]
         uids_stored = {new_cuds.uid}
+        missing = dict()
         while queue:
 
             # Store copy in registry and fix parent connections
             add_to, new_cuds, old_cuds = queue.pop(0)
+            if new_cuds.uid in missing:
+                del missing[new_cuds.uid]
             new_child_getter = new_cuds
             new_cuds = new_cuds._clone()
             new_cuds.session = add_to.session
-            add_to._fix_neighbors(new_cuds, old_cuds, add_to.session)
+            add_to._fix_neighbors(new_cuds, old_cuds, add_to.session, missing)
             add_to.session.store(new_cuds)
 
             for outgoing_rel in new_cuds.keys():
@@ -315,10 +318,15 @@ class Cuds(dict):
                             if old_cuds else None
                         queue.append((new_cuds, new_child, old_child))
                         uids_stored.add(new_child.uid)
+        for uid in missing:
+            for cuds, rel in missing[uid]:
+                del cuds[rel][uid]
+                if not cuds[rel]:
+                    del cuds[rel]
         return new_cuds
 
     @staticmethod
-    def _fix_neighbors(new_cuds, old_cuds, session):
+    def _fix_neighbors(new_cuds, old_cuds, session, missing):
         """Fix all the connections of the neighbors of a Cuds objects
         that is going to be replaced.
 
@@ -362,7 +370,8 @@ class Cuds(dict):
         Cuds._fix_new_parents(new_cuds=new_cuds,
                               new_parents=entities,
                               new_parent_diff=new_parent_diff,
-                              session=session)
+                              session=session,
+                              missing=missing)
         Cuds._fix_old_neighbors(new_cuds=new_cuds,
                                 old_cuds=old_cuds,
                                 old_neighbors=entities,
@@ -370,7 +379,8 @@ class Cuds(dict):
                                 session=session)
 
     @staticmethod
-    def _fix_new_parents(new_cuds, new_parents, new_parent_diff, session):
+    def _fix_new_parents(new_cuds, new_parents, new_parent_diff, session,
+                         missing):
         """Fix the relationships beetween the added Cuds objects and
         the parents of the added Cuds object.
         # TODO test
@@ -395,9 +405,9 @@ class Cuds(dict):
             inverse = CUBA_MAPPING[relationship.inverse]
             # Delete connection to parent if parent is not present
             if parent is None:
-                del new_cuds[relationship][parent_uid]
-                if len(new_cuds[relationship]) == 0:
-                    del new_cuds[relationship]
+                if parent_uid not in missing:
+                    missing[parent_uid] = list()
+                missing[parent_uid].append((new_cuds, relationship))
                 continue
 
             # Add the inverse to the parent

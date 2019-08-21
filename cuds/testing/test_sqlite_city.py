@@ -141,19 +141,9 @@ class TestSqliteCity(unittest.TestCase):
         with SqliteWrapperSession("test.db") as session:
             wrapper = cuds.classes.CityWrapper(session=session)
             wrapper.add(c)
-            print(p3[cuds.classes.IsChildOf])
-            print(wrapper.get(c.uid)[0].get(p3.uid)[0][cuds.classes.IsChildOf])
             session.commit()
 
         with SqliteWrapperSession("test.db") as session:
-            cursor = session._engine.cursor()
-            cursor.execute("SELECT * FROM CITIZEN;")
-            for line in cursor:
-                print(line)
-            cursor.execute("SELECT * FROM CUDS_RELATIONSHIPS;")
-            for line in cursor:
-                print(line)
-
             wrapper = cuds.classes.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
                              {c.uid, wrapper.uid})
