@@ -76,8 +76,10 @@ class DummySimSession(SimWrapperSession):
     def _apply_added(self):
         if self._ran and self._added:
             raise RuntimeError("Do not add cuds after running the simulation")
-        for added in sorted(self._added.values(),
-                            key=lambda x: x.name if hasattr(x, "name") else "0"):
+        sorted_added = sorted(
+            self._added.values(),
+            key=lambda x: x.name if hasattr(x, "name") else "0")
+        for added in sorted_added:
             if isinstance(added, cuds.classes.Person) and \
                     self.root in added[cuds.classes.IsPartOf]:
                 self._engine.add_person(DummyPerson(added.name, added.age))
