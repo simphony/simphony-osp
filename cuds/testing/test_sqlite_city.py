@@ -141,6 +141,7 @@ class TestSqliteCity(unittest.TestCase):
         with SqliteWrapperSession("test.db") as session:
             wrapper = cuds.classes.CityWrapper(session=session)
             wrapper.add(c)
+            print(p3[cuds.classes.IsChildOf])
             print(wrapper.get(c.uid)[0].get(p3.uid)[0][cuds.classes.IsChildOf])
             session.commit()
 
