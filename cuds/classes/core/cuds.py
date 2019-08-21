@@ -33,7 +33,7 @@ class Cuds(dict):
     DEFAULT_REL = HasPart
     ROOT_REL = Relationship
     cuba_key = None
-    supported_relationships: Dict[CUBA, Dict[CUBA, Dict[str, Any]]] = dict()
+    supported_relationships = dict()
     session = CoreSession()
 
     def __init__(self, uid: uuid.UUID = None):
