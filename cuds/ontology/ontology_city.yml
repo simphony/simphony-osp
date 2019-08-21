@@ -102,6 +102,20 @@ CUDS_ONTOLOGY:
       CUBA.CITY:
         cardinality: many
 
+  CITY_SIM_WRAPPER:
+    definition:
+    parent: CUBA.CITY_WRAPPER
+    CUBA.NUM_STEPS:
+    CUBA.HAS_PART:
+      CUBA.PERSON:
+        cardinality: many
+      CUBA.CITY:
+        cardinality: 1
+  
+  NUM_STEPS:
+    definition:
+    parent: CUBA.NUMBER
+
   ################
 
   ENTITY:
@@ -126,6 +140,8 @@ CUDS_ONTOLOGY:
     parent: CUBA.ENTITY
     CUBA.NAME:
       default: "John Smith"
+    CUBA.AGE:
+      default: 25
     CUBA.IS_PARENT_OF:
       CUBA.LIVING_BEING:
         cardinality: many
@@ -231,13 +247,20 @@ CUDS_ONTOLOGY:
     CUBA.WORKS_IN:
       CUBA.POPULATED_PLACE:
         cardinality: 0-1
+    CUBA.IS_PART_OF:
+      CUBA.CITY_SIM_WRAPPER:
+        cardinality: 0-1
 
   CITIZEN:
     definition:
     parent: CUBA.PERSON
     CUBA.INHABITS:
       CUBA.POPULATED_PLACE:
-        cardinality: 1
+        cardinality: 0-1
     CUBA.IS_MAJOR_OF:
       CUBA.CITY:
-        cardinality: 1
+        cardinality: 0-1
+
+  AGE:
+    definition:
+    parent: NUMBER

@@ -16,19 +16,21 @@ class SimWrapperSession(WrapperSession):
 
     def run(self):
         self._check_cardinalities()
+        root = self._registry.get(self.root)
         self._apply_added()
         self._apply_updated()
         self._apply_deleted()
-        self._run()
-        self._update_cuds_after_run()
+        self._run(root)
+        self._update_cuds_after_run(root)
         self._reset_buffers()
+        self._ran = True
 
     @abstractmethod
-    def _run(self):
+    def _run(self, root):
         """Call the run command of the engine. """
         pass
 
     @abstractmethod
-    def _update_cuds_after_run(self):
+    def _update_cuds_after_run(self, root_cuds):
         """Update the cuds after the engine has been executed. """
         pass

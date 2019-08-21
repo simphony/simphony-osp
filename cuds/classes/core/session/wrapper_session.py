@@ -140,6 +140,9 @@ class WrapperSession(Session):
             pass
         elif cardinality == "+":
             min_occurences = 1
+        elif cardinality == "?":
+            min_occurences = 0
+            max_occurences = 1
         elif cardinality.endswith("+"):
             min_occurences = int(cardinality[:-1].strip())
         elif "-" in cardinality:
