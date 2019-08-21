@@ -43,6 +43,7 @@ class Cuds(dict):
         # These are the allowed CUBA keys (faster to convert to set for lookup)
         # self.restricted_keys = frozenset(CUBA)
         self.__uid = uid or uuid.uuid4()
+        assert isinstance(self.__uid, uuid.UUID), "Specify a valid UUID."
         self._relationship_tree = RelationshipTree(self.ROOT_REL)
         self.session.store(self)
 
