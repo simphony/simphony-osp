@@ -255,7 +255,7 @@ class ClassGenerator(object):
         list_self = []
         list_properties = []
 
-        for name, properties in all_attr.items():
+        for name, properties in sorted(all_attr.items()):
             # Check that they are not instantiable classes
             if name.upper() in self._not_classes:
                 datatype = self._not_classes[name.upper()]

@@ -153,8 +153,8 @@ class TestAPICity(unittest.TestCase):
         c2w1 = cuds.classes.City("city2")  # parent in w1, not present in w2
         c3w1 = cuds.classes.City("city3")  # parent only in w1, present in w2
         c4w1 = cuds.classes.City("city4")  # parent only in w2
-        p1w1 = cuds.classes.Citizen("citizen")
-        p2w1 = cuds.classes.Citizen("child")
+        p1w1 = cuds.classes.Citizen(name="citizen")
+        p2w1 = cuds.classes.Citizen(name="child")
 
         w2.add(c1w1, c3w1, c4w1)
         c1w2, c3w2, c4w2 = w2.get(c1w1.uid, c3w1.uid, c4w1.uid)
@@ -223,8 +223,8 @@ class TestAPICity(unittest.TestCase):
         """
         c = cuds.classes.City("a city")
         n = cuds.classes.Neighbourhood("a neigbourhood")
-        p = cuds.classes.Citizen("John Smith")
-        q = cuds.classes.Citizen("Jane Doe")
+        p = cuds.classes.Citizen(name="John Smith")
+        q = cuds.classes.Citizen(name="Jane Doe")
         c.add(n)
         c.add(p, q, rel=cuds.classes.IsInhabitedBy)
 
@@ -320,8 +320,8 @@ class TestAPICity(unittest.TestCase):
         """
         c = cuds.classes.City("a city")
         n = cuds.classes.Neighbourhood("a neigbourhood")
-        p = cuds.classes.Citizen("John Smith")
-        q = cuds.classes.Citizen("Jane Doe")
+        p = cuds.classes.Citizen(name="John Smith")
+        q = cuds.classes.Citizen(name="Jane Doe")
         c.add(n)
         c.add(q, p, rel=cuds.classes.IsInhabitedBy)
 
@@ -426,8 +426,8 @@ class TestAPICity(unittest.TestCase):
         """
         c = cuds.classes.City("a city")
         n = cuds.classes.Neighbourhood("a neigbourhood")
-        p = cuds.classes.Citizen("John Smith")
-        q = cuds.classes.Citizen("Jane Doe")
+        p = cuds.classes.Citizen(name="John Smith")
+        q = cuds.classes.Citizen(name="Jane Doe")
         c.add(n)
         c.add(p, q, rel=cuds.classes.IsInhabitedBy)
 

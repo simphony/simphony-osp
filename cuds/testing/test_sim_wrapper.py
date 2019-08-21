@@ -32,7 +32,7 @@ class TestSimWrapper(unittest.TestCase):
             self.assertEqual(cw.get(p1.uid)[0].age, 35)
 
             session.run()
-            wrapper.add(cuds.classes.Person("Peter"))
+            wrapper.add(cuds.classes.Person(name="Peter"))
             self.assertRaises(RuntimeError, session.run)
 
 

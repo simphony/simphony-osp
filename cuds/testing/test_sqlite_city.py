@@ -23,9 +23,9 @@ class TestSqliteCity(unittest.TestCase):
         os.remove("test.db")
 
     def test_insert(self):
-        c = cuds.classes.City("Freiburg")
-        p1 = cuds.classes.Citizen("Peter")
-        p2 = cuds.classes.Citizen("Georg")
+        c = cuds.classes.City(name="Freiburg")
+        p1 = cuds.classes.Citizen(name="Peter")
+        p2 = cuds.classes.Citizen(name="Georg")
         c.add(p1, p2, rel=cuds.classes.IsInhabitedBy)
 
         with SqliteWrapperSession("test.db") as session:
@@ -37,7 +37,7 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_update(self):
         c = cuds.classes.City("Paris")
-        p1 = cuds.classes.Citizen("Peter")
+        p1 = cuds.classes.Citizen(name="Peter")
         c.add(p1, rel=cuds.classes.IsInhabitedBy)
 
         with SqliteWrapperSession("test.db") as session:
@@ -46,7 +46,7 @@ class TestSqliteCity(unittest.TestCase):
             session.commit()
 
             cw, = wrapper.get(c.uid)
-            p2 = cuds.classes.Citizen("Georg")
+            p2 = cuds.classes.Citizen(name="Georg")
             cw.add(p2, rel=cuds.classes.IsInhabitedBy)
             cw.name = "Freiburg"
             session.commit()
@@ -55,9 +55,9 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_delete(self):
         c = cuds.classes.City("Freiburg")
-        p1 = cuds.classes.Citizen("Peter")
-        p2 = cuds.classes.Citizen("Georg")
-        p3 = cuds.classes.Citizen("Hans")
+        p1 = cuds.classes.Citizen(name="Peter")
+        p2 = cuds.classes.Citizen(name="Georg")
+        p3 = cuds.classes.Citizen(name="Hans")
         c.add(p1, p2, p3, rel=cuds.classes.IsInhabitedBy)
 
         with SqliteWrapperSession("test.db") as session:
@@ -104,9 +104,9 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_init(self):
         c = cuds.classes.City("Freiburg")
-        p1 = cuds.classes.Citizen("Peter")
-        p2 = cuds.classes.Citizen("Anna")
-        p3 = cuds.classes.Citizen("Julia")
+        p1 = cuds.classes.Citizen(name="Peter")
+        p2 = cuds.classes.Citizen(name="Anna")
+        p3 = cuds.classes.Citizen(name="Julia")
         c.add(p1, p2, p3, rel=cuds.classes.IsInhabitedBy)
         p1.add(p3, rel=cuds.classes.IsParentOf)
         p2.add(p3, rel=cuds.classes.IsParentOf)
@@ -131,9 +131,9 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_load_missing(self):
         c = cuds.classes.City("Freiburg")
-        p1 = cuds.classes.Citizen("Peter")
-        p2 = cuds.classes.Citizen("Anna")
-        p3 = cuds.classes.Citizen("Julia")
+        p1 = cuds.classes.Citizen(name="Peter")
+        p2 = cuds.classes.Citizen(name="Anna")
+        p3 = cuds.classes.Citizen(name="Julia")
         c.add(p1, p2, p3, rel=cuds.classes.IsInhabitedBy)
         p1.add(p3, rel=cuds.classes.IsParentOf)
         p2.add(p3, rel=cuds.classes.IsParentOf)
