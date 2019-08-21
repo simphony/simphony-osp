@@ -35,7 +35,7 @@
 #         Tests the instantiation and type of the objects
 #         """
 #         for i in range(self.iterations):
-#             cuds.classes.Citizen('citizen ' + str(i))
+#             cuds.classes.Citizen(name='citizen ' + str(i))
 
 #     def test_add_default(self):
 #         """
@@ -50,7 +50,7 @@
 #         Tests the instantiation and type of the objects
 #         """
 #         for i in range(self.iterations):
-#             self.c.add(cuds.classes.Citizen('citizen ' + str(i)),
+#             self.c.add(cuds.classes.Citizen(name='citizen ' + str(i)),
 #                        rel=cuds.classes.IsInhabitedBy)
 
 
