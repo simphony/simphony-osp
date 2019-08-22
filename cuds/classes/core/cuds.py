@@ -5,7 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-from __future__ import annotations
+# from __future__ import annotations
 import uuid
 import inspect
 from typing import Union, Type, List, Iterator, Dict, Any
