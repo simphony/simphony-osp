@@ -5,7 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-from __future__ import annotations
+# from __future__ import annotations
 import uuid
 import inspect
 from typing import Union, Type, List, Iterator, Dict, Any
@@ -43,8 +43,6 @@ class Cuds(dict):
         """
         super().__init__()
 
-        # These are the allowed CUBA keys (faster to convert to set for lookup)
-        # self.restricted_keys = frozenset(CUBA)
         self.__uid = uid or uuid.uuid4()
         assert isinstance(self.__uid, uuid.UUID), "Specify a valid UUID."
         self._relationship_tree = RelationshipTree(self.ROOT_REL)
@@ -133,8 +131,8 @@ class Cuds(dict):
         return inspect.getfullargspec(cls.__init__).annotations
 
     def add(self,
-            *args: Cuds,
-            rel: Type[Relationship] = None) -> Union[Cuds, List[Cuds]]:
+            *args: "Cuds",
+            rel: Type[Relationship] = None) -> Union["Cuds", List["Cuds"]]:
         """
         Adds (a) cuds object(s) to their respective CUBA key relationship.
         Before adding, check for invalid keys to avoid inconsistencies later.

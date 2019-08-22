@@ -63,7 +63,7 @@ def find_cuds(criteria, root, rel, all, visited):
     return None if all else output
 
 
-def find_cuds_by_uid(uid, root,  rel, visited):
+def find_cuds_by_uid(uid, root, rel, visited):
     """
     Recursively finds an element with given uid inside a container
     by considering the given relationship.
