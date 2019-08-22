@@ -192,18 +192,18 @@ class DbWrapperSession(WrapperSession):
 
             # Create tables
             if added.cuba_key.value not in tables \
-                    and added.get_attributes(skip="session"):
+                    and added.get_attributes(skip=["session"]):
                 tables.add(added.cuba_key.value)
                 self._db_create(added.cuba_key.value,
-                                added.get_attributes(skip="session"),
+                                added.get_attributes(skip=["session"]),
                                 added.get_datatypes())
 
             # Insert the items
-            if added.get_attributes(skip="session"):
+            if added.get_attributes(skip=["session"]):
                 values = [getattr(added, attr)
-                          for attr in added.get_attributes(skip="session")]
+                          for attr in added.get_attributes(skip=["session"])]
                 self._db_insert(added.cuba_key.value,
-                                added.get_attributes(skip="session"),
+                                added.get_attributes(skip=["session"]),
                                 values,
                                 added.get_datatypes())
 
@@ -242,12 +242,12 @@ class DbWrapperSession(WrapperSession):
                 continue
 
             # Update the values
-            if updated.get_attributes(skip="session"):
+            if updated.get_attributes(skip=["session"]):
                 values = [getattr(updated, attr)
-                          for attr in updated.get_attributes(skip="session")]
+                          for attr in updated.get_attributes(skip=["session"])]
                 self._db_update(
                     updated.cuba_key.value,
-                    updated.get_attributes(skip="session"),
+                    updated.get_attributes(skip=["session"]),
                     values,
                     EqualsCondition("uid", updated.uid, "UUID"),
                     updated.get_datatypes())
@@ -275,7 +275,7 @@ class DbWrapperSession(WrapperSession):
                 continue
 
             # Update the values
-            if deleted.get_attributes(skip="session"):
+            if deleted.get_attributes(skip=["session"]):
                 self._db_delete(deleted.cuba_key.value,
                                 EqualsCondition("uid", deleted.uid, "UUID"))
 

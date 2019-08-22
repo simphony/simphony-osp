@@ -5,13 +5,14 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+from __future__ import annotations
 import uuid
 import inspect
 from typing import Union, Type, List, Iterator, Dict, Any
 
 from cuds.classes.core.session.core_session import CoreSession
 from cuds.classes.core.relationship_tree import RelationshipTree
-from cuds.utils import check_arguments, filter_cuds_attr
+from cuds.utils import check_arguments
 from cuds.classes.generated.relationship import Relationship
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.generated.active_relationship import ActiveRelationship
@@ -132,8 +133,8 @@ class Cuds(dict):
         return inspect.getfullargspec(cls.__init__).annotations
 
     def add(self,
-            *args: "Cuds",
-            rel: Type[Relationship] = None) -> Union["Cuds", List["Cuds"]]:
+            *args: Cuds,
+            rel: Type[Relationship] = None) -> Union[Cuds, List[Cuds]]:
         """
         Adds (a) cuds object(s) to their respective CUBA key relationship.
         Before adding, check for invalid keys to avoid inconsistencies later.
@@ -283,7 +284,7 @@ class Cuds(dict):
         :return: list with the attributes in a key-value form string
         """
         attributes = []
-        for attribute in sorted(filter_cuds_attr(self)):
+        for attribute in sorted(self.get_attributes(skip=["session"])):
             attributes.append(attribute + ": " + str(getattr(self, attribute)))
 
         return attributes
@@ -359,21 +360,22 @@ class Cuds(dict):
         """Fix all the connections of the neighbors of a Cuds objects
         that is going to be replaced.
 
-        Concerning the relationships of the new cuds object:
-        - The new cuds object might have connnections to not available parents
-            --> Remove the connection
-        - The new cuds object might have connections to not availbe children
-            --> Do nothing as the children will be recursively added
+        Behavior when neighbors change:
 
-        Concerning the relationships of the neighbors:
-        - A parent of the old cuds is not a parent in the new one:
-            --> Add a relationship to the new cuds to the parent
-        - A child of the old cuds is not a parent in the new one:
-            --> Remove the relationship of the child
-        - A cuds object is suddenly a parent after the replacement
-            --> Add the inverse relationship to the new parent
-        - A cuds object is suddenly a child after the replacement
-            --> Do nothing since the children will get recursively updated
+        - new_cuds has parents, that weren't parents of old_cuds.
+            - the parents are already stored in the session of old_cuds.
+            - they are not already stored in the session of old_cuds.
+            --> Add refereces between new_cuds and the parents that are
+                already in the session.
+            --> Delete references between new_cuds and parents that are
+                not available.
+        - new_cuds has children, that weren't children of old_cuds.
+            --> add/update them recursively.
+
+        - A parent of old_cuds is no longer a parent of new_cuds.
+        --> Add a relationship between that parent and the new cuds.
+        - A child of old_cuds is no longer a child of new_cuds.
+        --> Remove the relationship between child and new_cuds.
 
         :param new_cuds: Cuds object that will replace the old one
         :type new_cuds: Cuds

@@ -5,10 +5,11 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 import pkg_resources
+from typing import Set, Type, Callable, List, Union
+from uuid import UUID
 
 
 # General utility methods
-
 def check_arguments(types, *args):
     """
     Checks that the arguments provided are of the certain type(s).
@@ -34,115 +35,63 @@ def format_class_name(name):
     return fixed_name
 
 
-# Cuds utility methods
-
-def filter_cuds_attr(cuds_object):
+def find_cuds(criteria, root, rel, all, visited):
     """
-    Filters the non-relevant attributes from a cuds object.
+    Recursively finds an element inside a container
+    by considering the given relationship.
 
-    :return: set with the filtered, relevant attributes
-    """
-    # Filter the magic functions
-    attributes = [a for a in dir(cuds_object) if not a.startswith("__")]
-    # Filter the added methods
-    attributes = \
-        [a for a in attributes if not callable(getattr(cuds_object, a))]
-    # Filter the explicitly unwanted attributes
-    attributes = [a for a in attributes if a not in {'restricted_keys',
-                                                     'DEFAULT_REL',
-                                                     'supported_relationships',
-                                                     'DEFAULT_INVERSE_REL'}]
-    return set(attributes)
-
-
-def find_cuds(uid, cuds_object):
-    """
-    Recursively finds the element with a given uid inside a container.
-
-    :param uid: unique identifier of the wanted element
-    :param cuds_object: container in which to search
+    :param criteria: function that returns True on the Cuds object
+        that is searched.
+    :param root: Starting point of search
+    :param all: Whether to find all cuds with satisfying the criteria.
+    :param rel: The relationship (incl. subrelationships) to consider
     :return: the element if found
     """
-    if cuds_object.uid == uid:
-        return cuds_object
-    else:
-        for sub in cuds_object.iter():
-            return find_cuds(uid, sub)
+    if criteria(root):
+        return [root] if all else root
+
+    visited = visited or set()
+    visited.add(root.uid)
+    output = []
+    for sub in root.iter(rel=rel):
+        if sub.uid not in visited:
+            result = find_cuds(criteria, sub, rel, visited)
+            if not all and result is not None:
+                return result
+            if result is not None:
+                output += result
+    return None if all else output
 
 
-def delete_cuds(uid, cuds_object):
+def find_cuds_by_uid(uid, root,  rel, visited):
     """
-    Recursively finds all parents of the element with a given uid inside a
-    container and invokes \ref Cuds::remove() on it.
+    Recursively finds an element with given uid inside a container
+    by considering the given relationship.
 
-    :param uid: unique identifier of the element to be deleted
-    :param cuds_object: container in which to search for the element
-    :return: true, in case one or more instances of the element were deleted
-             false, otherwise
+    :param criteria: The uid of the cuds object that is searched.
+    :param root: Starting point of search
+    :param rel: The relationship (incl. subrelationships) to consider
+    :return: the element if found
+    """
+    return find_cuds(
+        criteria=lambda cuds: cuds.uid == uid,
+        root=root,
+        rel=rel,
+        visited=visited
+    )
+
+
+def delete_cuds(cuds_object):
+    """
+    Deletes a cuds object from the datastructure.
+    Removes the relationships to all neighbors.
+
+    :param cuds_object: The cuds object to remove.
     """
     # Method does not allow deletion of the root element of a container
-    if cuds_object.uid == uid:
-        return False
-
-    deleted_flag = False
-    # Search for the element in the first layer of the container
-    for sub_cuds in cuds_object.iter():
-        if sub_cuds.uid == uid:
-            deleted_flag = True
-    if deleted_flag:
-        cuds_object.remove(uid)
-
-    # Recursively visit elements of the container
-    for sub_cuds in cuds_object.iter():
-        deleted_flag |= delete_cuds(uid, sub_cuds)
-    return deleted_flag
-
-
-def find_cuds_by(criteria, value, cuds_object):
-    """
-    Recursively finds the element with a given value inside a container.
-
-    :param criteria: string with the category of the discriminant
-    :param value: discriminant value
-    :param cuds_object: container in which to search
-    :return: the element if found
-    """
-    try:
-        if getattr(cuds_object, criteria) == value:
-            return cuds_object
-    # If container does not have 'criteria'
-    except (AttributeError, KeyError):
-        pass
-    # A contained element could have it
-    for sub in cuds_object.iter():
-        result = find_cuds_by(criteria, value, sub)
-        if result is not None:
-            return result
-
-
-def find_all_cuds_by(criteria, value, cuds_object):
-    """
-    Recursively finds all the elements with a given value inside a container.
-
-    :param criteria: string with the category of the discriminant
-    :param value: discriminant value
-    :param cuds_object: container in which to search
-    :return: the element(s) if found
-    """
-
-    output = []
-    try:
-        if getattr(cuds_object, criteria) == value:
-            output.append(cuds_object)
-    # If container does not have 'criteria'
-    except (AttributeError, KeyError):
-        pass
-    # A contained element could have it
-    for sub in cuds_object.iter():
-        result = find_all_cuds_by(criteria, value, sub)
-        if result is not None:
-            output.extend(result)
-    return output
+    from cuds.classes import Relationship
+    for elem in cuds_object.iter(rel=Relationship):
+        cuds_object.remove(elem.uid)
 
 
 def get_definition(cuds_object):
@@ -192,16 +141,16 @@ def pretty_print(cuds_object):
     pp += "\n  uuid: " + str(cuds_object.uid)
     pp += "\n  type: " + str(cuds_object.cuba_key)
     pp += "\n  ancestors: " + ", ".join(get_ancestors(cuds_object))
+    values_str = pp_values(cuds_object)
+    if values_str:
+        pp += "\n  values: " + pp_values(cuds_object)
     pp += "\n  description: " + get_definition(cuds_object)
-    if hasattr(cuds_object, 'value'):
-        pp += "value--> " + str(cuds_object.value)
-        if hasattr(cuds_object, 'unit'):
-            pp += "\t unit--> " + str(cuds_object.unit)
     pp += pp_subelements(cuds_object)
+
     print(pp)
 
 
-def pp_entity_name(cuds_object):
+def pp_entity_name(cuds_object, cuba=False):
     """
     Returns the name of the given element following the
     pretty print format.
@@ -209,11 +158,16 @@ def pp_entity_name(cuds_object):
     :param cuds_object: element to be printed
     :return: string with the pretty printed text
     """
-    name = str(cuds_object.name)
-    return "- Entity named <" + name + ">:"
+    entity = "Entity" if not cuba else "entity"
+    cuba = (" %s " % cuds_object.cuba_key) if cuba else ""
+
+    if hasattr(cuds_object, "name"):
+        name = str(cuds_object.name)
+        return "- %s%s named <%s>:" % (cuba, entity, name)
+    return "- %s%s:" % (cuba, entity)
 
 
-def pp_subelements(cuds_object, level_indentation="\n  "):
+def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
     """
     Recursively formats the subelements from a cuds_object grouped by cuba_key.
 
@@ -221,25 +175,44 @@ def pp_subelements(cuds_object, level_indentation="\n  "):
     :param level_indentation: common characters to left-pad the text
     :return: string with the pretty printed text
     """
+    from cuds.classes import ActiveRelationship
     pp_sub = ""
-    if cuds_object:
-        pp_sub += level_indentation + "contains (has a relationship):"
-        # FIXME: Subelements are no longer grouped by cuba_key,
-        #  for wrapper interoperability
-        current_cuba = ""
-        for element in cuds_object.iter():
-            if current_cuba != element.cuba_key:
-                current_cuba = element.cuba_key
-                pp_sub += level_indentation + " |_" + str(current_cuba) + ":"
-
-            indentation = level_indentation + " | "
-            pp_sub += indentation + pp_entity_name(element)
-            indentation += "  "
+    filtered_relationships = filter(
+        lambda x: issubclass(x, ActiveRelationship),
+        cuds_object.keys())
+    sorted_relationships = sorted(filtered_relationships, key=str)
+    visited = visited or set()
+    visited.add(cuds_object.uid)
+    for i, relationship in enumerate(sorted_relationships):
+        pp_sub += level_indentation \
+            + " |_Relationship %s:" % relationship.cuba_key
+        sorted_elements = sorted(cuds_object.iter(rel=relationship),
+                                 key=lambda x: str(x.cuba_key))
+        for element in sorted_elements:
+            if i == len(sorted_relationships) - 1:
+                indentation = level_indentation + "   "
+            else:
+                indentation = level_indentation + " | "
+            pp_sub += indentation + pp_entity_name(element, cuba=True)
+            indentation += "   "
             pp_sub += indentation + "uuid: " + str(element.uid)
-            if hasattr(element, 'value'):
-                pp_sub += indentation + "value--> " + str(element.value)
-                if hasattr(element, 'unit'):
-                    pp_sub += "\t unit--> " + str(element.unit)
 
-            pp_sub += pp_subelements(element, indentation)
+            if element.uid in visited:
+                pp_sub += indentation + "(already printed)"
+                continue
+
+            values_str = pp_values(element, indentation)
+            if values_str:
+                pp_sub += indentation + pp_values(element, indentation)
+
+            pp_sub += pp_subelements(element, indentation, visited)
     return pp_sub
+
+
+def pp_values(cuds_object, indentation="\n          "):
+    result = []
+    for attr in cuds_object.get_attributes(skip=["session", "uid", "name"]):
+        value = getattr(cuds_object, attr)
+        result.append("%s: %s" % (attr, value))
+    if result:
+        return indentation.join(result)
