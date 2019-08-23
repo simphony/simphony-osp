@@ -430,17 +430,14 @@ class Cuds(dict):
         Cuds._fix_new_parents(new_cuds=new_cuds,
                               new_parents=entities,
                               new_parent_diff=new_parent_diff,
-                              session=session,
                               missing=missing)
         Cuds._fix_old_neighbors(new_cuds=new_cuds,
                                 old_cuds=old_cuds,
                                 old_neighbors=entities,
-                                old_neighbor_diff=old_neighbor_diff,
-                                session=session)
+                                old_neighbor_diff=old_neighbor_diff)
 
     @staticmethod
-    def _fix_new_parents(new_cuds, new_parents, new_parent_diff, session,
-                         missing):
+    def _fix_new_parents(new_cuds, new_parents, new_parent_diff, missing):
         """Fix the relationships beetween the added Cuds objects and
         the parents of the added Cuds object.
         # TODO test
@@ -452,8 +449,6 @@ class Cuds(dict):
         :param new_parent_diff: The uids of the new parents and the relations
             they are connected with
         :type new_parent_diff: List[Tuple[UID, Relationship]]
-        :param session: The session to perform the changes in
-        :type session: Session
         :param missing: dictionary that will be populated with connections
             to objects, that are currently not available in the new session.
             The recursive add might add it later.
@@ -482,7 +477,7 @@ class Cuds(dict):
 
     @staticmethod
     def _fix_old_neighbors(new_cuds, old_cuds, old_neighbors,
-                           old_neighbor_diff, session):
+                           old_neighbor_diff):
         """Fix the relationships beetween the added Cuds objects and
         the Cuds object that were previously neighbors.
         # TODO test
@@ -497,8 +492,6 @@ class Cuds(dict):
         :param old_neighbor_diff: The uids of the old neigbors and the
             relations they are connected with
         :type old_neighbor_diff: List[Tuple[UID, Relationship]]
-        :param session: The session to perform the changes in
-        :type session: Session
         """
         from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
 
@@ -585,7 +578,6 @@ class Cuds(dict):
         :param rel: Relationship with the entity to add.
         :type rel: Relationship
         :raises ValueError: Add is illegal.
-        # TODO test
         """
         from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         for supported_relationships, supported_entities in \

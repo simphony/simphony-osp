@@ -10,6 +10,7 @@ import uuid
 from copy import deepcopy
 
 from cuds.classes.core.session.core_session import CoreSession
+from cuds.classes.core.cuds import Cuds
 import cuds.classes
 
 
@@ -435,6 +436,165 @@ class TestAPICity(unittest.TestCase):
 
         elements = set(list(c.iter()))
         self.assertEqual(elements, {n, p, q})
+
+    def test_check_valid_add(self):
+        """Check if _check_valid_add throws exceptions when illegal
+        relationships are added.
+        """
+        c = cuds.classes.PopulatedPlace("Freiburg")
+        p1 = cuds.classes.Person(name="Peter")
+        c.add(p1, rel=cuds.classes.HasWorker)
+        p2 = cuds.classes.Citizen(name="Martin")
+        c.add(p2, rel=cuds.classes.HasWorker)
+        p3 = cuds.classes.LivingBeing(name="Mimi")
+        self.assertRaises(ValueError, c.add, p3, rel=cuds.classes.HasWorker)
+        c.remove()
+
+        c.add(p1, rel=cuds.classes.HasMajor)
+        c.add(p2, rel=cuds.classes.HasMajor)
+        self.assertRaises(ValueError, c.add, p1, rel=cuds.classes.HasPart)
+
+        c = cuds.classes.City("Freiburg")
+        c.add(p1, rel=cuds.classes.HasWorker)
+        c.add(p2, rel=cuds.classes.HasWorker)
+        self.assertRaises(ValueError, c.add, p3, rel=cuds.classes.HasWorker)
+
+        c = cuds.classes.GeographicalPlace("Freiburg")
+        self.assertRaises(ValueError, c.add, p1, rel=cuds.classes.HasWorker)
+        self.assertRaises(ValueError, c.add, p2, rel=cuds.classes.HasWorker)
+        self.assertRaises(ValueError, c.add, p3, rel=cuds.classes.HasWorker)
+
+    def test_recursive_store(self):
+        """Check if _recursive_store correctly stores cuds recursively,
+        correcting dangling and one-way connections.
+        """
+        c = cuds.classes.City("Freiburg")
+        with CoreSession() as session:
+            w = cuds.classes.CityWrapper(session=session)
+            cw = w.add(c)
+
+            p1 = cuds.classes.Citizen()
+            p2 = cuds.classes.Citizen()
+            p3 = cuds.classes.Citizen()
+            p4 = cuds.classes.Citizen()
+            c.add(p1, p2, p3, rel=cuds.classes.IsInhabitedBy)
+            p3.add(p1, p2, rel=cuds.classes.IsChildOf)
+            p3.add(p4, rel=cuds.classes.IsParentOf)
+
+            cw = w._recursive_store(c, cw)
+
+            p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)
+            p4w = p3w.get(p4.uid)
+
+            self.assertEqual(w.get(rel=cuds.classes.HasPart), [cw])
+            self.assertEqual(
+                set(cw.get(rel=cuds.classes.IsInhabitedBy)),
+                {p1w, p2w, p3w}
+            )
+            self.assertEqual(
+                set(cw.get(rel=cuds.classes.IsPartOf)),
+                {w}
+            )
+
+            self.assertEqual(p3w.get(rel=cuds.classes.Inhabits), [cw])
+            self.assertEqual(
+                set(p3w.get(rel=cuds.classes.IsChildOf)),
+                {p1w, p2w}
+            )
+            self.assertEqual(p3w.get(rel=cuds.classes.IsParentOf), [p4w])
+
+    def test_get_neighbour_diff(self):
+        """Check if get_neighbor_diff can compute the difference
+        of neighbors between to objects.
+        """
+        c1 = cuds.classes.City("Paris")
+        c2 = cuds.classes.City("Berlin")
+        c3 = cuds.classes.City("London")
+        n1 = cuds.classes.Neighbourhood("Zähringen")
+        n2 = cuds.classes.Neighbourhood("Herdern")
+        s1 = cuds.classes.Street("Waldkircher Straße")
+        s2 = cuds.classes.Street("Habsburger Straße")
+        s3 = cuds.classes.Street("Lange Straße")
+
+        n1.add(c1, c2, rel=cuds.classes.IsPartOf)
+        n2.add(c2, c3, rel=cuds.classes.IsPartOf)
+        n1.add(s1, s2)
+        n2.add(s2, s3)
+
+        self.assertEqual(
+            set(Cuds._get_neighbor_diff(n1, n2)),
+            {(c1.uid, cuds.classes.IsPartOf), (s1.uid, cuds.classes.HasPart)}
+        )
+
+        self.assertEqual(
+            set(Cuds._get_neighbor_diff(n2, n1)),
+            {(c3.uid, cuds.classes.IsPartOf), (s3.uid, cuds.classes.HasPart)}
+        )
+
+    def test_fix_new_parents(self):
+        """Check that _fix_new_parent:
+        - Deletes connection to new parents not available in new session
+        - Adds connection to new parents available in new session
+        """
+        n = cuds.classes.Neighbourhood("Zähringen")
+        # parent in both sessions
+        c1 = cuds.classes.City("Berlin")
+        # only parent in default session (available in both)
+        c2 = cuds.classes.City("Paris")
+        n.add(c1, c2, rel=cuds.classes.IsPartOf)
+
+        with CoreSession() as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            c1w, c2w = wrapper.add(c1, c2)
+            nw = c2w.get(n.uid)
+            nw.remove(c2.uid, rel=cuds.classes.Relationship)
+
+            # only parent + available in default session
+            c3 = cuds.classes.City("London")
+            n.add(c3, rel=cuds.classes.IsPartOf)
+
+            n.session = session
+            new_parent_diff = Cuds._get_neighbor_diff(
+                n, nw, rel=cuds.classes.PassiveRelationship)
+            new_parents = session.load(*[x[0] for x in new_parent_diff])
+
+            missing = dict()
+            Cuds._fix_new_parents(new_cuds=n,
+                                  new_parents=new_parents,
+                                  new_parent_diff=new_parent_diff,
+                                  missing=missing)
+
+        self.assertEqual(
+            set(n.get(rel=cuds.classes.IsPartOf)),
+            {c1w, c2w, None}  # missing parent, should be in missing dict
+        )
+        self.assertEqual(missing, {c3.uid: [(n, cuds.classes.IsPartOf)]})
+        self.assertEqual(c2w.get(rel=cuds.classes.HasPart), [n])
+
+    def test_fix_old_neighbors(self):
+        """Check if _fix_old_neighbors.
+        - Deletes old children.
+        - Adds connection to old parents.
+        """
+        c = cuds.classes.City("Freiburg")
+
+        with CoreSession() as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            cw = wrapper.add(c)
+            n = cuds.classes.Neighbourhood("Zähringen")
+            nw = cw.add(n)
+
+            c.session = session
+            old_neighbor_diff = Cuds._get_neighbor_diff(cw, c)
+            old_neighbors = session.load(*[x[0] for x in old_neighbor_diff])
+            Cuds._fix_old_neighbors(new_cuds=c,
+                                    old_cuds=cw,
+                                    old_neighbors=old_neighbors,
+                                    old_neighbor_diff=old_neighbor_diff)
+        self.assertEqual(c.get(rel=cuds.classes.IsPartOf), [wrapper])
+        self.assertEqual(c.get(rel=cuds.classes.HasPart), [])
+        self.assertEqual(nw.get(rel=cuds.classes.IsPartOf), [])
+        self.assertEqual(wrapper.get(rel=cuds.classes.HasPart), [c])
 
 
 if __name__ == '__main__':

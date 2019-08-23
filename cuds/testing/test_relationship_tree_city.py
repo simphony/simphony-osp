@@ -24,6 +24,7 @@ class TestRelationshipTree(unittest.TestCase):
         self.assertEqual(dict(), tree.children)
 
     def test_add(self):
+        """Test adding relationships to the tree."""
         tree = RelationshipTree(cuds.classes.Relationship)
         tree.add(cuds.classes.Encloses)
         tree.add(cuds.classes.IsPartOf)
@@ -44,6 +45,7 @@ class TestRelationshipTree(unittest.TestCase):
                          passive_rel_tree.children.keys())
 
     def test_remove(self):
+        """Test removing relationships from the tree"""
         tree = RelationshipTree(cuds.classes.Relationship)
         tree.add(cuds.classes.Encloses)
         tree.add(cuds.classes.IsPartOf)
@@ -63,6 +65,7 @@ class TestRelationshipTree(unittest.TestCase):
                          set(tree.children.keys()))
 
     def test_get_subrelations(self):
+        """Test getting subrelationships from the tree."""
         tree = RelationshipTree(cuds.classes.Relationship)
         tree.add(cuds.classes.Encloses)
         tree.add(cuds.classes.IsPartOf)

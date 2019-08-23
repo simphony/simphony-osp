@@ -10,6 +10,9 @@ class TestSimWrapper(unittest.TestCase):
         pass
 
     def test_dummy_sim_wrapper(self):
+        """Create a dummy simulation syntactic layer + test
+        if working with this layer works as expected.
+        """
         with DummySimSession() as session:
             wrapper = cuds.classes.CitySimWrapper(num_steps=1, session=session)
             c = cuds.classes.City(name="Freiburg")

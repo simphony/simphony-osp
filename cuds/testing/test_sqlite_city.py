@@ -23,6 +23,7 @@ class TestSqliteCity(unittest.TestCase):
         os.remove("test.db")
 
     def test_insert(self):
+        """Test inserting in the sqlite table."""
         c = cuds.classes.City(name="Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Georg")
@@ -36,6 +37,7 @@ class TestSqliteCity(unittest.TestCase):
         self._check_state(c, p1, p2)
 
     def test_update(self):
+        """Test updating the sqlite table."""
         c = cuds.classes.City("Paris")
         p1 = cuds.classes.Citizen(name="Peter")
         c.add(p1, rel=cuds.classes.IsInhabitedBy)
@@ -53,6 +55,7 @@ class TestSqliteCity(unittest.TestCase):
         self._check_state(c, p1, p2)
 
     def test_delete(self):
+        """Test to delete cuds objects from the sqlite table"""
         c = cuds.classes.City("Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Georg")
@@ -71,6 +74,7 @@ class TestSqliteCity(unittest.TestCase):
         self._check_state(c, p1, p2)
 
     def _check_state(self, c, p1, p2):
+        """Check if the sqlite tables are in the correct state."""
         with sqlite3.connect("test.db") as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT uid, cuba, first_level FROM %s;"
@@ -101,6 +105,7 @@ class TestSqliteCity(unittest.TestCase):
             })
 
     def test_init(self):
+        """Test of first level of children are loaded automatically."""
         c = cuds.classes.City("Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Anna")
@@ -128,6 +133,7 @@ class TestSqliteCity(unittest.TestCase):
                 {wrapper.uid: wrapper.cuba_key})
 
     def test_load_missing(self):
+        """Test if missing objects are loaded automatically."""
         c = cuds.classes.City("Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Anna")

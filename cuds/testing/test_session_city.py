@@ -105,6 +105,7 @@ class TestSessionCity(unittest.TestCase):
         self.assertEqual(session._deleted, {cw.uid: cw})
 
     def test_parse_cardinality(self):
+        """Test parsing cardinality from the ontology."""
         self.assertEqual(WrapperSession._parse_cardinality("*"),
                          (0, float("inf")))
         self.assertEqual(WrapperSession._parse_cardinality("many"),
