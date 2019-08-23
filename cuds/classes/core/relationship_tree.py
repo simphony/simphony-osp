@@ -61,7 +61,7 @@ class RelationshipTree(dict):
         ancestor_rel = self._get_ancestor_rel(relationship)
         predecessor_rels = self._get_predecessor_rels(relationship)
 
-        if ancestor_rel is not None and not predecessor_rels:
+        if ancestor_rel is not None and ancestor_rel is not relationship:
             return self.children[ancestor_rel]. \
                 get_subrelationships(relationship)
 
@@ -71,6 +71,13 @@ class RelationshipTree(dict):
         return result
 
     def _add(self, relationship):
+        """Add the relationship. Add all the children of self,
+        that are subclass of the given relationship, as children
+        to the given relationship.
+
+        :param relationship: The relationship to add to the tree.
+        :type relationship: Type[Relationship]
+        """
         children = {subtree.root_relationship: subtree
                     for subtree in self.children.values()
                     if issubclass(subtree.root_relationship, relationship)}
@@ -106,7 +113,7 @@ class RelationshipTree(dict):
 
     def _get_predecessor_rels(self, relationship):
         """Get the relationship of all the direct children of this node,
-        that is a ancestor of the given relationship
+        that is a predecessor of the given relationship
 
         :param relationship: Get the ancestors of this relationship
         :type relationship: Relationship

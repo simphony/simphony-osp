@@ -22,7 +22,8 @@ class Registry(dict):
         """
         Adds an object to the registry.
 
-        :param cuds
+        :param cuds: The cuds to put in the registry
+        :type cuds: Cuds
         :raises ValueError: unsupported object provided (not a Cuds object)
         """
         from .cuds import Cuds
@@ -37,6 +38,7 @@ class Registry(dict):
         Returns the object corresponding to a given uuid.
 
         :param uid: uuid of the desired object
+        :type uid: UUID
         :return: Cuds object with the uid
         :raises ValueError: unsupported key provided (not a UUID object)
         """
