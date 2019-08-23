@@ -67,7 +67,7 @@ class Cuds(dict):
 
     def __delitem__(self, key: Type[Relationship]):
         """Delete a relationship from the Cuds.
-        
+
         :param key: The relationship to remove
         :type key: Type[Relationship]
         :raises ValueError: The given key is not a relationship.
