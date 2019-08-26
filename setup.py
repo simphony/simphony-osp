@@ -88,6 +88,8 @@ packages = [
     'cuds',
     'cuds.classes',
     'cuds.classes.core',
+    'cuds.classes.core.session',
+    'cuds.classes.core.session.db',
     'cuds.classes.generated',
     'cuds.metatools',
     'cuds.ontology',
