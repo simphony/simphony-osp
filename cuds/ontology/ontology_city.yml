@@ -29,10 +29,10 @@ CUDS_ONTOLOGY:
     parent: CUBA.ENCLOSES
     inverse: CUBA.IS_PART_OF
 
-  INHABITS:
+  IS_INHABITANT_OF:
     definition:
     parent: CUBA.IS_ENCLOSED_BY
-    inverse: CUBA.IS_INHABITED_BY
+    inverse: CUBA.HAS_INHABITANT
 
   PASSIVE_RELATIONSHIP:
     definition:
@@ -49,10 +49,10 @@ CUDS_ONTOLOGY:
     parent: CUBA.IS_ENCLOSED_BY
     inverse: CUBA.HAS_PART
 
-  IS_INHABITED_BY:
+  HAS_INHABITANT:
     definition:
     parent: CUBA.ENCLOSES
-    inverse: CUBA.INHABITS
+    inverse: CUBA.IS_INHABITANT_OF
   
   IS_PARENT_OF:
     definition:
@@ -178,7 +178,7 @@ CUDS_ONTOLOGY:
   POPULATED_PLACE:
     definition:
     parent: CUBA.GEOGRAPHICAL_PLACE
-    CUBA.IS_INHABITED_BY:
+    CUBA.HAS_INHABITANT:
       CUBA.CITIZEN:
        cardinality: many
     CUBA.HAS_WORKER:
@@ -254,7 +254,7 @@ CUDS_ONTOLOGY:
   CITIZEN:
     definition:
     parent: CUBA.PERSON
-    CUBA.INHABITS:
+    CUBA.IS_INHABITANT_OF:
       CUBA.POPULATED_PLACE:
         cardinality: 0-1
     CUBA.IS_MAJOR_OF:

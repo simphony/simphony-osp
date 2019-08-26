@@ -27,7 +27,7 @@ class TestSimWrapper(unittest.TestCase):
                             rel=cuds.classes.HasPart)), 1)
             self.assertEqual(len(
                 cw.get(cuba_key=cuds.classes.Citizen.cuba_key,
-                       rel=cuds.classes.IsInhabitedBy)), 1)
+                       rel=cuds.classes.HasInhabitant)), 1)
             self.assertEqual(wrapper.get(p2.uid).name, "Renate")
             self.assertEqual(wrapper.get(p2.uid).age, 55)
             self.assertEqual(cw.get(p1.uid).name, "Hans")
@@ -72,7 +72,7 @@ class DummySimSession(SimWrapperSession):
             else:
                 citizen = cuds.classes.Citizen(
                     name=p.name, age=p.age, uid=self._person_map[i])
-                city.add(citizen, rel=cuds.classes.IsInhabitedBy)
+                city.add(citizen, rel=cuds.classes.HasInhabitant)
 
     # OVERRIDE
     def _apply_added(self):

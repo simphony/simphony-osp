@@ -131,17 +131,17 @@ class TestSessionCity(unittest.TestCase):
         c = cuds.classes.City(name="a city")
         p = cuds.classes.Citizen(name="a person")
         n = cuds.classes.Neighbourhood(name="a neighbourhood")
-        c.add(p, rel=cuds.classes.IsInhabitedBy)
+        c.add(p, rel=cuds.classes.HasInhabitant)
         c.add(n)
         cardinalities, rels = WrapperSession._get_ontology_cardinalities(c)
         self.assertEqual(rels,
-                         {cuds.classes.IsInhabitedBy, cuds.classes.HasPart})
+                         {cuds.classes.HasInhabitant, cuds.classes.HasPart})
         self.assertEqual(cardinalities, {
             (cuds.classes.HasPart, cuds.classes.Neighbourhood):
                 (0, float("inf")),
             (cuds.classes.IsPartOf, cuds.classes.CityWrapper):
                 (0, 1),
-            (cuds.classes.IsInhabitedBy, cuds.classes.Citizen):
+            (cuds.classes.HasInhabitant, cuds.classes.Citizen):
                 (0, float("inf")),
             (cuds.classes.HasMajor, cuds.classes.Citizen):
                 (0, 1),
@@ -152,8 +152,8 @@ class TestSessionCity(unittest.TestCase):
         c1 = cuds.classes.City(name="a city")
         c2 = cuds.classes.City(name="a city")
         p = cuds.classes.Citizen(name="a person")
-        c1.add(p, rel=cuds.classes.IsInhabitedBy)
-        c2.add(p, rel=cuds.classes.IsInhabitedBy)
+        c1.add(p, rel=cuds.classes.HasInhabitant)
+        c2.add(p, rel=cuds.classes.HasInhabitant)
 
         with TestWrapperSession(engine=None) as session:
             wrapper = cuds.classes.CityWrapper(session=session)
@@ -167,10 +167,10 @@ class TestSessionCity(unittest.TestCase):
             wrapper2.add(c1w)
             self.assertRaises(ValueError, session._check_cardinalities)
 
-        p.remove(rel=cuds.classes.Inhabits)
+        p.remove(rel=cuds.classes.IsInhabitantOf)
         p.add(c1, rel=cuds.classes.IsMajorOf)
         p.add(c2, rel=cuds.classes.WorksIn)
-        p.add(c1, rel=cuds.classes.Inhabits)
+        p.add(c1, rel=cuds.classes.IsInhabitantOf)
         with TestWrapperSession(engine=None) as session:
             wrapper = cuds.classes.CityWrapper(session=session)
             wrapper.add(c1, c2)

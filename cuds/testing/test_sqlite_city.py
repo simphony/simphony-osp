@@ -27,7 +27,7 @@ class TestSqliteCity(unittest.TestCase):
         c = cuds.classes.City(name="Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Georg")
-        c.add(p1, p2, rel=cuds.classes.IsInhabitedBy)
+        c.add(p1, p2, rel=cuds.classes.HasInhabitant)
 
         with SqliteWrapperSession("test.db") as session:
             wrapper = cuds.classes.CityWrapper(session)
@@ -40,7 +40,7 @@ class TestSqliteCity(unittest.TestCase):
         """Test updating the sqlite table."""
         c = cuds.classes.City("Paris")
         p1 = cuds.classes.Citizen(name="Peter")
-        c.add(p1, rel=cuds.classes.IsInhabitedBy)
+        c.add(p1, rel=cuds.classes.HasInhabitant)
 
         with SqliteWrapperSession("test.db") as session:
             wrapper = cuds.classes.CityWrapper(session)
@@ -48,7 +48,7 @@ class TestSqliteCity(unittest.TestCase):
             session.commit()
 
             p2 = cuds.classes.Citizen(name="Georg")
-            cw.add(p2, rel=cuds.classes.IsInhabitedBy)
+            cw.add(p2, rel=cuds.classes.HasInhabitant)
             cw.name = "Freiburg"
             session.commit()
 
@@ -60,7 +60,7 @@ class TestSqliteCity(unittest.TestCase):
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Georg")
         p3 = cuds.classes.Citizen(name="Hans")
-        c.add(p1, p2, p3, rel=cuds.classes.IsInhabitedBy)
+        c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
 
         with SqliteWrapperSession("test.db") as session:
             wrapper = cuds.classes.CityWrapper(session)
@@ -90,10 +90,10 @@ class TestSqliteCity(unittest.TestCase):
                            % SqliteWrapperSession.relationships_table)
             result = set(cursor.fetchall())
             self.assertEqual(result, {
-                (str(c.uid), str(p1.uid), "IS_INHABITED_BY", "CITIZEN"),
-                (str(c.uid), str(p2.uid), "IS_INHABITED_BY", "CITIZEN"),
-                (str(p1.uid), str(c.uid), "INHABITS", "CITY"),
-                (str(p2.uid), str(c.uid), "INHABITS", "CITY"),
+                (str(c.uid), str(p1.uid), "HAS_INHABITANT", "CITIZEN"),
+                (str(c.uid), str(p2.uid), "HAS_INHABITANT", "CITIZEN"),
+                (str(p1.uid), str(c.uid), "IS_INHABITANT_OF", "CITY"),
+                (str(p2.uid), str(c.uid), "IS_INHABITANT_OF", "CITY"),
                 (str(c.uid), str(uuid.UUID(int=0)),
                     "IS_PART_OF", "CITY_WRAPPER")
             })
@@ -110,7 +110,7 @@ class TestSqliteCity(unittest.TestCase):
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Anna")
         p3 = cuds.classes.Citizen(name="Julia")
-        c.add(p1, p2, p3, rel=cuds.classes.IsInhabitedBy)
+        c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
         p1.add(p3, rel=cuds.classes.IsParentOf)
         p2.add(p3, rel=cuds.classes.IsParentOf)
 
@@ -125,7 +125,7 @@ class TestSqliteCity(unittest.TestCase):
                              {c.uid, wrapper.uid})
             self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(
-                session._registry.get(c.uid)[cuds.classes.IsInhabitedBy],
+                session._registry.get(c.uid)[cuds.classes.HasInhabitant],
                 {p1.uid: p1.cuba_key, p2.uid: p2.cuba_key,
                  p3.uid: p3.cuba_key})
             self.assertEqual(
@@ -138,7 +138,7 @@ class TestSqliteCity(unittest.TestCase):
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Anna")
         p3 = cuds.classes.Citizen(name="Julia")
-        c.add(p1, p2, p3, rel=cuds.classes.IsInhabitedBy)
+        c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
         p1.add(p3, rel=cuds.classes.IsParentOf)
         p2.add(p3, rel=cuds.classes.IsParentOf)
 
@@ -170,7 +170,7 @@ class TestSqliteCity(unittest.TestCase):
                 {p3.uid: p3.cuba_key}
             )
             self.assertEqual(
-                p2w[cuds.classes.Inhabits],
+                p2w[cuds.classes.IsInhabitantOf],
                 {c.uid: c.cuba_key}
             )
 

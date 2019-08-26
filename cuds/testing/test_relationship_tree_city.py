@@ -19,8 +19,8 @@ class TestRelationshipTree(unittest.TestCase):
         """
         Tests the instantiation and type of the objects
         """
-        tree = RelationshipTree(cuds.classes.Inhabits)
-        self.assertEqual(tree.root_relationship, cuds.classes.Inhabits)
+        tree = RelationshipTree(cuds.classes.IsInhabitantOf)
+        self.assertEqual(tree.root_relationship, cuds.classes.IsInhabitantOf)
         self.assertEqual(dict(), tree.children)
 
     def test_add(self):
@@ -28,8 +28,8 @@ class TestRelationshipTree(unittest.TestCase):
         tree = RelationshipTree(cuds.classes.Relationship)
         tree.add(cuds.classes.Encloses)
         tree.add(cuds.classes.IsPartOf)
-        tree.add(cuds.classes.Inhabits)
-        tree.add(cuds.classes.IsInhabitedBy)
+        tree.add(cuds.classes.IsInhabitantOf)
+        tree.add(cuds.classes.HasInhabitant)
         tree.add(cuds.classes.ActiveRelationship)
         tree.add(cuds.classes.IsEnclosedBy)
         tree.add(cuds.classes.HasPart)
@@ -49,8 +49,8 @@ class TestRelationshipTree(unittest.TestCase):
         tree = RelationshipTree(cuds.classes.Relationship)
         tree.add(cuds.classes.Encloses)
         tree.add(cuds.classes.IsPartOf)
-        tree.add(cuds.classes.Inhabits)
-        tree.add(cuds.classes.IsInhabitedBy)
+        tree.add(cuds.classes.IsInhabitantOf)
+        tree.add(cuds.classes.HasInhabitant)
         tree.add(cuds.classes.ActiveRelationship)
         tree.add(cuds.classes.IsEnclosedBy)
         tree.add(cuds.classes.HasPart)
@@ -59,7 +59,7 @@ class TestRelationshipTree(unittest.TestCase):
         tree.remove(cuds.classes.ActiveRelationship)
         tree.remove(cuds.classes.Encloses)
 
-        self.assertEqual(set([cuds.classes.IsInhabitedBy,
+        self.assertEqual(set([cuds.classes.HasInhabitant,
                               cuds.classes.HasPart,
                               cuds.classes.PassiveRelationship]),
                          set(tree.children.keys()))
@@ -69,8 +69,8 @@ class TestRelationshipTree(unittest.TestCase):
         tree = RelationshipTree(cuds.classes.Relationship)
         tree.add(cuds.classes.Encloses)
         tree.add(cuds.classes.IsPartOf)
-        tree.add(cuds.classes.Inhabits)
-        tree.add(cuds.classes.IsInhabitedBy)
+        tree.add(cuds.classes.IsInhabitantOf)
+        tree.add(cuds.classes.HasInhabitant)
         tree.add(cuds.classes.ActiveRelationship)
         tree.add(cuds.classes.IsEnclosedBy)
         tree.add(cuds.classes.HasPart)
@@ -79,13 +79,13 @@ class TestRelationshipTree(unittest.TestCase):
         self.assertEqual(set([cuds.classes.ActiveRelationship,
                               cuds.classes.Encloses,
                               cuds.classes.HasPart,
-                              cuds.classes.IsInhabitedBy]),
+                              cuds.classes.HasInhabitant]),
                          tree.get_subrelationships(
                              cuds.classes.ActiveRelationship))
         tree.remove(cuds.classes.ActiveRelationship)
         self.assertEqual(set([cuds.classes.Encloses,
                               cuds.classes.HasPart,
-                              cuds.classes.IsInhabitedBy]),
+                              cuds.classes.HasInhabitant]),
                          tree.get_subrelationships(
                              cuds.classes.ActiveRelationship))
 

@@ -51,7 +51,7 @@
 #         """
 #         for i in range(self.iterations):
 #             self.c.add(cuds.classes.Citizen(name='citizen ' + str(i)),
-#                        rel=cuds.classes.IsInhabitedBy)
+#                        rel=cuds.classes.HasInhabitant)
 
 
 # if __name__ == '__main__':
