@@ -118,12 +118,14 @@ class TestAPICity(unittest.TestCase):
             p2[cuds.classes.IsParentOf].keys()))
 
         # check passive relationships
-        self.assertEqual(set([c.uid]), set(p1[cuds.classes.IsInhabitantOf].keys()))
+        self.assertEqual(set([c.uid]),
+                         set(p1[cuds.classes.IsInhabitantOf].keys()))
         self.assertEqual(set([p1.uid, p3.uid]),
                          set(p2[cuds.classes.IsChildOf].keys()))
         self.assertEqual(set([c.uid]),
                          set(p2[cuds.classes.IsInhabitantOf].keys()))
-        self.assertEqual(set([c.uid]), set(p3[cuds.classes.IsInhabitantOf].keys()))
+        self.assertEqual(set([c.uid]),
+                         set(p3[cuds.classes.IsInhabitantOf].keys()))
         self.assertEqual(set([p2.uid]), set(p4[cuds.classes.IsChildOf].keys()))
 
         # check if items correctly added in second session
