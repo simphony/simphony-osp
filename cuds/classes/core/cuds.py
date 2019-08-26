@@ -219,19 +219,15 @@ class Cuds(dict):
         old_objects = self.get(*[arg.uid for arg in args])
         if len(args) == 1:
             old_objects = [old_objects]
-        relationship_sets = deepcopy(list(self.values()))
+        if any(x is None for x in old_objects):
+            message = 'Cannot update because entity not added.'
+            raise ValueError(message)
 
         result = list()
         for arg, old_cuds in zip(args, old_objects):
-            found = False
             # Updates all instances
-            for relationship_set in relationship_sets:
-                if arg.uid in relationship_set:
-                    result.append(self._recursive_store(arg, old_cuds))
-                    found = True
-            if not found:
-                message = 'Cannot update %s because its not added.' % arg
-                raise ValueError(message)
+            result.append(self._recursive_store(arg, old_cuds))
+
         if len(args) == 1:
             return result[0]
         return result

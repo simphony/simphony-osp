@@ -12,14 +12,16 @@ with SqliteWrapperSession("test.db") as session:
     wrapper = cuds.classes.CityWrapper(session=session)
 
     c = cuds.classes.City("Freiburg")
-    p1 = cuds.classes.Person("Peter")
-    p2 = cuds.classes.Person("Hans")
-    p3 = cuds.classes.Person("Michel")
+    p1 = cuds.classes.Citizen(name="Peter")
+    p2 = cuds.classes.Citizen(name="Hans")
+    p3 = cuds.classes.Citizen(name="Michel")
+    n = cuds.classes.Neighbourhood("Zähringen")
+    s = cuds.classes.Street("Le street")
     b = cuds.classes.Building("Theater")
     a = cuds.classes.Address(postal_code=79123, name='Le street', number=12)
-    c.add(p1, p2, p3)
-    b.add(a)
-    wrapper.add(c, b)
+    c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
+    c.add(n).add(s).add(b).add(a)
+    wrapper.add(c)
     wrapper.session.commit()
 
 # %%
