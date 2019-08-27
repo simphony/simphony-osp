@@ -142,9 +142,6 @@ CUDS_ONTOLOGY:
       default: "John Smith"
     CUBA.AGE:
       default: 25
-    CUBA.IS_PARENT_OF:
-      CUBA.LIVING_BEING:
-        cardinality: many
     CUBA.IS_CHILD_OF:
       CUBA.LIVING_BEING:
         cardinality: 0-2
@@ -237,9 +234,6 @@ CUDS_ONTOLOGY:
   FLOOR:
     definition:
     parent: CUBA.ARCHITECTURAL_COMPONENT
-    CUBA.IS_PART_OF:
-      CUBA.BUILDING:
-        cardinality: many
 
   PERSON:
     definition:

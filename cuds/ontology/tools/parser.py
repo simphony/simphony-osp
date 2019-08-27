@@ -24,7 +24,6 @@ class Parser:
         self._filename = filename
         self._ontology = {}
         self.parse()
-        self._entities = frozenset(self._ontology.keys())
 
     def parse(self):
         """
@@ -33,8 +32,44 @@ class Parser:
         with open(self._filename, 'r') as stream:
             try:
                 self._ontology = yaml.safe_load(stream)[self.ONTOLOGY_KEY]
+                self._entities = frozenset(self._ontology.keys())
+                self._add_missing_inverse_relationships()
             except yaml.YAMLError as exc:
                 print(exc)
+
+    def _add_missing_inverse_relationships(self):
+        """
+        If class A, can have relationship rel with class B as object,
+        class B must be able to connect to class A with relationship rel^-1.
+        """
+        for entity in self._entities:
+            if "ENTITY" not in self.get_ancestors(entity):
+                continue
+            for key in set(self._ontology[entity].keys()):
+                if not key.startswith("CUBA.") or \
+                        "RELATIONSHIP" not in self.get_ancestors(key[5:]):
+                    continue
+                targets = self.get_value(entity, key).keys()
+                for target in targets:
+                    if not target.startswith("CUBA.") or \
+                            "ENTITY" not in self.get_ancestors(target[5:]):
+                        continue
+                    self._add_inverse(target[5:], key[5:], entity)
+
+    def _add_inverse(self, entity, rel, target):
+        """Add the inverse of given rel to given entity class.
+
+        :param entity: The entity to add the inverse to.
+        :type entity: str
+        :param rel: The relationship to compute the inverse of add
+            to given entity.
+        :type rel: str
+        :param target: The object class
+        :type target: str
+        """
+        inverse = self.get_value(rel, "inverse")
+        if inverse not in self._ontology[entity]:
+            self._ontology[entity][inverse] = {"CUBA.%s" % target: dict()}
 
     def get_entities(self):
         """
