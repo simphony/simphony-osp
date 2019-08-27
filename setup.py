@@ -90,6 +90,7 @@ packages = [
     'cuds.classes.core',
     'cuds.classes.core.session',
     'cuds.classes.core.session.db',
+    'cuds.classes.core.session.transport',
     'cuds.classes.generated',
     'cuds.metatools',
     'cuds.ontology',

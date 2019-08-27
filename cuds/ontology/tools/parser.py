@@ -131,7 +131,7 @@ class Parser:
             parent = self.get_parent(entity)
             return self.get_datatype(parent)
         except KeyError:
-            return None
+            return "UNDEFINED"
 
     def get_cuba_attributes_filtering(self, entity, not_relevant):
         """

@@ -10,6 +10,7 @@ import uuid
 import inspect
 from typing import Union, Type, List, Iterator, Dict, Any
 
+from cuds.metatools.ontology_datatypes import convert_to
 from cuds.classes.core.session.core_session import CoreSession
 from cuds.classes.core.relationship_tree import RelationshipTree
 from cuds.utils import check_arguments
@@ -47,8 +48,7 @@ class Cuds(dict):
         """
         super().__init__()
 
-        self.__uid = uid or uuid.uuid4()
-        assert isinstance(self.__uid, uuid.UUID), "Specify a valid UUID."
+        self.__uid = convert_to(uid, "UUID") if uid else uuid.uuid4()
         # store the hierarchical order of the relationships
         self._relationship_tree = RelationshipTree(self.ROOT_REL)
         self.session.store(self)
@@ -136,7 +136,7 @@ class Cuds(dict):
                 if x not in skip][1:]
 
     @classmethod
-    def get_datatypes(cls) -> List[str]:
+    def get_datatypes(cls) -> Dict[str, str]:
         """Get the datatypes of the attributes of the cuds object.
 
         :return: The datatypes of the attributes as a mapping

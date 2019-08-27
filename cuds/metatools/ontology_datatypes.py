@@ -5,15 +5,26 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+import uuid
 
-def convert(x, datatype_string):
+
+def convert_to(x, datatype_string):
     datatype_args = datatype_string.split(":")[1:]
     try:
-        datatype = ONTOLOGY_DATATYPES[datatype_string.split(":")[0]]
+        datatype = ONTOLOGY_DATATYPES[datatype_string.split(":")[0]][0]
     except KeyError as e:
-        raise RuntimeError("The specified datatype %s" % datatype_string) \
+        raise RuntimeError("unknown datatype %s" % datatype_string) \
             from e
     return datatype(x, *datatype_args)
+
+
+def convert_from(x, datatype_string):
+    try:
+        datatype = ONTOLOGY_DATATYPES[datatype_string.split(":")[0]][1]
+    except KeyError as e:
+        raise RuntimeError("unknown datatype %s" % datatype_string) \
+            from e
+    return datatype(x)
 
 
 def to_string(x, maxsize=None):
@@ -24,9 +35,23 @@ def to_string(x, maxsize=None):
     return x
 
 
+def to_uuid(x):
+    if isinstance(x, uuid.UUID):
+        return x
+    if isinstance(x, str):
+        return uuid.UUID(hex=x)
+    if isinstance(x, int):
+        return uuid.UUID(int=x)
+    if isinstance(x, bytes):
+        return uuid.UUID(bytes=x)
+    raise ValueError("Specify a valid UUID")
+
+
 ONTOLOGY_DATATYPES = {
-    "BOOL": bool,
-    "INT": int,
-    "FLOAT": float,
-    "STRING": to_string,
+    "BOOL": (bool, bool),
+    "INT": (int, int),
+    "FLOAT": (float, float),
+    "STRING": (to_string, str),
+    "UUID": (to_uuid, str),
+    "UNDEFINED": (str, str)
 }

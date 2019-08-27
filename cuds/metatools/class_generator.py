@@ -259,7 +259,7 @@ class ClassGenerator(object):
             # Check that they are not instantiable classes
             if name.upper() in self._not_classes:
                 datatype = self._not_classes[name.upper()]
-                annotation = "" if not datatype else ":'%s'" % datatype
+                annotation = ":'%s'" % datatype
                 # Default value
                 if properties is not None and \
                         self.DEFAULT_ATTRIBUTE_KEY in properties:
@@ -309,7 +309,7 @@ class ClassGenerator(object):
                                      "",
                                      "@%s.setter" % p,
                                      "def %s(self, x):" % p,
-                                     "    self.__%s = convert(x, \"%s\")"
+                                     "    self.__%s = convert_to(x, \"%s\")"
                                      % (p, datatype),
                                      "    self.session._notify_update(self)\n"]
                                     ))

@@ -36,10 +36,7 @@ class SqliteWrapperSession(DbWrapperSession):
             table_name,
             condition_str
         ))
-        uuid_columns = [i for i, c in enumerate(columns)
-                        if c in datatypes and datatypes[c] == "UUID"]
-        return map(lambda v: self._convert_uuid_values(v, uuid_columns, "hex"),
-                   c)
+        return self.convert_values(c, columns, datatypes)
 
     # OVERRIDE
     def _db_create(self, table_name, columns, datatypes):

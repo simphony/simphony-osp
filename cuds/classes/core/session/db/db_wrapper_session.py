@@ -7,6 +7,7 @@
 
 from abc import abstractmethod
 import uuid
+from cuds.metatools.ontology_datatypes import convert_to
 from cuds.classes.core.session.wrapper_session import WrapperSession
 from cuds.classes.core.session.db.conditions import EqualsCondition
 from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
@@ -388,8 +389,11 @@ class DbWrapperSession(WrapperSession):
             elif target != uuid.UUID(int=0):
                 cuds[rel][target] = target_cuba
 
-    def _convert_uuid_values(self, values, uuid_columns, from_datatype):
-        result = list(values)
-        for i in uuid_columns:
-            result[i] = uuid.UUID(**{from_datatype: values[i]})
-        return result
+    def convert_values(self, c, columns, datatypes):
+        for values in c:
+            output = []
+            for value, column in zip(values, columns):
+                output.append(
+                    convert_to(value, datatypes[column])
+                )
+            yield output
