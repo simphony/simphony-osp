@@ -34,7 +34,7 @@ class TestSqliteCity(unittest.TestCase):
             wrapper.add(c)
             session.commit()
 
-        self._check_state(c, p1, p2)
+        check_state(self, c, p1, p2)
 
     def test_update(self):
         """Test updating the sqlite table."""
@@ -52,7 +52,7 @@ class TestSqliteCity(unittest.TestCase):
             cw.name = "Freiburg"
             session.commit()
 
-        self._check_state(c, p1, p2)
+        check_state(self, c, p1, p2)
 
     def test_delete(self):
         """Test to delete cuds objects from the sqlite table"""
@@ -71,38 +71,7 @@ class TestSqliteCity(unittest.TestCase):
             session.prune()
             session.commit()
 
-        self._check_state(c, p1, p2)
-
-    def _check_state(self, c, p1, p2):
-        """Check if the sqlite tables are in the correct state."""
-        with sqlite3.connect("test.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT uid, cuba, first_level FROM %s;"
-                           % SqliteWrapperSession.master_table)
-            result = set(cursor.fetchall())
-            self.assertEqual(result, {
-                (str(c.uid), c.cuba_key.value, 1),
-                (str(p1.uid), p1.cuba_key.value, 0),
-                (str(p2.uid), p2.cuba_key.value, 0)
-            })
-
-            cursor.execute("SELECT origin, target, name, cuba FROM %s;"
-                           % SqliteWrapperSession.relationships_table)
-            result = set(cursor.fetchall())
-            self.assertEqual(result, {
-                (str(c.uid), str(p1.uid), "HAS_INHABITANT", "CITIZEN"),
-                (str(c.uid), str(p2.uid), "HAS_INHABITANT", "CITIZEN"),
-                (str(p1.uid), str(c.uid), "IS_INHABITANT_OF", "CITY"),
-                (str(p2.uid), str(c.uid), "IS_INHABITANT_OF", "CITY"),
-                (str(c.uid), str(uuid.UUID(int=0)),
-                    "IS_PART_OF", "CITY_WRAPPER")
-            })
-
-            cursor.execute("SELECT uid, name FROM CITY;")
-            result = set(cursor.fetchall())
-            self.assertEqual(result, {
-                (str(c.uid), "Freiburg")
-            })
+        check_state(self, c, p1, p2)
 
     def test_init(self):
         """Test of first level of children are loaded automatically."""
@@ -173,6 +142,38 @@ class TestSqliteCity(unittest.TestCase):
                 p2w[cuds.classes.IsInhabitantOf],
                 {c.uid: c.cuba_key}
             )
+
+
+def check_state(test_case, c, p1, p2, table="test.db"):
+    """Check if the sqlite tables are in the correct state."""
+    with sqlite3.connect(table) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT uid, cuba, first_level FROM %s;"
+                        % SqliteWrapperSession.master_table)
+        result = set(cursor.fetchall())
+        test_case.assertEqual(result, {
+            (str(c.uid), c.cuba_key.value, 1),
+            (str(p1.uid), p1.cuba_key.value, 0),
+            (str(p2.uid), p2.cuba_key.value, 0)
+        })
+
+        cursor.execute("SELECT origin, target, name, cuba FROM %s;"
+                        % SqliteWrapperSession.relationships_table)
+        result = set(cursor.fetchall())
+        test_case.assertEqual(result, {
+            (str(c.uid), str(p1.uid), "HAS_INHABITANT", "CITIZEN"),
+            (str(c.uid), str(p2.uid), "HAS_INHABITANT", "CITIZEN"),
+            (str(p1.uid), str(c.uid), "IS_INHABITANT_OF", "CITY"),
+            (str(p2.uid), str(c.uid), "IS_INHABITANT_OF", "CITY"),
+            (str(c.uid), str(uuid.UUID(int=0)),
+                "IS_PART_OF", "CITY_WRAPPER")
+        })
+
+        cursor.execute("SELECT uid, name FROM CITY;")
+        result = set(cursor.fetchall())
+        test_case.assertEqual(result, {
+            (str(c.uid), "Freiburg")
+        })
 
 
 if __name__ == '__main__':

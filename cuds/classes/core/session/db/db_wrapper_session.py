@@ -30,7 +30,7 @@ class DbWrapperSession(WrapperSession):
         super().__init__(engine)
         self._initialize_tables()
         self._load_first_level()
-        self._reset_buffers()
+        self._reset_buffers(changed_by="engine")
         self.root = None
 
     def __enter__(self):
@@ -45,8 +45,9 @@ class DbWrapperSession(WrapperSession):
         self._apply_added()
         self._apply_updated()
         self._apply_deleted()
+        self._reset_buffers(changed_by="user")
         self._commit()
-        self._reset_buffers()
+        self._reset_buffers(changed_by="engine")
 
     # OVERRIDE
     def store(self, entity):
@@ -60,7 +61,7 @@ class DbWrapperSession(WrapperSession):
                 first_level_entity._add_direct(entity, rel)
                 entity._add_inverse(first_level_entity, rel)
             self._first_level_connections_to_root = None
-            self._reset_buffers()
+            self._reset_buffers(changed_by="engine")
 
     # OVERRIDE
     def load(self, *uids):

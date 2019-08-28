@@ -93,7 +93,7 @@ class TestSessionCity(unittest.TestCase):
         self.assertEqual(session._updated, dict())
         self.assertEqual(session._deleted, dict())
 
-        w.session._reset_buffers()
+        w.session._reset_buffers(changed_by="user")
         c2 = cuds.classes.City("city3")
         w.add(c2)
         cw2 = w.get(c2.uid)

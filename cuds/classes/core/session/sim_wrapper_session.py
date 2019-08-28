@@ -20,9 +20,10 @@ class SimWrapperSession(WrapperSession):
         self._apply_added()
         self._apply_updated()
         self._apply_deleted()
+        self._reset_buffers(changed_by="user")
         self._run(root)
         self._update_cuds_after_run(root)
-        self._reset_buffers()
+        self._reset_buffers(changed_by="engine")
         self._ran = True
 
     @abstractmethod

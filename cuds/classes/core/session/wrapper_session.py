@@ -17,26 +17,24 @@ class WrapperSession(Session):
     def __init__(self, engine):
         super().__init__()
         self._engine = engine
-        self._reset_buffers()
+        self._forbid_buffer_reset_by = None
+        self._reset_buffers(changed_by="engine")
 
     @abstractmethod
     def __str__(self):
         pass
 
-    @abstractmethod
     def _apply_added(self):
         """Add the added cuds to the engine"""
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def _apply_updated(self):
         """Update the updated cuds in the engine"""
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def _apply_deleted(self):
         """Delete the deleted cuds from the engine"""
-        pass
+        raise NotImplementedError
 
     # OVERRIDE
     def store(self, entity):
@@ -85,12 +83,16 @@ class WrapperSession(Session):
         else:
             self._deleted[entity.uid] = entity
 
-    def _reset_buffers(self):
+    def _reset_buffers(self, changed_by):
         """Reset the buffers"""
+        assert changed_by in ["user", "engine"]
+        if changed_by == self._forbid_buffer_reset_by:
+            return False
         self._added = dict()
         self._updated = dict()
         self._deleted = dict()
         self._uid_set = set(self._registry.keys())
+        return True
 
     def _check_cardinalities(self):
         """Check if the cardinalities specified in the ontology

@@ -6,12 +6,16 @@
 # No redistribution is allowed without explicit written permission.
 
 import json
+import inspect
 from cuds.metatools.ontology_datatypes import convert_from, convert_to
 from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.core.session.wrapper_session import WrapperSession
 from cuds.classes.core.session.transport.communication_engine \
     import CommunicationEngineClient, CommunicationEngineServer
+
+INITIALIZE_COMMAND = "_init"
+LOAD_COMMAND = "_load"
 
 
 class TransportSessionServer():
@@ -20,23 +24,31 @@ class TransportSessionServer():
             host, port, self.handle_request
         )
         self.session_obj = session_obj
+        self.session_obj._forbid_buffer_reset_by = "engine"
 
     def startListening(self):
         self.com_facility.startListening()
 
     def handle_request(self, path, data):
-        # TODO update registry
-        self.session_obj._added = deserialize(data["added"])
-        self.session_obj._updated = deserialize(data["updated"])
-        self.session_obj._deleted = deserialize[data["deleted"]]
-        if not path.startswith("_") and \
+        if path == INITIALIZE_COMMAND:
+            assert self.session_obj.root is None, "Session has already been initialized!"
+            data = json.loads(data)
+            entity = deserialize(data, self.session_obj)
+            entity.session = self.session_obj
+            self.session_obj.store(entity)
+            del self.session_obj._added[entity.uid]
+            self.session_obj._updated[entity.uid] = entity
+            return serialize_buffers(self.session_obj)
+        elif path == LOAD_COMMAND:
+            uids = json.loads(data)
+            uids = [convert_to(x, "UUID") for x in uids]
+            return {"added": list(self.session_obj.load(*uids))}
+        elif not path.startswith("_") and \
                 hasattr(self.session_obj, path) and \
                 callable(getattr(self.session_obj, path)):
+            deserialize_buffers(self.session_obj, data)
             getattr(self.session_obj, path)()
-            # TODO avoid buffer reset
-            # TODO send updated objects back
-            # TODO update registry
-            # TODO reset buffers
+            return serialize_buffers(self.session_obj)
 
 
 class TransportSessionClient(WrapperSession):
@@ -46,17 +58,29 @@ class TransportSessionClient(WrapperSession):
         )
         self.session_cls = session_cls
 
+    # OVERRIDE
+    def load(self, *uids):
+        missing_uids = [str(uid) for uid in uids if uid not in self._registry]
+        if missing_uids:
+            self._engine.send(LOAD_COMMAND,
+                              missing_uids)
+        yield from super().load(*uids)
+
+    # OVERRIDE
+    def store(self, entity):
+        if self.root is None:
+            self.root = entity.uid
+            self._engine.send(INITIALIZE_COMMAND,
+                              json.dumps(serialize(entity)))
+        super().store(entity)
+
     def _send(self, command):
-        data = dict()
-        data["added"] = self._apply_added()
-        data["updated"] = self._apply_updated()
-        data["deleted"] = self._apply_deleted()
+        data = serialize_buffers(self)
         self._engine.send(command, data)
 
     def _receive(self, data):
-        # TODO update registry
-        # TODO reset buffers
-        pass
+        deserialize_buffers(self, data)
+        self._reset_buffers(changed_by="engine")
 
     def __getattr__(self, attr):
         if not attr.startswith("_") and \
@@ -71,18 +95,40 @@ class TransportSessionClient(WrapperSession):
             self.session_cls, self.host, self.port
         )
 
-    def _apply_added(self):
-        return [serialize(x) for x in self._added.values()]
 
-    def _apply_updated(self):
-        return [serialize(x) for x in self._updated.values()]
+def serialize_buffers(session_obj):
+    result = {
+        "added": [serialize(x) for x in session_obj._added.values()],
+        "updated": [serialize(x) for x in session_obj._updated.values()],
+        "deleted": [serialize(x) for x in session_obj._deleted.values()]
+    }
+    session_obj._reset_buffers(changed_by="user")
+    return json.dumps(result)
 
-    def _apply_deleted(self):
-        return [serialize(x) for x in self._deleted.values()]
+
+def deserialize_buffers(session_obj, data):
+    data = json.loads(data)
+    added = [deserialize(x, session_obj) for x in data["added"]]
+    updated = [deserialize(x, session_obj) for x in data["updated"]]
+    deleted = [deserialize(x, session_obj) for x in data["deleted"]]
+    session_obj._added = {x.uid: x for x in added}
+    session_obj._updated = {x.uid: x for x in updated}
+    session_obj._deleted = {x.uid: x for x in deleted}
 
 
-def update_registry(added, updated, deleted, session_obj):
-    pass
+def buffers_to_registry(session_obj):
+    for entity in session_obj._added.values():
+        entity.session = session_obj
+        session_obj.store(entity)
+    for entity in session_obj._updated.values():
+        old_entity = next(session_obj.load(entity.uid))
+        for attribute in entity.get_attributes(skip=["session", "uid"]):
+            setattr(old_entity, attribute, getattr(entity, attribute))
+        for rel, obj_dict in entity.items():
+            old_entity[rel] = obj_dict
+    for entity in session_obj._updated.values():
+        if entity.uid in session_obj._registry:
+            del session_obj._registry[entity.uid]
 
 
 def serialize(entity):
@@ -101,15 +147,16 @@ def serialize(entity):
             convert_from(uid, "UUID"): str(cuba_key.value)
             for uid, cuba_key in entity[rel].items()
         }
-    return json.dumps(result)
+    return result
 
 
-def deserialize(json_string):
-    json_obj = json.loads(json_string)
+def deserialize(json_obj, session_obj):
     cuba_key = CUBA(json_obj["cuba_key"])
     attributes = json_obj["attributes"]
     relationships = json_obj["relationships"]
     entity_cls = CUBA_MAPPING[cuba_key]
+    if "session" in inspect.getfullargspec(entity_cls.__init__).args:
+        attributes["session"] = session_obj
     entity = entity_cls(**attributes)
 
     for rel_cuba, obj_dict in relationships.items():

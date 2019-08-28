@@ -23,7 +23,9 @@ class CommunicationEngineServer():
 
     async def _serve(self, websocket, path):
         data = await websocket.recv()
+        print("Request %s: %s" % (path, data))
         response = self.handle_request(path[1:], data)
+        print("Response: %s" % response)
         await websocket.send(response)
 
 
@@ -38,8 +40,10 @@ class CommunicationEngineClient():
         event_loop.run_until_complete(self._request(path, data))
 
     async def _request(self, path, data):
+        print("Request %s: %s" % (path, data))
         uri = "ws://%s:%s/%s" % (self.host, self.port, path)
         async with websockets.connect(uri) as websocket:
             await websocket.send(data)
             response = await websocket.recv()
+            print("Response: %s" % response)
             self.handle_response(response)
