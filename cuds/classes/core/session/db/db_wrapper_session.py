@@ -26,8 +26,8 @@ class DbWrapperSession(WrapperSession):
                               "name": "STRING",
                               "cuba": "STRING"}}
 
-    def __init__(self, engine):
-        super().__init__(engine)
+    def __init__(self, engine, **kwargs):
+        super().__init__(engine, **kwargs)
         self._initialize_tables()
         self._load_first_level()
         self._reset_buffers(changed_by="engine")

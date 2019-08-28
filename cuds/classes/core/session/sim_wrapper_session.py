@@ -10,8 +10,8 @@ from .wrapper_session import WrapperSession
 
 
 class SimWrapperSession(WrapperSession):
-    def __init__(self, engine):
-        super().__init__(engine)
+    def __init__(self, engine, **kwargs):
+        super().__init__(engine, **kwargs)
         self._ran = False
 
     def run(self):

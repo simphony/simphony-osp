@@ -13,8 +13,8 @@ from cuds.classes.core.session.db.db_wrapper_session import DbWrapperSession
 
 class SqliteWrapperSession(DbWrapperSession):
 
-    def __init__(self, path):
-        super().__init__(engine=sqlite3.connect(path))
+    def __init__(self, path, **kwargs):
+        super().__init__(engine=sqlite3.connect(path), **kwargs)
 
     def __str__(self):
         return "Sqlite Wrapper Session"

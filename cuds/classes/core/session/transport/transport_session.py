@@ -7,6 +7,7 @@
 
 import json
 import inspect
+from cuds.classes.core.cuds import Cuds
 from cuds.metatools.ontology_datatypes import convert_from, convert_to
 from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
 from cuds.classes.generated.cuba import CUBA
@@ -19,44 +20,61 @@ LOAD_COMMAND = "_load"
 
 
 class TransportSessionServer():
-    def __init__(self, session_obj, host, port):
+    def __init__(self, session_cls, host, port):
         self.com_facility = CommunicationEngineServer(
             host, port, self.handle_request
         )
-        self.session_obj = session_obj
-        self.session_obj._forbid_buffer_reset_by = "engine"
+        self.session_cls = session_cls
+        self.session_obj = None
 
     def startListening(self):
         self.com_facility.startListening()
 
-    def handle_request(self, path, data):
+    def handle_request(self, path, data, user):
         if path == INITIALIZE_COMMAND:
-            assert self.session_obj.root is None, "Session has already been initialized!"
-            data = json.loads(data)
-            entity = deserialize(data, self.session_obj)
-            entity.session = self.session_obj
-            self.session_obj.store(entity)
-            del self.session_obj._added[entity.uid]
-            self.session_obj._updated[entity.uid] = entity
-            return serialize_buffers(self.session_obj)
+            return self._init_session(data, user)
         elif path == LOAD_COMMAND:
-            uids = json.loads(data)
-            uids = [convert_to(x, "UUID") for x in uids]
-            return {"added": list(self.session_obj.load(*uids))}
+            return self._load_from_session(data, user)
         elif not path.startswith("_") and \
                 hasattr(self.session_obj, path) and \
                 callable(getattr(self.session_obj, path)):
-            deserialize_buffers(self.session_obj, data)
-            getattr(self.session_obj, path)()
-            return serialize_buffers(self.session_obj)
+            return self._run_command(user, data, path)
+
+    def _run_command(self, user, data, command):
+        deserialize_buffers(self.session_obj, data)
+        getattr(self.session_obj, command)()
+        return serialize_buffers(self.session_obj)
+
+    def _load_from_session(self, data, user):
+        uids = json.loads(data)
+        uids = [convert_to(x, "UUID") for x in uids]
+        return {"added": list(self.session_obj.load(*uids))}
+
+    def _init_session(self, data, user):
+        data = json.loads(data)
+        if self.session_obj:
+            self.session_obj.close()
+        data["kwargs"]["forbid_buffer_reset_by"] = "engine"
+        self.session_obj = self.session_cls(*data["args"],
+                                            **data["kwargs"])
+
+        root = deserialize(data["root"])
+        root.session = self.session_obj
+        self.session_obj.store(root)
+        del self.session_obj._added[root.uid]
+        self.session_obj._updated[root.uid] = root
+        return serialize_buffers(self.session_obj)
 
 
 class TransportSessionClient(WrapperSession):
-    def __init__(self, session_cls, host, port):
+    def __init__(self, session_cls, host, port, *args, **kwargs):
         super().__init__(
-            engine=CommunicationEngineClient(host, port, self._receive)
+            engine=CommunicationEngineClient(host, port, self._receive),
+            forbid_buffer_reset_by=None
         )
         self.session_cls = session_cls
+        self.args = args
+        self.kwargs = kwargs
 
     # OVERRIDE
     def load(self, *uids):
@@ -69,9 +87,15 @@ class TransportSessionClient(WrapperSession):
     # OVERRIDE
     def store(self, entity):
         if self.root is None:
-            self.root = entity.uid
+            data = {
+                "args": self.args,
+                "kwargs": self.kwargs,
+                "root": serialize(entity)
+            }
+            super().store(entity)
             self._engine.send(INITIALIZE_COMMAND,
-                              json.dumps(serialize(entity)))
+                              json.dumps(data))
+            return
         super().store(entity)
 
     def _send(self, command):
@@ -108,12 +132,13 @@ def serialize_buffers(session_obj):
 
 def deserialize_buffers(session_obj, data):
     data = json.loads(data)
-    added = [deserialize(x, session_obj) for x in data["added"]]
-    updated = [deserialize(x, session_obj) for x in data["updated"]]
-    deleted = [deserialize(x, session_obj) for x in data["deleted"]]
+    added = [deserialize(x) for x in data["added"]]
+    updated = [deserialize(x) for x in data["updated"]]
+    deleted = [deserialize(x) for x in data["deleted"]]
     session_obj._added = {x.uid: x for x in added}
     session_obj._updated = {x.uid: x for x in updated}
     session_obj._deleted = {x.uid: x for x in deleted}
+    buffers_to_registry(session_obj)
 
 
 def buffers_to_registry(session_obj):
@@ -126,7 +151,7 @@ def buffers_to_registry(session_obj):
             setattr(old_entity, attribute, getattr(entity, attribute))
         for rel, obj_dict in entity.items():
             old_entity[rel] = obj_dict
-    for entity in session_obj._updated.values():
+    for entity in session_obj._deleted.values():
         if entity.uid in session_obj._registry:
             del session_obj._registry[entity.uid]
 
@@ -150,13 +175,13 @@ def serialize(entity):
     return result
 
 
-def deserialize(json_obj, session_obj):
+def deserialize(json_obj):
     cuba_key = CUBA(json_obj["cuba_key"])
     attributes = json_obj["attributes"]
     relationships = json_obj["relationships"]
     entity_cls = CUBA_MAPPING[cuba_key]
     if "session" in inspect.getfullargspec(entity_cls.__init__).args:
-        attributes["session"] = session_obj
+        attributes["session"] = Cuds.session
     entity = entity_cls(**attributes)
 
     for rel_cuba, obj_dict in relationships.items():
