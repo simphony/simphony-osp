@@ -5,11 +5,13 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+import sys
 import os
 import uuid
 import unittest2 as unittest
 import cuds.classes
 import sqlite3
+import multiprocessing
 from cuds.testing.test_sqlite_city import check_state
 from cuds.classes.core.session.db.sqlite_wrapper_session import \
     SqliteWrapperSession
@@ -20,14 +22,10 @@ HOST = "127.0.0.1"
 PORT = 8687
 TABLE = "transport.db"
 
-if __name__ == "__main__":
-    server = TransportSessionServer(SqliteWrapperSession, HOST, PORT)
-    server.startListening()
+SERVER_STARTED = False
 
 
 class TestTransportSqliteCity(unittest.TestCase):
-    def setUp(self):
-        pass
 
     def tearDown(self):
         with sqlite3.connect(TABLE) as conn:
@@ -41,6 +39,8 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_insert(self):
         """Test inserting in the sqlite table."""
+        if not SERVER_STARTED:
+            return
         c = cuds.classes.City(name="Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Georg")
@@ -56,6 +56,8 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_update(self):
         """Test updating the sqlite table."""
+        if not SERVER_STARTED:
+            return
         c = cuds.classes.City("Paris")
         p1 = cuds.classes.Citizen(name="Peter")
         c.add(p1, rel=cuds.classes.HasInhabitant)
@@ -75,6 +77,8 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_delete(self):
         """Test to delete cuds objects from the sqlite table"""
+        if not SERVER_STARTED:
+            return
         c = cuds.classes.City("Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Georg")
@@ -95,6 +99,8 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_init(self):
         """Test if first level of children are loaded automatically."""
+        if not SERVER_STARTED:
+            return
         c = cuds.classes.City("Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Anna")
@@ -124,6 +130,8 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_load_missing(self):
         """Test if missing objects are loaded automatically."""
+        if not SERVER_STARTED:
+            return
         c = cuds.classes.City("Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Anna")
@@ -137,7 +145,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             wrapper.add(c)
             session.commit()
 
-        with TransportSessionClient(SqliteWrapperSession, HOST, PORT) \
+        with TransportSessionClient(SqliteWrapperSession, HOST, PORT, TABLE) \
                 as session:
             wrapper = cuds.classes.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
@@ -164,3 +172,12 @@ class TestTransportSqliteCity(unittest.TestCase):
                 p2w[cuds.classes.IsInhabitantOf],
                 {c.uid: c.cuba_key}
             )
+
+
+if __name__ == "__main__":
+    if sys.argv[-1] == "server":
+        server = TransportSessionServer(SqliteWrapperSession, HOST, PORT)
+        server.startListening()
+    else:
+        SERVER_STARTED = True
+        unittest.main()

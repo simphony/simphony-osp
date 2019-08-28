@@ -30,27 +30,34 @@ class TransportSessionServer():
     def startListening(self):
         self.com_facility.startListening()
 
-    def handle_request(self, path, data, user):
+    def handle_request(self, path, data):
         if path == INITIALIZE_COMMAND:
-            return self._init_session(data, user)
+            return self._init_session(data)
         elif path == LOAD_COMMAND:
-            return self._load_from_session(data, user)
+            return self._load_from_session(data)
         elif not path.startswith("_") and \
                 hasattr(self.session_obj, path) and \
                 callable(getattr(self.session_obj, path)):
-            return self._run_command(user, data, path)
+            try:
+                return self._run_command(data, path)
+            except Exception as e:
+                return "ERROR: " + str(e)
 
-    def _run_command(self, user, data, command):
+    def _run_command(self, data, command):
         deserialize_buffers(self.session_obj, data)
         getattr(self.session_obj, command)()
         return serialize_buffers(self.session_obj)
 
-    def _load_from_session(self, data, user):
+    def _load_from_session(self, data):
         uids = json.loads(data)
         uids = [convert_to(x, "UUID") for x in uids]
-        return {"added": list(self.session_obj.load(*uids))}
+        entities = self.session_obj.load(*uids)
+        serialized = [serialize(x) for x in entities]
+        return json.dumps({"added": serialized,
+                           "deleted": [],
+                           "updated": []})
 
-    def _init_session(self, data, user):
+    def _init_session(self, data):
         data = json.loads(data)
         if self.session_obj:
             self.session_obj.close()
@@ -81,7 +88,7 @@ class TransportSessionClient(WrapperSession):
         missing_uids = [str(uid) for uid in uids if uid not in self._registry]
         if missing_uids:
             self._engine.send(LOAD_COMMAND,
-                              missing_uids)
+                              json.dumps(missing_uids))
         yield from super().load(*uids)
 
     # OVERRIDE
@@ -103,6 +110,8 @@ class TransportSessionClient(WrapperSession):
         self._engine.send(command, data)
 
     def _receive(self, data):
+        if data.startswith("ERROR: "):
+            raise RuntimeError("Error on Server side: %s" % data[7:])
         deserialize_buffers(self, data)
         self._reset_buffers(changed_by="engine")
 

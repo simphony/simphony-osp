@@ -4,7 +4,7 @@ import cuds.classes
 import unittest2 as unittest
 
 
-class TestSimWrapper(unittest.TestCase):
+class TestSimWrapperCity(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -39,8 +39,8 @@ class TestSimWrapper(unittest.TestCase):
 
 
 class DummySimSession(SimWrapperSession):
-    def __init__(self):
-        super().__init__(engine=DummySyntacticLayer())
+    def __init__(self, **kwargs):
+        super().__init__(engine=DummySyntacticLayer(), **kwargs)
         self._person_map = list()
 
     def __str__(self):

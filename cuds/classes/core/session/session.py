@@ -26,6 +26,9 @@ class Session(ABC):
     def __exit__(self, *args):
         pass
 
+    def close(self):
+        pass
+
     @abstractmethod
     def __str__(self):
         pass

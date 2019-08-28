@@ -76,6 +76,7 @@ class DbWrapperSession(WrapperSession):
                 entity = next(missing)
                 if entity is not None:
                     self._uid_set.add(entity.uid)
+                    del self._added[entity.uid]
                 yield entity
 
     @abstractmethod
