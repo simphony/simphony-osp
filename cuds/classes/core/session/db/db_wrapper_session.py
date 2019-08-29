@@ -33,12 +33,6 @@ class DbWrapperSession(WrapperSession):
         self._reset_buffers(changed_by="engine")
         self.root = None
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        self.close()
-
     def commit(self):
         """Commit the changes in the buffers to the database."""
         self._check_cardinalities()

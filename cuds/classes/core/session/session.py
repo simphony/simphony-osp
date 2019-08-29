@@ -24,7 +24,7 @@ class Session(ABC):
         return self
 
     def __exit__(self, *args):
-        pass
+        self.close()
 
     def close(self):
         pass

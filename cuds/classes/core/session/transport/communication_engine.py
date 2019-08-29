@@ -10,40 +10,110 @@ import websockets
 
 
 class CommunicationEngineServer():
-    def __init__(self, host, port, handle_request):
+    """The communication engine manages the connection between the remote and
+    local side of the transport layer. The server will be executed on the
+    remote side."""
+    def __init__(self, host, port, handle_request, handle_disconnect):
+        """Construct the communication engine's server.
+
+        :param host: The hostname
+        :type host: str
+        :param port: The port
+        :type port: int
+        :param handle_request: Handles the requests of the user.
+        :type handle_request: Callable[str(command), str(data), Hashable(user)]
+        :param handle_disconnect: Gets called when a user disconnects.
+        :type handle_disconnect: Callable[Hashable(user)]
+        """
         self.host = host
         self.port = port
         self.handle_request = handle_request
+        self.handle_disconnect = handle_disconnect
 
     def startListening(self):
+        """Start the server on given host + port."""
         event_loop = asyncio.get_event_loop()
         start_server = websockets.serve(self._serve, self.host, self.port)
         event_loop.run_until_complete(start_server)
         event_loop.run_forever()
 
-    async def _serve(self, websocket, path):
-        data = await websocket.recv()
-        print("Request %s: %s" % (path, data))
-        response = self.handle_request(path[1:], data)
-        print("Response: %s" % response)
-        await websocket.send(response)
+    async def _serve(self, websocket, _):
+        """Wait for requests, compute responses and serve them to the user.
+
+        :param websocket: The websockets object.
+        :type websocket: Websocket
+        :param _: The path of the URI (will be ignored).
+        :type _: str
+        """
+        try:
+            async for data in websocket:
+                command = data.split(":")[0]
+                data = data[len(command) + 1:]
+                print("Request %s: %s from %s" %
+                      (command, data, hash(websocket)))
+                response = self.handle_request(command, data, websocket)
+                print("Response: %s" % response)
+                await websocket.send(response)
+        finally:
+            print("User %s disconnected!" % hash(websocket))
+            self.handle_disconnect(websocket)
 
 
 class CommunicationEngineClient():
+    """The communication engine manages the connection between the remote and
+    local side of the transport layer. The client will be executed on the
+    local side."""
+
     def __init__(self, host, port, handle_response):
+        """Construct the communication engine's client.
+
+        :param host: The hostname.
+        :type host: str
+        :param port: The port.
+        :type port: int
+        :param handle_response: Handles the responses of the server.
+        :type handle_response: Callable[str(response)]
+        """
         self.host = host
         self.port = port
         self.handle_response = handle_response
+        self.websocket = None
 
-    def send(self, path, data):
+    def send(self, command, data):
+        """Send a request to the server
+
+        :param command: The command to execute on the server
+        :type command: str
+        :param data: The data to send to the server
+        :type data: str
+        """
         event_loop = asyncio.get_event_loop()
-        event_loop.run_until_complete(self._request(path, data))
+        event_loop.run_until_complete(self._request(command, data))
 
-    async def _request(self, path, data):
-        print("Request %s: %s" % (path, data))
-        uri = "ws://%s:%s/%s" % (self.host, self.port, path)
-        async with websockets.connect(uri) as websocket:
-            await websocket.send(data)
-            response = await websocket.recv()
-            print("Response: %s" % response)
-            self.handle_response(response)
+    def close(self):
+        """Close the connection to the server"""
+        event_loop = asyncio.get_event_loop()
+        event_loop.run_until_complete(self._close())
+
+    async def _close(self):
+        """Close the connection to the server."""
+        if self.websocket is not None:
+            await self.websocket.close()
+            self.websocket = None
+
+    async def _request(self, command, data):
+        """Send a request to the server.
+
+        :param command: The command to execute on the server.
+        :type command: str
+        :param data: The data to send to the server.
+        :type data: str
+        """
+        print("Request %s: %s" % (command, data))
+        if self.websocket is None:
+            uri = "ws://%s:%s" % (self.host, self.port)
+            self.websocket = await websockets.connect(uri)
+        await self.websocket.send(command + ":" + data)
+        response = await self.websocket.recv()
+        print("Response: %s" % response)
+        self.handle_response(response)

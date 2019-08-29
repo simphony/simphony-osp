@@ -16,7 +16,7 @@ import unittest2 as unittest
 import multiprocessing
 
 HOST = "127.0.0.1"
-PORT = 8688
+PORT = 8687
 TABLE = "transport.db"
 
 SERVER_STARTED = False

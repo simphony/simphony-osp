@@ -149,7 +149,7 @@ def check_state(test_case, c, p1, p2, table="test.db"):
     with sqlite3.connect(table) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT uid, cuba, first_level FROM %s;"
-                        % SqliteWrapperSession.master_table)
+                       % SqliteWrapperSession.master_table)
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
             (str(c.uid), c.cuba_key.value, 1),
@@ -158,7 +158,7 @@ def check_state(test_case, c, p1, p2, table="test.db"):
         })
 
         cursor.execute("SELECT origin, target, name, cuba FROM %s;"
-                        % SqliteWrapperSession.relationships_table)
+                       % SqliteWrapperSession.relationships_table)
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
             (str(c.uid), str(p1.uid), "HAS_INHABITANT", "CITIZEN"),
