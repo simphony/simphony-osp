@@ -282,7 +282,7 @@ def buffers_to_registry(session_obj):
 
     :param session_obj: Push the buffers of this session object to the
         registry of this session object.
-    :type session_obj: [type]
+    :type session_obj: Type[Session]
     """
     for entity in session_obj._added.values():
         entity.session = session_obj

@@ -48,7 +48,7 @@ class Cuds(dict):
         """
         super().__init__()
 
-        self.__uid = convert_to(uid, "UUID") if uid else uuid.uuid4()
+        self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         # store the hierarchical order of the relationships
         self._relationship_tree = RelationshipTree(self.ROOT_REL)
         self.session.store(self)
@@ -92,8 +92,10 @@ class Cuds(dict):
         """
         if inspect.isclass(key) and issubclass(key, self.ROOT_REL) \
                 and isinstance(value, dict):
+            for _, entity_cuba in value.items():
+                self._check_valid_add(entity_cuba, key)
             # Any changes to the dict should be sent to the session
-            super().__setitem__(key, NotifyDict(value, cuds=self))
+            super().__setitem__(key, NotifyDict(value, cuds=self, rel=key))
             self._relationship_tree.add(key)
             self.session._notify_update(self)
         else:
@@ -554,8 +556,6 @@ class Cuds(dict):
             object to add has already been added previously.
         :type error_if_already_there: bool
         """
-        self._check_valid_add(entity, rel)
-
         # First element, create set
         if rel not in self.keys():
             self.__setitem__(rel, {entity.uid: entity.cuba_key})
@@ -566,7 +566,7 @@ class Cuds(dict):
             message = '{!r} is already in the container'
             raise ValueError(message.format(entity))
 
-    def _check_valid_add(self, entity, rel):
+    def _check_valid_add(self, entity_cuba, rel):
         """Check if adding should be allowed.
 
         :param entity: The entity to add.
@@ -580,13 +580,14 @@ class Cuds(dict):
                 self.supported_relationships.items():
             if issubclass(rel, CUBA_MAPPING[supported_relationships]):
                 for supported_entity in supported_entities:
-                    if isinstance(entity, CUBA_MAPPING[supported_entity]):
+                    if issubclass(CUBA_MAPPING[entity_cuba],
+                                  CUBA_MAPPING[supported_entity]):
                         return
 
         raise ValueError(
             ("Cannot add %s to %s with relationship %s: "
                 + "Invalid relationship or object. Check the ontology!")
-            % (entity, self, rel))
+            % (entity_cuba, self, rel))
 
     def _add_inverse(self, entity, rel):
         """
@@ -790,11 +791,13 @@ class NotifyDict(dict):
     any update occurs. Used to map uids to cuba_keys
     for each relationship.
     """
-    def __init__(self, *args, cuds=None):
+    def __init__(self, *args, cuds, rel):
         self.cuds = cuds
+        self.rel = rel
         super().__init__(*args)
 
     def __setitem__(self, key, value):
+        self.cuds._check_valid_add(value, self.rel)
         super().__setitem__(key, value)
         self.cuds.session._notify_update(self.cuds)
 

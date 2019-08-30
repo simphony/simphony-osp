@@ -75,7 +75,7 @@ class TestSessionCity(unittest.TestCase):
 
     def test_buffers(self):
         """test if the buffers work correctly"""
-        session = TestWrapperSession(engine=None)
+        session = TestWrapperSession()
         self.assertEqual(session._added, dict())
         self.assertEqual(session._updated, dict())
         self.assertEqual(session._deleted, dict())
@@ -155,7 +155,7 @@ class TestSessionCity(unittest.TestCase):
         c1.add(p, rel=cuds.classes.HasInhabitant)
         c2.add(p, rel=cuds.classes.HasInhabitant)
 
-        with TestWrapperSession(engine=None) as session:
+        with TestWrapperSession() as session:
             wrapper = cuds.classes.CityWrapper(session=session)
             wrapper.add(c1, c2)
             self.assertRaises(ValueError, session._check_cardinalities)
@@ -171,7 +171,7 @@ class TestSessionCity(unittest.TestCase):
         p.add(c1, rel=cuds.classes.IsMajorOf)
         p.add(c2, rel=cuds.classes.WorksIn)
         p.add(c1, rel=cuds.classes.IsInhabitantOf)
-        with TestWrapperSession(engine=None) as session:
+        with TestWrapperSession() as session:
             wrapper = cuds.classes.CityWrapper(session=session)
             wrapper.add(c1, c2)
             self.assertRaises(ValueError, session._check_cardinalities)
@@ -199,6 +199,9 @@ class TestSession(Session):
 
 
 class TestWrapperSession(WrapperSession):
+    def __init__(self):
+        super().__init__(None)
+
     def __str__(self):
         return ""
 
