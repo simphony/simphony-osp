@@ -14,7 +14,7 @@ from cuds.testing.test_session_city import TestWrapperSession
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.core.session.transport.transport_session import (
     to_cuds, serializable, buffers_to_registry, deserialize_buffers,
-    serialize_buffers
+    serialize_buffers, TransportSessionServer, TransportSessionClient
 )
 
 CUDS_DICT = {
@@ -47,10 +47,18 @@ SERIALIZED_BUFFERS = (
     '"attributes": {"name": "Freiburg", '
     '"uid": "00000000-0000-0000-0000-000000000001"}, '
     '"relationships": {}}], '
-    '"additional": 2}')
+    '"args": [42], '
+    '"kwargs": {"name": "London"}}')
+
+SERIALIZED_BUFFERS2 = (
+    '{"added": [{'
+    '"cuba_key": "CITY", '
+    '"attributes": {"name": "London", "uid": "00000000-0000-0000-0000-00000000002a"}, '
+    '"relationships": {}}], "updated": [], "deleted": []}'
+)
 
 
-class TestCommunicationEngine(unittest.TestCase):
+class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
     def testToCuds(self):
         """Test transformation from normal dictionary to cuds object"""
@@ -127,7 +135,8 @@ class TestCommunicationEngine(unittest.TestCase):
             s1._reset_buffers(changed_by="user")
 
             additional = deserialize_buffers(s1, SERIALIZED_BUFFERS)
-            self.assertEqual(additional, {"additional": 2})
+            self.assertEqual(additional, {"args": [42],
+                                          "kwargs": {"name": "London"}})
             self.assertEqual(set(s1._registry.keys()),
                              {uuid.UUID(int=0), uuid.UUID(int=2)})
             cn = ws1.get(uuid.UUID(int=2))
@@ -153,8 +162,83 @@ class TestCommunicationEngine(unittest.TestCase):
             self.maxDiff = 2000
             self.assertEqual(
                 SERIALIZED_BUFFERS,
-                serialize_buffers(s1, additional_items={"additional": 2})
+                serialize_buffers(
+                    s1,
+                    additional_items={"args": [42],
+                                      "kwargs": {"name": "London"}})
             )
+
+
+class TestCommunicationEngineClient(unittest.TestCase):
+    def test_load(self):
+        pass
+
+    def test_store(self):
+        pass
+
+    def test_send(self):
+        pass
+
+    def test_receive(self):
+        pass
+
+    def test_getattr(self):
+        pass
+
+
+class TestCommunicationEngineServer(unittest.TestCase):
+    def test_handle_disconnect(self):
+        """Test the behavior when a user disconnects. """
+        server = TransportSessionServer(TestWrapperSession, None, None)
+        with TestWrapperSession() as s1:
+            closed = False
+
+            def close():
+                nonlocal closed
+                closed = True
+            s1.close = close
+            server.session_objs = {"1": s1, "2": 123}
+            server.handle_disconnect("1")
+            self.assertTrue(closed)
+            self.assertEqual(server.session_objs, {"2": 123})
+
+    def test_run_command(self):
+        correct = False
+
+        # command to be executed
+        def command(s, uid, name):
+            nonlocal correct
+            correct = set(s._added.keys()) == {uuid.UUID(int=2)} and \
+                s._added[uuid.UUID(int=2)].name == "Paris"
+            s._reset_buffers(changed_by="user")
+            s._added[uuid.UUID(int=uid)] = cuds.classes.City(name=name,
+                                                             uid=uid)
+            s._reset_buffers(changed_by="engine")
+
+        TestWrapperSession.command = command
+        server = TransportSessionServer(TestWrapperSession, None, None)
+        with TestWrapperSession(forbid_buffer_reset_by="engine") as s1:
+
+            # initialize buffers
+            ws1 = cuds.classes.CityWrapper(session=s1, uid=0)
+            c = cuds.classes.City("Freiburg", uid=1)
+            ws1.add(c)
+            s1._reset_buffers(changed_by="user")
+
+            # test the method
+            server.session_objs = {"1": s1, "2": 123}
+            result = server._run_command(SERIALIZED_BUFFERS, "command", "1")
+            self.assertTrue(correct)
+            self.assertEqual(result, SERIALIZED_BUFFERS2)
+
+    def test_load_from_session(self):
+        pass
+
+    def test_init_session(self):
+        pass
+
+    def test_handle_request(self):
+        pass
 
 
 if __name__ == '__main__':

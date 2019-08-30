@@ -199,8 +199,8 @@ class TestSession(Session):
 
 
 class TestWrapperSession(WrapperSession):
-    def __init__(self):
-        super().__init__(None)
+    def __init__(self, *args, **kwargs):
+        super().__init__(None, *args, **kwargs)
 
     def __str__(self):
         return ""
