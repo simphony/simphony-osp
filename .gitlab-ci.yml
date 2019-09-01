@@ -1,4 +1,4 @@
-image: "registry.gitlab.cc-asp.fraunhofer.de:4567/marketplace/osp-core/python3.7"
+image: "registry.gitlab.cc-asp.fraunhofer.de:4567/marketplace/osp-core/python3.7:latest"
 
 stages:
   - build
