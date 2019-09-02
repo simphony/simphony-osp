@@ -466,6 +466,12 @@ class TestAPICity(unittest.TestCase):
         self.assertRaises(ValueError, c.add, p2, rel=cuds.classes.HasWorker)
         self.assertRaises(ValueError, c.add, p3, rel=cuds.classes.HasWorker)
 
+        Cuds.CUDS_SETTINGS["check_relationship_supported"] = False
+        c.add(p1, rel=cuds.classes.HasWorker)
+        c.add(p2, rel=cuds.classes.HasWorker)
+        c.add(p3, rel=cuds.classes.HasWorker)
+        Cuds.CUDS_SETTINGS["check_relationship_supported"] = True
+
     def test_recursive_store(self):
         """Check if _recursive_store correctly stores cuds recursively,
         correcting dangling and one-way connections.

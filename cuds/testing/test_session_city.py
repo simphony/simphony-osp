@@ -7,6 +7,7 @@
 
 import unittest2 as unittest
 import cuds.classes
+from cuds.classes import Cuds
 from cuds.classes.core.session.session import Session
 from cuds.classes.core.session.wrapper_session import WrapperSession
 from cuds.classes import ActiveRelationship
@@ -159,6 +160,9 @@ class TestSessionCity(unittest.TestCase):
             wrapper = cuds.classes.CityWrapper(session=session)
             wrapper.add(c1, c2)
             self.assertRaises(ValueError, session._check_cardinalities)
+            Cuds.CUDS_SETTINGS["check_cardinalities"] = False
+            session._check_cardinalities()
+            Cuds.CUDS_SETTINGS["check_cardinalities"] = True
             c1w = wrapper.get(c1.uid)
             c1w.remove(p.uid)
             session._check_cardinalities()
@@ -166,6 +170,10 @@ class TestSessionCity(unittest.TestCase):
             wrapper2 = cuds.classes.CityWrapper(session=session)
             wrapper2.add(c1w)
             self.assertRaises(ValueError, session._check_cardinalities)
+            Cuds.CUDS_SETTINGS["check_cardinalities"] = False
+            session._check_cardinalities()
+            Cuds.CUDS_SETTINGS["check_cardinalities"] = True
+
 
         p.remove(rel=cuds.classes.IsInhabitantOf)
         p.add(c1, rel=cuds.classes.IsMajorOf)
@@ -175,6 +183,9 @@ class TestSessionCity(unittest.TestCase):
             wrapper = cuds.classes.CityWrapper(session=session)
             wrapper.add(c1, c2)
             self.assertRaises(ValueError, session._check_cardinalities)
+            Cuds.CUDS_SETTINGS["check_cardinalities"] = False
+            session._check_cardinalities()
+            Cuds.CUDS_SETTINGS["check_cardinalities"] = True
             c1w = wrapper.get(c1.uid)
             c1w.remove(p.uid, rel=cuds.classes.HasMajor)
             session._check_cardinalities()
