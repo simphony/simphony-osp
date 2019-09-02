@@ -5,7 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-from cuds.classes.core.settings import get_parsed_settings
+from cuds.ontology.settings import get_parsed_settings
 import yaml
 
 

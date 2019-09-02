@@ -14,7 +14,7 @@ from cuds.metatools.ontology_datatypes import convert_to
 from cuds.classes.core.session.core_session import CoreSession
 from cuds.classes.core.relationship_tree import RelationshipTree
 from cuds.utils import check_arguments
-from cuds.classes.core.settings import DEFAULT as DEFAULT_CUDS_SETTINGS
+from cuds.ontology.settings import DEFAULT as DEFAULT_CUDS_SETTINGS
 from cuds.classes.generated.relationship import Relationship
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.generated.active_relationship import ActiveRelationship
