@@ -33,7 +33,9 @@ class Parser:
         with open(self._filename, 'r') as stream:
             try:
                 yaml_doc = yaml.safe_load(stream)
-                self._settings = yaml_doc[self.SETTINGS_KEY]
+                self._settings = dict()
+                if self.SETTINGS_KEY in yaml_doc:
+                    self._settings = yaml_doc[self.SETTINGS_KEY]
                 self._ontology = yaml_doc[self.ONTOLOGY_KEY]
                 self._entities = frozenset(self._ontology.keys())
                 self._add_missing_inverse_relationships()
