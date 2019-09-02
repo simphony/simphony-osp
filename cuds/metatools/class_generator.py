@@ -120,7 +120,7 @@ class ClassGenerator(object):
         settings = self._parser.get_parsed_settings()
 
         with open(init_filename, 'a+') as f:
-            f.write("\nCUDS_SETTINGS = %s" % settings)
+            f.write("\nPARSED_SETTINGS = %s" % settings)
             f.close()
 
     def _generate_class_file(self, original_class):

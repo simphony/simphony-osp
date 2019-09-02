@@ -14,6 +14,7 @@ from cuds.metatools.ontology_datatypes import convert_to
 from cuds.classes.core.session.core_session import CoreSession
 from cuds.classes.core.relationship_tree import RelationshipTree
 from cuds.utils import check_arguments
+from cuds.classes.core.settings import DEFAULT as DEFAULT_CUDS_SETTINGS
 from cuds.classes.generated.relationship import Relationship
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.generated.active_relationship import ActiveRelationship
@@ -37,10 +38,7 @@ class Cuds(dict):
     cuba_key = None
     supported_relationships = dict()
     session = CoreSession()
-    CUDS_SETTINGS = {
-        'check_relationship_supported': False,
-        'check_cardinalities': True
-    }
+    CUDS_SETTINGS = deepcopy(DEFAULT_CUDS_SETTINGS)
 
     def __init__(self, uid: uuid.UUID = None):
         """
@@ -51,8 +49,8 @@ class Cuds(dict):
         :type uid: UUID
         """
         super().__init__()
-        from cuds.classes.generated import CUDS_SETTINGS
-        Cuds.CUDS_SETTINGS.update(CUDS_SETTINGS)
+        from cuds.classes.generated import PARSED_SETTINGS
+        Cuds.CUDS_SETTINGS.update(PARSED_SETTINGS)
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         # store the hierarchical order of the relationships
         self._relationship_tree = RelationshipTree(self.ROOT_REL)

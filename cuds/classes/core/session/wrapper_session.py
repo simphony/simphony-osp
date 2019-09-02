@@ -186,8 +186,9 @@ class WrapperSession(Session):
         consider_relationships = set()
         for rel, objects in cuds.supported_relationships.items():
             for obj, options in objects.items():
-                cardinality = options["cardinality"] \
-                    if options and "cardinality" in options else "*"
+                cardinality = Cuds.CUDS_SETTINGS["default_cardinality"]
+                if options and "cardinality" in options:
+                    cardinality = options["cardinality"]
                 cardinality = WrapperSession._parse_cardinality(cardinality)
                 rel_cls = CUBA_MAPPING[rel]
                 obj_cls = CUBA_MAPPING[obj]

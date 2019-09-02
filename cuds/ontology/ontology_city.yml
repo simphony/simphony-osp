@@ -1,9 +1,7 @@
 ---
 VERSION: "0.0.2"
 
-CUDS_SETTINGS:
-  check_relationship_supported: true
-  check_cardinalities: true
+ONTOLOGY_MODE: "strict"
 
 CUDS_ONTOLOGY:
 

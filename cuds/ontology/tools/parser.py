@@ -5,6 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+from cuds.classes.core.settings import get_parsed_settings
 import yaml
 
 
@@ -24,6 +25,7 @@ class Parser:
         """
         self._filename = filename
         self._ontology = {}
+        self._parsed_settings = {}
         self.parse()
 
     def parse(self):
@@ -33,9 +35,7 @@ class Parser:
         with open(self._filename, 'r') as stream:
             try:
                 yaml_doc = yaml.safe_load(stream)
-                self._settings = dict()
-                if self.SETTINGS_KEY in yaml_doc:
-                    self._settings = yaml_doc[self.SETTINGS_KEY]
+                self._parsed_settings = get_parsed_settings(yaml_doc)
                 self._ontology = yaml_doc[self.ONTOLOGY_KEY]
                 self._entities = frozenset(self._ontology.keys())
                 self._add_missing_inverse_relationships()
@@ -43,7 +43,7 @@ class Parser:
                 print(exc)
 
     def get_parsed_settings(self):
-        return self._settings
+        return self._parsed_settings
 
     def _add_missing_inverse_relationships(self):
         """
