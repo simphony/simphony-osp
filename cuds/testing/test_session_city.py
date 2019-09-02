@@ -174,7 +174,6 @@ class TestSessionCity(unittest.TestCase):
             session._check_cardinalities()
             Cuds.CUDS_SETTINGS["check_cardinalities"] = True
 
-
         p.remove(rel=cuds.classes.IsInhabitantOf)
         p.add(c1, rel=cuds.classes.IsMajorOf)
         p.add(c2, rel=cuds.classes.WorksIn)
