@@ -5,6 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+from cuds.classes.core.cuds import Cuds
 from abc import abstractmethod
 from .session import Session
 
@@ -98,32 +99,46 @@ class WrapperSession(Session):
     def _check_cardinalities(self):
         """Check if the cardinalities specified in the ontology
         are satisfied for the added and updated cuds."""
-        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
+        if not Cuds.CUDS_SETTINGS["check_cardinalities"]:
+            return
+
         for cuds in set(self._added.values()) | set(self._updated.values()):
-            ontology_cardinalities, consider_relationships = \
-                self._get_ontology_cardinalities(cuds)
+            self._check_cuds_cardinalities(cuds)
 
-            # Count the observed cardinalities
-            observed_cardinalities = {k: 0
-                                      for k in ontology_cardinalities.keys()}
-            for rel in consider_relationships:
-                for _, cuba in cuds[rel].items():
-                    for r, o in ontology_cardinalities.keys():
-                        if issubclass(rel, r) \
-                                and issubclass(CUBA_MAPPING[cuba], o):
-                            observed_cardinalities[r, o] += 1
+    @staticmethod
+    def _check_cuds_cardinalities(cuds):
+        """Check the cardinality of a single cuds.
 
-            # Check if observed cardinalities are consistent
-            for r, o in ontology_cardinalities.keys():
-                if not (ontology_cardinalities[r, o][0]
-                        <= observed_cardinalities[r, o]
-                        <= ontology_cardinalities[r, o][1]):
-                    raise ValueError(
-                        ("The number of %s connected to %s via %s"
-                         + " should be in range %s, but %s given.")
-                        % (o, cuds, r,
-                           list(ontology_cardinalities[r, o]),
-                           observed_cardinalities[r, o]))
+        :param cuds: The cuds to check-
+        :type cuds: Cuds
+        :raises ValueError: The cuds did not satisfy the cardinalities
+            given by the ontology
+        """
+        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
+        ontology_cardinalities, consider_relationships = \
+            WrapperSession._get_ontology_cardinalities(cuds)
+
+        # Count the observed cardinalities
+        observed_cardinalities = {k: 0
+                                    for k in ontology_cardinalities.keys()}
+        for rel in consider_relationships:
+            for _, cuba in cuds[rel].items():
+                for r, o in ontology_cardinalities.keys():
+                    if issubclass(rel, r) \
+                            and issubclass(CUBA_MAPPING[cuba], o):
+                        observed_cardinalities[r, o] += 1
+
+        # Check if observed cardinalities are consistent
+        for r, o in ontology_cardinalities.keys():
+            if not (ontology_cardinalities[r, o][0]
+                    <= observed_cardinalities[r, o]
+                    <= ontology_cardinalities[r, o][1]):
+                raise ValueError(
+                    ("The number of %s connected to %s via %s"
+                        + " should be in range %s, but %s given.")
+                    % (o, cuds, r,
+                        list(ontology_cardinalities[r, o]),
+                        observed_cardinalities[r, o]))
 
     @staticmethod
     def _parse_cardinality(cardinality):

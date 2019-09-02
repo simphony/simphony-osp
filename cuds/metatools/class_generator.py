@@ -68,7 +68,7 @@ class ClassGenerator(object):
             if entity not in self._not_classes:
                 print("Generating {}".format(entity))
                 self._generate_class_file(entity)
-        self._add_attributes_to_init_file()
+        self._add_settings_to_init_file()
 
     def _generate_init_file(self):
         """
@@ -113,19 +113,14 @@ class ClassGenerator(object):
             f.write(file_content)
             f.close()
 
-    def _add_attributes_to_init_file(self):
-        """
-        Adds a set with all the allowed attributes for cuds entities
-        at the end of the init file
+    def _add_settings_to_init_file(self):
+        """ Add the parsed settings to the init file
         """
         init_filename = os.path.join(self._output_folder, "__init__.py")
-        attributes = set(["cuba_key", "uid"]).union(self._not_classes.keys())
-
-        attributes_string = str(attributes).lower() + "\n"
-        attributes_string = self._text_wrapper.fill(attributes_string)
+        settings = self._parser.get_parsed_settings()
 
         with open(init_filename, 'a+') as f:
-            f.write("\ncuds_attributes = " + attributes_string)
+            f.write("\nCUDS_SETTINGS = %s" % settings)
             f.close()
 
     def _generate_class_file(self, original_class):

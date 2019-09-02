@@ -37,6 +37,10 @@ class Cuds(dict):
     cuba_key = None
     supported_relationships = dict()
     session = CoreSession()
+    CUDS_SETTINGS = {
+        'check_relationship_supported': False,
+        'check_cardinalities': True
+    }
 
     def __init__(self, uid: uuid.UUID = None):
         """
@@ -47,7 +51,8 @@ class Cuds(dict):
         :type uid: UUID
         """
         super().__init__()
-
+        from cuds.classes.generated import CUDS_SETTINGS
+        Cuds.CUDS_SETTINGS.update(CUDS_SETTINGS)
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         # store the hierarchical order of the relationships
         self._relationship_tree = RelationshipTree(self.ROOT_REL)
@@ -575,6 +580,9 @@ class Cuds(dict):
         :type rel: Relationship
         :raises ValueError: Add is illegal.
         """
+        if not Cuds.CUDS_SETTINGS["check_relationship_supported"]:
+            return
+
         from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         for supported_relationships, supported_entities in \
                 self.supported_relationships.items():

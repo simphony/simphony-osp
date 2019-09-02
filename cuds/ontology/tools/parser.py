@@ -14,6 +14,7 @@ class Parser:
     contained.
     """
     ONTOLOGY_KEY = 'CUDS_ONTOLOGY'
+    SETTINGS_KEY = 'CUDS_SETTINGS'
 
     def __init__(self, filename):
         """
@@ -31,11 +32,16 @@ class Parser:
         """
         with open(self._filename, 'r') as stream:
             try:
-                self._ontology = yaml.safe_load(stream)[self.ONTOLOGY_KEY]
+                yaml_doc = yaml.safe_load(stream)
+                self._settings = yaml_doc[self.SETTINGS_KEY]
+                self._ontology = yaml_doc[self.ONTOLOGY_KEY]
                 self._entities = frozenset(self._ontology.keys())
                 self._add_missing_inverse_relationships()
             except yaml.YAMLError as exc:
                 print(exc)
+
+    def get_parsed_settings(self):
+        return self._settings
 
     def _add_missing_inverse_relationships(self):
         """
