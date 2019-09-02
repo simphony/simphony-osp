@@ -106,8 +106,8 @@ class TestTransportSqliteCity(unittest.TestCase):
         p2 = cuds.classes.Citizen(name="Anna")
         p3 = cuds.classes.Citizen(name="Julia")
         c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
-        p1.add(p3, rel=cuds.classes.IsParentOf)
-        p2.add(p3, rel=cuds.classes.IsParentOf)
+        p1.add(p3, rel=cuds.classes.HasChild)
+        p2.add(p3, rel=cuds.classes.HasChild)
 
         with SqliteWrapperSession(TABLE) as session:
             wrapper = cuds.classes.CityWrapper(session=session)
@@ -137,8 +137,8 @@ class TestTransportSqliteCity(unittest.TestCase):
         p2 = cuds.classes.Citizen(name="Anna")
         p3 = cuds.classes.Citizen(name="Julia")
         c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
-        p1.add(p3, rel=cuds.classes.IsParentOf)
-        p2.add(p3, rel=cuds.classes.IsParentOf)
+        p1.add(p3, rel=cuds.classes.HasChild)
+        p2.add(p3, rel=cuds.classes.HasChild)
 
         with SqliteWrapperSession(TABLE) as session:
             wrapper = cuds.classes.CityWrapper(session=session)
@@ -165,7 +165,7 @@ class TestTransportSqliteCity(unittest.TestCase):
                 {p1.uid: p1.cuba_key, p2.uid: p2.cuba_key}
             )
             self.assertEqual(
-                p2w[cuds.classes.IsParentOf],
+                p2w[cuds.classes.HasChild],
                 {p3.uid: p3.cuba_key}
             )
             self.assertEqual(

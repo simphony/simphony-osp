@@ -98,9 +98,9 @@ class TestAPICity(unittest.TestCase):
         p3 = cuds.classes.Citizen()
         p4 = cuds.classes.Citizen()
         c.add(p2, p3, rel=cuds.classes.HasInhabitant)
-        p1.add(p2, rel=cuds.classes.IsParentOf)
-        p3.add(p2, rel=cuds.classes.IsParentOf)
-        p2.add(p4, rel=cuds.classes.IsParentOf)
+        p1.add(p2, rel=cuds.classes.HasChild)
+        p3.add(p2, rel=cuds.classes.HasChild)
+        p2.add(p4, rel=cuds.classes.HasChild)
 
         cw.add(p2, rel=cuds.classes.HasInhabitant)
         p2w = cw.get(p2.uid)
@@ -111,11 +111,11 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(set(c[cuds.classes.HasInhabitant].keys()),
                          set([p1.uid, p2.uid, p3.uid]))
         self.assertEqual(set([p2.uid]),
-                         set(p1[cuds.classes.IsParentOf].keys()))
+                         set(p1[cuds.classes.HasChild].keys()))
         self.assertEqual(set([p2.uid]),
-                         set(p3[cuds.classes.IsParentOf].keys()))
+                         set(p3[cuds.classes.HasChild].keys()))
         self.assertEqual(set([p4.uid]), set(
-            p2[cuds.classes.IsParentOf].keys()))
+            p2[cuds.classes.HasChild].keys()))
 
         # check passive relationships
         self.assertEqual(set([c.uid]),
@@ -133,9 +133,9 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(set(cw[cuds.classes.HasInhabitant].keys()),
                          set([p1w.uid, p2w.uid]))
         self.assertEqual(set([p2w.uid]),
-                         set(p1w[cuds.classes.IsParentOf].keys()))
+                         set(p1w[cuds.classes.HasChild].keys()))
         self.assertEqual(set([p4w.uid]),
-                         set(p2w[cuds.classes.IsParentOf].keys()))
+                         set(p2w[cuds.classes.HasChild].keys()))
 
         # passive relations
         self.assertEqual(set([cw.uid]),
@@ -163,7 +163,7 @@ class TestAPICity(unittest.TestCase):
         c1w2.add(p1w1, rel=cuds.classes.HasInhabitant)
         c4w2.add(p1w1, rel=cuds.classes.HasInhabitant)
         p1w2 = c1w2.get(p1w1.uid)
-        p1w2.add(p2w1, rel=cuds.classes.IsParentOf)
+        p1w2.add(p2w1, rel=cuds.classes.HasChild)
         p2w2 = p1w2.get(p2w1.uid)
 
         w1.add(c1w1, c2w1, c3w1, c4w1)
@@ -481,7 +481,7 @@ class TestAPICity(unittest.TestCase):
             p4 = cuds.classes.Citizen()
             c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
             p3.add(p1, p2, rel=cuds.classes.IsChildOf)
-            p3.add(p4, rel=cuds.classes.IsParentOf)
+            p3.add(p4, rel=cuds.classes.HasChild)
 
             cw = w._recursive_store(c, cw)
 
@@ -503,7 +503,7 @@ class TestAPICity(unittest.TestCase):
                 set(p3w.get(rel=cuds.classes.IsChildOf)),
                 {p1w, p2w}
             )
-            self.assertEqual(p3w.get(rel=cuds.classes.IsParentOf), [p4w])
+            self.assertEqual(p3w.get(rel=cuds.classes.HasChild), [p4w])
 
     def test_get_neighbour_diff(self):
         """Check if get_neighbor_diff can compute the difference

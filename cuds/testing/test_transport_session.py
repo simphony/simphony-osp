@@ -27,8 +27,8 @@ CUDS_DICT = {
                 "age": 23},
     "relationships": {
         "IS_INHABITANT_OF": {str(uuid.UUID(int=1)): "CITY"},
-        "IS_PARENT_OF": {str(uuid.UUID(int=2)): "PERSON",
-                         str(uuid.UUID(int=3)): "PERSON"}
+        "HAS_CHILD": {str(uuid.UUID(int=2)): "PERSON",
+                      str(uuid.UUID(int=3)): "PERSON"}
     }
 }
 
@@ -86,10 +86,10 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         self.assertEqual(entity.cuba_key, CUBA.CITIZEN)
         self.assertEqual(set(entity.keys()),
                          {cuds.classes.IsInhabitantOf,
-                          cuds.classes.IsParentOf})
+                          cuds.classes.HasChild})
         self.assertEqual(entity[cuds.classes.IsInhabitantOf],
                          {uuid.UUID(int=1): CUBA.CITY})
-        self.assertEqual(entity[cuds.classes.IsParentOf],
+        self.assertEqual(entity[cuds.classes.HasChild],
                          {uuid.UUID(int=2): CUBA.PERSON,
                           uuid.UUID(int=3): CUBA.PERSON})
 
@@ -115,7 +115,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         c1 = cuds.classes.Person(uid=uuid.UUID(int=2))
         c2 = cuds.classes.Person(uid=uuid.UUID(int=3))
         p.add(c, rel=cuds.classes.IsInhabitantOf)
-        p.add(c1, c2, rel=cuds.classes.IsParentOf)
+        p.add(c1, c2, rel=cuds.classes.HasChild)
         self.assertEqual(CUDS_DICT, serializable(p))
 
     def test_buffers_to_registry(self):

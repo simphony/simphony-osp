@@ -5,7 +5,7 @@ ONTOLOGY_MODE: "strict"
 
 CUDS_ONTOLOGY:
 
-  ONTOLOGY:
+  ENTITY:
     definition:
     parent:
 
@@ -13,7 +13,7 @@ CUDS_ONTOLOGY:
 
   RELATIONSHIP:
     definition:
-    parent: CUBA.ONTOLOGY
+    parent: CUBA.ENTITY
     inverse:
 
   ACTIVE_RELATIONSHIP:
@@ -56,7 +56,7 @@ CUDS_ONTOLOGY:
     parent: CUBA.ENCLOSES
     inverse: CUBA.IS_INHABITANT_OF
   
-  IS_PARENT_OF:
+  HAS_CHILD:
     definition:
     parent: CUBA.HAS_PART
     inverse: CUBA.IS_CHILD_OF
@@ -64,7 +64,7 @@ CUDS_ONTOLOGY:
   IS_CHILD_OF:
     definition:
     parent: CUBA.IS_PART_OF
-    inverse: CUBA.IS_PARENT_OF
+    inverse: CUBA.HAS_CHILD
   
   HAS_WORKER:
     definition:
@@ -120,9 +120,9 @@ CUDS_ONTOLOGY:
 
   ################
 
-  ENTITY:
+  CUDS_ENTITY:
     definition: the basic ontologicial entity, a thing. BFO
-    parent: CUBA.ONTOLOGY
+    parent: CUBA.ENTITY
 
   VALUE:
     definition:
