@@ -120,7 +120,7 @@ class WrapperSession(Session):
 
         # Count the observed cardinalities
         observed_cardinalities = {k: 0
-                                    for k in ontology_cardinalities.keys()}
+                                  for k in ontology_cardinalities.keys()}
         for rel in consider_relationships:
             for _, cuba in cuds[rel].items():
                 for r, o in ontology_cardinalities.keys():
