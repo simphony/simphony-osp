@@ -53,8 +53,23 @@ SERIALIZED_BUFFERS = (
 SERIALIZED_BUFFERS2 = (
     '{"added": [{'
     '"cuba_key": "CITY", '
-    '"attributes": {"name": "London", "uid": "00000000-0000-0000-0000-00000000002a"}, '
+    '"attributes": {"name": "London", '
+    '"uid": "00000000-0000-0000-0000-00000000002a"}, '
     '"relationships": {}}], "updated": [], "deleted": []}'
+)
+
+SERIALIZED_BUFFERS3 = (
+    '{"added": [{"cuba_key": "CITY", '
+    '"attributes": {"name": "Freiburg", '
+    '"uid": "00000000-0000-0000-0000-000000000001"}, '
+    '"relationships": {'
+    '"HAS_INHABITANT": {"00000000-0000-0000-0000-000000000002": "CITIZEN"}, '
+    '"IS_PART_OF": {"00000000-0000-0000-0000-000000000003": "CITY_WRAPPER"}}'
+    '}, {"cuba_key": "CITY_WRAPPER", '
+    '"attributes": {"uid": "00000000-0000-0000-0000-000000000003"}, '
+    '"relationships": {'
+    '"HAS_PART": {"00000000-0000-0000-0000-000000000001": "CITY"}}}], '
+    '"deleted": [], "updated": []}'
 )
 
 
@@ -232,7 +247,16 @@ class TestCommunicationEngineServer(unittest.TestCase):
             self.assertEqual(result, SERIALIZED_BUFFERS2)
 
     def test_load_from_session(self):
-        pass
+        with TestWrapperSession(forbid_buffer_reset_by="engine") as s1:
+            c = cuds.classes.City("Freiburg", uid=1)
+            p = cuds.classes.Citizen(name="Peter", age=12, uid=2)
+            w = cuds.classes.CityWrapper(session=s1, uid=3)
+            c.add(p, rel=cuds.classes.HasInhabitant)
+            w.add(c)
+            server = TransportSessionServer(TestWrapperSession, None, None)
+            server.session_objs["user"] = s1
+            result = server._load_from_session("[1, 3]", "user")
+            print(result)
 
     def test_init_session(self):
         pass

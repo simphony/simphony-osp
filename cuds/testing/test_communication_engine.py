@@ -58,14 +58,14 @@ class TestCommunicationEngine(unittest.TestCase):
             handle_request=lambda c, d, u: c + "-" + d + "!",
             handle_disconnect=lambda u: disconnects.append(u)
         )
-        websocket = MockWebsocket(12,
+        websocket = MockWebsocket(
+            id=12,
             to_recv=["greet:Hello", "say_goodbye:Bye"],
             sent_data=responses
         )
         await server._serve(websocket, None)
         self.assertEqual(responses, ["greet-Hello!", "say_goodbye-Bye!"])
         self.assertEqual(disconnects, [websocket])
-
 
     @async_test
     async def test_request(self):
@@ -76,7 +76,8 @@ class TestCommunicationEngine(unittest.TestCase):
             host=None, port=None,
             handle_response=lambda x: responses.append(x)
         )
-        client.websocket = MockWebsocket(7,
+        client.websocket = MockWebsocket(
+            id=7,
             to_recv=["hello", "bye"],
             sent_data=requests
         )
@@ -87,8 +88,6 @@ class TestCommunicationEngine(unittest.TestCase):
         await client._request("say_goodbye", "Bye")
         self.assertEqual(requests, ["greet:Hello", "say_goodbye:Bye"])
         self.assertEqual(responses, ["hello", "bye"])
-
-
 
 
 if __name__ == '__main__':
