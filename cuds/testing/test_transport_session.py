@@ -8,13 +8,15 @@
 import unittest2 as unittest
 import asyncio
 import uuid
+import json
 import cuds.classes
 from copy import deepcopy
 from cuds.testing.test_session_city import TestWrapperSession
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.core.session.transport.transport_session import (
     to_cuds, serializable, buffers_to_registry, deserialize_buffers,
-    serialize_buffers, TransportSessionServer, TransportSessionClient
+    serialize_buffers, TransportSessionServer, TransportSessionClient,
+    LOAD_COMMAND, INITIALIZE_COMMAND
 )
 
 CUDS_DICT = {
@@ -184,21 +186,97 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             )
 
 
+class MockEngine():
+    def __init__(self, on_send=None):
+        self.on_send = on_send
+
+    def send(self, command, data):
+        self._sent_command = command
+        self._sent_data = data
+        if self.on_send:
+            self.on_send(command, data)
+
+
 class TestCommunicationEngineClient(unittest.TestCase):
     def test_load(self):
-        pass
+        """ Test loading from server"""
+        c1 = cuds.classes.City("Freiburg", uid=1)
+        c2 = cuds.classes.City("London", uid=2)
+        client = TransportSessionClient(TestWrapperSession, None, None)
+
+        def on_send(command, data):
+            client._registry.put(c2)
+
+        client._engine = MockEngine(on_send)
+        client._registry.put(c1)
+        result = list(client.load(uuid.UUID(int=1), uuid.UUID(int=2)))
+        self.assertEqual(client._engine._sent_command, LOAD_COMMAND)
+        self.assertEqual(client._engine._sent_data,
+                         '["00000000-0000-0000-0000-000000000002"]')
+        self.assertEqual(result, [c1, c2])
 
     def test_store(self):
-        pass
+        """ Test storing of entity. """
+        client = TransportSessionClient(TestWrapperSession, None, None)
+        client._engine = MockEngine()
+
+        # first item
+        c1 = cuds.classes.City("Freiburg", uid=1)
+        c1.session = client
+        client.store(c1)
+        self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
+        self.assertEqual(client._engine._sent_data, (
+            '{"args": [], "kwargs": {}, '
+            '"root": {"cuba_key": "CITY", "attributes": {"name": "Freiburg", '
+            '"uid": "00000000-0000-0000-0000-000000000001"}, '
+            '"relationships": {}}}'))
+        self.assertEqual(set(client._registry.keys()), {c1.uid})
+
+        # second item
+        client._engine._sent_data = None
+        client._engine._sent_command = None
+        c2 = cuds.classes.City("Freiburg", uid=1)
+        c2.session = client
+        client.store(c2)
+
+        self.assertEqual(client._engine._sent_command, None)
+        self.assertEqual(client._engine._sent_data, None)
+        self.assertEqual(set(client._registry.keys()), {c1.uid, c2.uid})
 
     def test_send(self):
-        pass
+        """ Test sending data to the server """
+        client = TransportSessionClient(TestWrapperSession, None, None)
+        client._engine = MockEngine()
+        client._send("command", "hello", bye="bye")
+        self.assertEqual(client._engine._sent_command, "command")
+        self.assertEqual(client._engine._sent_data, (
+            '{"added": [], "updated": [], "deleted": [], '
+            '"args": ["hello"], "kwargs": {"bye": "bye"}}'))
 
     def test_receive(self):
-        pass
+        client = TransportSessionClient(TestWrapperSession, None, None)
+        client._engine = MockEngine()
+        self.assertRaises(RuntimeError, client._receive, "ERROR: Error!")
+        client._receive(SERIALIZED_BUFFERS2)
+        self.assertEqual(set(client._registry.keys()), {uuid.UUID(int=42)})
+        self.assertEqual(client._added, dict())
+        self.assertEqual(client._updated, dict())
+        self.assertEqual(client._deleted, dict())
 
     def test_getattr(self):
-        pass
+        def command(*args, **kwargs):
+            pass
+        TestWrapperSession.command = command
+
+        client = TransportSessionClient(TestWrapperSession, None, None)
+        client._engine = MockEngine()
+        client.command("arg1", "arg2", kwarg="kwarg")
+        self.assertEqual(client._engine._sent_command, "command")
+        self.assertEqual(client._engine._sent_data, (
+            '{"added": [], "updated": [], "deleted": [], '
+            '"args": ["arg1", "arg2"], "kwargs": {"kwarg": "kwarg"}}'))
+
+        self.assertRaises(AttributeError, getattr, client, "run")
 
 
 class TestCommunicationEngineServer(unittest.TestCase):
@@ -218,6 +296,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
             self.assertEqual(server.session_objs, {"2": 123})
 
     def test_run_command(self):
+        """Test to run a command"""
         correct = False
 
         # command to be executed
@@ -247,6 +326,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
             self.assertEqual(result, SERIALIZED_BUFFERS2)
 
     def test_load_from_session(self):
+        """Test loading from the remote side"""
         with TestWrapperSession(forbid_buffer_reset_by="engine") as s1:
             c = cuds.classes.City("Freiburg", uid=1)
             p = cuds.classes.Citizen(name="Peter", age=12, uid=2)
@@ -256,13 +336,47 @@ class TestCommunicationEngineServer(unittest.TestCase):
             server = TransportSessionServer(TestWrapperSession, None, None)
             server.session_objs["user"] = s1
             result = server._load_from_session("[1, 3]", "user")
-            print(result)
+            self.assertEqual(result, SERIALIZED_BUFFERS3)
 
     def test_init_session(self):
-        pass
+        """Test the initialization of the session on the remote side"""
+        server = TransportSessionServer(TestWrapperSession, None, None)
+        data = json.dumps({
+            "args": [],
+            "kwargs": {},
+            "root": CUDS_DICT
+        })
+        server._init_session(data, user="user1")
+        self.assertEqual(server.session_objs["user1"].root, uuid.UUID(int=0))
+        self.assertEqual(len(server.session_objs.keys()), 1)
+
+        data = json.dumps({
+            "args": ["invalid"],
+            "kwargs": {},
+            "root": CUDS_DICT
+        })
+        self.assertRaises(TypeError, server._init_session, data, user="user1")
 
     def test_handle_request(self):
-        pass
+        """Test if error message is returned when invalid command is given"""
+        def command(s, age, name):
+            raise RuntimeError("Something went wrong: %s, %s" % (age, name))
+        TestWrapperSession.command = command
+        server = TransportSessionServer(TestWrapperSession, None, None)
+        with TestWrapperSession(forbid_buffer_reset_by="engine") as s1:
+            # initialize buffers
+            ws1 = cuds.classes.CityWrapper(session=s1, uid=0)
+            c = cuds.classes.City("Freiburg", uid=1)
+            ws1.add(c)
+            s1._reset_buffers(changed_by="user")
+
+            # test
+            server.session_objs["user1"] = s1
+            self.assertEqual(server.handle_request(
+                "run", SERIALIZED_BUFFERS, "user1"), "ERROR: Invalid command")
+            self.assertEqual(server.handle_request(
+                "command", SERIALIZED_BUFFERS, "user1"),
+                "ERROR: RuntimeError: Something went wrong: 42, London")
 
 
 if __name__ == '__main__':

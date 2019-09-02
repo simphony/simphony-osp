@@ -79,7 +79,7 @@ class TransportSessionServer():
             try:
                 return self._run_command(data, command, user)
             except Exception as e:
-                return "ERROR: " + str(e)
+                return "ERROR: %s: %s" % (type(e).__name__, e)
         return "ERROR: Invalid command"
 
     def _run_command(self, data, command, user):
@@ -205,9 +205,9 @@ class TransportSessionClient(WrapperSession):
     def _receive(self, data):
         """Process the response of the server.
 
-        :param data: [description]
-        :type data: [type]
-        :raises RuntimeError: [description]
+        :param data: Receive changes made by the server (serialized buffers).
+        :type data: str
+        :raises RuntimeError: Error occurred on the server side
         """
         if data.startswith("ERROR: "):
             raise RuntimeError("Error on Server side: %s" % data[7:])
