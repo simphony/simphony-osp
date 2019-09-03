@@ -86,7 +86,16 @@ class WrapperSession(Session):
             self._deleted[entity.uid] = entity
 
     def _reset_buffers(self, changed_by):
-        """Reset the buffers"""
+        """Reset the buffers. When you run an engine,
+        call this with changed_by="user" right before you execute the
+        engine. After you execute the engine call it with
+        changed_by="engine".
+
+        :param changed_by: Were the buffers modified by the engine or the user?
+        :type changed_by: str
+        :return: Whether the buffers have been resetted.
+        :rtype: bool
+        """
         assert changed_by in ["user", "engine"]
         if changed_by == self._forbid_buffer_reset_by:
             return False
