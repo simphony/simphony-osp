@@ -34,7 +34,7 @@ class DbWrapperSession(WrapperSession):
         if self.root is None:
             raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")
-        entities = self._load_cuds(cuba_key=cuba_key)
+        entities = self._load_cuds(uids=None, cuba_key=cuba_key)
         for i, entity in enumerate(entities):
             if entity.uid in self._registry:
                 entities[i] = self._registry.get(entity.uid)
@@ -73,9 +73,11 @@ class DbWrapperSession(WrapperSession):
         self._engine.commit()
 
     @abstractmethod
-    def _load_cuds(self, *uids, cuba_key=None):
+    def _load_cuds(self, uids, cuba_key=None):
         """Load cuds with given uids or cuba_key from the database
 
+        :param uids: List of uids to load
+        :type uids: List[uuid.UUID]
         :param cuba_key: Load all entities with this cuba_key, defaults to None
         :type cuba_key: CUBA, optional
         """

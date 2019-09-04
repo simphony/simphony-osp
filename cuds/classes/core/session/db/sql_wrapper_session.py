@@ -242,7 +242,7 @@ class SqlWrapperSession(DbWrapperSession):
 
     # OVERRIDE
     def _load_cuds(self, uids, cuba_key=None):
-        if uids:
+        if uids is not None:
             for uid in uids:
                 if isinstance(uid, uuid.UUID):
                     cuba = cuba_key or self._get_cuba(uid)
@@ -253,7 +253,7 @@ class SqlWrapperSession(DbWrapperSession):
                 loaded = list(self._load_by_cuba(cuba, uid))
                 yield loaded[0] if loaded else None
         else:
-            yield from self._load(cuba, None)
+            yield from self._load_by_cuba(cuba_key, None)
 
     # OVERRIDE
     def _initialize(self):
