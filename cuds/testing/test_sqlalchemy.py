@@ -102,6 +102,28 @@ class TestSqliteAlchemyCity(unittest.TestCase):
                 session._registry.get(c.uid)[cuds.classes.IsPartOf],
                 {wrapper.uid: wrapper.cuba_key})
 
+    def test_load_by_cuba_key(self):
+        c = cuds.classes.City("Freiburg")
+        p1 = cuds.classes.Citizen(name="Peter")
+        p2 = cuds.classes.Citizen(name="Anna")
+        p3 = cuds.classes.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
+        p1.add(p3, rel=cuds.classes.HasChild)
+        p2.add(p3, rel=cuds.classes.HasChild)
+
+        with SqlAlchemyWrapperSession("sqlite:///test.db") as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            wrapper.add(c)
+            session.commit()
+
+        with SqlAlchemyWrapperSession("sqlite:///test.db") as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            cs = wrapper.get(c.uid)
+            r = session.load_by_cuba_key(cuds.classes.City.cuba_key)
+            self.assertIs(next(r), cs)
+            r = session.load_by_cuba_key(cuds.classes.Citizen.cuba_key)
+            self.assertEqual(set(r), {p1, p2, p3})
+
     def test_load_missing(self):
         """Test if missing objects are loaded automatically."""
         c = cuds.classes.City("Freiburg")

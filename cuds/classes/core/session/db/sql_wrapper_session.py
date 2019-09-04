@@ -294,6 +294,8 @@ class SqlWrapperSession(DbWrapperSession):
         """
         if cuba is None:
             return
+        if uid is not None and uid in self._registry:
+            yield self._registry.get(uid)
         cuds_class = CUBA_MAPPING[cuba]
         attributes = cuds_class.get_attributes()
         datatypes = cuds_class.get_datatypes()
@@ -307,7 +309,11 @@ class SqlWrapperSession(DbWrapperSession):
                             datatypes)
 
         for row in c:
-            cuds = cuds_class(**dict(zip(attributes, row)))
+            properties = dict(zip(attributes, row))
+            uid = convert_to(properties["uid"], "UUID")
+            if uid in self._registry:
+                yield self._registry.get(uid)
+            cuds = cuds_class(**properties)
             cuds.session = self
             self.store(cuds)
             self._load_relationships(cuds)

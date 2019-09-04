@@ -143,6 +143,28 @@ class TestSqliteCity(unittest.TestCase):
                 {c.uid: c.cuba_key}
             )
 
+    def test_load_by_cuba_key(self):
+        c = cuds.classes.City("Freiburg")
+        p1 = cuds.classes.Citizen(name="Peter")
+        p2 = cuds.classes.Citizen(name="Anna")
+        p3 = cuds.classes.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
+        p1.add(p3, rel=cuds.classes.HasChild)
+        p2.add(p3, rel=cuds.classes.HasChild)
+
+        with SqliteWrapperSession("test.db") as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            wrapper.add(c)
+            session.commit()
+
+        with SqliteWrapperSession("test.db") as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            cs = wrapper.get(c.uid)
+            r = session.load_by_cuba_key(cuds.classes.City.cuba_key)
+            self.assertIs(next(r), cs)
+            r = session.load_by_cuba_key(cuds.classes.Citizen.cuba_key)
+            self.assertEqual(set(r), {p1, p2, p3})
+
 
 def check_state(test_case, c, p1, p2, table="test.db"):
     """Check if the sqlite tables are in the correct state."""
