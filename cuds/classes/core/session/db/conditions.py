@@ -7,7 +7,13 @@
 
 
 class EqualsCondition():
-    def __init__(self, column_name, value, datatype):
+    def __init__(self, table_name, column_name, value, datatype):
+        self.table_name = table_name
         self.column_name = column_name
         self.value = value
         self.datatype = datatype
+
+
+class AndCondition():
+    def __init__(self, *conditions):
+        self.conditions = conditions

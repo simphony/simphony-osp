@@ -7,11 +7,12 @@
 
 import sqlite3
 from uuid import UUID
-from cuds.classes.core.session.db.conditions import EqualsCondition
-from cuds.classes.core.session.db.db_wrapper_session import DbWrapperSession
+from cuds.classes.core.session.db.conditions import (EqualsCondition,
+                                                     AndCondition)
+from cuds.classes.core.session.db.sql_wrapper_session import SqlWrapperSession
 
 
-class SqliteWrapperSession(DbWrapperSession):
+class SqliteWrapperSession(SqlWrapperSession):
 
     def __init__(self, path, **kwargs):
         super().__init__(engine=sqlite3.connect(path), **kwargs)
@@ -36,10 +37,12 @@ class SqliteWrapperSession(DbWrapperSession):
             table_name,
             condition_str
         ))
-        return self.convert_values(c, columns, datatypes)
+        return self._convert_values(c, columns, datatypes)
 
     # OVERRIDE
-    def _db_create(self, table_name, columns, datatypes):
+    def _db_create(self, table_name, columns, datatypes,
+                   primary_key, foreign_key, index):
+        # TODO Primary key, foreign key, index
         columns = [c if c not in datatypes
                    else "%s %s" % (c, self._to_sqlite_datatype(datatypes[c]))
                    for c in columns]
@@ -48,6 +51,55 @@ class SqliteWrapperSession(DbWrapperSession):
             table_name,
             ", ".join(columns)
         ))
+
+    # OVERRIDE
+    def _db_insert(self, table_name, columns, values, datatypes):
+        c = self._engine.cursor()
+        c.execute("INSERT INTO %s (%s) VALUES (%s);" % (
+            table_name,
+            ", ".join(columns),
+            ", ".join([self._to_sqlite_value(v, datatypes.get(c))
+                       for c, v in zip(columns, values)])
+        ))
+
+    # OVERRIDE
+    def _db_update(self, table_name, columns, values, condition, datatypes):
+        c = self._engine.cursor()
+        condition_str = self._get_condition_string(condition)
+        c.execute("UPDATE %s SET %s WHERE %s;" % (
+            table_name,
+            ", ".join(("%s = %s" %
+                      (c, self._to_sqlite_value(v, datatypes.get(c))))
+                      for c, v in zip(columns, values)),
+            condition_str
+        ))
+
+    # OVERRIDE
+    def _db_delete(self, table_name, condition):
+        c = self._engine.cursor()
+        condition_str = self._get_condition_string(condition)
+        c.execute("DELETE FROM %s WHERE %s;" % (table_name, condition_str))
+
+    def _get_condition_string(self, condition):
+        """Convert the given condition to a Sqlite condition string.
+
+        :param condition: The Condition
+        :type condition: Uniton[AndCondition, EqualsCondition]
+        :raises NotImplementedError: Unknown condition type
+        :return: The resulting condition
+        :rtype: str
+        """
+        if condition is None:
+            return '1'
+        if isinstance(condition, EqualsCondition):
+            value = self._to_sqlite_value(condition.value, condition.datatype)
+            return "%s.%s=%s" % (condition.table_name,
+                                 condition.column_name,
+                                 value)
+        if isinstance(condition, AndCondition):
+            return " AND ".join([self._get_condition_string(c)
+                                 for c in condition.conditions])
+        raise NotImplementedError("Unsupported condition")
 
     def _to_sqlite_datatype(self, cuds_datatype):
         """Convert the given Cuds datatype to a datatype of sqlite.
@@ -91,48 +143,3 @@ class SqliteWrapperSession(DbWrapperSession):
             return str(float(value))
         else:
             raise NotImplementedError("Unsupported data type!")
-
-    # OVERRIDE
-    def _db_insert(self, table_name, columns, values, datatypes):
-        c = self._engine.cursor()
-        c.execute("INSERT INTO %s (%s) VALUES (%s);" % (
-            table_name,
-            ", ".join(columns),
-            ", ".join([self._to_sqlite_value(v, datatypes.get(c))
-                       for c, v in zip(columns, values)])
-        ))
-
-    # OVERRIDE
-    def _db_update(self, table_name, columns, values, condition, datatypes):
-        c = self._engine.cursor()
-        condition_str = self._get_condition_string(condition)
-        c.execute("UPDATE %s SET %s WHERE %s;" % (
-            table_name,
-            ", ".join(("%s = %s" %
-                      (c, self._to_sqlite_value(v, datatypes.get(c))))
-                      for c, v in zip(columns, values)),
-            condition_str
-        ))
-
-    # OVERRIDE
-    def _db_delete(self, table_name, condition):
-        c = self._engine.cursor()
-        condition_str = self._get_condition_string(condition)
-        c.execute("DELETE FROM %s WHERE %s;" % (table_name, condition_str))
-
-    # OVERRIDE
-    def _get_table_names(self):
-        c = self._engine.cursor()
-        tables = c.execute("SELECT name FROM sqlite_master "
-                           + "WHERE type='table';")
-        return set([x[0] for x in tables])
-
-    def _get_condition_string(self, condition):
-        if isinstance(condition, EqualsCondition):
-            if isinstance(condition.value, (str, UUID)):
-                return "%s='%s'" % (condition.column_name,
-                                    condition.value)
-            else:
-                return "%s=%s" % (condition.column_name,
-                                  condition.value)
-        raise NotImplementedError("Unsupported condition")

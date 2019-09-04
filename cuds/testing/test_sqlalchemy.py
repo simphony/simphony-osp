@@ -10,11 +10,12 @@ import uuid
 import unittest2 as unittest
 import cuds.classes
 import sqlite3
-from cuds.classes.core.session.db.sqlite_wrapper_session import \
-    SqliteWrapperSession
+from cuds.testing.test_sqlite_city import check_state
+from cuds.classes.core.session.db.sqlalchemy_wrapper_session import \
+    SqlAlchemyWrapperSession
 
 
-class TestSqliteCity(unittest.TestCase):
+class TestSqliteAlchemyCity(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -29,7 +30,7 @@ class TestSqliteCity(unittest.TestCase):
         p2 = cuds.classes.Citizen(name="Georg")
         c.add(p1, p2, rel=cuds.classes.HasInhabitant)
 
-        with SqliteWrapperSession("test.db") as session:
+        with SqlAlchemyWrapperSession("sqlite:///test.db") as session:
             wrapper = cuds.classes.CityWrapper(session)
             wrapper.add(c)
             session.commit()
@@ -42,7 +43,7 @@ class TestSqliteCity(unittest.TestCase):
         p1 = cuds.classes.Citizen(name="Peter")
         c.add(p1, rel=cuds.classes.HasInhabitant)
 
-        with SqliteWrapperSession("test.db") as session:
+        with SqlAlchemyWrapperSession("sqlite:///test.db") as session:
             wrapper = cuds.classes.CityWrapper(session)
             cw = wrapper.add(c)
             session.commit()
@@ -62,7 +63,7 @@ class TestSqliteCity(unittest.TestCase):
         p3 = cuds.classes.Citizen(name="Hans")
         c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
 
-        with SqliteWrapperSession("test.db") as session:
+        with SqlAlchemyWrapperSession("sqlite:///test.db") as session:
             wrapper = cuds.classes.CityWrapper(session)
             cw = wrapper.add(c)
             session.commit()
@@ -83,12 +84,12 @@ class TestSqliteCity(unittest.TestCase):
         p1.add(p3, rel=cuds.classes.HasChild)
         p2.add(p3, rel=cuds.classes.HasChild)
 
-        with SqliteWrapperSession("test.db") as session:
+        with SqlAlchemyWrapperSession("sqlite:///test.db") as session:
             wrapper = cuds.classes.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
-        with SqliteWrapperSession("test.db") as session:
+        with SqlAlchemyWrapperSession("sqlite:///test.db") as session:
             wrapper = cuds.classes.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
                              {c.uid, wrapper.uid})
@@ -111,12 +112,12 @@ class TestSqliteCity(unittest.TestCase):
         p1.add(p3, rel=cuds.classes.HasChild)
         p2.add(p3, rel=cuds.classes.HasChild)
 
-        with SqliteWrapperSession("test.db") as session:
+        with SqlAlchemyWrapperSession("sqlite:///test.db") as session:
             wrapper = cuds.classes.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
-        with SqliteWrapperSession("test.db") as session:
+        with SqlAlchemyWrapperSession("sqlite:///test.db") as session:
             wrapper = cuds.classes.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
                              {c.uid, wrapper.uid})
@@ -142,38 +143,6 @@ class TestSqliteCity(unittest.TestCase):
                 p2w[cuds.classes.IsInhabitantOf],
                 {c.uid: c.cuba_key}
             )
-
-
-def check_state(test_case, c, p1, p2, table="test.db"):
-    """Check if the sqlite tables are in the correct state."""
-    with sqlite3.connect(table) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT uid, cuba, first_level FROM %s;"
-                       % SqliteWrapperSession.MASTER_TABLE)
-        result = set(cursor.fetchall())
-        test_case.assertEqual(result, {
-            (str(c.uid), c.cuba_key.value, 1),
-            (str(p1.uid), p1.cuba_key.value, 0),
-            (str(p2.uid), p2.cuba_key.value, 0)
-        })
-
-        cursor.execute("SELECT origin, target, name, target_cuba FROM %s;"
-                       % SqliteWrapperSession.RELATIONSHIP_TABLE)
-        result = set(cursor.fetchall())
-        test_case.assertEqual(result, {
-            (str(c.uid), str(p1.uid), "HAS_INHABITANT", "CITIZEN"),
-            (str(c.uid), str(p2.uid), "HAS_INHABITANT", "CITIZEN"),
-            (str(p1.uid), str(c.uid), "IS_INHABITANT_OF", "CITY"),
-            (str(p2.uid), str(c.uid), "IS_INHABITANT_OF", "CITY"),
-            (str(c.uid), str(uuid.UUID(int=0)),
-                "IS_PART_OF", "CITY_WRAPPER")
-        })
-
-        cursor.execute("SELECT uid, name FROM CITY;")
-        result = set(cursor.fetchall())
-        test_case.assertEqual(result, {
-            (str(c.uid), "Freiburg")
-        })
 
 
 if __name__ == '__main__':
