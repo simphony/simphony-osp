@@ -150,8 +150,10 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
         if cuds_datatype is None or \
                 cuds_datatype == "UUID" or cuds_datatype.startswith("STRING"):
             return str(value)
-        if cuds_datatype in ["INT", "BOOL"]:
+        if cuds_datatype == "INT":
             return int(value)
+        if cuds_datatype == "BOOL":
+            return bool(value)
         if cuds_datatype == "FLOAT":
             return float(value)
         else:

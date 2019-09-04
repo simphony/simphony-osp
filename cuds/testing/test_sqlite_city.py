@@ -169,7 +169,7 @@ def check_state(test_case, c, p1, p2, table="test.db"):
                 "IS_PART_OF", "CITY_WRAPPER")
         })
 
-        cursor.execute("SELECT uid, name FROM CITY;")
+        cursor.execute("SELECT uid, name FROM CUDS_CITY;")
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
             (str(c.uid), "Freiburg")

@@ -4,10 +4,18 @@ from cuds.classes import (
     HasPart, HasInhabitant, IsPartOf,
     CUBA, CityWrapper, CitySimWrapper, Person
 )
-from cuds.classes.core.session.db.sqlite_wrapper_session import \
-    SqliteWrapperSession
+from cuds.classes.core.session.db.sqlalchemy_wrapper_session import \
+    SqlAlchemyWrapperSession
 from cuds.testing.test_sim_wrapper import DummySimSession
 from cuds.utils import pretty_print
+from getpass import getpass
+
+user = input("User: ")
+pwd = getpass("Password: ")
+db_name = input("Database name: ")
+host = input("Host: ")
+port = int(input("Port [5432]: ") or 5432)
+postgres_url = 'postgres://%s:%s@%s:%s/%s' % (user, pwd, host, port, db_name)
 
 # Let's build an EMMO compatible city!
 emmo_town = City('EMMO town')
@@ -34,13 +42,13 @@ onto = emmo_town.get(ontology_uid)
 print(onto.get(rel=IsPartOf)[0].name + ' is my city!')
 
 # Working with a DB-wrapper: Store in the DB.
-with SqliteWrapperSession("example.db") as session:
+with SqlAlchemyWrapperSession(postgres_url) as session:
     wrapper = CityWrapper(session=session)
     wrapper.add(emmo_town)
     session.commit()
 
 # Load from the DB.
-with SqliteWrapperSession("example.db") as db_session:
+with SqlAlchemyWrapperSession(postgres_url) as db_session:
     db_wrapper = CityWrapper(session=db_session)
     db_emmo_town = db_wrapper.get(emmo_town.uid)
     print("The database contains the following information:")
@@ -61,10 +69,8 @@ with SqliteWrapperSession("example.db") as db_session:
     db_session.commit()
 
 # Check if database contains the changes of the simulation.
-with SqliteWrapperSession("example.db") as db_session:
+with SqlAlchemyWrapperSession(postgres_url) as db_session:
     db_wrapper = CityWrapper(session=db_session)
     db_emmo_town = db_wrapper.get(emmo_town.uid)
     print("The database contains the following information:")
     pretty_print(db_emmo_town)
-
-os.remove("example.db")

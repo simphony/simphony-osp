@@ -41,7 +41,7 @@ class SqlWrapperSession(DbWrapperSession):
         MASTER_TABLE: {},
         RELATIONSHIP_TABLE: {
             "origin": (MASTER_TABLE, "uid"),
-            "target": (MASTER_TABLE, "uid")
+            # "target": (MASTER_TABLE, "uid")
         }
     }
     INDEX = {
@@ -132,22 +132,14 @@ class SqlWrapperSession(DbWrapperSession):
 
             # Create tables
             if added.get_attributes(skip=["session"]):
-                self._db_create(table_name=added.cuba_key.value,
+                self._db_create(table_name=self.CUDS_PREFIX
+                                + added.cuba_key.value,
                                 columns=added.get_attributes(skip=["session"]),
                                 datatypes=added.get_datatypes(),
                                 primary_key=["uid"],
                                 foreign_key={"uid":
                                              (self.MASTER_TABLE, "uid")},
                                 index=[])
-
-            # Insert the items
-            if added.get_attributes(skip=["session"]):
-                values = [getattr(added, attr)
-                          for attr in added.get_attributes(skip=["session"])]
-                self._db_insert(added.cuba_key.value,
-                                added.get_attributes(skip=["session"]),
-                                values,
-                                added.get_datatypes())
 
             # Add to master
             is_first_level = any(self.root in uids for uids in added.values())
@@ -157,6 +149,15 @@ class SqlWrapperSession(DbWrapperSession):
                 [added.uid, added.cuba_key.value, is_first_level],
                 self.DATATYPES[self.MASTER_TABLE]
             )
+
+            # Insert the items
+            if added.get_attributes(skip=["session"]):
+                values = [getattr(added, attr)
+                          for attr in added.get_attributes(skip=["session"])]
+                self._db_insert(self.CUDS_PREFIX + added.cuba_key.value,
+                                added.get_attributes(skip=["session"]),
+                                values,
+                                added.get_datatypes())
 
             # Insert the relationships
             for rel, uid_cuba in added.items():
@@ -184,10 +185,10 @@ class SqlWrapperSession(DbWrapperSession):
                 values = [getattr(updated, attr)
                           for attr in updated.get_attributes(skip=["session"])]
                 self._db_update(
-                    updated.cuba_key.value,
+                    self.CUDS_PREFIX + updated.cuba_key.value,
                     updated.get_attributes(skip=["session"]),
                     values,
-                    EqualsCondition(updated.cuba_key.value,
+                    EqualsCondition(self.CUDS_PREFIX + updated.cuba_key.value,
                                     "uid",
                                     updated.uid,
                                     "UUID"),
@@ -221,8 +222,9 @@ class SqlWrapperSession(DbWrapperSession):
 
             # Update the values
             if deleted.get_attributes(skip=["session"]):
-                self._db_delete(deleted.cuba_key.value,
-                                EqualsCondition(deleted.cuba_key.value,
+                self._db_delete(self.CUDS_PREFIX + deleted.cuba_key.value,
+                                EqualsCondition(self.CUDS_PREFIX
+                                                + deleted.cuba_key.value,
                                                 "uid",
                                                 deleted.uid,
                                                 "UUID"))
@@ -248,7 +250,8 @@ class SqlWrapperSession(DbWrapperSession):
                     uid, cuba = uid
                 else:
                     raise ValueError("Invalid uid given %s" % uid)
-                yield from self._load_by_cuba(cuba, uid)
+                loaded = list(self._load_by_cuba(cuba, uid))
+                yield loaded[0] if loaded else None
         else:
             yield from self._load(cuba, None)
 
@@ -289,13 +292,16 @@ class SqlWrapperSession(DbWrapperSession):
         :return: The loaded Cuds entity.
         :rtype: Cuds
         """
+        if cuba is None:
+            return
         cuds_class = CUBA_MAPPING[cuba]
         attributes = cuds_class.get_attributes()
         datatypes = cuds_class.get_datatypes()
-        condition = EqualsCondition(cuba.value, "uid", uid, "UUID") \
+        condition = EqualsCondition(self.CUDS_PREFIX + cuba.value,
+                                    "uid", uid, "UUID") \
             if uid else None
 
-        c = self._db_select(cuba.value,
+        c = self._db_select(self.CUDS_PREFIX + cuba.value,
                             attributes,
                             condition,
                             datatypes)
@@ -351,10 +357,9 @@ class SqlWrapperSession(DbWrapperSession):
                                             "UUID"),
                             self.DATATYPES[self.MASTER_TABLE])
         try:
-            cuba = CUBA(next(c)[0])
-        except StopIteration as e:
-            raise KeyError("No entry with uid %s in db." % uid) from e
-        return cuba
+            return CUBA(next(c)[0])
+        except StopIteration:
+            return None
 
     def _convert_values(self, rows, columns, datatypes):
         """Convert the values in the database to the correct datatype.
