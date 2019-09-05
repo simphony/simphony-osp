@@ -188,13 +188,16 @@ def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
             + " |_Relationship %s:" % relationship.cuba_key
         sorted_elements = sorted(cuds_object.iter(rel=relationship),
                                  key=lambda x: str(x.cuba_key))
-        for element in sorted_elements:
+        for j, element in enumerate(sorted_elements):
             if i == len(sorted_relationships) - 1:
                 indentation = level_indentation + "   "
             else:
                 indentation = level_indentation + " | "
             pp_sub += indentation + pp_entity_name(element, cuba=True)
-            indentation += "   "
+            if j == len(sorted_elements) - 1:
+                indentation += "   "
+            else:
+                indentation += ".  "
             pp_sub += indentation + "uuid: " + str(element.uid)
 
             if element.uid in visited:
