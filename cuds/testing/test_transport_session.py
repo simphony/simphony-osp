@@ -87,12 +87,12 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(entity.age, 23)
             self.assertEqual(entity.cuba_key, CUBA.CITIZEN)
             self.assertEqual(set(entity.keys()),
-                            {cuds.classes.IsInhabitantOf,
+                             {cuds.classes.IsInhabitantOf,
                              cuds.classes.HasChild})
             self.assertEqual(entity[cuds.classes.IsInhabitantOf],
-                            {uuid.UUID(int=1): CUBA.CITY})
+                             {uuid.UUID(int=1): CUBA.CITY})
             self.assertEqual(entity[cuds.classes.HasChild],
-                            {uuid.UUID(int=2): CUBA.PERSON,
+                             {uuid.UUID(int=2): CUBA.PERSON,
                              uuid.UUID(int=3): CUBA.PERSON})
 
             invalid_cuba = deepcopy(CUDS_DICT)
