@@ -9,6 +9,7 @@ import unittest2 as unittest
 import uuid
 from copy import deepcopy
 
+from cuds.utils import clone_cuds
 from cuds.classes.core.session.core_session import CoreSession
 from cuds.classes.core.cuds import Cuds
 import cuds.classes
@@ -561,7 +562,7 @@ class TestAPICity(unittest.TestCase):
             c3 = cuds.classes.City("London")
             n.add(c3, rel=cuds.classes.IsPartOf)
 
-            n.session = session
+            n = clone_cuds(n, session)
             new_parent_diff = Cuds._get_neighbor_diff(
                 n, nw, rel=cuds.classes.PassiveRelationship)
             new_parents = session.load(*[x[0] for x in new_parent_diff])
@@ -592,7 +593,7 @@ class TestAPICity(unittest.TestCase):
             n = cuds.classes.Neighbourhood("Zähringen")
             nw = cw.add(n)
 
-            c.session = session
+            c = clone_cuds(c, session)
             old_neighbor_diff = Cuds._get_neighbor_diff(cw, c)
             old_neighbors = session.load(*[x[0] for x in old_neighbor_diff])
             Cuds._fix_old_neighbors(new_cuds=c,

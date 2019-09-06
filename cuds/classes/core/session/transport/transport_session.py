@@ -7,6 +7,7 @@
 
 import json
 import inspect
+from cuds.utils import create_with_session
 from cuds.classes.core.cuds import Cuds
 from cuds.metatools.ontology_datatypes import convert_from, convert_to
 from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
@@ -132,8 +133,7 @@ class TransportSessionServer():
         session = self.session_cls(*data["args"],
                                    **data["kwargs"])
         self.session_objs[user] = session
-        root = to_cuds(data["root"])
-        root.session = session
+        root = to_cuds(data["root"], session=session)
         session.store(root)
         del session._added[root.uid]
         session._updated[root.uid] = root
@@ -266,9 +266,9 @@ def deserialize_buffers(session_obj, data):
     :rtype: Dict[str, Any]
     """
     data = json.loads(data)
-    added = [to_cuds(x) for x in data["added"]]
-    updated = [to_cuds(x) for x in data["updated"]]
-    deleted = [to_cuds(x) for x in data["deleted"]]
+    added = [to_cuds(x, session_obj) for x in data["added"]]
+    updated = [to_cuds(x, session_obj) for x in data["updated"]]
+    deleted = [to_cuds(x, session_obj) for x in data["deleted"]]
     session_obj._added = {x.uid: x for x in added}
     session_obj._updated = {x.uid: x for x in updated}
     session_obj._deleted = {x.uid: x for x in deleted}
@@ -285,7 +285,6 @@ def buffers_to_registry(session_obj):
     :type session_obj: Type[Session]
     """
     for entity in session_obj._added.values():
-        entity.session = session_obj
         session_obj.store(entity)
 
     # do not replace to prevent users working with old objects
@@ -324,7 +323,7 @@ def serializable(entity):
     return result
 
 
-def to_cuds(json_obj):
+def to_cuds(json_obj, session):
     """Transform a json serializable dict to a cuds object
 
     :param json_obj: The json object to convert to a Cuds object
@@ -336,9 +335,7 @@ def to_cuds(json_obj):
     attributes = json_obj["attributes"]
     relationships = json_obj["relationships"]
     entity_cls = CUBA_MAPPING[cuba_key]
-    if "session" in inspect.getfullargspec(entity_cls.__init__).args:
-        attributes["session"] = Cuds.session
-    entity = entity_cls(**attributes)
+    entity = create_with_session(entity_cls, attributes, session)
 
     for rel_cuba, obj_dict in relationships.items():
         rel = CUBA_MAPPING[CUBA(rel_cuba)]

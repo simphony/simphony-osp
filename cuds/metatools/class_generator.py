@@ -274,11 +274,13 @@ class ClassGenerator(object):
                 if name in inherited_attr:
                     list_super.append(name + ", ")
                 elif name == "session" and name in own_attr:
-                    list_self.append("if session is not None:")
-                    list_self.append("    self.session = session")
+                    list_properties.append((name, datatype))
+                    # list_self.append("if session.root is not None:")  TODO
+                    # list_self.append("raise ValueError('The given session "
+                    #                  "is already used in another wrapper')")
+                    list_self.append("self._session = session")
                 elif name in own_attr:
-                    list_properties.append((name,
-                                            datatype))
+                    list_properties.append((name, datatype))
                     list_self.append("self.{} = {}".format(name, name))
 
         # Add default parameters at the end
@@ -297,17 +299,16 @@ class ClassGenerator(object):
     def get_property_string(self, property_list):
         result = ""
         for p, datatype in property_list:
-            result += "\n".join(map(lambda x: "    " + x,
-                                    ["@property",
-                                     "def %s(self):" % p,
-                                     "    return self.__%s" % p,
-                                     "",
-                                     "@%s.setter" % p,
-                                     "def %s(self, x):" % p,
-                                     "    self.__%s = convert_to(x, \"%s\")"
-                                     % (p, datatype),
-                                     "    self.session._notify_update(self)\n"]
-                                    ))
+            getter = ["@property",
+                      "def %s(self):" % p,
+                      "    return self._%s\n" % p]
+            setter = ["@%s.setter" % p,
+                      "def %s(self, x):" % p,
+                      "    self._%s = convert_to(x, \"%s\")"
+                      % (p, datatype),
+                      "    self.session._notify_update(self)\n"]
+            funcs = getter + setter if p != "session" else getter
+            result += "\n".join(map(lambda x: "    " + x, funcs))
         return result
 
     def _write_content_to_template_file(self, content, template, class_file):

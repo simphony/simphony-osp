@@ -8,6 +8,7 @@
 import uuid
 from sqlalchemy import create_engine
 from abc import abstractmethod
+from cuds.utils import create_with_session
 from cuds.metatools.ontology_datatypes import convert_to
 from cuds.classes.core.session.db.db_wrapper_session import DbWrapperSession
 from cuds.classes.core.session.db.conditions import (EqualsCondition,
@@ -309,12 +310,11 @@ class SqlWrapperSession(DbWrapperSession):
                             datatypes)
 
         for row in c:
-            properties = dict(zip(attributes, row))
-            uid = convert_to(properties["uid"], "UUID")
+            kwargs = dict(zip(attributes, row))
+            uid = convert_to(kwargs["uid"], "UUID")
             if uid in self._registry:
                 yield self._registry.get(uid)
-            cuds = cuds_class(**properties)
-            cuds.session = self
+            cuds = create_with_session(cuds_class, kwargs, self)
             self.store(cuds)
             self._load_relationships(cuds)
             yield cuds

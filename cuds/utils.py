@@ -4,9 +4,13 @@
 # Redistribution and use are limited to the scope agreed with the end user.
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
+
+import inspect
+from copy import copy, deepcopy
 import pkg_resources
 from typing import Set, Type, Callable, List, Union
 from uuid import UUID
+from cuds.metatools.ontology_datatypes import convert_to
 
 
 # General utility methods
@@ -219,3 +223,67 @@ def pp_values(cuds_object, indentation="\n          "):
         result.append("%s: %s" % (attr, value))
     if result:
         return indentation.join(result)
+
+
+def clone_cuds(entity, new_session=None):
+    """Avoid that the session gets copied.
+
+    :return: A copy of self with the same session
+    :rtype: Cuds
+    """
+    session = entity._session
+    if "_session" in entity.__dict__:
+        del entity.__dict__["_session"]
+    clone = deepcopy(entity)
+    clone._session = new_session or session
+    return clone
+
+
+def create_with_session(entity_cls, kwargs, session, recycle_old=True):
+    """Instantiate a cuds object with a given session
+
+    :param entity_cls: The type of cuds object to instantiate
+    :type entity_cls: Cuds
+    :param kwargs: The kwargs of the cuds object
+    :type kwargs: Dict[str, Any]
+    :param session: The session of the new Cuds object
+    :type session: Session
+    :param recycle_old: Whether to recycle old objects with same uid already
+        in session
+    :type recycle_old: bool
+    """
+    uid = convert_to(kwargs["uid"], "UUID")
+
+    # recycle old object
+    if uid in session._registry and recycle_old:
+        cuds = session._registry.get(uid)
+        for key, value in kwargs.items():
+            if key not in ["uid", "session"]:
+                setattr(cuds, key, value)
+        for rel in set(cuds.keys()):
+            del cuds[rel]
+        return cuds
+
+    # create new
+    if "session" in inspect.getfullargspec(entity_cls.__init__).args:
+        kwargs["session"] = session
+    cuds = entity_cls(**kwargs)
+    cuds._session = session
+    return cuds
+
+
+# def clone_cuds(entity, new_session=None):
+#     """Avoid that the session gets copied.
+
+#     :return: A copy of self with the same session
+#     :rtype: Cuds
+#     """
+#     attributes = entity.get_attributes(skip="session")
+#     values = [getattr(entity, x) for x in attributes]
+#     kwargs = dict(zip(attributes, values))
+#     entity_cls = type(entity)
+#     clone = create_with_session(entity_cls, kwargs,
+#                                 new_session or entity.session)
+#     for key, value in entity.items():
+#         clone[key] = value
+#     return clone

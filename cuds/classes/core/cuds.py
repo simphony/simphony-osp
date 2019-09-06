@@ -13,7 +13,7 @@ from typing import Union, Type, List, Iterator, Dict, Any
 from cuds.metatools.ontology_datatypes import convert_to
 from cuds.classes.core.session.core_session import CoreSession
 from cuds.classes.core.relationship_tree import RelationshipTree
-from cuds.utils import check_arguments
+from cuds.utils import check_arguments, clone_cuds
 from cuds.ontology.settings import DEFAULT as DEFAULT_CUDS_SETTINGS
 from cuds.classes.generated.relationship import Relationship
 from cuds.classes.generated.cuba import CUBA
@@ -37,8 +37,8 @@ class Cuds(dict):
     ROOT_REL = Relationship
     cuba_key = None
     supported_relationships = dict()
-    session = CoreSession()
     CUDS_SETTINGS = deepcopy(DEFAULT_CUDS_SETTINGS)
+    _session = CoreSession()
 
     def __init__(self, uid: uuid.UUID = None):
         """
@@ -59,6 +59,10 @@ class Cuds(dict):
     @property
     def uid(self) -> uuid.UUID:
         return self.__uid
+
+    @property
+    def session(self):
+        return self._session
 
     def __str__(self) -> str:
         """
@@ -171,7 +175,7 @@ class Cuds(dict):
         result = list()
         for arg in args:
             if arg.session != self.session:
-                arg = arg._clone()
+                arg = clone_cuds(arg)
             self._add_direct(arg, rel)
             arg._add_inverse(self, rel)
             result.append(arg)
@@ -339,7 +343,7 @@ class Cuds(dict):
         """
         # add new_cuds to self and replace old_cuds
         queue = [(self, new_cuds, old_cuds)]
-        uids_stored = {new_cuds.uid}
+        uids_stored = {new_cuds.uid, self.uid}
         missing = dict()
         result = None
         while queue:
@@ -349,8 +353,7 @@ class Cuds(dict):
             if new_cuds.uid in missing:
                 del missing[new_cuds.uid]
             new_child_getter = new_cuds
-            new_cuds = new_cuds._clone()
-            new_cuds.session = add_to.session
+            new_cuds = clone_cuds(new_cuds, add_to.session)
             # fix the connections to the neighbors
             add_to._fix_neighbors(new_cuds, old_cuds, add_to.session, missing)
             add_to.session.store(new_cuds)
@@ -777,19 +780,6 @@ class Cuds(dict):
         from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         inverse = CUBA_MAPPING[relationship.inverse]
         self._remove_direct(inverse, uid)
-
-    def _clone(self):
-        """Avoid that the session gets copied.
-
-        :return: A copy of self with the same session
-        :rtype: Cuds
-        """
-        session = self.session
-        if "session" in self.__dict__:
-            del self.__dict__["session"]
-        clone = deepcopy(self)
-        clone.session = session
-        return clone
 
 
 class NotifyDict(dict):
