@@ -207,6 +207,9 @@ class TestSession(Session):
         if self.notify_delete:
             self.notify_delete(entity)
 
+    def _notify_read(self, entity):
+        pass
+
 
 class TestWrapperSession(WrapperSession):
     def __init__(self, *args, **kwargs):
@@ -222,4 +225,7 @@ class TestWrapperSession(WrapperSession):
         pass
 
     def _apply_updated(self):
+        pass
+
+    def _notify_read(self, entity):
         pass

@@ -93,3 +93,13 @@ class Session(ABC):
 
     def sync(self):
         pass
+
+    @abstractmethod
+    def _notify_read(self, entity):
+        """This method is called when the user accesses the attributes or the
+        relationships of the cuds entity.
+
+        :param entity: The entity that has been accessed.
+        :type entity: Cuds
+        """
+        pass

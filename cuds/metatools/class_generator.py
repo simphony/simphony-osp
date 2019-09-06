@@ -301,6 +301,7 @@ class ClassGenerator(object):
         for p, datatype in property_list:
             getter = ["@property",
                       "def %s(self):" % p,
+                      "    self.session._notify_read(self)",
                       "    return self._%s\n" % p]
             setter = ["@%s.setter" % p,
                       "def %s(self, x):" % p,

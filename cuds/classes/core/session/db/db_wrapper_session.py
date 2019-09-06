@@ -5,12 +5,17 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+import uuid
 from sqlalchemy import create_engine
 from abc import abstractmethod
 from cuds.classes.core.session.wrapper_session import WrapperSession
 
 
 class DbWrapperSession(WrapperSession):
+
+    def __init__(self, engine, **kwargs):
+        super().__init__(engine, **kwargs)
+        self._expired = set()
 
     def commit(self):
         """Commit the changes in the buffers to the database."""
@@ -21,6 +26,7 @@ class DbWrapperSession(WrapperSession):
         self._reset_buffers(changed_by="user")
         self._commit()
         self._reset_buffers(changed_by="engine")
+        self.expire_all()
 
     def load_by_cuba_key(self, cuba_key):
         """Load cuds all cuds with given cuba key.
@@ -35,6 +41,26 @@ class DbWrapperSession(WrapperSession):
             raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")
         yield from self._load_cuds(uids=None, cuba_key=cuba_key)
+
+    def expire(self, *cuds_or_uids):
+        for c in cuds_or_uids:
+            if isinstance(c, uuid.UUID):
+                self._expired.add(c)
+            else:
+                self._expired.add(c.uid)
+
+    def expire_all(self):
+        self._expired = set(self._registry.keys())
+
+    def refresh(self, *cuds_or_uids):
+        uids = list()
+        for c in cuds_or_uids:
+            if isinstance(c, uuid.UUID):
+                uids.append(c)
+            else:
+                uids.append(c.uid)
+        self._expired -= set(uids)
+        list(self._load_cuds(uids))
 
     def store(self, entity):
         initialize = self.root is None
@@ -51,6 +77,10 @@ class DbWrapperSession(WrapperSession):
             raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")
 
+        # refresh expired
+        expired = set(uids) & self._expired
+        self.refresh(*expired)
+
         missing_uids = [uid for uid in uids if uid not in self._registry]
         # Load elements not in the registry from the database
         missing = self._load_cuds(missing_uids)
@@ -63,6 +93,11 @@ class DbWrapperSession(WrapperSession):
                     self._uid_set.add(entity.uid)
                     del self._added[entity.uid]
                 yield entity
+
+    # OVERRIDE
+    def _notify_read(self, entity):
+        if entity.uid in self._expired:
+            self.refresh(entity)
 
     def _commit(self):
         """Commit to the database"""

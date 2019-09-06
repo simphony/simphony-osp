@@ -85,6 +85,10 @@ class WrapperSession(Session):
         else:
             self._deleted[entity.uid] = entity
 
+    # OVERRIDE
+    def _notify_read(self, entity):
+        pass
+
     def _reset_buffers(self, changed_by):
         """Reset the buffers. When you run an engine,
         call this with changed_by="user" right before you execute the
