@@ -18,6 +18,7 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
         super().__init__(engine=sqlalchemy.create_engine(url),
                          **kwargs)
         self._connection = self._engine.connect()
+        # TODO move that to beginning of commit?
         self._transaction = self._connection.begin()
         self._metadata = sqlalchemy.MetaData(self._connection)
 

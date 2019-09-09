@@ -281,7 +281,7 @@ class ClassGenerator(object):
                     list_self.append("self._session = session")
                 elif name in own_attr:
                     list_properties.append((name, datatype))
-                    list_self.append("self.{} = {}".format(name, name))
+                    list_self.append("self._{} = {}".format(name, name))
 
         # Add default parameters at the end
         list_init += list_init_default
@@ -301,6 +301,7 @@ class ClassGenerator(object):
         for p, datatype in property_list:
             getter = ["@property",
                       "def %s(self):" % p,
+                      "    self._session._notify_read(self)",
                       "    return self._%s\n" % p]
             setter = ["@%s.setter" % p,
                       "def %s(self, x):" % p,

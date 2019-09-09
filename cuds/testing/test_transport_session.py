@@ -11,7 +11,7 @@ import uuid
 import json
 import cuds.classes
 from copy import deepcopy
-from cuds.utils import clone_cuds, create_with_session
+from cuds.utils import clone_cuds, create_for_session
 from cuds.testing.test_session_city import TestWrapperSession
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.core.session.transport.transport_session import (
@@ -227,9 +227,9 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client._engine = MockEngine()
 
         # first item
-        c1 = create_with_session(cuds.classes.City,
-                                 {"name": "Freiburg", "uid": 1},
-                                 client)
+        c1 = create_for_session(cuds.classes.City,
+                                {"name": "Freiburg", "uid": 1},
+                                client)
         client.store(c1)
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
         self.assertEqual(client._engine._sent_data, (
@@ -242,9 +242,9 @@ class TestCommunicationEngineClient(unittest.TestCase):
         # second item
         client._engine._sent_data = None
         client._engine._sent_command = None
-        c2 = create_with_session(cuds.classes.City,
-                                 {"name": "Freiburg", "uid": 1},
-                                 client)
+        c2 = create_for_session(cuds.classes.City,
+                                {"name": "Freiburg", "uid": 1},
+                                client)
         client.store(c2)
 
         self.assertEqual(client._engine._sent_command, None)

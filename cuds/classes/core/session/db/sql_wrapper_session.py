@@ -8,7 +8,7 @@
 import uuid
 from sqlalchemy import create_engine
 from abc import abstractmethod
-from cuds.utils import create_with_session
+from cuds.utils import create_for_session
 from cuds.metatools.ontology_datatypes import convert_to
 from cuds.classes.core.session.db.db_wrapper_session import DbWrapperSession
 from cuds.classes.core.session.db.conditions import (EqualsCondition,
@@ -242,7 +242,7 @@ class SqlWrapperSession(DbWrapperSession):
                                             "UUID"))
 
     # OVERRIDE
-    def _load_cuds(self, uids, cuba_key=None):
+    def _load_cuds(self, uids, cuba_key=None, update_registry=False):
         if uids is not None:
             for uid in uids:
                 if isinstance(uid, uuid.UUID):
@@ -251,10 +251,10 @@ class SqlWrapperSession(DbWrapperSession):
                     uid, cuba = uid
                 else:
                     raise ValueError("Invalid uid given %s" % uid)
-                loaded = list(self._load_by_cuba(cuba, uid))
+                loaded = list(self._load_by_cuba(cuba, uid, update_registry))
                 yield loaded[0] if loaded else None
         else:
-            yield from self._load_by_cuba(cuba_key, None)
+            yield from self._load_by_cuba(cuba_key, None, update_registry)
 
     # OVERRIDE
     def _initialize(self):
@@ -282,7 +282,7 @@ class SqlWrapperSession(DbWrapperSession):
                             self.DATATYPES[self.MASTER_TABLE])
         list(self._load_cuds(map(lambda x: (x[0], CUBA(x[1])), c)))
 
-    def _load_by_cuba(self, cuba, uid=None):
+    def _load_by_cuba(self, cuba, uid=None, update_registry=False):
         """Load the Cuds entity with the given cuba (+ uid).
         If uid is None return all entities with given cuba_key.
 
@@ -293,10 +293,13 @@ class SqlWrapperSession(DbWrapperSession):
         :return: The loaded Cuds entity.
         :rtype: Cuds
         """
+        if cuba is None and uid is not None:
+            yield None
         if cuba is None:
             return
-        if uid is not None and uid in self._registry:
+        if not update_registry and uid is not None and uid in self._registry:
             yield self._registry.get(uid)
+            return
         cuds_class = CUBA_MAPPING[cuba]
         attributes = cuds_class.get_attributes()
         datatypes = cuds_class.get_datatypes()
@@ -312,9 +315,10 @@ class SqlWrapperSession(DbWrapperSession):
         for row in c:
             kwargs = dict(zip(attributes, row))
             uid = convert_to(kwargs["uid"], "UUID")
-            if uid in self._registry:
+            if not update_registry and uid in self._registry:
                 yield self._registry.get(uid)
-            cuds = create_with_session(cuds_class, kwargs, self)
+                continue
+            cuds = create_for_session(cuds_class, kwargs, self)
             self.store(cuds)
             self._load_relationships(cuds)
             yield cuds

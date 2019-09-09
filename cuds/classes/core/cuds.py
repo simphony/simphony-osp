@@ -72,6 +72,11 @@ class Cuds(dict):
         """
         return "%s: %s" % (self.cuba_key, self.uid)
 
+    def __getitem__(self, key):
+        self.session._notify_read(self)
+        return super().__getitem__(key)
+
+    # OVERRIDE
     def __delitem__(self, key: Type[Relationship]):
         """Delete a relationship from the Cuds.
 
@@ -79,6 +84,7 @@ class Cuds(dict):
         :type key: Type[Relationship]
         :raises ValueError: The given key is not a relationship.
         """
+        self.session._notify_read(self)
         if inspect.isclass(key) and issubclass(key, self.ROOT_REL):
             super().__delitem__(key)
             self._relationship_tree.remove(key)
@@ -97,6 +103,7 @@ class Cuds(dict):
         :type value: dict
         :raises ValueError: unsupported key provided (not a relationship)
         """
+        self.session._notify_read(self)
         if inspect.isclass(key) and issubclass(key, self.ROOT_REL) \
                 and isinstance(value, dict):
             for _, entity_cuba in value.items():
@@ -566,8 +573,8 @@ class Cuds(dict):
         if rel not in self.keys():
             self.__setitem__(rel, {entity.uid: entity.cuba_key})
         # Element not already there
-        elif entity.uid not in self.__getitem__(rel):
-            self.__getitem__(rel)[entity.uid] = entity.cuba_key
+        elif entity.uid not in self[rel]:
+            self[rel][entity.uid] = entity.cuba_key
         elif error_if_already_there:
             message = '{!r} is already in the container'
             raise ValueError(message.format(entity))
@@ -638,6 +645,7 @@ class Cuds(dict):
         if uids:
             check_arguments(uuid.UUID, *uids)
 
+        self.session._notify_read(self)
         # consider either given relationship and subclasses
         # or all relationships.
         if rel is None:
@@ -689,7 +697,7 @@ class Cuds(dict):
             iterator = enumerate(uids) if relationship_mapping \
                 else not_found_uids.items()
             for i, uid in iterator:
-                if uid in self.__getitem__(relationship):
+                if uid in self[relationship]:
                     found_uid_indexes.add(i)
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
@@ -754,7 +762,10 @@ class Cuds(dict):
             if uid is None:
                 yield None
             else:
-                yield next(entities)
+                try:
+                    yield next(entities)
+                except StopIteration:
+                    return None
 
     def _remove_direct(self, relationship, uid):
         """Remove the direct relationship between self and
@@ -791,6 +802,10 @@ class NotifyDict(dict):
         self.cuds = cuds
         self.rel = rel
         super().__init__(*args)
+
+    def __getitem__(self, key):
+        self.session._notify_read(self)
+        return super().__getitem__(key)
 
     def __setitem__(self, key, value):
         self.cuds._check_valid_add(value, self.rel)

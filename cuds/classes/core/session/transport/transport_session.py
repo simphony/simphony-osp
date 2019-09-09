@@ -7,7 +7,7 @@
 
 import json
 import inspect
-from cuds.utils import create_with_session
+from cuds.utils import create_for_session
 from cuds.classes.core.cuds import Cuds
 from cuds.metatools.ontology_datatypes import convert_from, convert_to
 from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
@@ -289,7 +289,11 @@ def buffers_to_registry(session_obj):
 
     # do not replace to prevent users working with old objects
     for entity in session_obj._updated.values():
-        old_entity = next(session_obj.load(entity.uid))
+        try:
+            old_entity = next(session_obj.load(entity.uid))
+        except StopIteration:
+            raise RuntimeError("Could not update entity with uid "
+                               "%s on server. Not present." % entity.uid)
         for attribute in entity.get_attributes(skip=["session", "uid"]):
             setattr(old_entity, attribute, getattr(entity, attribute))
         for rel, obj_dict in entity.items():
@@ -335,7 +339,7 @@ def to_cuds(json_obj, session):
     attributes = json_obj["attributes"]
     relationships = json_obj["relationships"]
     entity_cls = CUBA_MAPPING[cuba_key]
-    entity = create_with_session(entity_cls, attributes, session)
+    entity = create_for_session(entity_cls, attributes, session)
 
     for rel_cuba, obj_dict in relationships.items():
         rel = CUBA_MAPPING[CUBA(rel_cuba)]

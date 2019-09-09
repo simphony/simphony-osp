@@ -225,6 +225,15 @@ def pp_values(cuds_object, indentation="\n          "):
         return indentation.join(result)
 
 
+def destruct_cuds(entity):
+    for rel in set(entity.keys()):
+        del entity[rel]
+    for attr in entity.get_attributes(skip=["session", "uid"]):
+        setattr(entity, "_" + attr, None)
+    if entity.uid in entity._session._registry:
+        del entity._session._registry[entity.uid]
+
+
 def clone_cuds(entity, new_session=None):
     """Avoid that the session gets copied.
 
@@ -239,7 +248,7 @@ def clone_cuds(entity, new_session=None):
     return clone
 
 
-def create_with_session(entity_cls, kwargs, session, recycle_old=True):
+def create_for_session(entity_cls, kwargs, session, recycle_old=True):
     """Instantiate a cuds object with a given session
 
     :param entity_cls: The type of cuds object to instantiate
@@ -258,6 +267,8 @@ def create_with_session(entity_cls, kwargs, session, recycle_old=True):
     if uid in session._registry and recycle_old:
         cuds = session._registry.get(uid)
         for key, value in kwargs.items():
+            if key not in cuds.get_attributes():
+                raise TypeError
             if key not in ["uid", "session"]:
                 setattr(cuds, key, value)
         for rel in set(cuds.keys()):
@@ -267,7 +278,10 @@ def create_with_session(entity_cls, kwargs, session, recycle_old=True):
     # create new
     if "session" in inspect.getfullargspec(entity_cls.__init__).args:
         kwargs["session"] = session
+    default_session = entity_cls._session
+    entity_cls._session = session
     cuds = entity_cls(**kwargs)
+    entity_cls._session = default_session
     cuds._session = session
     return cuds
 
@@ -282,8 +296,11 @@ def create_with_session(entity_cls, kwargs, session, recycle_old=True):
 #     values = [getattr(entity, x) for x in attributes]
 #     kwargs = dict(zip(attributes, values))
 #     entity_cls = type(entity)
-#     clone = create_with_session(entity_cls, kwargs,
-#                                 new_session or entity.session)
-#     for key, value in entity.items():
-#         clone[key] = value
+#     clone = create_for_session(entity_cls, kwargs,
+#                                new_session or entity.session,
+#                                recycle_old=False)
+#     for key, uid_cuba in entity.items():
+#         clone[key] = dict()
+#         for uid, cuba in uid_cuba.items():
+#             clone[key][uid] = cuba
 #     return clone
