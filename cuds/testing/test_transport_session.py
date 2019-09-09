@@ -228,8 +228,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
 
         # first item
         c1 = create_for_session(cuds.classes.City,
-                                 {"name": "Freiburg", "uid": 1},
-                                 client)
+                                {"name": "Freiburg", "uid": 1},
+                                client)
         client.store(c1)
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
         self.assertEqual(client._engine._sent_data, (
@@ -243,8 +243,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client._engine._sent_data = None
         client._engine._sent_command = None
         c2 = create_for_session(cuds.classes.City,
-                                 {"name": "Freiburg", "uid": 1},
-                                 client)
+                                {"name": "Freiburg", "uid": 1},
+                                client)
         client.store(c2)
 
         self.assertEqual(client._engine._sent_command, None)
