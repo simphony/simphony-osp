@@ -225,6 +225,15 @@ def pp_values(cuds_object, indentation="\n          "):
         return indentation.join(result)
 
 
+def destruct_cuds(entity):
+    for rel in set(entity.keys()):
+        del entity[rel]
+    for attr in entity.get_attributes(skip=["session", "uid"]):
+        setattr(entity, "_" + attr, None)
+    if entity.uid in entity._session._registry:
+        del entity._session._registry[entity.uid]
+
+
 def clone_cuds(entity, new_session=None):
     """Avoid that the session gets copied.
 

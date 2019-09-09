@@ -8,6 +8,7 @@
 import uuid
 from sqlalchemy import create_engine
 from abc import abstractmethod
+from cuds.utils import destruct_cuds
 from cuds.classes.core.session.wrapper_session import WrapperSession
 
 
@@ -40,17 +41,20 @@ class DbWrapperSession(WrapperSession):
         if self.root is None:
             raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")
-        yield from self._load_cuds(uids=None, cuba_key=cuba_key)
+        yield from self._load_cuds(uids=None, cuba_key=cuba_key,
+                                   update_registry=False)
 
     def expire(self, *cuds_or_uids):
         for c in cuds_or_uids:
             if isinstance(c, uuid.UUID):
+                assert c != self.root, "Cannot expire root"
                 self._expired.add(c)
             else:
+                assert c != self.root, "Cannot expire root"
                 self._expired.add(c.uid)
 
     def expire_all(self):
-        self._expired = set(self._registry.keys())
+        self._expired = set(self._registry.keys()) - set([self.root])
 
     def refresh(self, *cuds_or_uids):
         uids = list()
@@ -59,8 +63,13 @@ class DbWrapperSession(WrapperSession):
                 uids.append(c)
             else:
                 uids.append(c.uid)
-        self._expired -= set(uids)
-        list(self._load_cuds(uids))
+        uids = set(uids) - set([self.root])
+        self._expired -= uids
+        loaded = list(self._load_cuds(uids, update_registry=True))
+        for uid, loaded_entity in zip(uids, loaded):
+            if loaded_entity is None:
+                old = self._registry.get(uid)
+                destruct_cuds(old)
 
     def store(self, entity):
         initialize = self.root is None
@@ -83,12 +92,15 @@ class DbWrapperSession(WrapperSession):
 
         missing_uids = [uid for uid in uids if uid not in self._registry]
         # Load elements not in the registry from the database
-        missing = self._load_cuds(missing_uids)
+        missing = self._load_cuds(missing_uids, update_registry=False)
         for uid in uids:
             if uid in self._registry:
                 yield self._registry.get(uid)
             else:
-                entity = next(missing)
+                try:
+                    entity = next(missing)
+                except StopIteration:
+                    entity = None
                 if entity is not None:
                     self._uid_set.add(entity.uid)
                     del self._added[entity.uid]
@@ -104,13 +116,15 @@ class DbWrapperSession(WrapperSession):
         self._engine.commit()
 
     @abstractmethod
-    def _load_cuds(self, uids, cuba_key=None):
+    def _load_cuds(self, uids, cuba_key=None, update_registry=False):
         """Load cuds with given uids or cuba_key from the database
 
         :param uids: List of uids to load
         :type uids: List[uuid.UUID]
         :param cuba_key: Load all entities with this cuba_key, defaults to None
         :type cuba_key: CUBA, optional
+        :param update_registry: Whether to override the cuds in the registry
+        :type update_registry: bool
         """
         pass
 

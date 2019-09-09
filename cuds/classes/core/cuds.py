@@ -84,6 +84,7 @@ class Cuds(dict):
         :type key: Type[Relationship]
         :raises ValueError: The given key is not a relationship.
         """
+        self.session._notify_read(self)
         if inspect.isclass(key) and issubclass(key, self.ROOT_REL):
             super().__delitem__(key)
             self._relationship_tree.remove(key)
@@ -102,6 +103,7 @@ class Cuds(dict):
         :type value: dict
         :raises ValueError: unsupported key provided (not a relationship)
         """
+        self.session._notify_read(self)
         if inspect.isclass(key) and issubclass(key, self.ROOT_REL) \
                 and isinstance(value, dict):
             for _, entity_cuba in value.items():
@@ -643,6 +645,7 @@ class Cuds(dict):
         if uids:
             check_arguments(uuid.UUID, *uids)
 
+        self.session._notify_read(self)
         # consider either given relationship and subclasses
         # or all relationships.
         if rel is None:
@@ -759,7 +762,10 @@ class Cuds(dict):
             if uid is None:
                 yield None
             else:
-                yield next(entities)
+                try:
+                    yield next(entities)
+                except StopIteration:
+                    return None
 
     def _remove_direct(self, relationship, uid):
         """Remove the direct relationship between self and

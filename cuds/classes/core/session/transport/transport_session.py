@@ -289,7 +289,11 @@ def buffers_to_registry(session_obj):
 
     # do not replace to prevent users working with old objects
     for entity in session_obj._updated.values():
-        old_entity = next(session_obj.load(entity.uid))
+        try:
+            old_entity = next(session_obj.load(entity.uid))
+        except StopIteration:
+            raise RuntimeError("Could not update entity with uid "
+                               "%s on server. Not present." % entity.uid)
         for attribute in entity.get_attributes(skip=["session", "uid"]):
             setattr(old_entity, attribute, getattr(entity, attribute))
         for rel, obj_dict in entity.items():
