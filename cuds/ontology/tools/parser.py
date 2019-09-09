@@ -14,9 +14,10 @@ class Parser:
     Class that parses a YAML file and finds information about the entities
     contained.
     """
-    ROOT_RELATIONSHIP = "RELATIONSHIP"
     ONTOLOGY_KEY = 'CUDS_ONTOLOGY'
     SETTINGS_KEY = 'CUDS_SETTINGS'
+    DEFINITION_ATTRIBUTE_KEY = 'definition'
+    PARENT_ATTRIBUTE_KEY = 'parent'
 
     def __init__(self, filename):
         """
@@ -39,41 +40,11 @@ class Parser:
                 self._parsed_settings = get_parsed_settings(yaml_doc)
                 self._ontology = yaml_doc[self.ONTOLOGY_KEY]
                 self._entities = frozenset(self._ontology.keys())
-                self._add_missing_inverse_relationships()
             except yaml.YAMLError as exc:
                 print(exc)
 
     def get_parsed_settings(self):
         return self._parsed_settings
-
-    def _add_missing_inverse_relationships(self):
-        """
-        If class A, can have relationship rel with class B as object,
-        class B must be able to connect to class A with relationship rel^-1.
-        """
-        # iterate over all relationships and add inverse, if missing
-        for entity in self._entities:
-            # subject must not be a relationship
-            if self.ROOT_RELATIONSHIP in self.get_ancestors(entity):
-                continue
-            for key in set(self._ontology[entity].keys()):
-                # check if predicate is relationship
-                if (
-                    not key.startswith("CUBA.")
-                    or self.ROOT_RELATIONSHIP not in self.get_ancestors(
-                        key[5:])
-                ):
-                    continue
-                targets = self.get_value(entity, key).keys()
-                for target in targets:
-                    # object must not be relationship
-                    if (
-                        not target.startswith("CUBA.")
-                        or self.ROOT_RELATIONSHIP in self.get_ancestors(
-                            target[5:])
-                    ):
-                        continue
-                    self._add_inverse(target[5:], key[5:], entity)
 
     def _add_inverse(self, entity, rel, target):
         """Add the inverse of given rel to given entity class.
@@ -120,7 +91,7 @@ class Parser:
         :param entity: entity whose definition to return
         :return: str with the definition
         """
-        definition = self.get_value(entity, 'definition')
+        definition = self.get_value(entity, self.DEFINITION_ATTRIBUTE_KEY)
         return definition if definition is not None else "To Be Determined"
 
     def get_parent(self, entity):
@@ -132,7 +103,7 @@ class Parser:
         :raises KeyError: the queried entity does not exist
         """
         try:
-            parent = self.get_value(entity, 'parent')
+            parent = self.get_value(entity, self.PARENT_ATTRIBUTE_KEY)
         except KeyError:
             message = '{!r} does not exist. Try again.'
             raise KeyError(message.format(entity))

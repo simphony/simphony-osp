@@ -11,6 +11,7 @@ import re
 import textwrap
 from string import Template
 
+from cuds.metatools.validity_checker import ValidityChecker
 from cuds.ontology.tools.parser import Parser
 from cuds.utils import format_class_name
 
@@ -24,8 +25,14 @@ class ClassGenerator(object):
     ROOT_NOT_CLASSES = "VALUE"
     # Default root of all relationship classes
     ROOT_RELATIONSHIP = "RELATIONSHIP"
+    # Default root of all active relationship classes
+    ROOT_ACTIVE_RELATIONSHIP = "ACTIVE_RELATIONSHIP"
+    # Default root of all passive relationship classes
+    ROOT_PASSIVE_RELATIONSHIP = "PASSIVE_RELATIONSHIP"
     # Key for the default value in the ontology
     DEFAULT_ATTRIBUTE_KEY = "default"
+    # Key for the inverse of relationships
+    INVERSE_ATTRIBUTE_KEY = "inverse"
 
     def __init__(self, yaml_filename, entity_template, relationship_template,
                  output_folder):
@@ -42,6 +49,9 @@ class ClassGenerator(object):
         self._entity_template = self._get_template(entity_template)
         self._relationship_template = self._get_template(relationship_template)
         self._parser = Parser(self._yaml_filename)
+        self._checker = ValidityChecker(self._parser, self)
+        self._checker.check_validity()
+        self._checker.repair()
         self._output_folder = output_folder
 
         # Don't create classes from ROOT_NOT_CLASSES and its descendants
