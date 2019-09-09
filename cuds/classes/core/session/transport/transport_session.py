@@ -7,7 +7,7 @@
 
 import json
 import inspect
-from cuds.utils import create_with_session
+from cuds.utils import create_for_session
 from cuds.classes.core.cuds import Cuds
 from cuds.metatools.ontology_datatypes import convert_from, convert_to
 from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
@@ -335,7 +335,7 @@ def to_cuds(json_obj, session):
     attributes = json_obj["attributes"]
     relationships = json_obj["relationships"]
     entity_cls = CUBA_MAPPING[cuba_key]
-    entity = create_with_session(entity_cls, attributes, session)
+    entity = create_for_session(entity_cls, attributes, session)
 
     for rel_cuba, obj_dict in relationships.items():
         rel = CUBA_MAPPING[CUBA(rel_cuba)]

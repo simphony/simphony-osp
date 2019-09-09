@@ -281,7 +281,7 @@ class ClassGenerator(object):
                     list_self.append("self._session = session")
                 elif name in own_attr:
                     list_properties.append((name, datatype))
-                    list_self.append("self.{} = {}".format(name, name))
+                    list_self.append("self._{} = {}".format(name, name))
 
         # Add default parameters at the end
         list_init += list_init_default

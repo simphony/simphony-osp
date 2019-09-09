@@ -195,6 +195,8 @@ class TestSqliteCity(unittest.TestCase):
             session.expire_all()
             self.assertEqual(p1w.name, "Maria")
 
+        # TODO test if relationships have been refreshed
+
 
 def check_state(test_case, c, p1, p2, table="test.db"):
     """Check if the sqlite tables are in the correct state."""
