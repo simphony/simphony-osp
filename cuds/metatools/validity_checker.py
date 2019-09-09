@@ -94,9 +94,11 @@ class ValidityChecker():
         :type parser: Parser
         """
         assert parser.get_value(self.root_active, self.attr_inverse) == \
-            "CUBA." + self.root_passive
+            "CUBA." + self.root_passive, \
+            "Inverse of %s must be %s" % (self.root_active, self.root_passive)
         assert parser.get_value(self.root_passive, self.attr_inverse) == \
-            "CUBA." + self.root_active
+            "CUBA." + self.root_active, \
+            "Inverse of %s must be %s" % (self.root_passive, self.root_active)
         entities = parser.get_entities()
         for entity in set(entities) - {self.root_rel,
                                        self.root_active, self.root_passive}:
@@ -124,7 +126,8 @@ class ValidityChecker():
         for entity in parser.get_entities():
             for attribute in parser.get_own_attributes(entity):
                 if attribute in map(str.lower, [self.attr_def,
-                                                self.attr_parent]):
+                                                self.attr_parent,
+                                                self.root_non_class]):
                     continue
                 try:
                     ancestors = set(parser.get_ancestors(attribute.upper()))

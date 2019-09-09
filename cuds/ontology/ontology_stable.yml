@@ -17,6 +17,20 @@ CUDS_ONTOLOGY:
     definition: the basic ontologicial entity, a thing. BFO
     parent:
 
+  RELATIONSHIP:
+    definition: Root of all relationships.
+    parent:
+
+  ACTIVE_RELATIONSHIP:
+    definition: Root of all active relationships.
+    parent: CUBA.RELATIONSHIP
+    inverse: CUBA.PASSIVE_RELATIONSHIP
+
+  PASSIVE_RELATIONSHIP:
+    definition: Root of all active relationships.
+    parent: CUBA.RELATIONSHIP
+    inverse: CUBA.ACTIVE_RELATIONSHIP
+
   CUDS_ENTITY:
     definition: Root of all CUDS classes
     parent: CUBA.ENTITY
@@ -38,10 +52,6 @@ CUDS_ONTOLOGY:
   PENDING_ENTITY:
     definition: root of all cuds entity that is according to BFO
     parent: CUBA.CUDS_ENTITY
-
-  # UUID:
-  #   definition: a unique universal identifier
-  #   parent: CUBA.BFO_ENTITY # should be QUALITY
 
   CONTINUANT:
     definition: BFO continuant
