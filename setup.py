@@ -51,22 +51,25 @@ def create_ontology_classes(ontology):
 class Install(install):
     # The format is (long option, short option, description).
     user_options = install.user_options + [
-        ('city', 'c', 'install using city ontology'),
-        ('toy', 't', 'install using toy ontology')
+        ('ontology=', 'o', 'The ontology to install: stable / city / toy / '
+         'path to yaml file. Default: stable'),
     ]
 
     def initialize_options(self):
         install.initialize_options(self)
-        self.city = ''
-        self.toy = ''
+        self.ontology = ''
 
     def run(self):
-        if self.city:
+        if self.ontology == "city":
             create_ontology_classes('ontology_city.yml')
-        elif self.toy:
+        elif self.ontology == "toy":
             create_ontology_classes('ontology_toy.yml')
-        else:
+        elif self.ontology == "" or self.ontology == "stable":
             create_ontology_classes('ontology_stable.yml')
+        elif self.ontology.endswith(".yml"):
+            create_ontology_classes(self.ontology)
+        else:
+            raise ValueError("Unknown ontology specified: %s" % self.ontology)
         install.run(self)
 
 

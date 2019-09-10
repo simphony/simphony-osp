@@ -19,7 +19,7 @@ CUDS_ONTOLOGY:
 
   RELATIONSHIP:
     definition: Root of all relationships.
-    parent:
+    parent: CUBA.ENTITY
 
   ACTIVE_RELATIONSHIP:
     definition: Root of all active relationships.
@@ -27,7 +27,7 @@ CUDS_ONTOLOGY:
     inverse: CUBA.PASSIVE_RELATIONSHIP
 
   PASSIVE_RELATIONSHIP:
-    definition: Root of all active relationships.
+    definition: Root of all passive relationships.
     parent: CUBA.RELATIONSHIP
     inverse: CUBA.ACTIVE_RELATIONSHIP
 

@@ -33,6 +33,8 @@ class ClassGenerator(object):
     DEFAULT_ATTRIBUTE_KEY = "default"
     # Key for the inverse of relationships
     INVERSE_ATTRIBUTE_KEY = "inverse"
+    # Attribute specifying the default relationship of the ontology
+    DEFAULT_REL_ATTRIBUTE_KEY = "default_rel"
 
     def __init__(self, yaml_filename, entity_template, relationship_template,
                  output_folder):
@@ -50,8 +52,8 @@ class ClassGenerator(object):
         self._relationship_template = self._get_template(relationship_template)
         self._parser = Parser(self._yaml_filename)
         self._checker = ValidityChecker(self._parser, self)
-        self._checker.check_validity()
-        self._checker.repair()
+        self._checker.check_and_repair()
+        self._default_relationship = self._checker.default_relationship
         self._output_folder = output_folder
 
         # Don't create classes from ROOT_NOT_CLASSES and its descendants
@@ -128,6 +130,9 @@ class ClassGenerator(object):
         """
         init_filename = os.path.join(self._output_folder, "__init__.py")
         settings = self._parser.get_parsed_settings()
+        if self._default_relationship:
+            settings.update({"default_relationship":
+                             self._default_relationship})
 
         with open(init_filename, 'a+') as f:
             f.write("\nPARSED_SETTINGS = %s" % settings)
@@ -291,7 +296,8 @@ class ClassGenerator(object):
                     list_self.append("self._session = session")
                 elif name in own_attr:
                     list_properties.append((name, datatype))
-                    list_self.append("self._{} = {}".format(name, name))
+                    list_self.append("self._%s = convert_to(%s, '%s')"
+                                     % (name, name, datatype))
 
         # Add default parameters at the end
         list_init += list_init_default
@@ -317,7 +323,7 @@ class ClassGenerator(object):
                       "def %s(self, x):" % p,
                       "    self._%s = convert_to(x, \"%s\")"
                       % (p, datatype),
-                      "    self.session._notify_update(self)\n"]
+                      "    self.session._notify_update(self)\n\n"]
             funcs = getter + setter if p != "session" else getter
             result += "\n".join(map(lambda x: "    " + x, funcs))
         return result

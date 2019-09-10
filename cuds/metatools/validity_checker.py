@@ -27,17 +27,16 @@ class ValidityChecker():
         self.attr_inverse = class_generator.INVERSE_ATTRIBUTE_KEY
         self.attr_parent = parser.PARENT_ATTRIBUTE_KEY
         self.attr_def = parser.DEFINITION_ATTRIBUTE_KEY
+        self.attr_default_rel = class_generator.DEFAULT_REL_ATTRIBUTE_KEY
+        self.default_relationship = None
 
-    def repair(self):
-        """Check for repairable ontology problems and repair them"""
-        self._add_missing_inverse_relationships(self.parser)
-        self._check_cycles(self.parser)
-
-    def check_validity(self):
+    def check_and_repair(self):
         """Check if the ontology satisfies certain constraints"""
         self._check_obligatory_classes(self.parser)
         self._check_inverses(self.parser)
         self._check_attributes(self.parser)
+        self._add_missing_inverse_relationships(self.parser)
+        self._check_cycles(self.parser)
 
     def _add_missing_inverse_relationships(self, parser):
         """
@@ -75,10 +74,10 @@ class ValidityChecker():
         :type parser: Parser
         """
         entities = parser.get_entities()
-        msg1 = "Missing obligatory cuds class in ontology."
-        assert self.root_rel in entities, msg1
-        assert self.root_active in entities, msg1
-        assert self.root_passive in entities, msg1
+        msg1 = "Missing obligatory cuds class in ontology: "
+        assert self.root_rel in entities, msg1 + self.root_rel
+        assert self.root_active in entities, msg1 + self.root_active
+        assert self.root_passive in entities, msg1 + self.root_passive
         assert self.root_rel in parser.get_ancestors(self.root_active)
         assert self.root_rel in parser.get_ancestors(self.root_passive)
         for entity in set(entities) - {self.root_rel,
@@ -87,6 +86,15 @@ class ValidityChecker():
             typ = {self.root_active, self.root_passive} & ancestors
             if self.root_rel in ancestors:
                 assert len(typ) == 1, "Relationship must be active xor passive"
+            try:
+                if parser.get_value(entity, "default_rel"):
+                    assert not self.default_relationship, \
+                        "Only one default relationship allowed!"
+                    self.default_relationship = entity
+            except KeyError:
+                pass
+        self.default_relationship = self.default_relationship or \
+            "ACTIVE_RELATIONSHIP"
         assert len([e for e in entities
                     if parser.get_value(e, "parent") is None]) == 1, \
             "The ontology must have exactly one root"
@@ -130,12 +138,13 @@ class ValidityChecker():
         :param parser: The parser object.
         :type parser: Parser.
         """
-        for entity in parser.get_entities():
+        for entity in set(parser.get_entities()):
             for attribute in parser.get_cuba_attributes_filtering(entity, []):
                 attribute = attribute[5:]
                 if attribute in map(str.lower, [self.attr_def,
                                                 self.attr_parent,
-                                                self.root_non_class]):
+                                                self.root_non_class,
+                                                self.attr_default_rel]):
                     continue
                 # Check for unknown Cuba Key
                 try:
@@ -144,11 +153,15 @@ class ValidityChecker():
                     raise KeyError("Unknown cuba key CUBA.%s specified!"
                                    % attribute.upper()) from e
                 # check type
-                assert len({self.root_non_class,
-                            self.root_rel} & ancestors) == 1, (
-                    "Attribute %s not allowed for %s. "
-                    "Must be a relationship xor a value."
-                    % (attribute, entity))
+                if not len({self.root_non_class,
+                            self.root_rel}
+                           & (ancestors | {attribute.upper()})) == 1:
+                    target = parser.get_value(entity, "CUBA." + attribute)
+                    parser.update_attribute(
+                        entity,
+                        "CUBA." + self.default_relationship,
+                        {"CUBA." + attribute: target})
+                    parser.del_attribute(entity, "CUBA." + attribute)
 
                 # check relationship target
                 if self.root_rel in ancestors:

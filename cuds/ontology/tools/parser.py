@@ -215,3 +215,11 @@ class Parser:
         # Remove the root (only descendants)
         descendants.remove(root_entity)
         return descendants
+
+    def update_attribute(self, entity, attribute, value):
+        if attribute not in self._ontology[entity]:
+            self._ontology[entity][attribute] = dict()
+        self._ontology[entity][attribute].update(value)
+
+    def del_attribute(self, entity, attribute):
+        del self._ontology[entity][attribute]
