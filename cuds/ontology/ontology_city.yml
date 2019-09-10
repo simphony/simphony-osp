@@ -60,6 +60,7 @@ CUDS_ONTOLOGY:
     definition:
     parent: CUBA.HAS_PART
     inverse: CUBA.IS_CHILD_OF
+    allow_cycles: true
 
   IS_CHILD_OF:
     definition:
