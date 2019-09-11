@@ -29,6 +29,14 @@ class SqliteWrapperSession(SqlWrapperSession):
         self._engine.commit()
 
     # OVERRIDE
+    def _init_transaction(self):
+        pass  # TODO
+
+    # OVERRIDE
+    def _rollback_transaction(self):
+        pass  # TODO
+
+    # OVERRIDE
     def _db_select(self, table_name, columns, condition, datatypes):
         c = self._engine.cursor()
         condition_str = self._get_condition_string(condition)

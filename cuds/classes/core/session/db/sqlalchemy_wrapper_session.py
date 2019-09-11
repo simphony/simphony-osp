@@ -18,8 +18,7 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
         super().__init__(engine=sqlalchemy.create_engine(url),
                          **kwargs)
         self._connection = self._engine.connect()
-        # TODO move that to beginning of commit?
-        self._transaction = self._connection.begin()
+        self._transaction = None
         self._metadata = sqlalchemy.MetaData(self._connection)
 
     def __str__(self):
@@ -27,14 +26,21 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
 
     # OVERRIDE
     def close(self):
-        self._transaction.rollback()
         self._connection.close()
         self._engine.dispose()
 
     # OVERRIDE
+    def _init_transaction(self):
+        self._transaction = self._connection.begin()
+
+    # OVERRIDE
+    def _rollback_transaction(self):
+        self._transaction.rollback()
+        self._transaction = None
+
+    # OVERRIDE
     def _commit(self):
         self._transaction.commit()
-        self._transaction = self._connection.begin()
 
     # OVERRIDE
     def _db_select(self, table_name, columns, condition, datatypes):
