@@ -52,7 +52,7 @@ class Cuds(dict):
         from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         Cuds.CUDS_SETTINGS.update(PARSED_SETTINGS)
         Cuds.DEFAULT_REL = CUBA_MAPPING[
-            CUBA(PARSED_SETTINGS["default_relationship"])]
+            CUBA(Cuds.CUDS_SETTINGS["default_relationship"])]
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         # store the hierarchical order of the relationships
         self._relationship_tree = RelationshipTree(self.ROOT_REL)

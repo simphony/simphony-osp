@@ -12,7 +12,8 @@ from cuds.classes.core.cuds import Cuds
 from cuds.metatools.ontology_datatypes import convert_from, convert_to
 from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
 from cuds.classes.generated.cuba import CUBA
-from cuds.classes.core.session.wrapper_session import WrapperSession
+from cuds.classes.core.session.storage_wrapper_session \
+    import StorageWrapperSession
 from cuds.classes.core.session.transport.communication_engine \
     import CommunicationEngineClient, CommunicationEngineServer
 
@@ -75,7 +76,7 @@ class TransportSessionServer():
         elif not command.startswith("_") and \
                 user in self.session_objs and \
                 hasattr(self.session_objs[user], command) and \
-                not hasattr(WrapperSession, command) and \
+                not hasattr(StorageWrapperSession, command) and \
                 callable(getattr(self.session_objs[user], command)):
             try:
                 return self._run_command(data, command, user)
@@ -140,7 +141,7 @@ class TransportSessionServer():
         return serialize_buffers(session)
 
 
-class TransportSessionClient(WrapperSession):
+class TransportSessionClient(StorageWrapperSession):
     """The TransportSession implements the transport layer. It consists of a
     client and a server. The client is a WrapperSession, that wraps another
     session that runs on the server. Each request will be sent to the server"""
@@ -164,13 +165,8 @@ class TransportSessionClient(WrapperSession):
         self.kwargs = kwargs
 
     # OVERRIDE
-    def load(self, *uids):
-        # If uid is not present in the local registry,
-        # load it from the server
-        missing_uids = [str(uid) for uid in uids if uid not in self._registry]
-        if missing_uids:
-            self._engine.send(LOAD_COMMAND,
-                              json.dumps(missing_uids))
+    def _load_cuds(self, uids):
+        self._engine.send(LOAD_COMMAND, json.dumps(list(map(str, uids))))
         yield from super().load(*uids)
 
     # OVERRIDE

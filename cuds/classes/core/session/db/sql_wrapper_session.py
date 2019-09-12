@@ -242,19 +242,18 @@ class SqlWrapperSession(DbWrapperSession):
                                             "UUID"))
 
     # OVERRIDE
-    def _load_cuds(self, uids, cuba_key=None, update_registry=False):
-        if uids is not None:
-            for uid in uids:
-                if isinstance(uid, uuid.UUID):
-                    cuba = cuba_key or self._get_cuba(uid)
-                elif isinstance(uid, tuple) and len(uid) == 2:
-                    uid, cuba = uid
-                else:
-                    raise ValueError("Invalid uid given %s" % uid)
-                loaded = list(self._load_by_cuba(cuba, uid, update_registry))
-                yield loaded[0] if loaded else None
-        else:
-            yield from self._load_by_cuba(cuba_key, None, update_registry)
+    def _load_cuds(self, uids):
+        for uid in uids:
+            if isinstance(uid, uuid.UUID):
+                cuba = self._get_cuba(uid)
+            elif isinstance(uid, tuple) and len(uid) == 2:
+                uid, cuba = uid
+            else:
+                raise ValueError("Invalid uid given %s" % uid)
+            loaded = list(self._load_by_cuba(cuba=cuba,
+                                             update_registry=True,
+                                             uid=uid))
+            yield loaded[0] if loaded else None
 
     # OVERRIDE
     def _initialize(self):
@@ -282,14 +281,17 @@ class SqlWrapperSession(DbWrapperSession):
                             self.DATATYPES[self.MASTER_TABLE])
         list(self._load_cuds(map(lambda x: (x[0], CUBA(x[1])), c)))
 
-    def _load_by_cuba(self, cuba, uid=None, update_registry=False):
+    def _load_by_cuba(self, cuba, update_registry=False, uid=None):
         """Load the Cuds entity with the given cuba (+ uid).
         If uid is None return all entities with given cuba_key.
 
-        :param uid: The uid of the Cuds to load.
-        :type uid: UUID
         :param cuba: The Cuba-Key of the cuds object
         :type cuba: CUBA
+        :param uid: The uid of the Cuds to load.
+        :type uid: UUID
+        :param update_registry: Whether to update cuds objects already
+            present in the registry.
+        :type update_registry: bool
         :return: The loaded Cuds entity.
         :rtype: Cuds
         """

@@ -262,18 +262,21 @@ def create_for_session(entity_cls, kwargs, session, recycle_old=True):
     :type recycle_old: bool
     """
     uid = convert_to(kwargs["uid"], "UUID")
+    if hasattr(session, "_expired") and uid in session._expired:
+        session._expired.remove(uid)
 
     # recycle old object
     if uid in session._registry and recycle_old:
         cuds = session._registry.get(uid)
-        for key, value in kwargs.items():
-            if key not in cuds.get_attributes():
-                raise TypeError
-            if key not in ["uid", "session"]:
-                setattr(cuds, key, value)
-        for rel in set(cuds.keys()):
-            del cuds[rel]
-        return cuds
+        if type(cuds) == entity_cls:
+            for key, value in kwargs.items():
+                if key not in cuds.get_attributes():
+                    raise TypeError
+                if key not in ["uid", "session"]:
+                    setattr(cuds, key, value)
+            for rel in set(cuds.keys()):
+                del cuds[rel]
+            return cuds
 
     # create new
     if "session" in inspect.getfullargspec(entity_cls.__init__).args:
