@@ -182,6 +182,8 @@ class Cuds(dict):
         if rel is None:
             rel = self.DEFAULT_REL
         result = list()
+        old_objects = self._session.load(
+            *[arg.uid for arg in args if arg.session != self.session])
         for arg in args:
             if arg.session != self.session:
                 arg = clone_cuds(arg)
@@ -191,7 +193,7 @@ class Cuds(dict):
 
             # Recursively add the children to the registry
             if self.session != arg.session:
-                result[-1] = self._recursive_store(arg)
+                result[-1] = self._recursive_store(arg, next(old_objects))
         return result[0] if len(args) == 1 else result
 
     def get(self,

@@ -40,8 +40,8 @@ class StorageWrapperSession(WrapperSession):
                     entity = None
                 if entity is not None:
                     self._uid_set.add(entity.uid)
-                if entity.uid in self._added:
-                    del self._added[entity.uid]
+                    if entity.uid in self._added:
+                        del self._added[entity.uid]
                 yield entity
 
     def expire(self, *cuds_or_uids):

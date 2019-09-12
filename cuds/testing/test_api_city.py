@@ -309,6 +309,7 @@ class TestAPICity(unittest.TestCase):
         c.update(new_n)
 
         new_neighbourhood = c.get(n.uid)
+        # self.assertIs(new_neighbourhood, n)
         new_streets = new_neighbourhood.get(
             cuba_key=cuds.classes.CUBA.STREET)
         self.assertEqual(new_streets, [new_s])
@@ -604,6 +605,21 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(c.get(rel=cuds.classes.HasPart), [])
         self.assertEqual(nw.get(rel=cuds.classes.IsPartOf), [])
         self.assertEqual(wrapper.get(rel=cuds.classes.HasPart), [c])
+
+    def test_add_twice(self):
+        """ Test what happens if you add the same
+        object twice to a new session"""
+        p = cuds.classes.Citizen(name="Ralf")
+        c1 = cuds.classes.City("Freiburg")
+        c2 = cuds.classes.City("Offenburg")
+        with CoreSession() as session:
+            w = cuds.classes.CityWrapper(session=session)
+            c1w, c2w = w.add(c1, c2)
+            c1w.add(p, rel=cuds.classes.HasInhabitant)
+            pw = c2w.add(p, rel=cuds.classes.HasInhabitant)
+            # self.assertIs(pw1, pw2)
+            self.assertEqual(set(pw.get(rel=cuds.classes.IsInhabitantOf)),
+                             {c1w, c2w})
 
 
 if __name__ == '__main__':
