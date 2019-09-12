@@ -27,16 +27,17 @@ class TestSessionCity(unittest.TestCase):
         w = cuds.classes.CityWrapper(session=session)
         c = cuds.classes.City("city 1")
         cw = w.add(c)
-        self.assertEqual(updated, set([w]))
-
-        cw.name = "city 2"
         self.assertEqual(updated, set([c, w]))
 
         updated.pop()
         updated.pop()
+        cw.name = "city 2"
+        self.assertEqual(updated, set([c]))
+
+        updated.pop()
         c3 = cuds.classes.City("city 3")
         w.add(c3)
-        self.assertEqual(updated, set([w]))
+        self.assertEqual(updated, set([c3, w]))
 
     def test_notify_delete_call(self):
         """

@@ -185,15 +185,16 @@ class Cuds(dict):
         old_objects = self._session.load(
             *[arg.uid for arg in args if arg.session != self.session])
         for arg in args:
-            if arg.session != self.session:
-                arg = clone_cuds(arg)
+            # Recursively add the children to the registry
+            if rel in self and arg.uid in self[rel]:
+                message = '{!r} is already in the container'
+                raise ValueError(message.format(arg))
+            if self.session != arg.session:
+                arg = self._recursive_store(arg, next(old_objects))
+
             self._add_direct(arg, rel)
             arg._add_inverse(self, rel)
             result.append(arg)
-
-            # Recursively add the children to the registry
-            if self.session != arg.session:
-                result[-1] = self._recursive_store(arg, next(old_objects))
         return result[0] if len(args) == 1 else result
 
     def get(self,
@@ -562,16 +563,13 @@ class Cuds(dict):
                                [relationship] * len(new_neighbor_uids)))
         return result
 
-    def _add_direct(self, entity, rel, error_if_already_there=True):
+    def _add_direct(self, entity, rel):
         """
         Adds an entity to the current instance with a specific relationship
         :param entity: object to be added
         :type entity: Cuds
         :param rel: relationship with the entity to add
         :type rel: Type[Relationships]
-        :param error_if_already_there: Whether to throw an error if the
-            object to add has already been added previously.
-        :type error_if_already_there: bool
         """
         # First element, create set
         if rel not in self.keys():
@@ -579,9 +577,6 @@ class Cuds(dict):
         # Element not already there
         elif entity.uid not in self[rel]:
             self[rel][entity.uid] = entity.cuba_key
-        elif error_if_already_there:
-            message = '{!r} is already in the container'
-            raise ValueError(message.format(entity))
 
     def _check_valid_add(self, entity_cuba, rel):
         """Check if adding should be allowed.
@@ -618,7 +613,7 @@ class Cuds(dict):
         """
         from ..generated.cuba_mapping import CUBA_MAPPING
         inverse_rel = CUBA_MAPPING[rel.inverse]
-        self._add_direct(entity, inverse_rel, error_if_already_there=False)
+        self._add_direct(entity, inverse_rel)
 
     def _get(self, *uids, rel=None, cuba_key=None, return_mapping=False):
         """
