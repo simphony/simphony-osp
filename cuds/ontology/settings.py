@@ -3,7 +3,8 @@ from copy import deepcopy
 DEFAULT = {
     "check_relationship_supported": True,
     "check_cardinalities": True,
-    "default_cardinality": "many"
+    "default_cardinality": "many",
+    "default_relationship": "ACTIVE_RELATIONSHIP"
 }
 
 MODES = {

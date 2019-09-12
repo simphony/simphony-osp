@@ -19,7 +19,6 @@ from cuds.classes.generated.relationship import Relationship
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.generated.active_relationship import ActiveRelationship
 from cuds.classes.generated.passive_relationship import PassiveRelationship
-from cuds.classes.generated.has_part import HasPart
 from copy import deepcopy
 
 
@@ -33,7 +32,7 @@ class Cuds(dict):
     The instances of the contained elements are accessible
     through the shared session
     """
-    DEFAULT_REL = HasPart
+    DEFAULT_REL = None
     ROOT_REL = Relationship
     cuba_key = None
     supported_relationships = dict()
@@ -50,7 +49,10 @@ class Cuds(dict):
         """
         super().__init__()
         from cuds.classes.generated import PARSED_SETTINGS
+        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         Cuds.CUDS_SETTINGS.update(PARSED_SETTINGS)
+        Cuds.DEFAULT_REL = CUBA_MAPPING[
+            CUBA(PARSED_SETTINGS["default_relationship"])]
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         # store the hierarchical order of the relationships
         self._relationship_tree = RelationshipTree(self.ROOT_REL)

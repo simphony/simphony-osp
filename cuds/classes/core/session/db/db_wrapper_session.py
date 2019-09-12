@@ -21,11 +21,16 @@ class DbWrapperSession(WrapperSession):
     def commit(self):
         """Commit the changes in the buffers to the database."""
         self._check_cardinalities()
-        self._apply_added()
-        self._apply_updated()
-        self._apply_deleted()
-        self._reset_buffers(changed_by="user")
-        self._commit()
+        self._init_transaction()
+        try:
+            self._apply_added()
+            self._apply_updated()
+            self._apply_deleted()
+            self._reset_buffers(changed_by="user")
+            self._commit()
+        except Exception as e:
+            self._rollback_transaction()
+            raise e
         self._reset_buffers(changed_by="engine")
         self.expire_all()
 
@@ -136,6 +141,16 @@ class DbWrapperSession(WrapperSession):
     @abstractmethod
     def _load_first_level(self):
         """Load the first level of children of the root from the database."""
+        pass
+
+    @abstractmethod
+    def _init_transaction(self):
+        """Initialize the transaction"""
+        pass
+
+    @abstractmethod
+    def _rollback_transaction(self):
+        """Initialize the transaction"""
         pass
 
     @abstractmethod
