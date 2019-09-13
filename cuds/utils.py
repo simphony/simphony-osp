@@ -240,11 +240,14 @@ def clone_cuds(entity, new_session=None):
     :return: A copy of self with the same session
     :rtype: Cuds
     """
+    if entity is None:
+        return None
     session = entity._session
     if "_session" in entity.__dict__:
         del entity.__dict__["_session"]
     clone = deepcopy(entity)
     clone._session = new_session or session
+    entity._session = session
     return clone
 
 
@@ -262,18 +265,21 @@ def create_for_session(entity_cls, kwargs, session, recycle_old=True):
     :type recycle_old: bool
     """
     uid = convert_to(kwargs["uid"], "UUID")
+    if hasattr(session, "_expired") and uid in session._expired:
+        session._expired.remove(uid)
 
     # recycle old object
     if uid in session._registry and recycle_old:
         cuds = session._registry.get(uid)
-        for key, value in kwargs.items():
-            if key not in cuds.get_attributes():
-                raise TypeError
-            if key not in ["uid", "session"]:
-                setattr(cuds, key, value)
-        for rel in set(cuds.keys()):
-            del cuds[rel]
-        return cuds
+        if type(cuds) == entity_cls:
+            for key, value in kwargs.items():
+                if key not in cuds.get_attributes():
+                    raise TypeError
+                if key not in ["uid", "session"]:
+                    setattr(cuds, key, value)
+            for rel in set(cuds.keys()):
+                del cuds[rel]
+            return cuds
 
     # create new
     if "session" in inspect.getfullargspec(entity_cls.__init__).args:
@@ -286,21 +292,21 @@ def create_for_session(entity_cls, kwargs, session, recycle_old=True):
     return cuds
 
 
-# def clone_cuds(entity, new_session=None):
-#     """Avoid that the session gets copied.
+def create_from_cuds(entity, session=None):
+    """Avoid that the session gets copied.
 
-#     :return: A copy of self with the same session
-#     :rtype: Cuds
-#     """
-#     attributes = entity.get_attributes(skip="session")
-#     values = [getattr(entity, x) for x in attributes]
-#     kwargs = dict(zip(attributes, values))
-#     entity_cls = type(entity)
-#     clone = create_for_session(entity_cls, kwargs,
-#                                new_session or entity.session,
-#                                recycle_old=False)
-#     for key, uid_cuba in entity.items():
-#         clone[key] = dict()
-#         for uid, cuba in uid_cuba.items():
-#             clone[key][uid] = cuba
-#     return clone
+    :return: A copy of self with the same session
+    :rtype: Cuds
+    """
+    attributes = entity.get_attributes(skip="session")
+    values = [getattr(entity, x) for x in attributes]
+    kwargs = dict(zip(attributes, values))
+    entity_cls = type(entity)
+    clone = create_for_session(entity_cls, kwargs,
+                               session or entity.session,
+                               recycle_old=True)
+    for key, uid_cuba in entity.items():
+        clone[key] = dict()
+        for uid, cuba in uid_cuba.items():
+            clone[key][uid] = cuba
+    return clone

@@ -209,6 +209,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         c1 = cuds.classes.City("Freiburg", uid=1)
         c2 = cuds.classes.City("London", uid=2)
         client = TransportSessionClient(TestWrapperSession, None, None)
+        client.root = 1
 
         def on_send(command, data):
             client._registry.put(c2)

@@ -13,7 +13,7 @@ from typing import Union, Type, List, Iterator, Dict, Any
 from cuds.metatools.ontology_datatypes import convert_to
 from cuds.classes.core.session.core_session import CoreSession
 from cuds.classes.core.relationship_tree import RelationshipTree
-from cuds.utils import check_arguments, clone_cuds
+from cuds.utils import check_arguments, clone_cuds, create_from_cuds
 from cuds.ontology.settings import DEFAULT as DEFAULT_CUDS_SETTINGS
 from cuds.classes.generated.relationship import Relationship
 from cuds.classes.generated.cuba import CUBA
@@ -52,7 +52,7 @@ class Cuds(dict):
         from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         Cuds.CUDS_SETTINGS.update(PARSED_SETTINGS)
         Cuds.DEFAULT_REL = CUBA_MAPPING[
-            CUBA(PARSED_SETTINGS["default_relationship"])]
+            CUBA(Cuds.CUDS_SETTINGS["default_relationship"])]
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         # store the hierarchical order of the relationships
         self._relationship_tree = RelationshipTree(self.ROOT_REL)
@@ -182,16 +182,19 @@ class Cuds(dict):
         if rel is None:
             rel = self.DEFAULT_REL
         result = list()
+        old_objects = self._session.load(
+            *[arg.uid for arg in args if arg.session != self.session])
         for arg in args:
-            if arg.session != self.session:
-                arg = clone_cuds(arg)
+            # Recursively add the children to the registry
+            if rel in self and arg.uid in self[rel]:
+                message = '{!r} is already in the container'
+                raise ValueError(message.format(arg))
+            if self.session != arg.session:
+                arg = self._recursive_store(arg, next(old_objects))
+
             self._add_direct(arg, rel)
             arg._add_inverse(self, rel)
             result.append(arg)
-
-            # Recursively add the children to the registry
-            if self.session != arg.session:
-                result[-1] = self._recursive_store(arg)
         return result[0] if len(args) == 1 else result
 
     def get(self,
@@ -361,12 +364,13 @@ class Cuds(dict):
             add_to, new_cuds, old_cuds = queue.pop(0)
             if new_cuds.uid in missing:
                 del missing[new_cuds.uid]
+            old_cuds = clone_cuds(old_cuds)
             new_child_getter = new_cuds
-            new_cuds = clone_cuds(new_cuds, add_to.session)
+            new_cuds = create_from_cuds(new_cuds, add_to.session)
             # fix the connections to the neighbors
             add_to._fix_neighbors(new_cuds, old_cuds, add_to.session, missing)
             add_to.session.store(new_cuds)
-            result = result if result is not None else new_cuds
+            result = result or new_cuds
 
             for outgoing_rel in new_cuds.keys():
 
@@ -560,16 +564,13 @@ class Cuds(dict):
                                [relationship] * len(new_neighbor_uids)))
         return result
 
-    def _add_direct(self, entity, rel, error_if_already_there=True):
+    def _add_direct(self, entity, rel):
         """
         Adds an entity to the current instance with a specific relationship
         :param entity: object to be added
         :type entity: Cuds
         :param rel: relationship with the entity to add
         :type rel: Type[Relationships]
-        :param error_if_already_there: Whether to throw an error if the
-            object to add has already been added previously.
-        :type error_if_already_there: bool
         """
         # First element, create set
         if rel not in self.keys():
@@ -577,9 +578,6 @@ class Cuds(dict):
         # Element not already there
         elif entity.uid not in self[rel]:
             self[rel][entity.uid] = entity.cuba_key
-        elif error_if_already_there:
-            message = '{!r} is already in the container'
-            raise ValueError(message.format(entity))
 
     def _check_valid_add(self, entity_cuba, rel):
         """Check if adding should be allowed.
@@ -616,7 +614,7 @@ class Cuds(dict):
         """
         from ..generated.cuba_mapping import CUBA_MAPPING
         inverse_rel = CUBA_MAPPING[rel.inverse]
-        self._add_direct(entity, inverse_rel, error_if_already_there=False)
+        self._add_direct(entity, inverse_rel)
 
     def _get(self, *uids, rel=None, cuba_key=None, return_mapping=False):
         """
