@@ -309,7 +309,7 @@ class TestAPICity(unittest.TestCase):
         c.update(new_n)
 
         new_neighbourhood = c.get(n.uid)
-        # self.assertIs(new_neighbourhood, n)
+        self.assertIs(new_neighbourhood, n)
         new_streets = new_neighbourhood.get(
             cuba_key=cuds.classes.CUBA.STREET)
         self.assertEqual(new_streets, [new_s])
@@ -615,10 +615,10 @@ class TestAPICity(unittest.TestCase):
         with CoreSession() as session:
             w = cuds.classes.CityWrapper(session=session)
             c1w, c2w = w.add(c1, c2)
-            c1w.add(p, rel=cuds.classes.HasInhabitant)
-            pw = c2w.add(p, rel=cuds.classes.HasInhabitant)
-            # self.assertIs(pw1, pw2)
-            self.assertEqual(set(pw.get(rel=cuds.classes.IsInhabitantOf)),
+            pw1 = c1w.add(p, rel=cuds.classes.HasInhabitant)
+            pw2 = c2w.add(p, rel=cuds.classes.HasInhabitant)
+            self.assertIs(pw1, pw2)
+            self.assertEqual(set(pw1.get(rel=cuds.classes.IsInhabitantOf)),
                              {c1w, c2w})
 
 

@@ -13,7 +13,7 @@ from typing import Union, Type, List, Iterator, Dict, Any
 from cuds.metatools.ontology_datatypes import convert_to
 from cuds.classes.core.session.core_session import CoreSession
 from cuds.classes.core.relationship_tree import RelationshipTree
-from cuds.utils import check_arguments, clone_cuds
+from cuds.utils import check_arguments, clone_cuds, create_from_cuds
 from cuds.ontology.settings import DEFAULT as DEFAULT_CUDS_SETTINGS
 from cuds.classes.generated.relationship import Relationship
 from cuds.classes.generated.cuba import CUBA
@@ -364,12 +364,13 @@ class Cuds(dict):
             add_to, new_cuds, old_cuds = queue.pop(0)
             if new_cuds.uid in missing:
                 del missing[new_cuds.uid]
+            old_cuds = clone_cuds(old_cuds)
             new_child_getter = new_cuds
-            new_cuds = clone_cuds(new_cuds, add_to.session)
+            new_cuds = create_from_cuds(new_cuds, add_to.session)
             # fix the connections to the neighbors
             add_to._fix_neighbors(new_cuds, old_cuds, add_to.session, missing)
             add_to.session.store(new_cuds)
-            result = result if result is not None else new_cuds
+            result = result or new_cuds
 
             for outgoing_rel in new_cuds.keys():
 

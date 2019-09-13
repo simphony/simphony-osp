@@ -247,6 +247,7 @@ def clone_cuds(entity, new_session=None):
         del entity.__dict__["_session"]
     clone = deepcopy(entity)
     clone._session = new_session or session
+    entity._session = session
     return clone
 
 
