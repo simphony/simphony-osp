@@ -321,7 +321,6 @@ class SqlWrapperSession(DbWrapperSession):
                 yield self._registry.get(uid)
                 continue
             cuds = create_for_session(cuds_class, kwargs, self)
-            self.store(cuds)
             self._load_relationships(cuds)
             yield cuds
 

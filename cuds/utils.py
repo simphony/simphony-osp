@@ -289,6 +289,7 @@ def create_for_session(entity_cls, kwargs, session, recycle_old=True):
     cuds = entity_cls(**kwargs)
     entity_cls._session = default_session
     cuds._session = session
+    session.store(cuds)
     return cuds
 
 

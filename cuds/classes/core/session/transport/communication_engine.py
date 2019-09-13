@@ -89,7 +89,7 @@ class CommunicationEngineClient():
         :type data: str
         """
         event_loop = asyncio.get_event_loop()
-        event_loop.run_until_complete(self._request(command, data))
+        return event_loop.run_until_complete(self._request(command, data))
 
     def close(self):
         """Close the connection to the server"""
@@ -117,4 +117,4 @@ class CommunicationEngineClient():
         await self.websocket.send(command + ":" + data)
         response = await self.websocket.recv()
         print("Response: %s" % response)
-        self.handle_response(response)
+        return self.handle_response(response)

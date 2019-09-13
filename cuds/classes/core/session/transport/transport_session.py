@@ -96,7 +96,8 @@ class TransportSessionServer():
         """
         session = self.session_objs[user]
         arguments = deserialize_buffers(session, data)
-        getattr(session, command)(*arguments["args"], **arguments["kwargs"])
+        getattr(session, command)(*arguments["args"],
+                                  **arguments["kwargs"])
         return serialize_buffers(session)
 
     def _load_from_session(self, data, user):
@@ -268,35 +269,13 @@ def deserialize_buffers(session_obj, data):
     session_obj._added = {x.uid: x for x in added}
     session_obj._updated = {x.uid: x for x in updated}
     session_obj._deleted = {x.uid: x for x in deleted}
-    buffers_to_registry(session_obj)
-    return {k: v for k, v in data.items()
-            if k not in ["added", "updated", "deleted"]}
 
-
-def buffers_to_registry(session_obj):
-    """Push the buffers to the registry.
-
-    :param session_obj: Push the buffers of this session object to the
-        registry of this session object.
-    :type session_obj: Type[Session]
-    """
-    for entity in session_obj._added.values():
-        session_obj.store(entity)
-
-    # do not replace to prevent users working with old objects
-    for entity in session_obj._updated.values():
-        try:
-            old_entity = next(session_obj.load(entity.uid))
-        except StopIteration:
-            raise RuntimeError("Could not update entity with uid "
-                               "%s on server. Not present." % entity.uid)
-        for attribute in entity.get_attributes(skip=["session", "uid"]):
-            setattr(old_entity, attribute, getattr(entity, attribute))
-        for rel, obj_dict in entity.items():
-            old_entity[rel] = obj_dict
-    for entity in session_obj._deleted.values():
+    for entity in deleted:
         if entity.uid in session_obj._registry:
             del session_obj._registry[entity.uid]
+
+    return {k: v for k, v in data.items()
+            if k not in ["added", "updated", "deleted"]}
 
 
 def serializable(entity):

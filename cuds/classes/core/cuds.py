@@ -369,7 +369,6 @@ class Cuds(dict):
             new_cuds = create_from_cuds(new_cuds, add_to.session)
             # fix the connections to the neighbors
             add_to._fix_neighbors(new_cuds, old_cuds, add_to.session, missing)
-            add_to.session.store(new_cuds)
             result = result or new_cuds
 
             for outgoing_rel in new_cuds.keys():

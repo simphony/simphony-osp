@@ -15,7 +15,7 @@ from cuds.utils import clone_cuds, create_for_session
 from cuds.testing.test_session_city import TestWrapperSession
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.core.session.transport.transport_session import (
-    to_cuds, serializable, buffers_to_registry, deserialize_buffers,
+    to_cuds, serializable, deserialize_buffers,
     serialize_buffers, TransportSessionServer, TransportSessionClient,
     LOAD_COMMAND, INITIALIZE_COMMAND
 )
@@ -120,36 +120,6 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         p.add(c1, c2, rel=cuds.classes.HasChild)
         self.assertEqual(CUDS_DICT, serializable(p))
 
-    def test_buffers_to_registry(self):
-        """Test method that pushes buffer changes to the registry"""
-        with TestWrapperSession() as s1:
-            with TestWrapperSession() as s2:
-                ws1 = cuds.classes.CityWrapper(session=s1)
-                ws2 = cuds.classes.CityWrapper(session=s2, uid=ws1.uid)
-                c = cuds.classes.City("Freiburg")
-                ws1.add(c)
-                ws2.add(c)
-                s1._reset_buffers(changed_by="user")
-                s2._reset_buffers(changed_by="user")
-
-                cn = cuds.classes.City("Paris")
-                ws1.add(cn)
-                ws1.remove(c.uid)
-                s1.prune()
-
-                s2.root = None
-                s2._added = {k: clone_cuds(v, s2)
-                             for k, v in s1._added.items()}
-                s2._updated = {k: clone_cuds(v, s2)
-                               for k, v in s1._updated.items()}
-                s2._deleted = {k: clone_cuds(v, s2)
-                               for k, v in s1._deleted.items()}
-                buffers_to_registry(s2)
-
-                self.assertEqual(s1._registry, s2._registry)
-                self.assertEqual(set(s2._registry.keys()), {ws1.uid, cn.uid})
-                self.assertEqual([x.uid for x in ws2.get()], [cn.uid])
-
     def test_deserialize_buffers(self):
         with TestWrapperSession() as s1:
             ws1 = cuds.classes.CityWrapper(session=s1, uid=0)
@@ -231,7 +201,6 @@ class TestCommunicationEngineClient(unittest.TestCase):
         c1 = create_for_session(cuds.classes.City,
                                 {"name": "Freiburg", "uid": 1},
                                 client)
-        client.store(c1)
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
         self.assertEqual(client._engine._sent_data, (
             '{"args": [], "kwargs": {}, '
@@ -246,7 +215,6 @@ class TestCommunicationEngineClient(unittest.TestCase):
         c2 = create_for_session(cuds.classes.City,
                                 {"name": "Freiburg", "uid": 1},
                                 client)
-        client.store(c2)
 
         self.assertEqual(client._engine._sent_command, None)
         self.assertEqual(client._engine._sent_data, None)
