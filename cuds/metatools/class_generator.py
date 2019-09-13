@@ -321,6 +321,7 @@ class ClassGenerator(object):
                       "    return self._%s\n" % p]
             setter = ["@%s.setter" % p,
                       "def %s(self, x):" % p,
+                      "    self.session._notify_read(self)",
                       "    self._%s = convert_to(x, \"%s\")"
                       % (p, datatype),
                       "    self.session._notify_update(self)\n\n"]

@@ -15,7 +15,7 @@ from cuds.utils import clone_cuds, create_for_session
 from cuds.testing.test_session_city import TestWrapperSession
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.core.session.transport.transport_session import (
-    to_cuds, serializable, deserialize_buffers,
+    _to_cuds, serializable, deserialize_buffers,
     serialize_buffers, TransportSessionServer, TransportSessionClient,
     LOAD_COMMAND, INITIALIZE_COMMAND
 )
@@ -62,7 +62,7 @@ SERIALIZED_BUFFERS2 = (
 )
 
 SERIALIZED_BUFFERS3 = (
-    '{"added": [{"cuba_key": "CITY", '
+    '{"result": [{"cuba_key": "CITY", '
     '"attributes": {"name": "Freiburg", '
     '"uid": "00000000-0000-0000-0000-000000000001"}, '
     '"relationships": {'
@@ -72,7 +72,7 @@ SERIALIZED_BUFFERS3 = (
     '"attributes": {"uid": "00000000-0000-0000-0000-000000000003"}, '
     '"relationships": {'
     '"HAS_PART": {"00000000-0000-0000-0000-000000000001": "CITY"}}}], '
-    '"deleted": [], "updated": []}'
+    '"added": [], "deleted": [], "updated": []}'
 )
 
 
@@ -81,7 +81,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
     def testToCuds(self):
         """Test transformation from normal dictionary to cuds object"""
         with TestWrapperSession() as session:
-            entity = to_cuds(CUDS_DICT, session)
+            entity = _to_cuds(CUDS_DICT, session)
             self.assertEqual(entity.uid.int, 0)
             self.assertEqual(entity.name, "Peter")
             self.assertEqual(entity.age, 23)
@@ -97,16 +97,16 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
             invalid_cuba = deepcopy(CUDS_DICT)
             invalid_cuba["cuba_key"] = "INVALID_CUBA"
-            self.assertRaises(ValueError, to_cuds, invalid_cuba, session)
+            self.assertRaises(ValueError, _to_cuds, invalid_cuba, session)
 
             invalid_attribute = deepcopy(CUDS_DICT)
             invalid_attribute["attributes"]["invalid_attr"] = 0
-            self.assertRaises(TypeError, to_cuds, invalid_attribute, session)
+            self.assertRaises(TypeError, _to_cuds, invalid_attribute, session)
 
             invalid_rel = deepcopy(CUDS_DICT)
             invalid_rel["relationships"]["IS_INHABITANT_OF"] = {
                 str(uuid.UUID(int=1)): "PERSON"}
-            self.assertRaises(ValueError, to_cuds, invalid_rel, session)
+            self.assertRaises(ValueError, _to_cuds, invalid_rel, session)
 
     def test_serializable(self):
         """Test function to make Cuds objects json serializable"""
@@ -170,7 +170,7 @@ class MockEngine():
         self._sent_command = command
         self._sent_data = data
         if self.on_send:
-            self.on_send(command, data)
+            return self.on_send(command, data)
 
 
 class TestCommunicationEngineClient(unittest.TestCase):
@@ -183,6 +183,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
 
         def on_send(command, data):
             client._registry.put(c2)
+            return [c2]
 
         client._engine = MockEngine(on_send)
         client._registry.put(c1)

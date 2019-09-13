@@ -808,13 +808,16 @@ class NotifyDict(dict):
 
     def __setitem__(self, key, value):
         self.cuds._check_valid_add(value, self.rel)
+        self.cuds.session._notify_read(self.cuds)
         super().__setitem__(key, value)
         self.cuds.session._notify_update(self.cuds)
 
     def __delitem__(self, key):
+        self.cuds.session._notify_read(self.cuds)
         super().__delitem__(key)
         self.cuds.session._notify_update(self.cuds)
 
     def update(self, E):
+        self.cuds.session._notify_read(self.cuds)
         super().update(E)
         self.cuds.session._notify_update(self.cuds)

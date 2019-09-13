@@ -7,6 +7,8 @@
 
 import json
 import inspect
+import uuid
+import traceback
 from cuds.utils import create_for_session
 from cuds.classes.core.cuds import Cuds
 from cuds.metatools.ontology_datatypes import convert_from, convert_to
@@ -81,6 +83,8 @@ class TransportSessionServer():
             try:
                 return self._run_command(data, command, user)
             except Exception as e:
+                traceback.print_exc()
+                print(e)
                 return "ERROR: %s: %s" % (type(e).__name__, e)
         return "ERROR: Invalid command"
 
@@ -96,9 +100,14 @@ class TransportSessionServer():
         """
         session = self.session_objs[user]
         arguments = deserialize_buffers(session, data)
-        getattr(session, command)(*arguments["args"],
-                                  **arguments["kwargs"])
-        return serialize_buffers(session)
+        result = getattr(session, command)(*arguments["args"],
+                                           **arguments["kwargs"])
+        additional = dict()
+        if result:
+            additional["result"] = serializable(result)
+        if hasattr(session, "_expired"):
+            additional["expired"] = serializable(session._expired)
+        return serialize_buffers(session, additional_items=additional)
 
     def _load_from_session(self, data, user):
         """Load entities from the session.
@@ -113,7 +122,8 @@ class TransportSessionServer():
         uids = [convert_to(x, "UUID") for x in uids]
         entities = session.load(*uids)
         serialized = [serializable(x) for x in entities]
-        return json.dumps({"added": serialized,
+        return json.dumps({"result": serialized,
+                           "added": [],
                            "deleted": [],
                            "updated": []})
 
@@ -135,7 +145,7 @@ class TransportSessionServer():
         session = self.session_cls(*data["args"],
                                    **data["kwargs"])
         self.session_objs[user] = session
-        root = to_cuds(data["root"], session=session)
+        root = deserialize(data["root"], session=session)
         session.store(root)
         del session._added[root.uid]
         session._updated[root.uid] = root
@@ -167,8 +177,8 @@ class TransportSessionClient(StorageWrapperSession):
 
     # OVERRIDE
     def _load_cuds(self, uids):
-        self._engine.send(LOAD_COMMAND, json.dumps(list(map(str, uids))))
-        yield from super().load(*uids)
+        yield from self._engine.send(LOAD_COMMAND,
+                                     json.dumps(list(map(str, uids))))
 
     # OVERRIDE
     def store(self, entity):
@@ -197,7 +207,7 @@ class TransportSessionClient(StorageWrapperSession):
         """
         arguments = {"args": args, "kwargs": kwargs}
         data = serialize_buffers(self, arguments)
-        self._engine.send(command, data)
+        return self._engine.send(command, data)
 
     def _receive(self, data):
         """Process the response of the server.
@@ -208,8 +218,14 @@ class TransportSessionClient(StorageWrapperSession):
         """
         if data.startswith("ERROR: "):
             raise RuntimeError("Error on Server side: %s" % data[7:])
-        deserialize_buffers(self, data)
-        self._reset_buffers(changed_by="engine")
+        remainder = deserialize_buffers(self, data, reset_afterwards=True)
+        result = None
+        if remainder and "expired" in remainder:
+            self._expired |= set(deserialize(remainder["expired"],
+                                             session=self))
+        if remainder and "result" in remainder:
+            result = deserialize(remainder["result"], session=self)
+        return result
 
     # OVERRIDE
     def __getattr__(self, attr):
@@ -240,9 +256,9 @@ def serialize_buffers(session_obj, additional_items=None):
     :rtype: str
     """
     result = {
-        "added": [serializable(x) for x in session_obj._added.values()],
-        "updated": [serializable(x) for x in session_obj._updated.values()],
-        "deleted": [serializable(x) for x in session_obj._deleted.values()],
+        "added": serializable(session_obj._added.values()),
+        "updated": serializable(session_obj._updated.values()),
+        "deleted": serializable(session_obj._deleted.values()),
     }
     if additional_items is not None:
         result.update(additional_items)
@@ -250,7 +266,7 @@ def serialize_buffers(session_obj, additional_items=None):
     return json.dumps(result)
 
 
-def deserialize_buffers(session_obj, data):
+def deserialize_buffers(session_obj, data, reset_afterwards=False):
     """Deserialize serialized buffers, add them to the session and push them
     to the registry of the given session object.
     Returns the deserialization of everything but the buffers.
@@ -263,12 +279,19 @@ def deserialize_buffers(session_obj, data):
     :rtype: Dict[str, Any]
     """
     data = json.loads(data)
-    added = [to_cuds(x, session_obj) for x in data["added"]]
-    updated = [to_cuds(x, session_obj) for x in data["updated"]]
-    deleted = [to_cuds(x, session_obj) for x in data["deleted"]]
-    session_obj._added = {x.uid: x for x in added}
-    session_obj._updated = {x.uid: x for x in updated}
-    session_obj._deleted = {x.uid: x for x in deleted}
+
+    added = deserialize(data["added"], session_obj)
+    updated = deserialize(data["updated"], session_obj)
+    deleted = deserialize(data["deleted"], session_obj)
+
+    if reset_afterwards:
+        for uid in [x.uid for x in added + updated]:
+            if uid in session_obj._added:
+                del session_obj._added[uid]
+            if uid in session_obj._updated:
+                del session_obj._updated[uid]
+    else:
+        session_obj._deleted.update({x.uid: x for x in deleted})
 
     for entity in deleted:
         if entity.uid in session_obj._registry:
@@ -278,7 +301,56 @@ def deserialize_buffers(session_obj, data):
             if k not in ["added", "updated", "deleted"]}
 
 
-def serializable(entity):
+def deserialize(json_obj, session):
+    """Deserialize a json object, instantiate the Cuds object in there.
+
+    :param json_obj: The json object do deserialize.
+    :type json_obj: Union[Dict, List, str, None]
+    :param session: When creating a cuds object, use this session.
+    :type session: Session
+    :raises ValueError: The json object could not be deserialized.
+    :return: The deserialized object
+    :rtype: Union[Cuds, UUID, List[Cuds], List[UUID], None]
+    """
+    if json_obj is None:
+        return None
+    if isinstance(json_obj, list):
+        return [deserialize(x, session) for x in json_obj]
+    if isinstance(json_obj, dict) \
+            and "cuba_key" in json_obj \
+            and "attributes" in json_obj \
+            and "relationships" in json_obj:
+        return _to_cuds(json_obj, session)
+    if isinstance(json_obj, dict) \
+            and set(["UUID"]) == set(json_obj.keys()):
+        return convert_to(json_obj["UUID"], "UUID")
+    raise ValueError("Could not deserialize %s." % json_obj)
+
+
+def serializable(obj):
+    """Make and entity, a list od entities,
+    a uid or a list od uids json serializable.
+
+    :param obj: The object to make serializeable.
+    :type obj: Union[Cuds, UUID, List[Cuds], List[UUID], None]
+    :raises ValueError: Given object could not be made serializable
+    :return: The serializable object.
+    :rtype: Union[Dict, List, str, None]
+    """
+    if obj is None:
+        return obj
+    if isinstance(obj, uuid.UUID):
+        return {"UUID": convert_from(obj, "UUID")}
+    if isinstance(obj, Cuds):
+        return _serializable(obj)
+    try:
+        return [serializable(x) for x in obj]
+    except TypeError as e:
+        raise ValueError("Could not serialize %s." % obj) \
+            from e
+
+
+def _serializable(entity):
     """Make an entity json serializable.
 
     :return: The entity to make serializable.
@@ -302,7 +374,7 @@ def serializable(entity):
     return result
 
 
-def to_cuds(json_obj, session):
+def _to_cuds(json_obj, session):
     """Transform a json serializable dict to a cuds object
 
     :param json_obj: The json object to convert to a Cuds object
