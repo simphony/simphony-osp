@@ -184,7 +184,7 @@ class TestTransportSqliteCity(unittest.TestCase):
     #     p1.add(p3, rel=cuds.classes.HasChild)
     #     p2.add(p3, rel=cuds.classes.HasChild)
 
-    #     with TransportSessionClient(SqliteWrapperSession, HOST, PORT, TABLE) \
+    #     with TransportSessionClient(SqliteWrapperSession, HOST, PORT, TABLE)\
     #             as session:
     #         wrapper = cuds.classes.CityWrapper(session=session)
     #         cw = wrapper.add(c)
