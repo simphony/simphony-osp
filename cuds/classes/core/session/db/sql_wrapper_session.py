@@ -242,7 +242,7 @@ class SqlWrapperSession(DbWrapperSession):
                                             "UUID"))
 
     # OVERRIDE
-    def _load_cuds(self, uids):
+    def _load_cuds(self, uids, expired=None):
         for uid in uids:
             if isinstance(uid, uuid.UUID):
                 cuba = self._get_cuba(uid)

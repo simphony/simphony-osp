@@ -12,11 +12,12 @@ import json
 import cuds.classes
 from copy import deepcopy
 from cuds.utils import clone_cuds, create_for_session
+from cuds.classes.core.session.wrapper_session import consumes_buffers
 from cuds.testing.test_session_city import TestWrapperSession
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.core.session.transport.transport_session import (
     _to_cuds, serializable, deserialize_buffers,
-    serialize_buffers, TransportSessionServer, TransportSessionClient,
+    serialize, TransportSessionServer, TransportSessionClient,
     LOAD_COMMAND, INITIALIZE_COMMAND
 )
 
@@ -155,7 +156,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.maxDiff = 2000
             self.assertEqual(
                 SERIALIZED_BUFFERS,
-                serialize_buffers(
+                serialize(
                     s1,
                     additional_items={"args": [42],
                                       "kwargs": {"name": "London"}})
@@ -189,8 +190,10 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client._registry.put(c1)
         result = list(client.load(uuid.UUID(int=1), uuid.UUID(int=2)))
         self.assertEqual(client._engine._sent_command, LOAD_COMMAND)
-        self.assertEqual(client._engine._sent_data,
-                         '["00000000-0000-0000-0000-000000000002"]')
+        self.assertEqual(
+            client._engine._sent_data,
+            '{"expired": [], '
+            '"uids": [{"UUID": "00000000-0000-0000-0000-000000000002"}]}')
         self.assertEqual(result, [c1, c2])
 
     def test_store(self):
@@ -225,10 +228,10 @@ class TestCommunicationEngineClient(unittest.TestCase):
         """ Test sending data to the server """
         client = TransportSessionClient(TestWrapperSession, None, None)
         client._engine = MockEngine()
-        client._send("command", "hello", bye="bye")
+        client._send("command", True, "hello", bye="bye")
         self.assertEqual(client._engine._sent_command, "command")
         self.assertEqual(client._engine._sent_data, (
-            '{"added": [], "updated": [], "deleted": [], '
+            '{"added": [], "updated": [], "deleted": [], "expired": [], '
             '"args": ["hello"], "kwargs": {"bye": "bye"}}'))
 
     def test_receive(self):
@@ -244,16 +247,16 @@ class TestCommunicationEngineClient(unittest.TestCase):
     def test_getattr(self):
         def command(*args, **kwargs):
             pass
-        TestWrapperSession.command = command
+        TestWrapperSession.command = consumes_buffers(command)
 
         client = TransportSessionClient(TestWrapperSession, None, None)
         client._engine = MockEngine()
         client.command("arg1", "arg2", kwarg="kwarg")
         self.assertEqual(client._engine._sent_command, "command")
+        print(client._engine._sent_data)
         self.assertEqual(client._engine._sent_data, (
-            '{"added": [], "updated": [], "deleted": [], '
+            '{"added": [], "updated": [], "deleted": [], "expired": [], '
             '"args": ["arg1", "arg2"], "kwargs": {"kwarg": "kwarg"}}'))
-
         self.assertRaises(AttributeError, getattr, client, "run")
 
 
@@ -313,7 +316,8 @@ class TestCommunicationEngineServer(unittest.TestCase):
             w.add(c)
             server = TransportSessionServer(TestWrapperSession, None, None)
             server.session_objs["user"] = s1
-            result = server._load_from_session("[1, 3]", "user")
+            result = server._load_from_session(
+                '{"uids": [{"UUID": 1}, {"UUID": 3}]}', "user")
             self.assertEqual(result, SERIALIZED_BUFFERS3)
 
     def test_init_session(self):

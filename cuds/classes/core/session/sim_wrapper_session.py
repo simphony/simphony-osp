@@ -6,7 +6,7 @@
 # No redistribution is allowed without explicit written permission.
 
 from abc import abstractmethod
-from .wrapper_session import WrapperSession
+from .wrapper_session import WrapperSession, consumes_buffers
 
 
 class SimWrapperSession(WrapperSession):
@@ -14,6 +14,7 @@ class SimWrapperSession(WrapperSession):
         super().__init__(engine, **kwargs)
         self._ran = False
 
+    @consumes_buffers
     def run(self):
         self._check_cardinalities()
         root = self._registry.get(self.root)

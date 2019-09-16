@@ -25,13 +25,14 @@ class StorageWrapperSession(WrapperSession):
                                "Add it to a wrapper first.")
 
         # refresh expired
-        expired = set(uids) & self._expired
+        expired = frozenset(set(uids) & self._expired)
         missing_uids = [uid for uid in uids
                         if uid not in self._registry or uid in expired]
+        self._expired -= expired
         # Load elements not in the registry from the database
         missing = self._load_cuds(missing_uids)
         for uid in uids:
-            if uid in self._registry:
+            if uid not in missing_uids:
                 yield self._registry.get(uid)
             else:
                 try:
@@ -66,8 +67,9 @@ class StorageWrapperSession(WrapperSession):
             else:
                 uids.append(c.uid)
         uids = set(uids) - set([self.root])
+        old_expired = frozenset(self._expired)
         self._expired -= uids
-        loaded = list(self._load_cuds(uids))
+        loaded = list(self._load_cuds(uids, old_expired))
         for uid, loaded_entity in zip(uids, loaded):
             if loaded_entity is None:
                 old = self._registry.get(uid)
@@ -79,11 +81,14 @@ class StorageWrapperSession(WrapperSession):
             self.refresh(entity)
 
     @abstractmethod
-    def _load_cuds(self, uids):
+    def _load_cuds(self, uids, expired=None):
         """Load cuds with given uids from the database.
         Will update objects with same uid in the registry.
 
         :param uids: List of uids to load
-        :type uids: List[uuid.UUID]
+        :type uids: List[UUID]
+        :param expired: Which of the cuds objects are expired-
+            Usually this is not important.
+        :type expired: Set[UUID]
         """
         pass

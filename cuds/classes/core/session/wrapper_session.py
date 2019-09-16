@@ -10,6 +10,16 @@ from abc import abstractmethod
 from .session import Session
 
 
+def consumes_buffers(func):
+    func.does_consume_buffers = True
+    return func
+
+
+def check_consumes_buffers(func):
+    return hasattr(func, "does_consume_buffers") \
+        and func.does_consume_buffers
+
+
 class WrapperSession(Session):
     """
     Common class for all wrapper sessions.

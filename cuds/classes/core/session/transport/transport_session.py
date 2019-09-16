@@ -16,6 +16,7 @@ from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.core.session.storage_wrapper_session \
     import StorageWrapperSession
+from cuds.classes.core.session.wrapper_session import check_consumes_buffers
 from cuds.classes.core.session.transport.communication_engine \
     import CommunicationEngineClient, CommunicationEngineServer
 
@@ -104,10 +105,10 @@ class TransportSessionServer():
                                            **arguments["kwargs"])
         additional = dict()
         if result:
-            additional["result"] = serializable(result)
+            additional["result"] = result
         if hasattr(session, "_expired"):
-            additional["expired"] = serializable(session._expired)
-        return serialize_buffers(session, additional_items=additional)
+            additional["expired"] = session._expired
+        return serialize(session, additional_items=additional)
 
     def _load_from_session(self, data, user):
         """Load entities from the session.
@@ -118,8 +119,7 @@ class TransportSessionServer():
         :rtype: str
         """
         session = self.session_objs[user]
-        uids = json.loads(data)
-        uids = [convert_to(x, "UUID") for x in uids]
+        uids = deserialize_buffers(session, data)["uids"]
         entities = session.load(*uids)
         serialized = [serializable(x) for x in entities]
         return json.dumps({"result": serialized,
@@ -149,7 +149,7 @@ class TransportSessionServer():
         session.store(root)
         del session._added[root.uid]
         session._updated[root.uid] = root
-        return serialize_buffers(session)
+        return serialize(session)
 
 
 class TransportSessionClient(StorageWrapperSession):
@@ -176,9 +176,10 @@ class TransportSessionClient(StorageWrapperSession):
         self.kwargs = kwargs
 
     # OVERRIDE
-    def _load_cuds(self, uids):
-        yield from self._engine.send(LOAD_COMMAND,
-                                     json.dumps(list(map(str, uids))))
+    def _load_cuds(self, uids, expired=None):
+        expired = expired or self._expired
+        data = serialize(self, False, {"uids": uids, "expired": expired})
+        yield from self._engine.send(LOAD_COMMAND, data)
 
     # OVERRIDE
     def store(self, entity):
@@ -199,14 +200,22 @@ class TransportSessionClient(StorageWrapperSession):
     def close(self):
         self._engine.close()
 
-    def _send(self, command, *args, **kwargs):
+    def _send(self, command, consume_buffers, *args, **kwargs):
         """Send the buffers and a command to the server.
 
-        :param command: The command to execute on the server
+        :param command: The command to send
         :type command: str
+        :param consume_buffers: Whether to send and consume the buffers
+        :type consume_buffers: bool
+        :param args: The arguments of the command.
+        :type args: Serializable
+        :param kwargs: The keyword arguments of the command.
+        :type kwargs: Serializable.
+        :return: The command's result.
+        :rtype: Serializable
         """
         arguments = {"args": args, "kwargs": kwargs}
-        data = serialize_buffers(self, arguments)
+        data = serialize(self, consume_buffers, arguments)
         return self._engine.send(command, data)
 
     def _receive(self, data):
@@ -221,10 +230,9 @@ class TransportSessionClient(StorageWrapperSession):
         remainder = deserialize_buffers(self, data, reset_afterwards=True)
         result = None
         if remainder and "expired" in remainder:
-            self._expired |= set(deserialize(remainder["expired"],
-                                             session=self))
+            self._expired |= set(remainder["expired"])
         if remainder and "result" in remainder:
-            result = deserialize(remainder["result"], session=self)
+            result = remainder["result"]
         return result
 
     # OVERRIDE
@@ -233,7 +241,11 @@ class TransportSessionClient(StorageWrapperSession):
         if not attr.startswith("_") and \
                 hasattr(self.session_cls, attr) and \
                 callable(getattr(self.session_cls, attr)):
-            return lambda *args, **kwargs: self._send(attr, *args, **kwargs)
+            consume_buffers = check_consumes_buffers(getattr(self.session_cls,
+                                                             attr))
+            return lambda *args, **kwargs: self._send(attr,
+                                                      consume_buffers,
+                                                      *args, **kwargs)
         else:
             raise AttributeError("Unknown attribute %s" % attr)
 
@@ -244,11 +256,13 @@ class TransportSessionClient(StorageWrapperSession):
         )
 
 
-def serialize_buffers(session_obj, additional_items=None):
-    """Serialize the buffers of a session using json.
+def serialize(session_obj, consume_buffers=True, additional_items=None):
+    """Serialize the buffers and additional items.
 
     :param session_obj: Serialize the buffers of this session object.
     :type session_obj: Session
+    :param consume_buffers: Whether to consume and serialize the buffers
+    :type consume_buffers: bool
     :param additional_items: Additional items to be added
         to the serialized json object, defaults to None
     :type additional_items: Dict[str, Any], optional
@@ -259,10 +273,16 @@ def serialize_buffers(session_obj, additional_items=None):
         "added": serializable(session_obj._added.values()),
         "updated": serializable(session_obj._updated.values()),
         "deleted": serializable(session_obj._deleted.values()),
-    }
+    } if consume_buffers else dict()
+
+    if hasattr(session_obj, "_expired"):
+        result["expired"] = serializable(session_obj._expired)
+
     if additional_items is not None:
-        result.update(additional_items)
-    session_obj._reset_buffers(changed_by="user")
+        result.update({k: serializable(v)
+                       for k, v in additional_items.items()})
+    if consume_buffers:
+        session_obj._reset_buffers(changed_by="user")
     return json.dumps(result)
 
 
@@ -280,25 +300,29 @@ def deserialize_buffers(session_obj, data, reset_afterwards=False):
     """
     data = json.loads(data)
 
-    added = deserialize(data["added"], session_obj)
-    updated = deserialize(data["updated"], session_obj)
-    deleted = deserialize(data["deleted"], session_obj)
+    if "expired" in data and hasattr(session_obj, "_expired"):
+        session_obj._expired |= set(deserialize(data["expired"], session_obj))
 
-    if reset_afterwards:
-        for uid in [x.uid for x in added + updated]:
-            if uid in session_obj._added:
-                del session_obj._added[uid]
-            if uid in session_obj._updated:
-                del session_obj._updated[uid]
-    else:
-        session_obj._deleted.update({x.uid: x for x in deleted})
+    if "added" in data:
+        added = deserialize(data["added"], session_obj)
+        updated = deserialize(data["updated"], session_obj)
+        deleted = deserialize(data["deleted"], session_obj)
 
-    for entity in deleted:
-        if entity.uid in session_obj._registry:
-            del session_obj._registry[entity.uid]
+        if reset_afterwards:
+            for uid in [x.uid for x in added + updated]:
+                if uid in session_obj._added:
+                    del session_obj._added[uid]
+                if uid in session_obj._updated:
+                    del session_obj._updated[uid]
+        else:
+            session_obj._deleted.update({x.uid: x for x in deleted})
 
-    return {k: v for k, v in data.items()
-            if k not in ["added", "updated", "deleted"]}
+        for entity in deleted:
+            if entity.uid in session_obj._registry:
+                del session_obj._registry[entity.uid]
+    # TODO also reset stuff buffers after call below
+    return {k: deserialize(v, session_obj) for k, v in data.items()
+            if k not in ["added", "updated", "deleted", "expired"]}
 
 
 def deserialize(json_obj, session):
@@ -314,6 +338,8 @@ def deserialize(json_obj, session):
     """
     if json_obj is None:
         return None
+    if isinstance(json_obj, (str, int, float)):
+        return json_obj
     if isinstance(json_obj, list):
         return [deserialize(x, session) for x in json_obj]
     if isinstance(json_obj, dict) \
@@ -324,6 +350,8 @@ def deserialize(json_obj, session):
     if isinstance(json_obj, dict) \
             and set(["UUID"]) == set(json_obj.keys()):
         return convert_to(json_obj["UUID"], "UUID")
+    if isinstance(json_obj, dict):
+        return {k: deserialize(v, session) for k, v in json_obj.items()}
     raise ValueError("Could not deserialize %s." % json_obj)
 
 
@@ -331,7 +359,7 @@ def serializable(obj):
     """Make and entity, a list od entities,
     a uid or a list od uids json serializable.
 
-    :param obj: The object to make serializeable.
+    :param obj: The object to make serializable.
     :type obj: Union[Cuds, UUID, List[Cuds], List[UUID], None]
     :raises ValueError: Given object could not be made serializable
     :return: The serializable object.
@@ -339,10 +367,14 @@ def serializable(obj):
     """
     if obj is None:
         return obj
+    if isinstance(obj, (str, int, float)):
+        return obj
     if isinstance(obj, uuid.UUID):
         return {"UUID": convert_from(obj, "UUID")}
     if isinstance(obj, Cuds):
         return _serializable(obj)
+    if isinstance(obj, dict):
+        return {k: serializable(v) for k, v in obj.items()}
     try:
         return [serializable(x) for x in obj]
     except TypeError as e:

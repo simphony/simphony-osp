@@ -218,12 +218,12 @@ class TestTransportSqliteCity(unittest.TestCase):
 
             self.assertEqual(cw.name, "Paris")
             self.assertEqual(p1w.name, "Peter")
-            # session.expire_all()  # TODO propagate expire
-            # self.assertEqual(p1w.name, "Maria")
-            # self.assertEqual(set(cw.get()), {p1w})
-            # self.assertEqual(p2w.get(), list())
-            # self.assertEqual(p3w.name, None)
-            # self.assertNotIn(p3w.uid, session._registry)
+            session.expire_all()
+            self.assertEqual(p1w.name, "Maria")
+            self.assertEqual(set(cw.get()), {p1w})
+            self.assertEqual(p2w.get(), list())
+            self.assertEqual(p3w.name, None)
+            self.assertNotIn(p3w.uid, session._registry)
 
 
 if __name__ == "__main__":
