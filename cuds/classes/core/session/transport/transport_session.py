@@ -303,26 +303,41 @@ def deserialize_buffers(session_obj, data, reset_afterwards=False):
     if "expired" in data and hasattr(session_obj, "_expired"):
         session_obj._expired |= set(deserialize(data["expired"], session_obj))
 
-    if "added" in data:
-        added = deserialize(data["added"], session_obj)
-        updated = deserialize(data["updated"], session_obj)
-        deleted = deserialize(data["deleted"], session_obj)
+    deserialized = {k: deserialize(v, session_obj) for k, v in data.items()}
+    deleted = deserialized["deleted"] if "deleted" in deserialized else []
 
-        if reset_afterwards:
-            for uid in [x.uid for x in added + updated]:
-                if uid in session_obj._added:
-                    del session_obj._added[uid]
-                if uid in session_obj._updated:
-                    del session_obj._updated[uid]
-        else:
-            session_obj._deleted.update({x.uid: x for x in deleted})
+    if reset_afterwards:
+        reset_buffers_after_deserialize(session_obj, deserialized)
+    else:
+        session_obj._deleted.update({x.uid: x for x in deleted})
 
-        for entity in deleted:
-            if entity.uid in session_obj._registry:
-                del session_obj._registry[entity.uid]
-    # TODO also reset stuff buffers after call below
-    return {k: deserialize(v, session_obj) for k, v in data.items()
+    for entity in deleted:
+        if entity.uid in session_obj._registry:
+            del session_obj._registry[entity.uid]
+    return {k: v for k, v in deserialized.items()
             if k not in ["added", "updated", "deleted", "expired"]}
+
+
+def reset_buffers_after_deserialize(session_obj, deserialized):
+    """Reset the buffers after deserialization.
+
+    :param session_obj: The session object
+    :type session_obj: Session
+    :param deserialized: The deserialized data
+    :type deserialized: Any
+    """
+    added = []
+    for k, v in deserialized.items():
+        if k != "deleted":
+            if isinstance(v, Cuds):
+                added.append(v)
+            added += [x for x in v if isinstance(x, Cuds)]
+
+    for uid in [x.uid for x in added]:
+        if uid in session_obj._added:
+            del session_obj._added[uid]
+        if uid in session_obj._updated:
+            del session_obj._updated[uid]
 
 
 def deserialize(json_obj, session):
