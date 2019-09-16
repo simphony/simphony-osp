@@ -15,10 +15,13 @@ from cuds.utils import clone_cuds, create_for_session
 from cuds.classes.core.session.wrapper_session import consumes_buffers
 from cuds.testing.test_session_city import TestWrapperSession
 from cuds.classes.generated.cuba import CUBA
-from cuds.classes.core.session.transport.transport_session import (
+from cuds.classes.core.session.transport.transport_session_client import \
+    TransportSessionClient
+from cuds.classes.core.session.transport.transport_session_server import \
+    TransportSessionServer
+from cuds.classes.core.session.transport.transport_util import (
     _to_cuds, serializable, deserialize_buffers,
-    serialize, TransportSessionServer, TransportSessionClient,
-    LOAD_COMMAND, INITIALIZE_COMMAND
+    serialize, LOAD_COMMAND, INITIALIZE_COMMAND
 )
 
 CUDS_DICT = {

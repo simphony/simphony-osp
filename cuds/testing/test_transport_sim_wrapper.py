@@ -7,8 +7,10 @@
 
 import sys
 from cuds.classes.core.session.sim_wrapper_session import SimWrapperSession
-from cuds.classes.core.session.transport.transport_session import \
-    TransportSessionServer, TransportSessionClient
+from cuds.classes.core.session.transport.transport_session_client import \
+    TransportSessionClient
+from cuds.classes.core.session.transport.transport_session_server import \
+    TransportSessionServer
 from cuds.classes.generated.cuba import CUBA
 from cuds.testing.test_sim_wrapper_city import DummySimSession
 import cuds.classes

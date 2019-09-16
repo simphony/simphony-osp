@@ -116,6 +116,8 @@ class WrapperSession(Session):
         self._added = dict()
         self._updated = dict()
         self._deleted = dict()
+        # Save set of uids in registry to determine
+        # if cuds objects are added or updated
         self._uid_set = set(self._registry.keys())
         return True
 

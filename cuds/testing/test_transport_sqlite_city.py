@@ -15,8 +15,10 @@ import multiprocessing
 from cuds.testing.test_sqlite_city import check_state
 from cuds.classes.core.session.db.sqlite_wrapper_session import \
     SqliteWrapperSession
-from cuds.classes.core.session.transport.transport_session import \
-    TransportSessionClient, TransportSessionServer
+from cuds.classes.core.session.transport.transport_session_client import \
+    TransportSessionClient
+from cuds.classes.core.session.transport.transport_session_server import \
+    TransportSessionServer
 
 HOST = "127.0.0.1"
 PORT = 8687

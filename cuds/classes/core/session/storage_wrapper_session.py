@@ -46,6 +46,12 @@ class StorageWrapperSession(WrapperSession):
                 yield entity
 
     def expire(self, *cuds_or_uids):
+        """Let cuds objects expire. Expired objects will be reloaded lazily
+        when attributed or relationships are accessed.
+
+        :param cuds_or_uids: The cuds or uids to expire
+        :type cuds_or_uids: Union[Cuds, UUID]
+        """
         for c in cuds_or_uids:
             if isinstance(c, uuid.UUID):
                 assert c != self.root, "Cannot expire root"
@@ -53,11 +59,22 @@ class StorageWrapperSession(WrapperSession):
             else:
                 assert c != self.root, "Cannot expire root"
                 self._expired.add(c.uid)
+        self._expired &= (set(self._registry.keys()) - set([self.root]))
 
     def expire_all(self):
+        """Let all cuds objects of the session expire.
+        Expired objects will be reloaded lazily
+        when attributed or relationships are accessed.
+        """
         self._expired = set(self._registry.keys()) - set([self.root])
 
     def refresh(self, *cuds_or_uids):
+        """Refresh a cuds objects. Load possibly data of cuds object
+        from the backend.
+
+        :param cuds_or_uids: The cuds or uids to expire
+        :type cuds_or_uids: Union[Cuds, UUID]
+        """
         if not cuds_or_uids:
             return
         uids = list()
@@ -88,7 +105,7 @@ class StorageWrapperSession(WrapperSession):
         :param uids: List of uids to load
         :type uids: List[UUID]
         :param expired: Which of the cuds objects are expired-
-            Usually this is not important.
+            Usually this is not used.
         :type expired: Set[UUID]
         """
         pass
