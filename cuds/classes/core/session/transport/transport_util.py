@@ -126,6 +126,9 @@ def deserialize(json_obj, session):
     if isinstance(json_obj, dict) \
             and set(["UUID"]) == set(json_obj.keys()):
         return convert_to(json_obj["UUID"], "UUID")
+    if isinstance(json_obj, dict) \
+            and set(["CUBA-KEY"]) == set(json_obj.keys()):
+        return CUBA(json_obj["CUBA-KEY"])
     if isinstance(json_obj, dict):
         return {k: deserialize(v, session) for k, v in json_obj.items()}
     raise ValueError("Could not deserialize %s." % json_obj)
@@ -147,6 +150,8 @@ def serializable(obj):
         return obj
     if isinstance(obj, uuid.UUID):
         return {"UUID": convert_from(obj, "UUID")}
+    if isinstance(obj, CUBA):
+        return {"CUBA-KEY": obj.value}
     if isinstance(obj, Cuds):
         return _serializable(obj)
     if isinstance(obj, dict):

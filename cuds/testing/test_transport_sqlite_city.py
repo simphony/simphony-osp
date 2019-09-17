@@ -178,6 +178,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             )
 
     def test_expiring(self):
+        """Test expiring with transport + db session"""
         c = cuds.classes.City("Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Anna")
@@ -226,6 +227,31 @@ class TestTransportSqliteCity(unittest.TestCase):
             self.assertEqual(p2w.get(), list())
             self.assertEqual(p3w.name, None)
             self.assertNotIn(p3w.uid, session._registry)
+
+    def test_load_by_cuba_key(self):
+        """Load elements by cuba key via transport + db session"""
+        c = cuds.classes.City("Freiburg")
+        p1 = cuds.classes.Citizen(name="Peter")
+        p2 = cuds.classes.Citizen(name="Anna")
+        p3 = cuds.classes.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
+        p1.add(p3, rel=cuds.classes.HasChild)
+        p2.add(p3, rel=cuds.classes.HasChild)
+
+        with TransportSessionClient(SqliteWrapperSession, HOST, PORT, TABLE) \
+                as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            wrapper.add(c)
+            session.commit()
+
+        with TransportSessionClient(SqliteWrapperSession, HOST, PORT, TABLE) \
+                as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            cs = wrapper.get(c.uid)
+            r = session.load_by_cuba_key(cuds.classes.City.cuba_key)
+            self.assertIs(next(iter(r)), cs)
+            r = session.load_by_cuba_key(cuds.classes.Citizen.cuba_key)
+            self.assertEqual(set(r), {p1, p2, p3})
 
 
 if __name__ == "__main__":
