@@ -234,7 +234,7 @@ def destruct_cuds(entity):
         del entity._session._registry[entity.uid]
 
 
-def clone_cuds(entity, new_session=None):
+def clone_cuds(entity):
     """Avoid that the session gets copied.
 
     :return: A copy of self with the same session
@@ -246,13 +246,15 @@ def clone_cuds(entity, new_session=None):
     if "_session" in entity.__dict__:
         del entity.__dict__["_session"]
     clone = deepcopy(entity)
-    clone._session = new_session or session
+    clone._session = session
     entity._session = session
     return clone
 
 
-def create_for_session(entity_cls, kwargs, session, recycle_old=True):
-    """Instantiate a cuds object with a given session
+def create_for_session(entity_cls, kwargs, session):
+    """Instantiate a cuds object with a given session.
+    If cuds object with same uid is already in the session,
+    this object will be reused.
 
     :param entity_cls: The type of cuds object to instantiate
     :type entity_cls: Cuds
@@ -260,16 +262,14 @@ def create_for_session(entity_cls, kwargs, session, recycle_old=True):
     :type kwargs: Dict[str, Any]
     :param session: The session of the new Cuds object
     :type session: Session
-    :param recycle_old: Whether to recycle old objects with same uid already
-        in session
-    :type recycle_old: bool
     """
+    from cuds.classes import Cuds
     uid = convert_to(kwargs["uid"], "UUID")
     if hasattr(session, "_expired") and uid in session._expired:
         session._expired.remove(uid)
 
     # recycle old object
-    if uid in session._registry and recycle_old:
+    if uid in session._registry:
         cuds = session._registry.get(uid)
         if type(cuds) == entity_cls:
             for key, value in kwargs.items():
@@ -284,28 +284,28 @@ def create_for_session(entity_cls, kwargs, session, recycle_old=True):
     # create new
     if "session" in inspect.getfullargspec(entity_cls.__init__).args:
         kwargs["session"] = session
-    default_session = entity_cls._session
-    entity_cls._session = session
-    cuds = entity_cls(**kwargs)
-    entity_cls._session = default_session
-    cuds._session = session
-    session.store(cuds)
-    return cuds
+    default_session = Cuds._session
+    Cuds._session = session
+    entity = entity_cls(**kwargs)
+    Cuds._session = default_session
+    entity._session = session
+    session.store(entity)
+    return entity
 
 
-def create_from_cuds(entity, session=None):
-    """Avoid that the session gets copied.
+def create_from_cuds(entity, session):
+    """Create a copy of the given entity in a different session.
+    WARNING: Will not recursively copy children.
 
-    :return: A copy of self with the same session
+    :return: A copy of self with the given session.
     :rtype: Cuds
     """
+    assert entity.session is not session
     attributes = entity.get_attributes(skip="session")
     values = [getattr(entity, x) for x in attributes]
     kwargs = dict(zip(attributes, values))
     entity_cls = type(entity)
-    clone = create_for_session(entity_cls, kwargs,
-                               session or entity.session,
-                               recycle_old=True)
+    clone = create_for_session(entity_cls, kwargs, session)
     for key, uid_cuba in entity.items():
         clone[key] = dict()
         for uid, cuba in uid_cuba.items():

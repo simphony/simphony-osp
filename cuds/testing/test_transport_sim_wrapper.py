@@ -6,6 +6,7 @@
 # No redistribution is allowed without explicit written permission.
 
 import sys
+import subprocess
 from cuds.classes.core.session.transport.transport_session_client import \
     TransportSessionClient
 from cuds.classes.core.session.transport.transport_session_server import \
@@ -15,7 +16,7 @@ import cuds.classes
 import unittest2 as unittest
 
 HOST = "127.0.0.1"
-PORT = 8687
+PORT = 8689
 TABLE = "transport.db"
 
 SERVER_STARTED = False
@@ -23,12 +24,23 @@ SERVER_STARTED = False
 
 class TestTransportSimWrapperCity(unittest.TestCase):
 
+    SERVER_STARTED = False
+
+    @classmethod
+    def setUpClass(cls):
+        p = subprocess.Popen(["python3",
+                              "cuds/testing/test_transport_sim_wrapper.py",
+                              "server"])
+        TestTransportSimWrapperCity.SERVER_STARTED = p
+
+    @classmethod
+    def tearDownClass(cls):
+        TestTransportSimWrapperCity.SERVER_STARTED.terminate()
+
     def test_dummy_sim_wrapper(self):
         """Create a dummy simulation syntactic layer + test
         if working with this layer works as expected.
         """
-        if not SERVER_STARTED:
-            return
         with TransportSessionClient(DummySimSession, HOST, PORT) as session:
             wrapper = cuds.classes.CitySimWrapper(num_steps=1, session=session)
             c = cuds.classes.City(name="Freiburg")
@@ -58,6 +70,3 @@ if __name__ == '__main__':
     if sys.argv[-1] == "server":
         server = TransportSessionServer(DummySimSession, HOST, PORT)
         server.startListening()
-    else:
-        SERVER_STARTED = True
-        unittest.main()
