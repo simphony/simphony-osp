@@ -226,7 +226,7 @@ class TestSqliteCity(unittest.TestCase):
             cw = wrapper.add(c)
             p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)
             session.commit()
-            
+
             self.assertEqual(cw.name, "Freiburg")
             self.assertEqual(p1w.name, "Peter")
             self.assertEqual(p2w.name, "Anna")

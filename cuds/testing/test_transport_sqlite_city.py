@@ -289,10 +289,12 @@ class TestTransportSqliteCity(unittest.TestCase):
                                "WHERE uid='%s';" % (p1.uid))
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
-                               % (SqliteWrapperSession.RELATIONSHIP_TABLE, p2.uid, p2.uid))
+                               % (SqliteWrapperSession.RELATIONSHIP_TABLE,
+                                  p2.uid, p2.uid))
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
-                               % (SqliteWrapperSession.RELATIONSHIP_TABLE, p3.uid, p3.uid))
+                               % (SqliteWrapperSession.RELATIONSHIP_TABLE,
+                                  p3.uid, p3.uid))
                 cursor.execute("DELETE FROM CUDS_CITIZEN "
                                "WHERE uid == '%s'"
                                % p3.uid)
