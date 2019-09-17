@@ -6,12 +6,11 @@
 # No redistribution is allowed without explicit written permission.
 
 import unittest2 as unittest
-import asyncio
 import uuid
 import json
 import cuds.classes
 from copy import deepcopy
-from cuds.utils import clone_cuds, create_for_session
+from cuds.utils import create_for_session
 from cuds.classes.core.session.wrapper_session import consumes_buffers
 from cuds.testing.test_session_city import TestWrapperSession
 from cuds.classes.generated.cuba import CUBA

@@ -6,7 +6,6 @@
 # No redistribution is allowed without explicit written permission.
 
 import sqlalchemy
-from uuid import UUID
 from cuds.classes.core.session.db.conditions import (EqualsCondition,
                                                      AndCondition)
 from cuds.classes.core.session.db.sql_wrapper_session import SqlWrapperSession

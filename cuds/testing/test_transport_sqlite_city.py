@@ -6,12 +6,9 @@
 # No redistribution is allowed without explicit written permission.
 
 import sys
-import os
-import uuid
 import unittest2 as unittest
 import cuds.classes
 import sqlite3
-import multiprocessing
 from cuds.testing.test_sqlite_city import check_state
 from cuds.classes.core.session.db.sqlite_wrapper_session import \
     SqliteWrapperSession

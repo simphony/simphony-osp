@@ -8,7 +8,7 @@
 # from __future__ import annotations
 import uuid
 import inspect
-from typing import Union, Type, List, Iterator, Dict, Any
+from typing import Union, Type, List, Iterator, Dict
 
 from cuds.metatools.ontology_datatypes import convert_to
 from cuds.classes.core.session.core_session import CoreSession

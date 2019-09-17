@@ -6,10 +6,8 @@
 # No redistribution is allowed without explicit written permission.
 
 import os
-import uuid
 import unittest2 as unittest
 import cuds.classes
-import sqlite3
 from cuds.testing.test_sqlite_city import check_state
 from cuds.classes.core.session.db.sqlalchemy_wrapper_session import \
     SqlAlchemyWrapperSession

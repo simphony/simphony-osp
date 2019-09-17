@@ -6,7 +6,6 @@
 # No redistribution is allowed without explicit written permission.
 
 import uuid
-from sqlalchemy import create_engine
 from abc import abstractmethod
 from cuds.utils import destruct_cuds
 from cuds.classes.core.session.wrapper_session import WrapperSession

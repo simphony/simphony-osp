@@ -6,7 +6,6 @@
 # No redistribution is allowed without explicit written permission.
 
 from abc import ABC, abstractmethod
-from copy import deepcopy
 from cuds.classes.core.registry import Registry
 
 

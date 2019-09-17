@@ -9,3 +9,5 @@ simphony.egg-info/
 *~*
 .vscode/
 .mypy_cache/
+coverage.xml
+.coverage

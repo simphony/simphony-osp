@@ -6,16 +6,13 @@
 # No redistribution is allowed without explicit written permission.
 
 import sys
-from cuds.classes.core.session.sim_wrapper_session import SimWrapperSession
 from cuds.classes.core.session.transport.transport_session_client import \
     TransportSessionClient
 from cuds.classes.core.session.transport.transport_session_server import \
     TransportSessionServer
-from cuds.classes.generated.cuba import CUBA
 from cuds.testing.test_sim_wrapper_city import DummySimSession
 import cuds.classes
 import unittest2 as unittest
-import multiprocessing
 
 HOST = "127.0.0.1"
 PORT = 8687

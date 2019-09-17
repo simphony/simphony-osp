@@ -6,13 +6,11 @@
 # No redistribution is allowed without explicit written permission.
 
 import uuid
-from sqlalchemy import create_engine
 from abc import abstractmethod
 from cuds.utils import create_for_session
 from cuds.metatools.ontology_datatypes import convert_to
 from cuds.classes.core.session.db.db_wrapper_session import DbWrapperSession
-from cuds.classes.core.session.db.conditions import (EqualsCondition,
-                                                     AndCondition)
+from cuds.classes.core.session.db.conditions import EqualsCondition
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
 

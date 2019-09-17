@@ -6,10 +6,7 @@
 # No redistribution is allowed without explicit written permission.
 
 import inspect
-from copy import copy, deepcopy
-import pkg_resources
-from typing import Set, Type, Callable, List, Union
-from uuid import UUID
+from copy import deepcopy
 from cuds.metatools.ontology_datatypes import convert_to
 
 
@@ -226,6 +223,9 @@ def pp_values(cuds_object, indentation="\n          "):
 
 
 def destruct_cuds(entity):
+    session = entity.session
+    if hasattr(session, "_expired") and entity.uid in session._expired:
+        session._expired.remove(entity.uid)
     for rel in set(entity.keys()):
         del entity[rel]
     for attr in entity.get_attributes(skip=["session", "uid"]):

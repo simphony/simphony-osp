@@ -12,7 +12,7 @@ from cuds.classes.core.session.wrapper_session import check_consumes_buffers
 from cuds.classes.core.session.transport.communication_engine \
     import CommunicationEngineClient
 from cuds.classes.core.session.transport.transport_util import (
-    INITIALIZE_COMMAND, LOAD_COMMAND, deserialize, deserialize_buffers,
+    INITIALIZE_COMMAND, LOAD_COMMAND, deserialize_buffers,
     serializable, serialize
 )
 
