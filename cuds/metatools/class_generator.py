@@ -325,7 +325,8 @@ class ClassGenerator(object):
                       "    self._%s = convert_to(x, \"%s\")"
                       % (p, datatype),
                       "    self.session._notify_update(self)\n\n"]
-            funcs = getter + setter if p != "session" else getter
+            funcs = getter + setter if p != "session" \
+                else getter[0:2] + getter[3:]
             result += "\n".join(map(lambda x: "    " + x, funcs))
         return result
 

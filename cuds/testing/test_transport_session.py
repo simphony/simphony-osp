@@ -256,7 +256,6 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client._engine = MockEngine()
         client.command("arg1", "arg2", kwarg="kwarg")
         self.assertEqual(client._engine._sent_command, "command")
-        print(client._engine._sent_data)
         self.assertEqual(client._engine._sent_data, (
             '{"added": [], "updated": [], "deleted": [], "expired": [], '
             '"args": ["arg1", "arg2"], "kwargs": {"kwarg": "kwarg"}}'))
