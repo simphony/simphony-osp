@@ -230,4 +230,3 @@ if __name__ == "__main__":
     if sys.argv[-1] == "server":
         server = TransportSessionServer(SqliteWrapperSession, HOST, PORT)
         server.startListening()
-

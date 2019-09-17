@@ -7,7 +7,6 @@
 
 import unittest2 as unittest
 import uuid
-from copy import deepcopy
 
 from cuds.utils import clone_cuds, create_from_cuds
 from cuds.classes.core.session.core_session import CoreSession
