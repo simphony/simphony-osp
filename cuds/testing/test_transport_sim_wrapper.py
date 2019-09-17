@@ -6,6 +6,7 @@
 # No redistribution is allowed without explicit written permission.
 
 import sys
+import time
 import subprocess
 from cuds.classes.core.session.transport.transport_session_client import \
     TransportSessionClient
@@ -32,6 +33,7 @@ class TestTransportSimWrapperCity(unittest.TestCase):
                               "cuds/testing/test_transport_sim_wrapper.py",
                               "server"])
         TestTransportSimWrapperCity.SERVER_STARTED = p
+        time.sleep(1)
 
     @classmethod
     def tearDownClass(cls):
