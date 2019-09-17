@@ -11,4 +11,4 @@ build_job:
     - flake8 cuds/ --exclude=cuds/classes/generated,*/__init__.py,build --ignore=W503
     - pip3 install coverage
     - coverage run setup.py test
-    - coverage report
+    - coverage report --omit=cuds/classes/generated/*,cuds/testing/* --skip-covered
