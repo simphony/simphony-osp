@@ -7,6 +7,7 @@
 
 import os
 import sys
+import time
 import subprocess
 import unittest2 as unittest
 import cuds.classes
@@ -33,6 +34,7 @@ class TestTransportSqliteCity(unittest.TestCase):
                               "cuds/testing/test_transport_sqlite_city.py",
                               "server"])
         TestTransportSqliteCity.SERVER_STARTED = p
+        time.sleep(3)
 
     @classmethod
     def tearDownClass(cls):
