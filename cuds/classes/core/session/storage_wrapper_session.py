@@ -69,10 +69,10 @@ class StorageWrapperSession(WrapperSession):
 
     def refresh(self, *cuds_or_uids):
         """Refresh a cuds objects. Load possibly data of cuds object
-        from the backend.
+        from the backend.  # TODO expire old/new neighbors?
 
-        :param cuds_or_uids: The cuds or uids to expire
-        :type cuds_or_uids: Union[Cuds, UUID]
+        :param *cuds_or_uids: The cuds or uids to expire
+        :type *cuds_or_uids: Union[Cuds, UUID]
         """
         if not cuds_or_uids:
             return
@@ -83,7 +83,7 @@ class StorageWrapperSession(WrapperSession):
             else:
                 uids.append(c.uid)
         uids = set(uids) - set([self.root])
-        old_expired = frozenset(self._expired)
+        old_expired = frozenset(self._expired | uids)
         self._expired -= uids
         loaded = list(self._load_cuds(uids, old_expired))
         for uid, loaded_entity in zip(uids, loaded):

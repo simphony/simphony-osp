@@ -212,6 +212,55 @@ class TestSqliteCity(unittest.TestCase):
             self.assertEqual(p3w.name, None)
             self.assertNotIn(p3w.uid, session._registry)
 
+    def test_refresh(self):
+        c = cuds.classes.City("Freiburg")
+        p1 = cuds.classes.Citizen(name="Peter")
+        p2 = cuds.classes.Citizen(name="Anna")
+        p3 = cuds.classes.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
+        p1.add(p3, rel=cuds.classes.HasChild)
+        p2.add(p3, rel=cuds.classes.HasChild)
+
+        with SqliteWrapperSession("test.db") as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            cw = wrapper.add(c)
+            p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)
+            session.commit()
+            
+            self.assertEqual(cw.name, "Freiburg")
+            self.assertEqual(p1w.name, "Peter")
+            self.assertEqual(p2w.name, "Anna")
+            self.assertEqual(p3w.name, "Julia")
+            self.assertEqual(session._expired, set())
+
+            with sqlite3.connect("test.db") as conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE CUDS_CITY SET name = 'Paris' "
+                               "WHERE uid='%s';" % (c.uid))
+                cursor.execute("UPDATE CUDS_CITIZEN SET name = 'Maria' "
+                               "WHERE uid='%s';" % (p1.uid))
+                cursor.execute("DELETE FROM %s "
+                               "WHERE origin == '%s' OR target = '%s'"
+                               % (session.RELATIONSHIP_TABLE, p2.uid, p2.uid))
+                cursor.execute("DELETE FROM %s "
+                               "WHERE origin == '%s' OR target = '%s'"
+                               % (session.RELATIONSHIP_TABLE, p3.uid, p3.uid))
+                cursor.execute("DELETE FROM CUDS_CITIZEN "
+                               "WHERE uid == '%s'"
+                               % p3.uid)
+                cursor.execute("DELETE FROM %s "
+                               "WHERE uid == '%s'"
+                               % (session.MASTER_TABLE, p3.uid))
+                conn.commit()
+
+            session.refresh(cw, p1w, p2w, p3w)
+            self.assertEqual(cw.name, "Paris")
+            self.assertEqual(p1w.name, "Maria")
+            self.assertEqual(set(cw.get()), {p1w})
+            self.assertEqual(p2w.get(), list())
+            self.assertEqual(p3w.name, None)
+            self.assertNotIn(p3w.uid, session._registry)
+
 
 def check_state(test_case, c, p1, p2, table="test.db"):
     """Check if the sqlite tables are in the correct state."""
