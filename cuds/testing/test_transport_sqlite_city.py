@@ -30,9 +30,15 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        p = subprocess.Popen(["python3",
-                              "cuds/testing/test_transport_sqlite_city.py",
-                              "server"])
+        args = ["python3",
+                "cuds/testing/test_transport_sqlite_city.py",
+                "server"]
+        try:
+            p = subprocess.Popen(args)
+        except FileNotFoundError:
+            args[0] = "python"
+            p = subprocess.Popen(args)
+
         TestTransportSqliteCity.SERVER_STARTED = p
         time.sleep(1)
 
