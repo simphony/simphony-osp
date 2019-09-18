@@ -41,9 +41,9 @@ class TransportSessionServer():
         self.session_cls = session_cls
         self.session_objs = dict()
 
-    def startListening(self, forever=True):
+    def startListening(self):
         """Start the server"""
-        self.com_facility.startListening(forever)
+        self.com_facility.startListening()
 
     def handle_disconnect(self, user):
         """A user has disconnected. Close and delete his session

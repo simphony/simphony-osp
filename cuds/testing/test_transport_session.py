@@ -203,6 +203,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(s1._added, {cn.uid: cn})
             self.assertEqual(s1._updated, {ws1.uid: ws1})
             self.assertEqual(s1._deleted, {c.uid: c})
+            self.assertEqual(s1._uids_in_registry_after_last_buffer_reset,
+                             {ws1.uid, c.uid})
 
         # with reset
         with TestWrapperSession() as s1:
@@ -229,6 +231,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(s1._added, dict())
             self.assertEqual(s1._updated, dict())
             self.assertEqual(s1._deleted, dict())
+            self.assertEqual(s1._uids_in_registry_after_last_buffer_reset,
+                             {cn.uid, c.uid, ws1.uid})
 
     def test_serialize(self):
         """ Test if serialization of buffers work """
