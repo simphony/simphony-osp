@@ -6,7 +6,6 @@
 # No redistribution is allowed without explicit written permission.
 
 import uuid
-from sqlalchemy import create_engine
 from abc import abstractmethod
 from cuds.utils import destruct_cuds
 from cuds.classes.core.session.wrapper_session import WrapperSession
@@ -25,26 +24,45 @@ class StorageWrapperSession(WrapperSession):
                                "Add it to a wrapper first.")
 
         # refresh expired
-        expired = set(uids) & self._expired
+        expired = frozenset(set(uids) & self._expired)
         missing_uids = [uid for uid in uids
                         if uid not in self._registry or uid in expired]
-        # Load elements not in the registry from the database
-        missing = self._load_cuds(missing_uids)
+        self._expired -= expired
+
+        # Load elements not in the registry / expired from the backend
+        missing = self._load_from_backend(missing_uids, expired=expired)
         for uid in uids:
-            if uid in self._registry:
+
+            # Load from registry if uid is there and not expired
+            if uid not in missing_uids:
                 yield self._registry.get(uid)
-            else:
-                try:
-                    entity = next(missing)
-                except StopIteration:
-                    entity = None
-                if entity is not None:
-                    self._uid_set.add(entity.uid)
-                    if entity.uid in self._added:
-                        del self._added[entity.uid]
-                yield entity
+                continue
+
+            # Load from backend if not in registry or expired
+            try:
+                entity = next(missing)
+            except StopIteration:
+                entity = None  # not available in the backend
+
+            # avoid changes in the buffers
+            if entity is not None:
+                self._remove_uids_from_buffers([uid])
+
+            # expired object no longer present in the backend --> delete it
+            elif uid in self._registry:
+                self._remove_uids_from_buffers([uid])
+                self._uids_in_registry_after_last_buffer_reset -= {uid}
+                old = self._registry.get(uid)
+                destruct_cuds(old)
+            yield entity
 
     def expire(self, *cuds_or_uids):
+        """Let cuds objects expire. Expired objects will be reloaded lazily
+        when attributed or relationships are accessed.
+
+        :param cuds_or_uids: The cuds or uids to expire
+        :type cuds_or_uids: Union[Cuds, UUID]
+        """
         for c in cuds_or_uids:
             if isinstance(c, uuid.UUID):
                 assert c != self.root, "Cannot expire root"
@@ -52,11 +70,22 @@ class StorageWrapperSession(WrapperSession):
             else:
                 assert c != self.root, "Cannot expire root"
                 self._expired.add(c.uid)
+        self._expired &= (set(self._registry.keys()) - set([self.root]))
 
     def expire_all(self):
+        """Let all cuds objects of the session expire.
+        Expired objects will be reloaded lazily
+        when attributed or relationships are accessed.
+        """
         self._expired = set(self._registry.keys()) - set([self.root])
 
     def refresh(self, *cuds_or_uids):
+        """Refresh a cuds objects. Load possibly data of cuds object
+        from the backend.  # TODO expire old/new neighbors?
+
+        :param *cuds_or_uids: The cuds or uids to expire
+        :type *cuds_or_uids: Union[Cuds, UUID]
+        """
         if not cuds_or_uids:
             return
         uids = list()
@@ -66,12 +95,8 @@ class StorageWrapperSession(WrapperSession):
             else:
                 uids.append(c.uid)
         uids = set(uids) - set([self.root])
-        self._expired -= uids
-        loaded = list(self._load_cuds(uids))
-        for uid, loaded_entity in zip(uids, loaded):
-            if loaded_entity is None:
-                old = self._registry.get(uid)
-                destruct_cuds(old)
+        self._expired |= uids
+        list(self.load(*uids))
 
     # OVERRIDE
     def _notify_read(self, entity):
@@ -79,11 +104,14 @@ class StorageWrapperSession(WrapperSession):
             self.refresh(entity)
 
     @abstractmethod
-    def _load_cuds(self, uids):
+    def _load_from_backend(self, uids, expired=None):
         """Load cuds with given uids from the database.
         Will update objects with same uid in the registry.
 
         :param uids: List of uids to load
-        :type uids: List[uuid.UUID]
+        :type uids: List[UUID]
+        :param expired: Which of the cuds objects are expired-
+            Usually this is not used.
+        :type expired: Set[UUID]
         """
         pass

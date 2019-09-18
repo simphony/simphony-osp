@@ -6,17 +6,18 @@
 # No redistribution is allowed without explicit written permission.
 
 import sys
-from cuds.classes.core.session.sim_wrapper_session import SimWrapperSession
-from cuds.classes.core.session.transport.transport_session import \
-    TransportSessionServer, TransportSessionClient
-from cuds.classes.generated.cuba import CUBA
+import time
+import subprocess
+from cuds.classes.core.session.transport.transport_session_client import \
+    TransportSessionClient
+from cuds.classes.core.session.transport.transport_session_server import \
+    TransportSessionServer
 from cuds.testing.test_sim_wrapper_city import DummySimSession
 import cuds.classes
 import unittest2 as unittest
-import multiprocessing
 
 HOST = "127.0.0.1"
-PORT = 8687
+PORT = 8689
 TABLE = "transport.db"
 
 SERVER_STARTED = False
@@ -24,12 +25,30 @@ SERVER_STARTED = False
 
 class TestTransportSimWrapperCity(unittest.TestCase):
 
+    SERVER_STARTED = False
+
+    @classmethod
+    def setUpClass(cls):
+        args = ["python3",
+                "cuds/testing/test_transport_sim_wrapper.py",
+                "server"]
+        try:
+            p = subprocess.Popen(args)
+        except FileNotFoundError:
+            args[0] = "python"
+            p = subprocess.Popen(args)
+
+        TestTransportSimWrapperCity.SERVER_STARTED = p
+        time.sleep(1)
+
+    @classmethod
+    def tearDownClass(cls):
+        TestTransportSimWrapperCity.SERVER_STARTED.terminate()
+
     def test_dummy_sim_wrapper(self):
         """Create a dummy simulation syntactic layer + test
         if working with this layer works as expected.
         """
-        if not SERVER_STARTED:
-            return
         with TransportSessionClient(DummySimSession, HOST, PORT) as session:
             wrapper = cuds.classes.CitySimWrapper(num_steps=1, session=session)
             c = cuds.classes.City(name="Freiburg")
@@ -59,6 +78,3 @@ if __name__ == '__main__':
     if sys.argv[-1] == "server":
         server = TransportSessionServer(DummySimSession, HOST, PORT)
         server.startListening()
-    else:
-        SERVER_STARTED = True
-        unittest.main()

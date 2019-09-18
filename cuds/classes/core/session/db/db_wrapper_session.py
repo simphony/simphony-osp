@@ -5,16 +5,15 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-import uuid
-from sqlalchemy import create_engine
 from abc import abstractmethod
-from cuds.utils import destruct_cuds
+from cuds.classes.core.session.wrapper_session import consumes_buffers
 from cuds.classes.core.session.storage_wrapper_session import \
     StorageWrapperSession
 
 
 class DbWrapperSession(StorageWrapperSession):
 
+    @consumes_buffers
     def commit(self):
         """Commit the changes in the buffers to the database."""
         self._check_cardinalities()
@@ -87,7 +86,7 @@ class DbWrapperSession(StorageWrapperSession):
         pass
 
     @abstractmethod
-    def _load_by_cuba(self, uids, update_registry=False):
+    def _load_by_cuba(self, cuba, update_registry=False):
         """Load the Cuds entity with the given cuba.
         If uid is None return all entities with given cuba_key.
 

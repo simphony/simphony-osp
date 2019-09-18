@@ -5,27 +5,47 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-import sys
 import os
-import uuid
+import sys
+import time
+import subprocess
 import unittest2 as unittest
 import cuds.classes
 import sqlite3
-import multiprocessing
 from cuds.testing.test_sqlite_city import check_state
 from cuds.classes.core.session.db.sqlite_wrapper_session import \
     SqliteWrapperSession
-from cuds.classes.core.session.transport.transport_session import \
-    TransportSessionClient, TransportSessionServer
+from cuds.classes.core.session.transport.transport_session_client import \
+    TransportSessionClient
+from cuds.classes.core.session.transport.transport_session_server import \
+    TransportSessionServer
 
 HOST = "127.0.0.1"
 PORT = 8687
 TABLE = "transport.db"
 
-SERVER_STARTED = False
-
 
 class TestTransportSqliteCity(unittest.TestCase):
+    SERVER_STARTED = False
+
+    @classmethod
+    def setUpClass(cls):
+        args = ["python3",
+                "cuds/testing/test_transport_sqlite_city.py",
+                "server"]
+        try:
+            p = subprocess.Popen(args)
+        except FileNotFoundError:
+            args[0] = "python"
+            p = subprocess.Popen(args)
+
+        TestTransportSqliteCity.SERVER_STARTED = p
+        time.sleep(1)
+
+    @classmethod
+    def tearDownClass(cls):
+        TestTransportSqliteCity.SERVER_STARTED.terminate()
+        os.remove(TABLE)
 
     def tearDown(self):
         with sqlite3.connect(TABLE) as conn:
@@ -39,8 +59,6 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_insert(self):
         """Test inserting in the sqlite table."""
-        if not SERVER_STARTED:
-            return
         c = cuds.classes.City(name="Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Georg")
@@ -56,8 +74,6 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_update(self):
         """Test updating the sqlite table."""
-        if not SERVER_STARTED:
-            return
         c = cuds.classes.City("Paris")
         p1 = cuds.classes.Citizen(name="Peter")
         c.add(p1, rel=cuds.classes.HasInhabitant)
@@ -77,8 +93,6 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_delete(self):
         """Test to delete cuds objects from the sqlite table"""
-        if not SERVER_STARTED:
-            return
         c = cuds.classes.City("Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Georg")
@@ -99,8 +113,6 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_init(self):
         """Test if first level of children are loaded automatically."""
-        if not SERVER_STARTED:
-            return
         c = cuds.classes.City("Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Anna")
@@ -130,8 +142,6 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_load_missing(self):
         """Test if missing objects are loaded automatically."""
-        if not SERVER_STARTED:
-            return
         c = cuds.classes.City("Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Anna")
@@ -173,63 +183,136 @@ class TestTransportSqliteCity(unittest.TestCase):
                 {c.uid: c.cuba_key}
             )
 
-    # def test_expiring(self):
-    #     if not SERVER_STARTED:
-    #         return
-    #     c = cuds.classes.City("Freiburg")
-    #     p1 = cuds.classes.Citizen(name="Peter")
-    #     p2 = cuds.classes.Citizen(name="Anna")
-    #     p3 = cuds.classes.Citizen(name="Julia")
-    #     c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
-    #     p1.add(p3, rel=cuds.classes.HasChild)
-    #     p2.add(p3, rel=cuds.classes.HasChild)
+    def test_expiring(self):
+        """Test expiring with transport + db session"""
+        c = cuds.classes.City("Freiburg")
+        p1 = cuds.classes.Citizen(name="Peter")
+        p2 = cuds.classes.Citizen(name="Anna")
+        p3 = cuds.classes.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
+        p1.add(p3, rel=cuds.classes.HasChild)
+        p2.add(p3, rel=cuds.classes.HasChild)
 
-    #     with TransportSessionClient(SqliteWrapperSession, HOST, PORT, TABLE)\
-    #             as session:
-    #         wrapper = cuds.classes.CityWrapper(session=session)
-    #         cw = wrapper.add(c)
-    #         p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)
-    #         session.commit()
+        with TransportSessionClient(SqliteWrapperSession, HOST, PORT, TABLE)\
+                as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            cw = wrapper.add(c)
+            p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)
+            session.commit()
 
-    #         # p1w is no longer expired after the following assert
-    #         self.assertEqual(p1w.name, "Peter")
+            # p1w is no longer expired after the following assert
+            self.assertEqual(p1w.name, "Peter")
 
-    #         with sqlite3.connect(TABLE) as conn:
-    #             cursor = conn.cursor()
-    #             cursor.execute("UPDATE CUDS_CITY SET name = 'Paris' "
-    #                            "WHERE uid='%s';" % (c.uid))
-    #             cursor.execute("UPDATE CUDS_CITIZEN SET name = 'Maria' "
-    #                            "WHERE uid='%s';" % (p1.uid))
-    #             cursor.execute("DELETE FROM %s "
-    #                            "WHERE origin == '%s' OR target = '%s'"
-    #                            % (SqliteWrapperSession.RELATIONSHIP_TABLE,
-    #                               p2.uid, p2.uid))
-    #             cursor.execute("DELETE FROM %s "
-    #                            "WHERE origin == '%s' OR target = '%s'"
-    #                            % (SqliteWrapperSession.RELATIONSHIP_TABLE,
-    #                               p3.uid, p3.uid))
-    #             cursor.execute("DELETE FROM CUDS_CITIZEN "
-    #                            "WHERE uid == '%s'"
-    #                            % p3.uid)
-    #             cursor.execute("DELETE FROM %s "
-    #                            "WHERE uid == '%s'"
-    #                            % (SqliteWrapperSession.MASTER_TABLE, p3.uid))
-    #             conn.commit()
+            with sqlite3.connect(TABLE) as conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE CUDS_CITY SET name = 'Paris' "
+                               "WHERE uid='%s';" % (c.uid))
+                cursor.execute("UPDATE CUDS_CITIZEN SET name = 'Maria' "
+                               "WHERE uid='%s';" % (p1.uid))
+                cursor.execute("DELETE FROM %s "
+                               "WHERE origin == '%s' OR target = '%s'"
+                               % (SqliteWrapperSession.RELATIONSHIP_TABLE,
+                                  p2.uid, p2.uid))
+                cursor.execute("DELETE FROM %s "
+                               "WHERE origin == '%s' OR target = '%s'"
+                               % (SqliteWrapperSession.RELATIONSHIP_TABLE,
+                                  p3.uid, p3.uid))
+                cursor.execute("DELETE FROM CUDS_CITIZEN "
+                               "WHERE uid == '%s'"
+                               % p3.uid)
+                cursor.execute("DELETE FROM %s "
+                               "WHERE uid == '%s'"
+                               % (SqliteWrapperSession.MASTER_TABLE, p3.uid))
+                conn.commit()
 
-    #         self.assertEqual(cw.name, "Paris")
-    #         self.assertEqual(p1w.name, "Peter")
-    #         session.expire_all()
-    #         self.assertEqual(p1w.name, "Maria")
-    #         self.assertEqual(set(cw.get()), {p1w})
-    #         self.assertEqual(p2w.get(), list())
-    #         self.assertEqual(p3w.name, None)
-    #         self.assertNotIn(p3w.uid, session._registry)
+            self.assertEqual(cw.name, "Paris")
+            self.assertEqual(p1w.name, "Peter")
+            session.expire_all()
+            self.assertEqual(p1w.name, "Maria")
+            self.assertEqual(set(cw.get()), {p1w})
+            self.assertEqual(p2w.get(), list())
+            self.assertEqual(p3w.name, None)
+            self.assertNotIn(p3w.uid, session._registry)
+
+    def test_load_by_cuba_key(self):
+        """Load elements by cuba key via transport + db session"""
+        c = cuds.classes.City("Freiburg")
+        p1 = cuds.classes.Citizen(name="Peter")
+        p2 = cuds.classes.Citizen(name="Anna")
+        p3 = cuds.classes.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
+        p1.add(p3, rel=cuds.classes.HasChild)
+        p2.add(p3, rel=cuds.classes.HasChild)
+
+        with TransportSessionClient(SqliteWrapperSession, HOST, PORT, TABLE) \
+                as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            wrapper.add(c)
+            session.commit()
+
+        with TransportSessionClient(SqliteWrapperSession, HOST, PORT, TABLE) \
+                as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            cs = wrapper.get(c.uid)
+            r = session.load_by_cuba_key(cuds.classes.City.cuba_key)
+            self.assertIs(next(iter(r)), cs)
+            r = session.load_by_cuba_key(cuds.classes.Citizen.cuba_key)
+            self.assertEqual(set(r), {p1, p2, p3})
+
+    def test_refresh(self):
+        c = cuds.classes.City("Freiburg")
+        p1 = cuds.classes.Citizen(name="Peter")
+        p2 = cuds.classes.Citizen(name="Anna")
+        p3 = cuds.classes.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
+        p1.add(p3, rel=cuds.classes.HasChild)
+        p2.add(p3, rel=cuds.classes.HasChild)
+
+        with TransportSessionClient(SqliteWrapperSession, HOST, PORT, TABLE) \
+                as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            cw = wrapper.add(c)
+            p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)
+            session.commit()
+
+            self.assertEqual(cw.name, "Freiburg")
+            self.assertEqual(p1w.name, "Peter")
+            self.assertEqual(p2w.name, "Anna")
+            self.assertEqual(p3w.name, "Julia")
+            self.assertEqual(session._expired, set())
+
+            with sqlite3.connect(TABLE) as conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE CUDS_CITY SET name = 'Paris' "
+                               "WHERE uid='%s';" % (c.uid))
+                cursor.execute("UPDATE CUDS_CITIZEN SET name = 'Maria' "
+                               "WHERE uid='%s';" % (p1.uid))
+                cursor.execute("DELETE FROM %s "
+                               "WHERE origin == '%s' OR target = '%s'"
+                               % (SqliteWrapperSession.RELATIONSHIP_TABLE,
+                                  p2.uid, p2.uid))
+                cursor.execute("DELETE FROM %s "
+                               "WHERE origin == '%s' OR target = '%s'"
+                               % (SqliteWrapperSession.RELATIONSHIP_TABLE,
+                                  p3.uid, p3.uid))
+                cursor.execute("DELETE FROM CUDS_CITIZEN "
+                               "WHERE uid == '%s'"
+                               % p3.uid)
+                cursor.execute("DELETE FROM %s "
+                               "WHERE uid == '%s'"
+                               % (SqliteWrapperSession.MASTER_TABLE, p3.uid))
+                conn.commit()
+
+            session.refresh(cw, p1w, p2w, p3w)
+            self.assertEqual(cw.name, "Paris")
+            self.assertEqual(p1w.name, "Maria")
+            self.assertEqual(set(cw.get()), {p1w})
+            self.assertEqual(p2w.get(), list())
+            self.assertEqual(p3w.name, None)
+            self.assertNotIn(p3w.uid, session._registry)
 
 
 if __name__ == "__main__":
     if sys.argv[-1] == "server":
         server = TransportSessionServer(SqliteWrapperSession, HOST, PORT)
         server.startListening()
-    else:
-        SERVER_STARTED = True
-        unittest.main()

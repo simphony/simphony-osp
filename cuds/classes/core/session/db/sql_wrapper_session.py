@@ -6,13 +6,11 @@
 # No redistribution is allowed without explicit written permission.
 
 import uuid
-from sqlalchemy import create_engine
 from abc import abstractmethod
 from cuds.utils import create_for_session
 from cuds.metatools.ontology_datatypes import convert_to
 from cuds.classes.core.session.db.db_wrapper_session import DbWrapperSession
-from cuds.classes.core.session.db.conditions import (EqualsCondition,
-                                                     AndCondition)
+from cuds.classes.core.session.db.conditions import EqualsCondition
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
 
@@ -242,7 +240,7 @@ class SqlWrapperSession(DbWrapperSession):
                                             "UUID"))
 
     # OVERRIDE
-    def _load_cuds(self, uids):
+    def _load_from_backend(self, uids, expired=None):
         for uid in uids:
             if isinstance(uid, uuid.UUID):
                 cuba = self._get_cuba(uid)
@@ -279,7 +277,7 @@ class SqlWrapperSession(DbWrapperSession):
                                             True,
                                             "BOOL"),
                             self.DATATYPES[self.MASTER_TABLE])
-        list(self._load_cuds(map(lambda x: (x[0], CUBA(x[1])), c)))
+        list(self._load_from_backend(map(lambda x: (x[0], CUBA(x[1])), c)))
 
     def _load_by_cuba(self, cuba, update_registry=False, uid=None):
         """Load the Cuds entity with the given cuba (+ uid).
@@ -321,7 +319,6 @@ class SqlWrapperSession(DbWrapperSession):
                 yield self._registry.get(uid)
                 continue
             cuds = create_for_session(cuds_class, kwargs, self)
-            self.store(cuds)
             self._load_relationships(cuds)
             yield cuds
 

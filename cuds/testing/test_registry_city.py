@@ -7,7 +7,6 @@
 
 import unittest2 as unittest
 import cuds.classes
-from cuds.classes.core.session.session import Session
 from cuds.classes import ActiveRelationship
 
 

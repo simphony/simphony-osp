@@ -10,6 +10,16 @@ from abc import abstractmethod
 from .session import Session
 
 
+def consumes_buffers(func):
+    func.does_consume_buffers = True
+    return func
+
+
+def check_consumes_buffers(func):
+    return hasattr(func, "does_consume_buffers") \
+        and func.does_consume_buffers
+
+
 class WrapperSession(Session):
     """
     Common class for all wrapper sessions.
@@ -49,7 +59,7 @@ class WrapperSession(Session):
         if entity.uid in self._deleted:
             del self._deleted[entity.uid]
 
-        if entity.uid in self._uid_set:
+        if entity.uid in self._uids_in_registry_after_last_buffer_reset:
             self._updated[entity.uid] = entity
         else:
             self._added[entity.uid] = entity
@@ -65,7 +75,7 @@ class WrapperSession(Session):
         if entity.uid in self._deleted:
             raise RuntimeError("Cannot update deleted object")
 
-        if entity.uid in self._uid_set:
+        if entity.uid in self._uids_in_registry_after_last_buffer_reset:
             self._updated[entity.uid] = entity
         else:
             self._added[entity.uid] = entity
@@ -106,8 +116,26 @@ class WrapperSession(Session):
         self._added = dict()
         self._updated = dict()
         self._deleted = dict()
-        self._uid_set = set(self._registry.keys())
+        # Save set of uids in registry to determine
+        # if cuds objects are added or updated
+        self._uids_in_registry_after_last_buffer_reset = \
+            set(self._registry.keys())
         return True
+
+    def _remove_uids_from_buffers(self, uids):
+        """Remove the given uids from the buffers.
+
+        :param uids: A set/list of uids to remove from the buffers.
+        :type uids: Iterable[UUID]
+        """
+        for uid in uids:
+            self._uids_in_registry_after_last_buffer_reset.add(uid)
+            if uid in self._added:
+                del self._added[uid]
+            if uid in self._updated:
+                del self._updated[uid]
+            if uid in self._deleted:
+                del self._deleted[uid]
 
     def _check_cardinalities(self):
         """Check if the cardinalities specified in the ontology
@@ -163,25 +191,25 @@ class WrapperSession(Session):
         :return: A tuple defining the min and max number of occurences
         :rtype: Tuple[int, int]
         """
-        min_occurences = 0
-        max_occurences = float("inf")
+        min_occurrences = 0
+        max_occurrences = float("inf")
         if isinstance(cardinality, int):
-            min_occurences = max_occurences = cardinality
+            min_occurrences = max_occurrences = cardinality
         elif cardinality in ["*", "many"]:
             pass
         elif cardinality == "+":
-            min_occurences = 1
+            min_occurrences = 1
         elif cardinality == "?":
-            min_occurences = 0
-            max_occurences = 1
+            min_occurrences = 0
+            max_occurrences = 1
         elif cardinality.endswith("+"):
-            min_occurences = int(cardinality[:-1].strip())
+            min_occurrences = int(cardinality[:-1].strip())
         elif "-" in cardinality:
-            min_occurences = int(cardinality.split("-")[0].strip())
-            max_occurences = int(cardinality.split("-")[1].strip())
+            min_occurrences = int(cardinality.split("-")[0].strip())
+            max_occurrences = int(cardinality.split("-")[1].strip())
         else:
-            min_occurences = max_occurences = int(cardinality.strip())
-        return min_occurences, max_occurences
+            min_occurrences = max_occurrences = int(cardinality.strip())
+        return min_occurrences, max_occurrences
 
     @staticmethod
     def _get_ontology_cardinalities(cuds):

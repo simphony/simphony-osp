@@ -8,7 +8,7 @@
 # from __future__ import annotations
 import uuid
 import inspect
-from typing import Union, Type, List, Iterator, Dict, Any
+from typing import Union, Type, List, Iterator, Dict
 
 from cuds.metatools.ontology_datatypes import convert_to
 from cuds.classes.core.session.core_session import CoreSession
@@ -369,7 +369,6 @@ class Cuds(dict):
             new_cuds = create_from_cuds(new_cuds, add_to.session)
             # fix the connections to the neighbors
             add_to._fix_neighbors(new_cuds, old_cuds, add_to.session, missing)
-            add_to.session.store(new_cuds)
             result = result or new_cuds
 
             for outgoing_rel in new_cuds.keys():
@@ -809,13 +808,16 @@ class NotifyDict(dict):
 
     def __setitem__(self, key, value):
         self.cuds._check_valid_add(value, self.rel)
+        self.cuds.session._notify_read(self.cuds)
         super().__setitem__(key, value)
         self.cuds.session._notify_update(self.cuds)
 
     def __delitem__(self, key):
+        self.cuds.session._notify_read(self.cuds)
         super().__delitem__(key)
         self.cuds.session._notify_update(self.cuds)
 
     def update(self, E):
+        self.cuds.session._notify_read(self.cuds)
         super().update(E)
         self.cuds.session._notify_update(self.cuds)

@@ -30,13 +30,12 @@ class CommunicationEngineServer():
         self.handle_request = handle_request
         self.handle_disconnect = handle_disconnect
 
-    def startListening(self, forever=True):
+    def startListening(self):
         """Start the server on given host + port."""
         event_loop = asyncio.get_event_loop()
         start_server = websockets.serve(self._serve, self.host, self.port)
         event_loop.run_until_complete(start_server)
-        if forever:
-            event_loop.run_forever()
+        event_loop.run_forever()
 
     async def _serve(self, websocket, _):
         """Wait for requests, compute responses and serve them to the user.
@@ -89,7 +88,7 @@ class CommunicationEngineClient():
         :type data: str
         """
         event_loop = asyncio.get_event_loop()
-        event_loop.run_until_complete(self._request(command, data))
+        return event_loop.run_until_complete(self._request(command, data))
 
     def close(self):
         """Close the connection to the server"""
@@ -117,4 +116,4 @@ class CommunicationEngineClient():
         await self.websocket.send(command + ":" + data)
         response = await self.websocket.recv()
         print("Response: %s" % response)
-        self.handle_response(response)
+        return self.handle_response(response)

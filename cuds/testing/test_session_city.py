@@ -10,7 +10,6 @@ import cuds.classes
 from cuds.classes import Cuds
 from cuds.classes.core.session.session import Session
 from cuds.classes.core.session.wrapper_session import WrapperSession
-from cuds.classes import ActiveRelationship
 
 
 class TestSessionCity(unittest.TestCase):
