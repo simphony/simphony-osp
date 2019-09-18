@@ -19,7 +19,7 @@ from cuds.classes.core.session.transport.transport_session_client import \
 from cuds.classes.core.session.transport.transport_session_server import \
     TransportSessionServer
 from cuds.classes.core.session.transport.transport_util import (
-    _to_cuds, serializable, deserialize_buffers,
+    deserialize, serializable, deserialize_buffers,
     serialize, LOAD_COMMAND, INITIALIZE_COMMAND
 )
 
@@ -104,10 +104,10 @@ SERIALIZED_BUFFERS3 = (
 
 class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
-    def testToCuds(self):
+    def testDeserialize(self):
         """Test transformation from normal dictionary to cuds object"""
         with TestWrapperSession() as session:
-            entity = _to_cuds(CUDS_DICT, session)
+            entity = deserialize(CUDS_DICT, session)
             self.assertEqual(entity.uid.int, 0)
             self.assertEqual(entity.name, "Peter")
             self.assertEqual(entity.age, 23)
@@ -123,16 +123,34 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
             invalid_cuba = deepcopy(CUDS_DICT)
             invalid_cuba["cuba_key"] = "INVALID_CUBA"
-            self.assertRaises(ValueError, _to_cuds, invalid_cuba, session)
+            self.assertRaises(ValueError, deserialize, invalid_cuba, session)
 
             invalid_attribute = deepcopy(CUDS_DICT)
             invalid_attribute["attributes"]["invalid_attr"] = 0
-            self.assertRaises(TypeError, _to_cuds, invalid_attribute, session)
+            self.assertRaises(TypeError, deserialize,
+                              invalid_attribute, session)
 
             invalid_rel = deepcopy(CUDS_DICT)
             invalid_rel["relationships"]["IS_INHABITANT_OF"] = {
                 str(uuid.UUID(int=1)): "PERSON"}
-            self.assertRaises(ValueError, _to_cuds, invalid_rel, session)
+            self.assertRaises(ValueError, deserialize, invalid_rel, session)
+
+            self.assertEqual(deserialize(None, session), None)
+            self.assertEqual(deserialize([None, None], session), [None, None])
+            self.assertEqual(
+                deserialize({"UUID": "00000000-0000-0000-0000-000000000001"},
+                            session), uuid.UUID(int=1))
+            self.assertEqual(deserialize(
+                [{"UUID": "00000000-0000-0000-0000-000000000001"},
+                 {"UUID": "00000000-0000-0000-0000-000000000002"}],
+                session), [uuid.UUID(int=1), uuid.UUID(int=2)])
+            self.assertEqual(deserialize({"CUBA-KEY": "CITIZEN"}, session),
+                             CUBA("CITIZEN"))
+            self.assertEqual(deserialize([{"CUBA-KEY": "CITIZEN"},
+                                          {"CUBA-KEY": "CITY"}], session),
+                             [CUBA("CITIZEN"), CUBA["CITY"]])
+            self.assertEqual(deserialize([1, 1.2, "hallo"], session),
+                             [1, 1.2, "hallo"])
 
     def test_serializable(self):
         """Test function to make Cuds objects json serializable"""
@@ -145,6 +163,20 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         p.add(c, rel=cuds.classes.IsInhabitantOf)
         p.add(c1, c2, rel=cuds.classes.HasChild)
         self.assertEqual(CUDS_DICT, serializable(p))
+        self.assertEqual([CUDS_DICT], serializable([p]))
+        self.assertEqual(None, serializable(None))
+        self.assertEqual([None, None], serializable([None, None]))
+        self.assertEqual({"UUID": "00000000-0000-0000-0000-000000000001"},
+                         serializable(uuid.UUID(int=1)))
+        self.assertEqual([{"UUID": "00000000-0000-0000-0000-000000000001"},
+                          {"UUID": "00000000-0000-0000-0000-000000000002"}],
+                         serializable([uuid.UUID(int=1), uuid.UUID(int=2)]))
+        self.assertEqual({"CUBA-KEY": "CITIZEN"},
+                         serializable(CUBA("CITIZEN")))
+        self.assertEqual([{"CUBA-KEY": "CITIZEN"}, {"CUBA-KEY": "CITY"}],
+                         serializable([CUBA("CITIZEN"), CUBA("CITY")]))
+        self.assertEqual([1, 1.2, "hallo"],
+                         serializable([1, 1.2, "hallo"]))
 
     def test_deserialize_buffers(self):
         # no reset
