@@ -54,7 +54,30 @@ SERIALIZED_BUFFERS = (
     '"uid": "00000000-0000-0000-0000-000000000001"}, '
     '"relationships": {}}], '
     '"args": [42], '
-    '"kwargs": {"name": "London"}}')
+    '"kwargs": {"name": "London"}}'
+)
+
+SERIALIZED_BUFFERS_EXPIRED = (
+    '{"added": [{'
+    '"cuba_key": "CITY", '
+    '"attributes": {"name": "Paris", '
+    '"uid": "00000000-0000-0000-0000-000000000002"}, '
+    '"relationships": {"IS_PART_OF": {"00000000-0000-0000-0000-000000000000": '
+    '"CITY_WRAPPER"}}}], '
+    '"updated": [{'
+    '"cuba_key": "CITY_WRAPPER", '
+    '"attributes": {"uid": "00000000-0000-0000-0000-000000000000"}, '
+    '"relationships": {"HAS_PART": {"00000000-0000-0000-0000-000000000002": '
+    '"CITY"}}}], '
+    '"deleted": [{'
+    '"cuba_key": "CITY", '
+    '"attributes": {"name": "Freiburg", '
+    '"uid": "00000000-0000-0000-0000-000000000001"}, '
+    '"relationships": {}}], '
+    '"expired": [{"UUID": "00000000-0000-0000-0000-000000000003"}], '
+    '"args": [42], '
+    '"kwargs": {"name": "London"}}'
+)
 
 SERIALIZED_BUFFERS2 = (
     '{"added": [{'
@@ -124,13 +147,15 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         self.assertEqual(CUDS_DICT, serializable(p))
 
     def test_deserialize_buffers(self):
+        # no reset
         with TestWrapperSession() as s1:
+            s1._expired = {uuid.UUID(int=4)}
             ws1 = cuds.classes.CityWrapper(session=s1, uid=0)
             c = cuds.classes.City("Freiburg", uid=1)
             ws1.add(c)
             s1._reset_buffers(changed_by="user")
 
-            additional = deserialize_buffers(s1, SERIALIZED_BUFFERS)
+            additional = deserialize_buffers(s1, SERIALIZED_BUFFERS_EXPIRED)
             self.assertEqual(additional, {"args": [42],
                                           "kwargs": {"name": "London"}})
             self.assertEqual(set(s1._registry.keys()),
@@ -142,9 +167,40 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(cn[cuds.classes.IsPartOf],
                              {ws1.uid: CUBA.CITY_WRAPPER})
             self.assertEqual(set(cn.keys()), {cuds.classes.IsPartOf})
+            self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
+            self.assertEqual(s1._added, {cn.uid: cn})
+            self.assertEqual(s1._updated, {ws1.uid: ws1})
+            self.assertEqual(s1._deleted, {c.uid: c})
 
-    def test_serialize_buffers(self):
+        # with reset
+        with TestWrapperSession() as s1:
+            s1._expired = {uuid.UUID(int=4)}
+            ws1 = cuds.classes.CityWrapper(session=s1, uid=0)
+            c = cuds.classes.City("Freiburg", uid=1)
+            ws1.add(c)
+            s1._reset_buffers(changed_by="user")
+
+            additional = deserialize_buffers(s1, SERIALIZED_BUFFERS_EXPIRED,
+                                             reset_afterwards=True)
+            self.assertEqual(additional, {"args": [42],
+                                          "kwargs": {"name": "London"}})
+            self.assertEqual(set(s1._registry.keys()),
+                             {uuid.UUID(int=0), uuid.UUID(int=2)})
+            cn = ws1.get(uuid.UUID(int=2))
+            self.assertEqual(cn.name, "Paris")
+            self.assertEqual(ws1[cuds.classes.HasPart], {cn.uid: CUBA.CITY})
+            self.assertEqual(set(ws1.keys()), {cuds.classes.HasPart})
+            self.assertEqual(cn[cuds.classes.IsPartOf],
+                             {ws1.uid: CUBA.CITY_WRAPPER})
+            self.assertEqual(set(cn.keys()), {cuds.classes.IsPartOf})
+            self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
+            self.assertEqual(s1._added, dict())
+            self.assertEqual(s1._updated, dict())
+            self.assertEqual(s1._deleted, dict())
+
+    def test_serialize(self):
         """ Test if serialization of buffers work """
+        # no expiration
         with TestWrapperSession() as s1:
             ws1 = cuds.classes.CityWrapper(session=s1, uid=0)
             c = cuds.classes.City("Freiburg", uid=1)
@@ -155,7 +211,17 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             ws1.add(cn)
             ws1.remove(c.uid)
             s1.prune()
-            self.maxDiff = 2000
+            self.assertEqual(
+                '{"args": [42], "kwargs": {"name": "London"}}',
+                serialize(
+                    s1,
+                    consume_buffers=False,
+                    additional_items={"args": [42],
+                                      "kwargs": {"name": "London"}})
+            )
+            self.assertEqual(s1._added.keys(), {uuid.UUID(int=2)})
+            self.assertEqual(s1._updated.keys(), {uuid.UUID(int=0)})
+            self.assertEqual(s1._deleted.keys(), {uuid.UUID(int=1)})
             self.assertEqual(
                 SERIALIZED_BUFFERS,
                 serialize(
@@ -163,6 +229,49 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                     additional_items={"args": [42],
                                       "kwargs": {"name": "London"}})
             )
+            self.assertEqual(s1._added.keys(), set())
+            self.assertEqual(s1._updated.keys(), set())
+            self.assertEqual(s1._deleted.keys(), set())
+            s1._expired = {uuid.UUID(int=0), uuid.UUID(int=2)}
+
+        # with expiration
+        with TestWrapperSession() as s1:
+            ws1 = cuds.classes.CityWrapper(session=s1, uid=0)
+            c = cuds.classes.City("Freiburg", uid=1)
+            ws1.add(c)
+            s1._reset_buffers(changed_by="user")
+
+            cn = cuds.classes.City("Paris", uid=2)
+            ws1.add(cn)
+            ws1.remove(c.uid)
+            s1.prune()
+            s1._expired = {uuid.UUID(int=3)}
+            self.assertEqual(
+                '{"expired": [{"UUID": '
+                '"00000000-0000-0000-0000-000000000003"}], '
+                '"args": [42], "kwargs": {"name": "London"}}',
+                serialize(
+                    s1,
+                    consume_buffers=False,
+                    additional_items={"args": [42],
+                                      "kwargs": {"name": "London"}})
+            )
+            self.assertEqual(s1._added.keys(), {uuid.UUID(int=2)})
+            self.assertEqual(s1._updated.keys(), {uuid.UUID(int=0)})
+            self.assertEqual(s1._deleted.keys(), {uuid.UUID(int=1)})
+
+            self.maxDiff = 3000
+            self.assertEqual(
+                SERIALIZED_BUFFERS_EXPIRED,
+                serialize(
+                    s1,
+                    additional_items={"args": [42],
+                                      "kwargs": {"name": "London"}})
+            )
+            self.assertEqual(s1._added.keys(), set())
+            self.assertEqual(s1._updated.keys(), set())
+            self.assertEqual(s1._deleted.keys(), set())
+            s1._expired = {uuid.UUID(int=0), uuid.UUID(int=2)}
 
 
 class MockEngine():

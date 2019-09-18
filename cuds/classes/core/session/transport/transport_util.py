@@ -70,7 +70,8 @@ def deserialize_buffers(session_obj, data, reset_afterwards=False):
     if reset_afterwards:
         reset_buffers_after_deserialize(session_obj, deserialized)
     else:
-        session_obj._deleted.update({x.uid: x for x in deleted})
+        for x in deleted:
+            session_obj._notify_delete(x)
 
     for entity in deleted:
         if entity.uid in session_obj._registry:
@@ -89,10 +90,9 @@ def reset_buffers_after_deserialize(session_obj, deserialized):
     """
     added = []
     for k, v in deserialized.items():
-        if k != "deleted":
-            if isinstance(v, Cuds):
-                added.append(v)
-            added += [x for x in v if isinstance(x, Cuds)]
+        if isinstance(v, Cuds):
+            added.append(v)
+        added += [x for x in v if isinstance(x, Cuds)]
 
     for uid in [x.uid for x in added]:
         if uid in session_obj._added:
