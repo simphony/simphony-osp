@@ -86,7 +86,7 @@ class DbWrapperSession(StorageWrapperSession):
         pass
 
     @abstractmethod
-    def _load_by_cuba(self, uids, update_registry=False):
+    def _load_by_cuba(self, cuba, update_registry=False):
         """Load the Cuds entity with the given cuba.
         If uid is None return all entities with given cuba_key.
 
