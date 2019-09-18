@@ -324,24 +324,39 @@ class MockEngine():
 class TestCommunicationEngineClient(unittest.TestCase):
     def test_load(self):
         """ Test loading from server"""
-        c1 = cuds.classes.City("Freiburg", uid=1)
-        c2 = cuds.classes.City("London", uid=2)
         client = TransportSessionClient(TestWrapperSession, None, None)
         client.root = 1
+        c1 = create_for_session(
+            cuds.classes.City, {"name": "Freiburg", "uid": 1}, client)
+        c2 = create_for_session(
+            cuds.classes.City, {"name": "London", "uid": 2}, client)
+        c3 = create_for_session(
+            cuds.classes.City, {"name": "Paris", "uid": 3}, client)
+        del client._registry[c2.uid]
+        client.expire(c3.uid)
+        client._reset_buffers(changed_by="user")
 
         def on_send(command, data):
             client._registry.put(c2)
-            return [c2]
+            return [c2, None]
 
         client._engine = MockEngine(on_send)
-        client._registry.put(c1)
-        result = list(client.load(uuid.UUID(int=1), uuid.UUID(int=2)))
+        result = list(client.load(uuid.UUID(int=1),
+                                  uuid.UUID(int=2),
+                                  uuid.UUID(int=3)))
         self.assertEqual(client._engine._sent_command, LOAD_COMMAND)
         self.assertEqual(
             client._engine._sent_data,
-            '{"expired": [], '
-            '"uids": [{"UUID": "00000000-0000-0000-0000-000000000002"}]}')
-        self.assertEqual(result, [c1, c2])
+            '{"expired": [{"UUID": "00000000-0000-0000-0000-000000000003"}], '
+            '"uids": [{"UUID": "00000000-0000-0000-0000-000000000002"}, '
+            '{"UUID": "00000000-0000-0000-0000-000000000003"}]}')
+        self.assertEqual(result, [c1, c2, None])
+        self.assertEqual(set(client._registry.keys()), {c1.uid, c2.uid})
+        self.assertEqual(client._uids_in_registry_after_last_buffer_reset,
+                         {c1.uid, c2.uid})
+        self.assertEqual(client._added, dict())
+        self.assertEqual(client._updated, dict())
+        self.assertEqual(client._deleted, dict())
 
     def test_store(self):
         """ Test storing of entity. """
@@ -351,7 +366,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         # first item
         c1 = create_for_session(cuds.classes.City,
                                 {"name": "Freiburg", "uid": 1},
-                                client)
+                                client)  # store will be called automatically
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
         self.assertEqual(client._engine._sent_data, (
             '{"args": [], "kwargs": {}, '

@@ -46,10 +46,12 @@ class StorageWrapperSession(WrapperSession):
 
             # avoid changes in the buffers
             if entity is not None:
-                self._remove_uids_from_buffers([entity.uid])
+                self._remove_uids_from_buffers([uid])
 
             # expired object no longer present in the backend --> delete it
             elif uid in self._registry:
+                self._remove_uids_from_buffers([uid])
+                self._uids_in_registry_after_last_buffer_reset -= {uid}
                 old = self._registry.get(uid)
                 destruct_cuds(old)
             yield entity
