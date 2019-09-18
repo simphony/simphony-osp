@@ -28,21 +28,31 @@ class StorageWrapperSession(WrapperSession):
         missing_uids = [uid for uid in uids
                         if uid not in self._registry or uid in expired]
         self._expired -= expired
-        # Load elements not in the registry from the database
-        missing = self._load_cuds(missing_uids)
+
+        # Load elements not in the registry / expired from the backend
+        missing = self._load_cuds(missing_uids, expired=expired)
         for uid in uids:
+
+            # Load from registry if uid is there and not expired
             if uid not in missing_uids:
                 yield self._registry.get(uid)
-            else:
-                try:
-                    entity = next(missing)
-                except StopIteration:
-                    entity = None
-                if entity is not None:
-                    self._uid_set.add(entity.uid)
-                    if entity.uid in self._added:
-                        del self._added[entity.uid]
-                yield entity
+                continue
+
+            # Load from backend if not in registry or expired
+            try:
+                entity = next(missing)
+            except StopIteration:
+                entity = None  # not available in the backend
+
+            # avoid changes in the buffers
+            if entity is not None:
+                self._remove_uids_from_buffers([entity.uid])
+
+            # expired object no longer present in the backend --> delete it
+            elif uid in self._registry:
+                old = self._registry.get(uid)
+                destruct_cuds(old)
+            yield entity
 
     def expire(self, *cuds_or_uids):
         """Let cuds objects expire. Expired objects will be reloaded lazily
@@ -83,13 +93,8 @@ class StorageWrapperSession(WrapperSession):
             else:
                 uids.append(c.uid)
         uids = set(uids) - set([self.root])
-        old_expired = frozenset(self._expired | uids)
-        self._expired -= uids
-        loaded = list(self._load_cuds(uids, old_expired))
-        for uid, loaded_entity in zip(uids, loaded):
-            if loaded_entity is None:
-                old = self._registry.get(uid)
-                destruct_cuds(old)
+        self._expired |= uids
+        list(self.load(*uids))
 
     # OVERRIDE
     def _notify_read(self, entity):

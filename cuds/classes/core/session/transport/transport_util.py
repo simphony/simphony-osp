@@ -88,17 +88,13 @@ def reset_buffers_after_deserialize(session_obj, deserialized):
     :param deserialized: The deserialized data
     :type deserialized: Any
     """
-    added = []
+    added = set()
     for k, v in deserialized.items():
         if isinstance(v, Cuds):
-            added.append(v)
-        added += [x for x in v if isinstance(x, Cuds)]
+            added.add(v.uid)
+        added |= set([x.uid for x in v if isinstance(x, Cuds)])
 
-    for uid in [x.uid for x in added]:
-        if uid in session_obj._added:
-            del session_obj._added[uid]
-        if uid in session_obj._updated:
-            del session_obj._updated[uid]
+    session_obj._remove_uids_from_buffers(added)
 
 
 def deserialize(json_obj, session):

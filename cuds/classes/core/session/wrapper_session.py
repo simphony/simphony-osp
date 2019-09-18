@@ -121,6 +121,21 @@ class WrapperSession(Session):
         self._uid_set = set(self._registry.keys())
         return True
 
+    def _remove_uids_from_buffers(self, uids):
+        """Remove the given uids from the buffers.
+
+        :param uids: A set/list of uids to remove from the buffers.
+        :type uids: Iterable[UUID]
+        """
+        for uid in uids:
+            self._uid_set.add(uid)
+            if uid in self._added:
+                del self._added[uid]
+            if uid in self._updated:
+                del self._updated[uid]
+            if uid in self._deleted:
+                del self._deleted[uid]
+
     def _check_cardinalities(self):
         """Check if the cardinalities specified in the ontology
         are satisfied for the added and updated cuds."""
@@ -175,25 +190,25 @@ class WrapperSession(Session):
         :return: A tuple defining the min and max number of occurences
         :rtype: Tuple[int, int]
         """
-        min_occurences = 0
-        max_occurences = float("inf")
+        min_occurrences = 0
+        max_occurrences = float("inf")
         if isinstance(cardinality, int):
-            min_occurences = max_occurences = cardinality
+            min_occurrences = max_occurrences = cardinality
         elif cardinality in ["*", "many"]:
             pass
         elif cardinality == "+":
-            min_occurences = 1
+            min_occurrences = 1
         elif cardinality == "?":
-            min_occurences = 0
-            max_occurences = 1
+            min_occurrences = 0
+            max_occurrences = 1
         elif cardinality.endswith("+"):
-            min_occurences = int(cardinality[:-1].strip())
+            min_occurrences = int(cardinality[:-1].strip())
         elif "-" in cardinality:
-            min_occurences = int(cardinality.split("-")[0].strip())
-            max_occurences = int(cardinality.split("-")[1].strip())
+            min_occurrences = int(cardinality.split("-")[0].strip())
+            max_occurrences = int(cardinality.split("-")[1].strip())
         else:
-            min_occurences = max_occurences = int(cardinality.strip())
-        return min_occurences, max_occurences
+            min_occurrences = max_occurrences = int(cardinality.strip())
+        return min_occurrences, max_occurrences
 
     @staticmethod
     def _get_ontology_cardinalities(cuds):
