@@ -59,7 +59,7 @@ class WrapperSession(Session):
         if entity.uid in self._deleted:
             del self._deleted[entity.uid]
 
-        if entity.uid in self._uid_set:
+        if entity.uid in self._uids_in_registry_after_last_buffer_reset:
             self._updated[entity.uid] = entity
         else:
             self._added[entity.uid] = entity
@@ -75,7 +75,7 @@ class WrapperSession(Session):
         if entity.uid in self._deleted:
             raise RuntimeError("Cannot update deleted object")
 
-        if entity.uid in self._uid_set:
+        if entity.uid in self._uids_in_registry_after_last_buffer_reset:
             self._updated[entity.uid] = entity
         else:
             self._added[entity.uid] = entity
@@ -118,7 +118,8 @@ class WrapperSession(Session):
         self._deleted = dict()
         # Save set of uids in registry to determine
         # if cuds objects are added or updated
-        self._uid_set = set(self._registry.keys())
+        self._uids_in_registry_after_last_buffer_reset = \
+            set(self._registry.keys())
         return True
 
     def _remove_uids_from_buffers(self, uids):
@@ -128,7 +129,7 @@ class WrapperSession(Session):
         :type uids: Iterable[UUID]
         """
         for uid in uids:
-            self._uid_set.add(uid)
+            self._uids_in_registry_after_last_buffer_reset.add(uid)
             if uid in self._added:
                 del self._added[uid]
             if uid in self._updated:

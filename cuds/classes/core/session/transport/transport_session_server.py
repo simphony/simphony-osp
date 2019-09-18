@@ -139,6 +139,7 @@ class TransportSessionServer():
                                    **data["kwargs"])
         self.session_objs[user] = session
         root = deserialize(data["root"], session=session)
+        session._uids_in_registry_after_last_buffer_reset = set([root.uid])
         del session._added[root.uid]
         session._updated[root.uid] = root
         return serialize(session)
