@@ -30,7 +30,7 @@ class StorageWrapperSession(WrapperSession):
         self._expired -= expired
 
         # Load elements not in the registry / expired from the backend
-        missing = self._load_cuds(missing_uids, expired=expired)
+        missing = self._load_from_backend(missing_uids, expired=expired)
         for uid in uids:
 
             # Load from registry if uid is there and not expired
@@ -102,7 +102,7 @@ class StorageWrapperSession(WrapperSession):
             self.refresh(entity)
 
     @abstractmethod
-    def _load_cuds(self, uids, expired=None):
+    def _load_from_backend(self, uids, expired=None):
         """Load cuds with given uids from the database.
         Will update objects with same uid in the registry.
 

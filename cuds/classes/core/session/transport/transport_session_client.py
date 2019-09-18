@@ -41,7 +41,7 @@ class TransportSessionClient(StorageWrapperSession):
         self.kwargs = kwargs
 
     # OVERRIDE
-    def _load_cuds(self, uids, expired=None):
+    def _load_from_backend(self, uids, expired=None):
         expired = expired or self._expired
         data = serialize(self, False, {"uids": uids, "expired": expired})
         yield from self._engine.send(LOAD_COMMAND, data)
