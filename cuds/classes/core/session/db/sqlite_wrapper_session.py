@@ -111,7 +111,7 @@ class SqliteWrapperSession(SqlWrapperSession):
     def _to_sqlite_datatype(self, cuds_datatype):
         """Convert the given Cuds datatype to a datatype of sqlite.
 
-        :param cuds_datatype: The given cuds datatype.
+        :param cuds_datatype: The given cuds_object datatype.
         :type cuds_datatype: str
         :raises NotImplementedError: Unsupported datatype given.
         :return: A sqlite datatype.

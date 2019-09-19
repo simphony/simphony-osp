@@ -47,23 +47,23 @@ class DummySimSession(SimWrapperSession):
         return "Dummy SimWrapperSession"
 
     # OVERRIDE
-    def _run(self, root_cuds):
-        self._engine.simulate(root_cuds.num_steps)
+    def _run(self, root_cuds_object):
+        self._engine.simulate(root_cuds_object.num_steps)
 
     # OVERRIDE
-    def _update_cuds_after_run(self, root_cuds):
+    def _update_cuds_objects_after_run(self, root_cuds_object):
         # update the age of each person and delete persons that became citizens
         person_uids = set()
         for i, p in self._engine.get_persons():
             uid = self._person_map[i]
             person_uids.add(uid)
-            root_cuds.get(uid).age = p.age
-        for p in root_cuds.get(cuba_key=CUBA.PERSON):
+            root_cuds_object.get(uid).age = p.age
+        for p in root_cuds_object.get(cuba_key=CUBA.PERSON):
             if p.uid not in person_uids:
-                root_cuds.remove(p)
+                root_cuds_object.remove(p)
 
         # update the age of the citizens and add new citizens
-        city = root_cuds.get(cuba_key=CUBA.CITY)[0]
+        city = root_cuds_object.get(cuba_key=CUBA.CITY)[0]
         for i, p in self._engine.get_inhabitants():
             uid = self._person_map[i]
             inhabitant = city.get(uid)
@@ -77,7 +77,8 @@ class DummySimSession(SimWrapperSession):
     # OVERRIDE
     def _apply_added(self):
         if self._ran and self._added:
-            raise RuntimeError("Do not add cuds after running the simulation")
+            raise RuntimeError("Do not add cuds_objects "
+                               "after running the simulation")
         sorted_added = sorted(
             self._added.values(),
             key=lambda x: x.name if hasattr(x, "name") else "0")
@@ -91,13 +92,13 @@ class DummySimSession(SimWrapperSession):
     # OVERRIDE
     def _apply_updated(self):
         if self._ran and self._added:
-            raise RuntimeError("Do not update cuds after running "
+            raise RuntimeError("Do not update cuds_objects after running "
                                + "the simulation")
 
     # OVERRIDE
     def _apply_deleted(self):
         if self._ran and self._deleted:
-            raise RuntimeError("Do not delete cuds after running "
+            raise RuntimeError("Do not delete cuds_objects after running "
                                + "the simulation")
 
 

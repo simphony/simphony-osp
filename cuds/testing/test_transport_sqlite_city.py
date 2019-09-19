@@ -92,7 +92,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         check_state(self, c, p1, p2, table=TABLE)
 
     def test_delete(self):
-        """Test to delete cuds objects from the sqlite table"""
+        """Test to delete cuds_objects from the sqlite table"""
         c = cuds.classes.City("Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")
         p2 = cuds.classes.Citizen(name="Georg")

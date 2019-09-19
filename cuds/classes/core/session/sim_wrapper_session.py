@@ -23,7 +23,7 @@ class SimWrapperSession(WrapperSession):
         self._apply_deleted()
         self._reset_buffers(changed_by="user")
         self._run(root)
-        self._update_cuds_after_run(root)
+        self._update_cuds_objects_after_run(root)
         self._reset_buffers(changed_by="engine")
         self._ran = True
 
@@ -33,6 +33,6 @@ class SimWrapperSession(WrapperSession):
         pass
 
     @abstractmethod
-    def _update_cuds_after_run(self, root_cuds):
-        """Update the cuds after the engine has been executed. """
+    def _update_cuds_objects_after_run(self, root_cuds_object):
+        """Update the cuds_object after the engine has been executed. """
         pass

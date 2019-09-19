@@ -32,24 +32,24 @@ class Session(ABC):
     def __str__(self):
         pass
 
-    def store(self, entity):
-        """Store a copy of given entity in the session.
+    def store(self, cuds_object):
+        """Store a copy of given cuds_object in the session.
         Return the stored object.
 
-        :param entity: The entity to store.
-        :type entity: Cuds
-        :return: The stored entity.
+        :param cuds_object: The cuds_object to store.
+        :type cuds_object: Cuds
+        :return: The stored cuds_object.
         :rtype: Cuds
         """
-        assert entity.session == self
-        self._registry.put(entity)
+        assert cuds_object.session == self
+        self._registry.put(cuds_object)
         if self.root is None:
-            self.root = entity.uid
+            self.root = cuds_object.uid
 
     def load(self, *uids):
-        """Load the cuds objects of the given uids.
+        """Load the cuds_objects of the given uids.
 
-        :param uids: The uids of the cuds objects to load.
+        :param uids: The uids of the cuds_objects to load.
         :type uids: UUID
         :return: The fetched Cuds objects.
         :rtype: Iterator[Cuds]
@@ -72,21 +72,21 @@ class Session(ABC):
             self._notify_delete(d)
 
     @abstractmethod
-    def _notify_delete(self, entity):
+    def _notify_delete(self, cuds_object):
         """This method is called if some object from the registry is deleted
         by the prune() method.
 
-        :param cuds: The entity that has been deleted
-        :type cuds: Cuds
+        :param cuds_object: The cuds_object that has been deleted
+        :type cuds_object: Cuds
         """
         pass
 
     @abstractmethod
-    def _notify_update(self, entity):
+    def _notify_update(self, cuds_object):
         """This method is called if some object has been updated-
 
-        :param entity: The entity that has been updated.
-        :type entity: Cuds
+        :param cuds_object: The cuds_object that has been updated.
+        :type cuds_object: Cuds
         """
         pass
 
@@ -94,11 +94,11 @@ class Session(ABC):
         pass
 
     @abstractmethod
-    def _notify_read(self, entity):
+    def _notify_read(self, cuds_object):
         """This method is called when the user accesses the attributes or the
-        relationships of the cuds entity.
+        relationships of the cuds_object cuds_object.
 
-        :param entity: The entity that has been accessed.
-        :type entity: Cuds
+        :param cuds_object: The cuds_object that has been accessed.
+        :type cuds_object: Cuds
         """
         pass

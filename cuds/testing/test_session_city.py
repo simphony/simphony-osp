@@ -199,15 +199,15 @@ class TestSession(Session):
     def __str__(self):
         return ""
 
-    def _notify_update(self, entity):
+    def _notify_update(self, cuds_object):
         if self.notify_update:
-            self.notify_update(entity)
+            self.notify_update(cuds_object)
 
-    def _notify_delete(self, entity):
+    def _notify_delete(self, cuds_object):
         if self.notify_delete:
-            self.notify_delete(entity)
+            self.notify_delete(cuds_object)
 
-    def _notify_read(self, entity):
+    def _notify_read(self, cuds_object):
         pass
 
 
@@ -227,5 +227,5 @@ class TestWrapperSession(WrapperSession):
     def _apply_updated(self):
         pass
 
-    def _notify_read(self, entity):
+    def _notify_read(self, cuds_object):
         pass

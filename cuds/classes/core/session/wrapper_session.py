@@ -37,66 +37,66 @@ class WrapperSession(Session):
         pass
 
     def _apply_added(self):
-        """Add the added cuds to the engine"""
+        """Add the added cuds_objects to the engine"""
         raise NotImplementedError
 
     def _apply_updated(self):
-        """Update the updated cuds in the engine"""
+        """Update the updated cuds_objects in the engine"""
         raise NotImplementedError
 
     def _apply_deleted(self):
-        """Delete the deleted cuds from the engine"""
+        """Delete the deleted cuds_objects from the engine"""
         raise NotImplementedError
 
     # OVERRIDE
-    def store(self, entity):
-        """Store the entity in the registry and add it to buffers.
+    def store(self, cuds_object):
+        """Store the cuds_objects in the registry and add it to buffers.
 
-        :param entity: The entity to store.
-        :type entity: Cuds
+        :param cuds_object: The cuds_object to store.
+        :type cuds_object: Cuds
         """
-        super().store(entity)
-        if entity.uid in self._deleted:
-            del self._deleted[entity.uid]
+        super().store(cuds_object)
+        if cuds_object.uid in self._deleted:
+            del self._deleted[cuds_object.uid]
 
-        if entity.uid in self._uids_in_registry_after_last_buffer_reset:
-            self._updated[entity.uid] = entity
+        if cuds_object.uid in self._uids_in_registry_after_last_buffer_reset:
+            self._updated[cuds_object.uid] = cuds_object
         else:
-            self._added[entity.uid] = entity
+            self._added[cuds_object.uid] = cuds_object
 
     # OVERRIDE
-    def _notify_update(self, entity):
-        """Add the updated entity to the buffers.
+    def _notify_update(self, cuds_object):
+        """Add the updated cuds_object to the buffers.
 
-        :param entity: The entity that has been updated.
-        :type entity: Cuds
+        :param cuds_object: The cuds_object that has been updated.
+        :type cuds_object: Cuds
         :raises RuntimeError: The updated object has been deleted previously.
         """
-        if entity.uid in self._deleted:
+        if cuds_object.uid in self._deleted:
             raise RuntimeError("Cannot update deleted object")
 
-        if entity.uid in self._uids_in_registry_after_last_buffer_reset:
-            self._updated[entity.uid] = entity
+        if cuds_object.uid in self._uids_in_registry_after_last_buffer_reset:
+            self._updated[cuds_object.uid] = cuds_object
         else:
-            self._added[entity.uid] = entity
+            self._added[cuds_object.uid] = cuds_object
 
     # OVERRIDE
-    def _notify_delete(self, entity):
-        """Add the deleted entity to the buffers.
+    def _notify_delete(self, cuds_object):
+        """Add the deleted cuds_object to the buffers.
 
-        :param entity: The entity that has been deleted.
-        :type entity: Cuds
+        :param cuds_object: The cuds_object that has been deleted.
+        :type cuds_object: Cuds
         """
-        if entity.uid in self._added:
-            del self._added[entity.uid]
-        elif entity.uid in self._updated:
-            del self._updated[entity.uid]
-            self._deleted[entity.uid] = entity
+        if cuds_object.uid in self._added:
+            del self._added[cuds_object.uid]
+        elif cuds_object.uid in self._updated:
+            del self._updated[cuds_object.uid]
+            self._deleted[cuds_object.uid] = cuds_object
         else:
-            self._deleted[entity.uid] = entity
+            self._deleted[cuds_object.uid] = cuds_object
 
     # OVERRIDE
-    def _notify_read(self, entity):
+    def _notify_read(self, cuds_object):
         pass
 
     def _reset_buffers(self, changed_by):
@@ -117,7 +117,7 @@ class WrapperSession(Session):
         self._updated = dict()
         self._deleted = dict()
         # Save set of uids in registry to determine
-        # if cuds objects are added or updated
+        # if cuds_objects are added or updated
         self._uids_in_registry_after_last_buffer_reset = \
             set(self._registry.keys())
         return True
@@ -139,31 +139,32 @@ class WrapperSession(Session):
 
     def _check_cardinalities(self):
         """Check if the cardinalities specified in the ontology
-        are satisfied for the added and updated cuds."""
+        are satisfied for the added and updated cuds_object."""
         if not Cuds.CUDS_SETTINGS["check_cardinalities"]:
             return
 
-        for cuds in set(self._added.values()) | set(self._updated.values()):
-            self._check_cuds_cardinalities(cuds)
+        to_check = set(self._added.values()) | set(self._updated.values())
+        for cuds_object in to_check:
+            self._check_cuds_object_cardinalities(cuds_object)
 
     @staticmethod
-    def _check_cuds_cardinalities(cuds):
-        """Check the cardinality of a single cuds.
+    def _check_cuds_object_cardinalities(cuds_object):
+        """Check the cardinality of a single cuds_object.
 
-        :param cuds: The cuds to check-
-        :type cuds: Cuds
-        :raises ValueError: The cuds did not satisfy the cardinalities
+        :param cuds_object: The cuds_object to check-
+        :type cuds_object: Cuds
+        :raises ValueError: The cuds_object did not satisfy the cardinalities
             given by the ontology
         """
         from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         ontology_cardinalities, consider_relationships = \
-            WrapperSession._get_ontology_cardinalities(cuds)
+            WrapperSession._get_ontology_cardinalities(cuds_object)
 
         # Count the observed cardinalities
         observed_cardinalities = {k: 0
                                   for k in ontology_cardinalities.keys()}
         for rel in consider_relationships:
-            for _, cuba in cuds[rel].items():
+            for _, cuba in cuds_object[rel].items():
                 for r, o in ontology_cardinalities.keys():
                     if issubclass(rel, r) \
                             and issubclass(CUBA_MAPPING[cuba], o):
@@ -177,7 +178,7 @@ class WrapperSession(Session):
                 raise ValueError(
                     ("The number of %s connected to %s via %s"
                         + " should be in range %s, but %s given.")
-                    % (o, cuds, r,
+                    % (o, cuds_object, r,
                         list(ontology_cardinalities[r, o]),
                         observed_cardinalities[r, o]))
 
@@ -212,11 +213,12 @@ class WrapperSession(Session):
         return min_occurrences, max_occurrences
 
     @staticmethod
-    def _get_ontology_cardinalities(cuds):
-        """Read the cardinalites for the given cuds as specified in the ontology.
+    def _get_ontology_cardinalities(cuds_object):
+        """Read the cardinalites for the given cuds_object
+            as specified in the ontology.
 
-        :param cuds: The given Cuds object.
-        :type cuds: Cuds
+        :param cuds_object: The given Cuds object.
+        :type cuds_object: Cuds
         :return: Dictionary mapping relationship-Cuds_class
             to min and max number of occurences + set of relationships
             to consider when checking if cardinalities are satisfied.
@@ -225,7 +227,7 @@ class WrapperSession(Session):
         from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         ontology_cardinalities = dict()
         consider_relationships = set()
-        for rel, objects in cuds.supported_relationships.items():
+        for rel, objects in cuds_object.supported_relationships.items():
             for obj, options in objects.items():
                 cardinality = Cuds.CUDS_SETTINGS["default_cardinality"]
                 if options and "cardinality" in options:
@@ -234,6 +236,6 @@ class WrapperSession(Session):
                 rel_cls = CUBA_MAPPING[rel]
                 obj_cls = CUBA_MAPPING[obj]
                 ontology_cardinalities[rel_cls, obj_cls] = cardinality
-                consider_relationships |= cuds._relationship_tree \
+                consider_relationships |= cuds_object._relationship_tree \
                     .get_subrelationships(rel_cls)
         return ontology_cardinalities, consider_relationships

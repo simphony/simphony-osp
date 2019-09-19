@@ -104,17 +104,17 @@ class TransportSessionServer():
         return serialize(session, additional_items=additional)
 
     def _load_from_session(self, data, user):
-        """Load entities from the session.
+        """Load cuds_objects from the session.
 
         :param data: The uids to load as json encoded list.
         :type data: str
-        :return: The resulting entities, serialized.
+        :return: The resulting cuds_objects, serialized.
         :rtype: str
         """
         session = self.session_objs[user]
         uids = deserialize_buffers(session, data)["uids"]
-        entities = session.load(*uids)
-        serialized = [serializable(x) for x in entities]
+        cuds_objects = session.load(*uids)
+        serialized = [serializable(x) for x in cuds_objects]
         return json.dumps({"result": serialized,
                            "added": [],
                            "deleted": [],

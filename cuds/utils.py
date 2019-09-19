@@ -36,7 +36,7 @@ def format_class_name(name):
     return fixed_name
 
 
-def find_cuds(criteria, root, rel, all, visited):
+def find_cuds_object(criteria, root, rel, all, visited):
     """
     Recursively finds an element inside a container
     by considering the given relationship.
@@ -44,7 +44,7 @@ def find_cuds(criteria, root, rel, all, visited):
     :param criteria: function that returns True on the Cuds object
         that is searched.
     :param root: Starting point of search
-    :param all: Whether to find all cuds with satisfying the criteria.
+    :param all: Whether to find all cuds_objects with satisfying the criteria.
     :param rel: The relationship (incl. subrelationships) to consider
     :return: the element if found
     """
@@ -56,7 +56,7 @@ def find_cuds(criteria, root, rel, all, visited):
     output = []
     for sub in root.iter(rel=rel):
         if sub.uid not in visited:
-            result = find_cuds(criteria, sub, rel, visited)
+            result = find_cuds_object(criteria, sub, rel, visited)
             if not all and result is not None:
                 return result
             if result is not None:
@@ -64,30 +64,30 @@ def find_cuds(criteria, root, rel, all, visited):
     return None if all else output
 
 
-def find_cuds_by_uid(uid, root, rel, visited):
+def find_cuds_object_by_uid(uid, root, rel, visited):
     """
     Recursively finds an element with given uid inside a container
     by considering the given relationship.
 
-    :param criteria: The uid of the cuds object that is searched.
+    :param uid: The uid of the cuds_object that is searched.
     :param root: Starting point of search
     :param rel: The relationship (incl. subrelationships) to consider
     :return: the element if found
     """
-    return find_cuds(
-        criteria=lambda cuds: cuds.uid == uid,
+    return find_cuds_object(
+        criteria=lambda cuds_object: cuds_object.uid == uid,
         root=root,
         rel=rel,
         visited=visited
     )
 
 
-def delete_cuds(cuds_object):
+def delete_cuds_object(cuds_object):
     """
-    Deletes a cuds object from the datastructure.
+    Deletes a cuds_object from the datastructure.
     Removes the relationships to all neighbors.
 
-    :param cuds_object: The cuds object to remove.
+    :param cuds_object: The cuds_object to remove.
     """
     # Method does not allow deletion of the root element of a container
     from cuds.classes import Relationship
@@ -97,19 +97,19 @@ def delete_cuds(cuds_object):
 
 def get_definition(cuds_object):
     """
-    Returns the definition of the given cuds object.
+    Returns the definition of the given cuds_object.
 
-    :param cuds_object: cuds object of interest
-    :return: the definition of the cuds object
+    :param cuds_object: cuds_object of interest
+    :return: the definition of the cuds_object
     """
     return cuds_object.__doc__
 
 
 def get_ancestors(cuds_object):
     """
-    Finds the ancestors of the given cuds object.
+    Finds the ancestors of the given cuds_object.
 
-    :param cuds_object: cuds object of interest
+    :param cuds_object: cuds_object of interest
     :return: a list with all the ancestors
     """
     # FIXME: If import in the beginning,
@@ -133,12 +133,12 @@ def get_ancestors(cuds_object):
 
 def pretty_print(cuds_object):
     """
-    Prints the given cuds object with the uuid, the type,
-    the ancestors and the description in a readable way.
+    Prints the given cuds_object with the uuid, the type,
+    the ancestors and the description in a human readable way.
 
     :param cuds_object: container to be printed
     """
-    pp = pp_entity_name(cuds_object)
+    pp = pp_cuds_object_name(cuds_object)
     pp += "\n  uuid: " + str(cuds_object.uid)
     pp += "\n  type: " + str(cuds_object.cuba_key)
     pp += "\n  ancestors: " + ", ".join(get_ancestors(cuds_object))
@@ -151,7 +151,7 @@ def pretty_print(cuds_object):
     print(pp)
 
 
-def pp_entity_name(cuds_object, cuba=False):
+def pp_cuds_object_name(cuds_object, cuba=False):
     """
     Returns the name of the given element following the
     pretty print format.
@@ -159,13 +159,13 @@ def pp_entity_name(cuds_object, cuba=False):
     :param cuds_object: element to be printed
     :return: string with the pretty printed text
     """
-    entity = "Entity" if not cuba else "entity"
+    cuds_object = "Cuds object" if not cuba else "cuds object"
     cuba = (" %s " % cuds_object.cuba_key) if cuba else ""
 
     if hasattr(cuds_object, "name"):
         name = str(cuds_object.name)
-        return "- %s%s named <%s>:" % (cuba, entity, name)
-    return "- %s%s:" % (cuba, entity)
+        return "- %s%s named <%s>:" % (cuba, cuds_object, name)
+    return "- %s%s:" % (cuba, cuds_object)
 
 
 def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
@@ -194,7 +194,7 @@ def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
                 indentation = level_indentation + "   "
             else:
                 indentation = level_indentation + " | "
-            pp_sub += indentation + pp_entity_name(element, cuba=True)
+            pp_sub += indentation + pp_cuds_object_name(element, cuba=True)
             if j == len(sorted_elements) - 1:
                 indentation += "   "
             else:
@@ -222,43 +222,43 @@ def pp_values(cuds_object, indentation="\n          "):
         return indentation.join(result)
 
 
-def destruct_cuds(entity):
-    session = entity.session
-    if hasattr(session, "_expired") and entity.uid in session._expired:
-        session._expired.remove(entity.uid)
-    for rel in set(entity.keys()):
-        del entity[rel]
-    for attr in entity.get_attributes(skip=["session", "uid"]):
-        setattr(entity, "_" + attr, None)
-    if entity.uid in entity._session._registry:
-        del entity._session._registry[entity.uid]
+def destruct_cuds_object(cuds_object):
+    session = cuds_object.session
+    if hasattr(session, "_expired") and cuds_object.uid in session._expired:
+        session._expired.remove(cuds_object.uid)
+    for rel in set(cuds_object.keys()):
+        del cuds_object[rel]
+    for attr in cuds_object.get_attributes(skip=["session", "uid"]):
+        setattr(cuds_object, "_" + attr, None)
+    if cuds_object.uid in cuds_object._session._registry:
+        del cuds_object._session._registry[cuds_object.uid]
 
 
-def clone_cuds(entity):
+def clone_cuds_object(cuds_object):
     """Avoid that the session gets copied.
 
     :return: A copy of self with the same session
     :rtype: Cuds
     """
-    if entity is None:
+    if cuds_object is None:
         return None
-    session = entity._session
-    if "_session" in entity.__dict__:
-        del entity.__dict__["_session"]
-    clone = deepcopy(entity)
+    session = cuds_object._session
+    if "_session" in cuds_object.__dict__:
+        del cuds_object.__dict__["_session"]
+    clone = deepcopy(cuds_object)
     clone._session = session
-    entity._session = session
+    cuds_object._session = session
     return clone
 
 
 def create_for_session(entity_cls, kwargs, session):
-    """Instantiate a cuds object with a given session.
-    If cuds object with same uid is already in the session,
+    """Instantiate a cuds_object with a given session.
+    If cuds_object with same uid is already in the session,
     this object will be reused.
 
-    :param entity_cls: The type of cuds object to instantiate
+    :param entity_cls: The type of cuds_object to instantiate
     :type entity_cls: Cuds
-    :param kwargs: The kwargs of the cuds object
+    :param kwargs: The kwargs of the cuds_object
     :type kwargs: Dict[str, Any]
     :param session: The session of the new Cuds object
     :type session: Session
@@ -270,43 +270,43 @@ def create_for_session(entity_cls, kwargs, session):
 
     # recycle old object
     if uid in session._registry:
-        cuds = session._registry.get(uid)
-        if type(cuds) == entity_cls:
+        cuds_object = session._registry.get(uid)
+        if type(cuds_object) == entity_cls:
             for key, value in kwargs.items():
-                if key not in cuds.get_attributes():
+                if key not in cuds_object.get_attributes():
                     raise TypeError
                 if key not in ["uid", "session"]:
-                    setattr(cuds, key, value)
-            for rel in set(cuds.keys()):
-                del cuds[rel]
-            return cuds
+                    setattr(cuds_object, key, value)
+            for rel in set(cuds_object.keys()):
+                del cuds_object[rel]
+            return cuds_object
 
     # create new
     if "session" in inspect.getfullargspec(entity_cls.__init__).args:
         kwargs["session"] = session
     default_session = Cuds._session
     Cuds._session = session
-    entity = entity_cls(**kwargs)
+    cuds_object = entity_cls(**kwargs)
     Cuds._session = default_session
-    entity._session = session
-    session.store(entity)
-    return entity
+    cuds_object._session = session
+    session.store(cuds_object)
+    return cuds_object
 
 
-def create_from_cuds(entity, session):
-    """Create a copy of the given entity in a different session.
+def create_from_cuds_object(cuds_object, session):
+    """Create a copy of the given cuds_object in a different session.
     WARNING: Will not recursively copy children.
 
     :return: A copy of self with the given session.
     :rtype: Cuds
     """
-    assert entity.session is not session
-    attributes = entity.get_attributes(skip="session")
-    values = [getattr(entity, x) for x in attributes]
+    assert cuds_object.session is not session
+    attributes = cuds_object.get_attributes(skip="session")
+    values = [getattr(cuds_object, x) for x in attributes]
     kwargs = dict(zip(attributes, values))
-    entity_cls = type(entity)
+    entity_cls = type(cuds_object)
     clone = create_for_session(entity_cls, kwargs, session)
-    for key, uid_cuba in entity.items():
+    for key, uid_cuba in cuds_object.items():
         clone[key] = dict()
         for uid, cuba in uid_cuba.items():
             clone[key][uid] = cuba

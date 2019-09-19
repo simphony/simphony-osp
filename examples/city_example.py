@@ -1,4 +1,3 @@
-import os
 from cuds.classes import (
     City, Citizen, Neighbourhood, Street,
     HasPart, HasInhabitant, IsPartOf,

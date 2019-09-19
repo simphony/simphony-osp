@@ -17,13 +17,13 @@ class CoreSession(Session):
         return "<CoreSession object>"
 
     # OVERRIDE
-    def _notify_update(self, entity):
+    def _notify_update(self, cuds_object):
         pass
 
     # OVERRIDE
-    def _notify_delete(self, entity):
+    def _notify_delete(self, cuds_object):
         pass
 
     # OVERRIDE
-    def _notify_read(self, entity):
+    def _notify_read(self, cuds_object):
         pass
