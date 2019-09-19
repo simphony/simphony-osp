@@ -280,17 +280,17 @@ class SqlWrapperSession(DbWrapperSession):
         list(self._load_from_backend(map(lambda x: (x[0], CUBA(x[1])), c)))
 
     def _load_by_cuba(self, cuba, update_registry=False, uid=None):
-        """Load the Cuds entity with the given cuba (+ uid).
-        If uid is None return all entities with given cuba_key.
+        """Load the cuds_object with the given cuba (+ uid).
+        If uid is None return all cuds_objects with given cuba_key.
 
-        :param cuba: The Cuba-Key of the cuds object
+        :param cuba: The Cuba-Key of the cuds_object
         :type cuba: CUBA
         :param uid: The uid of the Cuds to load.
         :type uid: UUID
-        :param update_registry: Whether to update cuds objects already
+        :param update_registry: Whether to update cuds_objects already
             present in the registry.
         :type update_registry: bool
-        :return: The loaded Cuds entity.
+        :return: The loaded cuds_object.
         :rtype: Cuds
         """
         if cuba is None and uid is not None:
@@ -318,37 +318,38 @@ class SqlWrapperSession(DbWrapperSession):
             if not update_registry and uid in self._registry:
                 yield self._registry.get(uid)
                 continue
-            cuds = create_for_session(cuds_class, kwargs, self)
-            self._load_relationships(cuds)
-            yield cuds
+            cuds_object = create_for_session(cuds_class, kwargs, self)
+            self._load_relationships(cuds_object)
+            yield cuds_object
 
-    def _load_relationships(self, cuds):
-        """Adds the relationships in the db to the given cuds objects.
+    def _load_relationships(self, cuds_object):
+        """Adds the relationships in the db to the given cuds_objects.
 
-        :param cuds: Adds the relationships to this cuds object.s
-        :type cuds: Cuds
+        :param cuds_object: Adds the relationships to this cuds_object.s
+        :type cuds_object: Cuds
         """
         c = self._db_select(self.RELATIONSHIP_TABLE,
                             ["target", "name", "target_cuba"],
                             EqualsCondition(self.RELATIONSHIP_TABLE,
                                             "origin",
-                                            cuds.uid,
+                                            cuds_object.uid,
                                             "UUID"),
                             self.DATATYPES[self.RELATIONSHIP_TABLE])
         for target, name, target_cuba in c:
             target_cuba = CUBA(target_cuba)
             rel = CUBA_MAPPING[CUBA(name)]
 
-            if rel not in cuds:
-                cuds[rel] = dict()
+            if rel not in cuds_object:
+                cuds_object[rel] = dict()
             if target == uuid.UUID(int=0):
                 root_obj = self._registry.get(self.root)
-                cuds[rel][self.root] = root_obj.cuba_key
+                cuds_object[rel][self.root] = root_obj.cuba_key
                 if CUBA_MAPPING[rel.inverse] not in root_obj:
                     root_obj[CUBA_MAPPING[rel.inverse]] = dict()
-                root_obj[CUBA_MAPPING[rel.inverse]][cuds.uid] = cuds.cuba_key
+                root_obj[CUBA_MAPPING[rel.inverse]][cuds_object.uid] = \
+                    cuds_object.cuba_key
             elif target != uuid.UUID(int=0):
-                cuds[rel][target] = target_cuba
+                cuds_object[rel][target] = target_cuba
 
     def _get_cuba(self, uid):
         """Get the cuba-key of the given uid from the database.

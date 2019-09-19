@@ -73,9 +73,9 @@ def deserialize_buffers(session_obj, data, reset_afterwards=False):
         for x in deleted:
             session_obj._notify_delete(x)
 
-    for entity in deleted:
-        if entity.uid in session_obj._registry:
-            del session_obj._registry[entity.uid]
+    for cuds_object in deleted:
+        if cuds_object.uid in session_obj._registry:
+            del session_obj._registry[cuds_object.uid]
     return {k: v for k, v in deserialized.items()
             if k not in ["added", "updated", "deleted", "expired"]}
 
@@ -102,7 +102,7 @@ def deserialize(json_obj, session):
 
     :param json_obj: The json object do deserialize.
     :type json_obj: Union[Dict, List, str, None]
-    :param session: When creating a cuds object, use this session.
+    :param session: When creating a cuds_object, use this session.
     :type session: Session
     :raises ValueError: The json object could not be deserialized.
     :return: The deserialized object
@@ -118,7 +118,7 @@ def deserialize(json_obj, session):
             and "cuba_key" in json_obj \
             and "attributes" in json_obj \
             and "relationships" in json_obj:
-        return _to_cuds(json_obj, session)
+        return _to_cuds_object(json_obj, session)
     if isinstance(json_obj, dict) \
             and set(["UUID"]) == set(json_obj.keys()):
         return convert_to(json_obj["UUID"], "UUID")
@@ -131,7 +131,7 @@ def deserialize(json_obj, session):
 
 
 def serializable(obj):
-    """Make and entity, a list od entities,
+    """Make a cuds_object, a list of cuds_objects,
     a uid or a list od uids json serializable.
 
     :param obj: The object to make serializable.
@@ -159,49 +159,49 @@ def serializable(obj):
             from e
 
 
-def _serializable(entity):
-    """Make an entity json serializable.
+def _serializable(cuds_object):
+    """Make a cuds_object json serializable.
 
-    :return: The entity to make serializable.
+    :return: The cuds_object to make serializable.
     :rtype: Cuds
     """
-    result = {"cuba_key": str(entity.cuba_key.value),
+    result = {"cuba_key": str(cuds_object.cuba_key.value),
               "attributes": dict(),
               "relationships": dict()}
-    datatypes = entity.get_datatypes()
-    attributes = entity.get_attributes(skip=["session"])
+    datatypes = cuds_object.get_datatypes()
+    attributes = cuds_object.get_attributes(skip=["session"])
     for attribute in attributes:
         result["attributes"][attribute] = convert_from(
-            getattr(entity, attribute),
+            getattr(cuds_object, attribute),
             datatypes[attribute]
         )
-    for rel in entity:
+    for rel in cuds_object:
         result["relationships"][rel.cuba_key.value] = {
             convert_from(uid, "UUID"): str(cuba_key.value)
-            for uid, cuba_key in entity[rel].items()
+            for uid, cuba_key in cuds_object[rel].items()
         }
     return result
 
 
-def _to_cuds(json_obj, session):
-    """Transform a json serializable dict to a cuds object
+def _to_cuds_object(json_obj, session):
+    """Transform a json serializable dict to a cuds_object
 
     :param json_obj: The json object to convert to a Cuds object
     :type json_obj: Dict[str, Any]
-    :return: The resulting cuds object.
+    :return: The resulting cuds_object.
     :rtype: Cuds
     """
     cuba_key = CUBA(json_obj["cuba_key"])
     attributes = json_obj["attributes"]
     relationships = json_obj["relationships"]
     entity_cls = CUBA_MAPPING[cuba_key]
-    entity = create_for_session(entity_cls, attributes, session)
+    cuds_object = create_for_session(entity_cls, attributes, session)
 
     for rel_cuba, obj_dict in relationships.items():
         rel = CUBA_MAPPING[CUBA(rel_cuba)]
-        entity[rel] = dict()
+        cuds_object[rel] = dict()
         for uid, cuba_key in obj_dict.items():
             uid = convert_to(uid, "UUID")
             cuba_key = CUBA(cuba_key)
-            entity[rel][uid] = cuba_key
-    return entity
+            cuds_object[rel][uid] = cuba_key
+    return cuds_object

@@ -105,19 +105,19 @@ SERIALIZED_BUFFERS3 = (
 class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
     def testDeserialize(self):
-        """Test transformation from normal dictionary to cuds object"""
+        """Test transformation from normal dictionary to cuds"""
         with TestWrapperSession() as session:
-            entity = deserialize(CUDS_DICT, session)
-            self.assertEqual(entity.uid.int, 0)
-            self.assertEqual(entity.name, "Peter")
-            self.assertEqual(entity.age, 23)
-            self.assertEqual(entity.cuba_key, CUBA.CITIZEN)
-            self.assertEqual(set(entity.keys()),
+            cuds_object = deserialize(CUDS_DICT, session)
+            self.assertEqual(cuds_object.uid.int, 0)
+            self.assertEqual(cuds_object.name, "Peter")
+            self.assertEqual(cuds_object.age, 23)
+            self.assertEqual(cuds_object.cuba_key, CUBA.CITIZEN)
+            self.assertEqual(set(cuds_object.keys()),
                              {cuds.classes.IsInhabitantOf,
                              cuds.classes.HasChild})
-            self.assertEqual(entity[cuds.classes.IsInhabitantOf],
+            self.assertEqual(cuds_object[cuds.classes.IsInhabitantOf],
                              {uuid.UUID(int=1): CUBA.CITY})
-            self.assertEqual(entity[cuds.classes.HasChild],
+            self.assertEqual(cuds_object[cuds.classes.HasChild],
                              {uuid.UUID(int=2): CUBA.PERSON,
                              uuid.UUID(int=3): CUBA.PERSON})
 
@@ -359,7 +359,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         self.assertEqual(client._deleted, dict())
 
     def test_store(self):
-        """ Test storing of entity. """
+        """ Test storing of cuds_object. """
         client = TransportSessionClient(TestWrapperSession, None, None)
         client._engine = MockEngine()
 

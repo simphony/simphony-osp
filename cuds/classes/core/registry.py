@@ -18,20 +18,20 @@ class Registry(dict):
         message = 'Operation not supported.'
         raise TypeError(message)
 
-    def put(self, cuds):
+    def put(self, cuds_object):
         """
         Adds an object to the registry.
 
-        :param cuds: The cuds to put in the registry
-        :type cuds: Cuds
+        :param cuds_object: The cuds_object to put in the registry
+        :type cuds_object: Cuds
         :raises ValueError: unsupported object provided (not a Cuds object)
         """
-        from .cuds import Cuds
-        if isinstance(cuds, Cuds):
-            super().__setitem__(cuds.uid, cuds)
+        from cuds.classes.core.cuds import Cuds
+        if isinstance(cuds_object, Cuds):
+            super().__setitem__(cuds_object.uid, cuds_object)
         else:
-            message = '{!r} is not a cuds object'
-            raise ValueError(message.format(cuds))
+            message = '{!r} is not a cuds'
+            raise ValueError(message.format(cuds_object))
 
     def get(self, uid):
         """
@@ -50,7 +50,7 @@ class Registry(dict):
 
     def get_subtree(self, root, rel=None, skip=None):
         """Get all the elements in the subtree which is rooted
-        in the cuds element with the given uid.
+        in the cuds_object element with the given uid.
         Only consider the given relationship.
 
         :param root: The root of the subtree.
@@ -62,7 +62,7 @@ class Registry(dict):
         :return: The set of elements in the subtree rooted in the given uid.
         :rtype: Set[Cuds]
         """
-        from .cuds import Cuds
+        from cuds.classes.core.cuds import Cuds
         skip = skip or set()
         if not isinstance(root, Cuds):
             root = super().__getitem__(root)
@@ -99,6 +99,6 @@ class Registry(dict):
                 delete.append(super().__getitem__(uid))
 
         # remove the non-reachable ones
-        for cuds in delete:
-            super().__delitem__(cuds.uid)
+        for cuds_object in delete:
+            super().__delitem__(cuds_object.uid)
         return delete

@@ -121,7 +121,7 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
     def _to_sqlalchemy_datatype(self, cuds_datatype):
         """Convert the given Cuds datatype to a datatype of sqlalchemy.
 
-        :param cuds_datatype: The given cuds datatype.
+        :param cuds_datatype: The given cuds_object datatype.
         :type cuds_datatype: str
         :raises NotImplementedError: Unsupported datatype given.
         :return: A sqlalchemy datatype.

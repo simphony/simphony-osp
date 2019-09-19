@@ -1,1 +1,1 @@
-from .cuds import Cuds
+from cuds.classes.core.cuds import Cuds

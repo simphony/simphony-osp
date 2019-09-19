@@ -31,15 +31,15 @@ class DbWrapperSession(StorageWrapperSession):
         self.expire_all()
 
     def load_by_cuba_key(self, cuba_key, update_registry=False):
-        """Load cuds all cuds with given cuba key.
-        Will not replace cuds in registry.
+        """Load cuds_object with given cuba key.
+        Will not replace cuds_object in registry.
 
         :param cuba_key: The cuby key to query for
         :type cuba_key: CUBA
-        :param update_registry: Whether to update cuds objects already
-            present in the registry.
+        :param update_registry: Whether to update cuds_objects which are
+            already present in the registry.
         :type update_registry: bool
-        :return: The list of loaded cuds
+        :return: The list of loaded cuds objects
         :rtype: Iterator[Cuds]
         """
         if self.root is None:
@@ -47,9 +47,9 @@ class DbWrapperSession(StorageWrapperSession):
                                "Add it to a wrapper first.")
         yield from self._load_by_cuba(cuba_key, update_registry=False)
 
-    def store(self, entity):
+    def store(self, cuds_object):
         initialize = self.root is None
-        super().store(entity)
+        super().store(cuds_object)
 
         if initialize:
             self._initialize()
@@ -87,15 +87,14 @@ class DbWrapperSession(StorageWrapperSession):
 
     @abstractmethod
     def _load_by_cuba(self, cuba, update_registry=False):
-        """Load the Cuds entity with the given cuba.
-        If uid is None return all entities with given cuba_key.
+        """Load the cuds_object with the given cuba.
 
-        :param cuba: The Cuba-Key of the cuds object
+        :param cuba: The Cuba-Key of the cuds objects
         :type cuba: CUBA
-        :param update_registry: Whether to update cuds objects already
-            present in the registry.
+        :param update_registry: Whether to update cuds_objects already
+            which are already present in the registry.
         :type update_registry: bool
-        :return: The loaded Cuds entity.
+        :return: The loaded cuds_object.
         :rtype: Cuds
         """
         pass

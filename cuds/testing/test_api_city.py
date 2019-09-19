@@ -8,7 +8,7 @@
 import unittest2 as unittest
 import uuid
 
-from cuds.utils import clone_cuds, create_from_cuds
+from cuds.utils import clone_cuds_object, create_from_cuds_object
 from cuds.classes.core.session.core_session import CoreSession
 from cuds.classes.core.cuds import Cuds
 import cuds.classes
@@ -79,7 +79,7 @@ class TestAPICity(unittest.TestCase):
         self.assertRaises(TypeError, c.add, "Not a CUDS objects")
 
     def test_recursive_add(self):
-        """Tests if add() works correctly if added cuds is from another session.
+        """Tests if add() works correctly if added cuds_object is from another session.
         """
         c = cuds.classes.City("City")
         p1 = cuds.classes.Citizen()
@@ -179,12 +179,12 @@ class TestAPICity(unittest.TestCase):
             set([p1w2.uid]))
 
         missing = dict()
-        cuds.classes.Cuds._fix_neighbors(new_cuds=p1w1,
-                                         old_cuds=p1w2,
+        cuds.classes.Cuds._fix_neighbors(new_cuds_object=p1w1,
+                                         old_cuds_object=p1w2,
                                          session=p1w2.session,
                                          missing=missing)
 
-        # check if connections cuds objects that are no
+        # check if connections cuds_objects that are no
         # longer parents are in the missing dict
         self.assertIn(c2w1.uid, missing)
         self.assertEqual(
@@ -295,7 +295,7 @@ class TestAPICity(unittest.TestCase):
         """
         c = cuds.classes.City("a city")
         n = cuds.classes.Neighbourhood("a neigbourhood")
-        new_n = create_from_cuds(n, CoreSession())
+        new_n = create_from_cuds_object(n, CoreSession())
         new_s = cuds.classes.Street("a new street")
         new_n.add(new_s)
         c.add(n)
@@ -474,7 +474,7 @@ class TestAPICity(unittest.TestCase):
         Cuds.CUDS_SETTINGS["check_relationship_supported"] = True
 
     def test_recursive_store(self):
-        """Check if _recursive_store correctly stores cuds recursively,
+        """Check if _recursive_store correctly stores cuds_objects recursively,
         correcting dangling and one-way connections.
         """
         c = cuds.classes.City("Freiburg")
@@ -562,14 +562,14 @@ class TestAPICity(unittest.TestCase):
             c3 = cuds.classes.City("London")
             n.add(c3, rel=cuds.classes.IsPartOf)
 
-            n = clone_cuds(n)
+            n = clone_cuds_object(n)
             n._session = session
             new_parent_diff = Cuds._get_neighbor_diff(
                 n, nw, rel=cuds.classes.PassiveRelationship)
             new_parents = session.load(*[x[0] for x in new_parent_diff])
 
             missing = dict()
-            Cuds._fix_new_parents(new_cuds=n,
+            Cuds._fix_new_parents(new_cuds_object=n,
                                   new_parents=new_parents,
                                   new_parent_diff=new_parent_diff,
                                   missing=missing)
@@ -594,12 +594,12 @@ class TestAPICity(unittest.TestCase):
             n = cuds.classes.Neighbourhood("Zähringen")
             nw = cw.add(n)
 
-            c = clone_cuds(c)
+            c = clone_cuds_object(c)
             c._session = session
             old_neighbor_diff = Cuds._get_neighbor_diff(cw, c)
             old_neighbors = session.load(*[x[0] for x in old_neighbor_diff])
-            Cuds._fix_old_neighbors(new_cuds=c,
-                                    old_cuds=cw,
+            Cuds._fix_old_neighbors(new_cuds_object=c,
+                                    old_cuds_object=cw,
                                     old_neighbors=old_neighbors,
                                     old_neighbor_diff=old_neighbor_diff)
         self.assertEqual(c.get(rel=cuds.classes.IsPartOf), [wrapper])

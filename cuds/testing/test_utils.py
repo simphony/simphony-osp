@@ -8,13 +8,13 @@
 import unittest
 import cuds.classes
 from cuds.classes.core.session.core_session import CoreSession
-from cuds.utils import (destruct_cuds, clone_cuds, create_for_session,
-                        create_from_cuds)
+from cuds.utils import (destruct_cuds_object, clone_cuds_object,
+                        create_for_session, create_from_cuds_object)
 
 
 class TestUtils(unittest.TestCase):
 
-    def test_destruct_cuds(self):
+    def test_destruct_cuds_object(self):
         """Test destruction of cuds"""
         a = cuds.classes.City("Freiburg")
         b = cuds.classes.Citizen(age=12, name="Horst")
@@ -23,24 +23,24 @@ class TestUtils(unittest.TestCase):
             aw = w.add(a)
             bw = aw.add(b, rel=cuds.classes.HasInhabitant)
             session._expired = {bw.uid}
-            destruct_cuds(aw)
+            destruct_cuds_object(aw)
 
             self.assertEqual(a.name, "Freiburg")
             self.assertEqual(bw.name, "Horst")
             self.assertEqual(aw.name, None)
             self.assertEqual(aw.get(), [])
 
-            destruct_cuds(bw)
+            destruct_cuds_object(bw)
             self.assertEqual(bw.name, None)
             self.assertEqual(session._expired, set())
 
-    def test_clone_cuds(self):
+    def test_clone_cuds_object(self):
         """Test cloning of cuds"""
         a = cuds.classes.City("Freiburg")
         with CoreSession() as session:
             w = cuds.classes.CityWrapper(session=session)
             aw = w.add(a)
-            clone = clone_cuds(aw)
+            clone = clone_cuds_object(aw)
             self.assertIsNot(aw, None)
             self.assertIs(clone.session, aw.session)
             self.assertEqual(clone.uid, aw.uid)
@@ -48,7 +48,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(clone.name, "Freiburg")
 
     def test_create_for_session(self):
-        """Test creation of cuds for different session"""
+        """Test creation of cuds_objects for different session"""
         default_session = CoreSession()
         cuds.classes.Cuds._session = default_session
         a = cuds.classes.City("Freiburg")
@@ -77,8 +77,8 @@ class TestUtils(unittest.TestCase):
                              {a.uid, x.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
 
-    def test_create_from_cuds(self):
-        """Test copying cuds to different session"""
+    def test_create_from_cuds_object(self):
+        """Test copying cuds_objects to different session"""
         default_session = CoreSession()
         cuds.classes.Cuds._session = default_session
         default_session = CoreSession()
@@ -86,7 +86,7 @@ class TestUtils(unittest.TestCase):
         a = cuds.classes.City("Freiburg")
         self.assertIs(a.session, default_session)
         with CoreSession() as session:
-            b = create_from_cuds(a, session)
+            b = create_from_cuds_object(a, session)
             self.assertEqual(b.name, "Freiburg")
             self.assertEqual(b.uid, a.uid)
             self.assertEqual(set(default_session._registry.keys()), {a.uid})
@@ -100,7 +100,7 @@ class TestUtils(unittest.TestCase):
             y = cuds.classes.Citizen(age=21, name="Rolf")
             a.add(y, rel=cuds.classes.HasInhabitant)
 
-            c = create_from_cuds(a, session)
+            c = create_from_cuds_object(a, session)
             self.assertIs(b, c)
             self.assertEqual(c.name, "Freiburg")
             self.assertEqual(len(c.get(rel=cuds.classes.Relationship)), 1)

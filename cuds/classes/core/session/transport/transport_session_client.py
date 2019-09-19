@@ -47,19 +47,19 @@ class TransportSessionClient(StorageWrapperSession):
         yield from self._engine.send(LOAD_COMMAND, data)
 
     # OVERRIDE
-    def store(self, entity):
-        # Initialize the server, when the first entity is stored.
+    def store(self, cuds_object):
+        # Initialize the server, when the first cuds_object is stored.
         if self.root is None:
             data = {
                 "args": self.args,
                 "kwargs": self.kwargs,
-                "root": serializable(entity)
+                "root": serializable(cuds_object)
             }
-            super().store(entity)
+            super().store(cuds_object)
             self._engine.send(INITIALIZE_COMMAND,
                               json.dumps(data))
             return
-        super().store(entity)
+        super().store(cuds_object)
 
     # OVERRIDE
     def close(self):
