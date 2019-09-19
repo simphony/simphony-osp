@@ -78,7 +78,7 @@ def find_cuds_object(criteria, root, rel, find_all, visited=None):
 
 def find_cuds_object_by_uid(uid, root, rel):
     """
-    Recursively finds an element with given uid inside a container
+    Recursively finds an element with given uid inside a cuds object
     by considering the given relationship.
 
     :param uid: The uid of the cuds_object that is searched.
@@ -95,6 +95,28 @@ def find_cuds_object_by_uid(uid, root, rel):
         root=root,
         rel=rel,
         find_all=False,
+    )
+
+
+def find_cuds_objects_by_cuba_key(cuba_key, root, rel):
+    """
+    Recursively finds an element with given cuba key inside a cuds object
+    by considering the given relationship.
+
+    :param cuba_key: The cuba_key of the cuds_object that is searched.
+    :type uid: CUBA
+    :param root: Starting point of search
+    :type root: Cuds
+    :param rel: The relationship (incl. subrelationships) to consider
+    :type rel: Type[Relationship]
+    :return: the element if found
+    :rtype: Cuds
+    """
+    return find_cuds_object(
+        criteria=lambda cuds_object: cuds_object.cuba_key == cuba_key,
+        root=root,
+        rel=rel,
+        find_all=True
     )
 
 

@@ -13,7 +13,7 @@ from cuds.utils import (destroy_cuds_object, clone_cuds_object,
                         create_for_session, create_from_cuds_object,
                         check_arguments, format_class_name, find_cuds_object,
                         find_cuds_object_by_uid, remove_cuds_object,
-                        get_ancestors, pretty_print)
+                        get_ancestors, pretty_print, find_cuds_objects_by_cuba_key)
 
 
 class TestUtils(unittest.TestCase):
@@ -222,6 +222,26 @@ class TestUtils(unittest.TestCase):
             n2.uid, n1, cuds.classes.ActiveRelationship), None)
         self.assertIs(find_cuds_object_by_uid(
             s1.uid, n1, cuds.classes.ActiveRelationship), s1)
+
+    def test_find_cuds_objects_by_cuba_key(self):
+        """ Test find by cuba key """
+        c, p1, p2, p3, n1, n2, s1 = self.get_test_city()
+        self.assertEquals(find_cuds_objects_by_cuba_key(
+            cuds.classes.City.cuba_key, c, cuds.classes.ActiveRelationship),
+            [c])
+        found = find_cuds_objects_by_cuba_key(
+            cuds.classes.Citizen.cuba_key,
+            c, cuds.classes.ActiveRelationship)
+        self.assertEquals(len(found), 3)
+        self.assertEquals(set(found), {p1, p2, p3})
+        found = find_cuds_objects_by_cuba_key(
+            cuds.classes.Neighbourhood.cuba_key, c,
+            cuds.classes.ActiveRelationship)
+        self.assertEquals(set(found), {n1, n2})
+        self.assertEquals(len(found), 2)
+        self.assertEquals(find_cuds_objects_by_cuba_key(
+            cuds.classes.Street.cuba_key, c, cuds.classes.ActiveRelationship),
+            [s1])
 
     def test_remove_cuds_object(self):
         c, p1, p2, p3, n1, n2, s1 = self.get_test_city()
