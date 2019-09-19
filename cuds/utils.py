@@ -159,13 +159,13 @@ def pp_cuds_object_name(cuds_object, cuba=False):
     :param cuds_object: element to be printed
     :return: string with the pretty printed text
     """
-    cuds_object = "Cuds object" if not cuba else "cuds object"
+    title = "Cuds object" if not cuba else "cuds object"
     cuba = (" %s " % cuds_object.cuba_key) if cuba else ""
 
     if hasattr(cuds_object, "name"):
         name = str(cuds_object.name)
-        return "- %s%s named <%s>:" % (cuba, cuds_object, name)
-    return "- %s%s:" % (cuba, cuds_object)
+        return "- %s%s named <%s>:" % (cuba, title, name)
+    return "- %s%s:" % (cuba, title)
 
 
 def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):

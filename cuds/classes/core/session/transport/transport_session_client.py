@@ -41,12 +41,6 @@ class TransportSessionClient(StorageWrapperSession):
         self.kwargs = kwargs
 
     # OVERRIDE
-    def _load_from_backend(self, uids, expired=None):
-        expired = expired or self._expired
-        data = serialize(self, False, {"uids": uids, "expired": expired})
-        yield from self._engine.send(LOAD_COMMAND, data)
-
-    # OVERRIDE
     def store(self, cuds_object):
         # Initialize the server, when the first cuds_object is stored.
         if self.root is None:
@@ -64,6 +58,12 @@ class TransportSessionClient(StorageWrapperSession):
     # OVERRIDE
     def close(self):
         self._engine.close()
+
+    # OVERRIDE
+    def _load_from_backend(self, uids, expired=None):
+        expired = expired or self._expired
+        data = serialize(self, False, {"uids": uids, "expired": expired})
+        yield from self._engine.send(LOAD_COMMAND, data)
 
     def _send(self, command, consume_buffers, *args, **kwargs):
         """Send the buffers and a command to the server.
