@@ -13,7 +13,8 @@ from cuds.utils import (destroy_cuds_object, clone_cuds_object,
                         create_for_session, create_from_cuds_object,
                         check_arguments, format_class_name, find_cuds_object,
                         find_cuds_object_by_uid, remove_cuds_object,
-                        get_ancestors, pretty_print, find_cuds_objects_by_cuba_key)
+                        get_ancestors, pretty_print,
+                        find_cuds_objects_by_cuba_key)
 
 
 class TestUtils(unittest.TestCase):
