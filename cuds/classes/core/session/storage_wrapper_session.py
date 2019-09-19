@@ -7,7 +7,7 @@
 
 import uuid
 from abc import abstractmethod
-from cuds.utils import destruct_cuds_object
+from cuds.utils import destroy_cuds_object
 from cuds.classes.core.session.wrapper_session import WrapperSession
 
 
@@ -53,7 +53,7 @@ class StorageWrapperSession(WrapperSession):
                 self._remove_uids_from_buffers([uid])
                 self._uids_in_registry_after_last_buffer_reset -= {uid}
                 old = self._registry.get(uid)
-                destruct_cuds_object(old)
+                destroy_cuds_object(old)
             yield cuds_object
 
     def expire(self, *cuds_or_uids):
