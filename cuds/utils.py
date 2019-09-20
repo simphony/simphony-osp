@@ -109,11 +109,35 @@ def find_cuds_objects_by_cuba_key(cuba_key, root, rel):
     :type root: Cuds
     :param rel: The relationship (incl. subrelationships) to consider
     :type rel: Type[Relationship]
-    :return: the element if found
-    :rtype: Cuds
+    :return: The found suds objects.
+    :rtype: List[Cuds]
     """
     return find_cuds_object(
         criterion=lambda cuds_object: cuds_object.cuba_key == cuba_key,
+        root=root,
+        rel=rel,
+        find_all=True
+    )
+
+
+def find_cuds_objects_by_attribute(attribute, value, root, rel):
+    """Recursively finds a cuds object by attribute and value by
+    only considering the given relationship.
+
+    :param attribute: The attribute to look for
+    :type attribute: str
+    :param value: The corresponding value to filter by
+    :type value: Any
+    :param root: The root for the search
+    :type root: Cuds
+    :param rel: The relationship (+ subrelationships) to consider.
+    :type rel: Type[Relationship]
+    :return: The found cuds objects.
+    :rtype: List[Cuds]
+    """
+    return find_cuds_object(
+        criterion=(lambda cuds_object: hasattr(cuds_object, attribute)
+                   and getattr(cuds_object, attribute) == value),
         root=root,
         rel=rel,
         find_all=True
@@ -130,7 +154,7 @@ def find_relationships(find_rel, root, consider_rel, find_sub_rels=False):
     :param consider_rel: Only consider these relationships when searching.
     :type consider_rel: Type[Relationship]
     :return: The cuds objects having the given relationship.
-    :rtype: cuds
+    :rtype: List[Cuds]
     """
     if find_sub_rels:
         def criterion(cuds_object):

@@ -14,7 +14,28 @@ from cuds.utils import (destroy_cuds_object, clone_cuds_object,
                         check_arguments, format_class_name, find_cuds_object,
                         find_cuds_object_by_uid, remove_cuds_object,
                         get_ancestors, pretty_print,
-                        find_cuds_objects_by_cuba_key, find_relationships)
+                        find_cuds_objects_by_cuba_key, find_relationships,
+                        find_cuds_objects_by_attribute)
+
+
+def get_test_city():
+    """helper function"""
+    c = cuds.classes.City("Freiburg")
+    p1 = cuds.classes.Citizen(name="Rainer")
+    p2 = cuds.classes.Citizen(name="Carlos")
+    p3 = cuds.classes.Citizen(name="Maria")
+    n1 = cuds.classes.Neighbourhood("Zähringen")
+    n2 = cuds.classes.Neighbourhood("St. Georgen")
+    s1 = cuds.classes.Street("Lange Straße")
+
+    c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
+    p1.add(p3, rel=cuds.classes.HasChild)
+    p2.add(p3, rel=cuds.classes.HasChild)
+    c.add(n1, n2)
+    n1.add(s1)
+    n2.add(s1)
+    s1.add(p2, p3, rel=cuds.classes.HasInhabitant)
+    return [c, p1, p2, p3, n1, n2, s1]
 
 
 class TestUtils(unittest.TestCase):
@@ -130,25 +151,6 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(format_class_name("what_is_going_on"),
                          "WhatIsGoingOn")
 
-    def get_test_city(self):
-        """helper function"""
-        c = cuds.classes.City("Freiburg")
-        p1 = cuds.classes.Citizen(name="Rainer")
-        p2 = cuds.classes.Citizen(name="Carlos")
-        p3 = cuds.classes.Citizen(name="Maria")
-        n1 = cuds.classes.Neighbourhood("Zähringen")
-        n2 = cuds.classes.Neighbourhood("St. Georgen")
-        s1 = cuds.classes.Street("Lange Straße")
-
-        c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
-        p1.add(p3, rel=cuds.classes.HasChild)
-        p2.add(p3, rel=cuds.classes.HasChild)
-        c.add(n1, n2)
-        n1.add(s1)
-        n2.add(s1)
-        s1.add(p2, p3, rel=cuds.classes.HasInhabitant)
-        return [c, p1, p2, p3, n1, n2, s1]
-
     def test_find_cuds_object(self):
         """ Test to find cuds objects by some criterion """
         def find_maria(x):
@@ -160,7 +162,7 @@ class TestUtils(unittest.TestCase):
         def find_leaves(x):
             return len(x.get()) != 0
 
-        c, p1, p2, p3, n1, n2, s1 = self.get_test_city()
+        c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertIs(find_cuds_object(
             find_maria, c, cuds.classes.ActiveRelationship, False), p3)
         self.assertIs(find_cuds_object(
@@ -180,7 +182,7 @@ class TestUtils(unittest.TestCase):
 
     def test_find_cuds_object_by_uid(self):
         """ Test to find a cuds object by uid in given subtree """
-        c, p1, p2, p3, n1, n2, s1 = self.get_test_city()
+        c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertIs(find_cuds_object_by_uid(
             c.uid, c, cuds.classes.ActiveRelationship), c)
         self.assertIs(find_cuds_object_by_uid(
@@ -226,7 +228,7 @@ class TestUtils(unittest.TestCase):
 
     def test_find_cuds_objects_by_cuba_key(self):
         """ Test find by cuba key """
-        c, p1, p2, p3, n1, n2, s1 = self.get_test_city()
+        c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertEquals(find_cuds_objects_by_cuba_key(
             cuds.classes.City.cuba_key, c, cuds.classes.ActiveRelationship),
             [c])
@@ -244,9 +246,24 @@ class TestUtils(unittest.TestCase):
             cuds.classes.Street.cuba_key, c, cuds.classes.ActiveRelationship),
             [s1])
 
+    def test_find_cuds_objects_by_attribute(self):
+        c, p1, p2, p3, n1, n2, s1 = get_test_city()
+        self.assertEqual(
+            find_cuds_objects_by_attribute("name", "Maria", c,
+                                           cuds.classes.Relationship), [p3]
+        )
+        found = find_cuds_objects_by_attribute("age", 25, c,
+                                               cuds.classes.Relationship)
+        self.assertEqual(len(found), 3)
+        self.assertEqual(set(found), {p1, p2, p3})
+        found = find_cuds_objects_by_attribute(
+            "age", 25, c, cuds.classes.PassiveRelationship
+        )
+        self.assertEqual(found, [])
+
     def test_find_relationships(self):
         """Test find by relationships"""
-        c, p1, p2, p3, n1, n2, s1 = self.get_test_city()
+        c, p1, p2, p3, n1, n2, s1 = get_test_city()
         found = find_relationships(cuds.classes.IsInhabitantOf, c,
                                    cuds.classes.Relationship, False)
         self.assertEqual(set(found), {p1, p2, p3})
@@ -261,7 +278,7 @@ class TestUtils(unittest.TestCase):
 
     def test_remove_cuds_object(self):
         """Test removeing cuds from datastructure"""
-        c, p1, p2, p3, n1, n2, s1 = self.get_test_city()
+        c, p1, p2, p3, n1, n2, s1 = get_test_city()
         remove_cuds_object(p3)
         self.assertEqual(p3.get(rel=cuds.classes.Relationship), [])
         self.assertNotIn(p3, c.get(rel=cuds.classes.Relationship))
@@ -279,7 +296,7 @@ class TestUtils(unittest.TestCase):
 
     def test_pretty_print(self):
         """Test printing cuds objects in a human readable way."""
-        c, p1, p2, p3, n1, n2, s1 = self.get_test_city()
+        c, p1, p2, p3, n1, n2, s1 = get_test_city()
         f = io.StringIO()
         pretty_print(c, file=f)
         self.maxDiff = 5000
