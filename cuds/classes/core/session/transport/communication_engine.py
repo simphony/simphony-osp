@@ -27,8 +27,8 @@ class CommunicationEngineServer():
         """
         self.host = host
         self.port = port
-        self.handle_request = handle_request
-        self.handle_disconnect = handle_disconnect
+        self._handle_request = handle_request
+        self._handle_disconnect = handle_disconnect
 
     def startListening(self):
         """Start the server on given host + port."""
@@ -51,12 +51,12 @@ class CommunicationEngineServer():
                 data = data[len(command) + 1:]
                 print("Request %s: %s from %s" %
                       (command, data, hash(websocket)))
-                response = self.handle_request(command, data, websocket)
+                response = self._handle_request(command, data, websocket)
                 print("Response: %s" % response)
                 await websocket.send(response)
         finally:
             print("User %s disconnected!" % hash(websocket))
-            self.handle_disconnect(websocket)
+            self._handle_disconnect(websocket)
 
 
 class CommunicationEngineClient():

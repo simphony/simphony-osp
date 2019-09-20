@@ -102,3 +102,75 @@ class Registry(dict):
         for cuds_object in delete:
             super().__delitem__(cuds_object.uid)
         return delete
+
+    def reset(self):
+        """Delete the contents of the registry"""
+        keys = set(self.keys())
+        for key in keys:
+            del self[key]
+
+    def filter(self, criterion):
+        """Filter the registry. Return a dictionary that is
+        a subset of the registry. It contains only cuds objects
+        that satisfy the given criterion.
+
+        :param criterion: A function that decides whether a cuds object
+            should be returned. If the function returns True on a cuds object
+            it means the cuds object satisfies the criterion.
+        :type criterion: Callable[Cuds, bool]
+        :return: A dict contains the cuds objects satisfying the criterion.
+        :rtype: Dict[UUID, Cuds]
+        """
+        result = dict()
+        for uid, cuds_object in super().items():
+            if criterion(cuds_object):
+                result[uid] = cuds_object
+        return result
+
+    def filter_by_cuba_key(self, cuba_key):
+        """Filter the registry by cuba key.
+
+        :param cuba_key: The cuba key used for filtering.
+        :type cuba_key: CUBA
+        :return: A subset of the registry,
+            containing cuds objects with given cuba_key.
+        :rtype: Dict[UUID, Cuds]
+        """
+        return self.filter(lambda x: x.cuba_key == cuba_key)
+
+    def filter_by_attribute(self, attribute, value):
+        """Filter by attribute and valie
+
+        :param attribute: The attribute to look for
+        :type attribute: str
+        :param value: The corresponding value to look for
+        :type value: Any
+        :return: A subset of the registry,
+            containing cuds objects with given attribute and value.
+        :rtype: Dict[UUID, Cuds]
+        """
+        return self.filter(lambda x: hasattr(x, attribute)
+                           and getattr(x, attribute) == value)
+
+    def filter_by_relationships(self, relationship,
+                                consider_subrelationships=False):
+        """Filter the registry by relationships:
+        Return cuds objects containing the given relationship.
+
+        :param relationship: The relationship to filter by.
+        :type relationship: Type[Relationship]
+        :param consider_subrelationships: Whether to return cuds objects
+            containing subrelationships of the given relationship,
+            defaults to False
+        :type consider_subrelationships: bool, optional
+        :return: A subset of the registry,
+            containing cuds objects with given cuba_key.
+        :rtype: Dict[UUID, Cuds]
+        """
+        if consider_subrelationships:
+            def criterion(cuds_object):
+                return cuds_object.contains(relationship)
+        else:
+            def criterion(cuds_object):
+                return relationship in cuds_object
+        return self.filter(criterion)

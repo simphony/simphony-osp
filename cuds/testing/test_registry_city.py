@@ -8,6 +8,7 @@
 import unittest2 as unittest
 import cuds.classes
 from cuds.classes import ActiveRelationship
+from cuds.testing.test_utils import get_test_city
 
 
 class TestRegistryCity(unittest.TestCase):
@@ -69,6 +70,70 @@ class TestRegistryCity(unittest.TestCase):
             set(["neighborhood 0 0",
                  "street 0 0 0",
                  "street 0 0 1"]))
+
+    def test_filter(self):
+        registry = cuds.classes.Cuds._session._registry
+        registry.reset()
+        c, p1, p2, p3, n1, n2, s1 = get_test_city()
+        found = registry.filter(lambda x: hasattr(x, "name")
+                                and x.name == "Freiburg")
+        self.assertEqual(found, {c.uid: c})
+        found = registry.filter(lambda x: x.uid == n1.uid)
+        self.assertEqual(found, {n1.uid: n1})
+        found = registry.filter(lambda x: cuds.classes.IsPartOf in x)
+        self.assertEqual(found, {n1.uid: n1,
+                                 n2.uid: n2,
+                                 s1.uid: s1})
+
+    def test_filter_by_cuba_key(self):
+        registry = cuds.classes.Cuds._session._registry
+        registry.reset()
+        c, p1, p2, p3, n1, n2, s1 = get_test_city()
+        self.assertEqual(
+            registry.filter_by_cuba_key(cuds.classes.City.cuba_key),
+            {c.uid: c}
+        )
+        self.assertEqual(
+            registry.filter_by_cuba_key(cuds.classes.Citizen.cuba_key),
+            {p1.uid: p1, p2.uid: p2, p3.uid: p3}
+        )
+        self.assertEqual(
+            registry.filter_by_cuba_key(cuds.classes.Neighbourhood.cuba_key),
+            {n1.uid: n1, n2.uid: n2}
+        )
+
+    def test_filter_by_attribute(self):
+        registry = cuds.classes.Cuds._session._registry
+        registry.reset()
+        c, p1, p2, p3, n1, n2, s1 = get_test_city()
+        self.assertEqual(
+            registry.filter_by_attribute("name", "Freiburg"),
+            {c.uid: c}
+        )
+        self.assertEqual(
+            registry.filter_by_attribute("age", 25),
+            {p1.uid: p1, p2.uid: p2, p3.uid: p3}
+        )
+
+    def test_filter_by_relationship(self):
+        registry = cuds.classes.Cuds._session._registry
+        registry.reset()
+        c, p1, p2, p3, n1, n2, s1 = get_test_city()
+        self.maxDiff = 2000
+        self.assertEqual(
+            registry.filter_by_relationships(
+                cuds.classes.IsInhabitantOf
+            ),
+            {p1.uid: p1, p2.uid: p2, p3.uid: p3}
+        )
+        self.assertEqual(
+            registry.filter_by_relationships(
+                cuds.classes.PassiveRelationship,
+                consider_subrelationships=True
+            ),
+            {p1.uid: p1, p2.uid: p2, p3.uid: p3,
+             n1.uid: n1, n2.uid: n2, s1.uid: s1}
+        )
 
 
 if __name__ == '__main__':
