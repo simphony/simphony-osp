@@ -50,6 +50,24 @@ class RelationshipTree(dict):
             raise KeyError(("Cannot remove relationship %s,"
                             + "because it is not in the tree") % relationship)
 
+    def contains(self, relationship):
+        """Check if there is a subrelationship of the given relationship
+        in the tree.
+
+        :param relationship: The relationship to look for.
+        :type relationship: Relationship
+        :return: Whether a subrelationship has been found
+        :rtype: bool
+        """
+        ancestor_rel = self._get_ancestor_rel(relationship)
+        predecessor_rels = self._get_predecessor_rels(relationship)
+
+        if ancestor_rel is not None and ancestor_rel is not relationship:
+            return self.children[ancestor_rel].contains(relationship)
+        if predecessor_rels:
+            return True
+        return False
+
     def get_subrelationships(self, relationship):
         """Get all relationships that are subclasses of the given relationship.
 

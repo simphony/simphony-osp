@@ -14,7 +14,7 @@ from cuds.utils import (destroy_cuds_object, clone_cuds_object,
                         check_arguments, format_class_name, find_cuds_object,
                         find_cuds_object_by_uid, remove_cuds_object,
                         get_ancestors, pretty_print,
-                        find_cuds_objects_by_cuba_key)
+                        find_cuds_objects_by_cuba_key, find_relationships)
 
 
 class TestUtils(unittest.TestCase):
@@ -233,18 +233,34 @@ class TestUtils(unittest.TestCase):
         found = find_cuds_objects_by_cuba_key(
             cuds.classes.Citizen.cuba_key,
             c, cuds.classes.ActiveRelationship)
-        self.assertEquals(len(found), 3)
-        self.assertEquals(set(found), {p1, p2, p3})
+        self.assertEqual(len(found), 3)
+        self.assertEqual(set(found), {p1, p2, p3})
         found = find_cuds_objects_by_cuba_key(
             cuds.classes.Neighbourhood.cuba_key, c,
             cuds.classes.ActiveRelationship)
-        self.assertEquals(set(found), {n1, n2})
-        self.assertEquals(len(found), 2)
-        self.assertEquals(find_cuds_objects_by_cuba_key(
+        self.assertEqual(set(found), {n1, n2})
+        self.assertEqual(len(found), 2)
+        self.assertEqual(find_cuds_objects_by_cuba_key(
             cuds.classes.Street.cuba_key, c, cuds.classes.ActiveRelationship),
             [s1])
 
+    def test_find_relationships(self):
+        """Test find by relationships"""
+        c, p1, p2, p3, n1, n2, s1 = self.get_test_city()
+        found = find_relationships(cuds.classes.IsInhabitantOf, c,
+                                   cuds.classes.Relationship, False)
+        self.assertEqual(set(found), {p1, p2, p3})
+        self.assertEqual(len(found), 3)
+        found = find_relationships(cuds.classes.PassiveRelationship, c,
+                                   cuds.classes.Relationship, True)
+        self.assertEqual(set(found), {p1, p2, p3, n1, n2, s1})
+        self.assertEqual(len(found), 6)
+        found = find_relationships(cuds.classes.PassiveRelationship, c,
+                                   cuds.classes.Relationship, False)
+        self.assertEqual(set(found), set([]))
+
     def test_remove_cuds_object(self):
+        """Test removeing cuds from datastructure"""
         c, p1, p2, p3, n1, n2, s1 = self.get_test_city()
         remove_cuds_object(p3)
         self.assertEqual(p3.get(rel=cuds.classes.Relationship), [])
@@ -256,11 +272,13 @@ class TestUtils(unittest.TestCase):
         self.assertNotIn(p3, s1.get(rel=cuds.classes.Relationship))
 
     def test_get_ancestors(self):
+        """Test getting the ancestors of a cuds object"""
         ancestors = ['Person', 'LivingBeing', 'Entity', 'Cuds']
         self.assertEqual(get_ancestors(cuds.classes.Citizen), ancestors)
         self.assertEqual(get_ancestors(cuds.classes.Citizen()), ancestors)
 
     def test_pretty_print(self):
+        """Test printing cuds objects in a human readable way."""
         c, p1, p2, p3, n1, n2, s1 = self.get_test_city()
         f = io.StringIO()
         pretty_print(c, file=f)

@@ -41,18 +41,18 @@ def format_class_name(name):
     return fixed_name
 
 
-def find_cuds_object(criteria, root, rel, find_all, visited=None):
+def find_cuds_object(criterion, root, rel, find_all, visited=None):
     """
     Recursively finds an element inside a container
     by considering the given relationship.
 
-    :param criteria: function that returns True on the Cuds object
+    :param criterion: function that returns True on the Cuds object
         that is searched.
-    :type criteria: Callable
+    :type criterion: Callable
     :param root: Starting point of search
     :type root: Cuds
     :param find_all: Whether to find all cuds_objects with satisfying
-        the criteria.
+        the criterion.
     :type find_all: bool
     :param rel: The relationship (incl. subrelationships) to consider
     :type rel: Type[Relationship]
@@ -61,14 +61,14 @@ def find_cuds_object(criteria, root, rel, find_all, visited=None):
     """
     visited = visited or set()
     visited.add(root.uid)
-    output = [root] if criteria(root) else []
+    output = [root] if criterion(root) else []
 
     if output and not find_all:
         return output[0]
 
     for sub in root.iter(rel=rel):
         if sub.uid not in visited:
-            result = find_cuds_object(criteria, sub, rel, find_all, visited)
+            result = find_cuds_object(criterion, sub, rel, find_all, visited)
             if not find_all and result is not None:
                 return result
             if result is not None:
@@ -91,7 +91,7 @@ def find_cuds_object_by_uid(uid, root, rel):
     :rtype: Cuds
     """
     return find_cuds_object(
-        criteria=lambda cuds_object: cuds_object.uid == uid,
+        criterion=lambda cuds_object: cuds_object.uid == uid,
         root=root,
         rel=rel,
         find_all=False,
@@ -113,9 +113,36 @@ def find_cuds_objects_by_cuba_key(cuba_key, root, rel):
     :rtype: Cuds
     """
     return find_cuds_object(
-        criteria=lambda cuds_object: cuds_object.cuba_key == cuba_key,
+        criterion=lambda cuds_object: cuds_object.cuba_key == cuba_key,
         root=root,
         rel=rel,
+        find_all=True
+    )
+
+
+def find_relationships(find_rel, root, consider_rel, find_sub_rels=False):
+    """Find the given relationship in the subtree of the given root.
+
+    :param find_rel: The relationship to find
+    :type find_rel: Type[Relationship]
+    :param root: Only consider the subgraph rooted in this root.
+    :type root: Cuds
+    :param consider_rel: Only consider these relationships when searching.
+    :type consider_rel: Type[Relationship]
+    :return: The cuds objects having the given relationship.
+    :rtype: cuds
+    """
+    if find_sub_rels:
+        def criterion(cuds_object):
+            return cuds_object.contains(find_rel)
+    else:
+        def criterion(cuds_object):
+            return find_rel in cuds_object
+
+    return find_cuds_object(
+        criterion=criterion,
+        root=root,
+        rel=consider_rel,
         find_all=True
     )
 

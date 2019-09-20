@@ -89,6 +89,23 @@ class TestRelationshipTree(unittest.TestCase):
                          tree.get_subrelationships(
                              cuds.classes.ActiveRelationship))
 
+    def test_contains(self):
+        """Test getting subrelationships from the tree."""
+        tree = RelationshipTree(cuds.classes.Relationship)
+        tree.add(cuds.classes.HasInhabitant)
+        tree.add(cuds.classes.HasPart)
+
+        self.assertTrue(tree.contains(cuds.classes.Relationship))
+        self.assertTrue(tree.contains(cuds.classes.ActiveRelationship))
+        self.assertTrue(tree.contains(cuds.classes.Encloses))
+        self.assertTrue(tree.contains(cuds.classes.HasInhabitant))
+        self.assertTrue(tree.contains(cuds.classes.HasPart))
+
+        self.assertFalse(tree.contains(cuds.classes.PassiveRelationship))
+        self.assertFalse(tree.contains(cuds.classes.IsEnclosedBy))
+        self.assertFalse(tree.contains(cuds.classes.IsInhabitantOf))
+        self.assertFalse(tree.contains(cuds.classes.IsPartOf))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -166,6 +166,17 @@ class Cuds(dict):
         """
         return inspect.getfullargspec(cls.__init__).annotations
 
+    def contains(self, relationship):
+        """Check whether the given relationship or a subrelationship is contained
+        in this cuds object
+
+        :param relationship: The relationship to look for.
+        :type relationship: Type[Relationship]
+        :return: Whether the relationship or a subrelationship has been found.
+        :rtype: bool
+        """
+        return self._relationship_tree.contains(relationship)
+
     def add(self,
             *args: "Cuds",
             rel: Type[Relationship] = None) -> Union["Cuds", List["Cuds"]]:
