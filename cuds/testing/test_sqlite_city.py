@@ -165,6 +165,12 @@ class TestSqliteCity(unittest.TestCase):
             r = session.load_by_cuba_key(cuds.classes.Citizen.cuba_key)
             self.assertEqual(set(r), {p1, p2, p3})
 
+        with SqliteWrapperSession("test.db") as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            cs = wrapper.get(c.uid)
+            r = session.load_by_cuba_key(cuds.classes.Street.cuba_key)
+            self.assertRaises(StopIteration, next, r)
+
     def test_expiring(self):
         c = cuds.classes.City("Freiburg")
         p1 = cuds.classes.Citizen(name="Peter")

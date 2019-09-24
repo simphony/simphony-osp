@@ -323,6 +323,9 @@ class SqlWrapperSession(DbWrapperSession):
         if not update_registry and uid is not None and uid in self._registry:
             yield self._registry.get(uid)
             return
+        tables = self._get_table_names(prefix=(self.CUDS_PREFIX + cuba.value))
+        if not (self.CUDS_PREFIX + cuba.value) in tables:
+            return
         cuds_class = CUBA_MAPPING[cuba]
         attributes = cuds_class.get_attributes()
         datatypes = cuds_class.get_datatypes()

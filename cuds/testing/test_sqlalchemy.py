@@ -122,6 +122,12 @@ class TestSqliteAlchemyCity(unittest.TestCase):
             r = session.load_by_cuba_key(cuds.classes.Citizen.cuba_key)
             self.assertEqual(set(r), {p1, p2, p3})
 
+        with SqlAlchemyWrapperSession("sqlite:///test.db") as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            cs = wrapper.get(c.uid)
+            r = session.load_by_cuba_key(cuds.classes.Street.cuba_key)
+            self.assertRaises(StopIteration, next, r)
+
     def test_load_missing(self):
         """Test if missing objects are loaded automatically."""
         c = cuds.classes.City("Freiburg")
