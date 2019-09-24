@@ -1,0 +1,2253 @@
+---
+VERSION: "0.0.2"
+
+ONTOLOGY_MODE: "ignore"
+
+CUDS_ONTOLOGY:
+
+# ONTOLOGY OBJECT NAME:
+#   definition: definition of the ontology object
+#   parent: object with one step higher abstraction level + "is_a"-relation to the named object
+#   ONTO_OBJECT: # list of all objects with an "has_a"-relation to the named ontology object
+
+  ENTITY:
+    definition: the basic ontological entity, a thing. BFO
+    parent:
+
+  CUDS_ENTITY:
+    definition: Root of all CUDS classes
+    parent: CUBA.ENTITY
+    
+################
+
+  RELATIONSHIP:
+    definition:
+    parent: CUBA.ENTITY
+    inverse:
+
+  ACTIVE_RELATIONSHIP:
+    definition:
+    parent: CUBA.RELATIONSHIP
+    inverse: CUBA.PASSIVE_RELATIONSHIP
+
+  ENCLOSES:
+    definition:
+    parent: CUBA.ACTIVE_RELATIONSHIP
+    inverse: CUBA.IS_ENCLOSED_BY
+
+  HAS_PART:
+    definition:
+    parent: CUBA.ENCLOSES
+    inverse: CUBA.IS_PART_OF
+    default_rel: true
+
+  IS_INHABITANT_OF:
+    definition:
+    parent: CUBA.IS_ENCLOSED_BY
+    inverse: CUBA.HAS_INHABITANT
+
+  PASSIVE_RELATIONSHIP:
+    definition:
+    parent: CUBA.RELATIONSHIP
+    inverse: CUBA.ACTIVE_RELATIONSHIP
+
+  IS_ENCLOSED_BY:
+    definition:
+    parent: CUBA.PASSIVE_RELATIONSHIP
+    inverse: CUBA.ENCLOSES
+
+  IS_PART_OF:
+    definition:
+    parent: CUBA.IS_ENCLOSED_BY
+    inverse: CUBA.HAS_PART
+
+  HAS_INHABITANT:
+    definition:
+    parent: CUBA.ENCLOSES
+    inverse: CUBA.IS_INHABITANT_OF
+  
+  HAS_CHILD:
+    definition:
+    parent: CUBA.HAS_PART
+    inverse: CUBA.IS_CHILD_OF
+    allow_cycles: true
+
+  IS_CHILD_OF:
+    definition:
+    parent: CUBA.IS_PART_OF
+    inverse: CUBA.HAS_CHILD
+  
+  HAS_WORKER:
+    definition:
+    parent: CUBA.HAS_PART
+    inverse: CUBA.WORKS_IN
+
+  WORKS_IN:
+    definition:
+    parent: CUBA.IS_PART_OF
+    inverse: CUBA.HAS_WORKER
+
+  HAS_MAJOR:
+    definition:
+    parent: CUBA.HAS_WORKER
+    inverse: CUBA.IS_MAJOR_OF
+
+  IS_MAJOR_OF:
+    definition:
+    parent: CUBA.WORKS_IN
+    inverse: CUBA.HAS_MAJOR
+
+ ################
+
+  PROCESS: 
+    definition: c.f. EMMO, physical's whose evolution in time have a particular meaning for the ontologist.  
+    parent: CUBA.PHYSICAL
+  
+  CASTING:
+    definition:
+    parent: CUBA.PROCESS
+  
+  ROLLING:
+    definition:
+    parent: CUBA.PROCESS
+  
+  HOT_ROLLING:
+    definition:
+    parent: CUBA.ROLLING
+  
+  COLD_ROLLING:
+    definition:
+    parent: CUBA.ROLLING
+  
+  HEAT_TREATMENT:
+    definition:
+    parent: CUBA.PROCESS
+  
+  CUTTING:
+    definition:
+    parent: CUBA.PROCESS
+
+  LABEL:
+    definition:
+    parent: CUBA.VALUE
+  
+  PRODUCT:
+    definition:
+    parent: CUBA.COMPONENT_PART
+    CUBA.LABEL:
+    CUBA.MATERIAL:
+  
+  INGOT:
+    definition:
+    parent: CUBA.PRODUCT
+  
+  SLAB:
+    definition:
+    parent: CUBA.PRODUCT
+  
+  PLATE:
+    definition:
+    parent: CUBA.PRODUCT
+
+  HEAVY_PLATE:
+    definition:
+    parent: CUBA.PLATE
+  
+  THIN_SHEET:
+    definition:
+    parent: CUBA.PLATE
+  
+  # SEMIFINISHED_PRODUCT:
+  #   definition:
+  #   parent: CUBA.PRODUCT
+
+  REPOSITORY:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+
+  FRACTOGRAPHY:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+
+  SURFACE_SEGMENT:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+  
+  IMAGE_URL:
+    definition:
+    parent: CUBA.URL
+
+  MAGNIFICATION_FACTOR:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+    VALUE:
+
+  IMAGE_SIZE:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+    CUBA.VALUE:
+
+  COLOR_MODE:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+    VALUE:
+
+  SEGMENT_POSITION:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+    VALUE:
+    
+  WORKING_DISTANCE:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+    VALUE:
+    UNIT:
+
+  ACCELERATING_VOLTAGE:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+    VALUE:
+    UNIT:
+
+  EMISSION_CURRENT:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+    VALUE:
+    UNIT:
+  
+  PIXEL_SIZE:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+    VALUE:
+  
+  SIGNAL_NAME:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+    VALUE:
+
+  REPORT:
+    definition:
+    parent: CUBA.CUDS_ENTITY
+  
+  PLOT:
+    definition:
+    parent: CUBA.REPORT
+  
+  PDF_REPORT:
+    definition:
+    parent: CUBA.REPORT
+  
+  URI:
+    definition:
+    parent: CUBA.DESIGNATIVE
+  
+  URL:
+    definition:
+    parent: CUBA.URI
+
+  TEST_DATE:
+    definition:
+    parent: CUBA.DATE
+
+  SCRIPT: 
+    definition: an analysis script
+    parent: CUBA.SOFTWARE_TOOL
+  
+  H5CUDS: 
+    definition: 
+    parent: CUBA.ENTITY
+
+  DATASPACE:
+    definition: cuds to act as a data space
+    parent: CUBA.CUDS_ENTITY
+
+  TT_ENTITY:
+    definition: a temporary semi semantic branch to help develop the DSMS demonstrator, entities should be reviewed and added properly to EMMO.  
+    parent: CUBA.CUDS_ENTITY
+
+  MEASUREMENT_PROCESS:
+    definition: set of operations to determine the value of a quantity  (VIM/ISO)
+    parent: CUBA.PROCESS
+
+  MEASUREMENT: 
+    definition: is assigning a value, number or a measure in general to a property via some kind of process. 
+    parent: CUBA.TT_ENTITY
+
+  STRING:
+    definition: is a character 
+    parent: CUBA.VALUE
+
+  VALUE:
+    definition: a value an ontology object, its parent is the parent of string, numner, etc... 
+    parent: CUBA.TT_ENTITY
+  
+  REFID:
+    definition: experimental, reference uuid of an object. expressed as a uuid. 
+    parent: CUBA.DESIGNATIVE
+
+  EMMO_ENTITY: 
+    definition: an entity under the EMMO branch
+    parent: CUBA.CUDS_ENTITY
+
+  SIGN:
+    definition: confer EMMO
+    parent: CUBA.EMMO_ENTITY
+
+  PROPERTY:
+    definition: EMMO
+    parent: CUBA.SIGN
+
+  SUBJECTIVE_PROPERTY:
+    definition: c.f EMMO
+    parent: CUBA.PROPERTY
+  
+  OBJECTIVE_PROPERTY:
+    definition: c.f EMMO
+    parent: CUBA.PROPERTY
+
+  QUALITY:
+    definition: a property of an entity
+    parent: CUBA.TT_ENTITY
+
+  QUALITATIVE_PROPERTY: 
+    definition: qualitative  property that can be determined by a subjective observer and has no numeric value
+    parent: CUBA.OBJECTIVE_PROPERTY
+
+  QUANTITATIVE_PROPERTY: 
+    definition: 
+    parent: CUBA.OBJECTIVE_PROPERTY
+
+  DESCRIPTIVE_PROPERTY: 
+    definition: EMMO
+    parent: QUANTITATIVE_PROPERTY
+    
+  DESCRIPTION: 
+    definition: a for-human consumption description (comment) for an entity 
+    parent: CUBA.CUDS_ENTITY
+
+  PHYSICAL_PROPERTY:
+    definition: c.f. EMMO
+    parent: CUBA.QUANTITATIVE_PROPERTY
+    CUBA.MEASURE:
+
+  EXTENSIVE_PROPERTY: 
+    definition: 
+    parent: CUBA.PHYSICAL_PROPERTY
+
+  INTENSIVE_PROPERTY: 
+    definition: 
+    parent: CUBA.PHYSICAL_PROPERTY
+    
+  QUANTITY:
+    definition: A quantity gives the measure of a property with a unit and a value. A property that has a quanitiy is one that is quantified.    
+    parent: CUBA.QUANTITATIVE_PROPERTY
+    CUBA.VALUE:
+    CUBA.UNIT:
+  
+  MEASURE:
+    definition: A quantity gives the measure of a property with a unit and a value. A property that has a quanitiy is one that is quantified.    
+    parent: CUBA.QUANTITY
+
+  TEST:
+    definition: is a procedure or the means by which the quality or properties of anything are determined; a means of trial. E.g.,by measurement or simulations
+    parent: CUBA.PROCESS
+  
+  SIMULATION: 
+    definition: 
+    parent: CUBA.PROCESS
+
+  TENSILE_SIMULATION:
+    definition: 
+    parent: CUBA.SIMULATION
+    CUBA.MATERIAL_RELATION: 
+    CUBA.POSTPROCESSED_OUTPUT: 
+      CUBA.STRESS_STRAIN_CURVE:
+
+  GEOMETRY: 
+    definition: 
+    parent: CUBA.TT_ENTITY
+
+  SPECIMEN_GEOMETRY:
+    definition: 
+    parent: CUBA.GEOMETRY
+
+  LENGTH: 
+    definition: 
+    parent: CUBA.GEOMETRICAL_PROPERTY
+
+  WIDTH: 
+    definition: 
+    parent: CUBA.GEOMETRICAL_PROPERTY
+
+  THICKNESS: 
+    definition: 
+    parent: CUBA.GEOMETRICAL_PROPERTY
+
+  CROSS_SECTION_AREA:
+    definition: 
+    parent: CUBA.GEOMETRICAL_PROPERTY
+
+  GAUGE_LENGTH: 
+    definition: this is syn for the extenso meter length 
+    parent: CUBA.LENGTH
+
+  EXTENSOMETER_LENGTH: 
+    definition: 
+    parent: CUBA.LENGTH
+
+  STANDARDISED_TEST:
+    definition: a test with a specific description, version, and protocol
+    parent: CUBA.TEST
+    CUBA.DATE:
+    CUBA.PERFORMER:
+    CUBA.PROJECT:
+  
+  DIN_EN_ISO_6892_1:
+    definition: bla bbla
+    parent: CUBA.NORM
+
+  NORM: 
+    definition: a specific set of standards, e.g. ,EN-DIN15 etc...
+    parent: CUBA.DESIGNATIVE  
+
+  TENSILE_TEST:
+    definition: is a procedure to generate point relations of (true) strain and (true) stress
+    parent: CUBA.STANDARDISED_TEST
+#    CUBA.PROJECT:
+#    CUBA.DATE:
+#    CUBA.PERFORMER:
+#    CUBA.SETUP:
+#    CUBA.CONDITION:
+#    CUBA.OUTPUT:
+#    CUBA.SPECIMEN:
+#    CUBA.NORM:
+
+  PLAN_SPECIFICATION:
+    definition: specification of a process steps
+    parent: CUBA.TT_ENTITY
+
+  PROJECT:
+    definition: a major undertaking, involving distribution of efforts, tasks, personnel and equipment.
+    parent: CUBA.TT_ENTITY
+#    CUBA.NAME:  # removed since we still need to define the behavior of the options. 
+#    CUBA.ID:
+
+  PERSON:
+    definition: person related to an specific ontology object
+    parent: CUBA.TT_ENTITY
+    
+  PERFORMER:
+    definition: person related to an specific ontology object
+    parent: CUBA.PERSON
+
+  TECHNICIAN:
+    definition: person related to an specific ontology object
+    parent: CUBA.PERSON
+
+  NUMMERIC:
+    definition: scalar, vector, or tensor TODO_should be further elaborated to real scalar, vector, etc..)
+    parent: CUBA.VALUE
+
+  UNIT:
+    definition: unit of the metric space an specific quantity is subjected to
+    parent: CUBA.STRING
+
+  DATE:
+    definition: a date, related to the specific ontology object
+    parent: CUBA.DESCRIPTIVE_PROPERTY
+
+  PHYSICAL: 
+    definition: see EMMO
+    parent: CUBA.EMMO_ENTITY 
+  
+  EXISTENT: 
+    definition: see EMMO 
+    parent: CUBA.PHYSICAL
+
+  PROCESS_STEP:
+    definition: A step in a process, describes an action that has an input as initial conditions and output.
+    parent: CUBA.PROCESS
+    
+  ENGINEERED_ENTITY: 
+    definition: EMMO
+    parent: CUBA.EXISTENT
+
+  COMPONENT: 
+    definition: EMMO
+    parent: CUBA.ENGINEERED_ENTITY
+
+  COMPONENT_PART: 
+    definition: a portion or division of a whole that is separate or distinct; piece, fragment, fraction, or section
+    parent: CUBA.ENGINEERED_ENTITY
+
+  SPECIMEN:
+    definition: specimen is a material part that is used for the test, taken out of a part. 
+    parent: CUBA.PRODUCT
+    CUBA.MATERIAL:
+
+  # TENSILE_SPECIMENT: 
+  #   definition: a specimen prepared for tensile testing. 
+  #   parent: CUBA.SPECIMEN
+
+  # SPECIMEN_ID:
+  #   definition: unique id of an specimen entity
+  #   parent: CUBA.IDENTIFIER
+
+  COMPOSITION: 
+    parent: CUBA.PHYSICAL_PROPERTY
+    definition: a makeup, constitution of an entity, the act of combining parts or elements to form a whole. The resulting state or product. Note, Should be subtype of EMMO:STATE (need check)
+
+  CONTENT:
+    definition: the content of something
+    parent: CUBA.TT_ENTITY
+
+  MATERIAL_CONTENT:  # this is like material component, maybe we rename
+    definition: the content of a material in another thing (can be another material)
+    parent: CUBA.CONTENT
+    CUBA.PHYSICAL_PROPERTY:
+      shape: (1)
+    
+  WEIGHT_PERCENT: 
+    parent: CUBA.PHYSICAL_PROPERTY
+    definition: the fraction in weight of a substance with respect to the whole in parts of 100.
+    
+  CONCENTRATION:
+    parent: CUBA.PHYSICAL_PROPERTY
+    definition: the fraction in volume of a substance with respect to the whole in parts of 100.
+
+  MATERIAL_COMPOSITION:
+    parent: CUBA.COMPOSITION
+    definition: the amount of a material in a substance or state of a substance
+    CUBA.MATERIAL_CONTENT:
+      shape: (:)
+
+  ID:
+    parent: CUBA.IDENTIFIER
+    definition: a string used to indicate a specific information about some entity
+
+  IDENTIFIER: 
+    definition: an id given by a norm 
+    parent: CUBA.DESIGNATIVE
+
+  MATERIAL:
+    definition: a technical material 
+    parent: CUBA.ENGINEERED_ENTITY
+    CUBA.MATERIAL_ID:
+    CUBA.MATERIAL_COMPOSITION:
+      shape: (:)
+
+  MATERIAL_ID:
+    definition: the ID unique for the material
+    parent: CUBA.IDENTIFIER
+
+  MATERIAL_THERMAL_PROPERTY: 
+    definition: 
+    parent: CUBA.PHYSICAL_PROPERTY
+
+  THERMAL_PROPERTY:
+    definition:
+    parent: CUBA.PHYSICAL_PROPERTY
+
+
+  GEOMETRICAL_PROPERTY:
+    definition: a measure of a physical parameter or constant
+    parent: CUBA.QUANTITATIVE_PROPERTY
+
+  PHYSICAL_UNIT:
+    definition: basic unit of the metric space a physical quantity is subjected to
+    parent: CUBA.UNIT
+
+  FIRST_NAME:
+    definition: persons name
+    parent: CUBA.DESIGNATIVE
+
+  LAST_NAME:
+    definition: persons family name
+    parent: CUBA.DESIGNATIVE
+
+  STATE: 
+    definition: 
+    parent: CUBA.EXISTENT
+
+  ATOMIC: 
+    definition: EMMO
+    parent: CUBA.STATE
+
+  CONTINUUM: 
+    definition: EMMO
+    parent: CUBA.STATE
+  
+  SOLID: 
+    definition: EMMO
+    parent: CUBA.CONTINUUM
+    
+  POLYCRYSTALLINE: 
+    definition: a polycrystaline state of matter
+    parent: CUBA.SOLID
+    
+  MECHANICAL_PROPERTY: 
+    definition: 
+    parent: CUBA.PHYSICAL_PROPERTY
+
+  STRAIN_RATE:
+    definition: 
+    parent: CUBA.MECHANICAL_PROPERTY
+
+  NAME: 
+    parent: CUBA.DESIGNATIVE
+    definition: a name of something. 
+
+  NUMBER: 
+    parent: CUBA.DESIGNATIVE
+    definition: a number of something in units of 1. Needs a better definition of countable things 
+    
+    
+  ATOM: 
+    definition:
+    parent: CUBA.ATOMIC
+    CUBA.NAME: 
+
+  # see https://ci.mines-stetienne.fr/seas/BuildingOntology-1.0#BuildingSpace
+  LOCATION: 
+    definition: some location express as some address, or geo coordinates, etc.
+    parent: CUBA.DESCRIPTIVE_PROPERTY
+
+  BUILDING: 
+    definition: a building space having a roof and usually windows and often more than one level, used for any of a wide variety of activities, as living, entertaining, or manufacturing.  
+    parent: CUBA.BUILDING_SPACE
+    CUBA.ROOM: 
+      shape: (:)
+
+  BUILDING_SPACE:
+    definition: A Space is a 3D volume bounded by surfaces. According to the FIEMSER , a building space in SAREF defines the physical spaces of the building.
+    parent: CUBA.TT_ENTITY  
+
+  ROOM:
+    definition: A room in a building space enclosed by surfaces, this could also be modelled as role of space, not subclass of the space itself.
+    parent: CUBA.BUILDING_SPACE
+
+  LABORATORY: 
+    definition: a building, part of a building, or other place equipped to conduct scientific experiments, tests, investigations, etc., or to manufacture chemicals, medicines, or the like.
+    parent: CUBA.ROOM
+    CUBA.NAME:
+    CUBA.NUMBER:
+
+  EXPERTISE: 
+    definition: an expertise of a person 
+    parent: CUBA.DESIGNATIVE
+
+  TENSILE_TEST_LABORATORY: 
+    definition: a laboratory to do tests...  
+    parent: CUBA.LABORATORY
+    CUBA.NAME:
+    CUBA.NUMBER:
+
+  ROOM_NUMBER:
+    definition:
+    parent: CUBA.NUMBER
+
+  MEASUREMENT_APPARATUS: 
+    definition:
+    parent: CUBA.MACHINE
+
+  MEASUREMENT_EQUIPMENT:
+    definition: measuring instrument, software, measurement standard, reference material or auxiliary apparatus, or a combination thereof, necessary to realize a measurement process (VIM/ISO10012) 
+    parent: CUBA.MEASUREMENT_APPARATUS
+  
+  MACHINE:
+    definition: 
+    parent: CUBA.TT_ENTITY
+
+  MEASURAND: 
+    definition: the quantity that is intended to be measured    
+    parent: CUBA.PHYSICAL_PROPERTY 
+
+  TESTING_MACHINE: 
+    definition: A universal testing machine (UTM), also known as a universal tester,[1] materials testing machine or materials test frame, is used to test the tensile strength and compressive strength of materials. 
+    parent: CUBA.MACHINE
+
+  TENSILE_TEST_MACHINE: 
+    definition: 
+    parent: CUBA.MATERIALS_TEST_FRAME
+
+  MATERIALS_TEST_FRAME: 
+    definition: A universal testing machine (UTM), also known as a universal tester,[1] materials testing machine or materials test frame, is used to test the tensile strength and compressive strength of materials. 
+    parent: CUBA.TESTING_MACHINE
+  
+  INFORMATION_PROCESSING: 
+    definition: information processing 
+    parent: CUBA.PROCESS
+
+  TIME_DATUM: 
+    definition: a specification of a time point (like the current time)
+    parent: CUBA.PHYSICAL_PROPERTY
+  
+  TIME: 
+    definition: a specification of a time series
+    parent: CUBA.TIME_DATUM
+  
+  FORCE:  
+    definition: a specification of a time point (like the current time)
+    parent: CUBA.MECHANICAL_PROPERTY
+
+  POSITION:
+    definition: a vector  
+    parent: CUBA.PHYSICAL_PROPERTY
+  
+  DISPLACEMENT: 
+    definition: 
+    parent: CUBA.MECHANICAL_PROPERTY
+  
+  LONGITUDINAL_DISPLACEMENT:
+    definition: 
+    parent: CUBA.DISPLACEMENT
+    
+  TRANSVERSE_DISPLACEMENT:   # isn't this the elongation or lateral? 
+    definition: 
+    parent: CUBA.DISPLACEMENT
+ 
+  LONGITUDAL_DISPLACEMENT:   # isn't this the elongation or lateral? 
+    definition: 
+    parent: CUBA.DISPLACEMENT
+  
+  STRESS: 
+    definition: 
+    parent: CUBA.MECHANICAL_PROPERTY
+
+  TRANSVERSE_STRESS:
+    definition: 
+    parent: CUBA.STRESS
+
+  ENGINEERING_STRESS:
+    definition: 
+    parent: CUBA.STRESS
+
+  TRANSVERSE_ENGINEERING_STRESS:
+    definition: 
+    parent: CUBA.STRESS
+
+  STRAIN: 
+    definition: 
+    parent: CUBA.MECHANICAL_PROPERTY
+
+  ENGINEERING_STRAIN:
+    definition: 
+    parent: CUBA.STRAIN
+
+  TRANSVERSE_STRAIN: 
+    definition: lateral strain, also known as transverse strain, is defined as the ratio of the change in diameter of a circular bar of a material to its diameter due to deformation in the longitudinal direction
+    parent: CUBA.STRAIN
+
+  TRANSVERSE_ENGINEERING_STRAIN: 
+    definition: engineering strain in the lateral, i.e., transverse direction (of the width)
+    parent: CUBA.TRANSVERSE_STRAIN
+
+  LONGITUDINAL_ENGINEERING_STRAIN:
+    definition: engineering strain in the direction of tensile force (of the length)
+    parent: CUBA.TRANSVERSE_STRAIN
+
+  EXTENSOMETER: 
+    definition: An extensometer is a device that is used to measure changes in the length of an object
+    parent: CUBA.MEASUREMENT_APPARATUS
+
+  LONGITUDAL_EXTENSOMETER_DISPLACEMENT: 
+    definition: An extensometer displacement
+    parent: CUBA.LONGITUDAL_DISPLACEMENT
+  
+  TRANSVERSE_EXTENSOMETER_DISPLACEMENT: 
+    definition: An extensometer displacement
+    parent: CUBA.TRANSVERSE_DISPLACEMENT
+  
+  RESULT:
+    definition: designates something as a result of one or more actions, transformation, fucntions, etc. 
+    parent:  CUBA.DESCRIPTIVE_PROPERTY 
+
+  INPUT:
+    definition: designates something needed for some process that has an outcome. A container of results. 
+    parent:  CUBA.DESCRIPTIVE_PROPERTY
+
+  MEASUREMENT_RESULT: 
+    definition: a result of a measurement, can be any property (note the relation to the property is that th property acts as a result (role), not a result in itself.)
+    parent: CUBA.RESULT
+
+  MEASUREMENT_DATA_SET: 
+    definition: a set of properties that have measures with ordered values, the order is given by an index (implicit). the container may contain a hierarchical compound structure of elements, however it is assumed that all data values are synchronous (index order) 
+    parent: CUBA.DATA_SET
+
+  DATA_SET: 
+    definition: data set, a set of points in row/column format (data table). 
+    parent: CUBA.TT_ENTITY
+      
+  DATA_HEADER:
+    definition: the header of a data set 
+    parent: CUBA.DESCRIPTIVE_PROPERTY
+    
+  SHAPE: 
+    definition: the shape of a data set, the dimension
+    parent: CUBA.DESCRIPTIVE_PROPERTY
+
+  STRAIN_STRESS_CURVE:
+    definition: The relationship between the stress (force per unit area) and strain (resulting compression/stretching, known as deformation) that a particular material displays  
+    parent: CUBA.DATA_SET   # this is a dataset, not a measurement one necessarily. 
+    CUBA.STRESS: 
+    CUBA.STRAIN:
+  
+  # should be related to a plan specification 
+  SOFTWARE: 
+    definition: Computers . the programs used to direct the operation of a computer, as well as documentation giving instructions on how to use them. 
+    parent: CUBA.INFORMATION_PROCESSING  # this is not sufficient, there is more to software than just processing. 
+    CUBA.NAME: 
+    CUBA.VERSION:
+    CUBA.AUTHOR:
+      shape:(1:)
+    CUBA.COMPANY: 
+    CUBA.WEB_SITE:
+    CUBA.REPOSITORY:
+  
+  SOFTWARE_TOOL: 
+    definition: a software that has a license and operating system
+    parent: CUBA.SOFTWARE
+    CUBA.OPERATING_SYSTEM:
+
+  OPERATING_SYSTEM: 
+    definition: 
+    parent: CUBA.SOFTWARE
+
+  AUTHOR: 
+    parent: CUBA.PERSON
+    definition: an author of something
+
+  MICROSOFT_WINDOWS: 
+    parent: CUBA.OPERATING_SYSTEM
+    definition: 
+
+  UBUNTU_LINUX: 
+    parent: CUBA.OPERATING_SYSTEM
+    definition: 
+
+  #should be an organization
+  COMPANY: 
+    definition:
+    parent: CUBA.TT_ENTITY 
+
+  #should be an organization
+  SOFTWARE_COMPANY: 
+    definition:
+    parent: CUBA.COMPANY 
+
+  VERSION: 
+    definition: should be moved to the semiotic branch
+    parent: CUBA.DESIGNATIVE
+
+  WEB_SITE: 
+    definition:
+    parent: CUBA.TT_ENTITY 
+    CUBA.URL:
+
+  TEMPERATURE: 
+    definition: 
+    parent: CUBA.PHYSICAL_PROPERTY
+  
+  DESIGNATIVE:
+    definition: to mark or point out; indicate; show; specify.
+    parent: CUBA.DESCRIPTIVE_PROPERTY
+    CUBA.VALUE:
+  
+  EXPERTISE_APP: 
+    definition: bla bla
+    parent: CUBA.SOFTWARE
+  
+  EXPERTISE_SUB_SPACE: 
+    definition: bla bla
+    parent: CUBA.TT_ENTITY
+
+  PREDECESSOR:
+    definition: one that precedes and indicates the approach of another
+    parent: CUBA.VALUE 
+
+  COMMENT: 
+    definition:
+    parent: CUBA.DESIGNATIVE 
+  
+  YOUNGS_MODULUS:
+    definition:
+    parent: CUBA.MECHANICAL_PROPERTY 
+    
+  YIELD_STRESS: 
+    definition:  TBD
+    parent: CUBA.MECHANICAL_PROPERTY 
+
+  EXPONENT_PARAMETER:
+    definition: an exponent, a power, mathematical 
+    parent: CUBA.PROPERTY  # this is temporary. 
+
+  YIELD_OFFSET:
+    definition: TBD 
+    parent: CUBA.MECHANICAL_PROPERTY  # this is temporary. 
+
+  STRAIN_OFFSET:
+    definition:  strain offset according to DIN EN ISO 6892-1:2017-02 formula (G.3).
+    parent: CUBA.MECHANICAL_PROPERTY  # this is temporary.
+
+  DIGITAL_WORKFLOW_SOFTWARE:
+    definition: a software for a digital workflow 
+    parent: CUBA.SOFTWARE_TOOL 
+
+  TENSILE_TEST_DIGITAL_WORKFLOW: 
+    definition: 
+    parent: CUBA.DIGITAL_WORKFLOW_SOFTWARE
+   
+  ANALYSIS: 
+    definition: Apply analytical methods or algorithms to existing entities  
+    parent: CUBA.PROCESS
+
+  CALCULATION: 
+    definition: a certain calculation, a postprocess 
+    parent: CUBA.PROCESS
+
+  ENGINEERING_STRESS_STRAIN_CALCULATION: 
+    definition: force/(cross section area)
+    parent: CUBA.CALCULATION
+    CUBA.INPUT: 
+    CUBA.OUTPUT:
+
+  TRANSVERSE_ENGINEERING_STRAIN_CALCULATOR: 
+    definition: transverse extensometer displacement (width) /width 
+    parent: CUBA.CALCULATION
+ 
+  DIGITAL_ANALYSIS: 
+    definition: Apply digitalised analytical methods or algorithms to existing entities  
+    parent: CUBA.ANALYSIS
+    CUBA.SOFTWARE_TOOL:
+  
+  SET: 
+    parent: CUBA.TT_ENTITY
+    definition: a set, EMMO
+
+  RAMBERG_OSGOOD_RELATION:
+    definition: The Ramberg–Osgood equation was created to describe the non linear relationship between stress and strain (https://en.wikipedia.org/wiki/Ramberg–Osgood_relationship)
+    parent: CUBA.MATERIAL_RELATION
+    CUBA.PARAMETERS:
+      shape: (1)
+      CUBA.YOUNGS_MODULUS: 
+      CUBA.POISSONS_RATIO:
+      CUBA.YIELD_STRESS:
+      CUBA.EXPONENT_PARAMETER:
+
+  UNCERTAINITY_QUANTIFICATION: 
+    definition: a container of UQ parameters
+    parent: CUBA.TT_ENTITY
+  
+  R_SQUARED:
+    definition: a statistical measure of how close the data are to the fitted regression line.
+    parent: CUBA.UNCERTAINITY_QUANTIFICATION
+    CUBA.MEASURE: 
+
+  GOODNESS_OF_FIT: 
+      definition: the goodness of fit, can have an alphanumeric value
+      parent: CUBA.UNCERTAINITY_QUANTIFICATION
+      CUBA.MEASURE:
+
+  SUFFICIENT_QUALITY: 
+    definition: Assess quality according to DIN EN ISO 6892-1:2017-02 (Annex G.6.2)
+    parent: CUBA.DESIGNATIVE
+    CUBA.MEASURE: # for now, but this shold be investigated further. 
+
+  MATERIAL_RELATION:
+    parent: CUBA.TT_ENTITY #todo, EMMO
+    definition: a material relation, we need to allign it wiht EMMO. 
+
+  #PROCESS_PARAMETER:  # not needed, the parameters are entities. 
+  #  definition: 
+  #  parent: CUBA.TT_ENTITY
+
+  CONTROL_PARAMETERS:
+    definition: a collection of parameters
+    parent: CUBA.TT_ENTITY
+    CUBA.CONTROL_PARAMETER:
+
+  PARAMETER: 
+    definition: a parameter is a fixed variable (TODO)
+    parent: CUBA.TT_ENTITY # TODO
+
+  PARAMETERS: 
+    definition: a collection of parameters
+    parent: CUBA.PARAMETER # TODO
+
+  CONTROL_PARAMETER:
+    definition: parameters that control the operation of a process, syn. process parameters in some circumstances, more focused on the control of the process. 
+    parent: CUBA.PARAMETER
+
+  # TENSILE_TEST_ANALYSIS_PARAMETERS: 
+  #   definition: 
+  #   parent: CUBA.PROCESS_PARAMETER_SET
+  #   CUBA.TRUE_STRAIN_LEVEL:
+  #     shape: (4)
+  #   CUBA.POISSONS_RATIO:
+  #     shape: (1)
+  #   CUBA.TENSILE_STRENGTH_MINIMUM_STRAIN:
+  #     default: 5.0
+  #   CUBA.LOWER_STRESS_LIMIT:
+  #   CUBA.UPPER_STRESS_LIMIT:
+  #   CUBA.LOWER_PLASTIC_STRAIN_LIMIT:
+  #   CUBA.UPPER_PLASTIC_STRAIN_LIMIT:    
+
+  POISSONS_RATIO:
+    definition: 
+    parent: CUBA.PHYSICAL_PROPERTY   # later on we put these under the mechanical properties...
+
+  ENGINEERING_STRAIN_MINIMUM:
+    definition:  ask Alex, this is the tensile_strength_minimum_strain
+    parent: CUBA.STRAIN
+    
+  TRUE_STRAIN_LEVEL:
+    definition: ask Alex
+    parent: CUBA.STRAIN
+
+  LOWER_STRESS_LIMIT:
+    definition:  ask Alex
+    parent: CUBA.STRESS
+
+  UPPER_STRESS_LIMIT:
+    definition: 
+    parent: CUBA.STRESS
+
+  LOWER_PLASTIC_STRAIN_LIMIT:
+    definition: 
+    parent: CUBA.STRAIN
+
+  UPPER_PLASTIC_STRAIN_LIMIT:    
+    definition: 
+    parent: CUBA.STRAIN
+  
+  YOUNGS_MODULUS_CALCULATION:
+    parent: CUBA.DIGITAL_ANALYSIS 
+    definition: a process to calculate the Youngs Modulus (linear regression from the measurement results)
+    CUBA.INPUT:   # can later define the allowed parts of the process input or output eitehr here, as additional ontology attributes to input and output, or define input and output specific for this process with allowed options.
+      CUBA.ENGINEERING_STRESS_STRAIN_CALCULATION: 
+      CUBA.LOWER_STRESS_LIMIT:
+      CUBA.UPPER_STRESS_LIMIT:
+    CUBA.OUTPUT:
+      CUBA.YOUNGS_MODULUS:
+      CUBA.UNCERTAINITY_QUANTIFICATION: 
+      CUBA.R_SQUARED:
+      CUBA.SUFFICIENT_QUALITY:
+    CUBA.STRAIN_OFFSET:
+
+  FIT_PARAMETERS: 
+    definition: some fitting method control parameters container
+    parent: CUBA.CUDS_ENTITY # temporary
+
+  PROCESS_INPUT:
+    definition: a set of input objects of a process
+    parent: CUBA.INPUT
+   
+  OUTPUT:
+    definition: a set of output objects of a process
+    parent: CUBA.DESCRIPTIVE_PROPERTY
+
+  PROCESS_OUTPUT:
+    definition: a set of output objects of a process
+    parent: CUBA.OUTPUT
+
+  POSTPROCESSED_OUTPUT:
+    definition: the output of a simulation (CWA)
+    parent: CUBA.PROCESS_OUTPUT
+
+#### elements
+  HYDROGEN_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "H"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 1
+      scope: CUBA.SYSTEM
+
+  HELIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "HE"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 2
+      scope: CUBA.SYSTEM
+
+  LITHIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "LI"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 3
+      scope: CUBA.SYSTEM
+
+  BERYLLIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "BE"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 4
+      scope: CUBA.SYSTEM
+
+  BORON_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "B"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 5
+      scope: CUBA.SYSTEM
+
+  CARBON_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "C"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 6
+      scope: CUBA.SYSTEM
+
+  NITROGEN_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "N"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 7
+      scope: CUBA.SYSTEM
+
+  OXYGEN_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "O"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 8
+      scope: CUBA.SYSTEM
+
+  FLUORINE_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "F"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 9
+      scope: CUBA.SYSTEM
+
+  NEON_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "NE"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 10
+      scope: CUBA.SYSTEM
+
+  SODIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "NA"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 11
+      scope: CUBA.SYSTEM
+
+  MAGNESIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "MG"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 12
+      scope: CUBA.SYSTEM
+
+  ALUMINUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "AL"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 13
+      scope: CUBA.SYSTEM
+
+  SILICON_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "SI"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 14
+      scope: CUBA.SYSTEM
+
+  PHOSPHORUS_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "P"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 15
+      scope: CUBA.SYSTEM
+
+  SULFUR_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "S"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 16
+      scope: CUBA.SYSTEM
+
+  CHLORINE_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "CL"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 17
+      scope: CUBA.SYSTEM
+
+  ARGON_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "AR"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 18
+      scope: CUBA.SYSTEM
+
+  POTASSIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "K"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 19
+      scope: CUBA.SYSTEM
+
+  CALCIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "CA"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 20
+      scope: CUBA.SYSTEM
+
+  SCANDIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "SC"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 21
+      scope: CUBA.SYSTEM
+
+  TITANIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "TI"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 22
+      scope: CUBA.SYSTEM
+
+  VANADIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "V"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 23
+      scope: CUBA.SYSTEM
+
+  CHROMIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "CR"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 24
+      scope: CUBA.SYSTEM
+
+  MANGANESE_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "MN"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 25
+      scope: CUBA.SYSTEM
+
+  IRON_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "FE"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 26
+      scope: CUBA.SYSTEM
+
+  COBALT_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "CO"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 27
+      scope: CUBA.SYSTEM
+
+  NICKEL_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "NI"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 28
+      scope: CUBA.SYSTEM
+
+  COPPER_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "CU"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 29
+      scope: CUBA.SYSTEM
+
+  ZINC_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "ZN"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 30
+      scope: CUBA.SYSTEM
+
+  GALLIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "GA"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 31
+      scope: CUBA.SYSTEM
+
+  GERMANIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "GE"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 32
+      scope: CUBA.SYSTEM
+
+  ARSENIC_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "AS"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 33
+      scope: CUBA.SYSTEM
+
+  SELENIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "SE"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 34
+      scope: CUBA.SYSTEM
+
+  BROMINE_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "BR"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 35
+      scope: CUBA.SYSTEM
+
+  KRYPTON_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "KR"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 36
+      scope: CUBA.SYSTEM
+
+  RUBIDIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "RB"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 37
+      scope: CUBA.SYSTEM
+
+  STRONTIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "SR"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 38
+      scope: CUBA.SYSTEM
+
+  YTTRIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "Y"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 39
+      scope: CUBA.SYSTEM
+
+  ZIRCONIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "ZR"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 40
+      scope: CUBA.SYSTEM
+
+  NIOBIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "NB"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 41
+      scope: CUBA.SYSTEM
+
+  MOLYBDENUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "MO"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 42
+      scope: CUBA.SYSTEM
+
+  TECHNETIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "TC"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 43
+      scope: CUBA.SYSTEM
+
+  RUTHENIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "RU"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 44
+      scope: CUBA.SYSTEM
+
+  RHODIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "RH"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 45
+      scope: CUBA.SYSTEM
+
+  PALLADIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "PD"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 46
+      scope: CUBA.SYSTEM
+
+  SILVER_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "AG"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 47
+      scope: CUBA.SYSTEM
+
+  CADMIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "CD"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 48
+      scope: CUBA.SYSTEM
+
+  INDIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "IN"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 49
+      scope: CUBA.SYSTEM
+
+  TIN_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "SN"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 50
+      scope: CUBA.SYSTEM
+
+  ANTIMONY_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "SB"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 51
+      scope: CUBA.SYSTEM
+
+  TELLURIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "TE"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 52
+      scope: CUBA.SYSTEM
+
+  IODINE_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "I"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 53
+      scope: CUBA.SYSTEM
+
+  XENON_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "XE"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 54
+      scope: CUBA.SYSTEM
+
+  CESIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "CS"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 55
+      scope: CUBA.SYSTEM
+
+  BARIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "BA"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 56
+      scope: CUBA.SYSTEM
+
+  LANTHANUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "LA"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 57
+      scope: CUBA.SYSTEM
+
+  CERIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "CE"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 58
+      scope: CUBA.SYSTEM
+
+  PRASEODYMIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "PR"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 59
+      scope: CUBA.SYSTEM
+
+  NEODYMIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "ND"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 60
+      scope: CUBA.SYSTEM
+
+  PROMETHIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "PM"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 61
+      scope: CUBA.SYSTEM
+
+  SAMARIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "SM"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 62
+      scope: CUBA.SYSTEM
+
+  EUROPIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "EU"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 63
+      scope: CUBA.SYSTEM
+
+  GADOLINIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "GD"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 64
+      scope: CUBA.SYSTEM
+
+  TERBIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "TB"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 65
+      scope: CUBA.SYSTEM
+
+  DYSPROSIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "DY"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 66
+      scope: CUBA.SYSTEM
+
+  HOLMIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "HO"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 67
+      scope: CUBA.SYSTEM
+
+  ERBIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "ER"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 68
+      scope: CUBA.SYSTEM
+
+  THULIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "TM"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 69
+      scope: CUBA.SYSTEM
+
+  YTTERBIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "YB"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 70
+      scope: CUBA.SYSTEM
+
+  LUTETIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "LU"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 71
+      scope: CUBA.SYSTEM
+
+  HAFNIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "HF"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 72
+      scope: CUBA.SYSTEM
+
+  TANTALUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "TA"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 73
+      scope: CUBA.SYSTEM
+
+  TUNGSTEN_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "W"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 74
+      scope: CUBA.SYSTEM
+
+  RHENIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "RE"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 75
+      scope: CUBA.SYSTEM
+
+  OSMIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "OS"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 76
+      scope: CUBA.SYSTEM
+
+  IRIDIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "IR"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 77
+      scope: CUBA.SYSTEM
+
+  PLATINUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "PT"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 78
+      scope: CUBA.SYSTEM
+
+  GOLD_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "AU"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 79
+      scope: CUBA.SYSTEM
+
+  MERCURY_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "HG"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 80
+      scope: CUBA.SYSTEM
+
+  THALLIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "TL"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 81
+      scope: CUBA.SYSTEM
+
+  LEAD_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "PB"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 82
+      scope: CUBA.SYSTEM
+
+  BISMUTH_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "BI"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 83
+      scope: CUBA.SYSTEM
+
+  POLONIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "PO"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 84
+      scope: CUBA.SYSTEM
+
+  ASTATINE_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "AT"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 85
+      scope: CUBA.SYSTEM
+
+  RADON_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "RN"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 86
+      scope: CUBA.SYSTEM
+
+  FRANCIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "FR"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 87
+      scope: CUBA.SYSTEM
+
+  RADIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "RA"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 88
+      scope: CUBA.SYSTEM
+
+  ACTINIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "AC"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 89
+      scope: CUBA.SYSTEM
+
+  THORIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "TH"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 90
+      scope: CUBA.SYSTEM
+
+  PROTACTINIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "PA"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 91
+      scope: CUBA.SYSTEM
+
+  URANIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "U"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 92
+      scope: CUBA.SYSTEM
+
+  NEPTUNIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "NP"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 93
+      scope: CUBA.SYSTEM
+
+  PLUTONIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "PU"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 94
+      scope: CUBA.SYSTEM
+
+  AMERICIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "AM"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 95
+      scope: CUBA.SYSTEM
+
+  CURIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "CM"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 96
+      scope: CUBA.SYSTEM
+
+  BERKELIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "BK"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 97
+      scope: CUBA.SYSTEM
+
+  CALIFORNIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "CF"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 98
+      scope: CUBA.SYSTEM
+
+  EINSTEINIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "ES"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 99
+      scope: CUBA.SYSTEM
+
+  FERMIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "FM"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 100
+      scope: CUBA.SYSTEM
+
+  MENDELEVIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "MD"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 101
+      scope: CUBA.SYSTEM
+
+  NOBELIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "NO"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 102
+      scope: CUBA.SYSTEM
+
+  LAWRENCIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "LR"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 103
+      scope: CUBA.SYSTEM
+
+  RUTHERFORDIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "RF"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 104
+      scope: CUBA.SYSTEM
+
+  DUBNIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "DB"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 105
+      scope: CUBA.SYSTEM
+
+  SEABORGIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "SG"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 106
+      scope: CUBA.SYSTEM
+
+  BOHRIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "BH"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 107
+      scope: CUBA.SYSTEM
+
+  HASSIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "HS"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 108
+      scope: CUBA.SYSTEM
+
+  MEITNERIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "MT"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 109
+      scope: CUBA.SYSTEM
+
+  DARMSTADTIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "DS"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 110
+      scope: CUBA.SYSTEM
+
+  ROENTGENIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "RG"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 111
+      scope: CUBA.SYSTEM
+
+  COPERNICIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "CN"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 112
+      scope: CUBA.SYSTEM
+
+  NIHONIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "NH"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 113
+      scope: CUBA.SYSTEM
+
+  FLEROVIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "FL"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 114
+      scope: CUBA.SYSTEM
+
+  MOSCOVIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "MC"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 115
+      scope: CUBA.SYSTEM
+
+  LIVERMORIUM_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "LV"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 116
+      scope: CUBA.SYSTEM
+
+  TENNESSINE_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "TS"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 117
+      scope: CUBA.SYSTEM
+
+  OGANESSON_ATOM:
+    definition:
+    parent: CUBA.ATOM
+    CUBA.NAME:
+      default: "OG"
+      scope: CUBA.SYSTEM
+    CUBA.NUMBER:
+      default: 118
+      scope: CUBA.SYSTEM
+
+
+  AIRPORT: 
+    definition: 
+    parent: TT_ENTITY
+  
+  PLANE: 
+    definition: 
+    parent: CUBA.TT_ENTITY
+  
+  CAN_PERFORM: 
+    definition: 
+    parent: CUBA.ENTITY
+
+  DIPOLE_MOMENT:
+    definition: ask Stan
+    parent: CUBA.ENTITY
