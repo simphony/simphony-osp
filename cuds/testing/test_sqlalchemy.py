@@ -8,7 +8,7 @@
 import os
 import unittest2 as unittest
 import cuds.classes
-from cuds.testing.test_sqlite_city import check_state
+from cuds.testing.test_sqlite_city import check_state, check_db_cleared
 from cuds.classes.core.session.db.sqlalchemy_wrapper_session import \
     SqlAlchemyWrapperSession
 
@@ -163,6 +163,23 @@ class TestSqliteAlchemyCity(unittest.TestCase):
                 p2w[cuds.classes.IsInhabitantOf],
                 {c.uid: c.cuba_key}
             )
+
+    def test_clear_database(self):
+        c = cuds.classes.City("Freiburg")
+        p1 = cuds.classes.Citizen(name="Peter")
+        p2 = cuds.classes.Citizen(name="Anna")
+        p3 = cuds.classes.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
+        p1.add(p3, rel=cuds.classes.HasChild)
+        p2.add(p3, rel=cuds.classes.HasChild)
+
+        with SqlAlchemyWrapperSession("sqlite:///test.db") as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            wrapper.add(c)
+            session.commit()
+            session._clear_database()
+
+        check_db_cleared(self, "test.db")
 
 
 if __name__ == '__main__':

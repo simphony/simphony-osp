@@ -87,6 +87,13 @@ class SqliteWrapperSession(SqlWrapperSession):
         condition_str = self._get_condition_string(condition)
         c.execute("DELETE FROM %s WHERE %s;" % (table_name, condition_str))
 
+    # OVERRIDE
+    def _get_table_names(self, prefix):
+        c = self._engine.cursor()
+        tables = c.execute("SELECT name FROM sqlite_master "
+                           + "WHERE type='table';")
+        return set([x[0] for x in tables if x[0].startswith(prefix)])
+
     def _get_condition_string(self, condition):
         """Convert the given condition to a Sqlite condition string.
 

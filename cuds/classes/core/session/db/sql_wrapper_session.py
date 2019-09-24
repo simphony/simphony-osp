@@ -120,6 +120,29 @@ class SqlWrapperSession(DbWrapperSession):
         """
         pass
 
+    @abstractmethod
+    def _get_table_names(self, prefix):
+        """ Get all tables in the database with the given prefix.
+
+        :param prefix: Only return tables with the given prefix
+        :type prefix: str
+        """
+        pass
+
+    def _clear_database(self):
+        """Delete the contents of every table."""
+        self._init_transaction()
+        try:
+            for table_name in self._get_table_names(
+                    SqlWrapperSession.CUDS_PREFIX):
+                self._db_delete(table_name, None)
+            self._db_delete(self.RELATIONSHIP_TABLE, None)
+            self._db_delete(self.MASTER_TABLE, None)
+            self._commit()
+        except Exception as e:
+            self._rollback_transaction()
+            raise e
+
     # OVERRIDE
     def _apply_added(self):
         # Perform the SQL-Statements to add the elements

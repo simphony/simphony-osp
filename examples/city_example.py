@@ -73,3 +73,4 @@ with SqlAlchemyWrapperSession(postgres_url) as db_session:
     db_emmo_town = db_wrapper.get(emmo_town.uid)
     print("The database contains the following information about the city:")
     pretty_print(db_emmo_town)
+    db_session._clear_database()
