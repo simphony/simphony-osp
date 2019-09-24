@@ -174,7 +174,8 @@ class ValidityChecker():
                         allowed_target_dict_keys = {"cardinality",
                                                     "scope",
                                                     "range", "shape"}
-                        assert target_dict.keys() \
+                        assert target_dict is None or \
+                            target_dict.keys() \
                             - allowed_target_dict_keys == set(), \
                             "Specifying %s not allowed for relationship %s" % (
                                 target_dict.keys() - allowed_target_dict_keys,
