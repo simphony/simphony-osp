@@ -1,5 +1,6 @@
 import os
 
+import re
 from setuptools import setup
 from subprocess import check_call, CalledProcessError
 from setuptools.command.install import install
@@ -20,9 +21,11 @@ with open('README.rst', 'r') as readme:
 
 
 def create_ontology_classes(ontology):
-    ontology_file = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        'cuds', 'ontology', ontology)
+    ontology_file = ontology
+    if not ontology.endswith(".yml"):
+        ontology_file = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            'cuds', 'ontology', 'ontology.' + ontology + '.yml')
     entity_template = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         'cuds', 'metatools', 'template_entity')
@@ -60,16 +63,7 @@ class Install(install):
         self.ontology = ''
 
     def run(self):
-        if self.ontology == "city":
-            create_ontology_classes('ontology_city.yml')
-        elif self.ontology == "toy":
-            create_ontology_classes('ontology_toy.yml')
-        elif self.ontology == "" or self.ontology == "stable":
-            create_ontology_classes('ontology_stable.yml')
-        elif self.ontology.endswith(".yml"):
-            create_ontology_classes(self.ontology)
-        else:
-            raise ValueError("Unknown ontology specified: %s" % self.ontology)
+        create_ontology_classes(self.ontology or "stable")
         install.run(self)
 
 
