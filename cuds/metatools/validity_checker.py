@@ -162,13 +162,23 @@ class ValidityChecker():
                         "CUBA." + self.default_relationship,
                         {"CUBA." + attribute: target})
                     parser.del_attribute(entity, "CUBA." + attribute)
+                    attribute = self.default_relationship
+                    ancestors = parser.get_ancestors(self.default_relationship)
 
                 # check relationship target
                 if self.root_rel in ancestors:
-                    for target in parser.get_value(
-                            entity, "CUBA." + attribute.upper()):
+                    for target, target_dict in parser.get_value(
+                            entity, "CUBA." + attribute.upper()).items():
                         assert target.startswith("CUBA."), \
                             "Target of a relationship must be a cuba key."
+                        allowed_target_dict_keys = {"cardinality",
+                                                    "scope",
+                                                    "range", "shape"}
+                        assert target_dict.keys() \
+                            - allowed_target_dict_keys == set(), \
+                            "Specifying %s not allowed for relationship %s" % (
+                                target_dict.keys() - allowed_target_dict_keys,
+                                (attribute, target))
                         try:
                             parser.get_ancestors(target[5:])
                         except KeyError as e:
