@@ -162,7 +162,6 @@ CUDS_ONTOLOGY:
   NAME:
     definition:
     parent: CUBA.VALUE
-    datatype: "STRING:20"
 
   ADDRESS:
     definition:

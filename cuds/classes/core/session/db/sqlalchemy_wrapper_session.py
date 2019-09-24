@@ -144,6 +144,8 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
             return sqlalchemy.String(int(cuds_datatype.split(":")[1]))
         elif cuds_datatype.startswith("STRING"):
             return sqlalchemy.String()
+        elif cuds_datatype.startswith("UNDEFINED"):
+            return sqlalchemy.String()
         else:
             raise NotImplementedError("Unsupported data type!")
 
@@ -158,8 +160,12 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
         :return: The converted value.
         :rtype: str
         """
-        if cuds_datatype is None or \
-                cuds_datatype == "UUID" or cuds_datatype.startswith("STRING"):
+        if (
+            cuds_datatype is None
+            or cuds_datatype == "UUID"
+            or cuds_datatype.startswith("STRING")
+            or cuds_datatype == "UNDEFINED"
+        ):
             return str(value)
         if cuds_datatype == "INT":
             return int(value)

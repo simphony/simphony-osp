@@ -134,6 +134,8 @@ class SqliteWrapperSession(SqlWrapperSession):
             return "REAL"
         elif cuds_datatype.startswith("STRING"):
             return "TEXT"
+        elif cuds_datatype == "UNDEFINED":
+            return "TEXT"
         else:
             raise NotImplementedError("Unsupported data type!")
 
@@ -148,8 +150,12 @@ class SqliteWrapperSession(SqlWrapperSession):
         :return: The converted value.
         :rtype: str
         """
-        if cuds_datatype is None or \
-                cuds_datatype == "UUID" or cuds_datatype.startswith("STRING"):
+        if (
+            cuds_datatype is None
+            or cuds_datatype == "UUID"
+            or cuds_datatype.startswith("STRING")
+            or cuds_datatype == "UNDEFINED"
+        ):
             return "'%s'" % value
         if cuds_datatype in ["INT", "BOOL"]:
             return str(int(value))
