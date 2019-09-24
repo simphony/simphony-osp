@@ -261,6 +261,23 @@ class TestSqliteCity(unittest.TestCase):
             self.assertEqual(p3w.name, None)
             self.assertNotIn(p3w.uid, session._registry)
 
+    def test_clear_database(self):
+        c = cuds.classes.City("Freiburg")
+        p1 = cuds.classes.Citizen(name="Peter")
+        p2 = cuds.classes.Citizen(name="Anna")
+        p3 = cuds.classes.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
+        p1.add(p3, rel=cuds.classes.HasChild)
+        p2.add(p3, rel=cuds.classes.HasChild)
+
+        with SqliteWrapperSession("test.db") as session:
+            wrapper = cuds.classes.CityWrapper(session=session)
+            wrapper.add(c)
+            session.commit()
+            session._clear_database()
+
+        check_db_cleared(self, "test.db")
+
 
 def check_state(test_case, c, p1, p2, table="test.db"):
     """Check if the sqlite tables are in the correct state."""
@@ -292,6 +309,21 @@ def check_state(test_case, c, p1, p2, table="test.db"):
         test_case.assertEqual(result, {
             (str(c.uid), "Freiburg")
         })
+
+
+def check_db_cleared(test_case, table):
+    with sqlite3.connect(table) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM %s;"
+                       % SqliteWrapperSession.MASTER_TABLE)
+        test_case.assertEquals(list(cursor), list())
+        cursor.execute("SELECT * FROM %s;"
+                       % SqliteWrapperSession.RELATIONSHIP_TABLE)
+        test_case.assertEquals(list(cursor), list())
+        cursor.execute("SELECT * FROM CUDS_CITIZEN")
+        test_case.assertEquals(list(cursor), list())
+        cursor.execute("SELECT * FROM CUDS_CITY")
+        test_case.assertEquals(list(cursor), list())
 
 
 if __name__ == '__main__':

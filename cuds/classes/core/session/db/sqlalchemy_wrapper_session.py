@@ -96,6 +96,11 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
             .where(condition)
         self._connection.execute(stmt)
 
+    # OVERRIDE
+    def _get_table_names(self, prefix):
+        return filter(lambda x: x.startswith(prefix),
+                      self._metadata.tables.keys())
+
     def _get_sqlalchemy_condition(self, condition):
         """Transform the given condition to a SqlAlchemy condition
 
@@ -143,7 +148,7 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
             raise NotImplementedError("Unsupported data type!")
 
     def _to_sqlalchemy_value(self, value, cuds_datatype):
-        """Convert the given value s.t. it can be used in a sqlite query.
+        """Convert the given value s.t. it can be used in a sqlalchemy query.
 
         :param value: The value to convert.
         :type value: Any
