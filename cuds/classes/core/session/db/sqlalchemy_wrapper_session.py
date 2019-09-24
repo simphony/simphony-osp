@@ -19,6 +19,7 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
         self._connection = self._engine.connect()
         self._transaction = None
         self._metadata = sqlalchemy.MetaData(self._connection)
+        self._metadata.reflect(self._engine)
 
     def __str__(self):
         return "SqlAlchemy Wrapper with engine %s" % self._engine
@@ -98,8 +99,8 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
 
     # OVERRIDE
     def _get_table_names(self, prefix):
-        return filter(lambda x: x.startswith(prefix),
-                      self._metadata.tables.keys())
+        return set(filter(lambda x: x.startswith(prefix),
+                          self._metadata.tables.keys()))
 
     def _get_sqlalchemy_condition(self, condition):
         """Transform the given condition to a SqlAlchemy condition
