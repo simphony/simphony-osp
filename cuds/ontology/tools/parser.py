@@ -147,11 +147,13 @@ class Parser:
         :param inheritance: whether inherited attributes should be added or not
         :return: sorted list with the names of the attributes
         """
-        attributes = self.get_own_attributes(entity)
-        if inheritance:
-            inherited = self.get_inherited_attributes(entity)
-            attributes.update(inherited)
-        return attributes
+        own_attributes = self.get_own_attributes(entity)
+        if not inheritance:
+            return own_attributes
+
+        inherited = self.get_inherited_attributes(entity)
+        inherited.update(own_attributes)
+        return inherited
 
     def get_own_attributes(self, entity):
         """
@@ -179,7 +181,8 @@ class Parser:
         for ancestor in ancestors:
             attributes_ancestor = self.get_own_attributes(ancestor)
             if attributes_ancestor:
-                attributes.update(attributes_ancestor)
+                attributes_ancestor.update(attributes)
+                attributes = attributes_ancestor
         return attributes
 
     def get_ancestors(self, leaf_entity):
