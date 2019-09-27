@@ -7,6 +7,8 @@
 
 import sys
 import inspect
+import requests
+import json
 from copy import deepcopy
 from cuds.metatools.ontology_datatypes import convert_to
 
@@ -41,7 +43,22 @@ def format_class_name(name):
     return fixed_name
 
 
-def find_cuds_object(criterion, root, rel, find_all, visited=None):
+def post(url, cuds_object, max_depth=float("inf")):
+    from cuds.classes import ActiveRelationship
+    from cuds.classes.core.session.transport.transport_util import serializable
+    cuds_objects = find_cuds_object(criterion=lambda x: True,
+                                    root=cuds_object,
+                                    rel=ActiveRelationship,
+                                    find_all=True,
+                                    max_depth=max_depth)
+    serialized = json.dumps(serializable(cuds_objects))
+    return requests.post(url=url,
+                         data=serialized,
+                         headers={"content_type": "application/json"})
+
+
+def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
+                     current_depth=0, visited=None):
     """
     Recursively finds an element inside a container
     by considering the given relationship.
@@ -51,11 +68,13 @@ def find_cuds_object(criterion, root, rel, find_all, visited=None):
     :type criterion: Callable
     :param root: Starting point of search
     :type root: Cuds
+    :param rel: The relationship (incl. subrelationships) to consider
+    :type rel: Type[Relationship]
     :param find_all: Whether to find all cuds_objects with satisfying
         the criterion.
     :type find_all: bool
-    :param rel: The relationship (incl. subrelationships) to consider
-    :type rel: Type[Relationship]
+    :param max_depth: The maximum depth for the search.
+    :type max_depth: Union(float, int)
     :return: the element if found
     :rtype: Union[Cuds, List[Cuds]]
     """
@@ -66,13 +85,20 @@ def find_cuds_object(criterion, root, rel, find_all, visited=None):
     if output and not find_all:
         return output[0]
 
-    for sub in root.iter(rel=rel):
-        if sub.uid not in visited:
-            result = find_cuds_object(criterion, sub, rel, find_all, visited)
-            if not find_all and result is not None:
-                return result
-            if result is not None:
-                output += result
+    if current_depth < max_depth:
+        for sub in root.iter(rel=rel):
+            if sub.uid not in visited:
+                result = find_cuds_object(criterion=criterion,
+                                          root=sub,
+                                          rel=rel,
+                                          find_all=find_all,
+                                          max_depth=max_depth,
+                                          current_depth=current_depth + 1,
+                                          visited=visited)
+                if not find_all and result is not None:
+                    return result
+                if result is not None:
+                    output += result
     return output if find_all else None
 
 
