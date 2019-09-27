@@ -8,8 +8,8 @@
 import json
 import uuid
 from cuds.utils import create_for_session
-from cuds.classes.core.cuds import Cuds
-from cuds.metatools.ontology_datatypes import convert_from, convert_to
+from cuds.classes.cuds import Cuds
+from cuds.generator.ontology_datatypes import convert_from, convert_to
 from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
 from cuds.classes.generated.cuba import CUBA
 

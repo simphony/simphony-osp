@@ -9,8 +9,8 @@ import io
 import unittest
 import cuds.classes
 import responses
-from cuds.classes.core.session.transport.transport_util import serializable
-from cuds.classes.core.session.core_session import CoreSession
+from cuds.session.transport.transport_util import serializable
+from cuds.session.core_session import CoreSession
 from cuds.utils import (destroy_cuds_object, clone_cuds_object,
                         create_for_session, create_from_cuds_object,
                         check_arguments, format_class_name, find_cuds_object,

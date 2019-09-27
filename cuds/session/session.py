@@ -6,7 +6,7 @@
 # No redistribution is allowed without explicit written permission.
 
 from abc import ABC, abstractmethod
-from cuds.classes.core.registry import Registry
+from cuds.session.registry import Registry
 
 
 class Session(ABC):

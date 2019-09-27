@@ -5,7 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-from cuds.classes.core.cuds import Cuds
+from cuds.classes.cuds import Cuds
 from abc import abstractmethod
 from .session import Session
 

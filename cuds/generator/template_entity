@@ -1,6 +1,6 @@
 from copy import deepcopy
 from .cuba import CUBA
-from cuds.metatools.ontology_datatypes import convert_to
+from cuds.generator.ontology_datatypes import convert_to
 from $parent_module import $parent
 
 

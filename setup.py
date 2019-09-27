@@ -13,7 +13,7 @@ try:
 except (FileNotFoundError, CalledProcessError):
     check_call(["pip", "install", "-r", "requirements.txt"])
 
-from cuds.metatools.class_generator import ClassGenerator
+from cuds.generator.class_generator import ClassGenerator
 
 # Read description
 with open('README.rst', 'r') as readme:
@@ -28,10 +28,10 @@ def create_ontology_classes(ontology):
             'cuds', 'ontology', 'ontology.' + ontology + '.yml')
     entity_template = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        'cuds', 'metatools', 'template_entity')
+        'cuds', 'generator', 'template_entity')
     relationship_template = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        'cuds', 'metatools', 'template_relationship')
+        'cuds', 'generator', 'template_relationship')
 
     if not os.path.exists(ontology_file):
         text = 'Unrecoverable error. Cannot find ' + ontology + ' file in {}'
@@ -84,14 +84,13 @@ except OSError:
 packages = [
     'cuds',
     'cuds.classes',
-    'cuds.classes.core',
-    'cuds.classes.core.session',
-    'cuds.classes.core.session.db',
-    'cuds.classes.core.session.transport',
     'cuds.classes.generated',
-    'cuds.metatools',
+    'cuds.session',
+    'cuds.session.db',
+    'cuds.session.transport',
+    'cuds.generator',
     'cuds.ontology',
-    'cuds.ontology.tools',
+    'cuds.ontology.utils',
     'cuds.testing'
 ]
 
@@ -112,8 +111,8 @@ setup(
     test_suite='cuds.testing',
     entry_points={
         'console_scripts': [
-            'simphony-class-generator = cuds.metatools.class_generator:main',
-            'cuds2dot = cuds.ontology.tools.cuds2dot:main'],
-        'wrappers': 'osp-core = cuds.classes.core:Cuds'
+            'simphony-class-generator = cuds.generator.class_generator:main',
+            'cuds2dot = cuds.ontology.utils.cuds2dot:main'],
+        'wrappers': 'osp-core = cuds.classes:Cuds'
     }
 )

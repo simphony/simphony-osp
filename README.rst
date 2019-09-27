@@ -76,7 +76,7 @@ Directory structure
     - core -- common low level classes and utility code.
     - generated -- generated native cuds implementations.
 
-  - metatools -- class generator and template file.
+  - generator -- class generator and template file.
   - ontology -- ontological representation of the cuds.
 
     - tools -- scripts that work on the ontology files
