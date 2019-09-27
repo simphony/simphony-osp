@@ -8,7 +8,7 @@
 import uuid
 from abc import abstractmethod
 from cuds.utils import destroy_cuds_object
-from cuds.classes.core.session.wrapper_session import WrapperSession
+from cuds.session.wrapper_session import WrapperSession
 
 
 class StorageWrapperSession(WrapperSession):

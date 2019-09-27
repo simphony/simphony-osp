@@ -7,11 +7,11 @@
 
 import json
 import traceback
-from cuds.classes.core.session.storage_wrapper_session \
+from cuds.session.storage_wrapper_session \
     import StorageWrapperSession
-from cuds.classes.core.session.transport.communication_engine \
+from cuds.session.transport.communication_engine \
     import CommunicationEngineServer
-from cuds.classes.core.session.transport.transport_util import (
+from cuds.session.transport.transport_util import (
     INITIALIZE_COMMAND, LOAD_COMMAND, deserialize, deserialize_buffers,
     serializable, serialize
 )

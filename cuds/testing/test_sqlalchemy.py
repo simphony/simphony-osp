@@ -9,7 +9,7 @@ import os
 import unittest2 as unittest
 import cuds.classes
 from cuds.testing.test_sqlite_city import check_state, check_db_cleared
-from cuds.classes.core.session.db.sqlalchemy_wrapper_session import \
+from cuds.session.db.sqlalchemy_wrapper_session import \
     SqlAlchemyWrapperSession
 
 

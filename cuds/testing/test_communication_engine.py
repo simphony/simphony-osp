@@ -7,7 +7,7 @@
 
 import unittest2 as unittest
 import asyncio
-from cuds.classes.core.session.transport.communication_engine import \
+from cuds.session.transport.communication_engine import \
     CommunicationEngineClient, CommunicationEngineServer
 
 

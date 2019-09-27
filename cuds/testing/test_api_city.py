@@ -9,8 +9,8 @@ import unittest2 as unittest
 import uuid
 
 from cuds.utils import clone_cuds_object, create_from_cuds_object
-from cuds.classes.core.session.core_session import CoreSession
-from cuds.classes.core.cuds import Cuds
+from cuds.session.core_session import CoreSession
+from cuds.classes.cuds import Cuds
 import cuds.classes
 
 

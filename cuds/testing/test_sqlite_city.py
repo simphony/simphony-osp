@@ -10,7 +10,7 @@ import uuid
 import unittest2 as unittest
 import cuds.classes
 import sqlite3
-from cuds.classes.core.session.db.sqlite_wrapper_session import \
+from cuds.session.db.sqlite_wrapper_session import \
     SqliteWrapperSession
 
 

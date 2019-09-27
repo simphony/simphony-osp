@@ -1,4 +1,4 @@
-from cuds.classes.core.session.sim_wrapper_session import SimWrapperSession
+from cuds.session.sim_wrapper_session import SimWrapperSession
 from cuds.classes.generated.cuba import CUBA
 import cuds.classes
 import unittest2 as unittest

@@ -10,7 +10,7 @@ import inspect
 import requests
 import json
 from copy import deepcopy
-from cuds.metatools.ontology_datatypes import convert_to
+from cuds.generator.ontology_datatypes import convert_to
 
 
 # General utility methods
@@ -45,7 +45,7 @@ def format_class_name(name):
 
 def post(url, cuds_object, max_depth=float("inf")):
     from cuds.classes import ActiveRelationship
-    from cuds.classes.core.session.transport.transport_util import serializable
+    from cuds.session.transport.transport_util import serializable
     cuds_objects = find_cuds_object(criterion=lambda x: True,
                                     root=cuds_object,
                                     rel=ActiveRelationship,
@@ -232,7 +232,7 @@ def get_ancestors(cuds_object_or_class):
     """
     import cuds.classes
     # object from osp_core
-    if isinstance(cuds_object_or_class, cuds.classes.core.Cuds):
+    if isinstance(cuds_object_or_class, cuds.classes.Cuds):
         parent = cuds_object_or_class.__class__.__bases__[0]
     # wrapper instance
     else:
