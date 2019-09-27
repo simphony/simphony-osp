@@ -8,6 +8,8 @@
 import io
 import unittest
 import cuds.classes
+import responses
+from cuds.classes.core.session.transport.transport_util import serializable
 from cuds.classes.core.session.core_session import CoreSession
 from cuds.utils import (destroy_cuds_object, clone_cuds_object,
                         create_for_session, create_from_cuds_object,
@@ -15,7 +17,7 @@ from cuds.utils import (destroy_cuds_object, clone_cuds_object,
                         find_cuds_object_by_uid, remove_cuds_object,
                         get_ancestors, pretty_print,
                         find_cuds_objects_by_cuba_key, find_relationships,
-                        find_cuds_objects_by_attribute)
+                        find_cuds_objects_by_attribute, post)
 
 
 def get_test_city():
@@ -40,8 +42,37 @@ def get_test_city():
 
 class TestUtils(unittest.TestCase):
 
+    @responses.activate
+    def test_post(self):
+        """Test sending a cuds object to the server"""
+        def request_callback(request):
+            headers = {'request-id': '728d329e-0e86-11e4-a748-0c84dc037c13'}
+            return (200, headers, request.body)
+
+        responses.add_callback(
+            responses.POST, 'http://dsms.com',
+            callback=request_callback,
+            content_type='application/json',
+        )
+
+        c, p1, p2, p3, n1, n2, s1 = get_test_city()
+        response = post('http://dsms.com', c)
+
+        serialized = serializable([c, p1, p2, p3, n1, n2, s1])
+        for x in response.json():
+            i = serialized.index(x)
+            del serialized[i]
+        self.assertEqual(serialized, list())
+
+        response = post('http://dsms.com', c, max_depth=1)
+        serialized = serializable([c, p1, p2, p3, n1, n2])
+        for x in response.json():
+            i = serialized.index(x)
+            del serialized[i]
+        self.assertEqual(serialized, list())
+
     def test_destroy_cuds_object(self):
-        """Test destroyion of cuds"""
+        """Test destroying of cuds"""
         a = cuds.classes.City("Freiburg")
         b = cuds.classes.Citizen(age=12, name="Horst")
         with CoreSession() as session:
@@ -159,7 +190,7 @@ class TestUtils(unittest.TestCase):
         def find_freiburg(x):
             return hasattr(x, "name") and x.name == "Freiburg"
 
-        def find_leaves(x):
+        def find_non_leaves(x):
             return len(x.get()) != 0
 
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
@@ -167,18 +198,23 @@ class TestUtils(unittest.TestCase):
             find_maria, c, cuds.classes.ActiveRelationship, False), p3)
         self.assertIs(find_cuds_object(
             find_maria, c, cuds.classes.PassiveRelationship, False), None)
-        self.assertEquals(find_cuds_object(
+        self.assertEqual(find_cuds_object(
             find_maria, c, cuds.classes.PassiveRelationship, True), list())
         all_found = find_cuds_object(
             find_maria, c, cuds.classes.ActiveRelationship, True)
         self.assertIs(all_found[0], p3)
-        self.assertEquals(len(all_found), 1)
+        self.assertEqual(len(all_found), 1)
         self.assertIs(find_cuds_object(
             find_freiburg, c, cuds.classes.ActiveRelationship, False), c)
         all_found = find_cuds_object(
-            find_leaves, c, cuds.classes.ActiveRelationship, True)
-        self.assertEquals(len(all_found), 6)
-        self.assertEquals(set(all_found), {c, p1, p2, n1, n2, s1})
+            find_non_leaves, c, cuds.classes.ActiveRelationship, True)
+        self.assertEqual(len(all_found), 6)
+        self.assertEqual(set(all_found), {c, p1, p2, n1, n2, s1})
+        all_found = find_cuds_object(
+            find_non_leaves, c, cuds.classes.ActiveRelationship, True,
+            max_depth=1)
+        self.assertEqual(len(all_found), 5)
+        self.assertEqual(set(all_found), {c, p1, p2, n1, n2})
 
     def test_find_cuds_object_by_uid(self):
         """ Test to find a cuds object by uid in given subtree """
@@ -229,7 +265,7 @@ class TestUtils(unittest.TestCase):
     def test_find_cuds_objects_by_cuba_key(self):
         """ Test find by cuba key """
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
-        self.assertEquals(find_cuds_objects_by_cuba_key(
+        self.assertEqual(find_cuds_objects_by_cuba_key(
             cuds.classes.City.cuba_key, c, cuds.classes.ActiveRelationship),
             [c])
         found = find_cuds_objects_by_cuba_key(

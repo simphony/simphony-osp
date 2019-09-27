@@ -322,14 +322,14 @@ def check_db_cleared(test_case, table):
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM %s;"
                        % SqliteWrapperSession.MASTER_TABLE)
-        test_case.assertEquals(list(cursor), list())
+        test_case.assertEqual(list(cursor), list())
         cursor.execute("SELECT * FROM %s;"
                        % SqliteWrapperSession.RELATIONSHIP_TABLE)
-        test_case.assertEquals(list(cursor), list())
+        test_case.assertEqual(list(cursor), list())
         cursor.execute("SELECT * FROM CUDS_CITIZEN")
-        test_case.assertEquals(list(cursor), list())
+        test_case.assertEqual(list(cursor), list())
         cursor.execute("SELECT * FROM CUDS_CITY")
-        test_case.assertEquals(list(cursor), list())
+        test_case.assertEqual(list(cursor), list())
 
 
 if __name__ == '__main__':
