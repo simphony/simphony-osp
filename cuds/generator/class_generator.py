@@ -11,8 +11,8 @@ import re
 import textwrap
 from string import Template
 
-from cuds.metatools.validity_checker import ValidityChecker
-from cuds.ontology.tools.parser import Parser
+from cuds.generator.validity_checker import ValidityChecker
+from cuds.generator.parser import Parser
 from cuds.utils import format_class_name
 
 
@@ -147,7 +147,7 @@ class ClassGenerator(object):
         # Get the parent
         parent = self._parser.get_parent(original_class)
         if parent == "":
-            parent_module = "..core.cuds"
+            parent_module = "cuds.classes.cuds"
             parent_class = "Cuds"
         elif original_class == "RELATIONSHIP":
             parent_module = "builtins"

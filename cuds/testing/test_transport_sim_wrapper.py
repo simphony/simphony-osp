@@ -8,9 +8,9 @@
 import sys
 import time
 import subprocess
-from cuds.classes.core.session.transport.transport_session_client import \
+from cuds.session.transport.transport_session_client import \
     TransportSessionClient
-from cuds.classes.core.session.transport.transport_session_server import \
+from cuds.session.transport.transport_session_server import \
     TransportSessionServer
 from cuds.testing.test_sim_wrapper_city import DummySimSession
 import cuds.classes

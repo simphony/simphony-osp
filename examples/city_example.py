@@ -3,9 +3,9 @@ from cuds.classes import (
     HasPart, HasInhabitant, IsPartOf,
     CUBA, CityWrapper, CitySimWrapper, Person
 )
-from cuds.classes.core.session.db.sqlalchemy_wrapper_session import \
+from cuds.session.db.sqlalchemy_wrapper_session import \
     SqlAlchemyWrapperSession
-from cuds.testing.test_sim_wrapper import DummySimSession
+from cuds.testing.test_sim_wrapper_city import DummySimSession
 from cuds.utils import pretty_print
 from getpass import getpass
 

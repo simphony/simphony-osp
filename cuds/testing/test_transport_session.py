@@ -11,14 +11,14 @@ import json
 import cuds.classes
 from copy import deepcopy
 from cuds.utils import create_for_session
-from cuds.classes.core.session.wrapper_session import consumes_buffers
+from cuds.session.wrapper_session import consumes_buffers
 from cuds.testing.test_session_city import TestWrapperSession
 from cuds.classes.generated.cuba import CUBA
-from cuds.classes.core.session.transport.transport_session_client import \
+from cuds.session.transport.transport_session_client import \
     TransportSessionClient
-from cuds.classes.core.session.transport.transport_session_server import \
+from cuds.session.transport.transport_session_server import \
     TransportSessionServer
-from cuds.classes.core.session.transport.transport_util import (
+from cuds.session.transport.transport_util import (
     deserialize, serializable, deserialize_buffers,
     serialize, LOAD_COMMAND, INITIALIZE_COMMAND
 )

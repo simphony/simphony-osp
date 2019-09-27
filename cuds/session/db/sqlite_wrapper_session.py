@@ -6,9 +6,9 @@
 # No redistribution is allowed without explicit written permission.
 
 import sqlite3
-from cuds.classes.core.session.db.conditions import (EqualsCondition,
+from cuds.session.db.conditions import (EqualsCondition,
                                                      AndCondition)
-from cuds.classes.core.session.db.sql_wrapper_session import SqlWrapperSession
+from cuds.session.db.sql_wrapper_session import SqlWrapperSession
 
 
 class SqliteWrapperSession(SqlWrapperSession):

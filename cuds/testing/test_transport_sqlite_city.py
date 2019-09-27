@@ -13,11 +13,11 @@ import unittest2 as unittest
 import cuds.classes
 import sqlite3
 from cuds.testing.test_sqlite_city import check_state
-from cuds.classes.core.session.db.sqlite_wrapper_session import \
+from cuds.session.db.sqlite_wrapper_session import \
     SqliteWrapperSession
-from cuds.classes.core.session.transport.transport_session_client import \
+from cuds.session.transport.transport_session_client import \
     TransportSessionClient
-from cuds.classes.core.session.transport.transport_session_server import \
+from cuds.session.transport.transport_session_server import \
     TransportSessionServer
 
 HOST = "127.0.0.1"

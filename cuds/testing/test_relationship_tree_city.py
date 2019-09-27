@@ -7,7 +7,7 @@
 
 import unittest2 as unittest
 import cuds.classes
-from cuds.classes.core.relationship_tree import RelationshipTree
+from cuds.classes.relationship_tree import RelationshipTree
 
 
 class TestRelationshipTree(unittest.TestCase):

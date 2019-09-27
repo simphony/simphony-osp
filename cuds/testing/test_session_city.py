@@ -8,8 +8,8 @@
 import unittest2 as unittest
 import cuds.classes
 from cuds.classes import Cuds
-from cuds.classes.core.session.session import Session
-from cuds.classes.core.session.wrapper_session import WrapperSession
+from cuds.session.session import Session
+from cuds.session.wrapper_session import WrapperSession
 
 
 class TestSessionCity(unittest.TestCase):

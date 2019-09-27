@@ -8,7 +8,7 @@
 import argparse
 import os
 
-from cuds.ontology.tools.parser import Parser
+from cuds.generator.parser import Parser
 
 
 class Cuds2Dot:
