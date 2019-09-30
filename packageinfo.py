@@ -1,3 +1,3 @@
 NAME = "simphony"
-VERSION = "2.0.0"
-BUILD = "2"
+VERSION = "3.0.0"
+BUILD = "3"
