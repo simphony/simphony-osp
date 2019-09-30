@@ -7,7 +7,7 @@
 
 import sqlite3
 from cuds.session.db.conditions import (EqualsCondition,
-                                                     AndCondition)
+                                        AndCondition)
 from cuds.session.db.sql_wrapper_session import SqlWrapperSession
 
 
