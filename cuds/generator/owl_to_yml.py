@@ -34,7 +34,7 @@ class OwlToYmlConverter():
         for c in self.owl_onto.classes():
             self._add_class(c)
 
-        # TODO add VALUES
+        # TODO VALUES
 
     def write(self, filename="ontology.yml"):
         """Write the yml ontology to disk"""
@@ -47,7 +47,7 @@ class OwlToYmlConverter():
                 allow_unicode=True,
                 explicit_start=True
             )
-            s.replace(r"\n", "\n    ")
+            # s = s.replace(r"\n", "\n      ")
             print(s, file=f)
 
     def _add_relationship(self, relationship):
@@ -59,8 +59,8 @@ class OwlToYmlConverter():
         label = self._get_cuds_label(relationship)
         definition = self._get_definition(relationship)
         inverse = None
-        if relationship.inverse:  # FIXME
-            inverse = self._get_cuba_label(relationship.inverse)
+        if relationship.inverse_property:
+            inverse = self._get_cuba_label(relationship.inverse_property)
 
         # get parents and characteristics
         parents = []
@@ -80,17 +80,28 @@ class OwlToYmlConverter():
                 pass
             else:
                 warnings.warn('omits %r for %r' % (c, label))
-        # TODO domain and range
+
+        domains = [self._parse_class_expression(ce)[1]
+                   for ce in relationship.domain]
+        ranges = [self._parse_class_expression(ce)[1]
+                  for ce in relationship.range]
 
         # add it
         self.cuds_onto[label] = odict(
             definition=definition,
             inverse=inverse,
             parents=parents,
+            domain=self._restrictions_to_yml(domains),
+            range=self._restrictions_to_yml(ranges),
             characteristics=characteristics
         )
 
     def _add_class(self, onto_class):
+        """Add a class to the yaml ontology
+
+        :param onto_class: The class to add.
+        :type onto_class: owlready2.ThingClass
+        """
         label = self._get_cuds_label(onto_class)
         definition = self._get_definition(onto_class)
 
@@ -103,15 +114,35 @@ class OwlToYmlConverter():
                 parents.append(parsed_ce)
             elif parsed_ce is not None:
                 restrictions.append(parsed_ce)
-        # TODO equivalent_to
+
+        equivalent_to = [self._parse_class_expression(ce)[1]
+                         for ce in onto_class.equivalent_to]
+        disjoints = [self._parse_class_expression(ce)[1]
+                     for disjoint in onto_class.disjoints()
+                     for ce in disjoint.entities
+                     if ce != onto_class]
 
         self.cuds_onto[label] = odict(
             definition=definition,
             parents=parents,
-            restrictions=self._restrictions_to_yml(restrictions)
+            equivalent_to=self._restrictions_to_yml(equivalent_to),
+            restrictions=self._restrictions_to_yml(restrictions),
+            disjoints=disjoints
         )
 
-    def _parse_class_expression(self, ce, old_restrictions):
+    def _parse_class_expression(self, ce, old_restrictions=None):
+        """Parse class expressions
+
+        :param ce: The class expression to parse
+        :type ce: Union[owlready2.Restriction, owlready2.ClassConstruct,
+                        owlready2.ThingClass]
+        :param old_restrictions: The old restrictions.
+            Used to merge some + only restrictions, defaults to None
+        :type old_restrictions: dict(), optional
+        :return: The parsed class expression
+        :rtype: dict()
+        """
+        old_restrictions = old_restrictions or list()
         if ce is owlready2.Thing:
             return False, None
         if isinstance(ce, owlready2.ThingClass):
@@ -169,6 +200,13 @@ class OwlToYmlConverter():
         return '\n'.join(descr).strip()
 
     def _get_annotations(self, entity):
+        """Get the annotations of an entity
+
+        :param entity: The entity to get the annotations from.
+        :type entity: owlready2.Entity
+        :return: The annotations of the entity as a dict
+        :rtype: dict
+        """
         d = {'comment': entity.comment}
         for a in self.owl_onto.annotation_properties():
             d[a.label.first()] = [
@@ -178,10 +216,11 @@ class OwlToYmlConverter():
 
     def _parse_restriction(self, new_restriction, old_restrictions):
         relationship = self._get_cuba_label(new_restriction.property)
-        _, target = self._parse_class_expression(new_restriction.value, list())
+        _, target = self._parse_class_expression(new_restriction.value)
         rtype = owlready2.class_construct. \
             _restriction_type_2_label[new_restriction.type]
 
+        # test of old restriction can be modified
         modify_restriction = None
         for restriction in old_restrictions:
             for key, value in restriction.items():
@@ -192,10 +231,14 @@ class OwlToYmlConverter():
                 continue
             break
 
+        # Create a new restriction
         is_new = modify_restriction is None
         if modify_restriction is None:
-            modify_restriction = odict(cardinality=[0, None], target=target)
+            modify_restriction = odict(cardinality=[0, None],
+                                       target=target,
+                                       only=False)
 
+        # Parse restriction and set cardinality accordingly
         cardinality = modify_restriction["cardinality"]
         if rtype == "exactly":
             cardinality[0] = new_restriction.cardinality
@@ -211,9 +254,16 @@ class OwlToYmlConverter():
         else:
             raise ValueError("Unsupported restriction type %s"
                              % new_restriction)
-        return odict(**{relationship: modify_restriction}) if is_new else None
+        return odict({relationship: modify_restriction}) if is_new else None
 
     def _parse_class_construct(self, class_construct):
+        """Parse a class construct (Union / Intersection / ...)
+
+        :param class_construct: The class construct to parse
+        :type class_construct: owlready2.ClassConstruct
+        :return: The parsed class construct
+        :rtype: Ordered dict
+        """
         label = self._get_label(class_construct).upper()
         classes = class_construct.Classes \
             if hasattr(class_construct, "Classes") \
@@ -221,9 +271,9 @@ class OwlToYmlConverter():
 
         parsed_ces = list()
         for ce in classes:
-            _, parsed_ce = self._parse_class_expression(ce, list())
+            _, parsed_ce = self._parse_class_expression(ce)
             parsed_ces.append(parsed_ce)
-        return odict(**{label: parsed_ces})
+        return odict({label: parsed_ces})
 
     def _restrictions_to_yml(self, restrictions):
         """Convert the restriction tuples to a+ / a-b
