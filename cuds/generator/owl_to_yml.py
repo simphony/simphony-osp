@@ -291,7 +291,8 @@ class OwlToYmlConverter():
                 if key == "cardinality" and value[1] is None:
                     restrictions["cardinality"] = "%s+" % value[0]
                 elif key == "cardinality":
-                    restrictions["cardinality"] = "%s-%s" % value
+                    print(value)
+                    restrictions["cardinality"] = "%s-%s" % tuple(value)
                 else:
                     self._restrictions_to_yml(value)
         return restrictions
