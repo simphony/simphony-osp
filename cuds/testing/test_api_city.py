@@ -24,7 +24,7 @@ class TestAPICity(unittest.TestCase):
         Tests the instantiation and type of the objects
         """
         self.assertRaises(TypeError,
-                          cuds.classes.City, "name", "uid", "unwanted")
+                          cuds.classes.City, "name", [1, 2], "uid", "unwanted")
 
         c = cuds.classes.City("a city")
         p = cuds.classes.Person()

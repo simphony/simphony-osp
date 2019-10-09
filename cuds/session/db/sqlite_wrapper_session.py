@@ -162,4 +162,5 @@ class SqliteWrapperSession(SqlWrapperSession):
         if cuds_datatype == "FLOAT":
             return str(float(value))
         else:
-            raise NotImplementedError("Unsupported data type!")
+            raise NotImplementedError("Unsupported data type %s"
+                                      % cuds_datatype)
