@@ -260,6 +260,11 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(set(get_citizen), {q, p})
         get_building = c.get(cuba_key=cuds.classes.CUBA.BUILDING)
         self.assertEqual(get_building, [])
+        get_citizen = c.get(cuba_key=cuds.classes.CUBA.PERSON)
+        self.assertEqual(set(get_citizen), {q, p})
+        get_building = c.get(
+            cuba_key=cuds.classes.CUBA.ARCHITECTURAL_STRUCTURE)
+        self.assertEqual(get_building, [])
 
         # get(*uids, rel)
         get_has_part_p = c.get(p.uid, rel=cuds.classes.HasInhabitant)
