@@ -247,6 +247,23 @@ def get_ancestors(cuds_object_or_class):
     return ancestors
 
 
+def get_relationships_between(subj, obj):
+    """Get the set of relationships between two cuds objects.
+
+    :param subj: The subject
+    :type subj: Cuds
+    :param obj: The object
+    :type obj: Cuds
+    :return: The set of relationships between subject and object.
+    :rtype: Set[Type[Relationship]]
+    """
+    result = set()
+    for rel, obj_uids in subj.items():
+        if obj.uid in obj_uids:
+            result.add(rel)
+    return result
+
+
 def pretty_print(cuds_object, file=sys.stdout):
     """
     Prints the given cuds_object with the uuid, the type,

@@ -17,7 +17,8 @@ from cuds.utils import (destroy_cuds_object, clone_cuds_object,
                         find_cuds_object_by_uid, remove_cuds_object,
                         get_ancestors, pretty_print,
                         find_cuds_objects_by_cuba_key, find_relationships,
-                        find_cuds_objects_by_attribute, post)
+                        find_cuds_objects_by_attribute, post,
+                        get_relationships_between)
 
 
 def get_test_city():
@@ -329,6 +330,25 @@ class TestUtils(unittest.TestCase):
         ancestors = ['Person', 'LivingBeing', 'Entity', 'Cuds']
         self.assertEqual(get_ancestors(cuds.classes.Citizen), ancestors)
         self.assertEqual(get_ancestors(cuds.classes.Citizen()), ancestors)
+
+    def test_get_relationships_between(self):
+        """ Test get the relationship between two cuds entities"""
+        c = cuds.classes.City("Freiburg")
+        p = cuds.classes.Citizen(name="Peter")
+        self.assertEqual(get_relationships_between(c, p), set())
+        self.assertEqual(get_relationships_between(p, c), set())
+        c.add(p, rel=cuds.classes.HasInhabitant)
+        self.assertEqual(get_relationships_between(c, p),
+                         {cuds.classes.HasInhabitant})
+        self.assertEqual(get_relationships_between(p, c),
+                         {cuds.classes.IsInhabitantOf})
+        c.add(p, rel=cuds.classes.HasWorker)
+        self.assertEqual(get_relationships_between(c, p),
+                         {cuds.classes.HasInhabitant,
+                          cuds.classes.HasWorker})
+        self.assertEqual(get_relationships_between(p, c),
+                         {cuds.classes.IsInhabitantOf,
+                          cuds.classes.WorksIn})
 
     def test_pretty_print(self):
         """Test printing cuds objects in a human readable way."""
