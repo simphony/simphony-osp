@@ -81,7 +81,7 @@ class StorageWrapperSession(WrapperSession):
 
     def refresh(self, *cuds_or_uids):
         """Refresh cuds_objects. Load possibly data of cuds_object
-        from the backend.  # TODO expire old/new neighbors?
+        from the backend.
 
         :param *cuds_or_uids: The cuds_object or uids to refresh
         :type *cuds_or_uids: Union[Cuds, UUID]

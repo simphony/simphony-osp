@@ -2,8 +2,6 @@
 
 This is the YAML format currently supported by osp-core. It is not able to represent all aspects of the current EMMO version, so it might be updated in the future.
 
-TODO naming of files
-
 ## Info
 
 Contact: [Matthias Urban](mailto:matthias.urban@iwm.fraunhofer.de) and  [Pablo de Andres](mailto:pablo.de.andres@iwm.fraunhofer.de) from the 
@@ -44,6 +42,10 @@ metadata description:
   define the class.
 - `CUBA Key`: the actual vocabulary in the yml specifications is
   referred to as the CUBA Key.
+
+## Naming of the files
+
+Name any ontolgy `ontology.<name>.yml`, where `<name>` should be replaced by a user defined name.
 
 ## Syntax of the .yml ontology
 
@@ -86,7 +88,7 @@ Every declaration of an ontology entity must have the following keys:
 `definition`: string
 > For human consumption. An ontological short description of the carried
 > semantics. Should have the form: sub\_entity is a parent\_entity that
-> has \<differentiating\> terms. (not sure about this)
+> has \<differentiating\> terms.
 >
 `parent`: **\`\`qualified CUBA key\`\`** or empty (None).
 > Its value is fixed on the ontology level.
@@ -191,7 +193,7 @@ It must have the keys described in [Ontology entities format](#ontology-entities
 Furthermore, it mus have the following keys:
 
 `inverse`: **\`\`qualified CUBA key\`\`** or empty (None)
-> Every (not sure about this) relationship except `RELATIONSHIP` must have an inverse.
+> Every relationship except `RELATIONSHIP` must have an inverse.
 > If CUDS object A is related to CUDS object B via relationship REL, then B is related
 > with A via the inverse of REL.
 >

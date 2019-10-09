@@ -477,7 +477,6 @@ class Cuds(dict):
                          new_parent_diff, missing):
         """Fix the relationships beetween the added Cuds objects and
         the parents of the added Cuds object.
-        # TODO test
 
         :param new_cuds_object: The added Cuds object
         :type new_cuds_object: Cuds
@@ -517,7 +516,6 @@ class Cuds(dict):
                            old_neighbor_diff):
         """Fix the relationships beetween the added Cuds objects and
         the Cuds object that were previously neighbors.
-        # TODO test
 
         :param new_cuds_object: The added Cuds object
         :type new_cuds_object: Cuds
@@ -556,7 +554,6 @@ class Cuds(dict):
         """Get the uids of neighbors of cuds1 which are no neighbors in cuds2.
         Furthermore get the relationship the neighbors are connected with.
         Optionally filter the considered relationships.
-        # TODO test
 
         :param cuds1: A Cuds object.
         :type cuds1: Cuds

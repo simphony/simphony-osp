@@ -56,7 +56,8 @@ class TestCommunicationEngine(unittest.TestCase):
         server = CommunicationEngineServer(
             host=None, port=None,
             handle_request=lambda c, d, u: c + "-" + d + "!",
-            handle_disconnect=lambda u: disconnects.append(u)
+            handle_disconnect=lambda u: disconnects.append(u),
+            verbose=False
         )
         websocket = MockWebsocket(
             id=12,
@@ -74,7 +75,8 @@ class TestCommunicationEngine(unittest.TestCase):
         requests = []
         client = CommunicationEngineClient(
             host=None, port=None,
-            handle_response=lambda x: responses.append(x)
+            handle_response=lambda x: responses.append(x),
+            verbose=False
         )
         client.websocket = MockWebsocket(
             id=7,

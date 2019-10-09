@@ -29,11 +29,11 @@ class SqliteWrapperSession(SqlWrapperSession):
 
     # OVERRIDE
     def _init_transaction(self):
-        pass  # TODO
+        pass
 
     # OVERRIDE
     def _rollback_transaction(self):
-        pass  # TODO
+        pass
 
     # OVERRIDE
     def _db_select(self, table_name, columns, condition, datatypes):
@@ -49,7 +49,6 @@ class SqliteWrapperSession(SqlWrapperSession):
     # OVERRIDE
     def _db_create(self, table_name, columns, datatypes,
                    primary_key, foreign_key, index):
-        # TODO Primary key, foreign key, index
         columns = [c if c not in datatypes
                    else "%s %s" % (c, self._to_sqlite_datatype(datatypes[c]))
                    for c in columns]

@@ -290,9 +290,9 @@ class ClassGenerator(object):
                     list_super.append("%s=%s, " % (name, name))
                 elif name == "session" and name in own_attr:
                     list_properties.append((name, datatype))
-                    # list_self.append("if session.root is not None:")  TODO
-                    # list_self.append("raise ValueError('The given session "
-                    #                  "is already used in another wrapper')")
+                    list_self.append("if session.root is not None:")
+                    list_self.append("    raise ValueError('The given session "
+                                     "is already used in another wrapper')")
                     list_self.append("self._session = session")
                 elif name in own_attr:
                     list_properties.append((name, datatype))

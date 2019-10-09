@@ -167,13 +167,6 @@ class TestSessionCity(unittest.TestCase):
             c1w.remove(p.uid)
             session._check_cardinalities()
 
-            wrapper2 = cuds.classes.CityWrapper(session=session)
-            wrapper2.add(c1w)
-            self.assertRaises(ValueError, session._check_cardinalities)
-            Cuds.CUDS_SETTINGS["check_cardinalities"] = False
-            session._check_cardinalities()
-            Cuds.CUDS_SETTINGS["check_cardinalities"] = True
-
         p.remove(rel=cuds.classes.IsInhabitantOf)
         p.add(c1, rel=cuds.classes.IsMajorOf)
         p.add(c2, rel=cuds.classes.WorksIn)
