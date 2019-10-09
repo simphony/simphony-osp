@@ -270,20 +270,20 @@ class ValidityChecker():
                 # skip passive rels / entities / rels which allow cycles
                 if rel not in rels:
                     continue
-                # Check neighbors recursively
-                for neighbor in parser.get_value(anc, "CUBA." + rel).keys():
-                    neighbor = neighbor[5:]
+                # Check neighbours recursively
+                for neighbour in parser.get_value(anc, "CUBA." + rel).keys():
+                    neighbour = neighbour[5:]
 
-                    if neighbor not in visited:  # recurse
+                    if neighbour not in visited:  # recurse
                         if self._is_cyclic(parser=parser,
-                                           entity=neighbor,
+                                           entity=neighbour,
                                            rels=rels,
                                            visited=visited,
                                            rec_stack=rec_stack):
                             return True
-                    elif neighbor in rec_stack:  # cycle detected
+                    elif neighbour in rec_stack:  # cycle detected
                         rec_stack.append("<rel: %s>" % rel)
-                        rec_stack.append(neighbor)
+                        rec_stack.append(neighbour)
                         return True
         # remove from call stack
         assert rec_stack.pop() == entity
