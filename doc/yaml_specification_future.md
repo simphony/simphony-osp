@@ -1,11 +1,14 @@
 # Description of YAML format Specification
 
+This is the yaml file format, that has the ability to represent EMMO.
+It is currently not supported by any version of osp-core.
+
 TODO naming of files
 
 ## Info
+
 Contact: [Matthias Urban](mailto:matthias.urban@iwm.fraunhofer.de) and  [Pablo de Andres](mailto:pablo.de.andres@iwm.fraunhofer.de) from the 
 Material Informatics team, Fraunhofer IWM.
-
 
 Version: 2.0 pending approval
 

@@ -22,7 +22,7 @@ class TransportSessionServer():
     client and a server. The server runs on the remote part and delegates each
     request to the session it wraps."""
 
-    def __init__(self, session_cls, host, port):
+    def __init__(self, session_cls, host, port, verbose=False):
         """Construct the server.
 
         :param session_cls: The Session class to manage.
@@ -36,7 +36,8 @@ class TransportSessionServer():
             host=host,
             port=port,
             handle_request=self.handle_request,
-            handle_disconnect=self.handle_disconnect
+            handle_disconnect=self.handle_disconnect,
+            verbose=verbose
         )
         self.session_cls = session_cls
         self.session_objs = dict()

@@ -8,41 +8,39 @@ properties are stored elsewhere and not shown.
 This example shows some options how to use the API
 """
 
-print("Creating a Cuds object, c...")
-c = cuds.classes.Cuds("test CUDS")
+print("Creating a City object, c...")
+c = cuds.classes.City(name="Freiburg", coordinates=[47, 7])
 print("  uid of c: " + str(c.uid))
 print("  type of c: " + str(type(c)) + "\n")
 
-print("Creating a ComputationalBoundary object, d...")
-d = cuds.classes.ComputationalBoundary(name="test ComputationalBoundary")
-print("  uid of d: " + str(d.uid))
-print("  type of d: " + str(type(d)) + "\n")
+print("Creating Citizen objects, p1, p2...")
+p1 = cuds.classes.Citizen(name="Peter")
+p2 = cuds.classes.Citizen(name="Anne")
 
-print("Creating another ComputationalBoundary object, e...")
-e = cuds.classes.ComputationalBoundary(name="ComputationalBoundary e")
+print("\nAdding p1 to c...")
+c.add(p1, rel=cuds.classes.HasInhabitant)
+print("internal dict of c:", super(cuds.classes.Cuds, c).__str__() + "\n")
 
-print("\nAdding d to c...")
-c.add(d)
-print("  c with d: " + str(c) + "\n")
-
-print("Adding e to c...")
-c.add(e)
-print("  c with d and e: " + str(c) + "\n")
+print("Adding p2 to c...")
+c.add(p2, rel=cuds.classes.HasInhabitant)
+print("internal dict of c:", super(cuds.classes.Cuds, c).__str__() + "\n")
 
 print("\nElements in c:")
 for el in c.iter():
     print("  uid: " + str(el.uid))
 
-print("\nGetting d from c:")
-print(c.get(d.uid))
+print("\nGetting p1 from c:")
+print(c.get(p1.uid))
 
-print("\nGetting CUBA.COMPUTATIONAL_BOUNDARY from c:")
-print(c.get(cuds.classes.CUBA.COMPUTATIONAL_BOUNDARY))
+print("\nGetting CUBA.CITIZEN from c:")
+print(c.get(cuba_key=cuds.classes.CUBA.CITIZEN))
 
-c.remove(d.uid)
-print("\nc without d: " + str(c))
+print("\n Remove p1:")
+c.remove(p1.uid)
+print("internal dict of c:", super(cuds.classes.Cuds, c).__str__() + "\n")
 
-print("\nAdding Computational Boundaries to Cuds object in a loop:")
+print("\nAdding Neighborhoods to Cuds object in a loop:")
 for i in range(6):
-    c.add(cuds.classes.ComputationalBoundary(
-        name="Comp_Boundary number {}".format(i)))
+    c.add(cuds.classes.Neighbourhood(
+        name="Neighborhood %s" % i))
+print("internal dict of c:", super(cuds.classes.Cuds, c).__str__() + "\n")
