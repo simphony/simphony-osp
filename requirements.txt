@@ -6,3 +6,4 @@ websockets
 sqlalchemy
 requests
 responses
+numpy

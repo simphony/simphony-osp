@@ -22,13 +22,13 @@ from cuds.utils import (destroy_cuds_object, clone_cuds_object,
 
 def get_test_city():
     """helper function"""
-    c = cuds.classes.City("Freiburg")
+    c = cuds.classes.City("Freiburg", coordinates=[1, 2])
     p1 = cuds.classes.Citizen(name="Rainer")
     p2 = cuds.classes.Citizen(name="Carlos")
     p3 = cuds.classes.Citizen(name="Maria")
-    n1 = cuds.classes.Neighbourhood("Zähringen")
-    n2 = cuds.classes.Neighbourhood("St. Georgen")
-    s1 = cuds.classes.Street("Lange Straße")
+    n1 = cuds.classes.Neighbourhood("Zähringen", coordinates=[2, 3])
+    n2 = cuds.classes.Neighbourhood("St. Georgen", coordinates=[3, 4])
+    s1 = cuds.classes.Street("Lange Straße", coordinates=[4, 5])
 
     c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
     p1.add(p3, rel=cuds.classes.HasChild)
@@ -341,6 +341,7 @@ class TestUtils(unittest.TestCase):
             "  uuid: %s" % c.uid,
             "  type: CUBA.CITY",
             "  ancestors: PopulatedPlace, GeographicalPlace, Entity, Cuds",
+            "  values: coordinates: [1 2]",
             "  description: ",
             "    To Be Determined",
             "    ",
@@ -365,9 +366,11 @@ class TestUtils(unittest.TestCase):
             "   |_Relationship CUBA.HAS_PART:",
             "     -  CUBA.NEIGHBOURHOOD cuds object named <Zähringen>:",
             "     .  uuid: %s" % n1.uid,
+            "     .  coordinates: [2 3]",
             "     .   |_Relationship CUBA.HAS_PART:",
             "     .     -  CUBA.STREET cuds object named <Lange Straße>:",
             "     .        uuid: %s" % s1.uid,
+            "     .        coordinates: [4 5]",
             "     .         |_Relationship CUBA.HAS_INHABITANT:",
             "     .           -  CUBA.CITIZEN cuds object named <Carlos>:",
             "     .           .  uuid: %s" % p2.uid,
@@ -377,6 +380,7 @@ class TestUtils(unittest.TestCase):
             "     .              (already printed)",
             "     -  CUBA.NEIGHBOURHOOD cuds object named <St. Georgen>:",
             "        uuid: %s" % n2.uid,
+            "        coordinates: [3 4]",
             "         |_Relationship CUBA.HAS_PART:",
             "           -  CUBA.STREET cuds object named <Lange Straße>:",
             "              uuid: %s" % s1.uid,
