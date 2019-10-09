@@ -748,13 +748,15 @@ class Cuds(dict):
             relationsships that connect self with the respective cuds_object.)
         :rtype: List[UUID] (+ Dict[UUID, Set[Relationship]])
         """
+        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         relationship_mapping = dict()
         for relationship in relationships:
 
             # Collect all uids who are object of the current relationship.
             # Possibly filter by Cuba-Key.
             for uid, cuba in self[relationship].items():
-                if cuba_key is None or cuba == cuba_key:
+                if cuba_key is None or issubclass(CUBA_MAPPING[cuba],
+                                                  CUBA_MAPPING[cuba_key]):
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
                     relationship_mapping[uid].add(relationship)
