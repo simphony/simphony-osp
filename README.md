@@ -108,15 +108,28 @@ For example:
 
 ```py
 {
-    CUBA.REL1: {"obj-uuid-001": CUBA.OBJ1, "obj-uuid-002": CUBA.OBJ2},
-    CUBA.REL2: {"obj-uuid-003": CUBA.OBJ3, ...},
+    CUBA.REL1: {"obj-uid-001": CUBA.OBJ1, "obj-uid-002": CUBA.OBJ2},
+    CUBA.REL2: {"obj-uid-003": CUBA.OBJ3, ...},
     ...
 }
 ```
 
+The related cuds object are referenced by their unique id, the uid.
+Each cuds object corresponds to a session.
+The session contains a registry that maps every uid to the corresponding cuds object.
+Each wrapper has a corresponding session. The default session is an instance of CoreSession.
+
+The attributes are fields of the cuds object:
+
+```py
+>>> c = cuds.classes.City(name="Freiburg")
+>>> c.name
+'Freiburg'
+```
+
 ### Examples
 
-All examples can be found in the /examples folder.
+Further examples can be found in the /examples folder. There the usage of wrappers is explained.
 
 ### Directory structure
 
