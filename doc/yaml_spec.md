@@ -155,7 +155,7 @@ You can specify the `cardinality` of the relationship there.
 >       cardinality: many
 > ```
 
-Here, a city can have many neighborhoods.
+Here, a city can have many neighbourhoods.
 
 To define the `cardinality` we use the following syntax:
 

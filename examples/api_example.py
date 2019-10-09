@@ -39,8 +39,8 @@ print("\n Remove p1:")
 c.remove(p1.uid)
 print("internal dict of c:", super(cuds.classes.Cuds, c).__str__() + "\n")
 
-print("\nAdding Neighborhoods to Cuds object in a loop:")
+print("\nAdding neighbourhoods to Cuds object in a loop:")
 for i in range(6):
     c.add(cuds.classes.Neighbourhood(
-        name="Neighborhood %s" % i))
+        name="neighbourhood %s" % i))
 print("internal dict of c:", super(cuds.classes.Cuds, c).__str__() + "\n")

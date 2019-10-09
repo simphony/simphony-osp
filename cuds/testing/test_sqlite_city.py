@@ -188,6 +188,7 @@ class TestSqliteCity(unittest.TestCase):
 
             # p1w is no longer expired after the following assert
             self.assertEqual(p1w.name, "Peter")
+            self.assertEqual(p2w.name, "Anna")
 
             with sqlite3.connect("test.db") as conn:
                 cursor = conn.cursor()
@@ -195,6 +196,8 @@ class TestSqliteCity(unittest.TestCase):
                                "WHERE uid='%s';" % (c.uid))
                 cursor.execute("UPDATE CUDS_CITIZEN SET name = 'Maria' "
                                "WHERE uid='%s';" % (p1.uid))
+                cursor.execute("UPDATE CUDS_CITIZEN SET name = 'Jacob' "
+                               "WHERE uid='%s';" % (p2.uid))
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
                                % (session.RELATIONSHIP_TABLE, p2.uid, p2.uid))
@@ -209,7 +212,9 @@ class TestSqliteCity(unittest.TestCase):
                                % (session.MASTER_TABLE, p3.uid))
                 conn.commit()
 
-            self.assertEqual(cw.name, "Paris")
+            self.assertEqual(p2w.name, "Anna")
+            self.assertEqual(cw.name, "Paris")  # expires outdated neighbor p2w
+            self.assertEqual(p2w.name, "Jacob")
             self.assertEqual(p1w.name, "Peter")
             session.expire_all()
             self.assertEqual(p1w.name, "Maria")

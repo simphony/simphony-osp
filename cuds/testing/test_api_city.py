@@ -8,7 +8,8 @@
 import unittest2 as unittest
 import uuid
 
-from cuds.utils import clone_cuds_object, create_from_cuds_object
+from cuds.utils import clone_cuds_object, create_from_cuds_object, \
+    get_neighbour_diff
 from cuds.session.core_session import CoreSession
 from cuds.classes.cuds import Cuds
 import cuds.classes
@@ -147,7 +148,7 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(set([p2w.uid]),
                          set(p4w[cuds.classes.IsChildOf].keys()))
 
-    def test_fix_neighbors(self):
+    def test_fix_neighbours(self):
         w1 = cuds.classes.CityWrapper(session=CoreSession())
         w2 = cuds.classes.CityWrapper(session=CoreSession())
 
@@ -179,10 +180,10 @@ class TestAPICity(unittest.TestCase):
             set([p1w2.uid]))
 
         missing = dict()
-        cuds.classes.Cuds._fix_neighbors(new_cuds_object=p1w1,
-                                         old_cuds_object=p1w2,
-                                         session=p1w2.session,
-                                         missing=missing)
+        cuds.classes.Cuds._fix_neighbours(new_cuds_object=p1w1,
+                                          old_cuds_object=p1w2,
+                                          session=p1w2.session,
+                                          missing=missing)
 
         # check if connections cuds_objects that are no
         # longer parents are in the missing dict
@@ -517,34 +518,6 @@ class TestAPICity(unittest.TestCase):
             )
             self.assertEqual(p3w.get(rel=cuds.classes.HasChild), [p4w])
 
-    def test_get_neighbour_diff(self):
-        """Check if get_neighbor_diff can compute the difference
-        of neighbors between to objects.
-        """
-        c1 = cuds.classes.City("Paris")
-        c2 = cuds.classes.City("Berlin")
-        c3 = cuds.classes.City("London")
-        n1 = cuds.classes.Neighbourhood("Zähringen")
-        n2 = cuds.classes.Neighbourhood("Herdern")
-        s1 = cuds.classes.Street("Waldkircher Straße")
-        s2 = cuds.classes.Street("Habsburger Straße")
-        s3 = cuds.classes.Street("Lange Straße")
-
-        n1.add(c1, c2, rel=cuds.classes.IsPartOf)
-        n2.add(c2, c3, rel=cuds.classes.IsPartOf)
-        n1.add(s1, s2)
-        n2.add(s2, s3)
-
-        self.assertEqual(
-            set(Cuds._get_neighbor_diff(n1, n2)),
-            {(c1.uid, cuds.classes.IsPartOf), (s1.uid, cuds.classes.HasPart)}
-        )
-
-        self.assertEqual(
-            set(Cuds._get_neighbor_diff(n2, n1)),
-            {(c3.uid, cuds.classes.IsPartOf), (s3.uid, cuds.classes.HasPart)}
-        )
-
     def test_fix_new_parents(self):
         """Check that _fix_new_parent:
         - Deletes connection to new parents not available in new session
@@ -569,7 +542,7 @@ class TestAPICity(unittest.TestCase):
 
             n = clone_cuds_object(n)
             n._session = session
-            new_parent_diff = Cuds._get_neighbor_diff(
+            new_parent_diff = get_neighbour_diff(
                 n, nw, rel=cuds.classes.PassiveRelationship)
             new_parents = session.load(*[x[0] for x in new_parent_diff])
 
@@ -586,8 +559,8 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(missing, {c3.uid: [(n, cuds.classes.IsPartOf)]})
         self.assertEqual(c2w.get(rel=cuds.classes.HasPart), [n])
 
-    def test_fix_old_neighbors(self):
-        """Check if _fix_old_neighbors.
+    def test_fix_old_neighbours(self):
+        """Check if _fix_old_neighbours.
         - Deletes old children.
         - Adds connection to old parents.
         """
@@ -601,12 +574,12 @@ class TestAPICity(unittest.TestCase):
 
             c = clone_cuds_object(c)
             c._session = session
-            old_neighbor_diff = Cuds._get_neighbor_diff(cw, c)
-            old_neighbors = session.load(*[x[0] for x in old_neighbor_diff])
-            Cuds._fix_old_neighbors(new_cuds_object=c,
-                                    old_cuds_object=cw,
-                                    old_neighbors=old_neighbors,
-                                    old_neighbor_diff=old_neighbor_diff)
+            old_neighbour_diff = get_neighbour_diff(cw, c)
+            old_neighbours = session.load(*[x[0] for x in old_neighbour_diff])
+            Cuds._fix_old_neighbours(new_cuds_object=c,
+                                     old_cuds_object=cw,
+                                     old_neighbours=old_neighbours,
+                                     old_neighbour_diff=old_neighbour_diff)
         self.assertEqual(c.get(rel=cuds.classes.IsPartOf), [wrapper])
         self.assertEqual(c.get(rel=cuds.classes.HasPart), [])
         self.assertEqual(nw.get(rel=cuds.classes.IsPartOf), [])
