@@ -9,6 +9,7 @@ import sqlalchemy
 from cuds.session.db.conditions import (EqualsCondition,
                                         AndCondition)
 from cuds.session.db.sql_wrapper_session import SqlWrapperSession
+from cuds.generator.ontology_datatypes import convert_from
 
 
 class SqlAlchemyWrapperSession(SqlWrapperSession):
@@ -72,7 +73,7 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
     def _db_insert(self, table_name, columns, values, datatypes):
         table = self._get_sqlalchemy_table(table_name)
         stmt = table.insert().values(**{
-            column: self._to_sqlalchemy_value(value, datatypes[column])
+            column: convert_from(value, datatypes[column])
             for column, value in zip(columns, values)
         })
         self._connection.execute(stmt)
@@ -84,7 +85,7 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
         stmt = table.update() \
             .where(condition) \
             .values(**{
-                column: self._to_sqlalchemy_value(value, datatypes[column])
+                column: convert_from(value, datatypes[column])
                 for column, value in zip(columns, values)
             })
         self._connection.execute(stmt)
@@ -114,8 +115,7 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
         if condition is None:
             return True
         if isinstance(condition, EqualsCondition):
-            value = self._to_sqlalchemy_value(condition.value,
-                                              condition.datatype)
+            value = convert_from(condition.value, condition.datatype)
             table = self._get_sqlalchemy_table(condition.table_name)
             column = getattr(table.c, condition.column_name)
             return column == value
@@ -147,33 +147,6 @@ class SqlAlchemyWrapperSession(SqlWrapperSession):
             return sqlalchemy.String()
         elif cuds_datatype.startswith("UNDEFINED"):
             return sqlalchemy.String()
-        else:
-            raise NotImplementedError("Unsupported data type!")
-
-    def _to_sqlalchemy_value(self, value, cuds_datatype):
-        """Convert the given value s.t. it can be used in a sqlalchemy query.
-
-        :param value: The value to convert.
-        :type value: Any
-        :param cuds_datatype: The datatype to convert to.
-        :type cuds_datatype: str
-        :raises NotImplementedError: Unsupported datatype.
-        :return: The converted value.
-        :rtype: str
-        """
-        if (
-            cuds_datatype is None
-            or cuds_datatype == "UUID"
-            or cuds_datatype.startswith("STRING")
-            or cuds_datatype == "UNDEFINED"
-        ):
-            return str(value)
-        if cuds_datatype == "INT":
-            return int(value)
-        if cuds_datatype == "BOOL":
-            return bool(value)
-        if cuds_datatype == "FLOAT":
-            return float(value)
         else:
             raise NotImplementedError("Unsupported data type!")
 
