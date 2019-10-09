@@ -18,7 +18,8 @@ from cuds.utils import (destroy_cuds_object, clone_cuds_object,
                         get_ancestors, pretty_print,
                         find_cuds_objects_by_cuba_key, find_relationships,
                         find_cuds_objects_by_attribute, post,
-                        get_relationships_between)
+                        get_relationships_between,
+                        get_neighbour_diff)
 
 
 def get_test_city():
@@ -349,6 +350,45 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(get_relationships_between(p, c),
                          {cuds.classes.IsInhabitantOf,
                           cuds.classes.WorksIn})
+
+    def test_get_neighbour_diff(self):
+        """Check if get_neighbour_diff can compute the difference
+        of neighbours between to objects.
+        """
+        c1 = cuds.classes.City("Paris")
+        c2 = cuds.classes.City("Berlin")
+        c3 = cuds.classes.City("London")
+        n1 = cuds.classes.Neighbourhood("Zähringen")
+        n2 = cuds.classes.Neighbourhood("Herdern")
+        s1 = cuds.classes.Street("Waldkircher Straße")
+        s2 = cuds.classes.Street("Habsburger Straße")
+        s3 = cuds.classes.Street("Lange Straße")
+
+        n1.add(c1, c2, rel=cuds.classes.IsPartOf)
+        n2.add(c2, c3, rel=cuds.classes.IsPartOf)
+        n1.add(s1, s2)
+        n2.add(s2, s3)
+
+        self.assertEqual(
+            set(get_neighbour_diff(n1, n2)),
+            {(c1.uid, cuds.classes.IsPartOf), (s1.uid, cuds.classes.HasPart)}
+        )
+
+        self.assertEqual(
+            set(get_neighbour_diff(n2, n1)),
+            {(c3.uid, cuds.classes.IsPartOf), (s3.uid, cuds.classes.HasPart)}
+        )
+
+        self.assertEqual(
+            set(get_neighbour_diff(n1, None)),
+            {(c1.uid, cuds.classes.IsPartOf), (s1.uid, cuds.classes.HasPart),
+             (c2.uid, cuds.classes.IsPartOf), (s2.uid, cuds.classes.HasPart)}
+        )
+
+        self.assertEqual(
+            set(get_neighbour_diff(None, n2)),
+            set()
+        )
 
     def test_pretty_print(self):
         """Test printing cuds objects in a human readable way."""
