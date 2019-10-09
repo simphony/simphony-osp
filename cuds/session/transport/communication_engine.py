@@ -52,7 +52,7 @@ class CommunicationEngineServer():
                 data = data[len(command) + 1:]
                 if self.verbose:
                     print("Request %s: %s from %s" %
-                        (command, data, hash(websocket)))
+                          (command, data, hash(websocket)))
                 response = self._handle_request(command, data, websocket)
                 if self.verbose:
                     print("Response: %s" % response)

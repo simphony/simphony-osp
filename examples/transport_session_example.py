@@ -96,4 +96,5 @@ try:
 finally:
     p.terminate()
     time.sleep(1)
-    os.remove("test.db")
+    if os.path.exists("test.db"):
+        os.remove("test.db")
