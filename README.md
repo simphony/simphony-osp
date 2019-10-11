@@ -14,7 +14,6 @@ explicit written permission.
 ## Requirements
 
 - PyYaml (on Windows, use <https://stackoverflow.com/a/33673823>) for parsing yaml files
-- enum34 for the CUBA-enum
 - numpy for vector attributes of cuds
 - websockets for the transport layer
 - sqlalchemy for the sqlalchemy wrapper
