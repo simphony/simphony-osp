@@ -103,7 +103,6 @@ class StorageWrapperSession(WrapperSession):
         :param expired: Which of the cuds_objects are expired.
         :type expired: Set[UUID]
         """
-        pass
 
     def _get_next_missing(self, missing):
         """Get the next missing cuds object from the iterator.

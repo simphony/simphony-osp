@@ -12,6 +12,7 @@ from cuds.session.storage_wrapper_session import \
 
 
 class DbWrapperSession(StorageWrapperSession):
+    """Abstract class for a DB Wrapper Session"""
 
     @consumes_buffers
     def commit(self):
@@ -63,42 +64,34 @@ class DbWrapperSession(StorageWrapperSession):
     @abstractmethod
     def _initialize(self):
         """Initialize the database. Create missing tables etc."""
-        pass
 
     @abstractmethod
     def _apply_added(self):
         """Add the added cuds_objects to the engine"""
-        pass
 
     @abstractmethod
     def _apply_updated(self):
         """Update the updated cuds_objects in the engine"""
-        pass
 
     @abstractmethod
     def _apply_deleted(self):
         """Delete the deleted cuds_objects from the engine"""
-        pass
 
     @abstractmethod
     def _load_first_level(self):
         """Load the first level of children of the root from the database."""
-        pass
 
     @abstractmethod
     def _init_transaction(self):
         """Initialize the transaction"""
-        pass
 
     @abstractmethod
     def _rollback_transaction(self):
         """Initialize the transaction"""
-        pass
 
     @abstractmethod
     def close(self):
         """Close the connection to the database"""
-        pass
 
     @abstractmethod
     def _load_by_cuba(self, cuba, update_registry=False):
@@ -112,4 +105,3 @@ class DbWrapperSession(StorageWrapperSession):
         :return: The loaded cuds_object.
         :rtype: Cuds
         """
-        pass

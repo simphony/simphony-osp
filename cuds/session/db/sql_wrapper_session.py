@@ -18,6 +18,8 @@ from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
 
 
 class SqlWrapperSession(DbWrapperSession):
+    """Abstract class for an SQL DB Wrapper Session"""
+
     CUDS_PREFIX = "CUDS_"
     RELATIONSHIP_TABLE = "OSP_RELATIONSHIPS"
     MASTER_TABLE = "OSP_MASTER"
@@ -68,7 +70,6 @@ class SqlWrapperSession(DbWrapperSession):
         :param index: List of column for which an index should be built.
         :type index: List(str)
         """
-        pass
 
     @abstractmethod
     def _db_select(self, table_name, columns, condition, datatypes):
@@ -83,7 +84,6 @@ class SqlWrapperSession(DbWrapperSession):
         :param rows: The rows fetched from the database
         :rtype: Iterator[List[Any]]
         """
-        pass
 
     @abstractmethod
     def _db_insert(self, table_name, columns, values, datatypes):
@@ -96,7 +96,6 @@ class SqlWrapperSession(DbWrapperSession):
         :param values: The data to insert.
         :type values: List[Any]
         """
-        pass
 
     @abstractmethod
     def _db_update(self, table_name, columns, values, condition, datatypes):
@@ -111,7 +110,6 @@ class SqlWrapperSession(DbWrapperSession):
         :param condition: Only update rows that satisfy the condition.
         :type condition: str
         """
-        pass
 
     @abstractmethod
     def _db_delete(self, table_name, condition):
@@ -122,7 +120,6 @@ class SqlWrapperSession(DbWrapperSession):
         :param condition: Delete rows that satisfy the condition.
         :type condition: str
         """
-        pass
 
     @abstractmethod
     def _get_table_names(self, prefix):
@@ -131,7 +128,6 @@ class SqlWrapperSession(DbWrapperSession):
         :param prefix: Only return tables with the given prefix
         :type prefix: str
         """
-        pass
 
     @staticmethod
     def _expand_vector_cols(columns, datatypes, values=None):
