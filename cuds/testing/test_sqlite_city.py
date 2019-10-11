@@ -20,7 +20,8 @@ class TestSqliteCity(unittest.TestCase):
         pass
 
     def tearDown(self):
-        os.remove("test.db")
+        if os.path.exists("test.db"):
+            os.remove("test.db")
 
     def test_insert(self):
         """Test inserting in the sqlite table."""
@@ -288,6 +289,18 @@ class TestSqliteCity(unittest.TestCase):
             session._clear_database()
 
         check_db_cleared(self, "test.db")
+
+    def test__sql_list_pattern(self):
+        """Test transformation of value lists to SQLite patterns"""
+        p, v = SqliteWrapperSession._sql_list_pattern("pre",
+                                                      [42, "yo", 1.2, "hey"])
+        self.assertEqual(p, ":pre_0, :pre_1, :pre_2, :pre_3")
+        self.assertEqual(v, {
+            "pre_0": 42,
+            "pre_1": "yo",
+            "pre_2": 1.2,
+            "pre_3": "hey"
+        })
 
 
 def check_state(test_case, c, p1, p2, table="test.db"):
