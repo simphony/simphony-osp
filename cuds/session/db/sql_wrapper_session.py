@@ -264,6 +264,7 @@ class SqlWrapperSession(DbWrapperSession):
         """Call db_select but consider vectors"""
         columns, datatypes = self._expand_vector_cols(columns, datatypes)
         rows = self._db_select(table_name, columns, condition, datatypes)
+        rows = self._convert_values(rows, columns, datatypes)
         yield from self._contract_vector_values(columns, datatypes, rows)
 
     def _db_insert_vec(self, table_name, columns, values, datatypes):
@@ -271,6 +272,8 @@ class SqlWrapperSession(DbWrapperSession):
         columns, datatypes, values = self._expand_vector_cols(columns,
                                                               datatypes,
                                                               values)
+        values = [convert_from(v, datatypes.get(c))
+                  for c, v in zip(columns, values)]
         self._db_insert(table_name, columns, values, datatypes)
 
     def _db_update_vec(self, table_name, columns,
@@ -279,6 +282,8 @@ class SqlWrapperSession(DbWrapperSession):
         columns, datatypes, values = self._expand_vector_cols(columns,
                                                               datatypes,
                                                               values)
+        values = [convert_from(v, datatypes.get(c))
+                  for c, v in zip(columns, values)]
         self._db_update(table_name, columns,
                         values, condition, datatypes)
 
