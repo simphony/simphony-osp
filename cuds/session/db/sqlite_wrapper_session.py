@@ -9,12 +9,14 @@ import sqlite3
 from cuds.session.db.conditions import (EqualsCondition,
                                         AndCondition)
 from cuds.session.db.sql_wrapper_session import SqlWrapperSession
+from cuds.generator.ontology_datatypes import convert_from
 
 
 class SqliteWrapperSession(SqlWrapperSession):
 
     def __init__(self, path, **kwargs):
-        super().__init__(engine=sqlite3.connect(path), **kwargs)
+        conn = sqlite3.connect(path, isolation_level=None)
+        super().__init__(engine=conn, **kwargs)
 
     def __str__(self):
         return "Sqlite Wrapper Session"
@@ -29,21 +31,44 @@ class SqliteWrapperSession(SqlWrapperSession):
 
     # OVERRIDE
     def _init_transaction(self):
-        pass
+        c = self._engine.cursor()
+        c.execute("BEGIN;")
 
     # OVERRIDE
     def _rollback_transaction(self):
-        pass
+        c = self._engine.cursor()
+        c.execute("ROLLBACK;")
+
+    @staticmethod
+    def _sql_list_pattern(prefix, values, join_pattern=True):
+        """Transform a list of values to corresponding pattern and value dict
+
+        :param prefix: The prefix to use for the pattern
+        :type prefix: str
+        :param values: The list of values
+        :type values: List[Any]
+        :param join_pattern: Whether to join the pattern by a comma,
+            defaults to True
+        :type join_pattern: bool, optional
+        :return: The pattern and the value dict
+        :rtype: Tuple[str, Dict]
+        """
+        pattern = [":%s_%s" % (prefix, i) for i in range(len(values))]
+        if join_pattern:
+            pattern = ", ".join(pattern)
+        values = {
+            ("%s_%s" % (prefix, i)): val for i, val in enumerate(values)
+        }
+        return pattern, values
 
     # OVERRIDE
     def _db_select(self, table_name, columns, condition, datatypes):
+        cond_pattern, cond_values = self._get_condition_pattern(condition)
+        sql_pattern = "SELECT %s FROM %s WHERE %s;" % (
+            ", ".join(columns), table_name, cond_pattern
+        )
         c = self._engine.cursor()
-        condition_str = self._get_condition_string(condition)
-        c.execute("SELECT %s FROM %s WHERE %s;" % (
-            ", ".join(columns),
-            table_name,
-            condition_str
-        ))
+        c.execute(sql_pattern, cond_values)
         return self._convert_values(c, columns, datatypes)
 
     # OVERRIDE
@@ -60,31 +85,37 @@ class SqliteWrapperSession(SqlWrapperSession):
 
     # OVERRIDE
     def _db_insert(self, table_name, columns, values, datatypes):
+        values = [convert_from(v, datatypes.get(c))
+                  for c, v in zip(columns, values)]
+        val_pattern, val_values = self._sql_list_pattern("val", values)
+        sql_pattern = "INSERT INTO %s (%s) VALUES (%s);" % (
+            table_name, ", ".join(columns), val_pattern
+        )
         c = self._engine.cursor()
-        c.execute("INSERT INTO %s (%s) VALUES (%s);" % (
-            table_name,
-            ", ".join(columns),
-            ", ".join([self._to_sqlite_value(v, datatypes.get(c))
-                       for c, v in zip(columns, values)])
-        ))
+        c.execute(sql_pattern, val_values)
 
     # OVERRIDE
     def _db_update(self, table_name, columns, values, condition, datatypes):
+        cond_pattern, cond_values = self._get_condition_pattern(condition)
+        values = [convert_from(v, datatypes.get(c))
+                  for c, v in zip(columns, values)]
+        val_pattern, val_values = self._sql_list_pattern("val", values, False)
+        update_pattern = ", ".join(
+            ("%s = %s" % (c, v) for c, v in zip(columns, val_pattern))
+        )
+        sql_pattern = "UPDATE %s SET %s WHERE %s;" % (
+            table_name, update_pattern, cond_pattern
+        )
+        sql_values = dict(**val_values, **cond_values)
         c = self._engine.cursor()
-        condition_str = self._get_condition_string(condition)
-        c.execute("UPDATE %s SET %s WHERE %s;" % (
-            table_name,
-            ", ".join(("%s = %s" %
-                      (c, self._to_sqlite_value(v, datatypes.get(c))))
-                      for c, v in zip(columns, values)),
-            condition_str
-        ))
+        c.execute(sql_pattern, sql_values)
 
     # OVERRIDE
     def _db_delete(self, table_name, condition):
+        cond_pattern, cond_values = self._get_condition_pattern(condition)
+        sql_pattern = ("DELETE FROM %s WHERE %s;" % (table_name, cond_pattern))
         c = self._engine.cursor()
-        condition_str = self._get_condition_string(condition)
-        c.execute("DELETE FROM %s WHERE %s;" % (table_name, condition_str))
+        c.execute(sql_pattern, cond_values)
 
     # OVERRIDE
     def _get_table_names(self, prefix):
@@ -93,8 +124,9 @@ class SqliteWrapperSession(SqlWrapperSession):
                            + "WHERE type='table';")
         return set([x[0] for x in tables if x[0].startswith(prefix)])
 
-    def _get_condition_string(self, condition):
-        """Convert the given condition to a Sqlite condition string.
+    def _get_condition_pattern(self, condition, prefix="cond"):
+        """Convert the given condition to a Sqlite condition pattern
+        and the corresponding values.
 
         :param condition: The Condition
         :type condition: Uniton[AndCondition, EqualsCondition]
@@ -103,15 +135,29 @@ class SqliteWrapperSession(SqlWrapperSession):
         :rtype: str
         """
         if condition is None:
-            return '1'
+            return '1', dict()
         if isinstance(condition, EqualsCondition):
-            value = self._to_sqlite_value(condition.value, condition.datatype)
-            return "%s.%s=%s" % (condition.table_name,
-                                 condition.column_name,
-                                 value)
+            value = convert_from(condition.value, condition.datatype)
+            pattern = "%s.%s=:%s_value" % (
+                condition.table_name, condition.column_name, prefix
+            )
+            values = {
+                "%s_value" % prefix: value
+            }
+            return pattern, values
         if isinstance(condition, AndCondition):
-            return " AND ".join([self._get_condition_string(c)
-                                 for c in condition.conditions])
+            pattern = ""
+            values = dict()
+            for i, sub_condition in enumerate(condition.conditions):
+                if pattern:
+                    pattern += " AND "
+                sub_prefix = prefix + str(i)
+                sub_pattern, sub_values = self._get_condition_pattern(
+                    sub_condition, sub_prefix
+                )
+                pattern += sub_pattern
+                values.update(sub_values)
+                return pattern, values
         raise NotImplementedError("Unsupported condition")
 
     def _to_sqlite_datatype(self, cuds_datatype):
@@ -137,29 +183,3 @@ class SqliteWrapperSession(SqlWrapperSession):
             return "TEXT"
         else:
             raise NotImplementedError("Unsupported data type!")
-
-    def _to_sqlite_value(self, value, cuds_datatype):
-        """Convert the given value s.t. it can be used in a sqlite query.
-
-        :param value: The value to convert.
-        :type value: Any
-        :param cuds_datatype: The datatype to convert to.
-        :type cuds_datatype: str
-        :raises NotImplementedError: Unsupported datatype.
-        :return: The converted value.
-        :rtype: str
-        """
-        if (
-            cuds_datatype is None
-            or cuds_datatype == "UUID"
-            or cuds_datatype.startswith("STRING")
-            or cuds_datatype == "UNDEFINED"
-        ):
-            return "'%s'" % value
-        if cuds_datatype in ["INT", "BOOL"]:
-            return str(int(value))
-        if cuds_datatype == "FLOAT":
-            return str(float(value))
-        else:
-            raise NotImplementedError("Unsupported data type %s"
-                                      % cuds_datatype)
