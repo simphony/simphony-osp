@@ -34,7 +34,7 @@ class DbWrapperSession(StorageWrapperSession):
         """Load cuds_object with given cuba key.
         Will not replace cuds_object in registry.
 
-        :param cuba_key: The cuby key to query for
+        :param cuba_key: The cuba key to query for
         :type cuba_key: CUBA
         :param update_registry: Whether to update cuds_objects which are
             already present in the registry.
