@@ -18,10 +18,12 @@ class FileWrapperSession(StorageWrapperSession):
     def save(self):
         """Saves the changes in the buffers to the file."""
         self._check_cardinalities()
+        self._open()
         self._apply_added()
         self._apply_updated()
         self._apply_deleted()
         self._save()
+        self._close()
         self._reset_buffers(changed_by="user")
         self.expire_all()
 
@@ -52,6 +54,14 @@ class FileWrapperSession(StorageWrapperSession):
             self._reset_buffers(changed_by="engine")
 
     @abstractmethod
+    def _open(self):
+        """Open the connection to the file."""
+
+    @abstractmethod
+    def _close(self):
+        """Close the connection to the file."""
+
+    @abstractmethod
     def _apply_added(self):
         """Add the added cuds_objects to the file."""
 
@@ -74,10 +84,6 @@ class FileWrapperSession(StorageWrapperSession):
     @abstractmethod
     def _load_first_level(self):
         """Load the first level of children of the root from the database."""
-
-    @abstractmethod
-    def close(self):
-        """Close the connection to the file."""
 
     @abstractmethod
     def _load_by_cuba(self, cuba, update_registry=False):
