@@ -1,14 +1,21 @@
+import traceback
 from cuds.classes import (
     City, Citizen, Neighbourhood, Street,
     HasPart, HasInhabitant, IsPartOf,
     CUBA, CityWrapper, CitySimWrapper, Person
 )
-from cuds.session.db.sqlalchemy_wrapper_session import \
-    SqlAlchemyWrapperSession
 from cuds.testing.test_sim_wrapper_city import DummySimSession
 from cuds.utils import pretty_print
 from getpass import getpass
+try:
+    from cudsqlalchemy.sqlalchemy_wrapper_session import \
+        SqlAlchemyWrapperSession
+except ImportError as e:
+    raise ImportError("For this example, the SQLAlchemy "
+                      "wrapper for SimPhoNy is required!") from e
 
+
+print("Input data to connect to Postgres table!")
 user = input("User: ")
 pwd = getpass("Password: ")
 db_name = input("Database name: ")

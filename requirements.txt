@@ -1,6 +1,5 @@
 PyYaml
 unittest2
-enum34
 pympler
 websockets
 sqlalchemy
