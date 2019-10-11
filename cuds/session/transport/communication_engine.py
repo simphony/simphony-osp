@@ -13,7 +13,7 @@ class CommunicationEngineServer():
     """The communication engine manages the connection between the remote and
     local side of the transport layer. The server will be executed on the
     remote side."""
-    def __init__(self, host, port, handle_request, handle_disconnect):
+    def __init__(self, host, port, handle_request, handle_disconnect, verbose):
         """Construct the communication engine's server.
 
         :param host: The hostname
@@ -29,6 +29,7 @@ class CommunicationEngineServer():
         self.port = port
         self._handle_request = handle_request
         self._handle_disconnect = handle_disconnect
+        self.verbose = verbose
 
     def startListening(self):
         """Start the server on given host + port."""
@@ -49,13 +50,16 @@ class CommunicationEngineServer():
             async for data in websocket:
                 command = data.split(":")[0]
                 data = data[len(command) + 1:]
-                print("Request %s: %s from %s" %
-                      (command, data, hash(websocket)))
+                if self.verbose:
+                    print("Request %s: %s from %s" %
+                          (command, data, hash(websocket)))
                 response = self._handle_request(command, data, websocket)
-                print("Response: %s" % response)
+                if self.verbose:
+                    print("Response: %s" % response)
                 await websocket.send(response)
         finally:
-            print("User %s disconnected!" % hash(websocket))
+            if self.verbose:
+                print("User %s disconnected!" % hash(websocket))
             self._handle_disconnect(websocket)
 
 
@@ -64,7 +68,7 @@ class CommunicationEngineClient():
     local side of the transport layer. The client will be executed on the
     local side."""
 
-    def __init__(self, host, port, handle_response):
+    def __init__(self, host, port, handle_response, verbose):
         """Construct the communication engine's client.
 
         :param host: The hostname.
@@ -78,6 +82,7 @@ class CommunicationEngineClient():
         self.port = port
         self.handle_response = handle_response
         self.websocket = None
+        self.verbose = verbose
 
     def send(self, command, data):
         """Send a request to the server
@@ -109,11 +114,13 @@ class CommunicationEngineClient():
         :param data: The data to send to the server.
         :type data: str
         """
-        print("Request %s: %s" % (command, data))
+        if self.verbose:
+            print("Request %s: %s" % (command, data))
         if self.websocket is None:
             uri = "ws://%s:%s" % (self.host, self.port)
             self.websocket = await websockets.connect(uri)
         await self.websocket.send(command + ":" + data)
         response = await self.websocket.recv()
-        print("Response: %s" % response)
+        if self.verbose:
+            print("Response: %s" % response)
         return self.handle_response(response)

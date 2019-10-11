@@ -7,7 +7,8 @@
 
 import uuid
 from abc import abstractmethod
-from cuds.utils import destroy_cuds_object
+from cuds.utils import destroy_cuds_object, clone_cuds_object, \
+    get_neighbour_diff
 from cuds.session.wrapper_session import WrapperSession
 
 
@@ -38,23 +39,12 @@ class StorageWrapperSession(WrapperSession):
                 yield self._registry.get(uid)
                 continue
 
-            # Load from backend if not in registry or expired
-            try:
-                cuds_object = next(missing)
-            except StopIteration:
-                cuds_object = None  # not available in the backend
-
-            # avoid changes in the buffers
-            if cuds_object is not None:
-                self._remove_uids_from_buffers([uid])
-
-            # expired object no longer present in the backend --> delete it
-            elif uid in self._registry:
-                self._remove_uids_from_buffers([uid])
-                self._uids_in_registry_after_last_buffer_reset -= {uid}
-                old = self._registry.get(uid)
-                destroy_cuds_object(old)
-            yield cuds_object
+            # Load from the backend
+            old_cuds_object = self._get_old_cuds_object(uid)
+            new_cuds_object = self._get_next_missing(missing)
+            self._expire_neighour_diff(old_cuds_object, new_cuds_object, uids)
+            self._avoid_changes_in_buffers(new_cuds_object, uid)
+            yield new_cuds_object
 
     def expire(self, *cuds_or_uids):
         """Let cuds_objects expire. Expired objects will be reloaded lazily
@@ -81,7 +71,7 @@ class StorageWrapperSession(WrapperSession):
 
     def refresh(self, *cuds_or_uids):
         """Refresh cuds_objects. Load possibly data of cuds_object
-        from the backend.  # TODO expire old/new neighbors?
+        from the backend.
 
         :param *cuds_or_uids: The cuds_object or uids to refresh
         :type *cuds_or_uids: Union[Cuds, UUID]
@@ -114,3 +104,67 @@ class StorageWrapperSession(WrapperSession):
         :type expired: Set[UUID]
         """
         pass
+
+    def _get_next_missing(self, missing):
+        """Get the next missing cuds object from the iterator.
+
+        :param missing: The iterator over loaded missing cuds objects.
+        :type missing: Iterator[Optional[Cuds]]
+        :return: The next loaded cuds object or None, if it doesn't exist
+        :rtype: Optional[Cuds]
+        """
+        try:
+            cuds_object = next(missing)
+        except StopIteration:
+            cuds_object = None  # not available in the backend
+        return cuds_object
+
+    def _avoid_changes_in_buffers(self, cuds_object, uid):
+        """Avoid that loading changes the buffers.
+        Loaded cuds should not appear in any buffer.
+
+        :param cuds_object: The loaded cuds object.
+        :type cuds_object: Optional[Cuds]
+        :param uid: The uid of the loaded cuds object.
+        :type uid: UUID
+        """
+        if cuds_object is not None:
+            self._remove_uids_from_buffers([uid])
+
+        # expired object no longer present in the backend --> delete it
+        elif uid in self._registry:
+            self._remove_uids_from_buffers([uid])
+            self._uids_in_registry_after_last_buffer_reset -= {uid}
+            old = self._registry.get(uid)
+            destroy_cuds_object(old)
+
+    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object, uids):
+        """Expire outdated neighbors of the just loaded cuds object.
+
+        :param old_cuds_object: The old version of the cuds object
+        :type old_cuds_object: Optional[Cuds]
+        :param new_cuds_object: The just loaded version of the cuds object
+        :type new_cuds_object: Optional[Cuds]
+        :param uids: The uids that are loaded right now.
+        :type uids: List[UUID]
+        """
+        if old_cuds_object:
+            diff1 = get_neighbour_diff(new_cuds_object, old_cuds_object)
+            diff1 = set([x[0] for x in diff1])
+            diff2 = get_neighbour_diff(old_cuds_object, new_cuds_object)
+            diff2 = set([x[0] for x in diff2])
+            diff = (diff1 | diff2) - set(uids)
+            self._expired |= diff
+
+    def _get_old_cuds_object(self, uid):
+        """Get old version of expired cuds object from registry
+
+        :param uid: The uid to get the old cuds object
+        :type uid: UUID
+        :return: A clone of the old cuds object
+        :rtype: Optional[Cuds]
+        """
+        old_cuds = None
+        if uid in self._registry:
+            old_cuds = clone_cuds_object(self._registry.get(uid))
+        return old_cuds

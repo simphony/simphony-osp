@@ -36,3 +36,18 @@ class SimWrapperSession(WrapperSession):
     def _update_cuds_objects_after_run(self, root_cuds_object):
         """Update the cuds_object after the engine has been executed. """
         pass
+
+    @abstractmethod
+    def _apply_added(self):
+        """Add the added cuds_objects to the engine"""
+        pass
+
+    @abstractmethod
+    def _apply_updated(self):
+        """Update the updated cuds_objects in the engine"""
+        pass
+
+    @abstractmethod
+    def _apply_deleted(self):
+        """Delete the deleted cuds_objects from the engine"""
+        pass

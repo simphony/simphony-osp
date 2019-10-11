@@ -17,18 +17,20 @@ from cuds.utils import (destroy_cuds_object, clone_cuds_object,
                         find_cuds_object_by_uid, remove_cuds_object,
                         get_ancestors, pretty_print,
                         find_cuds_objects_by_cuba_key, find_relationships,
-                        find_cuds_objects_by_attribute, post)
+                        find_cuds_objects_by_attribute, post,
+                        get_relationships_between,
+                        get_neighbour_diff)
 
 
 def get_test_city():
     """helper function"""
-    c = cuds.classes.City("Freiburg")
+    c = cuds.classes.City("Freiburg", coordinates=[1, 2])
     p1 = cuds.classes.Citizen(name="Rainer")
     p2 = cuds.classes.Citizen(name="Carlos")
     p3 = cuds.classes.Citizen(name="Maria")
-    n1 = cuds.classes.Neighbourhood("Zähringen")
-    n2 = cuds.classes.Neighbourhood("St. Georgen")
-    s1 = cuds.classes.Street("Lange Straße")
+    n1 = cuds.classes.Neighbourhood("Zähringen", coordinates=[2, 3])
+    n2 = cuds.classes.Neighbourhood("St. Georgen", coordinates=[3, 4])
+    s1 = cuds.classes.Street("Lange Straße", coordinates=[4, 5])
 
     c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
     p1.add(p3, rel=cuds.classes.HasChild)
@@ -330,6 +332,64 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(get_ancestors(cuds.classes.Citizen), ancestors)
         self.assertEqual(get_ancestors(cuds.classes.Citizen()), ancestors)
 
+    def test_get_relationships_between(self):
+        """ Test get the relationship between two cuds entities"""
+        c = cuds.classes.City("Freiburg")
+        p = cuds.classes.Citizen(name="Peter")
+        self.assertEqual(get_relationships_between(c, p), set())
+        self.assertEqual(get_relationships_between(p, c), set())
+        c.add(p, rel=cuds.classes.HasInhabitant)
+        self.assertEqual(get_relationships_between(c, p),
+                         {cuds.classes.HasInhabitant})
+        self.assertEqual(get_relationships_between(p, c),
+                         {cuds.classes.IsInhabitantOf})
+        c.add(p, rel=cuds.classes.HasWorker)
+        self.assertEqual(get_relationships_between(c, p),
+                         {cuds.classes.HasInhabitant,
+                          cuds.classes.HasWorker})
+        self.assertEqual(get_relationships_between(p, c),
+                         {cuds.classes.IsInhabitantOf,
+                          cuds.classes.WorksIn})
+
+    def test_get_neighbour_diff(self):
+        """Check if get_neighbour_diff can compute the difference
+        of neighbours between to objects.
+        """
+        c1 = cuds.classes.City("Paris")
+        c2 = cuds.classes.City("Berlin")
+        c3 = cuds.classes.City("London")
+        n1 = cuds.classes.Neighbourhood("Zähringen")
+        n2 = cuds.classes.Neighbourhood("Herdern")
+        s1 = cuds.classes.Street("Waldkircher Straße")
+        s2 = cuds.classes.Street("Habsburger Straße")
+        s3 = cuds.classes.Street("Lange Straße")
+
+        n1.add(c1, c2, rel=cuds.classes.IsPartOf)
+        n2.add(c2, c3, rel=cuds.classes.IsPartOf)
+        n1.add(s1, s2)
+        n2.add(s2, s3)
+
+        self.assertEqual(
+            set(get_neighbour_diff(n1, n2)),
+            {(c1.uid, cuds.classes.IsPartOf), (s1.uid, cuds.classes.HasPart)}
+        )
+
+        self.assertEqual(
+            set(get_neighbour_diff(n2, n1)),
+            {(c3.uid, cuds.classes.IsPartOf), (s3.uid, cuds.classes.HasPart)}
+        )
+
+        self.assertEqual(
+            set(get_neighbour_diff(n1, None)),
+            {(c1.uid, cuds.classes.IsPartOf), (s1.uid, cuds.classes.HasPart),
+             (c2.uid, cuds.classes.IsPartOf), (s2.uid, cuds.classes.HasPart)}
+        )
+
+        self.assertEqual(
+            set(get_neighbour_diff(None, n2)),
+            set()
+        )
+
     def test_pretty_print(self):
         """Test printing cuds objects in a human readable way."""
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
@@ -341,6 +401,7 @@ class TestUtils(unittest.TestCase):
             "  uuid: %s" % c.uid,
             "  type: CUBA.CITY",
             "  ancestors: PopulatedPlace, GeographicalPlace, Entity, Cuds",
+            "  values: coordinates: [1 2]",
             "  description: ",
             "    To Be Determined",
             "    ",
@@ -365,9 +426,11 @@ class TestUtils(unittest.TestCase):
             "   |_Relationship CUBA.HAS_PART:",
             "     -  CUBA.NEIGHBOURHOOD cuds object named <Zähringen>:",
             "     .  uuid: %s" % n1.uid,
+            "     .  coordinates: [2 3]",
             "     .   |_Relationship CUBA.HAS_PART:",
             "     .     -  CUBA.STREET cuds object named <Lange Straße>:",
             "     .        uuid: %s" % s1.uid,
+            "     .        coordinates: [4 5]",
             "     .         |_Relationship CUBA.HAS_INHABITANT:",
             "     .           -  CUBA.CITIZEN cuds object named <Carlos>:",
             "     .           .  uuid: %s" % p2.uid,
@@ -377,6 +440,7 @@ class TestUtils(unittest.TestCase):
             "     .              (already printed)",
             "     -  CUBA.NEIGHBOURHOOD cuds object named <St. Georgen>:",
             "        uuid: %s" % n2.uid,
+            "        coordinates: [3 4]",
             "         |_Relationship CUBA.HAS_PART:",
             "           -  CUBA.STREET cuds object named <Lange Straße>:",
             "              uuid: %s" % s1.uid,

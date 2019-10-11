@@ -163,6 +163,11 @@ CUDS_ONTOLOGY:
     definition:
     parent: CUBA.VALUE
 
+  COORDINATES:
+    definition:
+    parent: CUBA.VALUE
+    datatype: VECTOR:2
+
   ADDRESS:
     definition:
     parent: CUBA.ENTITY
@@ -184,6 +189,8 @@ CUDS_ONTOLOGY:
     CUBA.HAS_WORKER:
       CUBA.PERSON:
         cardinality: many
+    CUBA.COORDINATES:
+      default: [0, 0]
 
   CITY:
     definition:

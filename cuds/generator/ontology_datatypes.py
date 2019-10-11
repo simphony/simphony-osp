@@ -6,6 +6,7 @@
 # No redistribution is allowed without explicit written permission.
 
 import uuid
+import numpy as np
 
 
 def convert_to(x, datatype_string):
@@ -47,11 +48,21 @@ def to_uuid(x):
     raise ValueError("Specify a valid UUID")
 
 
+def to_vector(x, *shape):
+    x = np.array(x)
+    return x.reshape([int(x) for x in shape])
+
+
+def from_vector(x):
+    return x.reshape((-1, )).tolist()
+
+
 ONTOLOGY_DATATYPES = {
     "BOOL": (bool, bool),
     "INT": (int, int),
     "FLOAT": (float, float),
     "STRING": (to_string, str),
     "UUID": (to_uuid, str),
-    "UNDEFINED": (str, str)
+    "UNDEFINED": (str, str),
+    "VECTOR": (to_vector, from_vector)
 }

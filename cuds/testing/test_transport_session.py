@@ -40,6 +40,7 @@ SERIALIZED_BUFFERS = (
     '{"added": [{'
     '"cuba_key": "CITY", '
     '"attributes": {"name": "Paris", '
+    '"coordinates": [0, 0], '
     '"uid": "00000000-0000-0000-0000-000000000002"}, '
     '"relationships": {"IS_PART_OF": {"00000000-0000-0000-0000-000000000000": '
     '"CITY_WRAPPER"}}}], '
@@ -51,6 +52,7 @@ SERIALIZED_BUFFERS = (
     '"deleted": [{'
     '"cuba_key": "CITY", '
     '"attributes": {"name": "Freiburg", '
+    '"coordinates": [0, 0], '
     '"uid": "00000000-0000-0000-0000-000000000001"}, '
     '"relationships": {}}], '
     '"args": [42], '
@@ -61,6 +63,7 @@ SERIALIZED_BUFFERS_EXPIRED = (
     '{"added": [{'
     '"cuba_key": "CITY", '
     '"attributes": {"name": "Paris", '
+    '"coordinates": [0, 0], '
     '"uid": "00000000-0000-0000-0000-000000000002"}, '
     '"relationships": {"IS_PART_OF": {"00000000-0000-0000-0000-000000000000": '
     '"CITY_WRAPPER"}}}], '
@@ -72,6 +75,7 @@ SERIALIZED_BUFFERS_EXPIRED = (
     '"deleted": [{'
     '"cuba_key": "CITY", '
     '"attributes": {"name": "Freiburg", '
+    '"coordinates": [0, 0], '
     '"uid": "00000000-0000-0000-0000-000000000001"}, '
     '"relationships": {}}], '
     '"expired": [{"UUID": "00000000-0000-0000-0000-000000000003"}], '
@@ -83,6 +87,7 @@ SERIALIZED_BUFFERS2 = (
     '{"added": [{'
     '"cuba_key": "CITY", '
     '"attributes": {"name": "London", '
+    '"coordinates": [0, 0], '
     '"uid": "00000000-0000-0000-0000-00000000002a"}, '
     '"relationships": {}}], "updated": [], "deleted": []}'
 )
@@ -90,6 +95,7 @@ SERIALIZED_BUFFERS2 = (
 SERIALIZED_BUFFERS3 = (
     '{"result": [{"cuba_key": "CITY", '
     '"attributes": {"name": "Freiburg", '
+    '"coordinates": [0, 0], '
     '"uid": "00000000-0000-0000-0000-000000000001"}, '
     '"relationships": {'
     '"HAS_INHABITANT": {"00000000-0000-0000-0000-000000000002": "CITIZEN"}, '
@@ -258,6 +264,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(s1._added.keys(), {uuid.UUID(int=2)})
             self.assertEqual(s1._updated.keys(), {uuid.UUID(int=0)})
             self.assertEqual(s1._deleted.keys(), {uuid.UUID(int=1)})
+            self.maxDiff = None
             self.assertEqual(
                 SERIALIZED_BUFFERS,
                 serialize(
@@ -371,6 +378,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         self.assertEqual(client._engine._sent_data, (
             '{"args": [], "kwargs": {}, '
             '"root": {"cuba_key": "CITY", "attributes": {"name": "Freiburg", '
+            '"coordinates": [0, 0], '
             '"uid": "00000000-0000-0000-0000-000000000001"}, '
             '"relationships": {}}}'))
         self.assertEqual(set(client._registry.keys()), {c1.uid})

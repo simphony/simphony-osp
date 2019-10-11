@@ -200,7 +200,7 @@ def find_relationships(find_rel, root, consider_rel, find_sub_rels=False):
 def remove_cuds_object(cuds_object):
     """
     Remove a cuds_object from the datastructure.
-    Removes the relationships to all neighbors.
+    Removes the relationships to all neighbours.
     To delete it from the registry you must call the
     sessions prune method afterwards.
 
@@ -245,6 +245,57 @@ def get_ancestors(cuds_object_or_class):
         ancestors.append(parent.__name__)
         parent = parent.__bases__[0]
     return ancestors
+
+
+def get_neighbour_diff(cuds1, cuds2, rel=None):
+    """Get the uids of neighbours of cuds1 which are no neighbours in cuds2.
+    Furthermore get the relationship the neighbours are connected with.
+    Optionally filter the considered relationships.
+
+    :param cuds1: A Cuds object.
+    :type cuds1: Cuds
+    :param cuds2: A Cuds object.
+    :type cuds2: Cuds
+    :param rel: Only consider rel and its subclasses, defaults to None
+    :type rel: Relationship, optional
+    :return: List of Tuples that contain the found uids and relationships.
+    :rtype: List[Tuple[UUID, Relationship]]
+    """
+    if cuds1 is None:
+        return []
+
+    result = list()
+    # Iterate over all neighbours that are in cuds1 but not cuds2.
+    for relationship in cuds1.keys():
+        if rel is not None and not issubclass(relationship, rel):
+            continue
+
+        # Get all the neighbours that are no neighbours is cuds2
+        old_neighbour_uids = set()
+        if cuds2 is not None and relationship in cuds2:
+            old_neighbour_uids = cuds2[relationship].keys()
+        new_neighbour_uids = list(
+            cuds1[relationship].keys() - old_neighbour_uids)
+        result += list(zip(new_neighbour_uids,
+                           [relationship] * len(new_neighbour_uids)))
+    return result
+
+
+def get_relationships_between(subj, obj):
+    """Get the set of relationships between two cuds objects.
+
+    :param subj: The subject
+    :type subj: Cuds
+    :param obj: The object
+    :type obj: Cuds
+    :return: The set of relationships between subject and object.
+    :rtype: Set[Type[Relationship]]
+    """
+    result = set()
+    for rel, obj_uids in subj.items():
+        if obj.uid in obj_uids:
+            result.add(rel)
+    return result
 
 
 def pretty_print(cuds_object, file=sys.stdout):

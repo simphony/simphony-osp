@@ -51,7 +51,7 @@ class TestSessionCity(unittest.TestCase):
             cw = w.add(c)
             cities.append(cw)
             for j in range(2):
-                n = cuds.classes.Neighbourhood("neighborhood %s %s" % (i, j))
+                n = cuds.classes.Neighbourhood("neighbourhood %s %s" % (i, j))
                 cw.add(n)
                 nw = cw.get(n.uid)
                 for k in range(2):
@@ -62,15 +62,15 @@ class TestSessionCity(unittest.TestCase):
         self.assertEqual(
             set(["wrapper" if isinstance(k, cuds.classes.Wrapper) else k.name
                  for k in session._registry.values()]),
-            set(["city 0", "neighborhood 0 0", "neighborhood 0 1",
+            set(["city 0", "neighbourhood 0 0", "neighbourhood 0 1",
                  "street 0 0 0", "street 0 0 1", "street 0 1 0",
                  "street 0 1 1", "wrapper"]))
         self.assertEqual(
             set([d.name for d in deleted]),
-            set(["city 2", "neighborhood 2 0", "neighborhood 2 1",
+            set(["city 2", "neighbourhood 2 0", "neighbourhood 2 1",
                  "street 2 0 0", "street 2 0 1", "street 2 1 0",
-                 "street 2 1 1", "city 1", "neighborhood 1 0",
-                 "neighborhood 1 1", "street 1 0 0", "street 1 0 1",
+                 "street 2 1 1", "city 1", "neighbourhood 1 0",
+                 "neighbourhood 1 1", "street 1 0 0", "street 1 0 1",
                  "street 1 1 0", "street 1 1 1"])
         )
 
@@ -83,7 +83,7 @@ class TestSessionCity(unittest.TestCase):
 
         w = cuds.classes.CityWrapper(session=session)
         c = cuds.classes.City("city 1")
-        n = cuds.classes.Neighbourhood("neighborhood")
+        n = cuds.classes.Neighbourhood("neighbourhood")
         cw = w.add(c)
         cw.add(n)
         cw.remove(n.uid)
@@ -166,13 +166,6 @@ class TestSessionCity(unittest.TestCase):
             c1w = wrapper.get(c1.uid)
             c1w.remove(p.uid)
             session._check_cardinalities()
-
-            wrapper2 = cuds.classes.CityWrapper(session=session)
-            wrapper2.add(c1w)
-            self.assertRaises(ValueError, session._check_cardinalities)
-            Cuds.CUDS_SETTINGS["check_cardinalities"] = False
-            session._check_cardinalities()
-            Cuds.CUDS_SETTINGS["check_cardinalities"] = True
 
         p.remove(rel=cuds.classes.IsInhabitantOf)
         p.add(c1, rel=cuds.classes.IsMajorOf)

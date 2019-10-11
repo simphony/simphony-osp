@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="383px" preserveAspectRatio="none" style="width:706px;height:383px;" version="1.1" viewBox="0 0 706 383" width="706px" zoomAndPan="magnify"><defs><filter height="300%" id="fo7iwca6q3wms" width="300%" x="-1" y="-1"><feGaussianBlur result="blurOut" stdDeviation="2.0"/><feColorMatrix in="blurOut" result="blurOut2" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .4 0"/><feOffset dx="4.0" dy="4.0" in="blurOut2" result="blurOut3"/><feBlend in="SourceGraphic" in2="blurOut3" mode="normal"/></filter></defs><g><text fill="#000000" font-family="sans-serif" font-size="18" lengthAdjust="spacingAndGlyphs" textLength="216" x="256.5" y="16.708">STANDALONE CUDS 3.0</text><!--MD5=[42049106528ce2561a1330a2ff869470]
+cluster SemanticLayer--><rect fill="#FFFFFF" filter="url(#fo7iwca6q3wms)" height="201" style="stroke: #000000; stroke-width: 1.5;" width="172" x="147" y="44.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="116" x="175" y="59.9482">SemanticLayer</text><!--MD5=[969905f2b155fb53dbf440c532e0d2c0]
+cluster InteroperabilityLayer--><rect fill="#FFFFFF" filter="url(#fo7iwca6q3wms)" height="302.5" style="stroke: #000000; stroke-width: 1.5;" width="352" x="343" y="70.4531"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="164" x="437" y="85.4482">InteroperabilityLayer</text><!--MD5=[f2d552df252d6f64b21904cfa91dcbe0]
+class SemanticLayer.Cuds--><rect fill="#FEFECE" filter="url(#fo7iwca6q3wms)" height="150.4375" id="SemanticLayer.Cuds" style="stroke: #A80036; stroke-width: 1.5;" width="140" x="163" y="79.9531"/><ellipse cx="200.5" cy="95.9531" fill="#ADD1B2" rx="11" ry="11" style="stroke: #A80036; stroke-width: 1.0;"/><path d="M203.4688,101.5938 Q202.8906,101.8906 202.25,102.0391 Q201.6094,102.1875 200.9063,102.1875 Q198.4063,102.1875 197.0859,100.5391 Q195.7656,98.8906 195.7656,95.7656 Q195.7656,92.6406 197.0859,90.9844 Q198.4063,89.3281 200.9063,89.3281 Q201.6094,89.3281 202.2578,89.4844 Q202.9063,89.6406 203.4688,89.9375 L203.4688,92.6563 Q202.8438,92.0781 202.25,91.8047 Q201.6563,91.5313 201.0313,91.5313 Q199.6875,91.5313 199,92.6016 Q198.3125,93.6719 198.3125,95.7656 Q198.3125,97.8594 199,98.9297 Q199.6875,100 201.0313,100 Q201.6563,100 202.25,99.7266 Q202.8438,99.4531 203.4688,98.875 L203.4688,101.5938 Z "/><text fill="#000000" font-family="sans-serif" font-size="12" lengthAdjust="spacingAndGlyphs" textLength="31" x="219.5" y="100.1074">Cuds</text><rect fill="#FFFFFF" height="15.9688" style="stroke: #000000; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" width="25" x="281" y="76.9531"/><text fill="#000000" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacingAndGlyphs" textLength="23" x="282" y="89.0918">dict</text><line style="stroke: #A80036; stroke-width: 1.5;" x1="164" x2="302" y1="111.9531" y2="111.9531"/><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="95" x="169" y="126.1636">Session session</text><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="55" x="169" y="138.9683">UUID uuid</text><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="87" x="169" y="151.7729">CUBA cuba_key</text><line style="stroke: #A80036; stroke-width: 1.0;" x1="164" x2="302" y1="158.3672" y2="158.3672"/><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="70" x="169" y="172.5776">add() : Cuds</text><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="67" x="169" y="185.3823">get() : Cuds</text><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="86" x="169" y="198.187">remove() : void</text><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="82" x="169" y="210.9917">update() : void</text><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="128" x="169" y="223.7964">iter() : Iterator&lt;Cuds&gt;</text><!--MD5=[ca289c66a396e9e19224db4dd1773f0d]
+class InteroperabilityLayer.Registry--><rect fill="#FEFECE" filter="url(#fo7iwca6q3wms)" height="48" id="InteroperabilityLayer.Registry" style="stroke: #A80036; stroke-width: 1.5;" width="109" x="569.5" y="130.9531"/><ellipse cx="584.5" cy="146.9531" fill="#ADD1B2" rx="11" ry="11" style="stroke: #A80036; stroke-width: 1.0;"/><path d="M587.4688,152.5938 Q586.8906,152.8906 586.25,153.0391 Q585.6094,153.1875 584.9063,153.1875 Q582.4063,153.1875 581.0859,151.5391 Q579.7656,149.8906 579.7656,146.7656 Q579.7656,143.6406 581.0859,141.9844 Q582.4063,140.3281 584.9063,140.3281 Q585.6094,140.3281 586.2578,140.4844 Q586.9063,140.6406 587.4688,140.9375 L587.4688,143.6563 Q586.8438,143.0781 586.25,142.8047 Q585.6563,142.5313 585.0313,142.5313 Q583.6875,142.5313 583,143.6016 Q582.3125,144.6719 582.3125,146.7656 Q582.3125,148.8594 583,149.9297 Q583.6875,151 585.0313,151 Q585.6563,151 586.25,150.7266 Q586.8438,150.4531 587.4688,149.875 L587.4688,152.5938 Z "/><text fill="#000000" font-family="sans-serif" font-size="12" lengthAdjust="spacingAndGlyphs" textLength="50" x="598.5" y="151.1074">Registry</text><rect fill="#FFFFFF" height="15.9688" style="stroke: #000000; stroke-width: 1.0; stroke-dasharray: 2.0,2.0;" width="25" x="656.5" y="127.9531"/><text fill="#000000" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacingAndGlyphs" textLength="23" x="657.5" y="140.0918">dict</text><line style="stroke: #A80036; stroke-width: 1.5;" x1="570.5" x2="677.5" y1="162.9531" y2="162.9531"/><line style="stroke: #A80036; stroke-width: 1.5;" x1="570.5" x2="677.5" y1="170.9531" y2="170.9531"/><!--MD5=[f04db241a1d9d33582eb4c54dd745b87]
+class InteroperabilityLayer.Session--><rect fill="#FEFECE" filter="url(#fo7iwca6q3wms)" height="99.2188" id="InteroperabilityLayer.Session" style="stroke: #A80036; stroke-width: 1.5;" width="114" x="359" y="105.4531"/><ellipse cx="388.85" cy="121.4531" fill="#A9DCDF" rx="11" ry="11" style="stroke: #A80036; stroke-width: 1.0;"/><path d="M388.9594,116.7969 L387.8031,121.875 L390.1313,121.875 L388.9594,116.7969 Z M387.475,114.5625 L390.4594,114.5625 L393.8188,126.9531 L391.3656,126.9531 L390.6,123.8906 L387.3188,123.8906 L386.5688,126.9531 L384.1313,126.9531 L387.475,114.5625 Z "/><text fill="#000000" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacingAndGlyphs" textLength="49" x="406.15" y="125.6074">Session</text><line style="stroke: #A80036; stroke-width: 1.5;" x1="360" x2="472" y1="137.4531" y2="137.4531"/><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="102" x="365" y="151.6636">Registry : registry</text><line style="stroke: #A80036; stroke-width: 1.0;" x1="360" x2="472" y1="158.2578" y2="158.2578"/><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="73" x="365" y="172.4683">store() : void</text><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="73" x="365" y="185.2729">load() : Cuds</text><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="69" x="365" y="198.0776">sync() : void</text><!--MD5=[d8852dde9888d0ac7eda69884fc95ff0]
+class InteroperabilityLayer.CoreSession--><rect fill="#FEFECE" filter="url(#fo7iwca6q3wms)" height="48" id="InteroperabilityLayer.CoreSession" style="stroke: #A80036; stroke-width: 1.5;" width="110" x="359" y="308.9531"/><ellipse cx="374" cy="324.9531" fill="#ADD1B2" rx="11" ry="11" style="stroke: #A80036; stroke-width: 1.0;"/><path d="M376.9688,330.5938 Q376.3906,330.8906 375.75,331.0391 Q375.1094,331.1875 374.4063,331.1875 Q371.9063,331.1875 370.5859,329.5391 Q369.2656,327.8906 369.2656,324.7656 Q369.2656,321.6406 370.5859,319.9844 Q371.9063,318.3281 374.4063,318.3281 Q375.1094,318.3281 375.7578,318.4844 Q376.4063,318.6406 376.9688,318.9375 L376.9688,321.6563 Q376.3438,321.0781 375.75,320.8047 Q375.1563,320.5313 374.5313,320.5313 Q373.1875,320.5313 372.5,321.6016 Q371.8125,322.6719 371.8125,324.7656 Q371.8125,326.8594 372.5,327.9297 Q373.1875,329 374.5313,329 Q375.1563,329 375.75,328.7266 Q376.3438,328.4531 376.9688,327.875 L376.9688,330.5938 Z "/><text fill="#000000" font-family="sans-serif" font-size="12" lengthAdjust="spacingAndGlyphs" textLength="78" x="388" y="329.1074">CoreSession</text><line style="stroke: #A80036; stroke-width: 1.5;" x1="360" x2="468" y1="340.9531" y2="340.9531"/><line style="stroke: #A80036; stroke-width: 1.5;" x1="360" x2="468" y1="348.9531" y2="348.9531"/><!--MD5=[fee662a292a0353a69bd162820bae93b]
+entity User--><ellipse cx="22" cy="123.4531" fill="#FEFECE" filter="url(#fo7iwca6q3wms)" rx="8" ry="8" style="stroke: #A80036; stroke-width: 2.0;"/><path d="M22,131.4531 L22,158.4531 M9,139.4531 L35,139.4531 M22,158.4531 L9,173.4531 M22,158.4531 L35,173.4531 " fill="none" filter="url(#fo7iwca6q3wms)" style="stroke: #A80036; stroke-width: 2.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="32" x="6" y="193.4482">User</text><!--MD5=[02902352e6fa764ce32c69c9a14e2c19]
+reverse link InteroperabilityLayer.Session to InteroperabilityLayer.CoreSession--><path d="M415.216,224.9211 C414.878,254.6521 414.506,287.4271 414.263,308.7759 " fill="none" id="InteroperabilityLayer.Session&lt;-InteroperabilityLayer.CoreSession" style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 7.0,7.0;"/><polygon fill="none" points="408.221,224.4311,415.448,204.5121,422.22,224.5901,408.221,224.4311" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[bd554ffda57c73bb81337a610ef09f8b]
+link User to SemanticLayer.Cuds--><path d="M38.2065,154.9531 C63.6148,154.9531 114.405,154.9531 157.752,154.9531 " fill="none" id="User-&gt;SemanticLayer.Cuds" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="162.999,154.9531,153.999,150.9531,157.999,154.9531,153.999,158.9531,162.999,154.9531" style="stroke: #A80036; stroke-width: 1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="88" x="56.5" y="148.02">interacts_with</text><!--MD5=[b0dee550f81556cfabb669e310859d7c]
+link SemanticLayer.Cuds to InteroperabilityLayer.CoreSession--><path d="M303.238,224.2511 C332.359,252.5671 364.429,283.7521 386.533,305.2451 " fill="none" id="SemanticLayer.Cuds-&gt;InteroperabilityLayer.CoreSession" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="390.267,308.8757,386.6031,299.7337,386.6823,305.39,381.026,305.4692,390.267,308.8757" style="stroke: #A80036; stroke-width: 1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="38" x="357" y="275.02">has_a</text><!--MD5=[9f7e71c638f46586d31562d326fcb73d]
+link InteroperabilityLayer.Session to InteroperabilityLayer.Registry--><path d="M473.112,154.9531 C501.304,154.9531 535.309,154.9531 563.895,154.9531 " fill="none" id="InteroperabilityLayer.Session-&gt;InteroperabilityLayer.Registry" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="569.167,154.9531,560.167,150.9531,564.167,154.9531,560.167,158.9531,569.167,154.9531" style="stroke: #A80036; stroke-width: 1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacingAndGlyphs" textLength="60" x="491.25" y="148.02">manages</text><!--MD5=[3f8350d0a5d52912d5078d15bf3fee59]
+@startuml
+allow_mixing
+  skinparam packageStyle rectangle
+  title STANDALONE CUDS 3.0
+  actor User
+
+  namespace SemanticLayer {
+
+   class Cuds <dict> {
+    Session session
+    UUID uuid
+    CUBA cuba_key
+    - -
+    add() : Cuds
+    get() : Cuds
+    remove() : void
+    update() : void
+    iter() : Iterator<Cuds>
+   }
+  }
+
+  namespace InteroperabilityLayer {
+
+   class Registry <dict> {
+   }
+
+   abstract class Session {
+    Registry : registry
+    - -
+    store() : void
+    load() : Cuds
+    sync() : void
+   }
+
+   class CoreSession implements InteroperabilityLayer.Session {
+   }
+  }
+
+
+  User -> SemanticLayer.Cuds : interacts_with
+
+  SemanticLayer.Cuds - -> InteroperabilityLayer.CoreSession : has_a
+  InteroperabilityLayer.Session -> InteroperabilityLayer.Registry : manages
+
+@enduml
+
+PlantUML version 1.2019.11(Sun Sep 22 10:02:15 UTC 2019)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Java Version: 1.8.0_222-b10
+Operating System: Linux
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>

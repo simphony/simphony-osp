@@ -16,7 +16,7 @@ except (FileNotFoundError, CalledProcessError):
 from cuds.generator.class_generator import ClassGenerator
 
 # Read description
-with open('README.rst', 'r') as readme:
+with open('README.md', 'r') as readme:
     README_TEXT = readme.read()
 
 
@@ -63,7 +63,7 @@ class Install(install):
         self.ontology = ''
 
     def run(self):
-        create_ontology_classes(self.ontology or "stable")
+        create_ontology_classes(self.ontology or "city")
         install.run(self)
 
 
@@ -90,7 +90,6 @@ packages = [
     'cuds.session.transport',
     'cuds.generator',
     'cuds.ontology',
-    'cuds.ontology.utils',
     'cuds.testing'
 ]
 
