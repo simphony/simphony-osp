@@ -36,18 +36,6 @@ class WrapperSession(Session):
     def __str__(self):
         pass
 
-    def _apply_added(self):
-        """Add the added cuds_objects to the engine"""
-        raise NotImplementedError
-
-    def _apply_updated(self):
-        """Update the updated cuds_objects in the engine"""
-        raise NotImplementedError
-
-    def _apply_deleted(self):
-        """Delete the deleted cuds_objects from the engine"""
-        raise NotImplementedError
-
     # OVERRIDE
     def store(self, cuds_object):
         """Store the cuds_objects in the registry and add it to buffers.
