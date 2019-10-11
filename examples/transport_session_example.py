@@ -4,13 +4,17 @@ import subprocess
 import time
 import cuds.classes
 from cuds.classes import CUBA
-from cuds.session.db.sqlite_wrapper_session import \
-    SqliteWrapperSession
 from cuds.utils import pretty_print
 from cuds.session.transport.transport_session_client import \
     TransportSessionClient
 from cuds.session.transport.transport_session_server import \
     TransportSessionServer
+try:
+    from cudsqlite.sqlite_wrapper_session import \
+        SqliteWrapperSession
+except ImportError as e:
+    raise ImportError("For this example, the SQLite "
+                      "wrapper for SimPhoNy is required!") from e
 
 # Start Server
 if sys.argv[-1] == "server":

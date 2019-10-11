@@ -14,7 +14,6 @@ explicit written permission.
 ## Requirements
 
 - PyYaml (on Windows, use <https://stackoverflow.com/a/33673823>) for parsing yaml files
-- enum34 for the CUBA-enum
 - numpy for vector attributes of cuds
 - websockets for the transport layer
 - sqlalchemy for the sqlalchemy wrapper
@@ -156,6 +155,3 @@ The structure of a local wrapper:
 
 The structure of a wrapper with a back-end in a remote server:
 ![Distributed CUDS](doc/distributed_cuds.svg)
-
-The general inheritance scheme for the Session class is as follows:
-![Session inheritance scheme](doc/session_inheritance_scheme.svg)
