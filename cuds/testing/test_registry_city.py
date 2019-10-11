@@ -22,7 +22,7 @@ class TestRegistryCity(unittest.TestCase):
         """
         c = cuds.classes.City("a city")
         p = cuds.classes.Citizen()
-        n = cuds.classes.Neighbourhood("a neighborhood")
+        n = cuds.classes.Neighbourhood("a neighbourhood")
         s = cuds.classes.Street("The street")
         c.add(p, rel=cuds.classes.HasInhabitant)
         c.add(n)
@@ -48,7 +48,7 @@ class TestRegistryCity(unittest.TestCase):
             c = cuds.classes.City("city %s" % i)
             cities.append(c)
             for j in range(2):
-                n = cuds.classes.Neighbourhood("neighborhood %s %s" % (i, j))
+                n = cuds.classes.Neighbourhood("neighbourhood %s %s" % (i, j))
                 c.add(n)
                 for k in range(2):
                     s = cuds.classes.Street("street %s %s %s" % (i, j, k))
@@ -57,17 +57,17 @@ class TestRegistryCity(unittest.TestCase):
         registry.prune(*[c.uid for c in cities[0:2]])
         self.assertEqual(
             set([k.name for k in registry.values()]),
-            set(["city 0", "city 1", "neighborhood 0 0", "neighborhood 0 1",
-                 "neighborhood 1 0", "neighborhood 1 1", "street 0 0 0",
+            set(["city 0", "city 1", "neighbourhood 0 0", "neighbourhood 0 1",
+                 "neighbourhood 1 0", "neighbourhood 1 1", "street 0 0 0",
                  "street 0 0 1", "street 0 1 0", "street 0 1 1",
                  "street 1 0 0", "street 1 0 1", "street 1 1 0",
                  "street 1 1 1"]))
 
-        root, = [n for n in cities[0].get() if n.name == "neighborhood 0 0"]
+        root, = [n for n in cities[0].get() if n.name == "neighbourhood 0 0"]
         registry.prune(root, rel=ActiveRelationship)
         self.assertEqual(
             set([k.name for k in registry.values()]),
-            set(["neighborhood 0 0",
+            set(["neighbourhood 0 0",
                  "street 0 0 0",
                  "street 0 0 1"]))
 

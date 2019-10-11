@@ -279,20 +279,20 @@ class ClassGenerator(object):
                                                                 annotation,
                                                                 default))
                     else:
-                        list_init_default.append("%s%s='%s'" % (name,
-                                                                annotation,
-                                                                default))
+                        list_init_default.append("%s%s=%s" % (name,
+                                                              annotation,
+                                                              default))
                 # No default value
                 else:
                     list_init.append(name + annotation)
                 # Inherited properties go to supper
                 if name in inherited_attr:
-                    list_super.append(name + ", ")
+                    list_super.append("%s=%s, " % (name, name))
                 elif name == "session" and name in own_attr:
                     list_properties.append((name, datatype))
-                    # list_self.append("if session.root is not None:")  TODO
-                    # list_self.append("raise ValueError('The given session "
-                    #                  "is already used in another wrapper')")
+                    list_self.append("if session.root is not None:")
+                    list_self.append("    raise ValueError('The given session "
+                                     "is already used in another wrapper')")
                     list_self.append("self._session = session")
                 elif name in own_attr:
                     list_properties.append((name, datatype))

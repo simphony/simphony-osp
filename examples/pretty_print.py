@@ -1,20 +1,27 @@
-import cuds.classes
+from cuds.classes import (
+    City, Citizen, Neighbourhood, Street,
+    HasPart, HasInhabitant,
+    CUBA
+)
 from cuds.utils import pretty_print
 
 
-c = cuds.classes.Cuds("Main Cuds container")
-pm = cuds.classes.PhysicsBasedModel()
-pm.add(cuds.classes.PhysicsEquation())
-pm.add(cuds.classes.InteratomicPotential())
-mat = cuds.classes.Material("One material")
-mat.add(cuds.classes.Mass("pg", 5))
-mat.add(cuds.classes.Charge(0.5))
-c.add(mat)
-pm.get(cuds.classes.CUBA.INTERATOMIC_POTENTIAL)[0].add(mat)
-for i in range(3):
-    c.add(cuds.classes.Atom())
-box = cuds.classes.Box(name='SimulationBox')
-box.add(cuds.classes.Condition("A condition"))
-c.add(box)
+# Let's build an EMMO compatible city!
+emmo_town = City('EMMO town', coordinates=[42, 42])
 
-pretty_print(c)
+emmo_town.add(Citizen(name='Emanuele Ghedini'), rel=HasInhabitant)
+emmo_town.add(Citizen(name='Adham Hashibon'), rel=HasInhabitant)
+emmo_town.add(Citizen(name='Jesper Friis'), Citizen(name='Gerhard Goldbeck'),
+              Citizen(name='Georg Schmitz'), Citizen(name='Anne de Baas'),
+              rel=HasInhabitant)
+
+emmo_town.add(Neighbourhood("Ontology"))
+emmo_town.add(Neighbourhood("User cases"))
+
+ontology_uid = None
+for neighbourhood in emmo_town.get(cuba_key=CUBA.NEIGHBOURHOOD):
+    if neighbourhood.name == "Ontology":
+        ontology_uid = neighbourhood.uid
+        neighbourhood.add(Street("Relationships"), rel=HasPart)
+        neighbourhood.add(Street("Entities"), rel=HasPart)
+pretty_print(emmo_town)

@@ -5,12 +5,14 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+from cuds.generator.ontology_datatypes import convert_from
+
 
 class EqualsCondition():
     def __init__(self, table_name, column_name, value, datatype):
         self.table_name = table_name
         self.column_name = column_name
-        self.value = value
+        self.value = convert_from(value, datatype)
         self.datatype = datatype
 
 

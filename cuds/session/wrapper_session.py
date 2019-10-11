@@ -5,8 +5,8 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-from cuds.classes.cuds import Cuds
 from abc import abstractmethod
+from cuds.classes.cuds import Cuds
 from .session import Session
 
 
@@ -35,18 +35,6 @@ class WrapperSession(Session):
     @abstractmethod
     def __str__(self):
         pass
-
-    def _apply_added(self):
-        """Add the added cuds_objects to the engine"""
-        raise NotImplementedError
-
-    def _apply_updated(self):
-        """Update the updated cuds_objects in the engine"""
-        raise NotImplementedError
-
-    def _apply_deleted(self):
-        """Delete the deleted cuds_objects from the engine"""
-        raise NotImplementedError
 
     # OVERRIDE
     def store(self, cuds_object):

@@ -14,7 +14,7 @@ from cuds.generator.ontology_datatypes import convert_to
 from cuds.session.core_session import CoreSession
 from cuds.classes.relationship_tree import RelationshipTree
 from cuds.utils import check_arguments, clone_cuds_object, \
-    create_from_cuds_object
+    create_from_cuds_object, get_neighbour_diff
 from cuds.generator.settings import DEFAULT as DEFAULT_CUDS_SETTINGS
 from cuds.classes.generated.relationship import Relationship
 from cuds.classes.generated.cuba import CUBA
@@ -295,13 +295,13 @@ class Cuds(dict):
                                + "because none matched your filter.")
         uid_relationships = list(relationship_mapping.items())
 
-        # load all the neighbors to delete and remove inverse relationship, too
-        neighbors = self.session.load(*[uid for uid, _ in uid_relationships])
-        for uid_relationship, neighbor in zip(uid_relationships, neighbors):
+        # load all the neighbours to delete and remove inverse relationship
+        neighbours = self.session.load(*[uid for uid, _ in uid_relationships])
+        for uid_relationship, neighbour in zip(uid_relationships, neighbours):
             uid, relationships = uid_relationship
             for relationship in relationships:
                 self._remove_direct(relationship, uid)
-                neighbor._remove_inverse(relationship, self.uid)
+                neighbour._remove_inverse(relationship, self.uid)
 
     def iter(self,
              *uids: uuid.UUID,
@@ -383,9 +383,9 @@ class Cuds(dict):
             new_child_getter = new_cuds_object
             new_cuds_object = create_from_cuds_object(new_cuds_object,
                                                       add_to.session)
-            # fix the connections to the neighbors
-            add_to._fix_neighbors(new_cuds_object, old_cuds_object,
-                                  add_to.session, missing)
+            # fix the connections to the neighbours
+            add_to._fix_neighbours(new_cuds_object, old_cuds_object,
+                                   add_to.session, missing)
             result = result or new_cuds_object
 
             for outgoing_rel in new_cuds_object.keys():
@@ -414,11 +414,11 @@ class Cuds(dict):
         return result
 
     @staticmethod
-    def _fix_neighbors(new_cuds_object, old_cuds_object, session, missing):
-        """Fix all the connections of the neighbors of a Cuds objects
+    def _fix_neighbours(new_cuds_object, old_cuds_object, session, missing):
+        """Fix all the connections of the neighbours of a Cuds objects
         that is going to be replaced.
 
-        Behavior when neighbors change:
+        Behavior when neighbours change:
 
         - new_cuds_object has parents, that weren't parents of old_cuds_object.
             - the parents are already stored in the session of old_cuds_object.
@@ -451,33 +451,32 @@ class Cuds(dict):
         old_cuds_object = old_cuds_object or dict()
 
         # get the parents that got parents after adding the new Cuds
-        new_parent_diff = Cuds._get_neighbor_diff(
+        new_parent_diff = get_neighbour_diff(
             new_cuds_object, old_cuds_object, rel=PassiveRelationship)
-        # get the neighbors that were neighbors
+        # get the neighbours that were neighbours
         # before adding the new cuds_object
-        old_neighbor_diff = Cuds._get_neighbor_diff(old_cuds_object,
-                                                    new_cuds_object)
+        old_neighbour_diff = get_neighbour_diff(old_cuds_object,
+                                                new_cuds_object)
 
         # Load all the cuds_objects of the session
         cuds_objects = session.load(
-            *[uid for uid, _ in new_parent_diff + old_neighbor_diff])
+            *[uid for uid, _ in new_parent_diff + old_neighbour_diff])
 
         # Perform the fixes
         Cuds._fix_new_parents(new_cuds_object=new_cuds_object,
                               new_parents=cuds_objects,
                               new_parent_diff=new_parent_diff,
                               missing=missing)
-        Cuds._fix_old_neighbors(new_cuds_object=new_cuds_object,
-                                old_cuds_object=old_cuds_object,
-                                old_neighbors=cuds_objects,
-                                old_neighbor_diff=old_neighbor_diff)
+        Cuds._fix_old_neighbours(new_cuds_object=new_cuds_object,
+                                 old_cuds_object=old_cuds_object,
+                                 old_neighbours=cuds_objects,
+                                 old_neighbour_diff=old_neighbour_diff)
 
     @staticmethod
     def _fix_new_parents(new_cuds_object, new_parents,
                          new_parent_diff, missing):
         """Fix the relationships beetween the added Cuds objects and
         the parents of the added Cuds object.
-        # TODO test
 
         :param new_cuds_object: The added Cuds object
         :type new_cuds_object: Cuds
@@ -513,76 +512,42 @@ class Cuds(dict):
             parent[inverse][new_cuds_object.uid] = new_cuds_object.cuba_key
 
     @staticmethod
-    def _fix_old_neighbors(new_cuds_object, old_cuds_object, old_neighbors,
-                           old_neighbor_diff):
+    def _fix_old_neighbours(new_cuds_object, old_cuds_object, old_neighbours,
+                            old_neighbour_diff):
         """Fix the relationships beetween the added Cuds objects and
-        the Cuds object that were previously neighbors.
-        # TODO test
+        the Cuds object that were previously neighbours.
 
         :param new_cuds_object: The added Cuds object
         :type new_cuds_object: Cuds
         :param old_cuds_object: The Cuds object that is going to be replaced
         :type old_cuds_object: Union[Cuds, None]
-        :param old_neighbors: The Cuds object that were neighbors before the
+        :param old_neighbours: The Cuds object that were neighbours before the
             replacement.
-        :type old_neighbors: Iterator[Cuds]
-        :param old_neighbor_diff: The uids of the old neigbors and the
+        :type old_neighbours: Iterator[Cuds]
+        :param old_neighbour_diff: The uids of the old neigbors and the
             relations they are connected with
-        :type old_neighbor_diff: List[Tuple[UID, Relationship]]
+        :type old_neighbour_diff: List[Tuple[UID, Relationship]]
         """
         from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
 
-        # iterate over all old neighbors.
-        for (neighbor_uid, relationship), neighbor in zip(old_neighbor_diff,
-                                                          old_neighbors):
+        # iterate over all old neighbours.
+        for (neighbour_uid, relationship), neighbour in zip(old_neighbour_diff,
+                                                            old_neighbours):
             inverse = CUBA_MAPPING[relationship.inverse]
 
-            # delete the inverse if neighbors are children
+            # delete the inverse if neighbours are children
             if issubclass(relationship, ActiveRelationship):
-                if inverse in neighbor:
-                    neighbor._remove_direct(inverse, new_cuds_object.uid)
+                if inverse in neighbour:
+                    neighbour._remove_direct(inverse, new_cuds_object.uid)
 
-            # if neighbor is parent, add missing relationships
+            # if neighbour is parent, add missing relationships
             else:
                 if relationship not in new_cuds_object:
                     new_cuds_object[relationship] = dict()
                 for (uid, cuba_key), parent in \
-                        zip(old_cuds_object[relationship].items(), neighbor):
+                        zip(old_cuds_object[relationship].items(), neighbour):
                     if parent is not None:
                         new_cuds_object[relationship][uid] = cuba_key
-
-    @staticmethod
-    def _get_neighbor_diff(cuds1, cuds2, rel=None):
-        """Get the uids of neighbors of cuds1 which are no neighbors in cuds2.
-        Furthermore get the relationship the neighbors are connected with.
-        Optionally filter the considered relationships.
-        # TODO test
-
-        :param cuds1: A Cuds object.
-        :type cuds1: Cuds
-        :param cuds2: A Cuds object.
-        :type cuds2: Cuds
-        :param rel: Only consider rel and its subclasses, defaults to None
-        :type rel: Relationship, optional
-        :return: List of Tuples that contain the found uids and relationships.
-        :rtype: List[Tuple[UUID, Relationship]]
-        """
-
-        result = list()
-        # Iterate over all neighbors that are in cuds1 but not cuds2.
-        for relationship in cuds1.keys():
-            if rel is not None and not issubclass(relationship, rel):
-                continue
-
-            # Get all the neighbors that are no neighbors is cuds2
-            old_neighbor_uids = set()
-            if relationship in cuds2:
-                old_neighbor_uids = cuds2[relationship].keys()
-            new_neighbor_uids = list(
-                cuds1[relationship].keys() - old_neighbor_uids)
-            result += list(zip(new_neighbor_uids,
-                               [relationship] * len(new_neighbor_uids)))
-        return result
 
     def _add_direct(self, cuds_object, rel):
         """
@@ -751,13 +716,15 @@ class Cuds(dict):
             relationsships that connect self with the respective cuds_object.)
         :rtype: List[UUID] (+ Dict[UUID, Set[Relationship]])
         """
+        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         relationship_mapping = dict()
         for relationship in relationships:
 
             # Collect all uids who are object of the current relationship.
             # Possibly filter by Cuba-Key.
             for uid, cuba in self[relationship].items():
-                if cuba_key is None or cuba == cuba_key:
+                if cuba_key is None or issubclass(CUBA_MAPPING[cuba],
+                                                  CUBA_MAPPING[cuba_key]):
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
                     relationship_mapping[uid].add(relationship)
