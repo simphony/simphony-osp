@@ -155,6 +155,3 @@ The structure of a local wrapper:
 
 The structure of a wrapper with a back-end in a remote server:
 ![Distributed CUDS](doc/distributed_cuds.svg)
-
-The general inheritance scheme for the Session class is as follows:
-![Session inheritance scheme](doc/session_inheritance_scheme.svg)
