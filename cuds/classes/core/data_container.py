@@ -49,7 +49,7 @@ class DataContainer(dict):
     def add(self, *args):
         """
         Adds (a) cuds object(s) to their respective CUBA key entries.
-        Before adding, check for invalid keys to aviod inconsistencies later.
+        Before adding, check for invalid keys to avoid inconsistencies later.
 
         :param args: object(s) to add
         :return: reference to itself
