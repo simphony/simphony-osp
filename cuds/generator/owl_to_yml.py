@@ -174,6 +174,8 @@ class OwlToYmlConverter():
             label = entity.__class__.__name__
         else:
             label = re.sub(r'^.*\.', '', repr(entity))
+        label = label.replace(" ", "_")
+        label = label.replace("-", "_")
         return str(label)
 
     def _get_definition(self, entity):
