@@ -18,24 +18,12 @@ class OwlToYmlConverter():
         self.owl_onto = owlready2.get_ontology(owl_ontology_file)
         self.yaml_onto = odict()
         self.yaml_onto["VERSION"] = version
-        self.yaml_onto["ONTOLOGY_MODE"] = "ignore"
-        self.class_onto = odict()
-        self.yaml_onto["CUDS_ONTOLOGY"] = odict(
-            ENTITY=odict(
-                definition="Root of all CUDS entities",
-                parent=None
-            ),
-            NOTHING=odict(
-                definition="Nothing",
-                parent="CUBA.ENTITY"
-            ),
-            VALUE=odict(
-                definition="The root of all values",
-                parent="ENTITY"
-            )
+        self.cuds_onto = odict()
+        self.cuds_onto["ENTITY"] = odict(
+            definition="Root of all CUDS entities",
+            parents=list()
         )
-        self.rel_onto = odict()
-        self.class_onto = odict()
+        self.yaml_onto["CUDS_ONTOLOGY"] = self.cuds_onto
 
     def convert(self):
         """Perform the conversion"""
@@ -45,97 +33,6 @@ class OwlToYmlConverter():
 
         for c in self.owl_onto.classes():
             self._add_class(c)
-
-        self._inject_obligatory_entity("RELATIONSHIP", self.rel_onto)
-        self._inject_obligatory_entity("ACTIVE_RELATIONSHIP",
-                                       self.rel_onto,
-                                       inverse="PASSIVE_RELATIONSHIP")
-        while True:
-            name = input("Enter classes that should have values > ").upper() \
-                .replace("CUBA.", "") \
-                .replace("-", "_") \
-                .replace(" ", "_")
-            if not name:
-                break
-            self.class_onto[name]["CUBA.VALUE"] = None
-        self.add_missing_inverses()
-        self.resolve_duplicates()
-        self.yaml_onto["CUDS_ONTOLOGY"].update(self.rel_onto)
-        self.yaml_onto["CUDS_ONTOLOGY"].update(self.class_onto)
-
-    def resolve_duplicates(self):
-        """Resolve duplicates by renaming"""
-        duplicates = set(self.rel_onto.keys()) & set(self.class_onto.keys())
-        for duplicate in duplicates:
-            rename_type = self._user_choice(
-                ["class", "relationship"],
-                "%s has been specified as class and relationship. "
-                "Which one do you want to rename?" % duplicate
-            )
-            rename_name = input("Rename to: > ").upper() \
-                .replace("CUBA.", "") \
-                .replace("-", "_") \
-                .replace(" ", "_")
-            rename_onto = self.rel_onto if rename_type == "relationship" \
-                else self.class_onto
-            self._rename_entity_recursively(
-                rename_onto, duplicate, rename_name
-            )
-
-    def add_missing_inverses(self):
-        """ Add the missing inverse relationships"""
-        no_inverse = [entity
-                      for entity, entity_def in self.rel_onto.items()
-                      if "inverse" in entity_def
-                      and entity_def["inverse"] is None]
-        for entity in no_inverse:
-            inverse = input("Specify inverse of %s > " % entity)\
-                .upper() \
-                .replace("CUBA.", "") \
-                .replace("-", "_") \
-                .replace(" ", "_")
-            assert inverse in self.rel_onto, \
-                "Specify an entity that is in the ontology"
-            self.rel_onto[entity]["inverse"] = "CUBA." + inverse
-        self.rel_onto["RELATIONSHIP"]["inverse"] = None
-
-    def _inject_obligatory_entity(self, to_inject, onto, inverse=None,
-                                  child=None):
-        """Inject entities that must be present in yml ontologies.
-
-        :param to_inject: The entity to inject
-        :type to_inject: str
-        :param onto: The ontology to inject it in
-        :type onto: OrderedDict
-        :param inverse: If given, inject given inverse as well,
-            defaults to None
-        :type inverse: str, optional
-        :param child: The direct child of the injected class.
-            User will be asked if not given, defaults to None
-        :type child: str, optional
-        """
-        if to_inject not in onto:
-            if child is None:
-                print("\nNo CUBA.%s in the ontology." % to_inject)
-                print("Specify the an entity, that should "
-                      "have %s as parent:" % to_inject)
-                child = input("> ").upper().replace("CUBA.", "") \
-                                           .replace("-", "_") \
-                                           .replace(" ", "_")
-            parent = onto[child]["parent"]
-            onto[to_inject] = odict(
-                definition=None,
-                parent=parent
-            )
-            onto[child]["parent"] = "CUBA.%s" % to_inject
-            if inverse is not None:
-                onto[to_inject]["inverse"] = "CUBA." + inverse
-                self._inject_obligatory_entity(
-                    to_inject=inverse,
-                    onto=onto,
-                    inverse=to_inject,
-                    child=onto[child]["inverse"].replace("CUBA.", "")
-                )
 
     def write(self, filename="ontology.yml"):
         """Write the yml ontology to disk"""
@@ -182,13 +79,19 @@ class OwlToYmlConverter():
             else:
                 warnings.warn('omits %r for %r' % (c, label))
 
-        parent = self._user_choice(parents, "Choose the parent of %s" % label)
+        domains = [self._parse_class_expression(ce)[1]
+                   for ce in relationship.domain]
+        ranges = [self._parse_class_expression(ce)[1]
+                  for ce in relationship.range]
 
         # add it
-        self.rel_onto[label] = odict(
+        self.cuds_onto[label] = odict(
             definition=definition,
             inverse=inverse,
-            parent=parent
+            parents=parents,
+            domain=self._restrictions_to_yml(domains),
+            range=self._restrictions_to_yml(ranges),
+            characteristics=characteristics
         )
 
     def _add_class(self, onto_class):
@@ -201,21 +104,28 @@ class OwlToYmlConverter():
         definition = self._get_definition(onto_class)
 
         parents = []
-        restrictions = odict()
+        restrictions = []
         for ce in onto_class.is_a:
             is_parent, parsed_ce = self._parse_class_expression(ce,
                                                                 restrictions)
             if is_parent:
                 parents.append(parsed_ce)
             elif parsed_ce is not None:
-                restrictions.update(parsed_ce)
+                restrictions.append(parsed_ce)
 
-        parent = self._user_choice(parents, "Choose the parent of %s" % label,
-                                   "CUBA.ENTITY")
-        self.class_onto[label] = odict(
+        equivalent_to = [self._parse_class_expression(ce)[1]
+                         for ce in onto_class.equivalent_to]
+        disjoints = [self._parse_class_expression(ce)[1]
+                     for disjoint in onto_class.disjoints()
+                     for ce in disjoint.entities
+                     if ce != onto_class]
+
+        self.cuds_onto[label] = odict(
             definition=definition,
-            parent=parent,
-            **self._restrictions_to_yml(restrictions),
+            parents=parents,
+            equivalent_to=self._restrictions_to_yml(equivalent_to),
+            restrictions=self._restrictions_to_yml(restrictions),
+            disjoints=disjoints
         )
 
     def _parse_class_expression(self, ce, old_restrictions=None):
@@ -230,13 +140,16 @@ class OwlToYmlConverter():
         :return: The parsed class expression
         :rtype: dict()
         """
-        old_restrictions = old_restrictions or odict()
+        old_restrictions = old_restrictions or list()
         if ce is owlready2.Thing:
             return False, None
         if isinstance(ce, owlready2.ThingClass):
             return True, self._get_cuba_label(ce)
         elif isinstance(ce, owlready2.Restriction):
             return False, self._parse_restriction(ce, old_restrictions)
+        elif isinstance(ce, owlready2.ClassConstruct):
+            return False, self._parse_class_construct(ce)
+        # TODO HasSelf
 
         warnings.warn('Unexpected class expression: %s' % type(ce))
         return False, None
@@ -302,31 +215,17 @@ class OwlToYmlConverter():
         return d
 
     def _parse_restriction(self, new_restriction, old_restrictions):
-        """Parse an owl restriction and convert it to YAML.
-        Will modify old_restrictions the new restriction is already present.
-
-        :param new_restriction: The new owl restrictions to add
-        :type new_restriction: owlready2.restriction
-        :param old_restrictions: The parsed old restrictions
-        :type old_restrictions: dict
-        :return: The parsed restriction, if it was not
-            contained in old_restrictions
-        :rtype: Optional[Dict]
-        """
         relationship = self._get_cuba_label(new_restriction.property)
-        is_simple, target = self._parse_class_expression(new_restriction.value)
-        if not is_simple:
-            return
+        _, target = self._parse_class_expression(new_restriction.value)
         rtype = owlready2.class_construct. \
             _restriction_type_2_label[new_restriction.type]
 
         # test of old restriction can be modified
         modify_restriction = None
-        for restriction_rel, restriction in old_restrictions.items():
-            for restriction_target, restriction_options in restriction.items():
-                if restriction_rel == relationship \
-                        and restriction_target == target:
-                    modify_restriction = restriction_options
+        for restriction in old_restrictions:
+            for key, value in restriction.items():
+                if key == relationship and value["target"] == target:
+                    modify_restriction = value
                     break
             else:
                 continue
@@ -335,10 +234,12 @@ class OwlToYmlConverter():
         # Create a new restriction
         is_new = modify_restriction is None
         if modify_restriction is None:
-            modify_restriction = odict({target: odict(cardinality=[0, None])})
+            modify_restriction = odict(cardinality=[0, None],
+                                       target=target,
+                                       only=False)
 
         # Parse restriction and set cardinality accordingly
-        cardinality = modify_restriction[target]["cardinality"]
+        cardinality = modify_restriction["cardinality"]
         if rtype == "exactly":
             cardinality[0] = new_restriction.cardinality
             cardinality[1] = new_restriction.cardinality
@@ -348,8 +249,31 @@ class OwlToYmlConverter():
             cardinality[1] = new_restriction.cardinality
         elif rtype == "some":
             cardinality[0] = 1
-
+        elif rtype == "only":
+            modify_restriction["only"] = True
+        else:
+            raise ValueError("Unsupported restriction type %s"
+                             % new_restriction)
         return odict({relationship: modify_restriction}) if is_new else None
+
+    def _parse_class_construct(self, class_construct):
+        """Parse a class construct (Union / Intersection / ...)
+
+        :param class_construct: The class construct to parse
+        :type class_construct: owlready2.ClassConstruct
+        :return: The parsed class construct
+        :rtype: Ordered dict
+        """
+        label = self._get_label(class_construct).upper()
+        classes = class_construct.Classes \
+            if hasattr(class_construct, "Classes") \
+            else [class_construct.Class]
+
+        parsed_ces = list()
+        for ce in classes:
+            _, parsed_ce = self._parse_class_expression(ce)
+            parsed_ces.append(parsed_ce)
+        return odict({label: parsed_ces})
 
     def _restrictions_to_yml(self, restrictions):
         """Convert the restriction tuples to a+ / a-b
@@ -371,37 +295,6 @@ class OwlToYmlConverter():
                 else:
                     self._restrictions_to_yml(value)
         return restrictions
-
-    def _rename_entity_recursively(self, sub_onto, old_name,
-                                   new_name, prefix=""):
-        """Rename an entity recursively.
-
-        :param sub_onto: The (part of an) ontology where
-            the entity should be renamed.
-        :type sub_onto: Union[Dict, List, str]
-        :param old_name: The entities old name
-        :type old_name: str
-        :param new_name: The entities new name
-        :type new_name: str
-        :param prefix: The prefix for the names, defaults to ""
-        :type prefix: str, optional
-        """
-        if isinstance(sub_onto, list):
-            for x in sub_onto:
-                self._rename_entity_recursively(
-                    x, old_name, new_name, prefix="CUBA."
-                )
-        if isinstance(sub_onto, dict):
-            if prefix + old_name in sub_onto.keys():
-                sub_onto[prefix + new_name] = sub_onto[prefix + old_name]
-                del sub_onto[prefix + old_name]
-            for key in sub_onto.keys():
-                if sub_onto[key] == prefix + old_name:
-                    sub_onto[key] = prefix + new_name
-                else:
-                    self._rename_entity_recursively(
-                        sub_onto[key], old_name, new_name, prefix="CUBA."
-                    )
 
     def _get_yml_dumper(self):
         """ Make sure YAML file is ordered"""
@@ -431,31 +324,6 @@ class OwlToYmlConverter():
                 u'tag:yaml.org,2002:null', '')
         )
         return Dumper
-
-    def _user_choice(self, items, prompt_msg, fallback=None):
-        """Let the user choose which item is the correct one.
-
-        :param items: A list of items to choose from
-        :type items: list[Any]
-        :param prompt_msg: The message to display the user.
-        :type prompt_msg: str
-        :param fallback: The object that will be returned if items is empty,
-            defaults to None
-        :type fallback: Any, optional
-        :return: The chosen item
-        :rtype: Any
-        """
-        if not items:
-            return fallback
-        if len(items) == 1:
-            return items[0]
-        print()
-        print(prompt_msg)
-        for i, item in enumerate(items):
-            print("%s)" % (i + 1), item)
-        choice = input("Type the number of your choice > ")
-        choice = int(choice) - 1
-        return items[choice]
 
 
 if __name__ == "__main__":

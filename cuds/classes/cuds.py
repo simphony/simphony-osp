@@ -19,7 +19,6 @@ from cuds.generator.settings import DEFAULT as DEFAULT_CUDS_SETTINGS
 from cuds.classes.generated.relationship import Relationship
 from cuds.classes.generated.cuba import CUBA
 from cuds.classes.generated.active_relationship import ActiveRelationship
-from cuds.classes.generated.passive_relationship import PassiveRelationship
 from copy import deepcopy
 
 
@@ -452,7 +451,7 @@ class Cuds(dict):
 
         # get the parents that got parents after adding the new Cuds
         new_parent_diff = get_neighbour_diff(
-            new_cuds_object, old_cuds_object, rel=PassiveRelationship)
+            new_cuds_object, old_cuds_object, mode="non-active")
         # get the neighbours that were neighbours
         # before adding the new cuds_object
         old_neighbour_diff = get_neighbour_diff(old_cuds_object,
@@ -495,7 +494,7 @@ class Cuds(dict):
         # Iterate over the new parents
         for (parent_uid, relationship), parent in zip(new_parent_diff,
                                                       new_parents):
-            if not issubclass(relationship, PassiveRelationship):
+            if issubclass(relationship, ActiveRelationship):
                 continue
             inverse = CUBA_MAPPING[relationship.inverse]
             # Delete connection to parent if parent is not present
