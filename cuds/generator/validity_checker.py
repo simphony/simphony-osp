@@ -120,7 +120,8 @@ class ValidityChecker():
             assert not (is_active and inverse_is_active), \
                 "The inverse of an active relationship must not be active"
             assert parser.get_value(inverse[5:], self.attr_inverse) == \
-                "CUBA.%s" % entity, "Inverse of inverse must be identity: %s" % entity
+                "CUBA.%s" % entity, "Inverse of inverse must be identity: %s" \
+                % entity
 
     def _check_attributes(self, parser):
         """Check if the attributes of an entity are valid.

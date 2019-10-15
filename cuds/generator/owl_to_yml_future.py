@@ -300,7 +300,8 @@ class OwlToYmlConverter():
         """ Make sure YAML file is ordered"""
 
         # Try to use LibYAML bindings if possible
-        # (Recipe copied from https://gist.github.com/oglops/c70fb69eef42d40bed06)
+        # (Recipe copied from
+        # https://gist.github.com/oglops/c70fb69eef42d40bed06)
         try:
             from yaml import CLoader as Loader, CDumper as Dumper
         except ImportError:

@@ -270,7 +270,8 @@ def get_neighbour_diff(cuds1, cuds2, mode="all"):
     result = list()
     # Iterate over all neighbours that are in cuds1 but not cuds2.
     for relationship in cuds1.keys():
-        if (mode == "active" and not issubclass(relationship,
+        if (
+            mode == "active" and not issubclass(relationship,
                                                 ActiveRelationship)
             or mode == "non-active" and issubclass(relationship,
                                                    ActiveRelationship)
