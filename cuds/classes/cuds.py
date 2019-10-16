@@ -792,7 +792,7 @@ class NotifyDict(dict):
         super().__init__(*args)
 
     def __getitem__(self, key):
-        self.session._notify_read(self)
+        self.cuds_object.session._notify_read(self)
         return super().__getitem__(key)
 
     def __setitem__(self, key, value):
