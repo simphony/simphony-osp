@@ -18,7 +18,7 @@ class OwlToYmlConverter():
         self.owl_onto = owlready2.get_ontology(owl_ontology_file)
         self.yaml_onto = odict()
         self.yaml_onto["VERSION"] = version
-        self.yaml_onto["ONTOLOGY_MODE"] = "ignore"
+        self.yaml_onto["ONTOLOGY_MODE"] = "minimum_requirements"
         self.class_onto = odict()
         self.yaml_onto["CUDS_ONTOLOGY"] = odict(
             ENTITY=odict(
@@ -31,11 +31,44 @@ class OwlToYmlConverter():
             ),
             VALUE=odict(
                 definition="The root of all values",
-                parent="ENTITY"
+                parent="CUBA.ENTITY"
             )
         )
-        self.rel_onto = odict()
-        self.class_onto = odict()
+        self.rel_onto = odict(
+            RELATIONSHIP=odict(
+                definition="Root of all relationships",
+                parent="CUBA.ENTITY"
+            ) ,
+            IS_A=odict(
+                definition="Secondary parents",
+                parent="CUBA.RELATIONSHIP",
+                inverse="CUBA.SUPERCLASS_OF"
+            ),
+            SUPERCLASS_OF=odict(
+                definition="Inverse of CUBA.IS_A",
+                parent="CUBA.RELATIONSHIP",
+                inverse="CUBA.IS_A"
+            )
+        )
+        self.class_onto = self.yaml_onto["CUDS_ONTOLOGY"]
+
+    def print_warning(self):
+        print("")
+        print("Converting OWL ontology to YAML ontology...")
+        print("Note that the current version of osp-core does not support "
+              "every OWL ontology.")
+        print("Therefore, the user has to make some decisions in order to "
+              "convert the ontology.")
+        print("Make sure you are aware of the current constraints of "
+              "a YAML ontology (See doc/conversion_owl_to_yaml.md and "
+              "doc/yaml_spec.md).")
+        print("OSP-core will fully support EMMO and other OWL ontologies "
+              "very soon!")
+        print()
+        print("For example: In OWL it is common that an entity can "
+              "have multiple parents. OSP-core currently only allows a single "
+              "parent. This will be changed in the upcoming days.")
+        input("Press ENTER to continue! ")
 
     def convert(self):
         """Perform the conversion"""
@@ -46,24 +79,45 @@ class OwlToYmlConverter():
         for c in self.owl_onto.classes():
             self._add_class(c)
 
-        self._inject_obligatory_entity("RELATIONSHIP", self.rel_onto)
         self._inject_obligatory_entity("ACTIVE_RELATIONSHIP",
                                        self.rel_onto,
                                        inverse="PASSIVE_RELATIONSHIP")
-        while True:
-            name = input("Enter classes that should have values > ").upper() \
-                .replace("CUBA.", "") \
-                .replace("-", "_") \
-                .replace(" ", "_")
-            if not name:
-                break
-            self.class_onto[name]["CUBA.VALUE"] = None
-        self.add_missing_inverses()
-        self.resolve_duplicates()
+        self._inject_arguments()
+        self._add_missing_inverses()
+        self._resolve_duplicates()
+        default_rel = self._input_cuds_label("Default relationship: ")
+        self.rel_onto[default_rel]["default_rel"] = True
         self.yaml_onto["CUDS_ONTOLOGY"].update(self.rel_onto)
         self.yaml_onto["CUDS_ONTOLOGY"].update(self.class_onto)
 
-    def resolve_duplicates(self):
+    def _inject_arguments(self):
+        """Inject children of CUBA.VALUE that will be arguments of
+        the cuds classes"""
+        arguments = dict()
+        while True:
+            name = self._input_cuds_label(
+                "Enter classes that should have arguments: "
+            )
+            if not name:
+                break
+            while True:
+                arg = self._input_cuds_label("argument name: ")
+                if not arg:
+                    break
+                datatype = arguments.get(arg) or input("datatype: ")
+                arguments[arg] = datatype
+                assert arg not in self.class_onto, \
+                    "Argument must not be in the ontology"
+                self.class_onto[name]["CUBA." + arg] = None
+
+        for arg, datatype in arguments.items():
+            self.class_onto[arg] = odict(
+                definition="",
+                parent="CUBA.VALUE",
+                datatype=datatype.upper()
+            )
+
+    def _resolve_duplicates(self):
         """Resolve duplicates by renaming"""
         duplicates = set(self.rel_onto.keys()) & set(self.class_onto.keys())
         for duplicate in duplicates:
@@ -72,28 +126,29 @@ class OwlToYmlConverter():
                 "%s has been specified as class and relationship. "
                 "Which one do you want to rename?" % duplicate
             )
-            rename_name = input("Rename to: > ").upper() \
-                .replace("CUBA.", "") \
-                .replace("-", "_") \
-                .replace(" ", "_")
+            rename_name = self._input_cuds_label("Rename to: ")
             rename_onto = self.rel_onto if rename_type == "relationship" \
                 else self.class_onto
             self._rename_entity_recursively(
                 rename_onto, duplicate, rename_name
             )
 
-    def add_missing_inverses(self):
+    def _add_missing_inverses(self):
         """ Add the missing inverse relationships"""
+        print()
+        print("OSP-core currently does not allow missing inverses. "
+              "Please specify an inverse for every relationship. "
+              "Each specified inverse must be in the ontology. "
+              "Specifying an inverse for every entity will not be "
+              "necessary in upcoming osp-core versions.")
         no_inverse = [entity
                       for entity, entity_def in self.rel_onto.items()
                       if "inverse" in entity_def
                       and entity_def["inverse"] is None]
         for entity in no_inverse:
-            inverse = input("Specify inverse of %s > " % entity)\
-                .upper() \
-                .replace("CUBA.", "") \
-                .replace("-", "_") \
-                .replace(" ", "_")
+            inverse = self._input_cuds_label(
+                "Specify inverse of %s: " % entity
+            )
             assert inverse in self.rel_onto, \
                 "Specify an entity that is in the ontology"
             self.rel_onto[entity]["inverse"] = "CUBA." + inverse
@@ -114,14 +169,19 @@ class OwlToYmlConverter():
             User will be asked if not given, defaults to None
         :type child: str, optional
         """
+        print()
+        print("OSP-core does currently have some requirements "
+              "in the ontology. There are some entities which must "
+              "be in the ontology. Please specify where to put "
+              "these obligatory entities in the ontology. "
+              "These constraints will "
+              "be relaxed very soon.")
         if to_inject not in onto:
             if child is None:
                 print("\nNo CUBA.%s in the ontology." % to_inject)
-                print("Specify the an entity, that should "
+                print("Specify the entity, that should "
                       "have %s as parent:" % to_inject)
-                child = input("> ").upper().replace("CUBA.", "") \
-                                           .replace("-", "_") \
-                                           .replace(" ", "_")
+                child = self._input_cuds_label("> ")
             parent = onto[child]["parent"]
             onto[to_inject] = odict(
                 definition=None,
@@ -173,7 +233,7 @@ class OwlToYmlConverter():
                 parents.append(
                     self._get_cuba_label(c)
                     if repr(c) != "owl.topObjectProperty"
-                    else "CUBA.ENTITY"
+                    else "CUBA.RELATIONSHIP"
                 )
             elif repr(c).startswith("owl."):  # characteristics
                 characteristics.append(repr(c)[4:-8].lower())
@@ -182,7 +242,9 @@ class OwlToYmlConverter():
             else:
                 warnings.warn('omits %r for %r' % (c, label))
 
-        parent = self._user_choice(parents, "Choose the parent of %s" % label)
+        parent = self._user_choice(parents,
+                                   "Choose the parent of %s. "
+                                   % label)
 
         # add it
         self.rel_onto[label] = odict(
@@ -210,8 +272,17 @@ class OwlToYmlConverter():
             elif parsed_ce is not None:
                 restrictions.update(parsed_ce)
 
-        parent = self._user_choice(parents, "Choose the parent of %s" % label,
+        parent = self._user_choice(parents,
+                                   "Choose the primary parent of %s. "
+                                   "The others will be related by CUBA.IS_A."
+                                   % label,
                                    "CUBA.ENTITY")
+        if len(parents) > 1:
+            secondary_parents = set(parents) - {parent}
+            restrictions.update({
+                "CUBA.IS_A": odict({p: odict(cardinality=(1, 1))})
+                for p in secondary_parents
+            })
         self.class_onto[label] = odict(
             definition=definition,
             parent=parent,
@@ -232,22 +303,23 @@ class OwlToYmlConverter():
         """
         old_restrictions = old_restrictions or odict()
         if ce is owlready2.Thing:
-            return False, None
+            return True, "CUBA.ENTITY"
         if isinstance(ce, owlready2.ThingClass):
             return True, self._get_cuba_label(ce)
         elif isinstance(ce, owlready2.Restriction):
             return False, self._parse_restriction(ce, old_restrictions)
 
         warnings.warn('Unexpected class expression: %s' % type(ce))
+        warnings.warn("OSP-core will support that very soon!")
         return False, None
 
     def _get_cuds_label(self, entity):
         """Returns CUDS label for entity (upper case)."""
-        return self._get_label(entity).upper()
+        return self._to_cuds_label(self._get_label(entity))
 
     def _get_cuba_label(self, entity):
         """Returns CUBA label for entity ("CUBA." prepended and upper case)."""
-        return 'CUBA.' + self._get_label(entity).upper()
+        return 'CUBA.' + self._to_cuds_label(self._get_label(entity))
 
     def _get_label(self, entity):
         """Returns a label for entity."""
@@ -259,9 +331,33 @@ class OwlToYmlConverter():
             label = entity.__class__.__name__
         else:
             label = re.sub(r'^.*\.', '', repr(entity))
+        return str(label)
+
+    def _input_cuds_label(self, msg):
+        """Let the user input a cuds label
+
+        :param msg: The message to show the user.
+        :type msg: str
+        :return: The cuds label the user typed in.
+        :rtype: str
+        """
+        x = input(msg)
+        return self._to_cuds_label(x)
+
+    def _to_cuds_label(self, label):
+        """Convert a label to cuds label.
+
+        :param label: The label to convert.
+        :type label: str
+        :return: The converted label.
+        :rtype: str
+        """
+        if label.startswith("CUBA."):
+            label = label[5:]
+        label = label.upper()
         label = label.replace(" ", "_")
         label = label.replace("-", "_")
-        return str(label)
+        return label
 
     def _get_definition(self, entity):
         """Returns definition for owl class or object property `entity` by
@@ -451,10 +547,14 @@ class OwlToYmlConverter():
         if len(items) == 1:
             return items[0]
         print()
+        print("A choice has to be made by the user. ")
+        print("In the very near future osp-core will fully support "
+              "OWL ontologies. Then no user choices will be required.")
+        print()
         print(prompt_msg)
         for i, item in enumerate(items):
             print("%s)" % (i + 1), item)
-        choice = input("Type the number of your choice > ")
+        choice = input("Type the number of your choice: ")
         choice = int(choice) - 1
         return items[choice]
 
@@ -462,5 +562,6 @@ class OwlToYmlConverter():
 if __name__ == "__main__":
     owl_ontology_file = sys.argv[-1]
     converter = OwlToYmlConverter(owl_ontology_file)
+    converter.print_warning()
     converter.convert()
     converter.write()

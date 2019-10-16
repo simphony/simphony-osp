@@ -11,10 +11,10 @@ class $class($parent):
 
     cuba_key = CUBA.$cuba_key
     supported_relationships = deepcopy($parent.supported_relationships)
-    for key, value in $relationships.items():
-        if key not in supported_relationships:
-            supported_relationships[key] = dict()
-        supported_relationships[key].update(value)
+    for key__, value__ in $relationships.items():
+        if key__ not in supported_relationships:
+            supported_relationships[key__] = dict()
+        supported_relationships[key__].update(value__)
 
     def __init__($arguments_init, uid:"UUID"=None):
 $attributes_initialised

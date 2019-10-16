@@ -790,8 +790,12 @@ class NotifyDict(dict):
         self.rel = rel
         super().__init__(*args)
 
+    def __iter__(self):
+        self.cuds_object.session._notify_read(self)
+        return super().__iter__()
+
     def __getitem__(self, key):
-        self.session._notify_read(self)
+        self.cuds_object.session._notify_read(self)
         return super().__getitem__(key)
 
     def __setitem__(self, key, value):
