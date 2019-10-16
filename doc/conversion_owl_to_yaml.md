@@ -102,7 +102,7 @@ The document doc/working_with_emmo.md explains how you can get the EMMO.
    ```txt
    Enter classes that should have arguments: number
    argument name: x
-   datatype: int
+   datatype: float
    ```
 
 6. Specify missing inverses.

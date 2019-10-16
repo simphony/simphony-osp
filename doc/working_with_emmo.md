@@ -15,12 +15,12 @@ Follow these steps to use EMMO with OSP-core.
     git checkout v0.9.9r2
     ```
 
-3. Start Protege Version 5.2.0 with installed FaCT++ reasoner
+3. Start Protege 5.2.0 with installed FaCT++ reasoner plugin
 
-4. Open (File > Open...) the following files one after the other in the same window.
+4. Open EMMO. For example open (File > Open...) the following files one after the other in the same window.
    - emmo/emmo.owl
-   - properties/emmo-properties.owl
-   - examples/emmo-properties-examples.owl
+   - emmo/properties/emmo-properties.owl
+   - emmo/examples/emmo-properties-examples.owl
 
 5. Run the FaCT++ reasoner (Reasoner > FaCT++ | Reasoner > Start Reasoner)
 
@@ -32,4 +32,12 @@ Follow these steps to use EMMO with OSP-core.
 
    ```sh
    python setup.py install -o ontology.yml
+   ```
+
+9. Start creating cuds objects
+
+   ```py
+   >>> import cuds.classes
+   >>> n = cuds.classes.Number(1)
+   >>> ...
    ```
