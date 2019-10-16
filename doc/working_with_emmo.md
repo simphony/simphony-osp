@@ -34,7 +34,7 @@ Follow these steps to use EMMO with OSP-core.
    python setup.py install -o ontology.yml
    ```
 
-9. Start creating cuds objects
+9. Start creating cuds objects. Check the getting-started repository in the SimPhoNy group.
 
    ```py
    >>> import cuds.classes

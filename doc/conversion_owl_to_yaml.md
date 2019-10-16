@@ -1,7 +1,7 @@
 # How to convert an OWL ontology to YAML
 
 OSP-core requires an ontology in YAML format for installation.
-This document explains how  OWL format can be
+This document explains how an ontology in OWL format can be
 converted to YAML.
 
 ## Disclaimer
