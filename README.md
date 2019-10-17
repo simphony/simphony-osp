@@ -1,3 +1,6 @@
+[![pipeline status](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/badges/cuds-3.0/pipeline.svg)](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/commits/cuds-3.0)
+[![coverage report](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/badges/cuds-3.0/coverage.svg)](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/commits/cuds-3.0)
+
 # OSP core
 
 Native implementation of the core cuds object and the class generation
