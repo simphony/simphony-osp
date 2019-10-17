@@ -2,7 +2,7 @@ from .cuba import CUBA
 from $parent_module import $parent
 
 
-class $class($parent):
+class $class($parents):
     """
     $definition
     """

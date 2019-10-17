@@ -39,16 +39,6 @@ class OwlToYmlConverter():
             RELATIONSHIP=odict(
                 definition="Root of all relationships",
                 parent="CUBA.ENTITY"
-            ),
-            IS_A=odict(
-                definition="Secondary parents",
-                parent="CUBA.RELATIONSHIP",
-                inverse="CUBA.SUPERCLASS_OF"
-            ),
-            SUPERCLASS_OF=odict(
-                definition="Inverse of CUBA.IS_A",
-                parent="CUBA.RELATIONSHIP",
-                inverse="CUBA.IS_A"
             )
         )
         self.class_onto = self.yaml_onto["CUDS_ONTOLOGY"]
@@ -66,9 +56,6 @@ class OwlToYmlConverter():
         print("OSP-core will fully support EMMO and other OWL ontologies "
               "very soon!")
         print()
-        print("For example: In OWL it is common that an entity can "
-              "have multiple parents. OSP-core currently only allows a single "
-              "parent. This will be changed in the upcoming days.")
         input("Press ENTER to continue! ")
 
     def convert(self):
@@ -80,9 +67,7 @@ class OwlToYmlConverter():
         for c in self.owl_onto.classes():
             self._add_class(c)
 
-        self._inject_obligatory_entity("ACTIVE_RELATIONSHIP",
-                                       self.rel_onto,
-                                       inverse="PASSIVE_RELATIONSHIP")
+        self._inject_active_relationship()
         self._inject_arguments()
         self._add_missing_inverses()
         self._resolve_duplicates()
@@ -155,49 +140,45 @@ class OwlToYmlConverter():
             self.rel_onto[entity]["inverse"] = "CUBA." + inverse
         self.rel_onto["RELATIONSHIP"]["inverse"] = None
 
-    def _inject_obligatory_entity(self, to_inject, onto, inverse=None,
-                                  child=None):
-        """Inject entities that must be present in yml ontologies.
+    def _inject_active_relationship(self):
+        """Inject ACTIVE_RELATIONSHIP"""
+        if "ACTIVE_RELATIONSHIP" in self.rel_onto:
+            return
+        print()
+        print("OSP-core does currently have some requirements "
+              "in the ontology. There are some entities which must "
+              "be in the ontology. Please specify where to put "
+              "these obligatory entities in the ontology. "
+              "These constraints will "
+              "be relaxed very soon.")
+        print("\nNo CUBA.ACTIVE_RELATIONSHIP in the ontology.")
+        print("Specify the entities, that should "
+              "have CUBA.ACTIVE_RELATIONSHIP as parent.")
 
-        :param to_inject: The entity to inject
-        :type to_inject: str
-        :param onto: The ontology to inject it in
-        :type onto: OrderedDict
-        :param inverse: If given, inject given inverse as well,
-            defaults to None
-        :type inverse: str, optional
-        :param child: The direct child of the injected class.
-            User will be asked if not given, defaults to None
-        :type child: str, optional
-        """
-        if child is None:
-            print()
-            print("OSP-core does currently have some requirements "
-                  "in the ontology. There are some entities which must "
-                  "be in the ontology. Please specify where to put "
-                  "these obligatory entities in the ontology. "
-                  "These constraints will "
-                  "be relaxed very soon.")
-        if to_inject not in onto:
-            if child is None:
-                print("\nNo CUBA.%s in the ontology." % to_inject)
-                print("Specify the entity, that should "
-                      "have %s as parent:" % to_inject)
-                child = self._input_cuds_label("> ")
-            parent = onto[child]["parent"]
-            onto[to_inject] = odict(
-                definition=None,
-                parent=parent
-            )
-            onto[child]["parent"] = "CUBA.%s" % to_inject
-            if inverse is not None:
-                onto[to_inject]["inverse"] = "CUBA." + inverse
-                self._inject_obligatory_entity(
-                    to_inject=inverse,
-                    onto=onto,
-                    inverse=to_inject,
-                    child=onto[child]["inverse"].replace("CUBA.", "")
-                )
+        self.rel_onto["ACTIVE_RELATIONSHIP"] = odict(
+            definition=None,
+            parent="CUBA.RELATIONSHIP",
+            inverse="CUBA.PASSIVE_RELATIONSHIP"
+        )
+        self.rel_onto["PASSIVE_RELATIONSHIP"] = odict(
+            definition=None,
+            parent="CUBA.RELATIONSHIP",
+            inverse="CUBA.ACTIVE_RELATIONSHIP"
+        )
+
+        while True:
+            child = self._input_cuds_label("> ")
+            if not child:
+                break
+            parents = self.rel_onto[child]["parents"]
+            parents.append("CUBA.ACTIVE_RELATIONSHIP")
+
+            if "inverse" not in self.rel_onto[child]:
+                continue
+
+            inverse = self.rel_onto[child]["inverse"][5:]
+            inverse_parents = self.rel_onto[inverse]["parents"]
+            inverse_parents.append("CUBA.PASSIVE_RELATIONSHIP")
 
     def write(self, filename="ontology.yml"):
         """Write the yml ontology to disk"""
@@ -244,15 +225,11 @@ class OwlToYmlConverter():
             else:
                 warnings.warn('omits %r for %r' % (c, label))
 
-        parent = self._user_choice(parents,
-                                   "Choose the parent of %s. "
-                                   % label)
-
         # add it
         self.rel_onto[label] = odict(
             definition=definition,
             inverse=inverse,
-            parent=parent
+            parents=parents
         )
 
     def _add_class(self, onto_class):
@@ -274,20 +251,9 @@ class OwlToYmlConverter():
             elif parsed_ce is not None:
                 restrictions.update(parsed_ce)
 
-        parent = self._user_choice(parents,
-                                   "Choose the primary parent of %s. "
-                                   "The others will be related by CUBA.IS_A."
-                                   % label,
-                                   "CUBA.ENTITY")
-        if len(parents) > 1:
-            secondary_parents = set(parents) - {parent}
-            restrictions.update({
-                "CUBA.IS_A": odict({p: odict(cardinality=(1, 1))})
-                for p in secondary_parents
-            })
         self.class_onto[label] = odict(
             definition=definition,
-            parent=parent,
+            parents=parents,
             **self._restrictions_to_yml(restrictions),
         )
 

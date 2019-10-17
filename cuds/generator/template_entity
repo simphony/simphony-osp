@@ -4,7 +4,7 @@ from cuds.generator.ontology_datatypes import convert_to
 from $parent_module import $parent
 
 
-class $class($parent):
+class $class($parents):
     """
     $definition
     """
