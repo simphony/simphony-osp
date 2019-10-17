@@ -247,7 +247,7 @@ def get_ancestors(cuds_object_or_class):
     return ancestors
 
 
-def get_neighbour_diff(cuds1, cuds2, rel=None):
+def get_neighbour_diff(cuds1, cuds2, mode="all"):
     """Get the uids of neighbours of cuds1 which are no neighbours in cuds2.
     Furthermore get the relationship the neighbours are connected with.
     Optionally filter the considered relationships.
@@ -256,18 +256,26 @@ def get_neighbour_diff(cuds1, cuds2, rel=None):
     :type cuds1: Cuds
     :param cuds2: A Cuds object.
     :type cuds2: Cuds
-    :param rel: Only consider rel and its subclasses, defaults to None
-    :type rel: Relationship, optional
+    :param mode: one of "all", "active", "non-active", whether to consider only
+        active or non-active relationships.
+    :type mode: str
     :return: List of Tuples that contain the found uids and relationships.
     :rtype: List[Tuple[UUID, Relationship]]
     """
+    assert mode in ["all", "active", "non-active"]
+    from cuds.classes import ActiveRelationship
     if cuds1 is None:
         return []
 
     result = list()
     # Iterate over all neighbours that are in cuds1 but not cuds2.
     for relationship in cuds1.keys():
-        if rel is not None and not issubclass(relationship, rel):
+        if (
+            mode == "active" and not issubclass(relationship,
+                                                ActiveRelationship)
+            or mode == "non-active" and issubclass(relationship,
+                                                   ActiveRelationship)
+        ):
             continue
 
         # Get all the neighbours that are no neighbours is cuds2

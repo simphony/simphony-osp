@@ -27,8 +27,6 @@ class ClassGenerator(object):
     ROOT_RELATIONSHIP = "RELATIONSHIP"
     # Default root of all active relationship classes
     ROOT_ACTIVE_RELATIONSHIP = "ACTIVE_RELATIONSHIP"
-    # Default root of all passive relationship classes
-    ROOT_PASSIVE_RELATIONSHIP = "PASSIVE_RELATIONSHIP"
     # Key for the default value in the ontology
     DEFAULT_ATTRIBUTE_KEY = "default"
     # Key for the inverse of relationships
