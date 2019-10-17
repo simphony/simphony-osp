@@ -7,6 +7,7 @@
 
 import argparse
 import os
+import graphviz
 
 from cuds.ontology.tools.parser import Parser
 
@@ -16,6 +17,11 @@ class Cuds2Dot:
     Class that parses a YAML file and finds information about the
     entities contained. It can also save it to a dot format file.
     """
+    entity_header = "<<TABLE BORDER='1' CELLBORDER='0' CELLSPACING='0'>" \
+                 + "<TR><TD BGCOLOR='grey'>{}</TD></TR>" \
+                 + "{}" \
+                 + "</TABLE>>"
+    entity_attribute = "<TR><TD ALIGN='left' >{}</TD></TR>"
 
     def __init__(self, filename, node, depth=-1, height=-1, inheritance=False):
         """
@@ -34,32 +40,34 @@ class Cuds2Dot:
         self._height = height
         self._inheritance = inheritance
         self._elements = set()
+        self._graph = self._initialise_graph()
+
+
+    def _initialise_graph(self):
+        """Initialises a directed graph with some default settings"""
+        filename = os.path.splitext(self._filename)[0] + ".dot"
+        graph = graphviz.Digraph(format='png',
+                                 filename=filename)
+        graph.graph_attr['rankdir'] = 'BT'
+        graph.graph_attr['splines'] = 'ortho'
+        graph.node_attr['shape'] = 'plaintext'
+
+        return graph
 
     def create_dot_file(self):
         """
         Creates the dot file from the parsed YAML file.
         """
-        dot = "digraph class_graph{\n"
-        dot += "  node [shape = plaintext]\n"
-        dot += "  rankdir = BT;\n"
-        dot += "  splines = ortho;\n"
         self.add_elements_under_node()
         # Add the provided node(s)
         self._elements.update(self._node)
         # Check if empty, for the root there are no higher elements
         if self._node:
             self.add_elements_over_node()
-        # Split the nodes and their relationships for better readability
-        dot_attributes = "\n  // ----- Nodes and attributes -----\n"
-        dot_relationships = "\n  // ----- Relationships -----\n"
         for item in self._elements:
-            dot_attributes += "  " + self.attributes_to_dot(item)
-            dot_relationships += "  " + self.relationships_to_dot(item)
-        dot += dot_attributes
-        dot += dot_relationships
-        dot += "}"
-        dot_file = open(os.path.splitext(self._filename)[0] + ".dot", "w")
-        dot_file.write(dot)
+            self.attributes_to_dot(item)
+            self.relationships_to_dot(item)
+        self._graph.render()
 
     def add_elements_under_node(self):
         """
@@ -94,41 +102,36 @@ class Cuds2Dot:
                 parent = node
                 while current_level < self._height:
                     parent = self._parser.get_parent(parent)
-                    if parent is "":
+                    if parent == "":
                         break
                     self._elements.add(parent)
                     current_level += 1
 
     def attributes_to_dot(self, item):
         """
-        Generates the dot formatted string of an item with its attributes.
+        Adds the node with an item with its attributes.
 
         :param item: item for which to compute and format the parameters
-        :return: dot formatted string of the attributes
         """
-        attributes = "\"" + item + "\"\n    [label=\n    <<table border='1' "
-        attributes += "cellborder='0' cellspacing='0'>\n"
-        attributes += "      <tr><td bgcolor='grey'>" + item + "</td></tr>\n"
+        attributes = ""
         for att in self._parser.get_attributes(item, self._inheritance):
-            attributes += "      <tr><td align='left' >" + att + "</td></tr>\n"
-        attributes += "    </table>>];\n"
-        return attributes
+            attributes += self.entity_attribute.format(att)
+        node = self.entity_header.format(item, attributes)
+        self._graph.node(item, node)
 
     def relationships_to_dot(self, item):
         """
-        Dot formatted string of an item with the relationship to the parent.
+        Adds the edge from item to its parent.
 
         :param item: item for which to compute and format the parent
-        :return: dot formatted string of the relationship with the parent
         """
-        relationships = ""
         parent = self._parser.get_parent(item)
         if parent in self._elements:
-            relationships += "\"" + item + "\" -> \"" + parent + "\";\n"
-        return relationships
+            self._graph.edge(item, parent)
 
 
 def main():
+    """ Main function to run Cuds2Dot as a script. """
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("filename", help="Input YAML file")
     arg_parser.add_argument("-n", help="node(s) to be inspected", type=str,
@@ -145,17 +148,14 @@ def main():
     args.n = {word.upper() for word in args.n}
 
     # Create the object
-    parser = Cuds2Dot(args.filename, args.n, args.d, args.u, args.i)
-    parser.create_dot_file()
+    try:
+        parser = Cuds2Dot(args.filename, args.n, args.d, args.u, args.i)
+        parser.create_dot_file()
 
-    filename_clean = os.path.splitext(args.filename)[0]
-    directory = os.path.dirname(args.filename)
-
-    # Call the command to create the graph from the file
-    command = "dot -Tpng " + filename_clean + ".dot -o " + filename_clean
-    command += ".png"
-    os.system(command)
-    print(".png and .dot files successfully added to " + directory + "!")
+        directory = os.path.dirname(args.filename)
+        print(".png and .dot files successfully added to " + directory + "!")
+    except Exception:
+        print("An unexpected error occurred. Exiting.")
 
 
 if __name__ == "__main__":
