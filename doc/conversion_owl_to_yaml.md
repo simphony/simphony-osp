@@ -133,7 +133,7 @@ The document doc/working_with_emmo.md explains how you can get the EMMO.
    Rename to: semiotic rel
    ```
 
-8. The ontology will be saved as ontology.yml in your current working directory.
+8. The ontology will be saved as ontology.<name>.yml in your current working directory.
    Take a look at it by opening it with a text editor. The great thing about
    yaml ontologies is that they are understandable by humans. If you are not
    satisfied with the result, you can modify the resulting ontology by hand.

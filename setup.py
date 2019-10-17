@@ -69,7 +69,7 @@ class Install(install):
 
 class Develop(develop):
     def run(self):
-        create_ontology_classes('ontology_stable.yml')
+        create_ontology_classes('city')
         develop.run(self)
 
 

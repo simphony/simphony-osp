@@ -1,4 +1,5 @@
 import yaml
+import os
 import sys
 import owlready2
 import re
@@ -561,7 +562,8 @@ class OwlToYmlConverter():
 
 if __name__ == "__main__":
     owl_ontology_file = sys.argv[-1]
+    name = os.path.splitext(os.path.basename(owl_ontology_file))[0]
     converter = OwlToYmlConverter(owl_ontology_file)
     converter.print_warning()
     converter.convert()
-    converter.write()
+    converter.write("ontology.%s.yml" % name)

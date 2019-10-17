@@ -44,6 +44,11 @@ or:
 python3 setup.py develop
 ```
 
+### Installation of OWL ontologies
+
+See doc/conversion_owl_to_yaml.md for working with an OWL ontology. \
+See doc/working_with_emmo.md for working with the EMMO.
+
 ## Testing
 
 Testing is included in setuptools:
