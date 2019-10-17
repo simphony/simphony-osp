@@ -1,3 +1,7 @@
+
+.. image:: https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/badges/master/pipeline.svg
+.. image:: https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/badges/master/coverage.svg
+
 core-osp
 ========
 Native implementation of the core cuds object and the class generation by the SimPhoNy team at Fraunhofer IWM.
