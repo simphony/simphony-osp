@@ -167,8 +167,7 @@ def get_ancestors(cuds_object):
     :param cuds_object: cuds object of interest
     :return: a list with all the ancestors
     """
-    # FIXME: If import in the beginning,
-    #  loop with DataContainer and check_arguments
+    # If import in the beginning, loop with DataContainer
     import cuds.classes
     # object from osp_core
     if isinstance(cuds_object, cuds.classes.core.DataContainer):
@@ -229,7 +228,7 @@ def pp_subelements(cuds_object, level_indentation="\n  "):
     pp_sub = ""
     if cuds_object:
         pp_sub += level_indentation + "contains (has a relationship):"
-        # FIXME: Subelements are no longer grouped by cuba_key,
+        # Subelements are no longer grouped by cuba_key,
         #  for wrapper interoperability
         current_cuba = ""
         for element in cuds_object.iter():
