@@ -18,8 +18,8 @@ class Cuds2Dot:
     entities contained. It can also save it to a dot format file.
     """
     entity_header = ("<<TABLE BORDER='1' CELLBORDER='0' CELLSPACING='0'>"
-                     "<TR><TD BGCOLOR='grey'>{}</TD></TR>" # For the entity name
-                     "{}" # For the attributes
+                     "<TR><TD BGCOLOR='grey'>{}</TD></TR>"  # For the entity
+                     "{}"  # For the attributes
                      "</TABLE>>")
     entity_attribute = "<TR><TD ALIGN='left' >{}</TD></TR>"
 
