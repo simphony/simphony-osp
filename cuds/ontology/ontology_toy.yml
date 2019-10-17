@@ -3,13 +3,9 @@ VERSION: "2.0"
 
 CUDS: Common Universal Data Structure
 
-Purpose: CUDS provides a bridge between EMMO and SimPhoNy-FORCE-MARKETPLACE data models
-
 Resources:
-  CUDS 2.0 (1st Edition): http://simphony.eu/cuds/1.0/  # does not exist
-  CUDS Issues Page: https://github.com/simphony/simphony-metadata/issues
-  CUDS Mailing List: simphony-ssb@fraunhofer.de
-  CUDS Reference Parser: https://github.com/simphony/simphony-metadata/cparser  # ?
+  CUDS 2.0: https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/
+  CUDS Issues Page: https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/issues
 
 CUDS_ONTOLOGY:
 

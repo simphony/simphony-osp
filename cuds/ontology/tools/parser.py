@@ -31,7 +31,7 @@ class Parser:
         """
         with open(self._filename, 'r') as stream:
             try:
-                self._ontology = yaml.load(stream)['CUDS_ONTOLOGY']
+                self._ontology = yaml.safe_load(stream)['CUDS_ONTOLOGY']
             except yaml.YAMLError as exc:
                 print(exc)
 
