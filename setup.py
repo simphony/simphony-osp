@@ -11,7 +11,7 @@ check_call(["pip3", "install", "-r", "requirements.txt"])
 from cuds.metatools.class_generator import ClassGenerator
 
 # Read description
-with open('README.rst', 'r') as readme:
+with open('README.md', 'r') as readme:
     README_TEXT = readme.read()
 
 
