@@ -130,6 +130,7 @@ class DataContainer(dict):
         for arg in args:
             key = arg.cuba_key
             try:
+                self.__getitem__(key).__getitem__(arg.uid)
                 self.__getitem__(key)[arg.uid] = arg
             except KeyError:
                 message = '{} does not exist. Add it first'
