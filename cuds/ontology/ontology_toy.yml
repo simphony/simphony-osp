@@ -13,17 +13,25 @@ CUDS_ONTOLOGY:
     definition: the basic ontological entity, a thing. BFO
     parent:
 
-  CUDS_ENTITY:
+  CUDS:
     definition: Root of all CUDS classes
     parent: CUBA.ENTITY
 
+  MOLECULAR_DYNAMICS:
+    definition:
+    parent: CUBA.CUDS
+
   VALUE:
     definition: a value of a property (entity), can be numeric, alphanumeric or string, root of all values, leafs. Allows creating proper determinabte universals from determinables.
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
+
+  UNIT:
+    definition:
+    parent: CUBA.VALUE
 
   PHYSICAL_QUALITY:
     definition: A quality of a physical entity
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
 
   MASS:
     definition: A physical quality that inheres in a bearer by virtue of the proportion of the bearers amount of matter.
@@ -48,19 +56,19 @@ CUDS_ONTOLOGY:
 
   ATOM:
     definition: Atom
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
 
   SIMULATION:
     definition: CWA, all components of the simulation that are needed to run the model
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
 
   MATERIAL:
     definition: a material (materials science) and its properties in the data container
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
 
   PAIR_POTENTIAL:
     definition: 
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
 
   LENNARD_JONES_6_12:
     parent: CUBA.PAIR_POTENTIAL
@@ -74,11 +82,7 @@ CUDS_ONTOLOGY:
 
   THERMOSTAT:
     definition: A thermostat is a model that describes the thermal interaction of a material with the environment or a heat reservoir
-    parent: CUBA.CUDS_ENTITY
-
-  SIMULATION_BOX:
-    definition: A simple hexahedron simulation box
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
 
   VECTOR:
     definition: A vector
@@ -98,7 +102,7 @@ CUDS_ONTOLOGY:
 
   FACE:
     definition: Face in a simulation box
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
 
   FACE_X:
     definition: Face in the X axis in a simulation box
@@ -111,6 +115,13 @@ CUDS_ONTOLOGY:
   FACE_Z:
     definition: Face in the Z axis in a simulation box
     parent: CUBA.FACE
+
+  SIMULATION_BOX:
+    definition: A simple hexahedron simulation box
+    parent: CUBA.CUDS
+    CUBA.VECTOR_X:
+    CUBA.VECTOR_Y:
+    CUBA.VECTOR_Z:
 
   CUTOFF_DISTANCE:
     definition: Cutoff distance
@@ -126,11 +137,11 @@ CUDS_ONTOLOGY:
 
   SOLVER_PARAMETER:
     definition: solver parameter
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
 
   INTEGRATION_TIME:
     definition: integration time
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
     CUBA.STEPS:
 
   STEPS:
@@ -139,24 +150,24 @@ CUDS_ONTOLOGY:
 
   VERLET:
     definition: verlet
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
 
   PERIODIC:
     definition: periodic boundary condition
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
 
   FIXED:
     definition: fixed boundary condition
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
 
   PREDECESSOR:
     definition: the predecessor of the current cuds
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
     CUBA.VALUE:
 
   CUDS_WRAPPER:
     definition: cuds wrapper
-    parent: CUBA.CUDS_ENTITY
+    parent: CUBA.CUDS
 
   LAMMPS_WRAPPER:
     definition: wrapper to the Lammps simulation engine
