@@ -17,10 +17,10 @@ class Cuds2Dot:
     Class that parses a YAML file and finds information about the
     entities contained. It can also save it to a dot format file.
     """
-    entity_header = "<<TABLE BORDER='1' CELLBORDER='0' CELLSPACING='0'>" \
-                 + "<TR><TD BGCOLOR='grey'>{}</TD></TR>" \
-                 + "{}" \
-                 + "</TABLE>>"
+    entity_header = ("<<TABLE BORDER='1' CELLBORDER='0' CELLSPACING='0'>"
+                     "<TR><TD BGCOLOR='grey'>{}</TD></TR>" # For the entity name
+                     "{}" # For the attributes
+                     "</TABLE>>")
     entity_attribute = "<TR><TD ALIGN='left' >{}</TD></TR>"
 
     def __init__(self, filename, node, depth=-1, height=-1, inheritance=False):
@@ -41,7 +41,6 @@ class Cuds2Dot:
         self._inheritance = inheritance
         self._elements = set()
         self._graph = self._initialise_graph()
-
 
     def _initialise_graph(self):
         """Initialises a directed graph with some default settings"""
