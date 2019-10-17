@@ -9,5 +9,4 @@ build_job:
     - python3 setup.py install
     - flake8 cuds/ --exclude=cuds/classes/generated,build --ignore=F401,F403,E402
     - coverage run setup.py test
-    - coverage report --omit=cuds/classes/generated/*,cuds/testing/* --skip-covered --fail-under=70
-
+    - coverage report --omit=cuds/classes/generated/*,cuds/testing/* --skip-covered
