@@ -39,7 +39,7 @@ class OwlToYmlConverter():
             RELATIONSHIP=odict(
                 definition="Root of all relationships",
                 parent="CUBA.ENTITY"
-            ) ,
+            ),
             IS_A=odict(
                 definition="Secondary parents",
                 parent="CUBA.RELATIONSHIP",

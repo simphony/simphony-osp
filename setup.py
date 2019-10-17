@@ -1,6 +1,5 @@
 import os
 
-import re
 from setuptools import setup
 from subprocess import check_call, CalledProcessError
 from setuptools.command.install import install
