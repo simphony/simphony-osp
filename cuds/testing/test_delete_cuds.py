@@ -11,67 +11,66 @@ from uuid import UUID
 import cuds.classes
 from cuds.utils import find_cuds
 from cuds.utils import delete_cuds
-from cuds.utils import pretty_print
 
 
 class TestDeleteCUDS(unittest.TestCase):
     def setUp(self):
-        self.c = cuds.classes.Cuds(name="CUDS")
-        self.water_molecule_cuds = cuds.classes.Molecule("Water Molecule")
+        self.e = cuds.classes.Entity()
+        self.water_molecule_cuds = cuds.classes.Molecule()
 
-        self.oxygen = cuds.classes.Atom("Oxygen")
-        self.oxygen_mass = cuds.classes.Mass("u", 15.999)
+        self.oxygen = cuds.classes.Atom()
+        self.oxygen_mass = cuds.classes.Mass()
         self.oxygen.add(self.oxygen_mass)
 
-        self.hydrogen1 = cuds.classes.Atom("Hydrogen 1")
-        self.hydrogen2 = cuds.classes.Atom("Hydrogen 2")
-        self.hydrogen_mass = cuds.classes.Mass("u", 1.00784)
+        self.hydrogen1 = cuds.classes.Atom()
+        self.hydrogen2 = cuds.classes.Atom()
+        self.hydrogen_mass = cuds.classes.Mass()
         self.hydrogen1.add(self.hydrogen_mass)
         self.hydrogen2.add(self.hydrogen_mass)
 
         self.water_molecule_cuds.add(self.oxygen,
                                      self.hydrogen1,
                                      self.hydrogen2)
-        self.c.add(self.water_molecule_cuds)
+        self.e.add(self.water_molecule_cuds)
 
     def test_delete_first_level_child(self):
-        self.assertTrue(delete_cuds(self.water_molecule_cuds.uid, self.c),
+        self.assertTrue(delete_cuds(self.water_molecule_cuds.uid, self.e),
                         "delete_cuds() have to return True.")
-        self.assertTrue(find_cuds(self.water_molecule_cuds.uid, self.c)
+        self.assertTrue(find_cuds(self.water_molecule_cuds.uid, self.e)
                         is None,
                         "The element was not deleted successfully.")
 
     def test_delete_second_level_child(self):
-        self.assertTrue(delete_cuds(self.oxygen.uid, self.c),
+        self.assertTrue(delete_cuds(self.oxygen.uid, self.e),
                         "delete_cuds() have to return True.")
-        self.assertTrue(find_cuds(self.oxygen.uid, self.c) is None,
+        self.assertTrue(find_cuds(self.oxygen.uid, self.e) is None,
                         "The element was not deleted successfully.")
 
     def test_delete_third_level_child(self):
-        self.assertTrue(delete_cuds(self.oxygen_mass.uid, self.c),
+        self.assertTrue(delete_cuds(self.oxygen_mass.uid, self.e),
                         "delete_cuds() have to return True.")
-        self.assertTrue(find_cuds(self.oxygen_mass.uid, self.c) is None,
+        self.assertTrue(find_cuds(self.oxygen_mass.uid, self.e) is None,
                         "The element was not deleted successfully.")
 
     def test_delete_root_element(self):
-        self.assertFalse(delete_cuds(self.c.uid, self.c),
+        self.assertFalse(delete_cuds(self.e.uid, self.e),
                          "delete_cuds() have to return False.")
-        self.assertFalse(find_cuds(self.c.uid, self.c) is None,
+        self.assertFalse(find_cuds(self.e.uid, self.e) is None,
                          "The root element was deleted.")
 
     def test_delete_non_existing_element(self):
         non_existent_uuid = False
         while not non_existent_uuid:
             dummy_uuid = UUID
-            if find_cuds(dummy_uuid, self.c) is None:
+            if find_cuds(dummy_uuid, self.e) is None:
                 non_existent_uuid = True
-                self.assertFalse(delete_cuds(dummy_uuid, self.c),
+                self.assertFalse(delete_cuds(dummy_uuid, self.e),
                                  "delete_cuds() have to return False.")
 
     def test_delete_multiple_occurrences(self):
-        self.assertTrue(delete_cuds(self.hydrogen_mass.uid, self.c),
+        self.assertTrue(delete_cuds(self.hydrogen_mass.uid, self.e),
                         "delete_cuds() have to return True.")
-        self.assertTrue(find_cuds(self.hydrogen_mass.uid, self.c) is None,
+        self.assertTrue(find_cuds(self.hydrogen_mass.uid, self.e) is None,
                         "The element was not deleted successfully.")
 
 

@@ -21,50 +21,45 @@ class TestAPI(unittest.TestCase):
         Tests the instantiation and type of the objects
         """
         self.assertRaises(TypeError,
-                          cuds.classes.Cuds, "name", "something else")
+                          cuds.classes.Entity, "name", "something else")
 
-        c = cuds.classes.Cuds(name="CUDS")
-        d = cuds.classes.ComputationalBoundary()
-        self.assertIsInstance(c, cuds.classes.Cuds)
-        self.assertIsInstance(d, cuds.classes.ComputationalBoundary)
+        e = cuds.classes.Entity()
+        m = cuds.classes.MaterialRelation()
+        self.assertIsInstance(e, cuds.classes.Entity)
+        self.assertIsInstance(m, cuds.classes.MaterialRelation)
 
-    def test_name(self):
+    def test_properties(self):
         """
-        Tests that the name is assigned properly
+        Tests that properties are assigned properly
         """
-        c = cuds.classes.Cuds("Cuds")
-        self.assertEqual(str(c.name), "Cuds")
+        a = cuds.classes.ActivationEnergy(5)
+        self.assertEqual(a.value, 5)
 
     def test_uid(self):
         """
         Tests that the uid variable contains a UUID object
         """
-        c = cuds.classes.Cuds("Cuds")
-        self.assertIsInstance(c.uid, UUID)
+        e = cuds.classes.Entity()
+        self.assertIsInstance(e.uid, UUID)
 
     def test_set_throws_exception(self):
         """
         Tests that setting a value for a key not in restricted
         keys throws an exception.
         """
-        c = cuds.classes.Cuds("Cuds")
-        self.assertRaises(ValueError, c.__setitem__, "not an allowed key", 15)
+        e = cuds.classes.Entity()
+        self.assertRaises(ValueError, e.__setitem__, "not an allowed key", 15)
 
     def test_add(self):
         """
         Tests the standard, normal behaviour of the add() method
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary(name="ComputationalBoundary")
-        d.uid = UUID('61d5422a-884a-4986-aef5-25419482d959')
-        c.add(d)
-        self.assertEqual(str(c.get(d.uid)[0].uid),
+        e = cuds.classes.Entity()
+        m = cuds.classes.MaterialRelation()
+        m.uid = UUID('61d5422a-884a-4986-aef5-25419482d959')
+        e.add(m)
+        self.assertEqual(str(e.get(m.uid)[0].uid),
                          '61d5422a-884a-4986-aef5-25419482d959')
-        e = cuds.classes.ComputationalBoundary()
-        e.uid = UUID('07d5422a-884a-4986-aef5-25419482d959')
-        c.add(e)
-        self.assertEqual(str(c.get(e.uid)[0].uid),
-                         '07d5422a-884a-4986-aef5-25419482d959')
 
     def test_add_throws_exception(self):
         """
@@ -73,11 +68,11 @@ class TestAPI(unittest.TestCase):
          - Adding an unsupported object
          - Adding an object that is already there
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary(name="ComputationalBoundary")
-        self.assertRaises(TypeError, c.add, "Not a CUDS objects")
-        c.add(d)
-        self.assertRaises(ValueError, c.add, d)
+        e = cuds.classes.Entity()
+        m = cuds.classes.MaterialRelation()
+        self.assertRaises(TypeError, e.add, "Not a CUDS objects")
+        e.add(m)
+        self.assertRaises(ValueError, e.add, m)
 
     def test_get(self):
         """
@@ -86,18 +81,16 @@ class TestAPI(unittest.TestCase):
          - By uid
          - By cuba key
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary(name="ComputationalBoundary")
-        c.add(d)
-        e = cuds.classes.ComputationalBoundary()
-        c.add(e)
-        m = cuds.classes.Material()
-        c.add(m)
+        e = cuds.classes.Entity()
+        m1 = cuds.classes.MaterialRelation()
+        e.add(m1)
+        m2 = cuds.classes.MaterialRelation()
+        e.add(m2)
         # Get returns a list, remember to access first element:
-        d_by_get = c.get(d.uid)[0]
-        self.assertEqual(d_by_get, d)
-        self.assertIn(d, c.get(cuds.classes.CUBA.COMPUTATIONAL_BOUNDARY))
-        self.assertIn(e, c.get(cuds.classes.CUBA.COMPUTATIONAL_BOUNDARY))
+        m1_by_get = e.get(m1.uid)[0]
+        self.assertEqual(m1_by_get, m1)
+        self.assertIn(m1, e.get(cuds.classes.CUBA.MATERIAL_RELATION))
+        self.assertIn(m2, e.get(cuds.classes.CUBA.MATERIAL_RELATION))
 
     def test_get_throws_exception(self):
         """
@@ -105,19 +98,19 @@ class TestAPI(unittest.TestCase):
 
          - Getting with something that is not a uid
         """
-        c = cuds.classes.Cuds("Cuds")
-        self.assertRaises(TypeError, c.get, "not a proper key")
+        e = cuds.classes.Entity()
+        self.assertRaises(TypeError, e.get, "not a proper key")
 
     def test_update(self):
         """
         Tests the standard, normal behaviour of the update() method.
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary(name="ComputationalBoundary")
-        c.add(d)
-        d.name = "New name"
-        c.update(d)
-        self.assertEqual(c.get(d.uid)[0].name, d.name)
+        e = cuds.classes.Entity()
+        a = cuds.classes.ActivationEnergy(5)
+        e.add(a)
+        a.value = 7
+        e.update(a)
+        self.assertEqual(e.get(a.uid)[0].value, a.value)
 
     def test_update_throws_exception(self):
         """
@@ -125,11 +118,11 @@ class TestAPI(unittest.TestCase):
 
          - Update an element that wasn't added before
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary(name="ComputationalBoundary")
-        c.add(d)
-        m = cuds.classes.Material("Material not in c")
-        self.assertRaises(ValueError, c.update, m)
+        e = cuds.classes.Entity()
+        m1 = cuds.classes.MaterialRelation()
+        e.add(m1)
+        m2 = cuds.classes.MaterialRelation()
+        self.assertRaises(ValueError, e.update, m2)
 
     def test_remove(self):
         """
@@ -137,15 +130,15 @@ class TestAPI(unittest.TestCase):
 
          - Should erase the reference from the given object, not from others
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary("ComputationalBoundary")
-        m = cuds.classes.Material()
-        d.add(m)
-        c.add(d)
-        c.add(m)  # m is now in d and c
-        d.remove(m)
-        self.assertNotIn(m, d.get(cuds.classes.CUBA.MATERIAL))
-        self.assertIn(m, c.get(cuds.classes.CUBA.MATERIAL))
+        e = cuds.classes.Entity()
+        m1 = cuds.classes.MaterialRelation()
+        m2 = cuds.classes.MaterialRelation()
+        m2.add(m1)
+        e.add(m2)
+        e.add(m1)  # m1 is now in m2 and e
+        m2.remove(m1)
+        self.assertNotIn(m1, m2.get(cuds.classes.CUBA.MATERIAL_RELATION))
+        self.assertIn(m1, e.get(cuds.classes.CUBA.MATERIAL_RELATION))
 
     def test_remove_throws_exception(self):
         """
@@ -154,43 +147,43 @@ class TestAPI(unittest.TestCase):
          - Removing with a wrong key
          - Removing something non-existent
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary("ComputationalBoundary")
-        self.assertRaises(TypeError, c.remove, "not a proper key")
-        self.assertRaises(KeyError, c.remove, d.uid)
+        e = cuds.classes.Entity()
+        m = cuds.classes.MaterialRelation()
+        self.assertRaises(TypeError, e.remove, "not a proper key")
+        self.assertRaises(KeyError, e.remove, m.uid)
 
     def test_iter_all(self):
         """
         Tests the iter() method when no cuba key is provided.
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary("ComputationalBoundary")
-        m = cuds.classes.Material()
-        c.add(d)
-        c.add(m)
-        for obj in c.iter():
+        e = cuds.classes.Entity()
+        a = cuds.classes.ActivationEnergy(5)
+        m = cuds.classes.MaterialRelation()
+        e.add(a)
+        e.add(m)
+        for obj in e.iter():
             self.assertIsInstance(obj, cuds.classes.DataContainer)
 
     def test_iter_by_key(self):
         """
         Tests the iter() method when a cuba key is provided.
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary("ComputationalBoundary")
-        m = cuds.classes.Material()
-        c.add(d)
-        c.add(m)
-        for obj in c.iter(cuds.classes.CUBA.COMPUTATIONAL_BOUNDARY):
-            self.assertIsInstance(obj, cuds.classes.ComputationalBoundary)
+        e = cuds.classes.Entity()
+        a = cuds.classes.ActivationEnergy(5)
+        m = cuds.classes.MaterialRelation()
+        e.add(a)
+        e.add(m)
+        for obj in e.iter(cuds.classes.CUBA.MATERIAL_RELATION):
+            self.assertIsInstance(obj, cuds.classes.MaterialRelation)
 
     def test_iter_throws_exception(self):
         """
         Tests the iter() method for unusual behaviours.
         """
-        c = cuds.classes.Cuds("Cuds")
-        d = cuds.classes.ComputationalBoundary("ComputationalBoundary")
-        c.add(d)
-        self.assertRaises(TypeError, next, c.iter("This is not a proper key"))
+        e = cuds.classes.Entity()
+        e1 = cuds.classes.Entity()
+        e.add(e1)
+        self.assertRaises(TypeError, next, e.iter("This is not a proper key"))
 
 
 if __name__ == '__main__':
