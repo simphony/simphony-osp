@@ -6,11 +6,11 @@ converted to YAML.
 
 ## Disclaimer
 
-In the current version of OSP-core, not all OWL-ontologies are supported.
+In the current version of OSP core, not all OWL-ontologies are supported.
 We are working hard to change that as soon as possible.
 In the course of converting the OWL ontology to YAML, the ontology
-has to be modified to match the restrictions of a YAML ontology.
-These restrictions are explained in doc/yaml_specification.md
+has to be modified to match the constraints of a YAML ontology.
+These constraints are explained in doc/yaml_specification.md
 The conversion script will perform the modifications.
 It will ask the user to make decisions on how the ontology should be modified.
 
@@ -53,7 +53,7 @@ The document doc/working_with_emmo.md explains how you can get the EMMO.
     ```
 
 3. Choose the primary parent for the classes.
-   In OWL ontologies it is common that class are sub-classes of
+   In OWL ontologies it is common that classes are a sub-class of
    multiple classes.
    This is currently not allowed by OSP-core, but will be in the near future.
    For now, the user has to choose a single primary parent per class.
@@ -71,18 +71,15 @@ The document doc/working_with_emmo.md explains how you can get the EMMO.
     ```yml
     ELEMENTARY:
       definition: ...
-      parent: CUBA.STATE
+      parent: CUBA.PHYSICAL
       ...
       CUBA.IS_A:
-        CUBA.PHYSICAL:
+        CUBA.STATE:
           cardinality: 1
     ```
 
 4. Choose where to insert ACTIVE_RELATIONSHIP.
    Cuds objects can be seen as containers, that contain other cuds objects.
-   For example, a molecule has multiple atoms. Let's say we want work with the molecule
-   in OSP-core. If we then want to send the molecule to a server, we also want to send
-   the atoms. If we want to send a single atom, we don't want to send the molecule.
    In OSP-core, there is (currently) the concept of active (and passive) relationships.
    Active relationships describe which cuds objects are contained in other cuds objects.
 
