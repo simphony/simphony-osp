@@ -1,12 +1,13 @@
-image: "registry.gitlab.cc-asp.fraunhofer.de:4567/marketplace/osp-core"
+image: "registry.gitlab.cc-asp.fraunhofer.de:4567/simphony/osp-core/osp-core-ci-runner:latest"
 
 stages:
   - build
-  #- test
 
 build_job:
   stage: build
   script:
-    - python3 setup.py install -t
+    - python3 setup.py install
     - flake8 cuds/ --exclude=cuds/classes/generated,build --ignore=F401,F403,E402
-    - python3 setup.py test
+    - coverage run setup.py test
+    - coverage report --omit=cuds/classes/generated/*,cuds/testing/* --skip-covered --fail-under=70
+
