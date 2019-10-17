@@ -2,7 +2,6 @@ PyYaml
 unittest2
 pympler
 websockets
-sqlalchemy
 requests
 responses
 numpy
