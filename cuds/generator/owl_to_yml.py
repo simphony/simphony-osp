@@ -170,13 +170,14 @@ class OwlToYmlConverter():
             User will be asked if not given, defaults to None
         :type child: str, optional
         """
-        print()
-        print("OSP-core does currently have some requirements "
-              "in the ontology. There are some entities which must "
-              "be in the ontology. Please specify where to put "
-              "these obligatory entities in the ontology. "
-              "These constraints will "
-              "be relaxed very soon.")
+        if child is None:
+            print()
+            print("OSP-core does currently have some requirements "
+                  "in the ontology. There are some entities which must "
+                  "be in the ontology. Please specify where to put "
+                  "these obligatory entities in the ontology. "
+                  "These constraints will "
+                  "be relaxed very soon.")
         if to_inject not in onto:
             if child is None:
                 print("\nNo CUBA.%s in the ontology." % to_inject)
