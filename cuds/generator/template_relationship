@@ -1,0 +1,20 @@
+from .cuba import CUBA
+from $parent_module import $parent
+
+
+class $class($parent):
+    """
+    $definition
+    """
+
+    cuba_key = CUBA.$cuba_key
+    inverse = $inverse
+
+    # def __hash__(self):
+    #     """
+    #     Makes relationship objects hashable.
+    #     Use the hash of the cuba_key
+    #
+    #     :return: unique hash
+    #     """
+    #     return hash(self.cuba_key)

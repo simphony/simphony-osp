@@ -1,2 +1,2 @@
-from .generated import *
-from .core.data_container import DataContainer
+from cuds.classes.generated import *
+from cuds.classes.cuds import Cuds
