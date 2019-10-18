@@ -233,17 +233,17 @@ def get_ancestors(cuds_object_or_class):
     import cuds.classes
     # object from osp_core
     if isinstance(cuds_object_or_class, cuds.classes.Cuds):
-        parent = cuds_object_or_class.__class__.__bases__[0]
+        superclass = cuds_object_or_class.__class__.__bases__[0]
     # wrapper instance
     else:
         cuba_key = str(cuds_object_or_class.cuba_key).replace("CUBA.", "")
         class_name = format_class_name(cuba_key)
-        parent = getattr(cuds.classes, class_name).__bases__[0]
+        superclass = getattr(cuds.classes, class_name).__bases__[0]
 
     ancestors = []
-    while parent != dict:
-        ancestors.append(parent.__name__)
-        parent = parent.__bases__[0]
+    while superclass != dict:
+        ancestors.append(superclass.__name__)
+        superclass = superclass.__bases__[0]
     return ancestors
 
 
