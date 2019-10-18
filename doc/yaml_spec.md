@@ -204,14 +204,9 @@ A sub-entity of a relationship is called a sub-relationship.
 ## Special relationships
 
 `ACTIVE_RELATIONSHIP`:
-> Is an entity the parent of which is RELATIONSHIP and the inverse is
-> PASSIVE\_RELATIONSHIP. It has all the keys mentioned above.
-
-`PASSIVE_RELATIONSHIP`:
-> Is an entity the parent of which is RELATIONSHIP and the inverse is
-> ACTIVE\_RELATIONSHIP. It has all the keys mentioned above.
-
-The inverse of any sub-relationship of `ACTIVE RELATIONSHIP` must be a sub-relationship of `PASSIVE_RELATIONSHIP` and vice verse.
+> This must be the root of all active relationships (e.g. ENCLOSES) \
+> It has all the keys mentioned above. The sub-relationships of `ACTIVE RELATIONSHIP` define
+> directed acyclic subgraphs in the graph of the ontology.
 
 ## Value format
 

@@ -543,7 +543,7 @@ class TestAPICity(unittest.TestCase):
             n = clone_cuds_object(n)
             n._session = session
             new_parent_diff = get_neighbour_diff(
-                n, nw, rel=cuds.classes.PassiveRelationship)
+                n, nw, mode="non-active")
             new_parents = session.load(*[x[0] for x in new_parent_diff])
 
             missing = dict()
