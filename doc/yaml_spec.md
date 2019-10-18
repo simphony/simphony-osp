@@ -87,22 +87,22 @@ Every declaration of an ontology entity must have the following keys:
 
 `definition`: string
 > For human consumption. An ontological short description of the carried
-> semantics. Should have the form: sub\_entity is a parent\_entity that
+> semantics. Should have the form: sub\_entity is a superclass\_entity that
 > has \<differentiating\> terms.
 >
-`parent`: **\`\`qualified CUBA key\`\`** or empty (None).
+`subclass_of`: **\`\`qualified CUBA key\`\`** or empty (None).
 > Its value is fixed on the ontology level.
 >
-> The parent CUDS is for inheritance relations, expressing an
+> The superclass CUDS is for inheritance relations, expressing an
 > **ontological is-a** relation. MUST be either:
 >
 > - a fully qualified string referring to another CUDS entry.
 > - or, an empty entry (yaml meaning: None), for the start of the
 >   hierarchy (i.e. only for the cuds entry `ENTITY`, see [Special entities](#special-entities)).
 >
-> If entity B has parent A, we say that B is a sub-entity of A. \
-> If entity D has parent C and C is is sub-entity of A,
-> then D is also sub-entity of A.
+> If entity A is a subclass of B, we say that A is a sub-entity of B. \
+> If entity A is a sub-entity of B and B is sub-entity of C,
+> then A is also sub-entity of C.
 
 An ontology entity can be either a relationship or a cuds entity or a value.
 Depending on that the mapping can have further keys.
@@ -116,17 +116,17 @@ For relationship entities, these keys are described in
 ## Special entities
 
 `ENTITY`
-> The entity is the root of the ontology. It is the only entity which does not have a parent.
+> The entity is the root of the ontology. It is the only entity which does not have a superclass.
 > Every other entity is a sub-entity of `ENTITY`.
 
 `CUDS_ENTITY`
-> This is the root for all entities that can have individuals. Its direct parent is `ENTITY`.
+> This is the root for all entities that can have individuals. Is is a direct subclass of `ENTITY`.
 
 `RELATIONSHIP`
-> This is the root of all relationships. Its direct parent is `ENTITY`.
+> This is the root of all relationships. It is a direct subclass of `ENTITY`.
 
 `VALUE`
-> This is the root of all values. A value is some kind of data, like a String or a Number. It can be an attribute of a cuds entity. Its direct parent is `ENTITY`.
+> This is the root of all values. A value is some kind of data, like a String or a Number. It can be an attribute of a cuds entity. It is a direct subclass of `ENTITY`.
 
 ## CUDS entities format
 
@@ -149,7 +149,7 @@ You can specify the `cardinality` of the relationship there.
 > ```yml
 > CITY:
 >   definition: ...
->   parent: CUBA.POPULATED_PLACE
+>   subclass_of: CUBA.POPULATED_PLACE
 >   CUBA.HAS_PART:
 >     CUBA.NEIGHBOURHOOD:
 >       cardinality: many
@@ -177,7 +177,7 @@ can be specified.
 > ```yml
 > ADDRESS:
 >   definition: ...
->   parent: CUBA.ENTITY
+>   subclass_of: CUBA.ENTITY
 >   CUBA.NAME:
 >     default: "Street"
 >   CUBA.NUMBER:

@@ -39,28 +39,28 @@ The document doc/working_with_emmo.md explains how you can get the EMMO.
    python cuds/generator/owl_to_yml.py emmo.owl
    ```
 
-2. Choose the parent for the relationships:
+2. Choose the superclass for the relationships:
    In OWL ontologies it is common that relationships are
    sub-relationship of multiple relationships.
    This is currently not allowed by OSP-core, but will be in the near future.
-   For now, the user has to choose a single parent per relationship.
+   For now, the user has to choose a single superclass per relationship.
 
    ```sh
-   Choose the parent of HAS_TEMPORAL_PROPER_PART. 
-    1) CUBA.HAS_TEMPORAL_PART
-    2) CUBA.HAS_PROPER_PART
-    Type the number of your choice: 1
-    ```
+   HAS_TEMPORAL_PROPER_PART should be the subclass of which class? 
+   1) CUBA.HAS_TEMPORAL_PART
+   2) CUBA.HAS_PROPER_PART
+   Type the number of your choice: 1
+   ```
 
-3. Choose the primary parent for the classes.
+3. Choose the primary superclass for the classes.
    In OWL ontologies it is common that classes are a sub-class of
    multiple classes.
    This is currently not allowed by OSP-core, but will be in the near future.
-   For now, the user has to choose a single primary parent per class.
-   The other (secondary) parents will be connected by a CUBA.IS_A relationship.
+   For now, the user has to choose a single primary superclass per class.
+   The other (secondary) superclasses will be connected by a CUBA.IS_A relationship.
 
     ```sh
-    Choose the primary parent of ELEMENTARY. The others will be related by CUBA.IS_A.
+    ELEMENTARY should primarily be the subclass of which class? The other classes will be related by CUBA.IS_A.
     1) CUBA.STATE
     2) CUBA.PHYSICAL
     Type the number of your choice: 2
@@ -71,7 +71,7 @@ The document doc/working_with_emmo.md explains how you can get the EMMO.
     ```yml
     ELEMENTARY:
       definition: ...
-      parent: CUBA.PHYSICAL
+      subclass_of: CUBA.PHYSICAL
       ...
       CUBA.IS_A:
         CUBA.STATE:
@@ -85,7 +85,7 @@ The document doc/working_with_emmo.md explains how you can get the EMMO.
 
    ```txt
    No CUBA.ACTIVE_RELATIONSHIP in the ontology.
-   Specify the entity, that should have ACTIVE_RELATIONSHIP as parent:
+   Specify the entity, that should be a subclass of ACTIVE_RELATIONSHIP:
    > encloses
    ```
 

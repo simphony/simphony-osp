@@ -24,30 +24,30 @@ class OwlToYmlConverter():
         self.yaml_onto["CUDS_ONTOLOGY"] = odict(
             ENTITY=odict(
                 definition="Root of all CUDS entities",
-                parent=None
+                subclass_of=None
             ),
             NOTHING=odict(
                 definition="Nothing",
-                parent="CUBA.ENTITY"
+                subclass_of="CUBA.ENTITY"
             ),
             VALUE=odict(
                 definition="The root of all values",
-                parent="CUBA.ENTITY"
+                subclass_of="CUBA.ENTITY"
             )
         )
         self.rel_onto = odict(
             RELATIONSHIP=odict(
                 definition="Root of all relationships",
-                parent="CUBA.ENTITY"
+                subclass_of="CUBA.ENTITY"
             ),
             IS_A=odict(
-                definition="Secondary parents",
-                parent="CUBA.RELATIONSHIP",
+                definition="Secondary superclasses",
+                subclass_of="CUBA.RELATIONSHIP",
                 inverse="CUBA.SUPERCLASS_OF"
             ),
             SUPERCLASS_OF=odict(
                 definition="Inverse of CUBA.IS_A",
-                parent="CUBA.RELATIONSHIP",
+                subclass_of="CUBA.RELATIONSHIP",
                 inverse="CUBA.IS_A"
             )
         )
@@ -67,8 +67,9 @@ class OwlToYmlConverter():
               "very soon!")
         print()
         print("For example: In OWL it is common that an entity can "
-              "have multiple parents. OSP-core currently only allows a single "
-              "parent. This will be changed in the upcoming days.")
+              "be the subclass of multiple classes. OSP-core currently "
+              "allows a single superclass per class only. This will be "
+              "changed in the upcoming days.")
         input("Press ENTER to continue! ")
 
     def convert(self):
@@ -114,7 +115,7 @@ class OwlToYmlConverter():
         for arg, datatype in arguments.items():
             self.class_onto[arg] = odict(
                 definition="",
-                parent="CUBA.VALUE",
+                subclass_of="CUBA.VALUE",
                 datatype=datatype.upper()
             )
 
@@ -182,14 +183,14 @@ class OwlToYmlConverter():
             if child is None:
                 print("\nNo CUBA.%s in the ontology." % to_inject)
                 print("Specify the entity, that should "
-                      "have %s as parent:" % to_inject)
+                      "be a subclass of %s:" % to_inject)
                 child = self._input_cuds_label("> ")
-            parent = onto[child]["parent"]
+            superclass = onto[child]["subclass_of"]
             onto[to_inject] = odict(
                 definition=None,
-                parent=parent
+                subclass_of=superclass
             )
-            onto[child]["parent"] = "CUBA.%s" % to_inject
+            onto[child]["subclass_of"] = "CUBA.%s" % to_inject
             if inverse is not None:
                 onto[to_inject]["inverse"] = "CUBA." + inverse
                 self._inject_obligatory_entity(
@@ -225,14 +226,14 @@ class OwlToYmlConverter():
         if relationship.inverse_property:
             inverse = self._get_cuba_label(relationship.inverse_property)
 
-        # get parents and characteristics
-        parents = []
+        # get superclasses and characteristics
+        superclasses = []
         characteristics = []
         for c in relationship.is_a:
             if c is owlready2.ObjectProperty:
                 continue
-            if isinstance(c, owlready2.ObjectPropertyClass):  # parents
-                parents.append(
+            if isinstance(c, owlready2.ObjectPropertyClass):  # superclasses
+                superclasses.append(
                     self._get_cuba_label(c)
                     if repr(c) != "owl.topObjectProperty"
                     else "CUBA.RELATIONSHIP"
@@ -244,15 +245,16 @@ class OwlToYmlConverter():
             else:
                 warnings.warn('omits %r for %r' % (c, label))
 
-        parent = self._user_choice(parents,
-                                   "Choose the parent of %s. "
-                                   % label)
+        superclass = self._user_choice(
+            superclasses,
+            "%s should be the subclass of which class? " % label
+        )
 
         # add it
         self.rel_onto[label] = odict(
             definition=definition,
             inverse=inverse,
-            parent=parent
+            subclass_of=superclass
         )
 
     def _add_class(self, onto_class):
@@ -264,30 +266,33 @@ class OwlToYmlConverter():
         label = self._get_cuds_label(onto_class)
         definition = self._get_definition(onto_class)
 
-        parents = []
+        superclasses = []
         restrictions = odict()
         for ce in onto_class.is_a:
-            is_parent, parsed_ce = self._parse_class_expression(ce,
-                                                                restrictions)
-            if is_parent:
-                parents.append(parsed_ce)
+            is_superclass, parsed_ce = self._parse_class_expression(
+                ce, restrictions
+            )
+            if is_superclass:
+                superclasses.append(parsed_ce)
             elif parsed_ce is not None:
                 restrictions.update(parsed_ce)
 
-        parent = self._user_choice(parents,
-                                   "Choose the primary parent of %s. "
-                                   "The others will be related by CUBA.IS_A."
-                                   % label,
-                                   "CUBA.ENTITY")
-        if len(parents) > 1:
-            secondary_parents = set(parents) - {parent}
+        superclass = self._user_choice(
+            superclasses,
+            "%s should primarily be the subclass of which class? "
+            "The other classes will be related by CUBA.IS_A." % label,
+            "CUBA.ENTITY"
+        )
+
+        if len(superclasses) > 1:
+            secondary_superclasses = set(superclasses) - {superclass}
             restrictions.update({
                 "CUBA.IS_A": odict({p: odict(cardinality=(1, 1))})
-                for p in secondary_parents
+                for p in secondary_superclasses
             })
         self.class_onto[label] = odict(
             definition=definition,
-            parent=parent,
+            subclass_of=superclass,
             **self._restrictions_to_yml(restrictions),
         )
 

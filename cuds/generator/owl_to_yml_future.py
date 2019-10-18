@@ -21,7 +21,7 @@ class OwlToYmlConverter():
         self.cuds_onto = odict()
         self.cuds_onto["ENTITY"] = odict(
             definition="Root of all CUDS entities",
-            parents=list()
+            subclass_of=list()
         )
         self.yaml_onto["CUDS_ONTOLOGY"] = self.cuds_onto
 
@@ -60,14 +60,14 @@ class OwlToYmlConverter():
         if relationship.inverse_property:
             inverse = self._get_cuba_label(relationship.inverse_property)
 
-        # get parents and characteristics
-        parents = []
+        # get superclasses and characteristics
+        superclasses = []
         characteristics = []
         for c in relationship.is_a:
             if c is owlready2.ObjectProperty:
                 continue
-            if isinstance(c, owlready2.ObjectPropertyClass):  # parents
-                parents.append(
+            if isinstance(c, owlready2.ObjectPropertyClass):  # superclasses
+                superclasses.append(
                     self._get_cuba_label(c)
                     if repr(c) != "owl.topObjectProperty"
                     else "CUBA.ENTITY"
@@ -88,7 +88,7 @@ class OwlToYmlConverter():
         self.cuds_onto[label] = odict(
             definition=definition,
             inverse=inverse,
-            parents=parents,
+            subclass_of=superclasses,
             domain=self._restrictions_to_yml(domains),
             range=self._restrictions_to_yml(ranges),
             characteristics=characteristics
@@ -103,13 +103,14 @@ class OwlToYmlConverter():
         label = self._get_cuds_label(onto_class)
         definition = self._get_definition(onto_class)
 
-        parents = []
+        superclasses = []
         restrictions = []
         for ce in onto_class.is_a:
-            is_parent, parsed_ce = self._parse_class_expression(ce,
-                                                                restrictions)
-            if is_parent:
-                parents.append(parsed_ce)
+            is_superclass, parsed_ce = self._parse_class_expression(
+                ce, restrictions
+            )
+            if is_superclass:
+                superclasses.append(parsed_ce)
             elif parsed_ce is not None:
                 restrictions.append(parsed_ce)
 
@@ -122,7 +123,7 @@ class OwlToYmlConverter():
 
         self.cuds_onto[label] = odict(
             definition=definition,
-            parents=parents,
+            subclass_of=superclasses,
             equivalent_to=self._restrictions_to_yml(equivalent_to),
             restrictions=self._restrictions_to_yml(restrictions),
             disjoints=disjoints

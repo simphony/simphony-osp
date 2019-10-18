@@ -24,7 +24,7 @@ class ValidityChecker():
         self.root_active = class_generator.ROOT_ACTIVE_RELATIONSHIP
         self.root_non_class = class_generator.ROOT_NOT_CLASSES
         self.attr_inverse = class_generator.INVERSE_ATTRIBUTE_KEY
-        self.attr_parent = parser.PARENT_ATTRIBUTE_KEY
+        self.attr_superclass = parser.SUPERCLASS_ATTRIBUTE_KEY
         self.attr_def = parser.DEFINITION_ATTRIBUTE_KEY
         self.attr_default_rel = class_generator.DEFAULT_REL_ATTRIBUTE_KEY
         self.default_relationship = None
@@ -88,8 +88,10 @@ class ValidityChecker():
                 pass
         self.default_relationship = self.default_relationship or \
             "ACTIVE_RELATIONSHIP"
-        assert len([e for e in entities
-                    if parser.get_value(e, "parent") is None]) == 1, \
+        assert (
+            len([e for e in entities
+                 if parser.get_value(
+                     e, self.attr_superclass) is None]) == 1), \
             "The ontology must have exactly one root"
 
     def _check_inverses(self, parser):
@@ -133,7 +135,7 @@ class ValidityChecker():
             for attribute in parser.get_cuba_attributes_filtering(entity, []):
                 attribute = attribute[5:]
                 if attribute in map(str.lower, [self.attr_def,
-                                                self.attr_parent,
+                                                self.attr_superclass,
                                                 self.root_non_class,
                                                 self.attr_default_rel]):
                     continue
