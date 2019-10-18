@@ -1,0 +1,23 @@
+from copy import deepcopy
+from .cuba import CUBA
+from cuds.generator.ontology_datatypes import convert_to
+from $parent_module import $parent
+
+
+class $class($parent):
+    """
+    $definition
+    """
+
+    cuba_key = CUBA.$cuba_key
+    supported_relationships = deepcopy($parent.supported_relationships)
+    for key__, value__ in $relationships.items():
+        if key__ not in supported_relationships:
+            supported_relationships[key__] = dict()
+        supported_relationships[key__].update(value__)
+
+    def __init__($arguments_init, uid:"UUID"=None):
+$attributes_initialised
+        super().__init__($attributes_sent_super uid=uid)
+
+$properties
