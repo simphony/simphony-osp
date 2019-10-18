@@ -17,7 +17,7 @@ class Parser:
     ONTOLOGY_KEY = 'CUDS_ONTOLOGY'
     SETTINGS_KEY = 'CUDS_SETTINGS'
     DEFINITION_ATTRIBUTE_KEY = 'definition'
-    PARENT_ATTRIBUTE_KEY = 'parent'
+    SUPERCLASS_ATTRIBUTE_KEY = 'subclass_of'
 
     def __init__(self, filename):
         """
@@ -94,22 +94,24 @@ class Parser:
         definition = self.get_value(entity, self.DEFINITION_ATTRIBUTE_KEY)
         return definition if definition is not None else "To Be Determined"
 
-    def get_parent(self, entity):
+    def get_superclass(self, entity):
         """
-        Computes the parent of an entity, if there is one.
+        Computes the superclass of an entity, if there is one.
 
-        :param entity: entity whose parent to return
-        :return: name of the parent class
+        :param entity: entity whose superclass to return
+        :return: name of the superclass class
         :raises KeyError: the queried entity does not exist
         """
         try:
-            parent = self.get_value(entity, self.PARENT_ATTRIBUTE_KEY)
+            superclass = self.get_value(entity, self.SUPERCLASS_ATTRIBUTE_KEY)
         except KeyError:
             message = '{!r} does not exist. Try again.'
             raise KeyError(message.format(entity))
         # Erase "CUBA." prefix
-        parent = "" if parent is None else parent.replace("CUBA.", "")
-        return parent
+        superclass = "" if superclass is None else superclass.replace(
+            "CUBA.", ""
+        )
+        return superclass
 
     def get_datatype(self, entity):
         try:
@@ -118,8 +120,8 @@ class Parser:
             pass
 
         try:
-            parent = self.get_parent(entity)
-            return self.get_datatype(parent)
+            superclass = self.get_superclass(entity)
+            return self.get_datatype(superclass)
         except KeyError:
             return "UNDEFINED"
 
@@ -141,7 +143,8 @@ class Parser:
     def get_attributes(self, entity, inheritance=True):
         """
         Computes a list of attributes of an entity.
-        If inheritance is set, it will add the attributes from the parents.
+        If inheritance is set, it will add the attributes from the
+        superclasses.
 
         :param entity: entity that has the wanted attributes
         :param inheritance: whether inherited attributes should be added or not
@@ -190,13 +193,14 @@ class Parser:
         Computes all the entities above a given one.
 
         :param leaf_entity: entity at the base
-        :return: list(str) with the parent entity and its parent until the root
+        :return: list(str) with the superclass entity and its superclass
+            until the root
         """
         ancestors = []
-        parent = self.get_parent(leaf_entity)
-        while parent != "":
-            ancestors.append(parent)
-            parent = self.get_parent(parent)
+        superclass = self.get_superclass(leaf_entity)
+        while superclass != "":
+            ancestors.append(superclass)
+            superclass = self.get_superclass(superclass)
         return ancestors
 
     def get_descendants(self, root_entity):
@@ -208,11 +212,11 @@ class Parser:
         """
         descendants = [root_entity]
         for entity in self.get_entities():
-            # Set the root_entity to the initial parent for the loop
-            parent = entity
-            while parent != "":
-                parent = self.get_parent(parent)
-                if parent in descendants:
+            # Set the root_entity to the initial superclass for the loop
+            superclass = entity
+            while superclass != "":
+                superclass = self.get_superclass(superclass)
+                if superclass in descendants:
                     descendants.append(entity)
                     break
         # Remove the root (only descendants)

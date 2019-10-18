@@ -88,19 +88,19 @@ Every declaration of an ontology entity must have the following keys:
 
 `definition`: string
 > For human consumption. An ontological short description of the carried
-> semantics. Should have the form: sub\_entity is a parent\_entity that
+> semantics. Should have the form: sub\_entity is a superclass\_entity that
 > has \<differentiating\> terms.
 >
-`parents`: List[**\`\`qualified CUBA key\`\`**].
+`subclass_of`: List[**\`\`qualified CUBA key\`\`**].
 > Its value is fixed on the ontology level.
 >
-> The parent CUDS is for inheritance relations, expressing an **ontological is-a**
+> The superclass CUDS is for inheritance relations, expressing an **ontological is-a**
 > relation. MUST be a list of a fully qualified strings referring to another CUDS entry.
-> Only the cuds entry `ENTITY` is allowed to have no parents. See [Special entities](#special-entities).
+> Only the cuds entry `ENTITY` is allowed to have no superclass. See [Special entities](#special-entities).
 >
-> If entity B has parent A, we say that B is a sub-entity of A. \
-> If entity D has parent C and C is is sub-entity of A,
-> then D is also sub-entity of A.
+> If entity A is a subclass of B, we say that A is a sub-entity of B. \
+> If entity A is a sub-entity of B and B is sub-entity of C,
+> then A is also sub-entity of C.
 
 An ontology entity can be either a relationship, a cuds entity or a value.
 Depending on that the mapping can have further keys.
@@ -114,17 +114,17 @@ For values, these keys are described in
 ## Special entities
 
 `ENTITY`
-> The entity is the root of the ontology. It is the only entity which does not have a parent.
+> The entity is the root of the ontology. It is the only entity which does not have a superclass.
 > Every other entity is a sub-entity of `ENTITY`.
 
 `CUDS_ENTITY`
-> This is the root for all entities that can have individuals. Its direct parent is `ENTITY`.
+> This is the root for all entities that can have individuals. Its direct superclass is `ENTITY`.
 
 `RELATIONSHIP`
-> This is the root of all relationships. Its direct parent is `ENTITY`.
+> This is the root of all relationships. Its direct superclass is `ENTITY`.
 
 `VALUE`
-> This is the root of all values. A value is some kind of data, like a String or a Number. It can be an attribute of a cuds entity. Its direct parent is `ENTITY`.
+> This is the root of all values. A value is some kind of data, like a String or a Number. It can be an attribute of a cuds entity. Its direct superclass is `ENTITY`.
 
 ## Value format
 

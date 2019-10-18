@@ -1,0 +1,1227 @@
+---
+VERSION: 0.0.1
+ONTOLOGY_MODE: minimum_requirements
+CUDS_ONTOLOGY:
+  ENTITY:
+    definition: Root of all CUDS entities
+    subclass_of:
+  NOTHING:
+    definition: Nothing
+    subclass_of: CUBA.ENTITY
+  VALUE:
+    definition: The root of all values
+    subclass_of: CUBA.ENTITY
+  ENERGY:
+    definition: ''
+    subclass_of: CUBA.EXTENSIVE_PROPERTY
+  COMPOSITE_MEASUREMENT_UNIT:
+    definition: ''
+    subclass_of: CUBA.MEASUREMENT_UNIT
+  DESCRIPTIVE_PROPERTY:
+    definition: ''
+    subclass_of: CUBA.QUANTITATIVE_PROPERTY
+  ELECTRICAL_CONDUCTIVITY:
+    definition: ''
+    subclass_of: CUBA.INTENSIVE_PROPERTY
+  DYNAMIC_VISCOSITY:
+    definition: ''
+    subclass_of: CUBA.COMPOSITE_MEASUREMENT_UNIT
+    CUBA.HAS_SPATIAL_PROPER_PART:
+      CUBA.PASCAL:
+        cardinality: 1+
+  ITEM:
+    definition: "COMMENT:\n'item' is a disjoint union of three subclasses (covering\
+      \ axiom).\n\nThe union categorizes 'item'-s in:\n- 'space' individuals that\
+      \ stand for pure spatially extended real world objects (3D) as simultaneity\
+      \ regions\n- 'time' individuals that stand for real world objects evolving in\
+      \ time, which are categorized in\n    - 'world_line'-s that stand for space\
+      \ points extending in time (0D+1D)\n    - 'world_sheet'-s that stand for space\
+      \ lines extending in time (1D+1D)\n    - 'world_volume'-s that stand for space\
+      \ surfaces extending in time (2D+1D)\n    - 'spacetime' individuals that stand\
+      \ for sub-regions of the Universe retaining all its space and time dimensionalities\
+      \ (3D+1D).\n\nDisjointness means that 'item'-s cannot have multiple-dimensional\
+      \ representations.\n\nCOMMENT:\nA real world object is self-connected if any\
+      \ two parts that make up the whole are connected to each other (here the concept\
+      \ of connection is primitive). \n\nAlternatively, using the primitive path-connectivity\
+      \ concept we can define a self-connected real world object as an object for\
+      \ which each couple of points is path-connected.\n\nCOMMENT:\nParthood relations\
+      \ does not change dimensionality of an 'item' individual (e.g. a 'spacetime'\
+      \ individual has only 'spacetime' parts, a 'spacetime' has no 'space' parts).\n\
+      \nChanges in dimensionality come from pure topological relations between subspaces\
+      \ (i.e. slicing).\n\nCOMMENT:\nThe 'item' individuals stand for real world objects\
+      \ that are sub-regions of the 4D spacetime.\n\n'item' individuals stand for\
+      \ real world objects that span through time (1D) and space (3D) dimensions or\
+      \ through some sub-dimensions."
+    subclass_of: CUBA.EMMO
+    CUBA.CONNECTED:
+      CUBA.ITEM:
+        cardinality: 0+
+  CELSIUS:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  PHYSICAL_QUANTITY:
+    definition: 'COMMENT:
+
+      Measured or simulated ''physical propertiy''-s are always defined by a physical
+      law, connected to a physical entity through a model perspective and measurement
+      is done according to the same model.
+
+
+      Systems of units suggests that this is the correct approach, since except for
+      the fundamental units (length, time, charge) every other unit is derived by
+      mathematical relations between these fundamental units, implying a physical
+      laws or definitions.'
+    subclass_of: CUBA.QUANTITATIVE_PROPERTY
+    CUBA.HAS_SPATIAL_PROPER_PART:
+      CUBA.MEASUREMENT_UNIT:
+        cardinality: 1+
+  MORPHOLOGICAL_PROPERTY:
+    definition: ''
+    subclass_of: CUBA.QUALITATIVE_PROPERTY
+  SIGN:
+    definition: "COMMENT:\nA 'sign' can have temporal-direct-parts which are 'sign'\
+      \ themselves.\n\nA 'sign' usually have 'sign' spatial direct parts only up to\
+      \ a certain elementary semiotic level, in which the part is only a 'physical'\
+      \ and no more a 'sign' (i.e. it stands for nothing). This elementary semiotic\
+      \ level is peculiar to each particular system of signs (e.g. text, painting).\n\
+      \nJust like an 'elementary' in the 'physical' branch, each 'sign' branch should\
+      \ have an a-tomistic mereological part.\n\nCOMMENT:\nAccording to Peirce, 'sign'\
+      \ includes three subcategories:\n- symbols: that stand for an object through\
+      \ convention\n- indeces: that stand for an object due to causal continguity\n\
+      - icon: that stand for an object due to similitudes e.g. in shape or composition\n\
+      \nCOMMENT:\nIn a 4D ontology one could question if a 'sign' should be defined\
+      \ as a spatial direct part of a 'semiosis' i.e. a proper part of a 'semiosis'\
+      \ during all its existence.\n\ne.g. one can say that an unread text is not a\
+      \ 'sign': it was a 'sign' during the 'semiosis' process in which it was written,\
+      \ but after that it is something else, until somebody read it again.\n\nHowever,\
+      \ this is not the case for an ontology, since declaring an individual under\
+      \ the 'sign' class (a semiosis outside the EMMO, a meta-semiosis) is equivalent\
+      \ to say that for the ontologist (an interpreter outside the EMMO, a meta-interpreter)\
+      \ the real entity (an object outside the EMMO, a meta-object) is a 'sign'.\n\
+      \nSo the 'semiosis' process within the EMMO is about how other 'interpreter'-s\
+      \ deal with the 'sign'-s here declared.\n\nCOMMENT:\nIt can be defined as the\
+      \ semiotic branch of the EMMO.\n\n'sign' subclasses categorize the type of signs\
+      \ that are used to create representations/models of the real world entities.\n\
+      \nEXAMPLE:\nA novel is made of chapters, paragraphs, sentences, words and characters\
+      \ (in a direct parthood mereological hierarchy). \n\nEach of them are 'sign'-s.\
+      \ \n\nA character can be the a-tomistic 'sign' for the class of texts.\n\nThe\
+      \ horizontal segment in the character \"A\" is direct part of \"A\" but it is\
+      \ not a 'sign' itself.\n\nFor plain text we can propose the ASCII symbols, for\
+      \ math the fundamental math symbols.\"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>"
+    subclass_of: CUBA.SEMIOTIC
+    CUBA.HAS_TEMPORAL_PROPER_PART:
+      CUBA.SIGN:
+        cardinality: 0+
+  SPECIES_CONCENTRATION:
+    definition: ''
+    subclass_of: CUBA.INTENSIVE_PROPERTY
+  MOLE:
+    definition: ''
+    subclass_of: CUBA.BASE_UNIT
+  COULOMB:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  CRYSTAL_STRUCTURE:
+    definition: ''
+    subclass_of: CUBA.MORPHOLOGICAL_PROPERTY
+  PASCAL:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  THERMAL_CONDUCTIVITY_UNIT:
+    definition: ''
+    subclass_of: CUBA.COMPOSITE_MEASUREMENT_UNIT
+    CUBA.HAS_SPATIAL_PROPER_PART:
+      CUBA.WATT:
+        cardinality: 1+
+  SPACETIME:
+    definition: 'COMMENT:
+
+      A ''spacetime'' can be a ''physical'' (perceivable) or a ''void'' (pure geometrical
+      entity that originates no perception).
+
+
+      ''spacetime'' is then the superclass for every real world entity which are represented
+      as 3D (space) +1D (time) entities.
+
+
+      COMMENT:
+
+      A ''spacetime'' entity can directly or indirectly interact with the ontologist
+      (can be perceived) or can be simply a void region of spacetime (originates no
+      perceptions).
+
+
+      The former type of ''spacetime'' is called ''physical'' and the latter ''void''.
+
+
+      The use of a disjoint union axiom is self-evident.
+
+
+      The concept of perception is considered as primitive.'
+    subclass_of: CUBA.TIME
+    CUBA.HAS_PART:
+      CUBA.SPACETIME:
+        cardinality: 0+
+    CUBA.IS_PART_OF:
+      CUBA.SPACETIME:
+        cardinality: 0+
+  MEASUREMENT_INSTRUMENT:
+    definition: ''
+    subclass_of: CUBA.OBSERVER
+    CUBA.IS_PARTICIPANT_OF:
+      CUBA.MEASUREMENT:
+        cardinality: 1+
+  MOLAR_CONCENTRATION:
+    definition: ''
+    subclass_of: CUBA.SPECIES_CONCENTRATION
+  STERADIAN:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  KATAL:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  MATHEMATICAL:
+    definition: 'COMMENT:
+
+      The class of general mathematical symbols.'
+    subclass_of: CUBA.FORMULA
+  INDEX:
+    definition: 'EXAMPLE:
+
+      Smoke stands for a combustion process (a fire).
+
+
+      My facial expression stands for my emotional status."^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>'
+    subclass_of: CUBA.SIGN
+  VOLUME:
+    definition: ''
+    subclass_of: CUBA.SPACE
+    CUBA.HAS_PART:
+      CUBA.VOLUME:
+        cardinality: 0+
+    CUBA.IS_PART_OF:
+      CUBA.VOLUME:
+        cardinality: 0+
+    CUBA.IS_TIME_SLICE_OF:
+      CUBA.SPACETIME:
+        cardinality: 0+
+  SIEMENS:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  ELEMENTARY:
+    definition: 'COMMENT:
+
+      ''elementary'' is by definition the most simple example of ''state''.
+
+
+      COMMENT:
+
+      According to mereology, this should be call ''a-tomistic'' in the strict etimological
+      sense of the word (from greek, a-tomos: un-divisible).
+
+
+      Mereology based on such items is called atomistic mereology.
+
+
+      However, in order not to confuse the lexicon between mereology and physics (in
+      which an atom is a divisible physical entity) we prefer to call it ''elementary'',
+      recalling the concept of elementary particle coming from the standard particles
+      model.'
+    subclass_of: CUBA.STATE
+    CUBA.HAS_SPATIAL_PROPER_PART:
+      CUBA.NOTHING:
+        cardinality: 0+
+    CUBA.IS_A:
+      CUBA.PHYSICAL:
+        cardinality: 1-1
+  PRESSURE:
+    definition: ''
+    subclass_of: CUBA.INTENSIVE_PROPERTY
+  QUANTITATIVE_PROPERTY:
+    definition: ''
+    subclass_of: CUBA.PHYSICAL_PROPERTY
+    CUBA.IS_A:
+      CUBA.FORMULA:
+        cardinality: 1-1
+  WORLD_SHEET:
+    definition: ''
+    subclass_of: CUBA.TIME
+    CUBA.HAS_PART:
+      CUBA.WORLD_SHEET:
+        cardinality: 0+
+    CUBA.IS_PART_OF:
+      CUBA.WORLD_SHEET:
+        cardinality: 0+
+  SYMBOL:
+    definition: "COMMENT:\nSubclasses of 'symbol' are alphabets, in formal languages\
+      \ terminology.\n\nCOMMENT:\nSymbols of a formal language need not be symbols\
+      \ of anything. For instance there are logical constants which do not refer to\
+      \ any idea, but rather serve as a form of punctuation in the language (e.g.\
+      \ parentheses). \n\nSymbols of a formal language must be capable of being specified\
+      \ without any reference to any interpretation of them. \n(Wikipedia)\n\nCOMMENT:\n\
+      The class is the idea of the symbol, while the individual of that class stands\
+      \ for a specific mark (or token) of that idea.\n\nEXAMPLE:\nThe class of letter\
+      \ \"A\" is the symbol as idea and the letter A is the mark.\"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>"
+    subclass_of: CUBA.SYMBOLIC
+  MASS_CONCENTRATION:
+    definition: ''
+    subclass_of: CUBA.SPECIES_CONCENTRATION
+  ICON:
+    definition: "EXAMPLE:\nA picture that reproduces the aspect of a person. \n\n\
+      An equation that reproduces the logical connection of the properties of a physical\
+      \ entity.\"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>"
+    subclass_of: CUBA.SIGN
+  JOULE:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  POINT:
+    definition: ''
+    subclass_of: CUBA.SPACE
+    CUBA.HAS_PART:
+      CUBA.POINT:
+        cardinality: 0+
+    CUBA.IS_PART_OF:
+      CUBA.POINT:
+        cardinality: 0+
+  PROPERTY:
+    definition: "COMMENT:\nWe know real world entities through observation/perception.\n\
+      \nA non-perceivable real world entity does not exist (or it exists on a plane\
+      \ of existance that has no intersection with us and we can say nothing about\
+      \ it).\n\nPerception/observation of a real wolrd entity occurs when the entity\
+      \ stimulate an observer in a peculiar way through a well defined perception\
+      \ channel.\n\nFor this reason each property is related to a specific observation\
+      \ process which involves a specific observer with its own perception mechanisms.\n\
+      \nThe observation process (e.g. a look, a photo shot, a measurement) is performed\
+      \  by an observer (e.g. you, a camera, an instrument) through a specific perception\
+      \ mechanism (e.g. retina impression, CMOS excitation, piezoelectric sensor activation)\
+      \ and involves an observed entity.\n\nAn observation is a semiotic process,\
+      \ since it stimulate an interpretant within the interpreter who can communicate\
+      \ the perception result to other interpreters through a sign which is the property.\
+      \ \n\nProperty subclasses are specializations that depend on the type of observation\
+      \ processes.\n\ne.g. the property 'colour' is related to a process that involves\
+      \ emission or interaction of photon and an observer who can perceive electromagnetic\
+      \ radiation in the visible frequency range. \n\nProperties usually relies on\
+      \ symbolic systems (e.g. for colour it can be palette or RGB).\n\nEXAMPLE:\n\
+      Hardness is a subclass of properties.\n\nVickers hardness is a subclass of hardness\
+      \ that involves the procedures and instruments defined by the standard hardness\
+      \ test.\"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>\n\nEXAMPLE:\n\
+      Let's define the class 'colour' as the subclass of the properties that involve\
+      \ photon emission and an electromagnetic radiation sensible observer.\n\nAn\
+      \ individual C of this class 'colour' can be defined be declaring the process\
+      \ individual (e.g. daylight illumination) and the observer (e.g. my eyes)\n\n\
+      Stating that an entity E has_property C, we mean that it can be observed by\
+      \ such setup of process + observer (i.e. observed by my eyes under daylight).\n\
+      \nThis definition can be generalized by using a generic human eye, so that the\
+      \ observer can be a generic human.\n\nThis can be used in material characterization,\
+      \ to define exactly the type of measurement done, including the instrument type.\"\
+      ^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>"
+    subclass_of: CUBA.SYMBOLIC
+    CUBA.IS_A:
+      CUBA.CONVENTIONAL:
+        cardinality: 1-1
+  SURFACE:
+    definition: ''
+    subclass_of: CUBA.SPACE
+    CUBA.HAS_PART:
+      CUBA.SURFACE:
+        cardinality: 0+
+    CUBA.IS_PART_OF:
+      CUBA.SURFACE:
+        cardinality: 0+
+  VOLT:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  WEBER:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  CONVENTIONAL:
+    definition: ''
+    subclass_of: CUBA.SIGN
+  ELECTRIC_CHARGE:
+    definition: ''
+    subclass_of: CUBA.EXTENSIVE_PROPERTY
+  SET:
+    definition: "COMMENT:\nFormally, 'set' is axiomatized as the class of individuals\
+      \ that 'has_member' some 'item'.\n\nA 'set' cannot have as member another 'set'.\
+      \ This relation is expressed instead by the subset relation, which is the OWL-DL\
+      \ built-in 'is_a' relation used to declare subclasses of 'set'.\n\nCOMMENT:\n\
+      Since OWL-DL classes are intended as signs that stand for real world sets, we\
+      \ can consider the 'set' branch as a meta-ontological branch, since 'item' class\
+      \ and all its subclasses are then individuals of 'set'.\n\nIt is also possible\
+      \ to define a relation 'is_subset_of' valid only between 'set' individuals that\
+      \ is equivalent to the OWL-DL built-in 'is_a' relation between classes in the\
+      \ 'item' branch. \n\nHowever this is not done in the EMMO for the sake of simplicity\
+      \ and due to the limitation of the language.\n\nCOMMENT:\nThe 'set' class can\
+      \ be used to declare individuals that stand for collections of parts that does\
+      \ not form a self-connected whole in mereotopological sense.\n\ne.g. the set\
+      \ of users of a particular software, the set of atoms that have been part of\
+      \ that just dissociated molecule, or even the set of atoms that are part of\
+      \ a molecule considered as single individual entities and not as a mereotopological\
+      \ self-connected fusion."
+    subclass_of: CUBA.EMMO
+  UNKNOWN:
+    definition: 'EXAMPLE:
+
+      Velocity, for the Navier-Stokes equation."^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>'
+    subclass_of: CUBA.VARIABLE
+  HERTZ:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  HENRY:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  KELVIN:
+    definition: ''
+    subclass_of: CUBA.BASE_UNIT
+  MATH_SYMBOL:
+    definition: ''
+    subclass_of: CUBA.SYMBOL
+  FARAD:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  SIEVERT:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  INTERPRETANT:
+    definition: ''
+    subclass_of: CUBA.SIGN
+    CUBA.IS_PROPER_PART_OF:
+      CUBA.INTERPRETER:
+        cardinality: 1+
+  VOID:
+    definition: A 'spacetime' that has no 'elementary' parts."^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>
+    subclass_of: CUBA.SPACETIME
+    CUBA.HAS_PART:
+      CUBA.VOID:
+        cardinality: 0+
+  PHYSICAL_PROPERTY:
+    definition: ''
+    subclass_of: CUBA.PROPERTY
+  SPECIFIC_VOLUME:
+    definition: ''
+    subclass_of: CUBA.SPECIFIC_PROPERTY
+  CRYSTALLINE_FRACTION:
+    definition: ''
+    subclass_of: CUBA.INTENSIVE_PROPERTY
+  EXTENSIVE_PROPERTY:
+    definition: ''
+    subclass_of: CUBA.PHYSICAL_QUANTITY
+  WATT:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  MASS:
+    definition: ''
+    subclass_of: CUBA.EXTENSIVE_PROPERTY
+  INTERPRETER:
+    definition: ''
+    subclass_of: CUBA.SEMIOTIC
+    CUBA.HAS_SPATIAL_PROPER_PART:
+      CUBA.INTERPRETANT:
+        cardinality: 1+
+    CUBA.IS_SPATIAL_PROPER_PART_OF:
+      CUBA.SEMIOSIS:
+        cardinality: 1+
+  SECOND:
+    definition: ''
+    subclass_of: CUBA.BASE_UNIT
+  QUALITATIVE_PROPERTY:
+    definition: 'EXAMPLE:
+
+      CFC is a ''sign'' that stands for the fact that the morphology of atoms composing
+      the microstructure of an entity is predominantly Cubic Face Centered"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>'
+    subclass_of: CUBA.PHYSICAL_PROPERTY
+  OBJECT:
+    definition: "COMMENT:\nHere is assumed that the concept of 'object' is always\
+      \ relative to a 'semiotic' process. An 'object' does not exists per se, but\
+      \ it's always part of an interpretation.\n\nThe EMMO relies on strong reductionism,\
+      \ i.e. everything real is a formless collection of elementary particles: we\
+      \ give a meaning to real world entities only by giving them boundaries and defining\
+      \ them using 'sign'-s. \n\nIn this way the 'sign'-ed entity become and 'object',\
+      \ and the 'object' is the basic entity needed in order to apply a logical formalism\
+      \ to the real world entities (i.e. we can speak of it through its sign, and\
+      \ use logics on it through its sign)."
+    subclass_of: CUBA.SEMIOTIC
+    CUBA.IS_SPATIAL_PROPER_PART_OF:
+      CUBA.SEMIOSIS:
+        cardinality: 1+
+  SEMIOTIC:
+    definition: ''
+    subclass_of: CUBA.PARTICIPANT
+    CUBA.IS_PARTICIPANT_OF:
+      CUBA.SEMIOSIS:
+        cardinality: 1+
+  SPECIFIC_HEAT_CAPACITY:
+    definition: ''
+    subclass_of: CUBA.SPECIFIC_PROPERTY
+  OHM:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  EQUATION:
+    definition: "COMMENT:\nThe class of 'mathematical'-s that stand for a mathematical\
+      \ expression that puts in relation some variables and that can always be represented\
+      \ as:\n\nf(v0, v1, ..., vn) = g(v0, v1, ..., vn)\n\nwhere f is the left hand\
+      \ and g the right hand  side expressions and v0, v1, ..., vn are the variables.\n\
+      \ne.g. \n\nx^2 +3x  = 5x\n\ndv/dt = a\n\nsin(x) = y"
+    subclass_of: CUBA.MATHEMATICAL
+    CUBA.HAS_SPATIAL_PROPER_PART:
+      CUBA.VARIABLE:
+        cardinality: 1+
+  DERIVED_UNIT:
+    definition: ''
+    subclass_of: CUBA.SINGLE_MEASUREMENT_UNIT
+  CONSTANT:
+    definition: 'COMMENT:
+
+      pi = 3.14'
+    subclass_of: CUBA.VARIABLE
+  SINGLE_MEASUREMENT_UNIT:
+    definition: ''
+    subclass_of: CUBA.MEASUREMENT_UNIT
+  SPACE:
+    definition: "COMMENT:\nEach 'space' individual stands for real world objects that\
+      \ are defined always according to a specific observer, in order to respect special\
+      \ relativity.\n\nThe same real world object can be represented as a 'space'\
+      \ individual for one observer and at the same time be represented as a 'time'\
+      \ individual for another observer. While the real world object is the same,\
+      \ the individuals in this example are two and distinct, and they come from two\
+      \ observers with two different reference system.\n\nCOMMENT:\nReal world objects\
+      \ represented by a 'space' individual are sub-region of 4D Minkowski space wich\
+      \ are simultaneous according to a well defined reference system, i.e. the whole\
+      \ space object exists at the same time t.\n\nThe concept of simultaneity is\
+      \ restricted to Minkowski space and to special relativity for the sake of simplicity.\
+      \ \n\nHowever, it can be extended to general relativity."
+    subclass_of: CUBA.ITEM
+    CUBA.HAS_PART:
+      CUBA.SPACE:
+        cardinality: 0+
+    CUBA.IS_PART_OF:
+      CUBA.SPACE:
+        cardinality: 0+
+  LUX:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  MAGNETIC_PERMEABILITY:
+    definition: ''
+    subclass_of: CUBA.INTENSIVE_PROPERTY
+  FORMULA:
+    definition: "COMMENT:\nIn formal languages the terms word or well-formed formula\
+      \ are used with the same meaning.\n\nEXAMPLE:\nThe word \"cat\" considered as\
+      \ a collection of 'symbol'-s respecting the rules of english language. \n\n\
+      In this example the 'symbolic' entity \"cat\" is not related to the real cat,\
+      \ but it is only a word (like it would be to an italian person that ignores\
+      \ the meaning of this english word).\n\nIf an 'interpreter' skilled in english\
+      \ language is involved in a 'semiotic' process with this word, that \"cat\"\
+      \ became also a 'sign' i.e. it became for the 'interpreter' a representation\
+      \ for a real cat.\"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>"
+    subclass_of: CUBA.SYMBOLIC
+  EXISTENT:
+    definition: "A 'physical' which is a 'state' or made only of 'state' temporal\
+      \ direct parts.\"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>\n\
+      \nCOMMENT:\n'existent' is the most important class to be used for representing\
+      \ real world changing things.\n\nThis class is used to represent the whole life\
+      \ of a complex state-changing physical entity that for the all the extent of\
+      \ its life has a meaning for the ontologist.\n\ne.g. a car, a supersaturated\
+      \ gas with nucleating nanoparticles, an atom that becomes ionized and then recombines\
+      \ with an electron.\n\nCOMMENT:\nA 'physical' and not 'existent' individual\
+      \ is something not classifiable because no common terms or definitions have\
+      \ been developed to name it. Such type of individual can be declared but it\
+      \ has no class (at least not yet) in the taxonomy.\n\n i.e. an heterogeneous\
+      \ heap of elementaries, appearing and disappering in time.\n\nCOMMENT:\nA superclass\
+      \ that contains in a taxonomy all physicals that can be classifed in some way\
+      \ by the ontologist.\n\nCOMMENT:\nex-sistere (latin): to stay (to persist through\
+      \ time) outside others of the same type (to be distinct from the rest)."
+    subclass_of: CUBA.PHYSICAL
+  CHEMICAL_POTENTIAL:
+    definition: ''
+    subclass_of: CUBA.INTENSIVE_PROPERTY
+  OBSERVER:
+    definition: ''
+    subclass_of: CUBA.INTERPRETER
+    CUBA.IS_PARTICIPANT_OF:
+      CUBA.OBSERVATION:
+        cardinality: 1+
+  WORLD_LINE:
+    definition: ''
+    subclass_of: CUBA.TIME
+    CUBA.HAS_PART:
+      CUBA.WORLD_LINE:
+        cardinality: 0+
+    CUBA.IS_PART_OF:
+      CUBA.WORLD_LINE:
+        cardinality: 0+
+  LATTICE_CONSTANT:
+    definition: ''
+    subclass_of: CUBA.INTENSIVE_PROPERTY
+  MEASUREMENT_UNIT:
+    definition: ''
+    subclass_of: CUBA.QUANTITATIVE_PROPERTY
+  PARTICIPANT:
+    definition: ''
+    subclass_of: CUBA.SPACETIME
+  SYMBOLIC:
+    definition: 'COMMENT:
+
+      In formal languages it is called a string of symbols.
+
+
+      EXAMPLE:
+
+      fe@è0
+
+      emmo
+
+      !5*a
+
+      cat"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>'
+    subclass_of: CUBA.PHYSICAL
+  ENTROPY:
+    definition: ''
+    subclass_of: CUBA.EXTENSIVE_PROPERTY
+  TEMPERATURE:
+    definition: ''
+    subclass_of: CUBA.INTENSIVE_PROPERTY
+  DENSITY:
+    definition: ''
+    subclass_of: CUBA.INTENSIVE_PROPERTY
+  PARAMETER:
+    definition: 'COMMENT:
+
+      A ''variable'' whose value is assumed to be known independently from the equation,
+      but whose value is not explicitated in the equation.
+
+
+      EXAMPLE:
+
+      Viscosity, the total energy of the system given by an Hamiltonian, the force
+      between two atoms."^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>'
+    subclass_of: CUBA.VARIABLE
+  VISCOSITY:
+    definition: ''
+    subclass_of: CUBA.INTENSIVE_PROPERTY
+  TIME:
+    definition: "COMMENT:\nA curve M in spacetime is called a worldline of a particle\
+      \ if its tangent is future timelike at each point. \n\nThe arclength parameter\
+      \ is called proper time and usually denoted τ. \n\nThe length of M is called\
+      \ the proper time of the worldline or particle. \n\nIf the worldline M is a\
+      \ line segment, then the particle is said to be in free fall.\n\nCOMMENT:\n\
+      In the EMMO a worldline object is not necessary related to the succession of\
+      \ events of a real object (i.e. motion), but only a pure geometrical object.\n\
+      \nFor this reason, they can be time-like, light-like or space-like, following\
+      \ general special relativity nomenclature."
+    subclass_of: CUBA.ITEM
+    CUBA.HAS_PART:
+      CUBA.TIME:
+        cardinality: 0+
+    CUBA.IS_PART_OF:
+      CUBA.TIME:
+        cardinality: 0+
+  OBSERVATION:
+    definition: ''
+    subclass_of: CUBA.SEMIOSIS
+    CUBA.HAS_SPATIAL_PROPER_PART:
+      CUBA.OBSERVER:
+        cardinality: 1+
+  AMPERE:
+    definition: ''
+    subclass_of: CUBA.BASE_UNIT
+  PHYSICAL:
+    definition: "COMMENT:\nA 'physical' is the class that contains all the individuals\
+      \ that stands real world perceivable entities.\n\nReal world entities must be\
+      \ perceived by the ontologist declaring the corresponding individual.\n\nCOMMENT:\n\
+      A 'physical' must include at least an 'elementary' part, but can also include\
+      \ void parts.\n\nA 'physical' may include as part also the 'void' surrounding\
+      \ or enclosed by its 'physical' sub parts.\n\nThere are no particular criteria\
+      \ for 'physical'-s structure, except that is made of some 'elementary'-s as\
+      \ proper parts and not only 'void'.\n\nThis is done in order to:\na) take into\
+      \ account the quantum nature of physical systems, in which the actual position\
+      \ of sub-components (e.g. electrons in an atom) is not known except for its\
+      \ probability distribution function (according to the Copenhagen interpretation.)\n\
+      b) take into account the fact that large entities (e.g. devices, cars, materials)\
+      \ have some void into them.\n\ne.g. a 'spacetime' that has spatial parts an\
+      \ atom and a cubic light year of 'void' extending for some time can be a 'physical'\
+      \ individual.\n\nCOMMENT:\nA 'physical' with dimensions other than 3D+1D (i.e.\
+      \ 'physical' and not 'spacetime') cannot exist, since perception is a process\
+      \ (unfolds in time). \n\nFor this reason, 'physical'-s exist only in space and\
+      \ time (3D + 1D), so 'physical' is a subclass of 'spacetime'.\n\ne.g. you always\
+      \ have an aperture time when you take a picture or measure a property. Instantaneous\
+      \ perceptions are idealizations (abstractions) or a very small time measurement.\n\
+      \nCOMMENT:\nIn the EMMO there are no relations such as 'occupies_space', since\
+      \ 'physical'-s are themselves 'spacetime' entities.\n\nCOMMENT:\nThe EMMO can\
+      \ be used to represent real world entities as 'physical'-s that are easy to\
+      \ connect to classical or quantum mechanical based models.\n\nClassical mechanics\
+      \ poses no representational issues, for the EMMO: the 4D representation of 'physical'-s\
+      \ is consistent with classical physics systems.\n\nHowever, the representation\
+      \ of 'physical'-s that are typically analized through quantum mechanics (e.g.\
+      \ molecules, atoms, clusters), is not straightforward.\n\n1) De Broglie - Bohm\
+      \ interpretation\nThe most simple approach is to rely on Bohmian mechanics,\
+      \ in which each particle is supposed to exists in a specific position between\
+      \ measurements (hidden variables approach), while its trajectory is calculated\
+      \ using a Guiding Equation based on a quantum field calculated with the Schroedinger\
+      \ Equation.\n\nWhile this approach is really easy to implement in an ontology,\
+      \ since each entity has its own well defined 4D region, its mathematical representation\
+      \ failed to receive large consensus due to the difficulties to include relativistic\
+      \ effects, to be extended to subnuclear scale and the strong non-locality assumtpion\
+      \ of the quantum field.\n\nNevertheless, the Bohmian mechanics is a numerical\
+      \ approach that is used in electronic models to reduce the computational effort\
+      \ of the solution of Schroedinger Equation.\n\nIn practice, an EMMO user can\
+      \ declare a 'physical' individual that stand for the whole quantum system to\
+      \ be described, and at the same time all sub-parts individuals can be declared,\
+      \ having them a well defined position in time, according to De Broglie - Bohm\
+      \ interpretation. The Hamiltonian can be calculated by considering the sub-part\
+      \ individuals.\n\n'physical'-s are then made of 'physical' parts and 'void'\
+      \ parts that stand for the space between 'physical'-s (e.g. the void between\
+      \ electrons and nucleus in an atom).\n\n2) Copenhagen interpretation\nIn this\
+      \ interpretation the properties (e.g. energy level, position, spin) of a particle\
+      \ are not defined in the interval between two measurements and the quantum system\
+      \ is entangled (i.e. properties of particles in the sysyem are correlated) and\
+      \ described by a global wavefunction obtained solving the Schroedinger Equation.\
+      \ \n\nUpon measurement, the wavefunction collapses to a combination of close\
+      \ eigenstates that provide information about bservables of the system components\
+      \ (e.g. position, energy).\n\nThe EMMO can be used to represent 'physical'-s\
+      \ that can be related to Copenhagen based models. In practice, the user should\
+      \ follow these steps:\n\na) define the quantum system as a 'physical' individual\
+      \ (e.g. an H2 molecule) under a specific class (e.g. 'h2_molecule'). This individual\
+      \ is the whole.\n\nb) define the axioms of the  class that describe how many\
+      \ sub-parts are expected for the whole and their class types (e.g. 'h2_molecule'\
+      \ has axioms 'has_proper_part exactly 2 electron' and 'has_proper_part exactly\
+      \ 2 nucleus)\n\nc) the user can now connect the whole to a Schroedinger equation\
+      \ based model whose Hamiltonian is calculated trough the information coming\
+      \ only from the axioms. No individuals are declared for the subparts!\n\nd)\
+      \ a measurement done on the quantum system that provides information on the\
+      \ sub-part observables is interpreted as wavefunction collapse and leads to\
+      \ the end of the whole and the declaration of the sub-parts individuals which\
+      \ can be themselves other quantum systems \n\ne.g. if the outer electron of\
+      \ the H2 molecule interacts with another entity defining its state, then the\
+      \ whole that stands for the entangled H2 molecule becomes a 'physical' made\
+      \ of an electron individual, a quantum system made of one electron and two nuclei\
+      \ and the void between them.\n\ne.g. in the Born-Oppenheimer approximation the\
+      \ user represent the atom by un-entangling nucleus and electronic cloud. The\
+      \ un-entanglement comes in the form of declaration of individual as parts.\n\
+      \ne.g. the double slit experiment can be represent in the EMMO as:\na) before\
+      \ the slit: a 'physical' that extend in space and has parts 'electron' and 'void',\
+      \ called 'single_electron_wave_function'. 'electron' and 'void' are only in\
+      \ the axioms and not decalred individuals.\nb) during slit passage: a 'physical'\
+      \ made of one declared individual, the 'electron'.\nc) after the slit: again\
+      \ 'single_electron_wave_function'\nd) upon collision with the detector:  'physical'\
+      \ made of one declared individual, the 'electron'.\n\nCOMMENT:\nThe purpose\
+      \ of the 'physical' branch is to provide a representation of the real world\
+      \ entities, while the models used to explain or predict the behaviour of the\
+      \ entities lay under the 'semeion' branch.\n\nMore than one model can be connected\
+      \ to the same 'physical'.\n\ne.g. Navier-Stokes or Euler equation applied to\
+      \ the same fluid"
+    subclass_of: CUBA.SPACETIME
+    CUBA.HAS_TEMPORAL_PROPER_PART:
+      CUBA.PHYSICAL:
+        cardinality: 0+
+  KILOGRAM:
+    definition: ''
+    subclass_of: CUBA.BASE_UNIT
+  WORLD_VOLUME:
+    definition: ''
+    subclass_of: CUBA.TIME
+    CUBA.IS_SPACE_SLICE_OF:
+      CUBA.SPACETIME:
+        cardinality: 0+
+    CUBA.HAS_PART:
+      CUBA.WORLD_VOLUME:
+        cardinality: 0+
+    CUBA.IS_PART_OF:
+      CUBA.WORLD_VOLUME:
+        cardinality: 0+
+  ENTHALPY:
+    definition: ''
+    subclass_of: CUBA.EXTENSIVE_PROPERTY
+  RADIAN:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  STATE:
+    definition: "COMMENT:\nDirect partitions declaration is a choice of the ontology\
+      \ developer that choses the classes to be used as direct parts, according to\
+      \ its own world view.\n\nA 'state' can always be direct partitioned in 'elementary'-s\
+      \ and 'void' or 'physical'.\n\ne.g. the water in my glass can be seen as a single\
+      \ object without declaring direct parts, or as made of H2O molecules direct\
+      \ parts.\n\nCOMMENT:\nThe definition of 'state' implies that its direct parts\
+      \ (i.e. 'physicals') are not gained or lost during its temporal extension (they\
+      \ exist from the left to the right side of the time interval), so that the granularity\
+      \ of a 'state' is constant.\n\nThis does not mean that there cannot be a change\
+      \ in the internal structure of the 'state' direct parts. It means only that\
+      \ this change must not affect the existence of the direct part itself.\n\nThere\
+      \ is no change in granularity or cardinality of direct parts within a 'state'.\n\
+      \nAlso, the 'state' must cover all the time interval between two successive\
+      \ cardinality changes.\n\nThe use of spatial direct parthood in 'state' definition\
+      \ means that a 'state' cannot overlap in space another 'state'.\n\nCOMMENT:\n\
+      The usefulness of 'state' is that it makes it possible to describe the evolution\
+      \ in time of an 'existent' in terms of series of 'state'-s that can take into\
+      \ account the disappearance or appearance of parts within a 'physical'. \n\n\
+      A 'state' is a recognizable granularity level of matter, in the sense that its\
+      \ direct parts do not appear or disappear within its lifetime as it can be for\
+      \ a generic 'existent'.\n\nCOMMENT:\nThere is no change in granularity or cardinality\
+      \ of parts within a state.\n\nThe use of spatial direct parthood in state definition\
+      \ means that a state cannot overlap in space another state that is direct part\
+      \ of the same whole.\n\nEXAMPLE:\ne.g. the existent in my glass is declared\
+      \ at t = t_start as made of two direct parts: the ice and the water. It will\
+      \ continue to exists as state as long as the ice is completely melt at t = t_end.\
+      \ The new state will be completely made of water. Between t_start and t_end\
+      \ there is an exchange of molecules between the ice and the water, but this\
+      \ does not affect the existence of the two states.\n\nIf we partition the existent\
+      \ in my glass as ice surrounded by several molecules (we do not use the object\
+      \ water as direct part) then the appearance of a molecule coming from the ice\
+      \ will cause a state to end and another state to begin.\"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>"
+    subclass_of: CUBA.EXISTENT
+  RESILIENCE:
+    definition: ''
+    subclass_of: CUBA.DESCRIPTIVE_PROPERTY
+  NUMBER:
+    definition: ''
+    subclass_of: CUBA.MATH_SYMBOL
+    CUBA.X:
+  PROCESS:
+    definition: "A 'process' is defined as a temporal part of a 'physical' that is\
+      \ categorized in a primitive process subclass according to what type of process\
+      \ we want to represent.\n\nFollowing the common definition of process, every\
+      \ 'physical' is a process since every 4D object always has a time dimension.\
+      \ However, in the EMMO we restrict the meaning of the word process to 'physical'-s\
+      \ whose evolution in time have a particular meaning for the ontologist. \n\n\
+      i.e. a 'process' is not only something that unfolds in time (which is automatically\
+      \ represented in a 4D ontology), but something happening that has a meaning\
+      \ for the interpreter.\"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>"
+    subclass_of: CUBA.PHYSICAL
+  SUBJECTIVE_PROPERTY:
+    definition: 'COMMENT:
+
+      A ''subjective_property'' cannot be used to univocally compare ''object''-s.
+
+
+      e.g. you cannot evaluate the beauty of a person on objective basis.
+
+
+      EXAMPLE:
+
+      The beauty of that girl.
+
+      The style of your clothing."^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>'
+    subclass_of: CUBA.PROPERTY
+  SPECIFIC_PROPERTY:
+    definition: ''
+    subclass_of: CUBA.INTENSIVE_PROPERTY
+  HARDNESS:
+    definition: ''
+    subclass_of: CUBA.DESCRIPTIVE_PROPERTY
+  NEWTON:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  INTENSIVE_PROPERTY:
+    definition: ''
+    subclass_of: CUBA.PHYSICAL_QUANTITY
+  EMMO:
+    definition: 'COMMENT:
+
+      ''emmo'' is the disjoint union of ''item'' and ''set'' (covering axiom).
+
+
+      The union implies that ''emmo'' individuals can only be ''item'' individuals
+      (for which mereology applies) or ''set'' individuals (for which set theory applies).
+
+
+      Disjointness means that a ''set'' individual cannot be an ''item'' individual
+      and viceversa.
+
+
+      COMMENT:
+
+      A ''set'' individual is a sign that stands for the collection of other individuals
+      (e.g. the ''set'' individual that stands for the collection of all red objects).
+
+
+      A ''set'' individual is related to each individual of the collection (i.e. the
+      members) through the membership relation.
+
+
+      An ''item'' individual stands for a real world self-connected object which can
+      be represented as a whole made of connected parts (e.g. a car made of components).
+
+
+      COMMENT:
+
+      Within the EMMO the universe is represented at meta-ontological level as a 4D
+      path-connected topological manifold that we call spacetime.
+
+
+      A real world object is then a topological subspace of the 4D manifold that describes
+      our universe. A real world object can be self-connected or not self-connected.
+
+
+      In the EMMO we will refer to spacetime as a Minkowski space, restricting the
+      ontology to special relativity only. However, exension to general relativity,
+      will adding more complexity, should not change the overall approach.'
+    subclass_of: CUBA.ENTITY
+  THERMAL_CONDUCTIVITY:
+    definition: ''
+    subclass_of: CUBA.INTENSIVE_PROPERTY
+  MEASUREMENT:
+    definition: ''
+    subclass_of: CUBA.OBSERVATION
+    CUBA.HAS_PARTICIPANT:
+      CUBA.MEASUREMENT_INSTRUMENT:
+        cardinality: 1+
+  METRE:
+    definition: ''
+    subclass_of: CUBA.BASE_UNIT
+  CANDELA:
+    definition: ''
+    subclass_of: CUBA.BASE_UNIT
+  LUMEN:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  GRAY:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  SPECIFIC_ENTHALPY:
+    definition: ''
+    subclass_of: CUBA.SPECIFIC_PROPERTY
+  BASE_UNIT:
+    definition: ''
+    subclass_of: CUBA.SINGLE_MEASUREMENT_UNIT
+  TESLA:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  SEMIOSIS:
+    definition: 'EXAMPLE:
+
+      Me looking a cat and saying loud: "Cat!" -> the semiosis process
+
+
+      me -> interpreter
+
+      cat -> object (in Peirce semiotics)
+
+      the cat perceived by my mind -> interpretant
+
+      "Cat!" -> sign, the produced sign"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral>'
+    subclass_of: CUBA.PROCESS
+    CUBA.HAS_SPATIAL_PROPER_PART:
+      CUBA.INTERPRETER:
+        cardinality: 1+
+    CUBA.HAS_PROPER_PARTICIPANT:
+      CUBA.SIGN:
+        cardinality: 1+
+  VARIABLE:
+    definition: 'COMMENT:
+
+      A ''variable'' is a ''symbol'' that stands for a numerical defined ''mathematical''
+      entity like e.g. a number, a vector, a matrix.'
+    subclass_of: CUBA.MATH_SYMBOL
+    CUBA.HAS_VALUE:
+      CUBA.NUMBER:
+        cardinality: 1+
+    CUBA.IS_A:
+      CUBA.CONVENTIONAL:
+        cardinality: 1-1
+  LINE:
+    definition: ''
+    subclass_of: CUBA.SPACE
+    CUBA.HAS_PART:
+      CUBA.LINE:
+        cardinality: 0+
+    CUBA.IS_PART_OF:
+      CUBA.LINE:
+        cardinality: 0+
+  BECQUEREL:
+    definition: ''
+    subclass_of: CUBA.DERIVED_UNIT
+  X:
+    definition: ''
+    subclass_of: CUBA.VALUE
+    datatype: FLOAT
+  RELATIONSHIP:
+    definition: Root of all relationships
+    subclass_of: CUBA.ENTITY
+    inverse:
+  IS_A:
+    definition: Secondary superclasses
+    subclass_of: CUBA.RELATIONSHIP
+    inverse: CUBA.SUPERCLASS_OF
+  SUPERCLASS_OF:
+    definition: Inverse of CUBA.IS_A
+    subclass_of: CUBA.RELATIONSHIP
+    inverse: CUBA.IS_A
+  IS_PARTICIPANT_OF:
+    definition: ''
+    inverse: CUBA.HAS_PARTICIPANT
+    subclass_of: CUBA.IS_PART_OF
+  CONNECTED:
+    definition: ''
+    inverse: CUBA.CONNECTED
+    subclass_of: CUBA.MEREOTOPOLOGY
+  HAS_TIME_SLICE:
+    definition: ''
+    inverse: CUBA.IS_TIME_SLICE_OF
+    subclass_of: CUBA.HAS_SUBDIMENSION
+  HAS_TEMPORAL_DIRECT_PART:
+    definition: ''
+    inverse: CUBA.IS_TEMPORAL_DIRECT_PART_OF
+    subclass_of: CUBA.HAS_TEMPORAL_PROPER_PART
+  ENCLOSES:
+    definition: ''
+    inverse: CUBA.IS_ENCLOSED_BY
+    subclass_of: CUBA.ACTIVE_RELATIONSHIP
+  IS_CONVENTION_FOR:
+    definition: ''
+    inverse: CUBA.HAS_CONVENTION
+    subclass_of: CUBA.STANDS_FOR
+  OVERCROSSES:
+    definition: ''
+    inverse: CUBA.OVERCROSSES
+    subclass_of: CUBA.OVERLAPS
+  HAS_TEMPORAL_PROPER_PART:
+    definition: ''
+    inverse: CUBA.IS_TEMPORAL_PROPER_PART_OF
+    subclass_of: CUBA.HAS_TEMPORAL_PART
+  IS_SPATIAL_DIRECT_PART_OF:
+    definition: ''
+    inverse: CUBA.HAS_SPATIAL_DIRECT_PART
+    subclass_of: CUBA.IS_SPATIAL_PROPER_PART_OF
+  IS_PROJECTION_OF:
+    definition: ''
+    inverse: CUBA.HAS_PROJECTION
+    subclass_of: CUBA.IS_SUBDIMENSION_OF
+  HAS_SPATIAL_DIRECT_PART:
+    definition: ''
+    inverse: CUBA.IS_SPATIAL_DIRECT_PART_OF
+    subclass_of: CUBA.HAS_SPATIAL_PROPER_PART
+  IS_PROPERTY_FOR:
+    definition: ''
+    inverse: CUBA.HAS_PROPERTY
+    subclass_of: CUBA.IS_CONVENTION_FOR
+  IS_PART_OF:
+    definition: 'COMMENT:
+
+      Dimensionality between domain and range cannot change.
+
+
+      COMMENT:
+
+      P is the is_part_of relation.
+
+
+      Axioms:
+
+      1) Pxx    (reflexivity)
+
+      2) (Pxy && Pyz) -> Pxz    (transitivity)
+
+      3) (Pxy && Pyz) -> x=y    (antisymmetry)
+
+      4) not(Pyx) -> exists z (Pzy and not Ozx)    (strong supplementation)
+
+
+      with:
+
+
+      Ozx := exists z (Pzx and Pzy)    (overlap)
+
+
+      (Extensional Mereology)
+
+
+      COMMENT:
+
+      Since EMMO is based on MereoTopology (MT), the axiom Pxy->Exy (x is part of
+      y implies x is enclosed by y) implies that ''is_part_of'' is a subproperty of
+      ''is_enclosed_by''.'
+    inverse: CUBA.HAS_PART
+    subclass_of: CUBA.IS_ENCLOSED_BY
+  HAS_TEMPORAL_PART:
+    definition: ''
+    inverse: CUBA.IS_TEMPORAL_PART_OF
+    subclass_of: CUBA.HAS_PART
+  RELATION:
+    definition: ''
+    inverse: CUBA.RELATION
+    subclass_of: CUBA.RELATIONSHIP
+  HAS_ICON:
+    definition: ''
+    inverse: CUBA.IS_ICON_OF
+    subclass_of: CUBA.HAS_SIGN
+  HAS_SPACE_SLICE:
+    definition: ''
+    inverse: CUBA.IS_SPACE_SLICE_OF
+    subclass_of: CUBA.HAS_SUBDIMENSION
+  HAS_PARTICIPANT:
+    definition: ''
+    inverse: CUBA.IS_PARTICIPANT_OF
+    subclass_of: CUBA.HAS_PART
+  IS_SUBDIMENSION_OF:
+    definition: 'COMMENT:
+
+      Dimensionality between domain and range must change.'
+    inverse: CUBA.HAS_SUBDIMENSION
+    subclass_of: CUBA.IS_ENCLOSED_BY
+  OVERLAPS:
+    definition: ''
+    inverse: CUBA.OVERLAPS
+    subclass_of: CUBA.CONNECTED
+  HAS_SUBDIMENSION:
+    definition: ''
+    inverse: CUBA.IS_SUBDIMENSION_OF
+    subclass_of: CUBA.CONTACTS
+  HAS_INDEX:
+    definition: ''
+    inverse: CUBA.IS_INDEX_OF
+    subclass_of: CUBA.HAS_SIGN
+  HAS_MEMBER:
+    definition: ''
+    inverse: CUBA.IS_MEMBER_OF
+    subclass_of: CUBA.SET_THEORY
+  HAS_PROPER_PART:
+    definition: ''
+    inverse: CUBA.IS_PROPER_PART_OF
+    subclass_of: CUBA.HAS_PART
+  HAS_PROPERTY:
+    definition: ''
+    inverse: CUBA.IS_PROPERTY_FOR
+    subclass_of: CUBA.HAS_CONVENTION
+  HAS_CONVENTION:
+    definition: ''
+    inverse: CUBA.IS_CONVENTION_FOR
+    subclass_of: CUBA.HAS_SIGN
+  IS_PROPER_PARTICIPANT:
+    definition: ''
+    inverse: CUBA.HAS_PROPER_PARTICIPANT
+    subclass_of: CUBA.IS_PROPER_PART_OF
+  IS_TEMPORAL_PROPER_PART_OF:
+    definition: ''
+    inverse: CUBA.HAS_TEMPORAL_PROPER_PART
+    subclass_of: CUBA.IS_PROPER_PART_OF
+  IS_ICON_OF:
+    definition: ''
+    inverse: CUBA.HAS_ICON
+    subclass_of: CUBA.STANDS_FOR
+  HAS_SIGN:
+    definition: ''
+    inverse: CUBA.STANDS_FOR
+    subclass_of: CUBA.SEMIOTIC_REL
+  SET_THEORY:
+    definition: ''
+    inverse: CUBA.SET_THEORY
+    subclass_of: CUBA.RELATION
+  IS_PROPER_PART_OF:
+    definition: 'COMMENT:
+
+      Definition:
+
+      PPxy := Pxy && not(x=y)'
+    inverse: CUBA.HAS_PROPER_PART
+    subclass_of: CUBA.IS_PART_OF
+  IS_SPATIAL_PART_OF:
+    definition: ''
+    inverse: CUBA.HAS_SPATIAL_PART
+    subclass_of: CUBA.IS_PART_OF
+  IS_SPACE_SLICE_OF:
+    definition: ''
+    inverse: CUBA.HAS_SPACE_SLICE
+    subclass_of: CUBA.IS_SUBDIMENSION_OF
+  IS_TIME_SLICE_OF:
+    definition: ''
+    inverse: CUBA.HAS_TIME_SLICE
+    subclass_of: CUBA.IS_SUBDIMENSION_OF
+  IS_VALUE_FOR:
+    definition: ''
+    inverse: CUBA.HAS_VALUE
+    subclass_of: CUBA.HAS_CONVENTION
+  HAS_SPATIAL_PART:
+    definition: ''
+    inverse: CUBA.IS_SPATIAL_PART_OF
+    subclass_of: CUBA.HAS_PART
+  IS_MEMBER_OF:
+    definition: 'COMMENT:
+
+      This relation is transitive, asymmetric and irreflexive.'
+    inverse: CUBA.HAS_MEMBER
+    subclass_of: CUBA.SET_THEORY
+  MEREOTOPOLOGY:
+    definition: ''
+    inverse: CUBA.MEREOTOPOLOGY
+    subclass_of: CUBA.RELATION
+  IS_TEMPORAL_DIRECT_PART_OF:
+    definition: ''
+    inverse: CUBA.HAS_TEMPORAL_DIRECT_PART
+    subclass_of: CUBA.IS_TEMPORAL_PROPER_PART_OF
+  DISCONNECTED:
+    definition: ''
+    inverse: CUBA.DISCONNECTED
+    subclass_of: CUBA.MEREOTOPOLOGY
+  HAS_VALUE:
+    definition: ''
+    inverse: CUBA.IS_VALUE_FOR
+    subclass_of: CUBA.IS_CONVENTION_FOR
+  CONTACTS:
+    definition: ''
+    inverse: CUBA.CONTACTS
+    subclass_of: CUBA.CONNECTED
+  IS_TEMPORAL_PART_OF:
+    definition: ''
+    inverse: CUBA.HAS_TEMPORAL_PART
+    subclass_of: CUBA.IS_PART_OF
+  IS_ENCLOSED_BY:
+    definition: "COMMENT:\nActually, the connection relation upon which is based the\
+      \ enclosure relation is considered as primitive, i.e. undefined and only declared\
+      \ by the user.\n\nFor practical purpose however, the EMMO bases the relations\
+      \ on enclosure level, giving the lower relations for granted, and considering\
+      \ enclosure as primitive, even if it's derived by lower level axioms.\n\nCOMMENT:\n\
+      Definition:\nCxy := x is connected with y\n\nAxiom:\n 1) Cxx (x is always connected\
+      \ with itself (reflexivity))\nAxiom:\n2) Cxy->Cyx (if x is connected with y\
+      \ than y is connected with x (symmetry))\n\nDefinition:\nExy <=> (Czx->Czy)\
+      \ Definition: x is enclosed in y\n\nTheorem: E is reflexive, transitive and\
+      \ antisymmetric.\n\nAxiom:\n3) (Exa<=>Exb) <=> a=b (extensionality axiom)\n\n\
+      Axiom (see 'is_part_of' relation for definition of Pxy):\n4) Pxy->Exy (if x\
+      \ is part of y then y encloses x (monotonicity))\n\n\nAxioms 1) 2) 3) defines\
+      \ the Ground Topology (T).\nAxioms 1) 2) 3) 4) defines the MereoTopology (MT)."
+    inverse: CUBA.ENCLOSES
+    subclass_of: CUBA.PASSIVE_RELATIONSHIP
+  INTERSECT:
+    definition: ''
+    inverse: CUBA.INTERSECT
+    subclass_of: CUBA.CONTACTS
+  HAS_PART:
+    definition: ''
+    inverse: CUBA.IS_PART_OF
+    subclass_of: CUBA.ENCLOSES
+    default_rel: true
+  IS_SPATIAL_PROPER_PART_OF:
+    definition: ''
+    inverse: CUBA.HAS_SPATIAL_PROPER_PART
+    subclass_of: CUBA.IS_PROPER_PART_OF
+  HAS_PROJECTION:
+    definition: ''
+    inverse: CUBA.IS_PROJECTION_OF
+    subclass_of: CUBA.HAS_SUBDIMENSION
+  IS_INDEX_OF:
+    definition: ''
+    inverse: CUBA.HAS_INDEX
+    subclass_of: CUBA.STANDS_FOR
+  STANDS_FOR:
+    definition: ''
+    inverse: CUBA.HAS_SIGN
+    subclass_of: CUBA.SEMIOTIC_REL
+  HAS_SPATIAL_PROPER_PART:
+    definition: ''
+    inverse: CUBA.IS_SPATIAL_PROPER_PART_OF
+    subclass_of: CUBA.HAS_SPATIAL_PART
+  HAS_PROPER_PARTICIPANT:
+    definition: ''
+    inverse: CUBA.IS_PROPER_PARTICIPANT
+    subclass_of: CUBA.HAS_PROPER_PART
+  ACTIVE_RELATIONSHIP:
+    definition:
+    subclass_of: CUBA.CONNECTED
+    inverse: CUBA.PASSIVE_RELATIONSHIP
+  PASSIVE_RELATIONSHIP:
+    definition:
+    subclass_of: CUBA.CONNECTED
+    inverse: CUBA.ACTIVE_RELATIONSHIP
+  SEMIOTIC_REL:
+    definition: ''
+    inverse: CUBA.SEMIOTIC_REL
+    subclass_of: CUBA.RELATION
+
