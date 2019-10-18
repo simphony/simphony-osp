@@ -1,5 +1,5 @@
-[![pipeline status](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/badges/cuds-3.0/pipeline.svg)](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/commits/cuds-3.0)
-[![coverage report](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/badges/cuds-3.0/coverage.svg)](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/commits/cuds-3.0)
+[![pipeline status](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/badges/master/pipeline.svg)](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/commits/master)
+[![coverage report](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/badges/master/coverage.svg)](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/commits/master)
 
 # OSP core
 
