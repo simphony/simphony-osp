@@ -22,7 +22,6 @@ class ValidityChecker():
         self.class_generator = class_generator
         self.root_rel = class_generator.ROOT_RELATIONSHIP
         self.root_active = class_generator.ROOT_ACTIVE_RELATIONSHIP
-        self.root_passive = class_generator.ROOT_PASSIVE_RELATIONSHIP
         self.root_non_class = class_generator.ROOT_NOT_CLASSES
         self.attr_inverse = class_generator.INVERSE_ATTRIBUTE_KEY
         self.attr_parent = parser.PARENT_ATTRIBUTE_KEY
@@ -36,7 +35,7 @@ class ValidityChecker():
         self._check_inverses(self.parser)
         self._check_attributes(self.parser)
         self._add_missing_inverse_relationships(self.parser)
-        self._check_cycles(self.parser)
+        # self._check_cycles(self.parser)
 
     def _add_missing_inverse_relationships(self, parser):
         """
@@ -77,15 +76,9 @@ class ValidityChecker():
         msg1 = "Missing obligatory cuds class in ontology: "
         assert self.root_rel in entities, msg1 + self.root_rel
         assert self.root_active in entities, msg1 + self.root_active
-        assert self.root_passive in entities, msg1 + self.root_passive
         assert self.root_rel in parser.get_ancestors(self.root_active)
-        assert self.root_rel in parser.get_ancestors(self.root_passive)
         for entity in set(entities) - {self.root_rel,
-                                       self.root_active, self.root_passive}:
-            ancestors = set(parser.get_ancestors(entity))
-            typ = {self.root_active, self.root_passive} & ancestors
-            if self.root_rel in ancestors:
-                assert len(typ) == 1, "Relationship must be active xor passive"
+                                       self.root_active}:
             try:
                 if parser.get_value(entity, "default_rel"):
                     assert not self.default_relationship, \
@@ -105,32 +98,30 @@ class ValidityChecker():
         :param parser: The parser object
         :type parser: Parser
         """
-        # check inverse of ActiveRelationship and PassiveRelationship
-        assert parser.get_value(self.root_active, self.attr_inverse) == \
-            "CUBA." + self.root_passive, \
-            "Inverse of %s must be %s" % (self.root_active, self.root_passive)
-        assert parser.get_value(self.root_passive, self.attr_inverse) == \
+        # check inverse of ActiveRelationship
+        assert parser.get_value(self.root_active, self.attr_inverse) != \
             "CUBA." + self.root_active, \
-            "Inverse of %s must be %s" % (self.root_passive, self.root_active)
+            "Inverse of %s must not be %s" % (
+                self.root_active, self.root_active)
 
         # Check inverse of the other relationships
         entities = parser.get_entities()
         for entity in set(entities) - {self.root_rel,
-                                       self.root_active, self.root_passive}:
+                                       self.root_active}:
             ancestors = set(parser.get_ancestors(entity))
             if self.root_rel not in ancestors:
                 continue
-            typ = {self.root_active, self.root_passive} & ancestors
+            is_active = self.root_active in ancestors
             inverse = parser.get_value(entity, self.attr_inverse)
-            assert inverse.startswith("CUBA.")
+            assert inverse.startswith("CUBA."), \
+                "Invalid inverse of %s" % entity
             inverse_ancestors = set(parser.get_ancestors(inverse[5:]))
-            inverse_type = {self.root_active,
-                            self.root_passive} & inverse_ancestors
-            assert typ | inverse_type == {self.root_active,
-                                          self.root_passive}, \
-                "Inverse of active relationship must be passive and vice-versa"
+            inverse_is_active = self.root_active in inverse_ancestors
+            assert not (is_active and inverse_is_active), \
+                "The inverse of an active relationship must not be active"
             assert parser.get_value(inverse[5:], self.attr_inverse) == \
-                "CUBA.%s" % entity, "Inverse of inverse must be identity"
+                "CUBA.%s" % entity, "Inverse of inverse must be identity: %s" \
+                % entity
 
     def _check_attributes(self, parser):
         """Check if the attributes of an entity are valid.
@@ -156,6 +147,7 @@ class ValidityChecker():
                 if not len({self.root_non_class,
                             self.root_rel}
                            & (ancestors | {attribute.upper()})) == 1:
+                    print("> ", attribute)
                     target = parser.get_value(entity, "CUBA." + attribute)
                     parser.update_attribute(
                         entity,
@@ -216,75 +208,74 @@ class ValidityChecker():
                 non_cyclic_relationships.add(entity)
         return non_cyclic_relationships
 
-    def _check_cycles(self, parser):
-        """Check if the ontology contains cycles that are not allowed.
+    # def _check_cycles(self, parser):
+    #     """Check if the ontology contains cycles that are not allowed.
 
-        :param parser: The parser that parsed the yaml file
-        :type parser: Parser
-        """
-        non_cyclic_relationships = self._get_non_cyclic_relationships(parser)
-        visited = set()
-        rec_stack = list()
+    #     :param parser: The parser that parsed the yaml file
+    #     :type parser: Parser
+    #     """
+    #     non_cyclic_relationships = self._get_non_cyclic_relationships(parser)
+    #     visited = set()
+    #     rec_stack = list()
 
-        # check for each entity if its part of a cycle
-        for entity in parser.get_entities() - {self.root_rel,
-                                               self.root_active,
-                                               self.root_passive}:
-            # only consider real entities
-            ancestors = set(parser.get_ancestors(entity))
-            if not {self.root_rel, self.root_non_class} & ancestors:
-                if entity not in visited:
-                    assert not self._is_cyclic(parser=parser,
-                                               entity=entity,
-                                               rels=non_cyclic_relationships,
-                                               visited=visited,
-                                               rec_stack=rec_stack), (
-                        "Cycles only allowed for active relationships "
-                        "with attribute allow_cycles=true. Stack: %s" %
-                        rec_stack)
+    #     # check for each entity if its part of a cycle
+    #     for entity in parser.get_entities() - {self.root_rel,
+    #                                            self.root_active}:
+    #         # only consider real entities
+    #         ancestors = set(parser.get_ancestors(entity))
+    #         if not {self.root_rel, self.root_non_class} & ancestors:
+    #             if entity not in visited:
+    #                 assert not self._is_cyclic(parser=parser,
+    #                                            entity=entity,
+    #                                            rels=non_cyclic_relationships,
+    #                                            visited=visited,
+    #                                            rec_stack=rec_stack), (
+    #                     "Cycles only allowed for active relationships "
+    #                     "with attribute allow_cycles=true. Stack: %s" %
+    #                     rec_stack)
 
-    def _is_cyclic(self, parser, entity, rels, visited, rec_stack):
-        """Recursively check if the subgraph rooted in the
-        given entity contains cycles.
+    # def _is_cyclic(self, parser, entity, rels, visited, rec_stack):
+    #     """Recursively check if the subgraph rooted in the
+    #     given entity contains cycles.
 
-        :param parser: The parser object that parsed the yaml file.
-        :type parser: Parser
-        :param entity: The entity to start the search for cycles.
-        :type entity: str
-        :param rels: The relationships to consider.
-        :type rels: Set[str]
-        :param visited: The CUDS entities already visited
-        :type visited: Set[str]
-        :param rec_stack: The recursive stack. Used to detect the cycles.
-        :type rec_stack: List[str]
-        :return: Whether a cycles has been detected
-        :rtype: bool
-        """
-        visited.add(entity)
-        rec_stack.append(entity)
+    #     :param parser: The parser object that parsed the yaml file.
+    #     :type parser: Parser
+    #     :param entity: The entity to start the search for cycles.
+    #     :type entity: str
+    #     :param rels: The relationships to consider.
+    #     :type rels: Set[str]
+    #     :param visited: The CUDS entities already visited
+    #     :type visited: Set[str]
+    #     :param rec_stack: The recursive stack. Used to detect the cycles.
+    #     :type rec_stack: List[str]
+    #     :return: Whether a cycles has been detected
+    #     :rtype: bool
+    #     """
+    #     visited.add(entity)
+    #     rec_stack.append(entity)
 
-        # also consider inherited relationships = rels of ancestors
-        for anc in set(self.parser.get_ancestors(entity)) | {entity}:
-            for rel in self.parser.get_cuba_attributes_filtering(anc, []):
-                rel = rel[5:]
-                # skip passive rels / entities / rels which allow cycles
-                if rel not in rels:
-                    continue
-                # Check neighbours recursively
-                for neighbour in parser.get_value(anc, "CUBA." + rel).keys():
-                    neighbour = neighbour[5:]
+    #     # also consider inherited relationships = rels of ancestors
+    #     for anc in set(self.parser.get_ancestors(entity)) | {entity}:
+    #         for rel in self.parser.get_cuba_attributes_filtering(anc, []):
+    #             rel = rel[5:]
+    #             # skip passive rels / entities / rels which allow cycles
+    #             if rel not in rels:
+    #                 continue
+    #             # Check neighbours recursively
+    #             for neighbour in parser.get_value(anc, "CUBA." + rel).keys():
+    #                 neighbour = neighbour[5:]
 
-                    if neighbour not in visited:  # recurse
-                        if self._is_cyclic(parser=parser,
-                                           entity=neighbour,
-                                           rels=rels,
-                                           visited=visited,
-                                           rec_stack=rec_stack):
-                            return True
-                    elif neighbour in rec_stack:  # cycle detected
-                        rec_stack.append("<rel: %s>" % rel)
-                        rec_stack.append(neighbour)
-                        return True
-        # remove from call stack
-        assert rec_stack.pop() == entity
-        return False
+    #                 if neighbour not in visited:  # recurse
+    #                     if self._is_cyclic(parser=parser,
+    #                                        entity=neighbour,
+    #                                        rels=rels,
+    #                                        visited=visited,
+    #                                        rec_stack=rec_stack):
+    #                         return True
+    #                 elif neighbour in rec_stack:  # cycle detected
+    #                     rec_stack.append("<rel: %s>" % rel)
+    #                     rec_stack.append(neighbour)
+    #                     return True
+    #     # remove from call stack
+    #     assert rec_stack.pop() == entity
+    #     return False
