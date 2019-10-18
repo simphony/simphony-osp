@@ -142,17 +142,17 @@ class ClassGenerator(object):
 
         :param original_class: uppercase name of the entity
         """
-        # Get the parent
-        parent = self._parser.get_parent(original_class)
-        if parent == "":
-            parent_module = "cuds.classes.cuds"
-            parent_class = "Cuds"
+        # Get the superclass
+        superclass = self._parser.get_superclass(original_class)
+        if superclass == "":
+            superclass_module = "cuds.classes.cuds"
+            superclass_class = "Cuds"
         elif original_class == "RELATIONSHIP":
-            parent_module = "builtins"
-            parent_class = "object"
+            superclass_module = "builtins"
+            superclass_class = "object"
         else:
-            parent_module = "." + parent.lower()
-            parent_class = format_class_name(parent)
+            superclass_module = "." + superclass.lower()
+            superclass_class = format_class_name(superclass)
 
         definition = self._get_definition(original_class)
         fixed_class_name = format_class_name(original_class)
@@ -161,8 +161,8 @@ class ClassGenerator(object):
             'class': fixed_class_name,
             'cuba_key': original_class,
             'definition': definition,
-            'parent': parent_class,
-            'parent_module': parent_module,
+            'superclass': superclass_class,
+            'superclass_module': superclass_module,
         }
 
         module = original_class.lower()
@@ -251,7 +251,7 @@ class ClassGenerator(object):
         """
 
         all_attr = self._parser.get_attributes(cuba_key)
-        # Inherited attributes are sent to parent constructor
+        # Inherited attributes are sent to superclass constructor
         inherited_attr = set(self._parser.get_inherited_attributes(cuba_key))
         # Own attributes are set in the constructor
         own_attr = set(self._parser.get_own_attributes(cuba_key))

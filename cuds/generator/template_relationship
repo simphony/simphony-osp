@@ -1,8 +1,8 @@
 from .cuba import CUBA
-from $parent_module import $parent
+from $superclass_module import $superclass
 
 
-class $class($parent):
+class $class($superclass):
     """
     $definition
     """
