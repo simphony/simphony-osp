@@ -1,14 +1,18 @@
 import os
 
 from setuptools import setup
-from subprocess import check_call
+from subprocess import check_call, CalledProcessError
 from setuptools.command.install import install
 from setuptools.command.develop import develop
 from packageinfo import VERSION, NAME
 
 # Should be in install_requires, but needed for ClassGenerator import
-check_call(["pip3", "install", "-r", "requirements.txt"])
-from cuds.metatools.class_generator import ClassGenerator
+try:
+    check_call(["pip3", "install", "-r", "requirements.txt"])
+except (FileNotFoundError, CalledProcessError):
+    check_call(["pip", "install", "-r", "requirements.txt"])
+
+from cuds.generator.class_generator import ClassGenerator
 
 # Read description
 with open('README.md', 'r') as readme:
@@ -16,47 +20,55 @@ with open('README.md', 'r') as readme:
 
 
 def create_ontology_classes(ontology):
-    ontology_file = os.path.join(
+    ontology_file = ontology
+    if not ontology.endswith(".yml"):
+        ontology_file = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            'cuds', 'ontology', 'ontology.' + ontology + '.yml')
+    entity_template = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        'cuds', 'ontology', ontology)
-    template_file = os.path.join(
+        'cuds', 'generator', 'template_entity')
+    relationship_template = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        'cuds', 'metatools', 'template')
+        'cuds', 'generator', 'template_relationship')
 
     if not os.path.exists(ontology_file):
         text = 'Unrecoverable error. Cannot find ' + ontology + ' file in {}'
         raise RuntimeError(text.format(ontology_file))
 
-    if not os.path.exists(template_file):
+    if not os.path.exists(entity_template):
         text = 'Unrecoverable error. Cannot find \'template\' file in {}'
-        raise RuntimeError(text.format(template_file))
+        raise RuntimeError(text.format(entity_template))
+
+    if not os.path.exists(relationship_template):
+        text = 'Unrecoverable error. Cannot find \'template\' file in {}'
+        raise RuntimeError(text.format(relationship_template))
 
     print('Building classes from ontology...')
     path = "cuds/classes/generated"
-    ClassGenerator(ontology_file, template_file, path).generate_classes()
+    ClassGenerator(ontology_file, entity_template, relationship_template, path)\
+        .generate_classes()
 
 
 class Install(install):
     # The format is (long option, short option, description).
     user_options = install.user_options + [
-        ('toy', 't', 'install using toy ontology')
+        ('ontology=', 'o', 'The ontology to install: stable / city / toy / '
+         'path to yaml file. Default: stable'),
     ]
 
     def initialize_options(self):
         install.initialize_options(self)
-        self.toy = ''
+        self.ontology = ''
 
     def run(self):
-        if self.toy:
-            create_ontology_classes('ontology_toy.yml')
-        else:
-            create_ontology_classes('ontology_stable.yml')
+        create_ontology_classes(self.ontology or "city")
         install.run(self)
 
 
 class Develop(develop):
     def run(self):
-        create_ontology_classes('ontology_stable.yml')
+        create_ontology_classes('city')
         develop.run(self)
 
 
@@ -71,11 +83,12 @@ except OSError:
 packages = [
     'cuds',
     'cuds.classes',
-    'cuds.classes.core',
     'cuds.classes.generated',
-    'cuds.metatools',
+    'cuds.session',
+    'cuds.session.db',
+    'cuds.session.transport',
+    'cuds.generator',
     'cuds.ontology',
-    'cuds.ontology.tools',
     'cuds.testing'
 ]
 
@@ -96,8 +109,8 @@ setup(
     test_suite='cuds.testing',
     entry_points={
         'console_scripts': [
-            'simphony-class-generator = cuds.metatools.class_generator:main',
-            'cuds2dot = cuds.ontology.tools.cuds2dot:main'],
-        'wrappers': 'osp-core = cuds.classes.core:DataContainer'
+            'simphony-class-generator = cuds.generator.class_generator:main',
+            'cuds2dot = cuds.ontology.utils.cuds2dot:main'],
+        'wrappers': 'osp-core = cuds.classes:Cuds'
     }
 )

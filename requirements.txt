@@ -1,3 +1,7 @@
 PyYaml
 unittest2
-graphviz
+pympler
+websockets
+requests
+responses
+numpy
