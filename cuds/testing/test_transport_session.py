@@ -141,22 +141,29 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             invalid_rel = deepcopy(CUDS_DICT)
             invalid_rel["relationships"]["IS_INHABITANT_OF"] = {
                 str(uuid.UUID(int=1)): "PERSON"}
-            self.assertRaises(ValueError, deserialize, invalid_rel, session, True)
+            self.assertRaises(ValueError, deserialize,
+                              invalid_rel, session, True)
 
             self.assertEqual(deserialize(None, session, True), None)
-            self.assertEqual(deserialize([None, None], session, True), [None, None])
+            self.assertEqual(deserialize([None, None], session, True),
+                             [None, None])
             self.assertEqual(
                 deserialize({"UUID": "00000000-0000-0000-0000-000000000001"},
                             session, True), uuid.UUID(int=1))
-            self.assertEqual(deserialize(
-                [{"UUID": "00000000-0000-0000-0000-000000000001"},
-                 {"UUID": "00000000-0000-0000-0000-000000000002"}],
-                session, True), [uuid.UUID(int=1), uuid.UUID(int=2)])
-            self.assertEqual(deserialize({"CUBA-KEY": "CITIZEN"}, session, True),
-                             CUBA("CITIZEN"))
-            self.assertEqual(deserialize([{"CUBA-KEY": "CITIZEN"},
-                                          {"CUBA-KEY": "CITY"}], session, True),
-                             [CUBA("CITIZEN"), CUBA["CITY"]])
+            self.assertEqual(
+                deserialize(
+                    [{"UUID": "00000000-0000-0000-0000-000000000001"},
+                     {"UUID": "00000000-0000-0000-0000-000000000002"}],
+                    session, True),
+                [uuid.UUID(int=1), uuid.UUID(int=2)])
+            self.assertEqual(
+                deserialize({"CUBA-KEY": "CITIZEN"}, session, True),
+                CUBA("CITIZEN")
+            )
+            self.assertEqual(
+                deserialize([{"CUBA-KEY": "CITIZEN"},
+                             {"CUBA-KEY": "CITY"}], session, True),
+                [CUBA("CITIZEN"), CUBA["CITY"]])
             self.assertEqual(deserialize([1, 1.2, "hallo"], session, True),
                              [1, 1.2, "hallo"])
 

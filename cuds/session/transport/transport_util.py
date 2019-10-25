@@ -93,7 +93,8 @@ def deserialize(json_obj, session, add_to_buffers):
     :type json_obj: Union[Dict, List, str, None]
     :param session: When creating a cuds_object, use this session.
     :type session: Session
-    :param add_to_buffers: Whether the cuds object should be added to the buffers.
+    :param add_to_buffers: Whether the cuds object should be
+        added to the buffers.
     :type add_to_buffers: bool
     :raises ValueError: The json object could not be deserialized.
     :return: The deserialized object
@@ -117,7 +118,8 @@ def deserialize(json_obj, session, add_to_buffers):
             and set(["CUBA-KEY"]) == set(json_obj.keys()):
         return CUBA(json_obj["CUBA-KEY"])
     if isinstance(json_obj, dict):
-        return {k: deserialize(v, session, add_to_buffers) for k, v in json_obj.items()}
+        return {k: deserialize(v, session, add_to_buffers)
+                for k, v in json_obj.items()}
     raise ValueError("Could not deserialize %s." % json_obj)
 
 
@@ -181,7 +183,8 @@ def _to_cuds_object(json_obj, session, add_to_buffers):
     :type json_obj: Dict[str, Any]
     :param session: The session to add the cuds object to.
     :type session: Session
-    :param add_to_buffers: Whether the cuds object should be added to the buffers.
+    :param add_to_buffers: Whether the cuds object should
+        be added to the buffers.
     :type add_to_buffers: bool
     :return: The resulting cuds_object.
     :rtype: Cuds
