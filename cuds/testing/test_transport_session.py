@@ -22,6 +22,7 @@ from cuds.session.transport.transport_util import (
     deserialize, serializable, deserialize_buffers,
     serialize, LOAD_COMMAND, INITIALIZE_COMMAND
 )
+from cuds.utils import create_from_cuds_object
 
 CUDS_DICT = {
     "cuba_key": "CITIZEN",
@@ -113,7 +114,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
     def testDeserialize(self):
         """Test transformation from normal dictionary to cuds"""
         with TestWrapperSession() as session:
-            cuds_object = deserialize(CUDS_DICT, session)
+            cuds_object = deserialize(CUDS_DICT, session, True)
             self.assertEqual(cuds_object.uid.int, 0)
             self.assertEqual(cuds_object.name, "Peter")
             self.assertEqual(cuds_object.age, 23)
@@ -129,33 +130,34 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
             invalid_cuba = deepcopy(CUDS_DICT)
             invalid_cuba["cuba_key"] = "INVALID_CUBA"
-            self.assertRaises(ValueError, deserialize, invalid_cuba, session)
+            self.assertRaises(ValueError, deserialize,
+                              invalid_cuba, session, True)
 
             invalid_attribute = deepcopy(CUDS_DICT)
             invalid_attribute["attributes"]["invalid_attr"] = 0
             self.assertRaises(TypeError, deserialize,
-                              invalid_attribute, session)
+                              invalid_attribute, session, True)
 
             invalid_rel = deepcopy(CUDS_DICT)
             invalid_rel["relationships"]["IS_INHABITANT_OF"] = {
                 str(uuid.UUID(int=1)): "PERSON"}
-            self.assertRaises(ValueError, deserialize, invalid_rel, session)
+            self.assertRaises(ValueError, deserialize, invalid_rel, session, True)
 
-            self.assertEqual(deserialize(None, session), None)
-            self.assertEqual(deserialize([None, None], session), [None, None])
+            self.assertEqual(deserialize(None, session, True), None)
+            self.assertEqual(deserialize([None, None], session, True), [None, None])
             self.assertEqual(
                 deserialize({"UUID": "00000000-0000-0000-0000-000000000001"},
-                            session), uuid.UUID(int=1))
+                            session, True), uuid.UUID(int=1))
             self.assertEqual(deserialize(
                 [{"UUID": "00000000-0000-0000-0000-000000000001"},
                  {"UUID": "00000000-0000-0000-0000-000000000002"}],
-                session), [uuid.UUID(int=1), uuid.UUID(int=2)])
-            self.assertEqual(deserialize({"CUBA-KEY": "CITIZEN"}, session),
+                session, True), [uuid.UUID(int=1), uuid.UUID(int=2)])
+            self.assertEqual(deserialize({"CUBA-KEY": "CITIZEN"}, session, True),
                              CUBA("CITIZEN"))
             self.assertEqual(deserialize([{"CUBA-KEY": "CITIZEN"},
-                                          {"CUBA-KEY": "CITY"}], session),
+                                          {"CUBA-KEY": "CITY"}], session, True),
                              [CUBA("CITIZEN"), CUBA["CITY"]])
-            self.assertEqual(deserialize([1, 1.2, "hallo"], session),
+            self.assertEqual(deserialize([1, 1.2, "hallo"], session, True),
                              [1, 1.2, "hallo"])
 
     def test_serializable(self):
@@ -193,7 +195,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             ws1.add(c)
             s1._reset_buffers(changed_by="user")
 
-            additional = deserialize_buffers(s1, SERIALIZED_BUFFERS_EXPIRED)
+            additional = deserialize_buffers(s1, SERIALIZED_BUFFERS_EXPIRED,
+                                             add_to_buffers=True)
             self.assertEqual(additional, {"args": [42],
                                           "kwargs": {"name": "London"}})
             self.assertEqual(set(s1._registry.keys()),
@@ -221,7 +224,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             s1._reset_buffers(changed_by="user")
 
             additional = deserialize_buffers(s1, SERIALIZED_BUFFERS_EXPIRED,
-                                             reset_afterwards=True)
+                                             add_to_buffers=False)
             self.assertEqual(additional, {"args": [42],
                                           "kwargs": {"name": "London"}})
             self.assertEqual(set(s1._registry.keys()),
@@ -334,17 +337,17 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client = TransportSessionClient(TestWrapperSession, None, None)
         client.root = 1
         c1 = create_for_session(
-            cuds.classes.City, {"name": "Freiburg", "uid": 1}, client)
-        c2 = create_for_session(
-            cuds.classes.City, {"name": "London", "uid": 2}, client)
+            cuds.classes.City, {"name": "Freiburg", "uid": 1}, client, True
+        )
+        c2 = cuds.classes.City(name="London", uid=2)
         c3 = create_for_session(
-            cuds.classes.City, {"name": "Paris", "uid": 3}, client)
-        del client._registry[c2.uid]
+            cuds.classes.City, {"name": "Paris", "uid": 3}, client, True
+        )
         client.expire(c3.uid)
         client._reset_buffers(changed_by="user")
 
         def on_send(command, data):
-            client._registry.put(c2)
+            create_from_cuds_object(c2, client, False)
             return [c2, None]
 
         client._engine = MockEngine(on_send)
@@ -360,7 +363,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         self.assertEqual(result, [c1, c2, None])
         self.assertEqual(set(client._registry.keys()), {c1.uid, c2.uid})
         self.assertEqual(client._uids_in_registry_after_last_buffer_reset,
-                         {c1.uid, c2.uid})
+                         {c1.uid, c2.uid, c3.uid})
         self.assertEqual(client._added, dict())
         self.assertEqual(client._updated, dict())
         self.assertEqual(client._deleted, dict())
@@ -373,7 +376,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         # first item
         c1 = create_for_session(cuds.classes.City,
                                 {"name": "Freiburg", "uid": 1},
-                                client)  # store will be called automatically
+                                client, True)  # store will be called here
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
         self.assertEqual(client._engine._sent_data, (
             '{"args": [], "kwargs": {}, '
@@ -388,7 +391,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client._engine._sent_command = None
         c2 = create_for_session(cuds.classes.City,
                                 {"name": "Freiburg", "uid": 1},
-                                client)
+                                client, True)
 
         self.assertEqual(client._engine._sent_command, None)
         self.assertEqual(client._engine._sent_data, None)

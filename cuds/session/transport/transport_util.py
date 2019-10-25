@@ -47,7 +47,7 @@ def serialize(session_obj, consume_buffers=True, additional_items=None):
     return json.dumps(result)
 
 
-def deserialize_buffers(session_obj, data, reset_afterwards=False):
+def deserialize_buffers(session_obj, data, add_to_buffers):
     """Deserialize serialized buffers, add them to the session and push them
     to the registry of the given session object.
     Returns the deserialization of everything but the buffers.
@@ -56,20 +56,26 @@ def deserialize_buffers(session_obj, data, reset_afterwards=False):
     :type session_obj: Session
     :param data: Serialized buffers
     :type data: str
+    :param add_to_buffers: Whether the cuds object
+        should be added to the buffers.
+    :type add_to_buffers: bool
     :return: Everything in data, that were not part of the buffers.
     :rtype: Dict[str, Any]
     """
     data = json.loads(data)
 
     if "expired" in data and hasattr(session_obj, "_expired"):
-        session_obj._expired |= set(deserialize(data["expired"], session_obj))
+        session_obj._expired |= set(deserialize(json_obj=data["expired"],
+                                                session=session_obj,
+                                                add_to_buffers=add_to_buffers))
 
-    deserialized = {k: deserialize(v, session_obj) for k, v in data.items()}
+    deserialized = {k: deserialize(json_obj=v,
+                                   session=session_obj,
+                                   add_to_buffers=add_to_buffers)
+                    for k, v in data.items()}
     deleted = deserialized["deleted"] if "deleted" in deserialized else []
 
-    if reset_afterwards:
-        reset_buffers_after_deserialize(session_obj, deserialized)
-    else:
+    if add_to_buffers:
         for x in deleted:
             session_obj._notify_delete(x)
 
@@ -80,30 +86,15 @@ def deserialize_buffers(session_obj, data, reset_afterwards=False):
             if k not in ["added", "updated", "deleted", "expired"]}
 
 
-def reset_buffers_after_deserialize(session_obj, deserialized):
-    """Reset the buffers after deserialization.
-
-    :param session_obj: The session object
-    :type session_obj: Session
-    :param deserialized: The deserialized data
-    :type deserialized: Any
-    """
-    added = set()
-    for k, v in deserialized.items():
-        if isinstance(v, Cuds):
-            added.add(v.uid)
-        added |= set([x.uid for x in v if isinstance(x, Cuds)])
-
-    session_obj._remove_uids_from_buffers(added)
-
-
-def deserialize(json_obj, session):
+def deserialize(json_obj, session, add_to_buffers):
     """Deserialize a json object, instantiate the Cuds object in there.
 
     :param json_obj: The json object do deserialize.
     :type json_obj: Union[Dict, List, str, None]
     :param session: When creating a cuds_object, use this session.
     :type session: Session
+    :param add_to_buffers: Whether the cuds object should be added to the buffers.
+    :type add_to_buffers: bool
     :raises ValueError: The json object could not be deserialized.
     :return: The deserialized object
     :rtype: Union[Cuds, UUID, List[Cuds], List[UUID], None]
@@ -113,12 +104,12 @@ def deserialize(json_obj, session):
     if isinstance(json_obj, (str, int, float)):
         return json_obj
     if isinstance(json_obj, list):
-        return [deserialize(x, session) for x in json_obj]
+        return [deserialize(x, session, add_to_buffers) for x in json_obj]
     if isinstance(json_obj, dict) \
             and "cuba_key" in json_obj \
             and "attributes" in json_obj \
             and "relationships" in json_obj:
-        return _to_cuds_object(json_obj, session)
+        return _to_cuds_object(json_obj, session, add_to_buffers)
     if isinstance(json_obj, dict) \
             and set(["UUID"]) == set(json_obj.keys()):
         return convert_to(json_obj["UUID"], "UUID")
@@ -126,7 +117,7 @@ def deserialize(json_obj, session):
             and set(["CUBA-KEY"]) == set(json_obj.keys()):
         return CUBA(json_obj["CUBA-KEY"])
     if isinstance(json_obj, dict):
-        return {k: deserialize(v, session) for k, v in json_obj.items()}
+        return {k: deserialize(v, session, add_to_buffers) for k, v in json_obj.items()}
     raise ValueError("Could not deserialize %s." % json_obj)
 
 
@@ -183,11 +174,15 @@ def _serializable(cuds_object):
     return result
 
 
-def _to_cuds_object(json_obj, session):
+def _to_cuds_object(json_obj, session, add_to_buffers):
     """Transform a json serializable dict to a cuds_object
 
     :param json_obj: The json object to convert to a Cuds object
     :type json_obj: Dict[str, Any]
+    :param session: The session to add the cuds object to.
+    :type session: Session
+    :param add_to_buffers: Whether the cuds object should be added to the buffers.
+    :type add_to_buffers: bool
     :return: The resulting cuds_object.
     :rtype: Cuds
     """
@@ -195,7 +190,10 @@ def _to_cuds_object(json_obj, session):
     attributes = json_obj["attributes"]
     relationships = json_obj["relationships"]
     entity_cls = CUBA_MAPPING[cuba_key]
-    cuds_object = create_for_session(entity_cls, attributes, session)
+    cuds_object = create_for_session(entity_cls=entity_cls,
+                                     kwargs=attributes,
+                                     session=session,
+                                     add_to_buffers=add_to_buffers)
 
     for rel_cuba, obj_dict in relationships.items():
         rel = CUBA_MAPPING[CUBA(rel_cuba)]
@@ -204,4 +202,6 @@ def _to_cuds_object(json_obj, session):
             uid = convert_to(uid, "UUID")
             cuba_key = CUBA(cuba_key)
             cuds_object[rel][uid] = cuba_key
+    if not add_to_buffers:
+        session._remove_uids_from_buffers([cuds_object.uid])
     return cuds_object

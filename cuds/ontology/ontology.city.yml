@@ -1,7 +1,7 @@
 ---
 VERSION: "0.0.2"
 
-ONTOLOGY_MODE: "strict"
+ONTOLOGY_MODE: "ignore"
 
 CUDS_ONTOLOGY:
 
