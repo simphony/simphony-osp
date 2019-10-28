@@ -11,6 +11,7 @@ import cuds.classes
 import responses
 from cuds.session.transport.transport_util import serializable
 from cuds.session.core_session import CoreSession
+from cuds.testing.test_sim_wrapper_city import DummySimSession
 from cuds.utils import (destroy_cuds_object, clone_cuds_object,
                         create_for_session, create_from_cuds_object,
                         check_arguments, format_class_name, find_cuds_object,
@@ -112,46 +113,53 @@ class TestUtils(unittest.TestCase):
         cuds.classes.Cuds._session = default_session
         a = cuds.classes.City("Freiburg")
         self.assertIs(a.session, default_session)
-        with CoreSession() as session:
-            b = create_for_session(cuds.classes.City,
-                                   {"name": "Offenburg", "uid": a.uid},
-                                   session=session)
+        with DummySimSession() as session:
+            b = create_for_session(
+                entity_cls=cuds.classes.City,
+                kwargs={"name": "Offenburg", "uid": a.uid},
+                session=session,
+                add_to_buffers=False)
             self.assertEqual(b.name, "Offenburg")
             self.assertEqual(b.uid, a.uid)
             self.assertEqual(set(default_session._registry.keys()), {a.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
             self.assertEqual(set(session._registry.keys()), {b.uid})
             self.assertIs(session._registry.get(b.uid), b)
+            self.assertEqual(session._added, dict())
+            self.assertEqual(
+                session._uids_in_registry_after_last_buffer_reset, {b.uid}
+            )
 
             x = cuds.classes.Citizen()
             b.add(x, rel=cuds.classes.HasInhabitant)
 
             c = create_for_session(cuds.classes.City,
                                    {"name": "Emmendingen", "uid": a.uid},
-                                   session=session)
+                                   session=session,
+                                   add_to_buffers=True)
             self.assertIs(b, c)
             self.assertEqual(c.name, "Emmendingen")
             self.assertEqual(c.get(rel=cuds.classes.Relationship), [])
             self.assertEqual(set(default_session._registry.keys()),
                              {a.uid, x.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
+            self.assertEqual(session._updated, {c.uid: c})
 
     def test_create_from_cuds_object(self):
         """Test copying cuds_objects to different session"""
         default_session = CoreSession()
         cuds.classes.Cuds._session = default_session
-        default_session = CoreSession()
-        cuds.classes.Cuds._session = default_session
         a = cuds.classes.City("Freiburg")
         self.assertIs(a.session, default_session)
-        with CoreSession() as session:
-            b = create_from_cuds_object(a, session)
+        with DummySimSession() as session:
+            b = create_from_cuds_object(a, session, False)
             self.assertEqual(b.name, "Freiburg")
             self.assertEqual(b.uid, a.uid)
             self.assertEqual(set(default_session._registry.keys()), {a.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
             self.assertEqual(set(session._registry.keys()), {b.uid})
             self.assertIs(session._registry.get(b.uid), b)
+            self.assertEquals(session._added, dict())
 
             b.name = "Emmendingen"
             x = cuds.classes.Citizen(age=54, name="Franz")
@@ -159,7 +167,7 @@ class TestUtils(unittest.TestCase):
             y = cuds.classes.Citizen(age=21, name="Rolf")
             a.add(y, rel=cuds.classes.HasInhabitant)
 
-            c = create_from_cuds_object(a, session)
+            c = create_from_cuds_object(a, session, True)
             self.assertIs(b, c)
             self.assertEqual(c.name, "Freiburg")
             self.assertEqual(len(c.get(rel=cuds.classes.Relationship)), 1)
@@ -168,6 +176,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(set(default_session._registry.keys()),
                              {a.uid, x.uid, y.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
+            self.assertEquals(session._updated, {c.uid: c})
 
     def test_check_arguments(self):
         """ Test checking of arguments """

@@ -511,7 +511,10 @@ class SqlWrapperSession(DbWrapperSession):
             if not update_registry and uid in self._registry:
                 yield self._registry.get(uid)
                 continue
-            cuds_object = create_for_session(cuds_class, kwargs, self)
+            cuds_object = create_for_session(entity_cls=cuds_class,
+                                             kwargs=kwargs,
+                                             session=self,
+                                             add_to_buffers=False)
             self._load_relationships(cuds_object)
             yield cuds_object
 
