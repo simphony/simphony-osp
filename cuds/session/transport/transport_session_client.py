@@ -97,7 +97,7 @@ class TransportSessionClient(StorageWrapperSession):
         """
         if data.startswith("ERROR: "):
             raise RuntimeError("Error on Server side: %s" % data[7:])
-        remainder = deserialize_buffers(self, data, reset_afterwards=True)
+        remainder = deserialize_buffers(self, data, add_to_buffers=False)
         result = None
         if remainder and "expired" in remainder:
             self._expired |= set(remainder["expired"])

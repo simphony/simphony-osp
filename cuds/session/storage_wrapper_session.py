@@ -43,7 +43,8 @@ class StorageWrapperSession(WrapperSession):
             old_cuds_object = self._get_old_cuds_object(uid)
             new_cuds_object = self._get_next_missing(missing)
             self._expire_neighour_diff(old_cuds_object, new_cuds_object, uids)
-            self._avoid_changes_in_buffers(new_cuds_object, uid)
+            if old_cuds_object is not None and new_cuds_object is None:
+                destroy_cuds_object(old_cuds_object)
             yield new_cuds_object
 
     def expire(self, *cuds_or_uids):
@@ -117,25 +118,6 @@ class StorageWrapperSession(WrapperSession):
         except StopIteration:
             cuds_object = None  # not available in the backend
         return cuds_object
-
-    def _avoid_changes_in_buffers(self, cuds_object, uid):
-        """Avoid that loading changes the buffers.
-        Loaded cuds should not appear in any buffer.
-
-        :param cuds_object: The loaded cuds object.
-        :type cuds_object: Optional[Cuds]
-        :param uid: The uid of the loaded cuds object.
-        :type uid: UUID
-        """
-        if cuds_object is not None:
-            self._remove_uids_from_buffers([uid])
-
-        # expired object no longer present in the backend --> delete it
-        elif uid in self._registry:
-            self._remove_uids_from_buffers([uid])
-            self._uids_in_registry_after_last_buffer_reset -= {uid}
-            old = self._registry.get(uid)
-            destroy_cuds_object(old)
 
     def _expire_neighour_diff(self, old_cuds_object, new_cuds_object, uids):
         """Expire outdated neighbors of the just loaded cuds object.
