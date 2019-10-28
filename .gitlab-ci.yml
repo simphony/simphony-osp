@@ -1,4 +1,4 @@
-image: "registry.gitlab.cc-asp.fraunhofer.de:4567/simphony/osp-core/osp-core-ci-runner:latest"
+image: "registry.gitlab.cc-asp.fraunhofer.de:4567/simphony/osp-core:latest"
 
 stages:
   - build
