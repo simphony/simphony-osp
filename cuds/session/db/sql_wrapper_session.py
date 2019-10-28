@@ -253,21 +253,21 @@ class SqlWrapperSession(DbWrapperSession):
             return datatypes[orig_col], True
         return old_vector_datatype, False
 
-    def _db_create_vec(self, table_name, columns, datatypes,
+    def _do_db_create(self, table_name, columns, datatypes,
                        primary_key, foreign_key, index):
         """Call db_create but expand the vectors first."""
         columns, datatypes = self._expand_vector_cols(columns, datatypes)
         self._db_create(table_name, columns, datatypes,
                         primary_key, foreign_key, index)
 
-    def _db_select_vec(self, table_name, columns, condition, datatypes):
+    def _do_db_select(self, table_name, columns, condition, datatypes):
         """Call db_select but consider vectors"""
         columns, datatypes = self._expand_vector_cols(columns, datatypes)
         rows = self._db_select(table_name, columns, condition, datatypes)
         rows = self._convert_values(rows, columns, datatypes)
         yield from self._contract_vector_values(columns, datatypes, rows)
 
-    def _db_insert_vec(self, table_name, columns, values, datatypes):
+    def _do_db_insert(self, table_name, columns, values, datatypes):
         """Call db_insert but expand vectors"""
         columns, datatypes, values = self._expand_vector_cols(columns,
                                                               datatypes,
@@ -276,7 +276,7 @@ class SqlWrapperSession(DbWrapperSession):
                   for c, v in zip(columns, values)]
         self._db_insert(table_name, columns, values, datatypes)
 
-    def _db_update_vec(self, table_name, columns,
+    def _do_db_update(self, table_name, columns,
                        values, condition, datatypes):
         """Call db_update but expand vectors"""
         columns, datatypes, values = self._expand_vector_cols(columns,
@@ -287,7 +287,7 @@ class SqlWrapperSession(DbWrapperSession):
         self._db_update(table_name, columns,
                         values, condition, datatypes)
 
-    def _db_delete_vec(self, table_name, condition):
+    def _do_db_delete(self, table_name, condition):
         """Call _db_delete but expand vectors"""
         self._db_delete(table_name, condition)
 
@@ -297,9 +297,9 @@ class SqlWrapperSession(DbWrapperSession):
         try:
             for table_name in self._get_table_names(
                     SqlWrapperSession.CUDS_PREFIX):
-                self._db_delete_vec(table_name, None)
-            self._db_delete_vec(self.RELATIONSHIP_TABLE, None)
-            self._db_delete_vec(self.MASTER_TABLE, None)
+                self._do_db_delete(table_name, None)
+            self._do_db_delete(self.RELATIONSHIP_TABLE, None)
+            self._do_db_delete(self.MASTER_TABLE, None)
             self._commit()
         except Exception as e:
             self._rollback_transaction()
@@ -316,7 +316,7 @@ class SqlWrapperSession(DbWrapperSession):
 
             # Create tables
             if added.get_attributes(skip=["session"]):
-                self._db_create_vec(table_name=self.CUDS_PREFIX
+                self._do_db_create(table_name=self.CUDS_PREFIX
                                     + added.cuba_key.value,
                                     columns=added.get_attributes(
                                         skip=["session"]),
@@ -328,7 +328,7 @@ class SqlWrapperSession(DbWrapperSession):
 
             # Add to master
             is_first_level = any(self.root in uids for uids in added.values())
-            self._db_insert_vec(
+            self._do_db_insert(
                 self.MASTER_TABLE,
                 ["uid", "cuba", "first_level"],
                 [added.uid, added.cuba_key.value, is_first_level],
@@ -339,7 +339,7 @@ class SqlWrapperSession(DbWrapperSession):
             if added.get_attributes(skip=["session"]):
                 values = [getattr(added, attr)
                           for attr in added.get_attributes(skip=["session"])]
-                self._db_insert_vec(self.CUDS_PREFIX + added.cuba_key.value,
+                self._do_db_insert(self.CUDS_PREFIX + added.cuba_key.value,
                                     added.get_attributes(skip=["session"]),
                                     values,
                                     added.get_datatypes())
@@ -348,7 +348,7 @@ class SqlWrapperSession(DbWrapperSession):
             for rel, uid_cuba in added.items():
                 for uid, cuba in uid_cuba.items():
                     target_uid = uid if uid != self.root else uuid.UUID(int=0)
-                    self._db_insert_vec(self.RELATIONSHIP_TABLE,
+                    self._do_db_insert(self.RELATIONSHIP_TABLE,
                                         ["origin", "target",
                                          "name", "target_cuba"],
                                         [added.uid,
@@ -370,7 +370,7 @@ class SqlWrapperSession(DbWrapperSession):
             if updated.get_attributes(skip=["session"]):
                 values = [getattr(updated, attr)
                           for attr in updated.get_attributes(skip=["session"])]
-                self._db_update_vec(
+                self._do_db_update(
                     self.CUDS_PREFIX + updated.cuba_key.value,
                     updated.get_attributes(skip=["session"]),
                     values,
@@ -381,7 +381,7 @@ class SqlWrapperSession(DbWrapperSession):
                     updated.get_datatypes())
 
             # Update the relationships
-            self._db_delete_vec(self.RELATIONSHIP_TABLE,
+            self._do_db_delete(self.RELATIONSHIP_TABLE,
                                 EqualsCondition(self.RELATIONSHIP_TABLE,
                                                 "origin",
                                                 updated.uid,
@@ -389,7 +389,7 @@ class SqlWrapperSession(DbWrapperSession):
             for rel, uid_cuba in updated.items():
                 for uid, cuba in uid_cuba.items():
                     target_uuid = uid if uid != self.root else uuid.UUID(int=0)
-                    self._db_insert_vec(self.RELATIONSHIP_TABLE,
+                    self._do_db_insert(self.RELATIONSHIP_TABLE,
                                         ["origin", "target",
                                          "name", "target_cuba"],
                                         [updated.uid,
@@ -409,19 +409,19 @@ class SqlWrapperSession(DbWrapperSession):
 
             # Update the values
             if deleted.get_attributes(skip=["session"]):
-                self._db_delete_vec(self.CUDS_PREFIX + deleted.cuba_key.value,
+                self._do_db_delete(self.CUDS_PREFIX + deleted.cuba_key.value,
                                     EqualsCondition(self.CUDS_PREFIX
                                                     + deleted.cuba_key.value,
                                                     "uid",
                                                     deleted.uid,
                                                     "UUID"))
 
-            self._db_delete_vec(self.MASTER_TABLE,
+            self._do_db_delete(self.MASTER_TABLE,
                                 EqualsCondition(self.MASTER_TABLE,
                                                 "uid",
                                                 deleted.uid,
                                                 "UUID"))
-            self._db_delete_vec(self.RELATIONSHIP_TABLE,
+            self._do_db_delete(self.RELATIONSHIP_TABLE,
                                 EqualsCondition(self.RELATIONSHIP_TABLE,
                                                 "origin",
                                                 deleted.uid,
@@ -443,13 +443,13 @@ class SqlWrapperSession(DbWrapperSession):
 
     # OVERRIDE
     def _initialize(self):
-        self._db_create_vec(table_name=self.MASTER_TABLE,
+        self._do_db_create(table_name=self.MASTER_TABLE,
                             columns=self.COLUMNS[self.MASTER_TABLE],
                             datatypes=self.DATATYPES[self.MASTER_TABLE],
                             primary_key=self.PRIMARY_KEY[self.MASTER_TABLE],
                             foreign_key=self.FOREIGN_KEY[self.MASTER_TABLE],
                             index=self.INDEX[self.MASTER_TABLE])
-        self._db_create_vec(table_name=self.RELATIONSHIP_TABLE,
+        self._do_db_create(table_name=self.RELATIONSHIP_TABLE,
                             columns=self.COLUMNS[self.RELATIONSHIP_TABLE],
                             datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE],
                             primary_key=self.PRIMARY_KEY[
@@ -460,7 +460,7 @@ class SqlWrapperSession(DbWrapperSession):
 
     # OVERRIDE
     def _load_first_level(self):
-        c = self._db_select_vec(self.MASTER_TABLE,
+        c = self._do_db_select(self.MASTER_TABLE,
                                 ["uid", "cuba"],
                                 EqualsCondition(self.MASTER_TABLE,
                                                 "first_level",
@@ -500,7 +500,7 @@ class SqlWrapperSession(DbWrapperSession):
                                     "uid", uid, "UUID") \
             if uid else None
 
-        c = self._db_select_vec(self.CUDS_PREFIX + cuba.value,
+        c = self._do_db_select(self.CUDS_PREFIX + cuba.value,
                                 attributes,
                                 condition,
                                 datatypes)
@@ -524,7 +524,7 @@ class SqlWrapperSession(DbWrapperSession):
         :param cuds_object: Adds the relationships to this cuds_object.s
         :type cuds_object: Cuds
         """
-        c = self._db_select_vec(self.RELATIONSHIP_TABLE,
+        c = self._do_db_select(self.RELATIONSHIP_TABLE,
                                 ["target", "name", "target_cuba"],
                                 EqualsCondition(self.RELATIONSHIP_TABLE,
                                                 "origin",
@@ -555,7 +555,7 @@ class SqlWrapperSession(DbWrapperSession):
         :return: The cuba-key.
         :rtype: CUBA
         """
-        c = self._db_select_vec(self.MASTER_TABLE,
+        c = self._do_db_select(self.MASTER_TABLE,
                                 ["cuba"],
                                 EqualsCondition(self.MASTER_TABLE,
                                                 "uid",
