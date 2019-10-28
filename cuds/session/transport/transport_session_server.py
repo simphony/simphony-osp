@@ -94,7 +94,7 @@ class TransportSessionServer():
         :rtype: str
         """
         session = self.session_objs[user]
-        arguments = deserialize_buffers(session, data)
+        arguments = deserialize_buffers(session, data, add_to_buffers=True)
         result = getattr(session, command)(*arguments["args"],
                                            **arguments["kwargs"])
         additional = dict()
@@ -113,7 +113,7 @@ class TransportSessionServer():
         :rtype: str
         """
         session = self.session_objs[user]
-        uids = deserialize_buffers(session, data)["uids"]
+        uids = deserialize_buffers(session, data, add_to_buffers=False)["uids"]
         cuds_objects = session.load(*uids)
         serialized = [serializable(x) for x in cuds_objects]
         return json.dumps({"result": serialized,
@@ -139,8 +139,6 @@ class TransportSessionServer():
         session = self.session_cls(*data["args"],
                                    **data["kwargs"])
         self.session_objs[user] = session
-        root = deserialize(data["root"], session=session)
-        session._uids_in_registry_after_last_buffer_reset = set([root.uid])
-        del session._added[root.uid]
+        root = deserialize(data["root"], session=session, add_to_buffers=False)
         session._updated[root.uid] = root
         return serialize(session)
