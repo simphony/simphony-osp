@@ -380,15 +380,15 @@ class SqlWrapperSession(DbWrapperSession):
                     updated.get_datatypes())
 
             # Update the relationships
+            first_level = False
             self._do_db_delete(
                 self.RELATIONSHIP_TABLE,
                 EqualsCondition(self.RELATIONSHIP_TABLE,
-                                "origin",
-                                updated.uid,
-                                "UUID")
+                                "origin", updated.uid, "UUID")
             )
             for rel, uid_cuba in updated.items():
                 for uid, cuba in uid_cuba.items():
+                    first_level = first_level or uid == self.root
                     target_uuid = uid if uid != self.root else uuid.UUID(int=0)
                     self._do_db_insert(
                         self.RELATIONSHIP_TABLE,
@@ -397,6 +397,16 @@ class SqlWrapperSession(DbWrapperSession):
                          rel.cuba_key.value, cuba.value],
                         self.DATATYPES[self.RELATIONSHIP_TABLE]
                     )
+
+            # update first_level flag
+            self._do_db_update(
+                table_name=self.MASTER_TABLE,
+                columns=["first_level"],
+                values=[first_level],
+                condition=EqualsCondition(self.MASTER_TABLE,
+                                          "uid", updated.uid, "UUID"),
+                datatypes=self.DATATYPES[self.MASTER_TABLE]
+            )
 
     # OVERRIDE
     def _apply_deleted(self):
