@@ -442,7 +442,7 @@ def clone_cuds_object(cuds_object):
     return clone
 
 
-def create_for_session(entity_cls, kwargs, session, add_to_buffers):
+def create_for_session(entity_cls, kwargs, session, add_to_buffers=True):
     """Instantiate a cuds_object with a given session.
     If cuds_object with same uid is already in the session,
     this object will be reused.
