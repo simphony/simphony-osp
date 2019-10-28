@@ -40,11 +40,11 @@ class StorageWrapperSession(WrapperSession):
                 continue
 
             # Load from the backend
-            old_cuds_object = self._get_old_cuds_object(uid)
+            old_cuds_object = self._get_old_cuds_object_clone(uid)
             new_cuds_object = self._get_next_missing(missing)
             self._expire_neighour_diff(old_cuds_object, new_cuds_object, uids)
             if old_cuds_object is not None and new_cuds_object is None:
-                destroy_cuds_object(old_cuds_object)
+                destroy_cuds_object(self._registry.get(uid))
             yield new_cuds_object
 
     def expire(self, *cuds_or_uids):
@@ -137,7 +137,7 @@ class StorageWrapperSession(WrapperSession):
             diff = (diff1 | diff2) - set(uids)
             self._expired |= diff
 
-    def _get_old_cuds_object(self, uid):
+    def _get_old_cuds_object_clone(self, uid):
         """Get old version of expired cuds object from registry
 
         :param uid: The uid to get the old cuds object
