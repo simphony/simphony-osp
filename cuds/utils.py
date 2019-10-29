@@ -10,7 +10,8 @@ import inspect
 import requests
 import json
 from copy import deepcopy
-from cuds.generator.ontology_datatypes import convert_to
+from cuds.ontology.datatypes import convert_to
+from cuds import CUBA, Cuds
 
 
 # General utility methods
@@ -44,11 +45,10 @@ def format_class_name(name):
 
 
 def post(url, cuds_object, max_depth=float("inf")):
-    from cuds.classes import ActiveRelationship
     from cuds.session.transport.transport_util import serializable
     cuds_objects = find_cuds_object(criterion=lambda x: True,
                                     root=cuds_object,
-                                    rel=ActiveRelationship,
+                                    rel=CUBA.ACTIVE_RELATIONSHIP,
                                     find_all=True,
                                     max_depth=max_depth)
     serialized = json.dumps(serializable(cuds_objects))
@@ -207,44 +207,8 @@ def remove_cuds_object(cuds_object):
     :param cuds_object: The cuds_object to remove.
     """
     # Method does not allow deletion of the root element of a container
-    from cuds.classes import Relationship
-    for elem in cuds_object.iter(rel=Relationship):
-        cuds_object.remove(elem.uid, rel=Relationship)
-
-
-def get_definition(cuds_object):
-    """
-    Returns the definition of the given cuds_object.
-
-    :param cuds_object: cuds_object of interest
-    :return: the definition of the cuds_object
-    """
-    return cuds_object.__doc__
-
-
-def get_ancestors(cuds_object_or_class):
-    """
-    Finds the ancestors of the given cuds object or class.
-
-    :param cuds_object_or_class: cuds object or class of interest
-    :type cuds_object_or_class: Union[Cuds, Type[Cuds]]
-    :return: a list with all the ancestors
-    """
-    import cuds.classes
-    # object from osp_core
-    if isinstance(cuds_object_or_class, cuds.classes.Cuds):
-        superclass = cuds_object_or_class.__class__.__bases__[0]
-    # wrapper instance
-    else:
-        cuba_key = str(cuds_object_or_class.cuba_key).replace("CUBA.", "")
-        class_name = format_class_name(cuba_key)
-        superclass = getattr(cuds.classes, class_name).__bases__[0]
-
-    ancestors = []
-    while superclass != dict:
-        ancestors.append(superclass.__name__)
-        superclass = superclass.__bases__[0]
-    return ancestors
+    for elem in cuds_object.iter(rel=CUBA.RELATIONSHIP):
+        cuds_object.remove(elem.uid, rel=CUBA.RELATIONSHIP)
 
 
 def get_neighbour_diff(cuds1, cuds2, mode="all"):
@@ -263,19 +227,19 @@ def get_neighbour_diff(cuds1, cuds2, mode="all"):
     :rtype: List[Tuple[UUID, Relationship]]
     """
     assert mode in ["all", "active", "non-active"]
-    from cuds.classes import ActiveRelationship
     if cuds1 is None:
         return []
 
     result = list()
     # Iterate over all neighbours that are in cuds1 but not cuds2.
     for relationship in cuds1.keys():
-        if (
-            mode == "active" and not issubclass(relationship,
-                                                ActiveRelationship)
-            or mode == "non-active" and issubclass(relationship,
-                                                   ActiveRelationship)
-        ):
+        if ((
+            mode == "active"
+            and relationship not in CUBA.ACTIVE_RELATIONSHIP.subclasses
+        ) or (
+            mode == "non-active"
+            and relationship in CUBA.ACTIVE_RELATIONSHIP.subclasses
+        )):
             continue
 
         # Get all the neighbours that are no neighbours is cuds2
@@ -317,11 +281,11 @@ def pretty_print(cuds_object, file=sys.stdout):
     pp = pp_cuds_object_name(cuds_object)
     pp += "\n  uuid: " + str(cuds_object.uid)
     pp += "\n  type: " + str(cuds_object.cuba_key)
-    pp += "\n  ancestors: " + ", ".join(get_ancestors(cuds_object))
+    pp += "\n  superclasses: " + ", ".join(cuds_object.is_a.superclasses)
     values_str = pp_values(cuds_object)
     if values_str:
         pp += "\n  values: " + pp_values(cuds_object)
-    pp += "\n  description: " + get_definition(cuds_object)
+    pp += "\n  description: " + cuds_object.is_a.definition
     pp += pp_subelements(cuds_object)
 
     print(pp, file=file)
@@ -352,10 +316,9 @@ def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
     :param level_indentation: common characters to left-pad the text
     :return: string with the pretty printed text
     """
-    from cuds.classes import ActiveRelationship
     pp_sub = ""
     filtered_relationships = filter(
-        lambda x: issubclass(x, ActiveRelationship),
+        lambda x: x in CUBA.ACTIVE_RELATIONSHIP.subclasses,
         cuds_object.keys())
     sorted_relationships = sorted(filtered_relationships, key=str)
     visited = visited or set()
@@ -459,7 +422,6 @@ def create_for_session(entity_cls, kwargs, session, add_to_buffers=True):
     :result: The created cuds object
     :rtype: Cuds
     """
-    from cuds.classes import Cuds
     uid = convert_to(kwargs["uid"], "UUID")
     if hasattr(session, "_expired") and uid in session._expired:
         session._expired.remove(uid)

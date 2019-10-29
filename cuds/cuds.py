@@ -8,18 +8,16 @@
 # from __future__ import annotations
 import uuid
 import inspect
-from typing import Union, Type, List, Iterator, Dict
+from typing import Union, List, Iterator, Dict, Any
 
-from cuds.generator.ontology_datatypes import convert_to
+from cuds.ontology.relationship import OntologyRelationship
+from cuds.ontology.value import OntologyValue
+from cuds.ontology.datatypes import convert_to
 from cuds.session.core_session import CoreSession
-from cuds.classes.relationship_tree import RelationshipTree
+from cuds.session.session import Session
 from cuds.utils import check_arguments, clone_cuds_object, \
     create_from_cuds_object, get_neighbour_diff
-from cuds.generator.settings import DEFAULT as DEFAULT_CUDS_SETTINGS
-from cuds.classes.generated.relationship import Relationship
-from cuds.classes.generated.cuba import CUBA
-from cuds.classes.generated.active_relationship import ActiveRelationship
-from copy import deepcopy
+from cuds import CUBA
 
 
 class Cuds(dict):
@@ -33,13 +31,17 @@ class Cuds(dict):
     through the shared session
     """
     DEFAULT_REL = None
-    ROOT_REL = Relationship
+    ROOT_REL = CUBA.RELATIONSHIP
     cuba_key = None
     supported_relationships = dict()
-    CUDS_SETTINGS = deepcopy(DEFAULT_CUDS_SETTINGS)
     _session = CoreSession()
 
-    def __init__(self, uid: uuid.UUID = None):
+    def __init__(
+        self,
+        values: Dict[OntologyValue, Any],
+        session: Session = _session,
+        uid: uuid.UUID = None
+    ):
         """
         Initialization follows the behavior of the python dict class.
 
@@ -48,14 +50,9 @@ class Cuds(dict):
         :type uid: UUID
         """
         super().__init__()
-        from cuds.classes.generated import PARSED_SETTINGS
-        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
-        Cuds.CUDS_SETTINGS.update(PARSED_SETTINGS)
-        Cuds.DEFAULT_REL = CUBA_MAPPING[
-            CUBA(Cuds.CUDS_SETTINGS["default_relationship"])]
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
-        # store the hierarchical order of the relationships
-        self._relationship_tree = RelationshipTree(self.ROOT_REL)
+        self._session = session
+        self._values = values
         self.session.store(self)
 
     @property
@@ -74,39 +71,47 @@ class Cuds(dict):
         """
         return "%s: %s" % (self.cuba_key, self.uid)
 
+    def __getattr__(self, value_name):
+        self.session._notify_read(self)
+        return self._values[value_name]
+
+    def __setattr__(self, value_name, new_value):
+        self.session._notify_read(self)
+        self._values[value_name] == new_value
+        self.session._notify_update(self)
+
     def __getitem__(self, key):
         self.session._notify_read(self)
         return super().__getitem__(key)
 
     # OVERRIDE
-    def __delitem__(self, key: Type[Relationship]):
+    def __delitem__(self, key: OntologyRelationship):
         """Delete a relationship from the Cuds.
 
         :param key: The relationship to remove
-        :type key: Type[Relationship]
+        :type key: OntologyRelationship
         :raises ValueError: The given key is not a relationship.
         """
         self.session._notify_read(self)
-        if inspect.isclass(key) and issubclass(key, self.ROOT_REL):
+        if inspect.isclass(key) and key in self.ROOT_REL.subclasses:
             super().__delitem__(key)
-            self._relationship_tree.remove(key)
             self.session._notify_update(self)
         else:
             message = 'Key {!r} is not in the supported relationships'
             raise ValueError(message.format(key))
 
-    def __setitem__(self, key: Type[Relationship], value: dict):
+    def __setitem__(self, key: OntologyRelationship, value: dict):
         """
         Set/Update the key value only when the key is a relationship.
 
         :param key: key in the dictionary
-        :type key: Type[Relationship]
+        :type key: OntologyRelationship
         :param value: new value to assign to the key
         :type value: dict
         :raises ValueError: unsupported key provided (not a relationship)
         """
         self.session._notify_read(self)
-        if inspect.isclass(key) and issubclass(key, self.ROOT_REL) \
+        if inspect.isclass(key) and key in self.ROOT_REL.subclasses \
                 and isinstance(value, dict):
             for _, cuba_key in value.items():
                 self._check_valid_add(cuba_key, key)
@@ -114,7 +119,6 @@ class Cuds(dict):
             super().__setitem__(key, NotifyDict(value,
                                                 cuds_object=self,
                                                 rel=key))
-            self._relationship_tree.add(key)
             self.session._notify_update(self)
         else:
             message = 'Key {!r} is not in the supported relationships'
@@ -142,7 +146,7 @@ class Cuds(dict):
         return False
 
     @classmethod
-    def get_attributes(cls, skip: List[str] = None) -> List[str]:
+    def get_values(cls, skip: List[str] = None) -> List[str]:
         """Get all the attributes of the cuds_object.
 
         :param skip: Do only return attributes not specified here,
@@ -165,20 +169,9 @@ class Cuds(dict):
         """
         return inspect.getfullargspec(cls.__init__).annotations
 
-    def contains(self, relationship):
-        """Check whether the given relationship or a subrelationship is contained
-        in this cuds object
-
-        :param relationship: The relationship to look for.
-        :type relationship: Type[Relationship]
-        :return: Whether the relationship or a subrelationship has been found.
-        :rtype: bool
-        """
-        return self._relationship_tree.contains(relationship)
-
     def add(self,
             *args: "Cuds",
-            rel: Type[Relationship] = None) -> Union["Cuds", List["Cuds"]]:
+            rel: OntologyRelationship = None) -> Union["Cuds", List["Cuds"]]:
         """
         Adds (a) cuds(s) to their respective CUBA key relationship.
         Before adding, check for invalid keys to avoid inconsistencies later.
@@ -186,7 +179,7 @@ class Cuds(dict):
         :param args: object(s) to add
         :type args: Cuds
         :param rel: class of the relationship between the objects
-        :type rel: Type[Relationship]
+        :type rel: OntologyRelationship
         :return: The added object(s)
         :rtype: Union[Cuds, List[Cuds]]
         :raises ValueError: adding an element already there
@@ -212,7 +205,7 @@ class Cuds(dict):
 
     def get(self,
             *uids: uuid.UUID,
-            rel: Type[Relationship] = ActiveRelationship,
+            rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
             cuba_key: CUBA = None) -> Union["Cuds", List["Cuds"]]:
         """
         Returns the contained elements of a certain type, uid or relationship.
@@ -228,7 +221,7 @@ class Cuds(dict):
         :param uids: UIDs of the elements
         :param rel: Only return cuds_object which are connected by subclass of
             given relationship.
-        :type rel: Type[Relationship]
+        :type rel: OntologyRelationship
         :param cuba_key: CUBA key of the subelements
         :type cuba_key: CUBA
         :return: the queried objects, or None, if not found
@@ -268,7 +261,7 @@ class Cuds(dict):
 
     def remove(self,
                *args: Union["Cuds", uuid.UUID],
-               rel: Type[Relationship] = ActiveRelationship,
+               rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
                cuba_key: CUBA = None):
         """
         Removes elements from the Cuds.
@@ -280,7 +273,7 @@ class Cuds(dict):
         :type args: Union[Cuds, UUID]
         :param rel: Only remove cuds_object which are connected by subclass of
             given relationship
-        :type rel: Type[Relationship]
+        :type rel: OntologyRelationship
         :param cuba_key: CUBA key of the subelements
         :type cuba_key: CUBA
         """
@@ -304,7 +297,7 @@ class Cuds(dict):
 
     def iter(self,
              *uids: uuid.UUID,
-             rel: Type[Relationship] = ActiveRelationship,
+             rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
              cuba_key: CUBA = None) -> Iterator["Cuds"]:
         """
         Iterates over the contained elements of a certain type, uid or
@@ -319,7 +312,7 @@ class Cuds(dict):
         :param uids: UIDs of the elements.
         :type uids: UUID
         :param rel: class of the relationship.
-        :type rel: Type[relationship]
+        :type rel: OntologyRelationship
         :param cuba_key: CUBA key of the subelements.
         :type cuba_key: CUBA
         :return: Iterator over of queried objects, or None, if not found.
@@ -335,7 +328,7 @@ class Cuds(dict):
         :return: list with the attributes in a key-value form string
         """
         attributes = []
-        for attribute in sorted(self.get_attributes(skip=["session"])):
+        for attribute in sorted(self.get_values(skip=["session"])):
             attributes.append(attribute + ": " + str(getattr(self, attribute)))
 
         return attributes
@@ -391,7 +384,7 @@ class Cuds(dict):
             for outgoing_rel in new_cuds_object.keys():
 
                 # do not recursively add parents
-                if not issubclass(outgoing_rel, ActiveRelationship):
+                if outgoing_rel not in CUBA.ACTIVE_RELATIONSHIPS.subclasses:
                     continue
 
                 # add children not already added
@@ -490,14 +483,12 @@ class Cuds(dict):
             The recursive add might add it later.
         :type missing: dict
         """
-        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
-
         # Iterate over the new parents
         for (parent_uid, relationship), parent in zip(new_parent_diff,
                                                       new_parents):
-            if issubclass(relationship, ActiveRelationship):
+            if relationship in CUBA.ACTIVE_RELATIONSHIP.subclasses:
                 continue
-            inverse = CUBA_MAPPING[relationship.inverse]
+            inverse = relationship.inverse
             # Delete connection to parent if parent is not present
             if parent is None:
                 if parent_uid not in missing:
@@ -528,15 +519,13 @@ class Cuds(dict):
             relations they are connected with
         :type old_neighbour_diff: List[Tuple[UID, Relationship]]
         """
-        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
-
         # iterate over all old neighbours.
         for (neighbour_uid, relationship), neighbour in zip(old_neighbour_diff,
                                                             old_neighbours):
-            inverse = CUBA_MAPPING[relationship.inverse]
+            inverse = relationship.inverse
 
             # delete the inverse if neighbours are children
-            if issubclass(relationship, ActiveRelationship):
+            if relationship in CUBA.ACTIVE_RELATIONSHIP.subclasses:
                 if inverse in neighbour:
                     neighbour._remove_direct(inverse, new_cuds_object.uid)
 
@@ -565,32 +554,6 @@ class Cuds(dict):
         elif cuds_object.uid not in self[rel]:
             self[rel][cuds_object.uid] = cuds_object.cuba_key
 
-    def _check_valid_add(self, cuba_key, rel):
-        """Check if adding should be allowed.
-
-        :param cuba_key: The cuba key of the cuds_object to add.
-        :type cuba_key: Cuds
-        :param rel: Relationship with the cuds_object to add.
-        :type rel: Relationship
-        :raises ValueError: Add is illegal.
-        """
-        if not Cuds.CUDS_SETTINGS["check_relationship_supported"]:
-            return
-
-        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
-        for supported_relationships, supported_cuds_objects in \
-                self.supported_relationships.items():
-            if issubclass(rel, CUBA_MAPPING[supported_relationships]):
-                for supported_entity in supported_cuds_objects:
-                    if issubclass(CUBA_MAPPING[cuba_key],
-                                  CUBA_MAPPING[supported_entity]):
-                        return
-
-        raise ValueError(
-            ("Cannot add %s to %s with relationship %s: "
-                + "Invalid relationship or object. Check the ontology!")
-            % (cuba_key, self.cuba_key, rel.cuba_key))
-
     def _add_inverse(self, cuds_object, rel):
         """
         Adds the inverse relationship from self to cuds_object.
@@ -598,8 +561,7 @@ class Cuds(dict):
         :param cuds_object: container of the normal relationship
         :param rel: direct relationship instance
         """
-        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
-        inverse_rel = CUBA_MAPPING[rel.inverse]
+        inverse_rel = rel.inverse
         self._add_direct(cuds_object, inverse_rel)
 
     def _get(self, *uids, rel=None, cuba_key=None, return_mapping=False):
@@ -614,7 +576,7 @@ class Cuds(dict):
         :param uids: UIDs of the elements
         :type uids
         :param rel: class of the relationship, optional
-        :type rel: Type[Relationship]
+        :type rel: OntologyRelationship
         :param cuba_key: CUBA key of the subelements, optional
         :type cuba_key: CUBA
         :param return_mapping: whether to return a mapping from
@@ -634,11 +596,7 @@ class Cuds(dict):
         self.session._notify_read(self)
         # consider either given relationship and subclasses
         # or all relationships.
-        if rel is None:
-            consider_relationships = list(self.keys())
-        else:
-            consider_relationships = self._relationship_tree \
-                .get_subrelationships(rel)
+        consider_relationships = rel.subclasses if rel else list(self.keys())
 
         # return empty list if no element of given relationship is available.
         if not consider_relationships and not return_mapping:
@@ -716,15 +674,13 @@ class Cuds(dict):
             relationsships that connect self with the respective cuds_object.)
         :rtype: List[UUID] (+ Dict[UUID, Set[Relationship]])
         """
-        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
         relationship_mapping = dict()
         for relationship in relationships:
 
             # Collect all uids who are object of the current relationship.
             # Possibly filter by Cuba-Key.
             for uid, cuba in self[relationship].items():
-                if cuba_key is None or issubclass(CUBA_MAPPING[cuba],
-                                                  CUBA_MAPPING[cuba_key]):
+                if cuba_key is None or cuba in cuba_key.subclasses:
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
                     relationship_mapping[uid].add(relationship)
@@ -760,7 +716,7 @@ class Cuds(dict):
         the object with the given uid.
 
         :param relationship: The relationship to remove.
-        :type relationship: Type[Relationship]
+        :type relationship: OntologyRelationship
         :param uid: The uid to remove.
         :type uid: UUID
         """
@@ -772,12 +728,11 @@ class Cuds(dict):
         """Remove the inverse of the given relationship.
 
         :param relationship: The relationship to remove.
-        :type relationship: Type[Relationship]
+        :type relationship: OntologyRelationship
         :param uid: The uid to remove.
         :type uid: UUID
         """
-        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
-        inverse = CUBA_MAPPING[relationship.inverse]
+        inverse = relationship.inverse
         self._remove_direct(inverse, uid)
 
 

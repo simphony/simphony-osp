@@ -68,3 +68,15 @@ class OntologyValue(OntologyEntity):
         """
         assert datatype.split(":")[0] in ONTOLOGY_DATATYPES
         self._datatype = datatype
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        if isinstance(other, OntologyValue):
+            return str(self) == str(other)
+        if isinstance(other, str) and "." not in other:
+            return self.name.lower() == other.lower()
+        elif isinstance(other, str):
+            return str(self).lower() == other.lower()
+        return False

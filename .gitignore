@@ -5,7 +5,7 @@ cuds/classes/generated/
 cuds/generator/__pycache__/
 cuds/ontology/__pycache__/
 cuds/ontology/tools/__pycache__/
-simphony.egg-info/
+*.egg-info/
 *~*
 .vscode/
 .mypy_cache/

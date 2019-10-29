@@ -8,6 +8,7 @@
 
 from cuds.ontology.entity import OntologyEntity
 from cuds.ontology.value import OntologyValue
+from cuds import Cuds
 
 
 class OntologyClass(OntologyEntity):
@@ -60,3 +61,8 @@ class OntologyClass(OntologyEntity):
         """
         assert isinstance(value, OntologyValue)
         self._values[value] = default
+
+    def __call__(self, **kwargs):
+        values = dict(self.inherited_values)
+        values.update(kwargs)
+        Cuds()
