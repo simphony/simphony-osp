@@ -5,7 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-from cuds.ontology.ontology_entity import OntologyEntity
+from cuds.ontology.entity import OntologyEntity
 
 
 class OntologyRelationship(OntologyEntity):

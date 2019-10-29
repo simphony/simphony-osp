@@ -10,9 +10,14 @@ from cuds.ontology.namespace_registry import ONTOLOGY_NAMESPACE_REGISTRY
 
 class OntologyNamespace():
     def __init__(self, name):
-        self.name = name
+        self._name = name
         self._entities = dict()
         ONTOLOGY_NAMESPACE_REGISTRY.add_namespace(self)
+
+    @property
+    def name(self):
+        """Get the name of the namespace"""
+        return self._name
 
     def __getattribute__(self, name):
         return super().__getattribute__(name)

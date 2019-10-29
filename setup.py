@@ -12,8 +12,6 @@ try:
 except (FileNotFoundError, CalledProcessError):
     check_call(["pip", "install", "-r", "requirements.txt"])
 
-from cuds.generator.class_generator import ClassGenerator
-
 # Read description
 with open('README.md', 'r') as readme:
     README_TEXT = readme.read()

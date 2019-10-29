@@ -26,6 +26,11 @@ class OntologyEntity(ABC):
         self._definition = definition
 
     @property
+    def name(self):
+        """Get the name of the entity"""
+        return self._name
+
+    @property
     def direct_superclasses(self):
         """Get the direct superclass of the entity
 

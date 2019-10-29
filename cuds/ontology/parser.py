@@ -49,7 +49,7 @@ class Parser:
 
     def __init__(self):
         self._filename = None
-        self._yaml_doc
+        self._yaml_doc = None
         self._ontology_namespace = None
 
     def parse(self, filename):
@@ -87,13 +87,14 @@ class Parser:
         :param entity_name: The name of the entity to load.
         :type entity_name: str
         """
-        if entity_name in self._entities:
+        if entity_name in self._ontology_namespace._entities:
             return
 
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
         entity_yaml_doc = cuds_yaml_doc[entity_name]
         definition = entity_yaml_doc[DEFINITION_KEY]
 
+        # load the superclasses first
         superclass_names = entity_yaml_doc[SUPERCLASSES_KEY]
         superclasses = list()
         for p in superclass_names:
@@ -180,7 +181,7 @@ class Parser:
     def _set_datatype(self, entity: OntologyValue):
         """Set the datatype of a value
 
-        :param entity: [description]
+        :param entity: The value to set the datatype of
         :type entity: OntologyValue
         """
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]

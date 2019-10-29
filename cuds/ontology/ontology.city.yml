@@ -1,7 +1,7 @@
 ---
 VERSION: "0.0.2"
 
-ONTOLOGY_MODE: "strict"
+NAMESPACE: "CUBA"
 
 CUDS_ONTOLOGY:
 
@@ -113,7 +113,7 @@ CUDS_ONTOLOGY:
     definition:
     subclass_of:
     - CUBA.ENTITY
-    attributes:
+    values:
     - CUBA.SESSION
 
   CITY_WRAPPER:
@@ -130,7 +130,7 @@ CUDS_ONTOLOGY:
     definition:
     subclass_of:
     - CUBA.CITY_WRAPPER
-    attributes:
+    values:
     - CUBA.NUM_STEPS
     restrictions:
     - CUBA.HAS_PART:
@@ -163,7 +163,7 @@ CUDS_ONTOLOGY:
     definition:
     subclass_of:
     - CUBA.ENTITY
-    attributes:
+    values:
     - CUBA.NAME
 
   ARCHITECTURAL_COMPONENT:
@@ -175,7 +175,7 @@ CUDS_ONTOLOGY:
     definition:
     subclass_of:
     - CUBA.ENTITY
-    attributes:
+    values:
     - CUBA.NAME: "John Smith"
     - CUBA.AGE:  25
     restrictions:
@@ -210,7 +210,7 @@ CUDS_ONTOLOGY:
     definition:
     subclass_of:
     - CUBA.ENTITY
-    attributes:
+    values:
     - CUBA.NAME:  "Street"
     - CUBA.NUMBER: 7
     - CUBA.POSTAL_CODE
@@ -224,7 +224,7 @@ CUDS_ONTOLOGY:
     definition:
     subclass_of:
     - CUBA.GEOGRAPHICAL_PLACE
-    attributes:
+    values:
       CUBA.COORDINATES: [0, 0]
     restrictions:
     - CUBA.HAS_INHABITANT:

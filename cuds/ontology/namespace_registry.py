@@ -30,7 +30,7 @@ class NamespaceRegistry():
         :type namespace: OntologyNamespace
         :raises ValueError: The namespaces added first must have name CUBA
         """
-        from cuds.ontology.ontology_namespace import OntologyNamespace
+        from cuds.ontology.namespace import OntologyNamespace
         assert isinstance(namespace, OntologyNamespace)
         if not self._namespaces and namespace.name != MAIN_ONTOLOGY_NAMESPACE:
             raise ValueError("Namespace of the main ontology needs to be "
