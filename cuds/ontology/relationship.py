@@ -11,8 +11,12 @@ from cuds.ontology.entity import OntologyEntity
 class OntologyRelationship(OntologyEntity):
     def __init__(self, namespace, name, superclasses, definition):
         super().__init__(namespace, name, superclasses, definition)
-        self.inverse = None
+        self._inverse = None
+
+    @property
+    def inverse(self):
+        return self._inverse
 
     def _set_inverse(self, inverse):
         assert isinstance(inverse, OntologyRelationship)
-        self.inverse = inverse
+        self._inverse = inverse

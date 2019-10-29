@@ -22,8 +22,8 @@ class OntologyClass(OntologyEntity):
         :return: The values of the class
         :rtype: List[OntologyValue]
         """
-        result = self.get_inherited_values()
-        result.update(self.get_own_values())
+        result = self.inherited_values
+        result.update(self.own_values)
         return result
 
     @property
@@ -43,11 +43,11 @@ class OntologyClass(OntologyEntity):
         :rtype: List[OntologyValue]
         """
         result = dict()
-        superclasses = self.get_superclasses()
+        superclasses = self.superclasses
         for c in superclasses:
             if c is self:
                 continue
-            tmp = dict(c.get_own_values())
+            tmp = dict(c.own_values)
             tmp.update(result)
             result = tmp
         return result

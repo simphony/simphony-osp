@@ -39,6 +39,7 @@ class NamespaceRegistry():
         """
         from cuds.ontology.namespace import OntologyNamespace
         assert isinstance(namespace, OntologyNamespace)
+        assert namespace.name not in self._namespaces
         self._namespaces[namespace.name] = namespace
         setattr(CORE_PACKAGE, namespace.name, namespace)
 
@@ -58,6 +59,8 @@ if ONTOLOGY_NAMESPACE_REGISTRY is None:
     if os.path.exists(INSTALLED_ONTOLOGY_PATH):
         with open(INSTALLED_ONTOLOGY_PATH, "rb") as f:
             ONTOLOGY_NAMESPACE_REGISTRY = pickle.load(f)
+        for name, namespace in ONTOLOGY_NAMESPACE_REGISTRY._namespaces.items():
+            setattr(CORE_PACKAGE, name, namespace)
 
     else:  # parse main ontology
         from cuds.ontology.parser import Parser

@@ -28,8 +28,10 @@ class OntologyValue(OntologyEntity):
 
         # check for inherited datatype
         datatype = None
-        for p in self.get_direct_superclasses():
-            superclass_datatype = p.get_datatype()
+        for p in self.direct_superclasses:
+            if not isinstance(p, OntologyValue):
+                continue
+            superclass_datatype = p.datatype
             if datatype is not None and superclass_datatype is not None:
                 return "UNDEFINED"  # conflicting datatypes of superclasses
             datatype = datatype or superclass_datatype
