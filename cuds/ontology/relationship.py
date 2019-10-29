@@ -9,8 +9,8 @@ from cuds.ontology.entity import OntologyEntity
 
 
 class OntologyRelationship(OntologyEntity):
-    def __init__(self, name, superclasses, definition):
-        super().__init__(name, superclasses, definition)
+    def __init__(self, namespace, name, superclasses, definition):
+        super().__init__(namespace, name, superclasses, definition)
         self.inverse = None
 
     def _set_inverse(self, inverse):

@@ -55,7 +55,7 @@ class OntologyNamespace():
         :return: An iterator over the entities.
         :rtype: Iterator[OntologyEntity]
         """
-        return self._entities.__iter__()
+        return iter(self._entities.values())
 
     def __contains__(self, obj):
         return obj in self._entities

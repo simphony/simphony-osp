@@ -11,8 +11,8 @@ from cuds.ontology.value import OntologyValue
 
 
 class OntologyClass(OntologyEntity):
-    def __init__(self, name, superclasses, definition):
-        super().__init__(name, superclasses, definition)
+    def __init__(self, namespace, name, superclasses, definition):
+        super().__init__(namespace, name, superclasses, definition)
         self._values = dict()
 
     @property

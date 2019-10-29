@@ -10,9 +10,11 @@ from abc import ABC, abstractmethod
 
 class OntologyEntity(ABC):
     @abstractmethod
-    def __init__(self, name, superclasses, definition):
+    def __init__(self, namespace, name, superclasses, definition):
         """Initialize the ontology entity
 
+        :param namespace: The namespace of the entity
+        :type namespace: OntologyNamespace
         :param name: The name of the entity
         :type name: str
         :param superclasses: The superclasses of the entity
@@ -21,14 +23,31 @@ class OntologyEntity(ABC):
         :type definition: str
         """
         self._name = name
+        self._namespace = namespace
         self._subclasses = set()
         self._superclasses = set(superclasses)
         self._definition = definition
+        self._namespace._add_entity(self)
+
+    def __str__(self):
+        return "%s.%s" % (self.namespace.name, self.name)
+    
+    def __repr__(self):
+        return "<%s %s.%s>" % (
+            self.__class__.__name__,
+            self.namespace.name,
+            self.name
+        )
 
     @property
     def name(self):
         """Get the name of the entity"""
         return self._name
+
+    @property
+    def namespace(self):
+        """Get the name of the entity"""
+        return self._namespace
 
     @property
     def direct_superclasses(self):
@@ -46,7 +65,7 @@ class OntologyEntity(ABC):
         :return: The direct subclasses of the entity
         :rtype: Set[OntologyEntity]
         """
-        return self.children
+        return self._subclasses
 
     @property
     def subclasses(self):
@@ -58,7 +77,7 @@ class OntologyEntity(ABC):
         result = {self}
         result |= self._subclasses
         for c in self._subclasses:
-            result |= c.get_subclasses()
+            result |= c.subclasses
         return result
 
     @property

@@ -12,8 +12,8 @@ from cuds.ontology.datatypes import (
 
 
 class OntologyValue(OntologyEntity):
-    def __init__(self, name, superclasses, definition):
-        super().__init__(name, superclasses, definition)
+    def __init__(self, namespace, name, superclasses, definition):
+        super().__init__(namespace, name, superclasses, definition)
         self._datatype = None
 
     @property

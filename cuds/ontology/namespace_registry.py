@@ -5,8 +5,15 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+import os
+import pickle
+import cuds
+
 ONTOLOGY_NAMESPACE_REGISTRY = None
 MAIN_ONTOLOGY_NAMESPACE = "CUBA"
+MAIN_ONTOLOGY_PATH = os.path.join("yml", "ontology.cuba.yml")
+INSTALLED_ONTOLOGY_PATH = os.path.join("installed.pkl")
+CORE_PACKAGE = cuds
 
 
 class NamespaceRegistry():
@@ -32,10 +39,8 @@ class NamespaceRegistry():
         """
         from cuds.ontology.namespace import OntologyNamespace
         assert isinstance(namespace, OntologyNamespace)
-        if not self._namespaces and namespace.name != MAIN_ONTOLOGY_NAMESPACE:
-            raise ValueError("Namespace of the main ontology needs to be "
-                             + MAIN_ONTOLOGY_NAMESPACE)
         self._namespaces[namespace.name] = namespace
+        setattr(CORE_PACKAGE, namespace.name, namespace)
 
     def get_main_namespace(self):
         """Get the main namespace (CUBA)
@@ -46,4 +51,18 @@ class NamespaceRegistry():
         return self._namespaces[MAIN_ONTOLOGY_NAMESPACE]
 
 
-ONTOLOGY_NAMESPACE_REGISTRY = NamespaceRegistry()
+# initialize registry singleton
+if ONTOLOGY_NAMESPACE_REGISTRY is None:
+
+    # load from installation
+    if os.path.exists(INSTALLED_ONTOLOGY_PATH):
+        with open(INSTALLED_ONTOLOGY_PATH, "rb") as f:
+            ONTOLOGY_NAMESPACE_REGISTRY = pickle.load(f)
+
+    else:  # parse main ontology
+        from cuds.ontology.parser import Parser
+        ONTOLOGY_NAMESPACE_REGISTRY = NamespaceRegistry()
+        p = Parser()
+        path = os.path.abspath(os.path.dirname(__file__))
+        path = os.path.join(path, MAIN_ONTOLOGY_PATH)
+        namespace = p.parse(path)
