@@ -22,7 +22,7 @@ class OntologyEntity(ABC):
         """
         self._name = name
         self._subclasses = set()
-        self._superclasses = superclasses
+        self._superclasses = set(superclasses)
         self._definition = definition
 
     @property
@@ -71,7 +71,7 @@ class OntologyEntity(ABC):
         result = {self}
         result |= self._superclasses
         for p in self._superclasses:
-            result |= p.get_superclasses()
+            result |= p.superclasses
         return result
 
     @property

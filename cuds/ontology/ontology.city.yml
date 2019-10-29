@@ -114,7 +114,7 @@ CUDS_ONTOLOGY:
     subclass_of:
     - CUBA.ENTITY
     values:
-    - CUBA.SESSION
+      CUBA.SESSION:
 
   CITY_WRAPPER:
     definition:
@@ -131,7 +131,7 @@ CUDS_ONTOLOGY:
     subclass_of:
     - CUBA.CITY_WRAPPER
     values:
-    - CUBA.NUM_STEPS
+      CUBA.NUM_STEPS:
     restrictions:
     - CUBA.HAS_PART:
         target: CUBA.PERSON
@@ -164,7 +164,7 @@ CUDS_ONTOLOGY:
     subclass_of:
     - CUBA.ENTITY
     values:
-    - CUBA.NAME
+      CUBA.NAME:
 
   ARCHITECTURAL_COMPONENT:
     definition:
@@ -176,8 +176,8 @@ CUDS_ONTOLOGY:
     subclass_of:
     - CUBA.ENTITY
     values:
-    - CUBA.NAME: "John Smith"
-    - CUBA.AGE:  25
+      CUBA.NAME: "John Smith"
+      CUBA.AGE:  25
     restrictions:
     - CUBA.IS_CHILD_OF:
         target: CUBA.LIVING_BEING
@@ -211,9 +211,9 @@ CUDS_ONTOLOGY:
     subclass_of:
     - CUBA.ENTITY
     values:
-    - CUBA.NAME:  "Street"
-    - CUBA.NUMBER: 7
-    - CUBA.POSTAL_CODE
+      CUBA.NAME:  "Street"
+      CUBA.NUMBER: 7
+      CUBA.POSTAL_CODE:
     restrictions:
     - CUBA.IS_PART_OF:
         target: CUBA.BUILDING
@@ -341,4 +341,4 @@ CUDS_ONTOLOGY:
   AGE:
     definition:
     subclass_of:
-    - NUMBER
+    - CUBA.NUMBER

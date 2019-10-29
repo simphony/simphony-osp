@@ -19,9 +19,6 @@ class OntologyNamespace():
         """Get the name of the namespace"""
         return self._name
 
-    def __getattribute__(self, name):
-        return super().__getattribute__(name)
-
     def __getattr__(self, name):
         """Get an ontology entity from the registry by name.
 
@@ -50,7 +47,7 @@ class OntologyNamespace():
         :return: The ontology entity
         :rtype: OntologyEntity
         """
-        return self.entities.__getitem__(name)
+        return self._entities.__getitem__(name)
 
     def __iter__(self):
         """Iterate over the ontology entities in the namespace.

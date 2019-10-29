@@ -73,13 +73,23 @@ class Parser:
         for entity_name in cuds_yaml_doc:
             self._load_entity(entity_name)
 
-        for entity in self._entities.values():
+        new_inverses = set()
+        for entity in self._ontology_namespace._entities.values():
             if isinstance(entity, OntologyClass):
                 self._add_values(entity)
             elif isinstance(entity, OntologyRelationship):
-                self._set_inverse(entity)
+                new_inverses |= self._set_inverse(entity)
             else:
                 self._set_datatype(entity)
+        for inverse in new_inverses:
+            self._ontology_namespace._add_entity(inverse)
+
+    def _split_name(self, name):
+        try:
+            return name.split(".")
+        except ValueError as e:
+            raise ValueError("Reference to entity %s without namespace"
+                             % name) from e
 
     def _load_entity(self, entity_name):
         """Load an entity into the registry
@@ -98,15 +108,15 @@ class Parser:
         superclass_names = entity_yaml_doc[SUPERCLASSES_KEY]
         superclasses = list()
         for p in superclass_names:
-            namespace, superclass_name = p.split(".")
-            namespace == ONTOLOGY_NAMESPACE_REGISTRY[namespace]
+            namespace, superclass_name = self._split_name(p)
+            namespace = ONTOLOGY_NAMESPACE_REGISTRY[namespace]
             if namespace is self._ontology_namespace:
                 self._load_entity(superclass_name)
             superclasses.append(namespace[superclass_name])
         entity = self._create_entity(entity_name, superclasses, definition)
         self._ontology_namespace._add_entity(entity)
         for p in superclasses:
-            p._add_child(entity)
+            p._add_subclass(entity)
 
     def _create_entity(self, entity_name, superclasses, definition):
         """Create an entity object
@@ -137,11 +147,17 @@ class Parser:
         """
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
         entity_yaml_doc = cuds_yaml_doc[entity.name]
-        values_def = entity_yaml_doc[VALUES_KEY]
+
+        values_def = None
+        if VALUES_KEY in entity_yaml_doc:
+            values_def = entity_yaml_doc[VALUES_KEY]
+
+        if values_def is None:
+            return
 
         # Add the values one by one
         for value_name, default in values_def.items():
-            value_namespace, value_name = value_name.split(".")
+            value_namespace, value_name = self._split_name(value_name)
             value_namespace = ONTOLOGY_NAMESPACE_REGISTRY[value_namespace]
             value = value_namespace[value_name]
             entity._add_value(value, default)
@@ -161,22 +177,22 @@ class Parser:
 
         # Inverse is defined
         if inverse_def is not None:
-            inverse_namespace, inverse_name = inverse_def.split(".")
+            inverse_namespace, inverse_name = self._split_name(inverse_def)
             inverse_namespace = ONTOLOGY_NAMESPACE_REGISTRY[inverse_namespace]
             inverse = inverse_namespace[inverse_name]
             entity._set_inverse(inverse)
+            return set()
 
         # Inverse not defined --> Create one
-        else:
-            inverse = OntologyRelationship(
-                name="INVERSE_OF_%s" % entity.name,
-                superclasses=[ONTOLOGY_NAMESPACE_REGISTRY.get_main_namespace
-                                                         .RELATIONSHIP],
-                defintion="Inverse of %s" % entity.name
-            )
-            self._ontology_namespace._add_entity(inverse)
-            inverse._set_inverse(entity)
-            entity._set_inverse(inverse)
+        inverse = OntologyRelationship(
+            name="INVERSE_OF_%s" % entity.name,
+            superclasses=[ONTOLOGY_NAMESPACE_REGISTRY.get_main_namespace()
+                                                        .RELATIONSHIP],
+            definition="Inverse of %s" % entity.name
+        )
+        inverse._set_inverse(entity)
+        entity._set_inverse(inverse)
+        return {inverse}
 
     def _set_datatype(self, entity: OntologyValue):
         """Set the datatype of a value
