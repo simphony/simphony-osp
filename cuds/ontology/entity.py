@@ -31,7 +31,7 @@ class OntologyEntity(ABC):
 
     def __str__(self):
         return "%s.%s" % (self.namespace.name, self.name)
-    
+
     def __repr__(self):
         return "<%s %s.%s>" % (
             self.__class__.__name__,
