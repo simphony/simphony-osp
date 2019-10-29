@@ -74,6 +74,16 @@ class Cuds(dict):
         """
         return "%s: %s" % (self.cuba_key, self.uid)
 
+    def __repr__(self) -> str:
+        """
+        Redefines the repr() for Cuds.
+
+        :return: string with the official string representation for Cuds.
+        """
+        return "<%s: %s,  %s: @%s>" % (self.cuba_key, self.uid,
+                                       type(self.session).__name__,
+                                       hex(id(self.session)))
+
     def __getitem__(self, key):
         self.session._notify_read(self)
         return super().__getitem__(key)
@@ -381,7 +391,8 @@ class Cuds(dict):
             old_cuds_object = clone_cuds_object(old_cuds_object)
             new_child_getter = new_cuds_object
             new_cuds_object = create_from_cuds_object(new_cuds_object,
-                                                      add_to.session)
+                                                      add_to.session,
+                                                      True)
             # fix the connections to the neighbours
             add_to._fix_neighbours(new_cuds_object, old_cuds_object,
                                    add_to.session, missing)

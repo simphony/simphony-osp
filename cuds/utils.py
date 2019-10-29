@@ -442,7 +442,7 @@ def clone_cuds_object(cuds_object):
     return clone
 
 
-def create_for_session(entity_cls, kwargs, session):
+def create_for_session(entity_cls, kwargs, session, add_to_buffers=True):
     """Instantiate a cuds_object with a given session.
     If cuds_object with same uid is already in the session,
     this object will be reused.
@@ -453,6 +453,11 @@ def create_for_session(entity_cls, kwargs, session):
     :type kwargs: Dict[str, Any]
     :param session: The session of the new Cuds object
     :type session: Session
+    :param add_to_buffers: Whether the new cuds object should be added
+        to the buffers
+    :type add_to_buffers: bool
+    :result: The created cuds object
+    :rtype: Cuds
     """
     from cuds.classes import Cuds
     uid = convert_to(kwargs["uid"], "UUID")
@@ -460,34 +465,45 @@ def create_for_session(entity_cls, kwargs, session):
         session._expired.remove(uid)
 
     # recycle old object
-    if uid in session._registry:
+    if (
+        uid in session._registry
+        and type(session._registry.get(uid)) == entity_cls
+    ):
         cuds_object = session._registry.get(uid)
-        if type(cuds_object) == entity_cls:
-            for key, value in kwargs.items():
-                if key not in cuds_object.get_attributes():
-                    raise TypeError
-                if key not in ["uid", "session"]:
-                    setattr(cuds_object, key, value)
-            for rel in set(cuds_object.keys()):
-                del cuds_object[rel]
-            return cuds_object
-
-    # create new
-    if "session" in inspect.getfullargspec(entity_cls.__init__).args:
-        kwargs["session"] = session
-    default_session = Cuds._session
-    Cuds._session = session
-    cuds_object = entity_cls(**kwargs)
-    Cuds._session = default_session
-    cuds_object._session = session
-    session.store(cuds_object)
+        for key, value in kwargs.items():
+            if key not in cuds_object.get_attributes():
+                raise TypeError
+            if key not in ["uid", "session"]:
+                setattr(cuds_object, key, value)
+        for rel in set(cuds_object.keys()):
+            del cuds_object[rel]
+    else:  # create new
+        if "session" in inspect.getfullargspec(entity_cls.__init__).args:
+            kwargs["session"] = session
+        default_session = Cuds._session
+        Cuds._session = session
+        cuds_object = entity_cls(**kwargs)
+        Cuds._session = default_session
+        cuds_object._session = session
+        session.store(cuds_object)
+    if hasattr(session, "_remove_uids_from_buffers") and not add_to_buffers:
+        session._remove_uids_from_buffers([cuds_object.uid])
     return cuds_object
 
 
-def create_from_cuds_object(cuds_object, session):
+def create_from_cuds_object(cuds_object, session, add_to_buffers):
     """Create a copy of the given cuds_object in a different session.
     WARNING: Will not recursively copy children.
 
+    :param cuds_object: The cuds object to copy
+    :type cuds_object: Cuds
+    :param kwargs: The kwargs of the cuds_object
+    :type kwargs: Dict[str, Any]
+    :param session: The session of the new Cuds object
+    :type session: Session
+    :param add_to_buffers: Whether the new cuds object should be added
+        to the buffers
+    :type add_to_buffers: bool
     :return: A copy of self with the given session.
     :rtype: Cuds
     """
@@ -496,7 +512,7 @@ def create_from_cuds_object(cuds_object, session):
     values = [getattr(cuds_object, x) for x in attributes]
     kwargs = dict(zip(attributes, values))
     entity_cls = type(cuds_object)
-    clone = create_for_session(entity_cls, kwargs, session)
+    clone = create_for_session(entity_cls, kwargs, session, add_to_buffers)
     for key, uid_cuba in cuds_object.items():
         clone[key] = dict()
         for uid, cuba in uid_cuba.items():
