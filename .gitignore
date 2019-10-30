@@ -11,3 +11,4 @@ cuds/ontology/tools/__pycache__/
 .mypy_cache/
 coverage.xml
 .coverage
+*.pkl
