@@ -14,14 +14,6 @@ from osp.core.ontology.namespace_registry import ONTOLOGY_NAMESPACE_REGISTRY
 
 class TestParser(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        parser = Parser()
-        path = os.path.dirname(os.path.abspath(__file__))
-        path = os.path.join(path, "..", "osp", "core", "ontology", "yml",
-                            "ontology.city.yml")
-        parser.parse(path)
-
     def test_ontology_namespace_registry(self):
         """Test the namespace registry"""
         self.assertEqual(
