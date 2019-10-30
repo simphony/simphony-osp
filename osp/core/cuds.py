@@ -52,10 +52,10 @@ class Cuds(dict):
         :type uid: UUID
         """
         super().__init__()
-        self._attributes = {k.name.lower(): v for k, v in attributes.items()}
+        self._attributes = {k.name: v for k, v in attributes.items()}
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         self._session = session or Cuds._session
-        self._values = {k.name.lower(): k for k in attributes}
+        self._values = {k.name: k for k in attributes}
         self._is_a = is_a
         self.session.store(self)
 

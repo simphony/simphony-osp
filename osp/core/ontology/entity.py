@@ -29,13 +29,13 @@ class OntologyEntity(ABC):
         self._definition = definition
 
     def __str__(self):
-        return "%s.%s" % (self.namespace.name, self.name)
+        return "%s.%s" % (self.namespace.name, self._name)
 
     def __repr__(self):
         return "<%s %s.%s>" % (
             self.__class__.__name__,
             self.namespace.name,
-            self.name
+            self._name
         )
 
     @property

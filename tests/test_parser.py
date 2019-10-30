@@ -42,7 +42,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(
             set(all_names),
             {"ENTITY", "RELATIONSHIP", "ACTIVE_RELATIONSHIP",
-             "WRAPPER", "VALUE", "INVERSE_OF_RELATIONSHIP",
+             "WRAPPER", "value", "INVERSE_OF_RELATIONSHIP",
              "INVERSE_OF_ACTIVE_RELATIONSHIP"}
         )
 

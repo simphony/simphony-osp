@@ -6,7 +6,7 @@
 # No redistribution is allowed without explicit written permission.
 
 import unittest2 as unittest
-# import uuid
+import uuid
 
 # from osp.core.utils import clone_cuds_object, create_from_cuds_object, \
 #     get_neighbour_diff
@@ -33,20 +33,20 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(c.is_a, CITY.CITY)
         self.assertEqual(p.is_a, CITY.PERSON)
 
-    # def test_uid(self):
-    #     """
-    #     Tests that the uid variable contains a UUID object
-    #     """
-    #     c = cuds.classes.City("a city")
-    #     self.assertIsInstance(c.uid, uuid.UUID)
+    def test_uid(self):
+        """
+        Tests that the uid variable contains a UUID object
+        """
+        c = CITY.CITY(name="a city")
+        self.assertIsInstance(c.uid, uuid.UUID)
 
-    # def test_set_throws_exception(self):
-    #     """
-    #     Tests that setting a value for a key not in restricted
-    #     keys throws an exception.
-    #     """
-    #     c = cuds.classes.City("a city")
-    #     self.assertRaises(ValueError, c.__setitem__, "not an allowed key", 15)
+    def test_set_throws_exception(self):
+        """
+        Tests that setting a value for a key not in restricted
+        keys throws an exception.
+        """
+        c = CITY.CITY(name="a city")
+        self.assertRaises(ValueError, c.__setitem__, "not an allowed key", 15)
 
     # def test_add(self):
     #     """

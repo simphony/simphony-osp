@@ -17,6 +17,10 @@ class OntologyValue(OntologyEntity):
         self._datatype = None
 
     @property
+    def name(self):
+        return super().name.lower()
+
+    @property
     def datatype(self):
         """Get the datatype of the value
 
