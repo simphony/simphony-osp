@@ -7,9 +7,9 @@
 
 import os
 import unittest2 as unittest
-import cuds
-from cuds.ontology.parser import Parser
-from cuds.ontology.namespace_registry import ONTOLOGY_NAMESPACE_REGISTRY
+import osp.core
+from osp.core.ontology.parser import Parser
+from osp.core.ontology.namespace_registry import ONTOLOGY_NAMESPACE_REGISTRY
 
 
 class TestParser(unittest.TestCase):
@@ -18,7 +18,8 @@ class TestParser(unittest.TestCase):
     def setUpClass(cls):
         parser = Parser()
         path = os.path.dirname(os.path.abspath(__file__))
-        path = os.path.join(path, "..", "ontology", "yml", "ontology.city.yml")
+        path = os.path.join(path, "..", "osp", "core", "ontology", "yml",
+                            "ontology.city.yml")
         parser.parse(path)
 
     def test_ontology_namespace_registry(self):
@@ -55,10 +56,10 @@ class TestParser(unittest.TestCase):
 
     def test_ontology_entity(self):
         """Test the ontology entities"""
-        Citizen = cuds.CITY.CITIZEN
-        Person = cuds.CITY.PERSON
-        LivingBeing = cuds.CITY.LIVING_BEING
-        Entity = cuds.CUBA.ENTITY
+        Citizen = osp.core.CITY.CITIZEN
+        Person = osp.core.CITY.PERSON
+        LivingBeing = osp.core.CITY.LIVING_BEING
+        Entity = osp.core.CUBA.ENTITY
 
         self.assertEqual(
             Person.direct_superclasses,
@@ -79,10 +80,10 @@ class TestParser(unittest.TestCase):
 
     def test_ontology_class(self):
         """Test the ontology relationships"""
-        Citizen = cuds.CITY.CITIZEN
-        Person = cuds.CITY.PERSON
-        Name = cuds.CITY.NAME
-        Age = cuds.CITY.AGE
+        Citizen = osp.core.CITY.CITIZEN
+        Person = osp.core.CITY.PERSON
+        Name = osp.core.CITY.NAME
+        Age = osp.core.CITY.AGE
 
         self.assertEqual(
             Citizen.values,
@@ -103,11 +104,11 @@ class TestParser(unittest.TestCase):
 
     def test_ontology_relationship(self):
         """Test the ontology relationship"""
-        HasPart = cuds.CITY.HAS_PART
-        IsPartOf = cuds.CITY.IS_PART_OF
-        ActiveRelationship = cuds.CUBA.ACTIVE_RELATIONSHIP
-        Relationship = cuds.CUBA.RELATIONSHIP
-        PassiveRelationship = cuds.CUBA.INVERSE_OF_ACTIVE_RELATIONSHIP
+        HasPart = osp.core.CITY.HAS_PART
+        IsPartOf = osp.core.CITY.IS_PART_OF
+        ActiveRelationship = osp.core.CUBA.ACTIVE_RELATIONSHIP
+        Relationship = osp.core.CUBA.RELATIONSHIP
+        PassiveRelationship = osp.core.CUBA.INVERSE_OF_ACTIVE_RELATIONSHIP
         self.assertEqual(HasPart.inverse, IsPartOf)
         self.assertEqual(IsPartOf.inverse, HasPart)
         self.assertEqual(ActiveRelationship.inverse, PassiveRelationship)
@@ -117,11 +118,11 @@ class TestParser(unittest.TestCase):
 
     def test_ontology_values(self):
         """Test the ontology values"""
-        self.assertEqual(cuds.CUBA.VALUE.datatype, "UNDEFINED")
-        self.assertEqual(cuds.CITY.NUMBER.datatype, "INT")
-        self.assertEqual(cuds.CITY.NAME.datatype, "UNDEFINED")
-        self.assertEqual(cuds.CITY.COORDINATES.datatype, "VECTOR:2")
-        self.assertEqual(cuds.CITY.NUM_STEPS.datatype, "INT")
+        self.assertEqual(osp.core.CUBA.VALUE.datatype, "UNDEFINED")
+        self.assertEqual(osp.core.CITY.NUMBER.datatype, "INT")
+        self.assertEqual(osp.core.CITY.NAME.datatype, "UNDEFINED")
+        self.assertEqual(osp.core.CITY.COORDINATES.datatype, "VECTOR:2")
+        self.assertEqual(osp.core.CITY.NUM_STEPS.datatype, "INT")
 
 
 if __name__ == '__main__':

@@ -6,9 +6,8 @@
 # No redistribution is allowed without explicit written permission.
 
 
-from cuds.ontology.entity import OntologyEntity
-from cuds.ontology.value import OntologyValue
-from cuds import Cuds
+from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.value import OntologyValue
 
 
 class OntologyClass(OntologyEntity):
@@ -65,4 +64,3 @@ class OntologyClass(OntologyEntity):
     def __call__(self, **kwargs):
         values = dict(self.inherited_values)
         values.update(kwargs)
-        Cuds()

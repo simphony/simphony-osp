@@ -5,8 +5,8 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-from cuds.ontology.entity import OntologyEntity
-from cuds.ontology.datatypes import (
+from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.datatypes import (
     ONTOLOGY_DATATYPES, convert_from, convert_to
 )
 
@@ -70,7 +70,10 @@ class OntologyValue(OntologyEntity):
         self._datatype = datatype
 
     def __hash__(self):
-        return hash(self.name)
+        try:
+            return hash(self.name)
+        except AttributeError:
+            return super().__hash__()
 
     def __eq__(self, other):
         if isinstance(other, OntologyValue):

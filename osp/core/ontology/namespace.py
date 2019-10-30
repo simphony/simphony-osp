@@ -5,14 +5,11 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-from cuds.ontology.namespace_registry import ONTOLOGY_NAMESPACE_REGISTRY
-
 
 class OntologyNamespace():
     def __init__(self, name):
         self._name = name
         self._entities = dict()
-        ONTOLOGY_NAMESPACE_REGISTRY.add_namespace(self)
 
     @property
     def name(self):
@@ -27,7 +24,10 @@ class OntologyNamespace():
         :return: The ontology entity
         :rtype: OntologyEntity
         """
-        return self.get(name)
+        try:
+            return self.get(name)
+        except KeyError:
+            raise AttributeError
 
     def __getitem__(self, name):
         """Get an ontology entity from the registry by name.
@@ -38,6 +38,12 @@ class OntologyNamespace():
         :rtype: OntologyEntity
         """
         return self.get(name)
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, state):
+        self.__dict__ = state
 
     def get(self, name):
         """Get an ontology entity from the registry by name.
@@ -66,6 +72,6 @@ class OntologyNamespace():
         :param entity: The entity to add.
         :type entity: OntologyEntity
         """
-        from cuds.ontology.entity import OntologyEntity
+        from osp.core.ontology.entity import OntologyEntity
         assert isinstance(entity, OntologyEntity)
         self._entities[entity.name] = entity

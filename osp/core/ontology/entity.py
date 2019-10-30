@@ -27,7 +27,6 @@ class OntologyEntity(ABC):
         self._subclasses = set()
         self._superclasses = set(superclasses)
         self._definition = definition
-        self._namespace._add_entity(self)
 
     def __str__(self):
         return "%s.%s" % (self.namespace.name, self.name)
@@ -111,3 +110,9 @@ class OntologyEntity(ABC):
         :type subclass: OntologyEntity
         """
         self._subclasses.add(subclass)
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, state):
+        self.__dict__ = state

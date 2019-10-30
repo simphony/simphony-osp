@@ -5,9 +5,9 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-from cuds.ontology.oclass import OntologyClass
-from cuds.ontology.relationship import OntologyRelationship
-from cuds.ontology.value import OntologyValue
+from osp.core.ontology.oclass import OntologyClass
+from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.ontology.value import OntologyValue
 import yaml
 
 VERSION_KEY = "VERSION"  # TODO
@@ -45,20 +45,21 @@ class Parser:
     contained.
     """
 
-    def __init__(self):
-        from cuds.ontology.namespace_registry import \
+    def __init__(self, namespace_registry=None):
+        from osp.core.ontology.namespace_registry import \
             ONTOLOGY_NAMESPACE_REGISTRY
 
+        self._namespace_registry = namespace_registry or \
+            ONTOLOGY_NAMESPACE_REGISTRY
         self._filename = None
         self._yaml_doc = None
         self._ontology_namespace = None
-        self._namespace_registry = ONTOLOGY_NAMESPACE_REGISTRY
 
     def parse(self, filename):
         """
         Reads the YAML and extracts the dictionary with the CUDS.
         """
-        from cuds.ontology.namespace import OntologyNamespace
+        from osp.core.ontology.namespace import OntologyNamespace
 
         self.__init__()
         self._filename = filename
@@ -67,6 +68,7 @@ class Parser:
             self._ontology_namespace = OntologyNamespace(
                 self._yaml_doc[NAMESPACE_KEY]
             )
+            self._namespace_registry.add_namespace(self._ontology_namespace)
             self._parse_cuds_ontology()
         return self._ontology_namespace
 
@@ -139,10 +141,12 @@ class Parser:
             Class = OntologyRelationship
         else:
             Class = OntologyClass
-        return Class(namespace=self._ontology_namespace,
-                     name=entity_name,
-                     superclasses=superclasses,
-                     definition=definition)
+        result = Class(namespace=self._ontology_namespace,
+                       name=entity_name,
+                       superclasses=superclasses,
+                       definition=definition)
+        self._ontology_namespace._add_entity(result)
+        return result
 
     def _add_values(self, entity: OntologyClass):
         """Add a value to an ontology class
@@ -204,6 +208,7 @@ class Parser:
                           .get_main_namespace().RELATIONSHIP],
             definition="Inverse of %s" % entity.name
         )
+        self._ontology_namespace._add_entity(inverse)
         inverse._set_inverse(entity)
         entity._set_inverse(inverse)
         return {inverse}
