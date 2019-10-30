@@ -7,18 +7,18 @@
 
 # from __future__ import annotations
 import uuid
-import inspect
 from typing import Union, List, Iterator, Dict, Any
 
 from osp.core.ontology.relationship import OntologyEntity
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.value import OntologyValue
+from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.datatypes import convert_to
 from osp.core.session.core_session import CoreSession
 from osp.core.session.session import Session
 from osp.core.utils import check_arguments, clone_cuds_object, \
     create_from_cuds_object, get_neighbour_diff
-from osp.core import CUBA
+from osp.core import CUBA, get_default_rel
 
 
 class Cuds(dict):
@@ -31,10 +31,6 @@ class Cuds(dict):
     The instances of the contained elements are accessible
     through the shared session
     """
-    DEFAULT_REL = None
-    ROOT_REL = CUBA.RELATIONSHIP
-    cuba_key = None
-    supported_relationships = dict()
     _session = CoreSession()
 
     def __init__(
@@ -52,10 +48,10 @@ class Cuds(dict):
         :type uid: UUID
         """
         super().__init__()
-        self._attributes = {k.name: v for k, v in attributes.items()}
+        self._attributes = {k.argname: v for k, v in attributes.items()}
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         self._session = session or Cuds._session
-        self._values = {k.name: k for k in attributes}
+        self._values = {k.argname: k for k in attributes}
         self._is_a = is_a
         self.session.store(self)
 
@@ -75,9 +71,9 @@ class Cuds(dict):
         """
         Redefines the str() for Cuds.
 
-        :return: string with the cuba_key and uid.
+        :return: string with the entity and uid.
         """
-        return "%s: %s" % (self.cuba_key, self.uid)
+        return "%s: %s" % (self.is_a, self.uid)
 
     def __getattr__(self, name):
         if name not in self._attributes:
@@ -108,7 +104,7 @@ class Cuds(dict):
         :raises ValueError: The given key is not a relationship.
         """
         self.session._notify_read(self)
-        if inspect.isclass(key) and key in self.ROOT_REL.subclasses:
+        if isinstance(key, OntologyRelationship):
             super().__delitem__(key)
             self.session._notify_update(self)
         else:
@@ -126,10 +122,9 @@ class Cuds(dict):
         :raises ValueError: unsupported key provided (not a relationship)
         """
         self.session._notify_read(self)
-        if inspect.isclass(key) and key in self.ROOT_REL.subclasses \
-                and isinstance(value, dict):
-            for _, cuba_key in value.items():
-                self._check_valid_add(cuba_key, key)
+        if isinstance(key, OntologyRelationship) and isinstance(value, dict):
+            for _, entity in value.items():
+                self._check_valid_add(entity, key)
             # Any changes to the dict should be sent to the session
             super().__setitem__(key, NotifyDict(value,
                                                 cuds_object=self,
@@ -164,7 +159,7 @@ class Cuds(dict):
             *args: "Cuds",
             rel: OntologyRelationship = None) -> Union["Cuds", List["Cuds"]]:
         """
-        Adds (a) cuds(s) to their respective CUBA key relationship.
+        Adds (a) cuds(s) to their respective relationship.
         Before adding, check for invalid keys to avoid inconsistencies later.
 
         :param args: object(s) to add
@@ -176,8 +171,10 @@ class Cuds(dict):
         :raises ValueError: adding an element already there
         """
         check_arguments(Cuds, *args)
+        rel = rel or get_default_rel()
         if rel is None:
-            rel = self.DEFAULT_REL
+            raise TypeError("Specify a relationship or call "
+                            "osp.core.set_default_rel()!")
         result = list()
         old_objects = self._session.load(
             *[arg.uid for arg in args if arg.session != self.session])
@@ -197,11 +194,11 @@ class Cuds(dict):
     def get(self,
             *uids: uuid.UUID,
             rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
-            cuba_key: CUBA = None) -> Union["Cuds", List["Cuds"]]:
+            entity: OntologyClass = None) -> Union["Cuds", List["Cuds"]]:
         """
         Returns the contained elements of a certain type, uid or relationship.
-        Expected calls are get(), get(*uids), get(rel), get(cuba_key),
-        get(*uids, rel), get(rel, cuba_key).
+        Expected calls are get(), get(*uids), get(rel), get(entity),
+        get(*uids, rel), get(rel, entity).
         If uids are specified, the position of each element in the result
         is determined by to the position of the corresponding uid in the given
         list of uids.
@@ -213,12 +210,12 @@ class Cuds(dict):
         :param rel: Only return cuds_object which are connected by subclass of
             given relationship.
         :type rel: OntologyRelationship
-        :param cuba_key: CUBA key of the subelements
-        :type cuba_key: CUBA
+        :param entity: Type of the subelements
+        :type entity: OntologyClass
         :return: the queried objects, or None, if not found
         :rtype: Union[Cuds, List[Cuds]]
         """
-        collected_uids = self._get(*uids, rel=rel, cuba_key=cuba_key)
+        collected_uids = self._get(*uids, rel=rel, entity=entity)
         result = list(self._load_cuds_objects(collected_uids))
         if len(uids) == 1:
             return result[0]
@@ -253,25 +250,25 @@ class Cuds(dict):
     def remove(self,
                *args: Union["Cuds", uuid.UUID],
                rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
-               cuba_key: CUBA = None):
+               entity: OntologyClass = None):
         """
         Removes elements from the Cuds.
         Expected calls are remove(), remove(*uids/Cuds),
-        remove(rel), remove(cuba_key), remove(*uids/Cuds, rel),
-        remove(rel, cuba_key)
+        remove(rel), remove(entity), remove(*uids/Cuds, rel),
+        remove(rel, entity)
 
         :param args: UIDs of the elements or the elements themselves
         :type args: Union[Cuds, UUID]
         :param rel: Only remove cuds_object which are connected by subclass of
             given relationship
         :type rel: OntologyRelationship
-        :param cuba_key: CUBA key of the subelements
-        :type cuba_key: CUBA
+        :param entity: Type of the subelements
+        :type entity: OntologyClass
         """
         uids = [arg.uid if isinstance(arg, Cuds) else arg for arg in args]
 
         # Get mapping from uids to connecting relationships
-        _, relationship_mapping = self._get(*uids, rel=rel, cuba_key=cuba_key,
+        _, relationship_mapping = self._get(*uids, rel=rel, entity=entity,
                                             return_mapping=True)
         if not relationship_mapping:
             raise RuntimeError("Did not remove any Cuds object, "
@@ -289,11 +286,11 @@ class Cuds(dict):
     def iter(self,
              *uids: uuid.UUID,
              rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
-             cuba_key: CUBA = None) -> Iterator["Cuds"]:
+             entity: OntologyClass = None) -> Iterator["Cuds"]:
         """
         Iterates over the contained elements of a certain type, uid or
         relationship. Expected calls are iter(), iter(*uids), iter(rel),
-        iter(cuba_key), iter(*uids, rel), iter(rel, cuba_key).
+        iter(entity), iter(*uids, rel), iter(rel, entity).
         If uids are specified, the each element will be yielded in the order
         given by list of uids.
         In this case, elements can be None values if a given uid is not
@@ -304,12 +301,12 @@ class Cuds(dict):
         :type uids: UUID
         :param rel: class of the relationship.
         :type rel: OntologyRelationship
-        :param cuba_key: CUBA key of the subelements.
-        :type cuba_key: CUBA
+        :param entity: Type of the subelements.
+        :type entity: OntologyClass
         :return: Iterator over of queried objects, or None, if not found.
         :rtype: Iterator[Cuds]
         """
-        collected_uids = self._get(*uids, rel=rel, cuba_key=cuba_key)
+        collected_uids = self._get(*uids, rel=rel, entity=entity)
         yield from self._load_cuds_objects(collected_uids)
 
     def _str_attributes(self):
@@ -323,22 +320,6 @@ class Cuds(dict):
             attributes.append(attribute + ": " + str(getattr(self, attribute)))
 
         return attributes
-
-    @staticmethod
-    def _str_relationship_set(rel_key, rel_set):
-        """
-        Serializes a relationship set with the given name in a key-value form.
-
-        :param rel_key: CUBA key of the relationship
-        :type rel_key: CUBA
-        :param rel_set: set of the objects contained under that relationship
-        :type rel_set: Set[Cuds]
-        :return: string with the uids of the contained elements
-        :rtype: str
-        """
-        elements = [str(element.uid) for element in rel_set]
-
-        return str(rel_key) + ": {\n\t" + ",\n\t".join(elements) + "\n  }"
 
     def _recursive_store(self, new_cuds_object, old_cuds_object=None):
         """Recursively store cuds_object and all its children.
@@ -491,7 +472,7 @@ class Cuds(dict):
             if inverse not in parent:
                 parent[inverse] = dict()
 
-            parent[inverse][new_cuds_object.uid] = new_cuds_object.cuba_key
+            parent[inverse][new_cuds_object.uid] = new_cuds_object.is_a
 
     @staticmethod
     def _fix_old_neighbours(new_cuds_object, old_cuds_object, old_neighbours,
@@ -524,10 +505,10 @@ class Cuds(dict):
             else:
                 if relationship not in new_cuds_object:
                     new_cuds_object[relationship] = dict()
-                for (uid, cuba_key), parent in \
+                for (uid, entity), parent in \
                         zip(old_cuds_object[relationship].items(), neighbour):
                     if parent is not None:
-                        new_cuds_object[relationship][uid] = cuba_key
+                        new_cuds_object[relationship][uid] = entity
 
     def _add_direct(self, cuds_object, rel):
         """
@@ -540,10 +521,10 @@ class Cuds(dict):
         """
         # First element, create set
         if rel not in self.keys():
-            self.__setitem__(rel, {cuds_object.uid: cuds_object.cuba_key})
+            self.__setitem__(rel, {cuds_object.uid: cuds_object.is_a})
         # Element not already there
         elif cuds_object.uid not in self[rel]:
-            self[rel][cuds_object.uid] = cuds_object.cuba_key
+            self[rel][cuds_object.uid] = cuds_object.is_a
 
     def _add_inverse(self, cuds_object, rel):
         """
@@ -555,12 +536,12 @@ class Cuds(dict):
         inverse_rel = rel.inverse
         self._add_direct(cuds_object, inverse_rel)
 
-    def _get(self, *uids, rel=None, cuba_key=None, return_mapping=False):
+    def _get(self, *uids, rel=None, entity=None, return_mapping=False):
         """
         Returns the uid of contained elements of a certain type, uid or
         relationship.
-        Expected calls are _get(), _get(*uids), _get(rel),_ get(cuba_key),
-        _get(*uids, rel), _get(rel, cuba_key).
+        Expected calls are _get(), _get(*uids), _get(rel),_ get(entity),
+        _get(*uids, rel), _get(rel, entity).
         If uids are specified, the result is the input, but
         non-available uids are replaced by None.
 
@@ -568,8 +549,8 @@ class Cuds(dict):
         :type uids
         :param rel: class of the relationship, optional
         :type rel: OntologyRelationship
-        :param cuba_key: CUBA key of the subelements, optional
-        :type cuba_key: CUBA
+        :param entity: Type subelements, optional
+        :type entity: OntologyClass
         :param return_mapping: whether to return a mapping from
             uids to relationships, that connect self with the uid.
         :type return_mapping: bool
@@ -578,8 +559,8 @@ class Cuds(dict):
             respective Cuds object.)
         :rtype: List[UUID] (+ Dict[UUID, Set[Relationship]])
         """
-        if uids and cuba_key is not None:
-            raise RuntimeError("Do not specify both uids and cuba_key")
+        if uids and entity is not None:
+            raise RuntimeError("Do not specify both uids and entity")
 
         if uids:
             check_arguments(uuid.UUID, *uids)
@@ -588,6 +569,7 @@ class Cuds(dict):
         # consider either given relationship and subclasses
         # or all relationships.
         consider_relationships = rel.subclasses if rel else list(self.keys())
+        consider_relationships &= set(self.keys())
 
         # return empty list if no element of given relationship is available.
         if not consider_relationships and not return_mapping:
@@ -598,8 +580,8 @@ class Cuds(dict):
         if uids:
             return self._get_by_uids(uids, consider_relationships,
                                      return_mapping=return_mapping)
-        return self._get_by_cuba_key(cuba_key, consider_relationships,
-                                     return_mapping=return_mapping)
+        return self._get_by_entity(entity, consider_relationships,
+                                   return_mapping=return_mapping)
 
     def _get_by_uids(self, uids, relationships, return_mapping):
         """Check for each given uid if it is connected to self by a relationship.
@@ -647,14 +629,14 @@ class Cuds(dict):
             return collected_uids, relationship_mapping
         return collected_uids
 
-    def _get_by_cuba_key(self, cuba_key, relationships, return_mapping):
-        """Get the cuds_objects with given cuba_key that are connected to self
+    def _get_by_entity(self, entity, relationships, return_mapping):
+        """Get the cuds_objects with given entity that are connected to self
         with any of the given relationships. Optionally return a mapping
         from uids to the set of relationships, which connect self and
         the cuds_objects with the uid.
 
-        :param cuba_key: Filter by the given cuba_key. None means no filter.
-        :type cuba_key: CUBA
+        :param entity: Filter by the given entity. None means no filter.
+        :type entity: OntologyClass
         :param relationships: Filter by list of relationships
         :type relationships: List[Relationship]
         :param return_mapping: whether to return a mapping from
@@ -671,7 +653,7 @@ class Cuds(dict):
             # Collect all uids who are object of the current relationship.
             # Possibly filter by Cuba-Key.
             for uid, cuba in self[relationship].items():
-                if cuba_key is None or cuba in cuba_key.subclasses:
+                if entity is None or cuba in entity.subclasses:
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
                     relationship_mapping[uid].add(relationship)
@@ -726,10 +708,13 @@ class Cuds(dict):
         inverse = relationship.inverse
         self._remove_direct(inverse, uid)
 
+    def _check_valid_add(self, to_add, rel):
+        return True  # TODO
+
 
 class NotifyDict(dict):
     """A dictionary that notifies the session if
-    any update occurs. Used to map uids to cuba_keys
+    any update occurs. Used to map uids to entitys
     for each relationship.
     """
     def __init__(self, *args, cuds_object, rel):

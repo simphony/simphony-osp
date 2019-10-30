@@ -18,6 +18,10 @@ class OntologyValue(OntologyEntity):
 
     @property
     def name(self):
+        return super().name
+
+    @property
+    def argname(self):
         return super().name.lower()
 
     @property

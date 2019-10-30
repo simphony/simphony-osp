@@ -48,23 +48,23 @@ class TestAPICity(unittest.TestCase):
         c = CITY.CITY(name="a city")
         self.assertRaises(ValueError, c.__setitem__, "not an allowed key", 15)
 
-    # def test_add(self):
-    #     """
-    #     Tests the standard, normal behaviour of the add() method
-    #     """
-    #     c = cuds.classes.City("a city")
-    #     n = cuds.classes.Neighbourhood("a neighbourhood")
-    #     p = cuds.classes.Citizen()
+    def test_add(self):
+        """
+        Tests the standard, normal behaviour of the add() method
+        """
+        c = CITY.CITY(name="a city")
+        n = CITY.NEIGHBOURHOOD(name="a neighbourhood")
+        p = CITY.CITIZEN()
 
-    #     c.add(n)
-    #     self.assertEqual(c.get(n.uid).uid, n.uid)
+        c.add(n)
+        self.assertEqual(c.get(n.uid).uid, n.uid)
 
-    #     # Test the inverse relationship
-    #     get_inverse = n.get(rel=cuds.classes.IsPartOf)
-    #     self.assertEqual(get_inverse, [c])
+        # Test the inverse relationship
+        get_inverse = n.get(rel=CITY.IS_PART_OF)
+        self.assertEqual(get_inverse, [c])
 
-    #     c.add(p, rel=cuds.classes.HasInhabitant)
-    #     self.assertEqual(c.get(p.uid).uid, p.uid)
+        c.add(p, rel=CITY.HAS_INHABITANT)
+        self.assertEqual(c.get(p.uid).uid, p.uid)
 
     # def test_add_throws_exception(self):
     #     """

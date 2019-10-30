@@ -68,16 +68,16 @@ class OntologyClass(OntologyEntity):
         # kwargs and defaults
         attributes = dict()
         for value, default in self.inherited_values.items():
-            if value.name in kwargs:
-                attributes[value] = kwargs[value.name]
-                del kwargs[value.name]
+            if value.argname in kwargs:
+                attributes[value] = kwargs[value.argname]
+                del kwargs[value.argname]
             else:
                 attributes[value] = default
 
         # Check validity of arguments
         if kwargs:
             raise TypeError("Unexpected keyword arguments: %s" % kwargs.keys())
-        missing = [k.name for k, v in attributes.items() if v is None]
+        missing = [k.argname for k, v in attributes.items() if v is None]
         if missing:
             raise TypeError("Missing keyword arguments: %s" % missing)
 

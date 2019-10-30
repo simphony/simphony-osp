@@ -85,6 +85,7 @@ class Parser:
                 self._add_values(entity)
             elif isinstance(entity, OntologyRelationship):
                 missing_inverse |= self._set_inverse(entity)
+                self._check_default_rel(entity)
             else:
                 self._set_datatype(entity)
         for entity in missing_inverse:
@@ -212,6 +213,19 @@ class Parser:
         inverse._set_inverse(entity)
         entity._set_inverse(inverse)
         return {inverse}
+
+    def _check_default_rel(self, entity: OntologyRelationship):
+        """Check of the given relationship the default
+        When it is a default, save that accordingly.
+
+        :param entity: The relationship to check
+        :type entity: OntologyRelationship
+        """
+        cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
+        entity_yaml_doc = cuds_yaml_doc[entity.name]
+        if DEFAULT_REL_KEY in entity_yaml_doc \
+                and entity_yaml_doc[DEFAULT_REL_KEY]:
+            self._namespace_registry.default_rel = entity
 
     def _set_datatype(self, entity: OntologyValue):
         """Set the datatype of a value
