@@ -65,8 +65,8 @@ setup(
     long_description=README_TEXT,
     packages=find_namespace_packages(include=["osp.*"]),
     package_data={
-        "osp.core.ontology.yml": "*.yml",
-        "osp.core.ontology": "*.pkl"
+        "osp.core.ontology.yml": ["*.yml"],
+        "osp.core.ontology": ["*.pkl"]
     },
     cmdclass={
         'install': Install
