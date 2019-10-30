@@ -10,8 +10,8 @@ import inspect
 import requests
 import json
 from copy import deepcopy
-from cuds.ontology.datatypes import convert_to
-from cuds import CUBA, Cuds
+from osp.core.ontology.datatypes import convert_to
+from osp.core import CUBA
 
 
 # General utility methods
@@ -422,6 +422,7 @@ def create_for_session(entity_cls, kwargs, session, add_to_buffers=True):
     :result: The created cuds object
     :rtype: Cuds
     """
+    from osp.core.cuds import Cuds
     uid = convert_to(kwargs["uid"], "UUID")
     if hasattr(session, "_expired") and uid in session._expired:
         session._expired.remove(uid)

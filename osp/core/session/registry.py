@@ -26,7 +26,7 @@ class Registry(dict):
         :type cuds_object: Cuds
         :raises ValueError: unsupported object provided (not a Cuds object)
         """
-        from cuds.classes.cuds import Cuds
+        from osp.core.cuds import Cuds
         if isinstance(cuds_object, Cuds):
             super().__setitem__(cuds_object.uid, cuds_object)
         else:

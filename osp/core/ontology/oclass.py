@@ -61,6 +61,28 @@ class OntologyClass(OntologyEntity):
         assert isinstance(value, OntologyValue)
         self._values[value] = default
 
-    def __call__(self, **kwargs):
-        values = dict(self.inherited_values)
-        values.update(kwargs)
+    def __call__(self, uid=None, session=None, **kwargs):
+        from osp.core.cuds import Cuds
+
+        # build attributes dictionary by combining
+        # kwargs and defaults
+        attributes = dict()
+        for value, default in self.inherited_values.items():
+            name = value.name.lower()
+            if name in kwargs:
+                attributes[value] = kwargs[name]
+                del kwargs[name]
+            else:
+                attributes[value] = default
+
+        # Check validity of arguments
+        if kwargs:
+            raise TypeError("Unexpected keyword arguments %s" % kwargs)
+        missing = [k for k, v in attributes.items() if v is None]
+        if missing:
+            raise TypeError("Missing keyword arguments %s" % missing)
+
+        return Cuds(attributes=attributes,
+                    is_a=self,
+                    session=session,
+                    uid=uid)

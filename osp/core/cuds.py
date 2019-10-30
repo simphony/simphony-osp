@@ -10,14 +10,15 @@ import uuid
 import inspect
 from typing import Union, List, Iterator, Dict, Any
 
-from cuds.ontology.relationship import OntologyRelationship
-from cuds.ontology.value import OntologyValue
-from cuds.ontology.datatypes import convert_to
-from cuds.session.core_session import CoreSession
-from cuds.session.session import Session
-from cuds.utils import check_arguments, clone_cuds_object, \
+from osp.core.ontology.relationship import OntologyEntity
+from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.ontology.value import OntologyValue
+from osp.core.ontology.datatypes import convert_to
+from osp.core.session.core_session import CoreSession
+from osp.core.session.session import Session
+from osp.core.utils import check_arguments, clone_cuds_object, \
     create_from_cuds_object, get_neighbour_diff
-from cuds import CUBA
+from osp.core import CUBA
 
 
 class Cuds(dict):
@@ -38,8 +39,9 @@ class Cuds(dict):
 
     def __init__(
         self,
-        values: Dict[OntologyValue, Any],
-        session: Session = _session,
+        attributes: Dict[OntologyValue, Any],
+        is_a: OntologyEntity,
+        session: Session = None,
         uid: uuid.UUID = None
     ):
         """
@@ -50,9 +52,11 @@ class Cuds(dict):
         :type uid: UUID
         """
         super().__init__()
+        self._attributes = {k.name.lower(): v for k, v in attributes.items()}
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
-        self._session = session
-        self._values = values
+        self._session = session or Cuds._session
+        self._values = {k.name.lower(): k for k in attributes}
+        self._is_a = is_a
         self.session.store(self)
 
     @property
@@ -63,6 +67,10 @@ class Cuds(dict):
     def session(self):
         return self._session
 
+    @property
+    def is_a(self):
+        return self._is_a
+
     def __str__(self) -> str:
         """
         Redefines the str() for Cuds.
@@ -71,13 +79,20 @@ class Cuds(dict):
         """
         return "%s: %s" % (self.cuba_key, self.uid)
 
-    def __getattr__(self, value_name):
+    def __getattr__(self, name):
+        if name not in self._attributes:
+            raise AttributeError(name)
         self.session._notify_read(self)
-        return self._values[value_name]
+        return self._attributes[name]
 
-    def __setattr__(self, value_name, new_value):
+    def __setattr__(self, name, new_value):
+        if name.startswith("_"):
+            super().__setattr__(name, new_value)
+            return
+        if name not in self._attributes:
+            raise AttributeError(name)
         self.session._notify_read(self)
-        self._values[value_name] == new_value
+        self._attributes[name] == self._values[name](new_value)
         self.session._notify_update(self)
 
     def __getitem__(self, key):
@@ -144,30 +159,6 @@ class Cuds(dict):
         if isinstance(other, self.__class__):
             return self.uid == other.uid
         return False
-
-    @classmethod
-    def get_values(cls, skip: List[str] = None) -> List[str]:
-        """Get all the attributes of the cuds_object.
-
-        :param skip: Do only return attributes not specified here,
-            defaults to None
-        :type skip: List[str], optional
-        :return: A list of the attributes
-        :rtype: List[str]
-        """
-        skip = skip or []
-        return [x for x in inspect.getfullargspec(cls.__init__).args
-                if x not in skip][1:]
-
-    @classmethod
-    def get_datatypes(cls) -> Dict[str, str]:
-        """Get the datatypes of the attributes of the cuds_object.
-
-        :return: The datatypes of the attributes as a mapping
-            from attribute to datatype
-        :rtype: Dict[str, str]
-        """
-        return inspect.getfullargspec(cls.__init__).annotations
 
     def add(self,
             *args: "Cuds",

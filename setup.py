@@ -1,5 +1,6 @@
 import os
 import pickle
+import traceback
 from setuptools import setup, find_namespace_packages
 from subprocess import check_call, CalledProcessError
 from setuptools.command.install import install
@@ -34,8 +35,9 @@ def install_ontology(ontology):
             pickle.dump(
                 ONTOLOGY_NAMESPACE_REGISTRY, f
             )
-    except ValueError as e:
-        raise ValueError("Ontology namespace already installed") from e
+    except ValueError:
+        traceback.print_exc()
+        print("Ontology namespace already installed!")
 
 
 class Install(install):
