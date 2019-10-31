@@ -32,7 +32,7 @@ class OntologyNamespace():
         try:
             return self.get(name)
         except KeyError:
-            raise AttributeError
+            raise AttributeError(name)
 
     def __getitem__(self, name):
         """Get an ontology entity from the registry by name.

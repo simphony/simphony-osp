@@ -10,7 +10,7 @@ import uuid
 import json
 import cuds.classes
 from copy import deepcopy
-from cuds.utils import create_for_session
+from cuds.utils import create_recycle
 from cuds.session.wrapper_session import consumes_buffers
 from cuds.testing.test_session_city import TestWrapperSession
 from cuds.classes.generated.cuba import CUBA
@@ -343,11 +343,11 @@ class TestCommunicationEngineClient(unittest.TestCase):
         """ Test loading from server"""
         client = TransportSessionClient(TestWrapperSession, None, None)
         client.root = 1
-        c1 = create_for_session(
+        c1 = create_recycle(
             cuds.classes.City, {"name": "Freiburg", "uid": 1}, client, True
         )
         c2 = cuds.classes.City(name="London", uid=2)
-        c3 = create_for_session(
+        c3 = create_recycle(
             cuds.classes.City, {"name": "Paris", "uid": 3}, client, True
         )
         client.expire(c3.uid)
@@ -381,7 +381,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client._engine = MockEngine()
 
         # first item
-        c1 = create_for_session(cuds.classes.City,
+        c1 = create_recycle(cuds.classes.City,
                                 {"name": "Freiburg", "uid": 1},
                                 client, True)  # store will be called here
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
@@ -396,7 +396,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         # second item
         client._engine._sent_data = None
         client._engine._sent_command = None
-        c2 = create_for_session(cuds.classes.City,
+        c2 = create_recycle(cuds.classes.City,
                                 {"name": "Freiburg", "uid": 1},
                                 client, True)
 

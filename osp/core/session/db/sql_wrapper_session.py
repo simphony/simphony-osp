@@ -9,7 +9,7 @@ import uuid
 from operator import mul
 from functools import reduce
 from abc import abstractmethod
-from cuds.utils import create_for_session
+from cuds.utils import create_recycle
 from cuds.generator.ontology_datatypes import convert_to, convert_from
 from cuds.session.db.db_wrapper_session import DbWrapperSession
 from cuds.session.db.conditions import EqualsCondition
@@ -523,7 +523,7 @@ class SqlWrapperSession(DbWrapperSession):
             if not update_registry and uid in self._registry:
                 yield self._registry.get(uid)
                 continue
-            cuds_object = create_for_session(entity_cls=cuds_class,
+            cuds_object = create_recycle(entity_cls=cuds_class,
                                              kwargs=kwargs,
                                              session=self,
                                              add_to_buffers=False)

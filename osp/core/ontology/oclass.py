@@ -61,11 +61,17 @@ class OntologyClass(OntologyEntity):
         assert isinstance(value, OntologyValue)
         self._values[value] = default
 
-    def __call__(self, uid=None, session=None, **kwargs):
-        from osp.core.cuds import Cuds
+    def _get_attributes(self, kwargs):
+        """Get the cuds object's attributes from the given kwargs.
+        Combine defaults and given attribute values
 
-        # build attributes dictionary by combining
-        # kwargs and defaults
+        :param kwargs: The user specified keyword arguments
+        :type kwargs: Dict{str, Any}
+        :raises TypeError: Unexpected keyword argument
+        :raises TypeError: Missing keword argument
+        :return: The resulting attributes
+        :rtype: Dict[OntologyValue, Any]
+        """
         attributes = dict()
         for value, default in self.inherited_values.items():
             if value.argname in kwargs:
@@ -80,8 +86,14 @@ class OntologyClass(OntologyEntity):
         missing = [k.argname for k, v in attributes.items() if v is None]
         if missing:
             raise TypeError("Missing keyword arguments: %s" % missing)
+        return attributes
 
-        return Cuds(attributes=attributes,
+    def __call__(self, uid=None, session=None, **kwargs):
+        from osp.core.cuds import Cuds
+
+        # build attributes dictionary by combining
+        # kwargs and defaults
+        return Cuds(attributes=self._get_attributes(kwargs),
                     is_a=self,
                     session=session,
                     uid=uid)

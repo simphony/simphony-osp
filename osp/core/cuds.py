@@ -9,6 +9,7 @@
 import uuid
 from typing import Union, List, Iterator, Dict, Any
 
+from osp.core import ONTOLOGY_NAMESPACE_REGISTRY
 from osp.core.ontology.relationship import OntologyEntity
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.value import OntologyValue
@@ -78,7 +79,8 @@ class Cuds(dict):
     def __getattr__(self, name):
         if name not in self._attributes:
             raise AttributeError(name)
-        self.session._notify_read(self)
+        if self.session:
+            self.session._notify_read(self)
         return self._attributes[name]
 
     def __setattr__(self, name, new_value):
@@ -87,12 +89,15 @@ class Cuds(dict):
             return
         if name not in self._attributes:
             raise AttributeError(name)
-        self.session._notify_read(self)
+        if self.session:
+            self.session._notify_read(self)
         self._attributes[name] == self._values[name](new_value)
-        self.session._notify_update(self)
+        if self.session:
+            self.session._notify_update(self)
 
     def __getitem__(self, key):
-        self.session._notify_read(self)
+        if self.session:
+            self.session._notify_read(self)
         return super().__getitem__(key)
 
     # OVERRIDE
@@ -103,10 +108,12 @@ class Cuds(dict):
         :type key: OntologyRelationship
         :raises ValueError: The given key is not a relationship.
         """
-        self.session._notify_read(self)
+        if self.session:
+            self.session._notify_read(self)
         if isinstance(key, OntologyRelationship):
             super().__delitem__(key)
-            self.session._notify_update(self)
+            if self.session:
+                self.session._notify_update(self)
         else:
             message = 'Key {!r} is not in the supported relationships'
             raise ValueError(message.format(key))
@@ -121,7 +128,8 @@ class Cuds(dict):
         :type value: dict
         :raises ValueError: unsupported key provided (not a relationship)
         """
-        self.session._notify_read(self)
+        if self.session:
+            self.session._notify_read(self)
         if isinstance(key, OntologyRelationship) and isinstance(value, dict):
             for _, entity in value.items():
                 self._check_valid_add(entity, key)
@@ -129,7 +137,8 @@ class Cuds(dict):
             super().__setitem__(key, NotifyDict(value,
                                                 cuds_object=self,
                                                 rel=key))
-            self.session._notify_update(self)
+            if self.session:
+                self.session._notify_update(self)
         else:
             message = 'Key {!r} is not in the supported relationships'
             raise ValueError(message.format(key))
@@ -154,6 +163,31 @@ class Cuds(dict):
         if isinstance(other, self.__class__):
             return self.uid == other.uid
         return False
+
+    def __getstate__(self):
+        """Get the state for pickling or copying
+
+        :return: The state of the object. Does not contain session.
+            Contains the string of the entity class.
+        :rtype: Dict[str, Any]
+        """
+        state = {k: v for k, v in self.__dict__.items()
+                 if k not in {"_session", "_is_a"}}
+        state["_is_a"] = (self.is_a.namespace.name, self._is_a.name)
+        return state
+
+    def __setstate__(self, state):
+        """Set the state for pickling or copying
+
+        :param state: The state of the object. Does not contain session.
+            Contains the string of the entity class.
+        :type state: Dict[str, Any]
+        """
+        namespace, entity_class = state["_is_a"]
+        is_a = ONTOLOGY_NAMESPACE_REGISTRY[namespace][entity_class]
+        state["_is_a"] = is_a
+        state["_session"] = None
+        self.__dict__ = state
 
     def add(self,
             *args: "Cuds",
@@ -356,7 +390,7 @@ class Cuds(dict):
             for outgoing_rel in new_cuds_object.keys():
 
                 # do not recursively add parents
-                if outgoing_rel not in CUBA.ACTIVE_RELATIONSHIPS.subclasses:
+                if outgoing_rel not in CUBA.ACTIVE_RELATIONSHIP.subclasses:
                     continue
 
                 # add children not already added
@@ -723,23 +757,29 @@ class NotifyDict(dict):
         super().__init__(*args)
 
     def __iter__(self):
-        self.cuds_object.session._notify_read(self)
+        if self.cuds_object.session:
+            self.cuds_object.session._notify_read(self)
         return super().__iter__()
 
     def __getitem__(self, key):
-        self.cuds_object.session._notify_read(self)
+        if self.cuds_object.session:
+            self.cuds_object.session._notify_read(self)
         return super().__getitem__(key)
 
     def __setitem__(self, key, value):
         self.cuds_object._check_valid_add(value, self.rel)
-        self.cuds_object.session._notify_read(self.cuds_object)
+        if self.cuds_object.session:
+            self.cuds_object.session._notify_read(self.cuds_object)
         super().__setitem__(key, value)
-        self.cuds_object.session._notify_update(self.cuds_object)
+        if self.cuds_object.session:
+            self.cuds_object.session._notify_update(self.cuds_object)
 
     def __delitem__(self, key):
-        self.cuds_object.session._notify_read(self.cuds_object)
+        if self.cuds_object.session:
+            self.cuds_object.session._notify_read(self.cuds_object)
         super().__delitem__(key)
-        self.cuds_object.session._notify_update(self.cuds_object)
+        if self.cuds_object.session:
+            self.cuds_object.session._notify_update(self.cuds_object)
 
     def update(self, E):
         self.cuds_object.session._notify_read(self.cuds_object)

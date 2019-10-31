@@ -13,7 +13,7 @@ from cuds.session.transport.transport_util import serializable
 from cuds.session.core_session import CoreSession
 from cuds.testing.test_sim_wrapper_city import DummySimSession
 from cuds.utils import (destroy_cuds_object, clone_cuds_object,
-                        create_for_session, create_from_cuds_object,
+                        create_recycle, create_from_cuds_object,
                         check_arguments, format_class_name, find_cuds_object,
                         find_cuds_object_by_uid, remove_cuds_object,
                         get_ancestors, pretty_print,
@@ -107,14 +107,14 @@ class TestUtils(unittest.TestCase):
             self.assertIs(aw, session._registry.get(aw.uid))
             self.assertEqual(clone.name, "Freiburg")
 
-    def test_create_for_session(self):
+    def test_create_recycle(self):
         """Test creation of cuds_objects for different session"""
         default_session = CoreSession()
         cuds.classes.Cuds._session = default_session
         a = cuds.classes.City("Freiburg")
         self.assertIs(a.session, default_session)
         with DummySimSession() as session:
-            b = create_for_session(
+            b = create_recycle(
                 entity_cls=cuds.classes.City,
                 kwargs={"name": "Offenburg", "uid": a.uid},
                 session=session,
@@ -133,7 +133,7 @@ class TestUtils(unittest.TestCase):
             x = cuds.classes.Citizen()
             b.add(x, rel=cuds.classes.HasInhabitant)
 
-            c = create_for_session(cuds.classes.City,
+            c = create_recycle(cuds.classes.City,
                                    {"name": "Emmendingen", "uid": a.uid},
                                    session=session,
                                    add_to_buffers=True)

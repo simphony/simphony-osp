@@ -7,7 +7,7 @@
 
 import json
 import uuid
-from cuds.utils import create_for_session
+from cuds.utils import create_recycle
 from cuds.classes.cuds import Cuds
 from cuds.generator.ontology_datatypes import convert_from, convert_to
 from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
@@ -193,7 +193,7 @@ def _to_cuds_object(json_obj, session, add_to_buffers):
     attributes = json_obj["attributes"]
     relationships = json_obj["relationships"]
     entity_cls = CUBA_MAPPING[cuba_key]
-    cuds_object = create_for_session(entity_cls=entity_cls,
+    cuds_object = create_recycle(entity_cls=entity_cls,
                                      kwargs=attributes,
                                      session=session,
                                      add_to_buffers=add_to_buffers)
