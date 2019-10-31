@@ -12,11 +12,17 @@ user_defined_default_rel = None
 installed_default_rel = ONTOLOGY_NAMESPACE_REGISTRY.default_rel
 
 def get_default_rel():
-    return (
+    global user_defined_default_rel, installed_default_rel, \
+        ONTOLOGY_NAMESPACE_REGISTRY
+
+    result = (
         user_defined_default_rel
         or ONTOLOGY_NAMESPACE_REGISTRY.default_rel
         or installed_default_rel
     )
+    user_defined_default_rel = result
+    return result
 
 def set_default_rel(rel):
+    global user_defined_default_rel
     user_defined_default_rel = rel

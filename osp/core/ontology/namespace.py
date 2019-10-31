@@ -10,7 +10,7 @@ class OntologyNamespace():
     def __init__(self, name):
         self._name = name
         self._entities = dict()
-        self._default_rels = list()
+        self._default_rel = None
 
     @property
     def name(self):
@@ -19,13 +19,7 @@ class OntologyNamespace():
 
     @property
     def default_rel(self):
-        if len(self._default_rels) == 1:
-            return self._default_rels[0]
-        return None
-
-    @default_rel.setter
-    def default_rel(self, rel):
-        self._default_rels.append(rel)
+        return self._default_rel
 
     def __getattr__(self, name):
         """Get an ontology entity from the registry by name.

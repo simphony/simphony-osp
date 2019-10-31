@@ -38,6 +38,19 @@ class NamespaceRegistry():
     def get(self, name):
         return self._namespaces[name]
 
+    def default_rel(self):
+        """Get the default relationship.
+
+        :return: The default relationship.
+        :rtype: OntologyRelationship
+        """
+        rels = list()
+        for namespace in self._namespaces.values():
+            if namespace.default_rel is not None:
+                rels.append(namespace.default_rel)
+        if len(rels) == 1:
+            return rels[0]
+
     def add_namespace(self, namespace):
         """Add a namespace to the registry
 

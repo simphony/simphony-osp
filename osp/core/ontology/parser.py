@@ -20,7 +20,7 @@ NAMESPACE_KEY = "NAMESPACE"
 DEFINITION_KEY = "definition"
 SUPERCLASSES_KEY = "subclass_of"
 INVERSE_KEY = "inverse"
-DEFAULT_REL_KEY = "default_rel"  # TODO
+DEFAULT_REL_KEY = "default_rel"
 DATATYPE_KEY = "datatype"
 VALUES_KEY = "values"
 RESTRICTIONS_KEY = "restrictions"  # TODO
@@ -225,7 +225,7 @@ class Parser:
         entity_yaml_doc = cuds_yaml_doc[entity.name]
         if DEFAULT_REL_KEY in entity_yaml_doc \
                 and entity_yaml_doc[DEFAULT_REL_KEY]:
-            self._namespace_registry.default_rel = entity
+            self._ontology_namespace._default_rel = entity
 
     def _set_datatype(self, entity: OntologyValue):
         """Set the datatype of a value
