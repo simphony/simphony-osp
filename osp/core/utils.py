@@ -6,10 +6,10 @@
 # No redistribution is allowed without explicit written permission.
 
 import sys
-import inspect
 import requests
 import json
 from copy import deepcopy
+from osp.core.neighbour_dict import NeighbourDictTarget
 from osp.core.ontology.datatypes import convert_to
 from osp.core import CUBA
 
@@ -232,7 +232,7 @@ def get_neighbour_diff(cuds1, cuds2, mode="all"):
 
     result = list()
     # Iterate over all neighbours that are in cuds1 but not cuds2.
-    for relationship in cuds1.keys():
+    for relationship in cuds1._neighbours.keys():
         if ((
             mode == "active"
             and relationship not in CUBA.ACTIVE_RELATIONSHIP.subclasses
@@ -244,10 +244,10 @@ def get_neighbour_diff(cuds1, cuds2, mode="all"):
 
         # Get all the neighbours that are no neighbours is cuds2
         old_neighbour_uids = set()
-        if cuds2 is not None and relationship in cuds2:
-            old_neighbour_uids = cuds2[relationship].keys()
+        if cuds2 is not None and relationship in cuds2._neighbours:
+            old_neighbour_uids = cuds2._neighbours[relationship].keys()
         new_neighbour_uids = list(
-            cuds1[relationship].keys() - old_neighbour_uids)
+            cuds1._neighbours[relationship].keys() - old_neighbour_uids)
         result += list(zip(new_neighbour_uids,
                            [relationship] * len(new_neighbour_uids)))
     return result
@@ -319,7 +319,7 @@ def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
     pp_sub = ""
     filtered_relationships = filter(
         lambda x: x in CUBA.ACTIVE_RELATIONSHIP.subclasses,
-        cuds_object.keys())
+        cuds_object._neighbours.keys())
     sorted_relationships = sorted(filtered_relationships, key=str)
     visited = visited or set()
     visited.add(cuds_object.uid)
@@ -380,8 +380,8 @@ def destroy_cuds_object(cuds_object):
     session = cuds_object.session
     if hasattr(session, "_expired") and cuds_object.uid in session._expired:
         session._expired.remove(cuds_object.uid)
-    for rel in set(cuds_object.keys()):
-        del cuds_object[rel]
+    for rel in set(cuds_object._neighbours.keys()):
+        del cuds_object._neighbours[rel]
     for attr in cuds_object.get_attributes(skip=["session", "uid"]):
         setattr(cuds_object, "_" + attr, None)
     if cuds_object.uid in cuds_object._session._registry:
@@ -432,8 +432,8 @@ def create_recycle(entity_cls, kwargs, session, uid, add_to_buffers=True):
         attributes = entity_cls._get_attributes(kwargs)
         for key, value in kwargs.items():
             setattr(attributes, key.argname, value)
-        for rel in set(cuds_object.keys()):
-            del cuds_object[rel]
+        for rel in set(cuds_object._neighbours.keys()):
+            del cuds_object._neighbours[rel]
     else:  # create new
         cuds_object = entity_cls(uid=uid, session=session, **kwargs)
     if hasattr(session, "_remove_uids_from_buffers") and not add_to_buffers:
@@ -465,8 +465,8 @@ def create_from_cuds_object(cuds_object, session, add_to_buffers):
                            session=session,
                            uid=cuds_object.uid,
                            add_to_buffers=add_to_buffers)
-    for key, uid_cuba in cuds_object.items():
-        clone[key] = dict()
+    for rel, uid_cuba in cuds_object._neighbours.items():
+        clone._neighbours[rel] = NeighbourDictTarget(dict(), clone, rel)
         for uid, cuba in uid_cuba.items():
-            clone[key][uid] = cuba
+            clone._neighbours[rel][uid] = cuba
     return clone

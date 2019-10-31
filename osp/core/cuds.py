@@ -17,12 +17,13 @@ from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.datatypes import convert_to
 from osp.core.session.core_session import CoreSession
 from osp.core.session.session import Session
+from osp.core.neighbour_dict import NeighbourDictRel, NeighbourDictTarget
 from osp.core.utils import check_arguments, clone_cuds_object, \
     create_from_cuds_object, get_neighbour_diff
 from osp.core import CUBA, get_default_rel
 
 
-class Cuds(dict):
+class Cuds():
     """
     A Common Universal Data Structure
 
@@ -48,8 +49,9 @@ class Cuds(dict):
             uid will be created.
         :type uid: UUID
         """
-        super().__init__()
         self._attributes = {k.argname: v for k, v in attributes.items()}
+        self._neighbours = NeighbourDictRel({}, self)
+
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         self._session = session or Cuds._session
         self._values = {k.argname: k for k in attributes}
@@ -101,57 +103,9 @@ class Cuds(dict):
 
         :return: string with the official string representation for Cuds.
         """
-        return "<%s: %s,  %s: @%s>" % (self.cuba_key, self.uid,
+        return "<%s: %s,  %s: @%s>" % (self.is_a, self.uid,
                                        type(self.session).__name__,
                                        hex(id(self.session)))
-
-    def __getitem__(self, key):
-        if self.session:
-            self.session._notify_read(self)
-        return super().__getitem__(key)
-
-    # OVERRIDE
-    def __delitem__(self, key: OntologyRelationship):
-        """Delete a relationship from the Cuds.
-
-        :param key: The relationship to remove
-        :type key: OntologyRelationship
-        :raises ValueError: The given key is not a relationship.
-        """
-        if self.session:
-            self.session._notify_read(self)
-        if isinstance(key, OntologyRelationship):
-            super().__delitem__(key)
-            if self.session:
-                self.session._notify_update(self)
-        else:
-            message = 'Key {!r} is not in the supported relationships'
-            raise ValueError(message.format(key))
-
-    def __setitem__(self, key: OntologyRelationship, value: dict):
-        """
-        Set/Update the key value only when the key is a relationship.
-
-        :param key: key in the dictionary
-        :type key: OntologyRelationship
-        :param value: new value to assign to the key
-        :type value: dict
-        :raises ValueError: unsupported key provided (not a relationship)
-        """
-        if self.session:
-            self.session._notify_read(self)
-        if isinstance(key, OntologyRelationship) and isinstance(value, dict):
-            for _, entity in value.items():
-                self._check_valid_add(entity, key)
-            # Any changes to the dict should be sent to the session
-            super().__setitem__(key, NotifyDict(value,
-                                                cuds_object=self,
-                                                rel=key))
-            if self.session:
-                self.session._notify_update(self)
-        else:
-            message = 'Key {!r} is not in the supported relationships'
-            raise ValueError(message.format(key))
 
     def __hash__(self) -> int:
         """
@@ -182,8 +136,17 @@ class Cuds(dict):
         :rtype: Dict[str, Any]
         """
         state = {k: v for k, v in self.__dict__.items()
-                 if k not in {"_session", "_is_a"}}
+                 if k not in {"_session", "_is_a", "_values"}}
         state["_is_a"] = (self.is_a.namespace.name, self._is_a.name)
+        state["_neighbours"] = [
+            (k.namespace.name, k.name, [
+                (uid, vv.namespace.name, vv.name)
+                for uid, vv in v.items()
+            ])
+            for k, v in self._neighbours.items()
+        ]
+        state["_values"] = [(k, v.namespace.name, v.name)
+                            for k, v in self._values.items()]
         return state
 
     def __setstate__(self, state):
@@ -197,6 +160,15 @@ class Cuds(dict):
         is_a = ONTOLOGY_NAMESPACE_REGISTRY[namespace][entity_class]
         state["_is_a"] = is_a
         state["_session"] = None
+        state["_neighbours"] = NeighbourDictRel({
+            ONTOLOGY_NAMESPACE_REGISTRY[ns][cl]: NeighbourDictTarget({
+                uid: ONTOLOGY_NAMESPACE_REGISTRY[ns2][cl2]
+                for uid, ns2, cl2 in v
+            }, self, ONTOLOGY_NAMESPACE_REGISTRY[ns][cl])
+            for ns, cl, v in state["_neighbours"]
+        }, self)
+        state["_values"] = {k: ONTOLOGY_NAMESPACE_REGISTRY[ns][cl]
+                            for k, ns, cl in state["_values"]}
         self.__dict__ = state
 
     def add(self,
@@ -224,7 +196,7 @@ class Cuds(dict):
             *[arg.uid for arg in args if arg.session != self.session])
         for arg in args:
             # Recursively add the children to the registry
-            if rel in self and arg.uid in self[rel]:
+            if rel in self._neighbours and arg.uid in self._neighbours[rel]:
                 message = '{!r} is already in the container'
                 raise ValueError(message.format(arg))
             if self.session != arg.session:
@@ -397,14 +369,14 @@ class Cuds(dict):
                                    add_to.session, missing)
             result = result or new_cuds_object
 
-            for outgoing_rel in new_cuds_object.keys():
+            for outgoing_rel in new_cuds_object._neighbours.keys():
 
                 # do not recursively add parents
                 if outgoing_rel not in CUBA.ACTIVE_RELATIONSHIP.subclasses:
                     continue
 
                 # add children not already added
-                for child_uid in new_cuds_object[outgoing_rel].keys():
+                for child_uid in new_cuds_object._neighbours[outgoing_rel].keys():
                     if child_uid not in uids_stored:
                         new_child = new_child_getter.get(
                             child_uid, rel=outgoing_rel)
@@ -417,9 +389,9 @@ class Cuds(dict):
         # perform the deletion
         for uid in missing:
             for cuds_object, rel in missing[uid]:
-                del cuds_object[rel][uid]
-                if not cuds_object[rel]:
-                    del cuds_object[rel]
+                del cuds_object._neighbours[rel][uid]
+                if not cuds_object._neighbours[rel]:
+                    del cuds_object._neighbours[rel]
         return result
 
     @staticmethod
@@ -457,7 +429,7 @@ class Cuds(dict):
             The recursive add might add it later.
         :type missing: dict
         """
-        old_cuds_object = old_cuds_object or dict()
+        old_cuds_object = old_cuds_object or None
 
         # get the parents that got parents after adding the new Cuds
         new_parent_diff = get_neighbour_diff(
@@ -513,10 +485,12 @@ class Cuds(dict):
                 continue
 
             # Add the inverse to the parent
-            if inverse not in parent:
-                parent[inverse] = dict()
+            if inverse not in parent._neighbours:
+                parent._neighbours[inverse] = NeighbourDictTarget({}, parent,
+                                                                  inverse)
 
-            parent[inverse][new_cuds_object.uid] = new_cuds_object.is_a
+            parent._neighbours[inverse][new_cuds_object.uid] = \
+                new_cuds_object.is_a
 
     @staticmethod
     def _fix_old_neighbours(new_cuds_object, old_cuds_object, old_neighbours,
@@ -542,17 +516,19 @@ class Cuds(dict):
 
             # delete the inverse if neighbours are children
             if relationship in CUBA.ACTIVE_RELATIONSHIP.subclasses:
-                if inverse in neighbour:
+                if inverse in neighbour._neighbours:
                     neighbour._remove_direct(inverse, new_cuds_object.uid)
 
             # if neighbour is parent, add missing relationships
             else:
-                if relationship not in new_cuds_object:
-                    new_cuds_object[relationship] = dict()
+                if relationship not in new_cuds_object._neighbours:
+                    new_cuds_object._neighbours[relationship] = \
+                        NeighbourDictTarget({}, new_cuds_object, relationship)
                 for (uid, entity), parent in \
-                        zip(old_cuds_object[relationship].items(), neighbour):
+                        zip(old_cuds_object._neighbours[relationship].items(),
+                            neighbour._neighbours):
                     if parent is not None:
-                        new_cuds_object[relationship][uid] = entity
+                        new_cuds_object._neighbours[relationship][uid] = entity
 
     def _add_direct(self, cuds_object, rel):
         """
@@ -564,11 +540,14 @@ class Cuds(dict):
         :type rel: Type[Relationships]
         """
         # First element, create set
-        if rel not in self.keys():
-            self.__setitem__(rel, {cuds_object.uid: cuds_object.is_a})
+        if rel not in self._neighbours.keys():
+            self._neighbours[rel] = NeighbourDictTarget(
+                {cuds_object.uid: cuds_object.is_a},
+                self, rel
+            )
         # Element not already there
-        elif cuds_object.uid not in self[rel]:
-            self[rel][cuds_object.uid] = cuds_object.is_a
+        elif cuds_object.uid not in self._neighbours[rel]:
+            self._neighbours[rel][cuds_object.uid] = cuds_object.is_a
 
     def _add_inverse(self, cuds_object, rel):
         """
@@ -612,8 +591,10 @@ class Cuds(dict):
         self.session._notify_read(self)
         # consider either given relationship and subclasses
         # or all relationships.
-        consider_relationships = rel.subclasses if rel else list(self.keys())
-        consider_relationships &= set(self.keys())
+        consider_relationships = set(self._neighbours.keys())
+        if rel:
+            consider_relationships &= set(rel.subclasses)
+        consider_relationships = list(consider_relationships)
 
         # return empty list if no element of given relationship is available.
         if not consider_relationships and not return_mapping:
@@ -658,7 +639,7 @@ class Cuds(dict):
             iterator = enumerate(uids) if relationship_mapping \
                 else not_found_uids.items()
             for i, uid in iterator:
-                if uid in self[relationship]:
+                if uid in self._neighbours[relationship]:
                     found_uid_indexes.add(i)
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
@@ -696,7 +677,7 @@ class Cuds(dict):
 
             # Collect all uids who are object of the current relationship.
             # Possibly filter by Cuba-Key.
-            for uid, cuba in self[relationship].items():
+            for uid, cuba in self._neighbours[relationship].items():
                 if entity is None or cuba in entity.subclasses:
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
@@ -737,9 +718,9 @@ class Cuds(dict):
         :param uid: The uid to remove.
         :type uid: UUID
         """
-        del self[relationship][uid]
-        if not self[relationship]:
-            del self[relationship]
+        del self._neighbours[relationship][uid]
+        if not self._neighbours[relationship]:
+            del self._neighbours[relationship]
 
     def _remove_inverse(self, relationship, uid):
         """Remove the inverse of the given relationship.
@@ -754,44 +735,3 @@ class Cuds(dict):
 
     def _check_valid_add(self, to_add, rel):
         return True  # TODO
-
-
-class NotifyDict(dict):
-    """A dictionary that notifies the session if
-    any update occurs. Used to map uids to entitys
-    for each relationship.
-    """
-    def __init__(self, *args, cuds_object, rel):
-        self.cuds_object = cuds_object
-        self.rel = rel
-        super().__init__(*args)
-
-    def __iter__(self):
-        if self.cuds_object.session:
-            self.cuds_object.session._notify_read(self)
-        return super().__iter__()
-
-    def __getitem__(self, key):
-        if self.cuds_object.session:
-            self.cuds_object.session._notify_read(self)
-        return super().__getitem__(key)
-
-    def __setitem__(self, key, value):
-        self.cuds_object._check_valid_add(value, self.rel)
-        if self.cuds_object.session:
-            self.cuds_object.session._notify_read(self.cuds_object)
-        super().__setitem__(key, value)
-        if self.cuds_object.session:
-            self.cuds_object.session._notify_update(self.cuds_object)
-
-    def __delitem__(self, key):
-        if self.cuds_object.session:
-            self.cuds_object.session._notify_read(self.cuds_object)
-        super().__delitem__(key)
-        if self.cuds_object.session:
-            self.cuds_object.session._notify_update(self.cuds_object)
-
-    def update(self, E):
-        self.cuds_object.session._notify_read(self.cuds_object)
-        super().update(E)
-        self.cuds_object.session._notify_update(self.cuds_object)
