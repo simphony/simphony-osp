@@ -95,6 +95,16 @@ class Cuds(dict):
         if self.session:
             self.session._notify_update(self)
 
+    def __repr__(self) -> str:
+        """
+        Redefines the repr() for Cuds.
+
+        :return: string with the official string representation for Cuds.
+        """
+        return "<%s: %s,  %s: @%s>" % (self.cuba_key, self.uid,
+                                       type(self.session).__name__,
+                                       hex(id(self.session)))
+
     def __getitem__(self, key):
         if self.session:
             self.session._notify_read(self)
