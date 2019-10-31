@@ -42,7 +42,7 @@ class Cuds():
         """
         Initialization follows the behavior of the python dict class.
 
-        :param uid: Specify a unique identifier. If none, given a random
+        :param uid: Specify a unique identifier. If None given, a random
             uid will be created.
         :type uid: UUID
         """
@@ -57,14 +57,17 @@ class Cuds():
 
     @property
     def uid(self) -> uuid.UUID:
+        """The uid of the cuds object"""
         return self.__uid
 
     @property
     def session(self):
+        """The session of the cuds object"""
         return self._session
 
     @property
     def is_a(self):
+        """The type of the cuds object"""
         return self._is_a
 
     def add(self,
@@ -88,6 +91,7 @@ class Cuds():
             raise TypeError("Specify a relationship or call "
                             "osp.core.set_default_rel()!")
         result = list()
+        # update cuds objects if they are already in the session
         old_objects = self._session.load(
             *[arg.uid for arg in args if arg.session != self.session])
         for arg in args:
@@ -573,8 +577,8 @@ class Cuds():
 
             # Collect all uids who are object of the current relationship.
             # Possibly filter by Cuba-Key.
-            for uid, cuba in self._neighbours[relationship].items():
-                if entity is None or cuba in entity.subclasses:
+            for uid, target_class in self._neighbours[relationship].items():
+                if entity is None or target_class in entity.subclasses:
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
                     relationship_mapping[uid].add(relationship)
@@ -641,6 +645,14 @@ class Cuds():
         return "%s: %s" % (self.is_a, self.uid)
 
     def __getattr__(self, name):
+        """Set the attributes corresponding to ontology values
+
+        :param name: The name of the attribute
+        :type name: str
+        :raises AttributeError: Unknown attribute name
+        :return: The value of the attribute
+        :rtype: Any
+        """
         if name not in self._attributes:
             raise AttributeError(name)
         if self.session:
@@ -648,6 +660,15 @@ class Cuds():
         return self._attributes[name]
 
     def __setattr__(self, name, new_value):
+        """Set an attribute.
+            Will notify the session of it corresponds to an ontology value.
+
+        :param name: The name of the attribute.
+        :type name: str
+        :param new_value: The new value
+        :type new_value: Any
+        :raises AttributeError: Unknown attribute name
+        """
         if name.startswith("_"):
             super().__setattr__(name, new_value)
             return
