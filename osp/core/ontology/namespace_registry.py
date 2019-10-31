@@ -38,6 +38,7 @@ class NamespaceRegistry():
     def get(self, name):
         return self._namespaces[name]
 
+    @property
     def default_rel(self):
         """Get the default relationship.
 
