@@ -11,6 +11,7 @@ for name, namespace in ONTOLOGY_NAMESPACE_REGISTRY._namespaces.items():
 user_defined_default_rel = None
 installed_default_rel = ONTOLOGY_NAMESPACE_REGISTRY.default_rel
 
+
 def get_default_rel():
     global user_defined_default_rel, installed_default_rel, \
         ONTOLOGY_NAMESPACE_REGISTRY
@@ -22,6 +23,7 @@ def get_default_rel():
     )
     user_defined_default_rel = result
     return result
+
 
 def set_default_rel(rel):
     global user_defined_default_rel

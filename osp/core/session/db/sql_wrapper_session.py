@@ -524,9 +524,9 @@ class SqlWrapperSession(DbWrapperSession):
                 yield self._registry.get(uid)
                 continue
             cuds_object = create_recycle(entity_cls=cuds_class,
-                                             kwargs=kwargs,
-                                             session=self,
-                                             add_to_buffers=False)
+                                         kwargs=kwargs,
+                                         session=self,
+                                         add_to_buffers=False)
             self._load_relationships(cuds_object)
             yield cuds_object
 

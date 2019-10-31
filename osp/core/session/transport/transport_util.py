@@ -194,9 +194,9 @@ def _to_cuds_object(json_obj, session, add_to_buffers):
     relationships = json_obj["relationships"]
     entity_cls = CUBA_MAPPING[cuba_key]
     cuds_object = create_recycle(entity_cls=entity_cls,
-                                     kwargs=attributes,
-                                     session=session,
-                                     add_to_buffers=add_to_buffers)
+                                 kwargs=attributes,
+                                 session=session,
+                                 add_to_buffers=add_to_buffers)
 
     for rel_cuba, obj_dict in relationships.items():
         rel = CUBA_MAPPING[CUBA(rel_cuba)]

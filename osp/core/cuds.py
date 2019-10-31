@@ -27,11 +27,8 @@ class Cuds():
     """
     A Common Universal Data Structure
 
-    The Cuds object is implemented as a python dictionary whose keys
-    are the relationship between the element and the member.
-
-    The instances of the contained elements are accessible
-    through the shared session
+    The cuds object has attributes and is connected to other
+    cuds objects via relationships.
     """
     _session = CoreSession()
 
@@ -69,107 +66,6 @@ class Cuds():
     @property
     def is_a(self):
         return self._is_a
-
-    def __str__(self) -> str:
-        """
-        Redefines the str() for Cuds.
-
-        :return: string with the entity and uid.
-        """
-        return "%s: %s" % (self.is_a, self.uid)
-
-    def __getattr__(self, name):
-        if name not in self._attributes:
-            raise AttributeError(name)
-        if self.session:
-            self.session._notify_read(self)
-        return self._attributes[name]
-
-    def __setattr__(self, name, new_value):
-        if name.startswith("_"):
-            super().__setattr__(name, new_value)
-            return
-        if name not in self._attributes:
-            raise AttributeError(name)
-        if self.session:
-            self.session._notify_read(self)
-        self._attributes[name] == self._values[name](new_value)
-        if self.session:
-            self.session._notify_update(self)
-
-    def __repr__(self) -> str:
-        """
-        Redefines the repr() for Cuds.
-
-        :return: string with the official string representation for Cuds.
-        """
-        return "<%s: %s,  %s: @%s>" % (self.is_a, self.uid,
-                                       type(self.session).__name__,
-                                       hex(id(self.session)))
-
-    def __hash__(self) -> int:
-        """
-        Makes Cuds objects hashable.
-        Use the hash of the uid of the object
-
-        :return: unique hash
-        """
-        return hash(self.uid)
-
-    def __eq__(self, other):
-        """
-        Defines the equals.
-        Two instances are the same if they share the uid and the class
-
-        :param other: Instance to check
-        :return: True if they share the uid and class, false otherwise
-        """
-        if isinstance(other, self.__class__):
-            return self.uid == other.uid
-        return False
-
-    def __getstate__(self):
-        """Get the state for pickling or copying
-
-        :return: The state of the object. Does not contain session.
-            Contains the string of the entity class.
-        :rtype: Dict[str, Any]
-        """
-        state = {k: v for k, v in self.__dict__.items()
-                 if k not in {"_session", "_is_a", "_values"}}
-        state["_is_a"] = (self.is_a.namespace.name, self._is_a.name)
-        state["_neighbours"] = [
-            (k.namespace.name, k.name, [
-                (uid, vv.namespace.name, vv.name)
-                for uid, vv in v.items()
-            ])
-            for k, v in self._neighbours.items()
-        ]
-        state["_values"] = [(k, v.namespace.name, v.name)
-                            for k, v in self._values.items()]
-        return state
-
-    def __setstate__(self, state):
-        """Set the state for pickling or copying
-
-        :param state: The state of the object. Does not contain session.
-            Contains the string of the entity class.
-        :type state: Dict[str, Any]
-        """
-        namespace, entity_class = state["_is_a"]
-        is_a = ONTOLOGY_NAMESPACE_REGISTRY[namespace][entity_class]
-        state["_is_a"] = is_a
-        state["_session"] = None
-        state["_neighbours"] = NeighbourDictRel({
-            ONTOLOGY_NAMESPACE_REGISTRY[ns][cl]: NeighbourDictTarget({
-                uid: ONTOLOGY_NAMESPACE_REGISTRY[ns2][cl2]
-                for uid, ns2, cl2 in v
-            }, self, ONTOLOGY_NAMESPACE_REGISTRY[ns][cl])
-            for ns, cl, v in state["_neighbours"]
-        }, self)
-        state["_values"] = {k: ONTOLOGY_NAMESPACE_REGISTRY[ns][cl]
-                            for k, ns, cl in state["_values"]}
-        self.__dict__ = state
 
     def add(self,
             *args: "Cuds",
@@ -369,14 +265,14 @@ class Cuds():
                                    add_to.session, missing)
             result = result or new_cuds_object
 
-            for outgoing_rel in new_cuds_object._neighbours.keys():
+            for outgoing_rel in new_cuds_object._neighbours:
 
                 # do not recursively add parents
                 if outgoing_rel not in CUBA.ACTIVE_RELATIONSHIP.subclasses:
                     continue
 
                 # add children not already added
-                for child_uid in new_cuds_object._neighbours[outgoing_rel].keys():
+                for child_uid in new_cuds_object._neighbours[outgoing_rel]:
                     if child_uid not in uids_stored:
                         new_child = new_child_getter.get(
                             child_uid, rel=outgoing_rel)
@@ -735,3 +631,104 @@ class Cuds():
 
     def _check_valid_add(self, to_add, rel):
         return True  # TODO
+
+    def __str__(self) -> str:
+        """
+        Redefines the str() for Cuds.
+
+        :return: string with the entity and uid.
+        """
+        return "%s: %s" % (self.is_a, self.uid)
+
+    def __getattr__(self, name):
+        if name not in self._attributes:
+            raise AttributeError(name)
+        if self.session:
+            self.session._notify_read(self)
+        return self._attributes[name]
+
+    def __setattr__(self, name, new_value):
+        if name.startswith("_"):
+            super().__setattr__(name, new_value)
+            return
+        if name not in self._attributes:
+            raise AttributeError(name)
+        if self.session:
+            self.session._notify_read(self)
+        self._attributes[name] == self._values[name](new_value)
+        if self.session:
+            self.session._notify_update(self)
+
+    def __repr__(self) -> str:
+        """
+        Redefines the repr() for Cuds.
+
+        :return: string with the official string representation for Cuds.
+        """
+        return "<%s: %s,  %s: @%s>" % (self.is_a, self.uid,
+                                       type(self.session).__name__,
+                                       hex(id(self.session)))
+
+    def __hash__(self) -> int:
+        """
+        Makes Cuds objects hashable.
+        Use the hash of the uid of the object
+
+        :return: unique hash
+        """
+        return hash(self.uid)
+
+    def __eq__(self, other):
+        """
+        Defines the equals.
+        Two instances are the same if they share the uid and the class
+
+        :param other: Instance to check
+        :return: True if they share the uid and class, false otherwise
+        """
+        if isinstance(other, self.__class__):
+            return self.uid == other.uid
+        return False
+
+    def __getstate__(self):
+        """Get the state for pickling or copying
+
+        :return: The state of the object. Does not contain session.
+            Contains the string of the entity class.
+        :rtype: Dict[str, Any]
+        """
+        state = {k: v for k, v in self.__dict__.items()
+                 if k not in {"_session", "_is_a", "_values"}}
+        state["_is_a"] = (self.is_a.namespace.name, self._is_a.name)
+        state["_neighbours"] = [
+            (k.namespace.name, k.name, [
+                (uid, vv.namespace.name, vv.name)
+                for uid, vv in v.items()
+            ])
+            for k, v in self._neighbours.items()
+        ]
+        state["_values"] = [(k, v.namespace.name, v.name)
+                            for k, v in self._values.items()]
+        return state
+
+    def __setstate__(self, state):
+        """Set the state for pickling or copying
+
+        :param state: The state of the object. Does not contain session.
+            Contains the string of the entity class.
+        :type state: Dict[str, Any]
+        """
+        namespace, entity_class = state["_is_a"]
+        is_a = ONTOLOGY_NAMESPACE_REGISTRY[namespace][entity_class]
+        state["_is_a"] = is_a
+        state["_session"] = None
+        state["_neighbours"] = NeighbourDictRel({
+            ONTOLOGY_NAMESPACE_REGISTRY[ns][cl]: NeighbourDictTarget({
+                uid: ONTOLOGY_NAMESPACE_REGISTRY[ns2][cl2]
+                for uid, ns2, cl2 in v
+            }, self, ONTOLOGY_NAMESPACE_REGISTRY[ns][cl])
+            for ns, cl, v in state["_neighbours"]
+        }, self)
+        state["_values"] = {k: ONTOLOGY_NAMESPACE_REGISTRY[ns][cl]
+                            for k, ns, cl in state["_values"]}
+        self.__dict__ = state
