@@ -109,8 +109,7 @@ setup(
     test_suite='cuds.testing',
     entry_points={
         'console_scripts': [
-            'simphony-class-generator = cuds.generator.class_generator:main',
-            'cuds2dot = cuds.ontology.utils.cuds2dot:main'],
+            'simphony-class-generator = cuds.generator.class_generator:main'],
         'wrappers': 'osp-core = cuds.classes:Cuds'
     }
 )
