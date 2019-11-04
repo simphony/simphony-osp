@@ -10,6 +10,7 @@ import graphviz
 import cuds.classes
 from cuds.utils import get_relationships_between
 
+
 class Cuds2dot():
     """Utility for creating a dot and png representation of the objects
     related to a given Cuds instance
