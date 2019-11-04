@@ -170,7 +170,7 @@ class Parser:
             value_namespace, value_name = self._split_name(value_name)
             value_namespace = self._namespace_registry[value_namespace]
             value = value_namespace[value_name]
-            entity._add_value(value, default)
+            entity._add_attribute(value, default)
 
     def _set_inverse(self, entity: OntologyRelationship):
         """Set the inverse of the given entity

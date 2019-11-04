@@ -45,7 +45,7 @@ def format_class_name(name):
 
 
 def post(url, cuds_object, max_depth=float("inf")):
-    from cuds.session.transport.transport_util import serializable
+    from osp.core.session.transport.transport_util import serializable
     cuds_objects = find_cuds_object(criterion=lambda x: True,
                                     root=cuds_object,
                                     rel=CUBA.ACTIVE_RELATIONSHIP,
@@ -139,7 +139,7 @@ def find_cuds_objects_by_cuba_key(cuba_key, root, rel):
     :rtype: List[Cuds]
     """
     return find_cuds_object(
-        criterion=lambda cuds_object: cuds_object.cuba_key == cuba_key,
+        criterion=lambda cuds_object: cuds_object.is_a == cuba_key,
         root=root,
         rel=rel,
         find_all=True
@@ -184,10 +184,13 @@ def find_relationships(find_rel, root, consider_rel, find_sub_rels=False):
     """
     if find_sub_rels:
         def criterion(cuds_object):
-            return cuds_object.contains(find_rel)
+            for rel in cuds_object._neighbours.keys():
+                if find_rel in rel.superclasses:
+                    return True
+            return False
     else:
         def criterion(cuds_object):
-            return find_rel in cuds_object
+            return find_rel in cuds_object._neighbours
 
     return find_cuds_object(
         criterion=criterion,
@@ -264,7 +267,7 @@ def get_relationships_between(subj, obj):
     :rtype: Set[Type[Relationship]]
     """
     result = set()
-    for rel, obj_uids in subj.items():
+    for rel, obj_uids in subj._neighbours.items():
         if obj.uid in obj_uids:
             result.add(rel)
     return result
@@ -280,12 +283,14 @@ def pretty_print(cuds_object, file=sys.stdout):
     """
     pp = pp_cuds_object_name(cuds_object)
     pp += "\n  uuid: " + str(cuds_object.uid)
-    pp += "\n  type: " + str(cuds_object.cuba_key)
-    pp += "\n  superclasses: " + ", ".join(cuds_object.is_a.superclasses)
+    pp += "\n  type: " + str(cuds_object.is_a)
+    pp += "\n  superclasses: " + ", ".join(
+        map(str, cuds_object.is_a.superclasses)
+    )
     values_str = pp_values(cuds_object)
     if values_str:
         pp += "\n  values: " + pp_values(cuds_object)
-    pp += "\n  description: " + cuds_object.is_a.definition
+    pp += "\n  description: \n    %s\n" % cuds_object.is_a.definition
     pp += pp_subelements(cuds_object)
 
     print(pp, file=file)
@@ -300,7 +305,7 @@ def pp_cuds_object_name(cuds_object, cuba=False):
     :return: string with the pretty printed text
     """
     title = "Cuds object" if not cuba else "cuds object"
-    cuba = (" %s " % cuds_object.cuba_key) if cuba else ""
+    cuba = (" %s " % cuds_object.is_a) if cuba else ""
 
     if hasattr(cuds_object, "name"):
         name = str(cuds_object.name)
@@ -325,9 +330,9 @@ def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
     visited.add(cuds_object.uid)
     for i, relationship in enumerate(sorted_relationships):
         pp_sub += level_indentation \
-            + " |_Relationship %s:" % relationship.cuba_key
+            + " |_Relationship %s:" % relationship
         sorted_elements = sorted(cuds_object.iter(rel=relationship),
-                                 key=lambda x: str(x.cuba_key))
+                                 key=lambda x: str(x.is_a))
         for j, element in enumerate(sorted_elements):
             if i == len(sorted_relationships) - 1:
                 indentation = level_indentation + "   "
@@ -363,9 +368,10 @@ def pp_values(cuds_object, indentation="\n          "):
     :rtype: [type]
     """
     result = []
-    for attr in cuds_object.get_attributes(skip=["session", "uid", "name"]):
-        value = getattr(cuds_object, attr)
-        result.append("%s: %s" % (attr, value))
+    for value in cuds_object.is_a.attributes:
+        if value.argname != "name":
+            v = getattr(cuds_object, value.argname)
+            result.append("%s: %s" % (value.argname, v))
     if result:
         return indentation.join(result)
 
@@ -382,8 +388,9 @@ def destroy_cuds_object(cuds_object):
         session._expired.remove(cuds_object.uid)
     for rel in set(cuds_object._neighbours.keys()):
         del cuds_object._neighbours[rel]
-    for attr in cuds_object.get_attributes(skip=["session", "uid"]):
-        setattr(cuds_object, "_" + attr, None)
+    for attr in cuds_object.is_a.attributes:
+        if attr.argname != "session":
+            del cuds_object._attributes[attr.argname]
     if cuds_object.uid in cuds_object._session._registry:
         del cuds_object._session._registry[cuds_object.uid]
 
@@ -430,8 +437,8 @@ def create_recycle(entity_cls, kwargs, session, uid, add_to_buffers=True):
         cuds_object = session._registry.get(uid)
         cuds_object._is_a = entity_cls
         attributes = entity_cls._get_attributes(kwargs)
-        for key, value in kwargs.items():
-            setattr(attributes, key.argname, value)
+        for key, value in attributes.items():
+            setattr(cuds_object, key.argname, value)
         for rel in set(cuds_object._neighbours.keys()):
             del cuds_object._neighbours[rel]
     else:  # create new
@@ -459,7 +466,7 @@ def create_from_cuds_object(cuds_object, session, add_to_buffers):
     """
     assert cuds_object.session is not session
     kwargs = {x.argname: getattr(cuds_object, x.argname)
-              for x in cuds_object.is_a.values}
+              for x in cuds_object.is_a.attributes}
     clone = create_recycle(entity_cls=cuds_object.is_a,
                            kwargs=kwargs,
                            session=session,

@@ -55,19 +55,19 @@ class TestParser(unittest.TestCase):
 
         self.assertEqual(
             Person.direct_superclasses,
-            {LivingBeing}
+            [LivingBeing]
         )
         self.assertEqual(
             Person.direct_subclasses,
-            {Citizen}
+            [Citizen]
         )
         self.assertEqual(
             Person.superclasses,
-            {Person, LivingBeing, Entity}
+            [Person, LivingBeing, Entity]
         )
         self.assertEqual(
             Person.subclasses,
-            {Person, Citizen}
+            [Person, Citizen]
         )
 
     def test_ontology_class(self):
@@ -78,19 +78,19 @@ class TestParser(unittest.TestCase):
         Age = osp.core.CITY.AGE
 
         self.assertEqual(
-            Citizen.values,
+            Citizen.attributes,
             {Name: "John Smith", Age: 25}
         )
         self.assertEqual(
-            Citizen.inherited_values,
+            Citizen.inherited_attributes,
             {Name: "John Smith", Age: 25}
         )
         self.assertEqual(
-            Person.inherited_values,
+            Person.inherited_attributes,
             {Name: "John Smith", Age: 25}
         )
         self.assertEqual(
-            Citizen.own_values,
+            Citizen.own_attributes,
             dict()
         )
 
@@ -106,7 +106,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(ActiveRelationship.inverse, PassiveRelationship)
         self.assertEqual(PassiveRelationship.inverse, ActiveRelationship)
         self.assertEqual(PassiveRelationship.direct_superclasses,
-                         {Relationship})
+                         [Relationship])
 
     def test_ontology_values(self):
         """Test the ontology values"""

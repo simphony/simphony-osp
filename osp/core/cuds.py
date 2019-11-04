@@ -46,7 +46,7 @@ class Cuds():
             uid will be created.
         :type uid: UUID
         """
-        self._attributes = {k.argname: v for k, v in attributes.items()}
+        self._attributes = {k.argname: k(v) for k, v in attributes.items()}
         self._neighbours = NeighbourDictRel({}, self)
 
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
@@ -676,7 +676,7 @@ class Cuds():
             raise AttributeError(name)
         if self.session:
             self.session._notify_read(self)
-        self._attributes[name] == self._values[name](new_value)
+        self._attributes[name] = self._values[name](new_value)
         if self.session:
             self.session._notify_update(self)
 

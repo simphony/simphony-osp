@@ -56,7 +56,7 @@ class OntologyValue(OntologyEntity):
         :return: The converted value
         :rtype: Any
         """
-        return convert_to(value)
+        return convert_to(value, self.datatype)
 
     def convert_to_basic_type(self, value):
         """Convert from the datatype of the value to a python basic type
@@ -66,7 +66,7 @@ class OntologyValue(OntologyEntity):
                 :return: The converted value
         :rtype: Any
         """
-        return convert_from(value)
+        return convert_from(value, self.datatype)
 
     def _set_datatype(self, datatype):
         """Set the datatype of the value

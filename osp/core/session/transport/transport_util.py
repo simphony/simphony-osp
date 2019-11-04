@@ -7,11 +7,11 @@
 
 import json
 import uuid
-from cuds.utils import create_recycle
-from cuds.classes.cuds import Cuds
-from cuds.generator.ontology_datatypes import convert_from, convert_to
-from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
-from cuds.classes.generated.cuba import CUBA
+from osp.core import get_entity
+from osp.core.utils import create_recycle
+from osp.core.cuds import Cuds
+from osp.core.ontology.datatypes import convert_from, convert_to
+from osp.core.ontology.entity import OntologyEntity
 
 INITIALIZE_COMMAND = "_init"
 LOAD_COMMAND = "_load"
@@ -107,7 +107,7 @@ def deserialize(json_obj, session, add_to_buffers):
     if isinstance(json_obj, list):
         return [deserialize(x, session, add_to_buffers) for x in json_obj]
     if isinstance(json_obj, dict) \
-            and "cuba_key" in json_obj \
+            and "entity" in json_obj \
             and "attributes" in json_obj \
             and "relationships" in json_obj:
         return _to_cuds_object(json_obj, session, add_to_buffers)
@@ -115,8 +115,8 @@ def deserialize(json_obj, session, add_to_buffers):
             and set(["UUID"]) == set(json_obj.keys()):
         return convert_to(json_obj["UUID"], "UUID")
     if isinstance(json_obj, dict) \
-            and set(["CUBA-KEY"]) == set(json_obj.keys()):
-        return CUBA(json_obj["CUBA-KEY"])
+            and set(["ENTITY"]) == set(json_obj.keys()):
+        return get_entity(json_obj["ENTITY"])
     if isinstance(json_obj, dict):
         return {k: deserialize(v, session, add_to_buffers)
                 for k, v in json_obj.items()}
@@ -139,8 +139,8 @@ def serializable(obj):
         return obj
     if isinstance(obj, uuid.UUID):
         return {"UUID": convert_from(obj, "UUID")}
-    if isinstance(obj, CUBA):
-        return {"CUBA-KEY": obj.value}
+    if isinstance(obj, OntologyEntity):
+        return {"ENTITY": obj.value}
     if isinstance(obj, Cuds):
         return _serializable(obj)
     if isinstance(obj, dict):
@@ -158,20 +158,19 @@ def _serializable(cuds_object):
     :return: The cuds_object to make serializable.
     :rtype: Cuds
     """
-    result = {"cuba_key": str(cuds_object.cuba_key.value),
+    result = {"entity": str(cuds_object.is_a),
               "attributes": dict(),
               "relationships": dict()}
-    datatypes = cuds_object.get_datatypes()
-    attributes = cuds_object.get_attributes(skip=["session"])
+    attributes = cuds_object.is_a.attributes
     for attribute in attributes:
-        result["attributes"][attribute] = convert_from(
-            getattr(cuds_object, attribute),
-            datatypes[attribute]
+        result["attributes"][str(attribute)] = convert_from(
+            getattr(cuds_object, attribute.argname),
+            attribute.datatype
         )
-    for rel in cuds_object:
-        result["relationships"][rel.cuba_key.value] = {
-            convert_from(uid, "UUID"): str(cuba_key.value)
-            for uid, cuba_key in cuds_object[rel].items()
+    for rel in cuds_object._neighbours:
+        result["relationships"][str(rel)] = {
+            convert_from(uid, "UUID"): str(entity)
+            for uid, entity in cuds_object._neighbours[rel].items()
         }
     return result
 
@@ -189,22 +188,21 @@ def _to_cuds_object(json_obj, session, add_to_buffers):
     :return: The resulting cuds_object.
     :rtype: Cuds
     """
-    cuba_key = CUBA(json_obj["cuba_key"])
+    entity = get_entity(json_obj["entity"])
     attributes = json_obj["attributes"]
     relationships = json_obj["relationships"]
-    entity_cls = CUBA_MAPPING[cuba_key]
-    cuds_object = create_recycle(entity_cls=entity_cls,
+    cuds_object = create_recycle(entity_cls=entity,
                                  kwargs=attributes,
                                  session=session,
                                  add_to_buffers=add_to_buffers)
 
-    for rel_cuba, obj_dict in relationships.items():
-        rel = CUBA_MAPPING[CUBA(rel_cuba)]
+    for rel_name, obj_dict in relationships.items():
+        rel = get_entity(rel_name)
         cuds_object[rel] = dict()
-        for uid, cuba_key in obj_dict.items():
+        for uid, target_name in obj_dict.items():
             uid = convert_to(uid, "UUID")
-            cuba_key = CUBA(cuba_key)
-            cuds_object[rel][uid] = cuba_key
+            target_entity = get_entity(target_name)
+            cuds_object[rel][uid] = target_entity
     if not add_to_buffers:
         session._remove_uids_from_buffers([cuds_object.uid])
     return cuds_object

@@ -28,3 +28,8 @@ def get_default_rel():
 def set_default_rel(rel):
     global user_defined_default_rel
     user_defined_default_rel = rel
+
+
+def get_entity(entity_name):
+    namespace, name = entity_name.split(".")
+    return ONTOLOGY_NAMESPACE_REGISTRY[namespace][name]

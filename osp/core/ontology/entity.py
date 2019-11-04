@@ -24,8 +24,8 @@ class OntologyEntity(ABC):
         """
         self._name = name
         self._namespace = namespace
-        self._subclasses = set()
-        self._superclasses = set(superclasses)
+        self._subclasses = list()
+        self._superclasses = list(superclasses)
         self._definition = definition
 
     def __str__(self):
@@ -53,7 +53,7 @@ class OntologyEntity(ABC):
         """Get the direct superclass of the entity
 
         :return: The direct superclasses of the entity
-        :rtype: Set[OntologyEntity]
+        :rtype: List[OntologyEntity]
         """
         return self._superclasses
 
@@ -73,10 +73,13 @@ class OntologyEntity(ABC):
         :return: The direct subclasses of the entity
         :rtype: Set[OntologyEntity]
         """
-        result = {self}
-        result |= self._subclasses
-        for c in self._subclasses:
-            result |= c.subclasses
+        subclasses = [self]
+        for p in self._subclasses:
+            subclasses.extend(p.subclasses)
+        result = list()
+        for i, p in enumerate(subclasses):
+            if p not in result:
+                result.append(p)
         return result
 
     @property
@@ -84,12 +87,15 @@ class OntologyEntity(ABC):
         """Get the superclass of the entity
 
         :return: The direct superclasses of the entity
-        :rtype: Set[OntologyEntity]  # TODO MRO
+        :rtype: Set[OntologyEntity]
         """
-        result = {self}
-        result |= self._superclasses
+        superclasses = [self]
         for p in self._superclasses:
-            result |= p.superclasses
+            superclasses.extend(p.superclasses)
+        result = list()
+        for i, p in enumerate(superclasses):
+            if p not in superclasses[i + 1:]:
+                result.append(p)
         return result
 
     @property
@@ -109,7 +115,8 @@ class OntologyEntity(ABC):
         :param subclass: The subclass to add
         :type subclass: OntologyEntity
         """
-        self._subclasses.add(subclass)
+        if subclass not in self._subclasses:
+            self._subclasses.append(subclass)
 
     def __getstate__(self):
         return self.__dict__

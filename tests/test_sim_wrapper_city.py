@@ -1,6 +1,5 @@
-from cuds.session.sim_wrapper_session import SimWrapperSession
-from cuds.classes.generated.cuba import CUBA
-import cuds.classes
+from osp.core.session.sim_wrapper_session import SimWrapperSession
+from osp.core import CITY
 import unittest2 as unittest
 
 
@@ -14,27 +13,27 @@ class TestSimWrapperCity(unittest.TestCase):
         if working with this layer works as expected.
         """
         with DummySimSession() as session:
-            wrapper = cuds.classes.CitySimWrapper(num_steps=1, session=session)
-            c = cuds.classes.City(name="Freiburg")
-            p1 = cuds.classes.Person(name="Hans", age=34)
-            p2 = cuds.classes.Person(name="Renate", age=54)
+            wrapper = CITY.CITY_SIM_WRAPPER(num_steps=1, session=session)
+            c = CITY.CITY(name="Freiburg")
+            p1 = CITY.PERSON(name="Hans", age=34)
+            p2 = CITY.PERSON(name="Renate", age=54)
             cw, _, _ = wrapper.add(c, p1, p2)
 
             session.run()
 
             self.assertEqual(len(
-                wrapper.get(cuba_key=cuds.classes.Person.cuba_key,
-                            rel=cuds.classes.HasPart)), 1)
+                wrapper.get(entity=CITY.PERSON,
+                            rel=CITY.HAS_PART)), 1)
             self.assertEqual(len(
-                cw.get(cuba_key=cuds.classes.Citizen.cuba_key,
-                       rel=cuds.classes.HasInhabitant)), 1)
+                cw.get(entity=CITY.CITIZEN,
+                       rel=CITY.HAS_INHABITANT)), 1)
             self.assertEqual(wrapper.get(p2.uid).name, "Renate")
             self.assertEqual(wrapper.get(p2.uid).age, 55)
             self.assertEqual(cw.get(p1.uid).name, "Hans")
             self.assertEqual(cw.get(p1.uid).age, 35)
 
             session.run()
-            wrapper.add(cuds.classes.Person(name="Peter"))
+            wrapper.add(CITY.PERSON(name="Peter"))
             self.assertRaises(RuntimeError, session.run)
 
 
@@ -58,21 +57,21 @@ class DummySimSession(SimWrapperSession):
             uid = self._person_map[i]
             person_uids.add(uid)
             root_cuds_object.get(uid).age = p.age
-        for p in root_cuds_object.get(cuba_key=CUBA.PERSON):
+        for p in root_cuds_object.get(entity=CITY.PERSON):
             if p.uid not in person_uids:
                 root_cuds_object.remove(p)
 
         # update the age of the citizens and add new citizens
-        city = root_cuds_object.get(cuba_key=CUBA.CITY)[0]
+        city = root_cuds_object.get(entity=CITY.CITY)[0]
         for i, p in self._engine.get_inhabitants():
             uid = self._person_map[i]
             inhabitant = city.get(uid)
             if inhabitant:
                 inhabitant.age = p.age
             else:
-                citizen = cuds.classes.Citizen(
+                citizen = CITY.CITIZEN(
                     name=p.name, age=p.age, uid=self._person_map[i])
-                city.add(citizen, rel=cuds.classes.HasInhabitant)
+                city.add(citizen, rel=CITY.HAS_INHABITANT)
 
     # OVERRIDE
     def _apply_added(self):
@@ -83,9 +82,9 @@ class DummySimSession(SimWrapperSession):
             self._added.values(),
             key=lambda x: x.name if hasattr(x, "name") else "0")
         for added in sorted_added:
-            if isinstance(added, cuds.classes.Person) and \
-                    cuds.classes.IsPartOf in added and \
-                    self.root in added[cuds.classes.IsPartOf]:
+            if added.is_a in CITY.PERSON.subclasses and \
+                    CITY.IS_PART_OF in added._neighbours and \
+                    self.root in added._neighbours[CITY.IS_PART_OF]:
                 self._engine.add_person(DummyPerson(added.name, added.age))
                 self._person_map.append(added.uid)
 

@@ -13,33 +13,33 @@ from osp.core.ontology.value import OntologyValue
 class OntologyClass(OntologyEntity):
     def __init__(self, namespace, name, superclasses, definition):
         super().__init__(namespace, name, superclasses, definition)
-        self._values = dict()
+        self._attributes = dict()
 
     @property
-    def values(self):
-        """Get all (inherited + own) the values of this Cuds object.
+    def attributes(self):
+        """Get all (inherited + own) the attributes of this Cuds object.
 
-        :return: The values of the class
+        :return: The attributes of the class
         :rtype: List[OntologyValue]
         """
-        result = self.inherited_values
-        result.update(self.own_values)
+        result = self.inherited_attributes
+        result.update(self.own_attributes)
         return result
 
     @property
-    def own_values(self):
-        """Get all the own values of this Cuds object.
+    def own_attributes(self):
+        """Get all the own attributes of this Cuds object.
 
-        :return: The values of the class
+        :return: The attributes of the class
         :rtype: List[OntologyValue]
         """
-        return self._values
+        return self._attributes
 
     @property
-    def inherited_values(self):
-        """Get all the inherited values of this Cuds object.
+    def inherited_attributes(self):
+        """Get all the inherited attributes of this Cuds object.
 
-        :return: The values of the class
+        :return: The attributes of the class
         :rtype: List[OntologyValue]
         """
         result = dict()
@@ -47,23 +47,23 @@ class OntologyClass(OntologyEntity):
         for c in superclasses:
             if c is self:
                 continue
-            tmp = dict(c.own_values)
+            tmp = dict(c.own_attributes)
             tmp.update(result)
             result = tmp
         return result
 
-    def _add_value(self, value, default):
-        """Add an value to the class
+    def _add_attribute(self, attribute, default):
+        """Add an attribute to the class
 
-        :param value: The value to add
-        :type value: OntologyValue
+        :param attribute: The attribute to add
+        :type attribute: OntologyValue
         """
-        assert isinstance(value, OntologyValue)
-        self._values[value] = default
+        assert isinstance(attribute, OntologyValue)
+        self._attributes[attribute] = default
 
     def _get_attributes(self, kwargs):
         """Get the cuds object's attributes from the given kwargs.
-        Combine defaults and given attribute values
+        Combine defaults and given attribute attributes
 
         :param kwargs: The user specified keyword arguments
         :type kwargs: Dict{str, Any}
@@ -72,13 +72,14 @@ class OntologyClass(OntologyEntity):
         :return: The resulting attributes
         :rtype: Dict[OntologyValue, Any]
         """
+        kwargs = dict(kwargs)
         attributes = dict()
-        for value, default in self.inherited_values.items():
-            if value.argname in kwargs:
-                attributes[value] = kwargs[value.argname]
-                del kwargs[value.argname]
+        for attribute, default in self.attributes.items():
+            if attribute.argname in kwargs:
+                attributes[attribute] = kwargs[attribute.argname]
+                del kwargs[attribute.argname]
             else:
-                attributes[value] = default
+                attributes[attribute] = default
 
         # Check validity of arguments
         if kwargs:

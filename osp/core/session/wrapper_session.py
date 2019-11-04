@@ -6,7 +6,6 @@
 # No redistribution is allowed without explicit written permission.
 
 from abc import abstractmethod
-from cuds.classes.cuds import Cuds
 from .session import Session
 
 
@@ -128,102 +127,97 @@ class WrapperSession(Session):
     def _check_cardinalities(self):
         """Check if the cardinalities specified in the ontology
         are satisfied for the added and updated cuds_object."""
-        if not Cuds.CUDS_SETTINGS["check_cardinalities"]:
-            return
+        pass  # TODO
 
-        to_check = set(self._added.values()) | set(self._updated.values())
-        for cuds_object in to_check:
-            self._check_cuds_object_cardinalities(cuds_object)
+    # @staticmethod
+    # def _check_cuds_object_cardinalities(cuds_object):
+    #     """Check the cardinality of a single cuds_object.
 
-    @staticmethod
-    def _check_cuds_object_cardinalities(cuds_object):
-        """Check the cardinality of a single cuds_object.
+    #     :param cuds_object: The cuds_object to check-
+    #     :type cuds_object: Cuds
+    #     :raises ValueError: The cuds_object did not satisfy the cardinalities
+    #         given by the ontology
+    #     """
+    #     from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
+    #     ontology_cardinalities, consider_relationships = \
+    #         WrapperSession._get_ontology_cardinalities(cuds_object)
 
-        :param cuds_object: The cuds_object to check-
-        :type cuds_object: Cuds
-        :raises ValueError: The cuds_object did not satisfy the cardinalities
-            given by the ontology
-        """
-        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
-        ontology_cardinalities, consider_relationships = \
-            WrapperSession._get_ontology_cardinalities(cuds_object)
+    #     # Count the observed cardinalities
+    #     observed_cardinalities = {k: 0
+    #                               for k in ontology_cardinalities.keys()}
+    #     for rel in consider_relationships:
+    #         for _, cuba in cuds_object[rel].items():
+    #             for r, o in ontology_cardinalities.keys():
+    #                 if issubclass(rel, r) \
+    #                         and issubclass(CUBA_MAPPING[cuba], o):
+    #                     observed_cardinalities[r, o] += 1
 
-        # Count the observed cardinalities
-        observed_cardinalities = {k: 0
-                                  for k in ontology_cardinalities.keys()}
-        for rel in consider_relationships:
-            for _, cuba in cuds_object[rel].items():
-                for r, o in ontology_cardinalities.keys():
-                    if issubclass(rel, r) \
-                            and issubclass(CUBA_MAPPING[cuba], o):
-                        observed_cardinalities[r, o] += 1
+    #     # Check if observed cardinalities are consistent
+    #     for r, o in ontology_cardinalities.keys():
+    #         if not (ontology_cardinalities[r, o][0]
+    #                 <= observed_cardinalities[r, o]
+    #                 <= ontology_cardinalities[r, o][1]):
+    #             raise ValueError(
+    #                 ("The number of %s connected to %s via %s"
+    #                     + " should be in range %s, but %s given.")
+    #                 % (o, cuds_object, r,
+    #                     list(ontology_cardinalities[r, o]),
+    #                     observed_cardinalities[r, o]))
 
-        # Check if observed cardinalities are consistent
-        for r, o in ontology_cardinalities.keys():
-            if not (ontology_cardinalities[r, o][0]
-                    <= observed_cardinalities[r, o]
-                    <= ontology_cardinalities[r, o][1]):
-                raise ValueError(
-                    ("The number of %s connected to %s via %s"
-                        + " should be in range %s, but %s given.")
-                    % (o, cuds_object, r,
-                        list(ontology_cardinalities[r, o]),
-                        observed_cardinalities[r, o]))
+    # @staticmethod
+    # def _parse_cardinality(cardinality):
+    #     """Parse the cardinality string given in the ontology:
+    #     Allowed: many = * = 0+ / + = 1+ / a+ / a-b / a
 
-    @staticmethod
-    def _parse_cardinality(cardinality):
-        """Parse the cardinality string given in the ontology:
-        Allowed: many = * = 0+ / + = 1+ / a+ / a-b / a
+    #     :param cardinality: The given cardinality string to parse
+    #     :type cardinality: str
+    #     :return: A tuple defining the min and max number of occurences
+    #     :rtype: Tuple[int, int]
+    #     """
+    #     min_occurrences = 0
+    #     max_occurrences = float("inf")
+    #     if isinstance(cardinality, int):
+    #         min_occurrences = max_occurrences = cardinality
+    #     elif cardinality in ["*", "many"]:
+    #         pass
+    #     elif cardinality == "+":
+    #         min_occurrences = 1
+    #     elif cardinality == "?":
+    #         min_occurrences = 0
+    #         max_occurrences = 1
+    #     elif cardinality.endswith("+"):
+    #         min_occurrences = int(cardinality[:-1].strip())
+    #     elif "-" in cardinality:
+    #         min_occurrences = int(cardinality.split("-")[0].strip())
+    #         max_occurrences = int(cardinality.split("-")[1].strip())
+    #     else:
+    #         min_occurrences = max_occurrences = int(cardinality.strip())
+    #     return min_occurrences, max_occurrences
 
-        :param cardinality: The given cardinality string to parse
-        :type cardinality: str
-        :return: A tuple defining the min and max number of occurences
-        :rtype: Tuple[int, int]
-        """
-        min_occurrences = 0
-        max_occurrences = float("inf")
-        if isinstance(cardinality, int):
-            min_occurrences = max_occurrences = cardinality
-        elif cardinality in ["*", "many"]:
-            pass
-        elif cardinality == "+":
-            min_occurrences = 1
-        elif cardinality == "?":
-            min_occurrences = 0
-            max_occurrences = 1
-        elif cardinality.endswith("+"):
-            min_occurrences = int(cardinality[:-1].strip())
-        elif "-" in cardinality:
-            min_occurrences = int(cardinality.split("-")[0].strip())
-            max_occurrences = int(cardinality.split("-")[1].strip())
-        else:
-            min_occurrences = max_occurrences = int(cardinality.strip())
-        return min_occurrences, max_occurrences
+    # @staticmethod
+    # def _get_ontology_cardinalities(cuds_object):
+    #     """Read the cardinalites for the given cuds_object
+    #         as specified in the ontology.
 
-    @staticmethod
-    def _get_ontology_cardinalities(cuds_object):
-        """Read the cardinalites for the given cuds_object
-            as specified in the ontology.
-
-        :param cuds_object: The given Cuds object.
-        :type cuds_object: Cuds
-        :return: Dictionary mapping relationship-Cuds_class
-            to min and max number of occurences + set of relationships
-            to consider when checking if cardinalities are satisfied.
-        :rtype: Tuple[Dict[Tuple[Class, Class], Tuple[int, int]], Set]
-        """
-        from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
-        ontology_cardinalities = dict()
-        consider_relationships = set()
-        for rel, objects in cuds_object.supported_relationships.items():
-            for obj, options in objects.items():
-                cardinality = Cuds.CUDS_SETTINGS["default_cardinality"]
-                if options and "cardinality" in options:
-                    cardinality = options["cardinality"]
-                cardinality = WrapperSession._parse_cardinality(cardinality)
-                rel_cls = CUBA_MAPPING[rel]
-                obj_cls = CUBA_MAPPING[obj]
-                ontology_cardinalities[rel_cls, obj_cls] = cardinality
-                consider_relationships |= cuds_object._relationship_tree \
-                    .get_subrelationships(rel_cls)
-        return ontology_cardinalities, consider_relationships
+    #     :param cuds_object: The given Cuds object.
+    #     :type cuds_object: Cuds
+    #     :return: Dictionary mapping relationship-Cuds_class
+    #         to min and max number of occurences + set of relationships
+    #         to consider when checking if cardinalities are satisfied.
+    #     :rtype: Tuple[Dict[Tuple[Class, Class], Tuple[int, int]], Set]
+    #     """
+    #     from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
+    #     ontology_cardinalities = dict()
+    #     consider_relationships = set()
+    #     for rel, objects in cuds_object.supported_relationships.items():
+    #         for obj, options in objects.items():
+    #             cardinality = Cuds.CUDS_SETTINGS["default_cardinality"]
+    #             if options and "cardinality" in options:
+    #                 cardinality = options["cardinality"]
+    #             cardinality = WrapperSession._parse_cardinality(cardinality)
+    #             rel_cls = CUBA_MAPPING[rel]
+    #             obj_cls = CUBA_MAPPING[obj]
+    #             ontology_cardinalities[rel_cls, obj_cls] = cardinality
+    #             consider_relationships |= cuds_object._relationship_tree \
+    #                 .get_subrelationships(rel_cls)
+    #     return ontology_cardinalities, consider_relationships
