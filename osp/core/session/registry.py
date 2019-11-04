@@ -62,7 +62,7 @@ class Registry(dict):
         :return: The set of elements in the subtree rooted in the given uid.
         :rtype: Set[Cuds]
         """
-        from cuds.classes.cuds import Cuds
+        from osp.core.cuds import Cuds
         skip = skip or set()
         if not isinstance(root, Cuds):
             root = super().__getitem__(root)
@@ -136,7 +136,7 @@ class Registry(dict):
             containing cuds objects with given cuba_key.
         :rtype: Dict[UUID, Cuds]
         """
-        return self.filter(lambda x: x.cuba_key == cuba_key)
+        return self.filter(lambda x: x.is_a == cuba_key)
 
     def filter_by_attribute(self, attribute, value):
         """Filter by attribute and valie
@@ -169,8 +169,12 @@ class Registry(dict):
         """
         if consider_subrelationships:
             def criterion(cuds_object):
-                return cuds_object.contains(relationship)
+                for rel in cuds_object._neighbours.keys():
+                    if relationship in rel.superclasses:
+                        return True
+                return False
         else:
             def criterion(cuds_object):
-                return relationship in cuds_object
+                return relationship in cuds_object._neighbours
+
         return self.filter(criterion)
