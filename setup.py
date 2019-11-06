@@ -104,6 +104,7 @@ setup(
     keywords='simphony, cuds, Fraunhofer IWM',
     long_description=README_TEXT,
     packages=packages,
+    python_requires=">=3.6",
     cmdclass={
         'install': Install,
         'develop': Develop
