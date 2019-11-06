@@ -9,6 +9,12 @@ pep8:
   script:
     - flake8 . --exclude=*/__init__.py --ignore=W503
 
+radon:
+  stage: code_analysis
+  script:
+    - radon cc -s -a .
+    - radon mi -s .
+
 unittesting:
   stage: test
   script:
