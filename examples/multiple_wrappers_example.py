@@ -1,4 +1,3 @@
-import traceback
 from cuds.classes import (
     City, Citizen, Neighbourhood, Street,
     HasPart, HasInhabitant, IsPartOf,
