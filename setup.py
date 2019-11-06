@@ -46,8 +46,10 @@ def create_ontology_classes(ontology):
 
     print('Building classes from ontology...')
     path = "cuds/classes/generated"
-    ClassGenerator(ontology_file, entity_template, relationship_template, path)\
-        .generate_classes()
+    ClassGenerator(ontology_file,
+                   entity_template,
+                   relationship_template,
+                   path).generate_classes()
 
 
 class Install(install):
