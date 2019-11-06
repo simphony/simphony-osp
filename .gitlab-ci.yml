@@ -7,12 +7,7 @@ stages:
 pep8:
   stage: code_analysis
   script:
-    - flake8 . --ignore=W503
-
-bandit:
-  stage: code_analysis
-  script:
-    - bandit -r .
+    - flake8 . --exclude=*/__init__.py --ignore=W503
 
 unittesting:
   stage: test
