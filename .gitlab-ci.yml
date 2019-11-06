@@ -1,13 +1,15 @@
 image: "registry.gitlab.cc-asp.fraunhofer.de:4567/simphony/osp-core:latest"
 
-stages:
-  - build
-  #- test
+# Default stages are 'build', 'test', 'deploy'
 
 build_job:
   stage: build
   script:
     - python3 setup.py install -o city
     - flake8 cuds/ --exclude=cuds/classes/generated,*/__init__.py,build --ignore=W503
+
+test_job:
+  stage: test
+  script:
     - coverage run setup.py test
     - coverage report --omit=cuds/classes/generated/*,cuds/testing/* --skip-covered
