@@ -657,6 +657,8 @@ class Cuds():
             raise AttributeError(name)
         if self.session:
             self.session._notify_read(self)
+        if name not in self._attributes:
+            raise AttributeError(name)
         return self._attributes[name]
 
     def __setattr__(self, name, new_value):
@@ -676,6 +678,8 @@ class Cuds():
             raise AttributeError(name)
         if self.session:
             self.session._notify_read(self)
+        if name not in self._attributes:
+            raise AttributeError(name)
         self._attributes[name] = self._values[name](new_value)
         if self.session:
             self.session._notify_update(self)
