@@ -328,7 +328,8 @@ class SqlWrapperSession(DbWrapperSession):
                 )
 
             # Add to master
-            is_first_level = any(self.root in uids for uids in added._neighbours.values())
+            is_first_level = any(self.root in uids
+                                 for uids in added._neighbours.values())
             self._do_db_insert(
                 table_name=self.MASTER_TABLE,
                 columns=["uid", "entity", "first_level"],
@@ -499,7 +500,9 @@ class SqlWrapperSession(DbWrapperSession):
                             "first_level", True, "BOOL"),
             self.DATATYPES[self.MASTER_TABLE]
         )
-        list(self._load_from_backend(map(lambda x: (x[0], get_entity(x[1])), c)))
+        list(self._load_from_backend(
+            map(lambda x: (x[0], get_entity(x[1])), c)
+        ))
 
     def _load_by_entity(self, entity, update_registry=False, uid=None):
         """Load the cuds_object with the given entity (+ uid).
