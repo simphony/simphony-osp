@@ -7,7 +7,6 @@
 
 import unittest2 as unittest
 from osp.core import CITY, CUBA
-from osp.core.cuds import Cuds
 from osp.core.session.session import Session
 from osp.core.session.wrapper_session import WrapperSession
 

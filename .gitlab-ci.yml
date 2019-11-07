@@ -9,6 +9,6 @@ build_job:
   script:
     - python3 setup.py install -o city
     - pip3 install --upgrade flake8
-    - flake8 osp/ --ignore=W503
+    - flake8 osp/ tests/
     - coverage run setup.py test
     - coverage report --omit=cuds/classes/generated/*,cuds/testing/* --skip-covered

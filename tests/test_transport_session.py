@@ -43,12 +43,15 @@ SERIALIZED_BUFFERS = (
     '"uid": "00000000-0000-0000-0000-000000000002", '
     '"attributes": {"name": "Paris", '
     '"coordinates": [0, 0]}, '
-    '"relationships": {"CITY.IS_PART_OF": {"00000000-0000-0000-0000-000000000000": '
+    '"relationships": {"CITY.IS_PART_OF": "'
+    '"{"00000000-0000-0000-0000-000000000000": '
     '"CITY.CITY_WRAPPER"}}}], '
     '"updated": [{'
-    '"is_a": "CITY.CITY_WRAPPER", "uid": "00000000-0000-0000-0000-000000000000", '
+    '"is_a": "CITY.CITY_WRAPPER", '
+    '"uid": "00000000-0000-0000-0000-000000000000", '
     '"attributes": {}, '
-    '"relationships": {"CITY.HAS_PART": {"00000000-0000-0000-0000-000000000002": '
+    '"relationships": {"CITY.HAS_PART": '
+    '{"00000000-0000-0000-0000-000000000002": '
     '"CITY.CITY"}}}], '
     '"deleted": [{'
     '"is_a": "CITY.CITY", '
@@ -66,12 +69,15 @@ SERIALIZED_BUFFERS_EXPIRED = (
     '"uid": "00000000-0000-0000-0000-000000000002", '
     '"attributes": {"name": "Paris", '
     '"coordinates": [0, 0]}, '
-    '"relationships": {"CITY.IS_PART_OF": {"00000000-0000-0000-0000-000000000000": '
+    '"relationships": {"CITY.IS_PART_OF": '
+    '{"00000000-0000-0000-0000-000000000000": '
     '"CITY.CITY_WRAPPER"}}}], '
     '"updated": [{'
-    '"is_a": "CITY.CITY_WRAPPER", "uid": "00000000-0000-0000-0000-000000000000", '
+    '"is_a": "CITY.CITY_WRAPPER", "uid": '
+    '"00000000-0000-0000-0000-000000000000", '
     '"attributes": {}, '
-    '"relationships": {"CITY.HAS_PART": {"00000000-0000-0000-0000-000000000002": '
+    '"relationships": {"CITY.HAS_PART": '
+    '{"00000000-0000-0000-0000-000000000002": '
     '"CITY.CITY"}}}], '
     '"deleted": [{'
     '"is_a": "CITY.CITY", '
@@ -99,12 +105,16 @@ SERIALIZED_BUFFERS3 = (
     '"attributes": {"name": "Freiburg", '
     '"coordinates": [0, 0]}, '
     '"relationships": {'
-    '"CITY.HAS_INHABITANT": {"00000000-0000-0000-0000-000000000002": "CITY.CITIZEN"}, '
-    '"CITY.IS_PART_OF": {"00000000-0000-0000-0000-000000000003": "CITY.CITY_WRAPPER"}}'
-    '}, {"is_a": "CITY.CITY_WRAPPER", "uid": "00000000-0000-0000-0000-000000000003", '
+    '"CITY.HAS_INHABITANT": '
+    '{"00000000-0000-0000-0000-000000000002": "CITY.CITIZEN"}, '
+    '"CITY.IS_PART_OF": '
+    '{"00000000-0000-0000-0000-000000000003": "CITY.CITY_WRAPPER"}}'
+    '}, {"is_a": "CITY.CITY_WRAPPER", "uid": '
+    '"00000000-0000-0000-0000-000000000003", '
     '"attributes": {}, '
     '"relationships": {'
-    '"CITY.HAS_PART": {"00000000-0000-0000-0000-000000000001": "CITY.CITY"}}}], '
+    '"CITY.HAS_PART": '
+    '{"00000000-0000-0000-0000-000000000001": "CITY.CITY"}}}], '
     '"added": [], "deleted": [], "updated": []}'
 )
 
@@ -170,8 +180,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
     def test_serializable(self):
         """Test function to make Cuds objects json serializable"""
         p = CITY.CITIZEN(age=23,
-                                 name="Peter",
-                                 uid=uuid.UUID(int=0))
+                         name="Peter",
+                         uid=uuid.UUID(int=0))
         c = CITY.CITY(name="Freiburg", uid=uuid.UUID(int=1))
         c1 = CITY.PERSON(uid=uuid.UUID(int=2))
         c2 = CITY.PERSON(uid=uuid.UUID(int=3))
@@ -210,7 +220,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                              {uuid.UUID(int=0), uuid.UUID(int=2)})
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
-            self.assertEqual(ws1._neighbours[CITY.HAS_PART], {cn.uid: CITY.CITY})
+            self.assertEqual(ws1._neighbours[CITY.HAS_PART],
+                             {cn.uid: CITY.CITY})
             self.assertEqual(set(ws1._neighbours.keys()), {CITY.HAS_PART})
             self.assertEqual(cn._neighbours[CITY.IS_PART_OF],
                              {ws1.uid: CITY.CITY_WRAPPER})
@@ -238,7 +249,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                              {uuid.UUID(int=0), uuid.UUID(int=2)})
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
-            self.assertEqual(ws1._neighbours[CITY.HAS_PART], {cn.uid: CITY.CITY})
+            self.assertEqual(ws1._neighbours[CITY.HAS_PART],
+                             {cn.uid: CITY.CITY})
             self.assertEqual(set(ws1._neighbours.keys()), {CITY.HAS_PART})
             self.assertEqual(cn._neighbours[CITY.IS_PART_OF],
                              {ws1.uid: CITY.CITY_WRAPPER})
@@ -398,7 +410,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
         self.assertEqual(client._engine._sent_data, (
             '{"args": [], "kwargs": {}, '
             '"root": {"is_a": "CITY.CITY", '
-            '"uid": "00000000-0000-0000-0000-000000000001", "attributes": {"name": "Freiburg", '
+            '"uid": "00000000-0000-0000-0000-000000000001", '
+            '"attributes": {"name": "Freiburg", '
             '"coordinates": [0, 0]}, '
             '"relationships": {}}}'))
         self.assertEqual(set(client._registry.keys()), {c1.uid})
@@ -479,7 +492,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
                 s._added[uuid.UUID(int=2)].name == "Paris"
             s._reset_buffers(changed_by="user")
             s._added[uuid.UUID(int=uid)] = CITY.CITY(name=name,
-                                                             uid=uid)
+                                                     uid=uid)
             s._reset_buffers(changed_by="engine")
 
         TestWrapperSession.command = command

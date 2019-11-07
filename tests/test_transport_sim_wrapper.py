@@ -6,7 +6,6 @@
 # No redistribution is allowed without explicit written permission.
 
 import sys
-import os
 import time
 import subprocess
 from osp.core.session.transport.transport_session_client import \
@@ -73,6 +72,7 @@ class TestTransportSimWrapperCity(unittest.TestCase):
             session.run()
             wrapper.add(CITY.PERSON(name="Peter"))
             self.assertRaises(RuntimeError, session.run)
+
 
 if __name__ == '__main__':
     if sys.argv[-1] == "server":

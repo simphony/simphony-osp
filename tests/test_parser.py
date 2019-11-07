@@ -5,10 +5,8 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-import os
 import unittest2 as unittest
 import osp.core
-from osp.core.ontology.parser import Parser
 from osp.core.ontology.namespace_registry import ONTOLOGY_NAMESPACE_REGISTRY
 
 

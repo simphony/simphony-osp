@@ -408,7 +408,8 @@ class TestUtils(unittest.TestCase):
             "- Cuds object named <Freiburg>:",
             "  uuid: %s" % c.uid,
             "  type: CITY.CITY",
-            "  superclasses: CITY.CITY, CITY.POPULATED_PLACE, CITY.GEOGRAPHICAL_PLACE, CUBA.ENTITY",
+            "  superclasses: CITY.CITY, CITY.POPULATED_PLACE, "
+            + "CITY.GEOGRAPHICAL_PLACE, CUBA.ENTITY",
             "  values: coordinates: [1 2]",
             "  description: ",
             "    To Be Determined",
