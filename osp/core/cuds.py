@@ -711,9 +711,7 @@ class Cuds():
         :param other: Instance to check
         :return: True if they share the uid and class, false otherwise
         """
-        if isinstance(other, self.__class__):
-            return self.uid == other.uid
-        return False
+        return other.is_a == self.is_a and self.uid == other.uid
 
     def __getstate__(self):
         """Get the state for pickling or copying
