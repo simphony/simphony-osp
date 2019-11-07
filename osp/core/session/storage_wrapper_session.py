@@ -7,9 +7,9 @@
 
 import uuid
 from abc import abstractmethod
-from cuds.utils import destroy_cuds_object, clone_cuds_object, \
+from osp.core.utils import destroy_cuds_object, clone_cuds_object, \
     get_neighbour_diff
-from cuds.session.wrapper_session import WrapperSession
+from osp.core.session.wrapper_session import WrapperSession
 
 
 class StorageWrapperSession(WrapperSession):

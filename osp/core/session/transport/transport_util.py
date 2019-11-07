@@ -12,6 +12,7 @@ from osp.core.utils import create_recycle
 from osp.core.cuds import Cuds
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
+from osp.core.neighbour_dict import NeighbourDictTarget
 
 INITIALIZE_COMMAND = "_init"
 LOAD_COMMAND = "_load"
@@ -107,7 +108,8 @@ def deserialize(json_obj, session, add_to_buffers):
     if isinstance(json_obj, list):
         return [deserialize(x, session, add_to_buffers) for x in json_obj]
     if isinstance(json_obj, dict) \
-            and "entity" in json_obj \
+            and "is_a" in json_obj \
+            and "uid" in json_obj \
             and "attributes" in json_obj \
             and "relationships" in json_obj:
         return _to_cuds_object(json_obj, session, add_to_buffers)
@@ -140,7 +142,7 @@ def serializable(obj):
     if isinstance(obj, uuid.UUID):
         return {"UUID": convert_from(obj, "UUID")}
     if isinstance(obj, OntologyEntity):
-        return {"ENTITY": obj.value}
+        return {"ENTITY": str(obj)}
     if isinstance(obj, Cuds):
         return _serializable(obj)
     if isinstance(obj, dict):
@@ -158,12 +160,13 @@ def _serializable(cuds_object):
     :return: The cuds_object to make serializable.
     :rtype: Cuds
     """
-    result = {"entity": str(cuds_object.is_a),
+    result = {"is_a": str(cuds_object.is_a),
+              "uid": convert_from(cuds_object.uid, "UUID"),
               "attributes": dict(),
               "relationships": dict()}
     attributes = cuds_object.is_a.attributes
     for attribute in attributes:
-        result["attributes"][str(attribute)] = convert_from(
+        result["attributes"][attribute.argname] = convert_from(
             getattr(cuds_object, attribute.argname),
             attribute.datatype
         )
@@ -188,21 +191,24 @@ def _to_cuds_object(json_obj, session, add_to_buffers):
     :return: The resulting cuds_object.
     :rtype: Cuds
     """
-    entity = get_entity(json_obj["entity"])
+    entity = get_entity(json_obj["is_a"])
     attributes = json_obj["attributes"]
     relationships = json_obj["relationships"]
     cuds_object = create_recycle(entity_cls=entity,
                                  kwargs=attributes,
                                  session=session,
+                                 uid=json_obj["uid"],
                                  add_to_buffers=add_to_buffers)
 
     for rel_name, obj_dict in relationships.items():
         rel = get_entity(rel_name)
-        cuds_object[rel] = dict()
+        cuds_object._neighbours[rel] = NeighbourDictTarget(
+            dictionary={}, cuds_object=cuds_object, rel=rel
+        )
         for uid, target_name in obj_dict.items():
             uid = convert_to(uid, "UUID")
             target_entity = get_entity(target_name)
-            cuds_object[rel][uid] = target_entity
+            cuds_object._neighbours[rel][uid] = target_entity
     if not add_to_buffers:
         session._remove_uids_from_buffers([cuds_object.uid])
     return cuds_object

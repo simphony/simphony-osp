@@ -34,14 +34,14 @@ class NeighbourDict(dict):
 
     def __iter__(self):
         if self.cuds_object.session:
-            self.cuds_object.session._notify_read(self)
+            self.cuds_object.session._notify_read(self.cuds_object)
         return super().__iter__()
 
     def __getitem__(self, key):
         if not self.key_check(key):
             raise ValueError("Invalid key %s" % key)
         if self.cuds_object.session:
-            self.cuds_object.session._notify_read(self)
+            self.cuds_object.session._notify_read(self.cuds_object)
         return super().__getitem__(key)
 
     def __setitem__(self, key, value):

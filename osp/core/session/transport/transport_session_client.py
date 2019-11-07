@@ -6,12 +6,12 @@
 # No redistribution is allowed without explicit written permission.
 
 import json
-from cuds.session.storage_wrapper_session \
+from osp.core.session.storage_wrapper_session \
     import StorageWrapperSession
-from cuds.session.wrapper_session import check_consumes_buffers
-from cuds.session.transport.communication_engine \
+from osp.core.session.wrapper_session import check_consumes_buffers
+from osp.core.session.transport.communication_engine \
     import CommunicationEngineClient
-from cuds.session.transport.transport_util import (
+from osp.core.session.transport.transport_util import (
     INITIALIZE_COMMAND, LOAD_COMMAND, deserialize_buffers,
     serializable, serialize
 )
