@@ -11,4 +11,4 @@ build_job:
     - pip3 install --upgrade flake8
     - flake8 osp/ tests/
     - coverage run setup.py test
-    - coverage report --omit=cuds/classes/generated/*,cuds/testing/* --skip-covered
+    - coverage report --omit=tests/* --skip-covered
