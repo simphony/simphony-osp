@@ -9,9 +9,9 @@ from osp.core.ontology.datatypes import convert_from
 
 
 class EqualsCondition():
-    def __init__(self, table_name, column_name, value, datatype):
+    def __init__(self, table_name, column, value, datatype):
         self.table_name = table_name
-        self.column_name = column_name
+        self.column = column
         self.value = convert_from(value, datatype)
         self.datatype = datatype
 

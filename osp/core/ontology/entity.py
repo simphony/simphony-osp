@@ -44,6 +44,10 @@ class OntologyEntity(ABC):
         return self._name
 
     @property
+    def tblname(self):
+        return "%s___%s" % (self.namespace.name, self._name)
+
+    @property
     def namespace(self):
         """Get the name of the entity"""
         return self._namespace

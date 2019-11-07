@@ -42,7 +42,7 @@ class FileWrapperSession(StorageWrapperSession):
         if self.root is None:
             raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")
-        yield from self._load_by_cuba(cuba_key, update_registry=False)
+        yield from self._load_by_entity(cuba_key, update_registry=False)
 
     def store(self, cuds_object):
         initialize = self.root is None
@@ -86,7 +86,7 @@ class FileWrapperSession(StorageWrapperSession):
         """Load the first level of children of the root from the database."""
 
     @abstractmethod
-    def _load_by_cuba(self, cuba, update_registry=False):
+    def _load_by_entity(self, cuba, update_registry=False):
         """Load the cuds_object with the given cuba.
 
         :param cuba: The Cuba-Key of the cuds objects

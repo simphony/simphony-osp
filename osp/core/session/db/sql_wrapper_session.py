@@ -13,6 +13,8 @@ from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_to, convert_from
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from osp.core.session.db.conditions import EqualsCondition
+from osp.core.neighbour_dict import NeighbourDictTarget
+from osp.core import get_entity
 
 
 class SqlWrapperSession(DbWrapperSession):
@@ -22,17 +24,17 @@ class SqlWrapperSession(DbWrapperSession):
     RELATIONSHIP_TABLE = "OSP_RELATIONSHIPS"
     MASTER_TABLE = "OSP_MASTER"
     COLUMNS = {
-        MASTER_TABLE: ["uid", "cuba", "first_level"],
-        RELATIONSHIP_TABLE: ["origin", "target", "name", "target_cuba"]
+        MASTER_TABLE: ["uid", "entity", "first_level"],
+        RELATIONSHIP_TABLE: ["origin", "target", "name", "target_entity"]
     }
     DATATYPES = {
         MASTER_TABLE: {"uid": "UUID",
-                       "cuba": "STRING",
+                       "entity": "STRING",
                        "first_level": "BOOL"},
         RELATIONSHIP_TABLE: {"origin": "UUID",
                              "target": "UUID",
                              "name": "STRING",
-                             "target_cuba": "STRING"}
+                             "target_entity": "STRING"}
     }
     PRIMARY_KEY = {
         MASTER_TABLE: ["uid"],
@@ -46,7 +48,7 @@ class SqlWrapperSession(DbWrapperSession):
         }
     }
     INDEX = {
-        MASTER_TABLE: ["cuba", "first_level"],
+        MASTER_TABLE: ["entity", "first_level"],
         RELATIONSHIP_TABLE: ["origin"]
     }
 
@@ -313,45 +315,46 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # Create tables
-            if added.get_attributes(skip=["session"]):
+            entity = added.is_a
+            columns, datatypes = self._get_col_spec(entity)
+            if columns:
                 self._do_db_create(
-                    table_name=self.CUDS_PREFIX + added.cuba_key.value,
-                    columns=added.get_attributes(skip=["session"]),
-                    datatypes=added.get_datatypes(),
+                    table_name=self.CUDS_PREFIX + entity.tblname,
+                    columns=columns,
+                    datatypes=datatypes,
                     primary_key=["uid"],
                     foreign_key={"uid": (self.MASTER_TABLE, "uid")},
                     index=[]
                 )
 
             # Add to master
-            is_first_level = any(self.root in uids for uids in added.values())
+            is_first_level = any(self.root in uids for uids in added._neighbours.values())
             self._do_db_insert(
-                self.MASTER_TABLE,
-                ["uid", "cuba", "first_level"],
-                [added.uid, added.cuba_key.value, is_first_level],
-                self.DATATYPES[self.MASTER_TABLE]
+                table_name=self.MASTER_TABLE,
+                columns=["uid", "entity", "first_level"],
+                values=[added.uid, entity, is_first_level],
+                datatypes=self.DATATYPES[self.MASTER_TABLE]
             )
 
             # Insert the items
-            if added.get_attributes(skip=["session"]):
-                values = [getattr(added, attr)
-                          for attr in added.get_attributes(skip=["session"])]
+            if columns:
+                values = [getattr(added, attr) for attr in columns]
                 self._do_db_insert(
-                    self.CUDS_PREFIX + added.cuba_key.value,
-                    added.get_attributes(skip=["session"]),
-                    values,
-                    added.get_datatypes()
+                    table_name=self.CUDS_PREFIX + entity.tblname,
+                    columns=columns,
+                    values=values,
+                    datatypes=datatypes
                 )
 
             # Insert the relationships
-            for rel, uid_cuba in added.items():
-                for uid, cuba in uid_cuba.items():
+            for rel, neighbour_dict in added._neighbours.items():
+                for uid, target_entity in neighbour_dict.items():
                     target_uid = uid if uid != self.root else uuid.UUID(int=0)
                     self._do_db_insert(
                         self.RELATIONSHIP_TABLE,
-                        ["origin", "target", "name", "target_cuba"],
+                        ["origin", "target", "name", "target_entity"],
                         [added.uid, target_uid,
-                         rel.cuba_key.value, cuba.value],
+                         rel, target_entity],
                         self.DATATYPES[self.RELATIONSHIP_TABLE]
                     )
 
@@ -364,36 +367,43 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # Update the values
-            if updated.get_attributes(skip=["session"]):
-                values = [getattr(updated, attr)
-                          for attr in updated.get_attributes(skip=["session"])]
+            entity = updated.is_a
+            columns, datatypes = self._get_col_spec(entity)
+            if columns:
+                values = [getattr(updated, attr) for attr in columns]
                 self._do_db_update(
-                    self.CUDS_PREFIX + updated.cuba_key.value,
-                    updated.get_attributes(skip=["session"]),
-                    values,
-                    EqualsCondition(self.CUDS_PREFIX + updated.cuba_key.value,
-                                    "uid",
-                                    updated.uid,
-                                    "UUID"),
-                    updated.get_datatypes())
+                    table_name=self.CUDS_PREFIX + entity.tblname,
+                    columns=columns,
+                    values=values,
+                    condition=EqualsCondition(
+                        table_name=self.CUDS_PREFIX + entity.tblname,
+                        column="uid",
+                        value=updated.uid,
+                        datatype="UUID"
+                    ),
+                    datatypes=datatypes)
 
             # Update the relationships
             first_level = False
             self._do_db_delete(
-                self.RELATIONSHIP_TABLE,
-                EqualsCondition(self.RELATIONSHIP_TABLE,
-                                "origin", updated.uid, "UUID")
+                table_name=self.RELATIONSHIP_TABLE,
+                condition=EqualsCondition(
+                    table_name=self.RELATIONSHIP_TABLE,
+                    column="origin",
+                    value=updated.uid,
+                    datatype="UUID"
+                )
             )
-            for rel, uid_cuba in updated.items():
-                for uid, cuba in uid_cuba.items():
+            for rel, neighbour_dict in updated._neighbours.items():
+                for uid, target_entity in neighbour_dict.items():
                     first_level = first_level or uid == self.root
                     target_uuid = uid if uid != self.root else uuid.UUID(int=0)
                     self._do_db_insert(
-                        self.RELATIONSHIP_TABLE,
-                        ["origin", "target", "name", "target_cuba"],
-                        [updated.uid, target_uuid,
-                         rel.cuba_key.value, cuba.value],
-                        self.DATATYPES[self.RELATIONSHIP_TABLE]
+                        table_name=self.RELATIONSHIP_TABLE,
+                        columns=self.COLUMNS[self.RELATIONSHIP_TABLE],
+                        values=[updated.uid, target_uuid,
+                                rel, target_entity],
+                        datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE]
                     )
 
             # update first_level flag
@@ -415,22 +425,36 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # Update the values
-            if deleted.get_attributes(skip=["session"]):
+            entity = deleted.is_a
+            columns, datatypes = self._get_col_spec(entity)
+            if columns:
                 self._do_db_delete(
-                    self.CUDS_PREFIX + deleted.cuba_key.value,
-                    EqualsCondition(self.CUDS_PREFIX + deleted.cuba_key.value,
-                                    "uid", deleted.uid, "UUID")
+                    table_name=self.CUDS_PREFIX + entity.tblname,
+                    condition=EqualsCondition(
+                        table_name=self.CUDS_PREFIX + entity.tblname,
+                        column="uid",
+                        value=deleted.uid,
+                        datatype="UUID"
+                    )
                 )
 
             self._do_db_delete(
-                self.MASTER_TABLE,
-                EqualsCondition(self.MASTER_TABLE,
-                                "uid", deleted.uid, "UUID")
+                table_name=self.MASTER_TABLE,
+                condition=EqualsCondition(
+                    table_name=self.MASTER_TABLE,
+                    column="uid",
+                    value=deleted.uid,
+                    datatype="UUID"
+                )
             )
             self._do_db_delete(
-                self.RELATIONSHIP_TABLE,
-                EqualsCondition(self.RELATIONSHIP_TABLE,
-                                "origin", deleted.uid, "UUID")
+                table_name=self.RELATIONSHIP_TABLE,
+                condition=EqualsCondition(
+                    table_name=self.RELATIONSHIP_TABLE,
+                    column="origin",
+                    value=deleted.uid,
+                    datatype="UUID"
+                )
             )
 
     # OVERRIDE
@@ -442,9 +466,9 @@ class SqlWrapperSession(DbWrapperSession):
                 uid, cuba = uid
             else:
                 raise ValueError("Invalid uid given %s" % uid)
-            loaded = list(self._load_by_cuba(cuba=cuba,
-                                             update_registry=True,
-                                             uid=uid))
+            loaded = list(self._load_by_entity(entity=cuba,
+                                               update_registry=True,
+                                               uid=uid))
             yield loaded[0] if loaded else None
 
     # OVERRIDE
@@ -470,19 +494,19 @@ class SqlWrapperSession(DbWrapperSession):
     def _load_first_level(self):
         c = self._do_db_select(
             self.MASTER_TABLE,
-            ["uid", "cuba"],
+            ["uid", "entity"],
             EqualsCondition(self.MASTER_TABLE,
                             "first_level", True, "BOOL"),
             self.DATATYPES[self.MASTER_TABLE]
         )
-        list(self._load_from_backend(map(lambda x: (x[0], CUBA(x[1])), c)))
+        list(self._load_from_backend(map(lambda x: (x[0], get_entity(x[1])), c)))
 
-    def _load_by_cuba(self, cuba, update_registry=False, uid=None):
-        """Load the cuds_object with the given cuba (+ uid).
+    def _load_by_entity(self, entity, update_registry=False, uid=None):
+        """Load the cuds_object with the given entity (+ uid).
         If uid is None return all cuds_objects with given cuba_key.
 
-        :param cuba: The Cuba-Key of the cuds_object
-        :type cuba: CUBA
+        :param entity: The entity of the cuds_object
+        :type entity: OntologyClass
         :param uid: The uid of the Cuds to load.
         :type uid: UUID
         :param update_registry: Whether to update cuds_objects already
@@ -491,39 +515,49 @@ class SqlWrapperSession(DbWrapperSession):
         :return: The loaded cuds_object.
         :rtype: Cuds
         """
-        if cuba is None and uid is not None:
+        # Check if entity is given
+        if entity is None and uid is not None:
             yield None
-        if cuba is None:
+        if entity is None:
             return
+
+        # Check if object in registry can be used
         if not update_registry and uid is not None and uid in self._registry:
             yield self._registry.get(uid)
             return
-        tables = self._get_table_names(prefix=(self.CUDS_PREFIX + cuba.value))
-        if not (self.CUDS_PREFIX + cuba.value) in tables:
+
+        # gather the data needed to fetch object from the database
+        tables = self._get_table_names(
+            prefix=(self.CUDS_PREFIX + entity.tblname)
+        )
+        if not (self.CUDS_PREFIX + entity.tblname) in tables:
             return
-        cuds_class = CUBA_MAPPING[cuba]
-        attributes = cuds_class.get_attributes()
-        datatypes = cuds_class.get_datatypes()
-        condition = EqualsCondition(self.CUDS_PREFIX + cuba.value,
+        condition = EqualsCondition(self.CUDS_PREFIX + entity.tblname,
                                     "uid", uid, "UUID") \
             if uid else None
 
+        columns, datatypes = self._get_col_spec(entity)
+
+        # fetch the data
         c = self._do_db_select(
-            self.CUDS_PREFIX + cuba.value,
-            attributes,
-            condition,
-            datatypes
+            table_name=self.CUDS_PREFIX + entity.tblname,
+            columns=columns,
+            condition=condition,
+            datatypes=datatypes
         )
 
+        # transform into cuds object
         for row in c:
-            kwargs = dict(zip(attributes, row))
+            kwargs = dict(zip(columns, row))
             uid = convert_to(kwargs["uid"], "UUID")
+            del kwargs["uid"]
             if not update_registry and uid in self._registry:
                 yield self._registry.get(uid)
                 continue
-            cuds_object = create_recycle(entity_cls=cuds_class,
+            cuds_object = create_recycle(entity_cls=entity,
                                          kwargs=kwargs,
                                          session=self,
+                                         uid=uid,
                                          add_to_buffers=False)
             self._load_relationships(cuds_object)
             yield cuds_object
@@ -534,29 +568,43 @@ class SqlWrapperSession(DbWrapperSession):
         :param cuds_object: Adds the relationships to this cuds_object.s
         :type cuds_object: Cuds
         """
+        # Fetch the data
         c = self._do_db_select(
-            self.RELATIONSHIP_TABLE,
-            ["target", "name", "target_cuba"],
-            EqualsCondition(self.RELATIONSHIP_TABLE,
-                            "origin", cuds_object.uid,
-                            "UUID"),
-            self.DATATYPES[self.RELATIONSHIP_TABLE]
+            table_name=self.RELATIONSHIP_TABLE,
+            columns=["target", "name", "target_entity"],
+            condition=EqualsCondition(
+                table_name=self.RELATIONSHIP_TABLE,
+                column="origin",
+                value=cuds_object.uid,
+                datatype="UUID"
+            ),
+            datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE]
         )
-        for target, name, target_cuba in c:
-            target_cuba = CUBA(target_cuba)
-            rel = CUBA_MAPPING[CUBA(name)]
 
-            if rel not in cuds_object:
-                cuds_object[rel] = dict()
+        # update the cuds object
+        for target, name, target_entity in c:
+            target_entity = get_entity(target_entity)
+            rel = get_entity(name)
+
+            if rel not in cuds_object._neighbours:
+                cuds_object._neighbours[rel] = NeighbourDictTarget(
+                    {}, cuds_object, rel
+                )
+
+            # Special case: target is root --> Add inverse to root
             if target == uuid.UUID(int=0):
                 root_obj = self._registry.get(self.root)
-                cuds_object[rel][self.root] = root_obj.cuba_key
-                if CUBA_MAPPING[rel.inverse] not in root_obj:
-                    root_obj[CUBA_MAPPING[rel.inverse]] = dict()
-                root_obj[CUBA_MAPPING[rel.inverse]][cuds_object.uid] = \
-                    cuds_object.cuba_key
+                cuds_object._neighbours[rel][self.root] = root_obj.is_a
+                if rel.inverse not in root_obj._neighbours:
+                    root_obj._neighbours[rel.inverse] = NeighbourDictTarget(
+                        {}, root_obj, rel.inverse
+                    )
+                root_obj._neighbours[rel.inverse][cuds_object.uid] = \
+                    cuds_object.is_a
+
+            # Target is not root. Simply add the relationship
             elif target != uuid.UUID(int=0):
-                cuds_object[rel][target] = target_cuba
+                cuds_object._neighbours[rel][target] = target_entity
 
     def _get_cuba(self, uid):
         """Get the cuba-key of the given uid from the database.
@@ -564,17 +612,17 @@ class SqlWrapperSession(DbWrapperSession):
         :param uid: Load the cuba-key of this uis.
         :type uid: UUID
         :return: The cuba-key.
-        :rtype: CUBA
+        :rtype: OntologyClass
         """
         c = self._do_db_select(
             self.MASTER_TABLE,
-            ["cuba"],
+            ["entity"],
             EqualsCondition(self.MASTER_TABLE,
                             "uid", uid,
                             "UUID"),
             self.DATATYPES[self.MASTER_TABLE])
         try:
-            return CUBA(next(c)[0])
+            return get_entity(next(c)[0])
         except StopIteration:
             return None
 
@@ -595,3 +643,10 @@ class SqlWrapperSession(DbWrapperSession):
                     convert_to(value, datatypes[column])
                 )
             yield output
+
+    def _get_col_spec(self, entity):
+        attributes = entity.attributes
+        columns = [x.argname for x in attributes if x != "session"] + ["uid"]
+        datatypes = dict(uid="UUID", **{x.argname: x.datatype
+                         for x in attributes if x != "session"})
+        return columns, datatypes
