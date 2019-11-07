@@ -9,12 +9,10 @@ import uuid
 from operator import mul
 from functools import reduce
 from abc import abstractmethod
-from cuds.utils import create_recycle
-from cuds.generator.ontology_datatypes import convert_to, convert_from
-from cuds.session.db.db_wrapper_session import DbWrapperSession
-from cuds.session.db.conditions import EqualsCondition
-from cuds.classes.generated.cuba import CUBA
-from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
+from osp.core.utils import create_recycle
+from osp.core.ontology.datatypes import convert_to, convert_from
+from osp.core.session.db.db_wrapper_session import DbWrapperSession
+from osp.core.session.db.conditions import EqualsCondition
 
 
 class SqlWrapperSession(DbWrapperSession):

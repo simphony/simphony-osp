@@ -5,7 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-from cuds.generator.ontology_datatypes import convert_from
+from osp.core.ontology.datatypes import convert_from
 
 
 class EqualsCondition():

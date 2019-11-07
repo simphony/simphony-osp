@@ -6,15 +6,15 @@
 # No redistribution is allowed without explicit written permission.
 
 import sys
+import os
 import time
 import subprocess
-from cuds.session.transport.transport_session_client import \
+from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
-from cuds.session.transport.transport_session_server import \
+from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
-from cuds.testing.test_sim_wrapper_city import DummySimSession
-import cuds.classes
 import unittest2 as unittest
+from osp.core import CITY
 
 HOST = "127.0.0.1"
 PORT = 8689
@@ -30,7 +30,7 @@ class TestTransportSimWrapperCity(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         args = ["python3",
-                "cuds/testing/test_transport_sim_wrapper.py",
+                "tests/test_transport_sim_wrapper.py",
                 "server"]
         try:
             p = subprocess.Popen(args)
@@ -49,32 +49,34 @@ class TestTransportSimWrapperCity(unittest.TestCase):
         """Create a dummy simulation syntactic layer + test
         if working with this layer works as expected.
         """
+        from tests.test_sim_wrapper_city import DummySimSession
         with TransportSessionClient(DummySimSession, HOST, PORT) as session:
-            wrapper = cuds.classes.CitySimWrapper(num_steps=1, session=session)
-            c = cuds.classes.City(name="Freiburg")
-            p1 = cuds.classes.Person(name="Hans", age=34)
-            p2 = cuds.classes.Person(name="Renate", age=54)
+            wrapper = CITY.CITY_SIM_WRAPPER(num_steps=1, session=session)
+            c = CITY.CITY(name="Freiburg")
+            p1 = CITY.PERSON(name="Hans", age=34)
+            p2 = CITY.PERSON(name="Renate", age=54)
             cw, _, _ = wrapper.add(c, p1, p2)
 
             session.run()
 
             self.assertEqual(len(
-                wrapper.get(cuba_key=cuds.classes.Person.cuba_key,
-                            rel=cuds.classes.HasPart)), 1)
+                wrapper.get(entity=CITY.PERSON,
+                            rel=CITY.HAS_PART)), 1)
             self.assertEqual(len(
-                cw.get(cuba_key=cuds.classes.Citizen.cuba_key,
-                       rel=cuds.classes.HasInhabitant)), 1)
+                cw.get(entity=CITY.CITIZEN,
+                       rel=CITY.HAS_INHABITANT)), 1)
             self.assertEqual(wrapper.get(p2.uid).name, "Renate")
             self.assertEqual(wrapper.get(p2.uid).age, 55)
             self.assertEqual(cw.get(p1.uid).name, "Hans")
             self.assertEqual(cw.get(p1.uid).age, 35)
 
             session.run()
-            wrapper.add(cuds.classes.Person(name="Peter"))
+            wrapper.add(CITY.PERSON(name="Peter"))
             self.assertRaises(RuntimeError, session.run)
-
 
 if __name__ == '__main__':
     if sys.argv[-1] == "server":
+        sys.path.append("tests")
+        from test_sim_wrapper_city import DummySimSession
         server = TransportSessionServer(DummySimSession, HOST, PORT)
         server.startListening()

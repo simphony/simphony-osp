@@ -7,7 +7,7 @@
 
 import unittest2 as unittest
 import numpy as np
-from cuds.session.db.sql_wrapper_session import \
+from osp.core.session.db.sql_wrapper_session import \
     SqlWrapperSession
 
 EXPANDED_COLS = ['1',
