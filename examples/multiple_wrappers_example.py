@@ -9,12 +9,11 @@ try:
 except ImportError as e:
     raise ImportError("For this example, the SQLAlchemy "
                       "wrapper for SimPhoNy is required!") from e
-
-
-sys.path = [(os.path.abspath(os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "..")))] + sys.path
-
-from tests.test_sim_wrapper_city import DummySimSession  # noqa E402
+try:
+    from osp.wrappers.dummy_simulation_wrapper import DummySimWrapperSession
+except ImportError as e:
+    raise ImportError("For this example, the dummy simulation "
+                      "wrapper for SimPhoNy is required!") from e
 
 
 print("Input data to connect to Postgres table!")
@@ -65,7 +64,7 @@ with SqlAlchemyWrapperSession(postgres_url) as db_session:
     pretty_print(db_emmo_town)
 
     # Working with a Simulation wrapper
-    with DummySimSession() as sim_session:
+    with DummySimWrapperSession() as sim_session:
         sim_wrapper = CITY.CITY_SIM_WRAPPER(num_steps=1,
                                           session=sim_session)
         new_inhabitant = CITY.PERSON(age=31, name="Peter")

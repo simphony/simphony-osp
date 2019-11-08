@@ -12,6 +12,7 @@ from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
+from osp.wrappers.dummy_simulation_wrapper import DummySimWrapperSession
 import unittest2 as unittest
 from osp.core import CITY
 
@@ -48,8 +49,8 @@ class TestTransportSimWrapperCity(unittest.TestCase):
         """Create a dummy simulation syntactic layer + test
         if working with this layer works as expected.
         """
-        from tests.test_sim_wrapper_city import DummySimSession
-        with TransportSessionClient(DummySimSession, HOST, PORT) as session:
+        with TransportSessionClient(DummySimWrapperSession, HOST, PORT) \
+                as session:
             wrapper = CITY.CITY_SIM_WRAPPER(num_steps=1, session=session)
             c = CITY.CITY(name="Freiburg")
             p1 = CITY.PERSON(name="Hans", age=34)
@@ -77,6 +78,5 @@ class TestTransportSimWrapperCity(unittest.TestCase):
 if __name__ == '__main__':
     if sys.argv[-1] == "server":
         sys.path.append("tests")
-        from test_sim_wrapper_city import DummySimSession
-        server = TransportSessionServer(DummySimSession, HOST, PORT)
+        server = TransportSessionServer(DummySimWrapperSession, HOST, PORT)
         server.startListening()

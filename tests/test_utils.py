@@ -12,7 +12,7 @@ import osp.core
 from osp.core import CITY, CUBA
 from osp.core.session.transport.transport_util import serializable
 from osp.core.session.core_session import CoreSession
-from .test_sim_wrapper_city import DummySimSession
+from osp.wrappers.dummy_simulation_wrapper import DummySimWrapperSession
 from osp.core.utils import (
     destroy_cuds_object, clone_cuds_object,
     create_recycle, create_from_cuds_object,
@@ -117,7 +117,7 @@ class TestUtils(unittest.TestCase):
         osp.core.cuds.Cuds._session = default_session
         a = CITY.CITY(name="Freiburg")
         self.assertIs(a.session, default_session)
-        with DummySimSession() as session:
+        with DummySimWrapperSession() as session:
             w = CITY.CITY_WRAPPER(session=session)
             b = create_recycle(
                 oclass=CITY.CITY,
@@ -157,7 +157,7 @@ class TestUtils(unittest.TestCase):
         Cuds._session = default_session
         a = CITY.CITY(name="Freiburg")
         self.assertIs(a.session, default_session)
-        with DummySimSession() as session:
+        with DummySimWrapperSession() as session:
             w = CITY.CITY_WRAPPER(session=session)
             b = create_from_cuds_object(a, session, False)
             self.assertEqual(b.name, "Freiburg")
