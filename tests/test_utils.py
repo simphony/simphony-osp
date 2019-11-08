@@ -118,6 +118,7 @@ class TestUtils(unittest.TestCase):
         a = CITY.CITY(name="Freiburg")
         self.assertIs(a.session, default_session)
         with DummySimSession() as session:
+            w = CITY.CITY_WRAPPER(session=session)
             b = create_recycle(
                 entity_cls=CITY.CITY,
                 kwargs={"name": "Offenburg"},
@@ -128,9 +129,9 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(b.uid, a.uid)
             self.assertEqual(set(default_session._registry.keys()), {a.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
-            self.assertEqual(set(session._registry.keys()), {b.uid})
+            self.assertEqual(set(session._registry.keys()), {b.uid, w.uid})
             self.assertIs(session._registry.get(b.uid), b)
-            self.assertEqual(session._added, dict())
+            self.assertEqual(session._added, {w.uid: w})
             self.assertEqual(
                 session._uids_in_registry_after_last_buffer_reset, {b.uid}
             )
@@ -157,14 +158,15 @@ class TestUtils(unittest.TestCase):
         a = CITY.CITY(name="Freiburg")
         self.assertIs(a.session, default_session)
         with DummySimSession() as session:
+            w = CITY.CITY_WRAPPER(session=session)
             b = create_from_cuds_object(a, session, False)
             self.assertEqual(b.name, "Freiburg")
             self.assertEqual(b.uid, a.uid)
             self.assertEqual(set(default_session._registry.keys()), {a.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
-            self.assertEqual(set(session._registry.keys()), {b.uid})
+            self.assertEqual(set(session._registry.keys()), {b.uid, w.uid})
             self.assertIs(session._registry.get(b.uid), b)
-            self.assertEquals(session._added, dict())
+            self.assertEquals(session._added, {w.uid: w})
 
             b.name = "Emmendingen"
             x = CITY.CITIZEN(age=54, name="Franz")

@@ -37,6 +37,15 @@ CUDS_DICT = {
     }
 }
 
+ROOT_DICT = {
+    "is_a": "CITY.CITY_WRAPPER",
+    "uid": str(uuid.UUID(int=43)),
+    "attributes": {},
+    "relationships": {
+        "CITY.HAS_PART": {str(uuid.UUID(int=1)): "CITY.CITY"}
+    }
+}
+
 SERIALIZED_BUFFERS = (
     '{"added": [{'
     '"is_a": "CITY.CITY", '
@@ -124,6 +133,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
     def testDeserialize(self):
         """Test transformation from normal dictionary to cuds"""
         with TestWrapperSession() as session:
+            CITY.CITY_WRAPPER(session=session)
             cuds_object = deserialize(CUDS_DICT, session, True)
             self.assertEqual(cuds_object.uid.int, 0)
             self.assertEqual(cuds_object.name, "Peter")
@@ -401,18 +411,17 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client._engine = MockEngine()
 
         # first item
-        c1 = create_recycle(entity_cls=CITY.CITY,
-                            kwargs={"name": "Freiburg"},
+        c1 = create_recycle(entity_cls=CITY.CITY_WRAPPER,
+                            kwargs={},
                             uid=1,
                             session=client,
                             add_to_buffers=True)  # store will be called here
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
         self.assertEqual(client._engine._sent_data, (
             '{"args": [], "kwargs": {}, '
-            '"root": {"is_a": "CITY.CITY", '
+            '"root": {"is_a": "CITY.CITY_WRAPPER", '
             '"uid": "00000000-0000-0000-0000-000000000001", '
-            '"attributes": {"name": "Freiburg", '
-            '"coordinates": [0, 0]}, '
+            '"attributes": {}, '
             '"relationships": {}}}'))
         self.assertEqual(set(client._registry.keys()), {c1.uid})
 
@@ -422,10 +431,10 @@ class TestCommunicationEngineClient(unittest.TestCase):
         c2 = create_recycle(
             entity_cls=CITY.CITY,
             kwargs={"name": "Freiburg"},
-            uid=1,
+            uid=2,
             session=client,
-            add_to_buffers=True)
-
+            add_to_buffers=True
+        )
         self.assertEqual(client._engine._sent_command, None)
         self.assertEqual(client._engine._sent_data, None)
         self.assertEqual(set(client._registry.keys()), {c1.uid, c2.uid})
@@ -443,10 +452,12 @@ class TestCommunicationEngineClient(unittest.TestCase):
     def test_receive(self):
         client = TransportSessionClient(TestWrapperSession, None, None)
         client._engine = MockEngine()
+        w = CITY.CITY_WRAPPER(session=client)
         self.assertRaises(RuntimeError, client._receive, "ERROR: Error!")
         client._receive(SERIALIZED_BUFFERS2)
-        self.assertEqual(set(client._registry.keys()), {uuid.UUID(int=42)})
-        self.assertEqual(client._added, dict())
+        self.assertEqual(set(client._registry.keys()), {uuid.UUID(int=42),
+                                                        w.uid})
+        self.assertEqual(client._added, {w.uid: w})
         self.assertEqual(client._updated, dict())
         self.assertEqual(client._deleted, dict())
 
@@ -531,10 +542,10 @@ class TestCommunicationEngineServer(unittest.TestCase):
         data = json.dumps({
             "args": [],
             "kwargs": {},
-            "root": CUDS_DICT
+            "root": ROOT_DICT
         })
         server._init_session(data, user="user1")
-        self.assertEqual(server.session_objs["user1"].root, uuid.UUID(int=0))
+        self.assertEqual(server.session_objs["user1"].root, uuid.UUID(int=43))
         self.assertEqual(len(server.session_objs.keys()), 1)
 
         data = json.dumps({

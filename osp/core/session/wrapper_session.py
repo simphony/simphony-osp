@@ -42,7 +42,20 @@ class WrapperSession(Session):
         :param cuds_object: The cuds_object to store.
         :type cuds_object: Cuds
         """
+        from osp.core import CUBA
+        # Check if root is wrapper and wrapper is root
+        if cuds_object.is_a in CUBA.WRAPPER.subclasses \
+                and self.root is not None:
+            raise RuntimeError("Only one wrapper is allowed per session")
+
+        if cuds_object.is_a not in CUBA.WRAPPER.subclasses \
+                and self.root is None:
+            raise RuntimeError("Please add a wrapper to the session first")
+
+        # store
         super().store(cuds_object)
+
+        # update buffers
         if cuds_object.uid in self._deleted:
             del self._deleted[cuds_object.uid]
 

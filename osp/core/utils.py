@@ -393,6 +393,7 @@ def destroy_cuds_object(cuds_object):
             del cuds_object._attributes[attr.argname]
     if cuds_object.uid in cuds_object._session._registry:
         del cuds_object._session._registry[cuds_object.uid]
+    cuds_object._is_a = None
 
 
 def clone_cuds_object(cuds_object):

@@ -91,9 +91,12 @@ class OntologyClass(OntologyEntity):
 
     def __call__(self, uid=None, session=None, **kwargs):
         from osp.core.cuds import Cuds
+        from osp.core import CUBA
 
         # build attributes dictionary by combining
         # kwargs and defaults
+        if self in CUBA.WRAPPER.subclasses and session is None:
+            raise TypeError("Missing keyword argument 'session' for wrapper.")
         return Cuds(attributes=self._get_attributes(kwargs),
                     is_a=self,
                     session=session,
