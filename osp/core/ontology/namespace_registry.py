@@ -64,7 +64,8 @@ class NamespaceRegistry():
         assert bool(namespace.name == MAIN_ONTOLOGY_NAMESPACE) \
             != bool(self._namespaces), "CUBA namespace must be installed first"
         if namespace.name in self._namespaces:
-            raise ValueError("Namespace already added to namespace registry!")
+            raise ValueError("Namespace %s already added to namespace "
+                             "registry!" % namespace.name)
         self._namespaces[namespace.name] = namespace
 
         if (

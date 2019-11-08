@@ -1,5 +1,3 @@
-import sys
-import os
 from osp.core import CITY
 from osp.core.utils import pretty_print
 from getpass import getpass
@@ -66,7 +64,7 @@ with SqlAlchemyWrapperSession(postgres_url) as db_session:
     # Working with a Simulation wrapper
     with DummySimWrapperSession() as sim_session:
         sim_wrapper = CITY.CITY_SIM_WRAPPER(num_steps=1,
-                                          session=sim_session)
+                                            session=sim_session)
         new_inhabitant = CITY.PERSON(age=31, name="Peter")
         sim_emmo_town, _ = sim_wrapper.add(db_emmo_town, new_inhabitant)
         sim_session.run()

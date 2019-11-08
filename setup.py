@@ -2,7 +2,6 @@ import os
 import pickle
 import traceback
 from setuptools import setup, find_namespace_packages
-from subprocess import check_call, CalledProcessError
 from setuptools.command.install import install
 from packageinfo import VERSION, NAME
 
