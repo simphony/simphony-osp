@@ -23,6 +23,7 @@ explicit written permission.
 - unittest2 to run unittests
 - pympler for the performance test
 - responses for unittesting requests
+- simphony_dummy_simulation_wrapper for testing (See https://gitlab.cc-asp.fraunhofer.de/simphony/wrappers/dummy-simulation-wrapper)
 
 ## Installation
 
