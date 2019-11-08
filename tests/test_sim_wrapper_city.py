@@ -22,10 +22,10 @@ class TestSimWrapperCity(unittest.TestCase):
             session.run()
 
             self.assertEqual(len(
-                wrapper.get(entity=CITY.PERSON,
+                wrapper.get(oclass=CITY.PERSON,
                             rel=CITY.HAS_PART)), 1)
             self.assertEqual(len(
-                cw.get(entity=CITY.CITIZEN,
+                cw.get(oclass=CITY.CITIZEN,
                        rel=CITY.HAS_INHABITANT)), 1)
             self.assertEqual(wrapper.get(p2.uid).name, "Renate")
             self.assertEqual(wrapper.get(p2.uid).age, 55)
@@ -57,12 +57,12 @@ class DummySimSession(SimWrapperSession):
             uid = self._person_map[i]
             person_uids.add(uid)
             root_cuds_object.get(uid).age = p.age
-        for p in root_cuds_object.get(entity=CITY.PERSON):
+        for p in root_cuds_object.get(oclass=CITY.PERSON):
             if p.uid not in person_uids:
                 root_cuds_object.remove(p)
 
         # update the age of the citizens and add new citizens
-        city = root_cuds_object.get(entity=CITY.CITY)[0]
+        city = root_cuds_object.get(oclass=CITY.CITY)[0]
         for i, p in self._engine.get_inhabitants():
             uid = self._person_map[i]
             inhabitant = city.get(uid)

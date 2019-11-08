@@ -59,10 +59,10 @@ class TestTransportSimWrapperCity(unittest.TestCase):
             session.run()
 
             self.assertEqual(len(
-                wrapper.get(entity=CITY.PERSON,
+                wrapper.get(oclass=CITY.PERSON,
                             rel=CITY.HAS_PART)), 1)
             self.assertEqual(len(
-                cw.get(entity=CITY.CITIZEN,
+                cw.get(oclass=CITY.CITIZEN,
                        rel=CITY.HAS_INHABITANT)), 1)
             self.assertEqual(wrapper.get(p2.uid).name, "Renate")
             self.assertEqual(wrapper.get(p2.uid).age, 55)

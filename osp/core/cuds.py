@@ -110,11 +110,11 @@ class Cuds():
     def get(self,
             *uids: uuid.UUID,
             rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
-            entity: OntologyClass = None) -> Union["Cuds", List["Cuds"]]:
+            oclass: OntologyClass = None) -> Union["Cuds", List["Cuds"]]:
         """
         Returns the contained elements of a certain type, uid or relationship.
-        Expected calls are get(), get(*uids), get(rel), get(entity),
-        get(*uids, rel), get(rel, entity).
+        Expected calls are get(), get(*uids), get(rel), get(oclass),
+        get(*uids, rel), get(rel, oclass).
         If uids are specified, the position of each element in the result
         is determined by to the position of the corresponding uid in the given
         list of uids.
@@ -126,12 +126,12 @@ class Cuds():
         :param rel: Only return cuds_object which are connected by subclass of
             given relationship.
         :type rel: OntologyRelationship
-        :param entity: Type of the subelements
-        :type entity: OntologyClass
+        :param oclass: Type (Ontology class) of the subelements
+        :type oclass: OntologyClass
         :return: the queried objects, or None, if not found
         :rtype: Union[Cuds, List[Cuds]]
         """
-        collected_uids = self._get(*uids, rel=rel, entity=entity)
+        collected_uids = self._get(*uids, rel=rel, oclass=oclass)
         result = list(self._load_cuds_objects(collected_uids))
         if len(uids) == 1:
             return result[0]
@@ -141,7 +141,7 @@ class Cuds():
         """
         Updates the object with the other versions.
 
-        :param args: updated entity(ies)
+        :param args: updated cuds objects
         :type args: Cuds
         :return: The updated cuds_object.
         :rtype: Union[Cuds, List[Cuds]]
@@ -166,25 +166,25 @@ class Cuds():
     def remove(self,
                *args: Union["Cuds", uuid.UUID],
                rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
-               entity: OntologyClass = None):
+               oclass: OntologyClass = None):
         """
         Removes elements from the Cuds.
         Expected calls are remove(), remove(*uids/Cuds),
-        remove(rel), remove(entity), remove(*uids/Cuds, rel),
-        remove(rel, entity)
+        remove(rel), remove(oclass), remove(*uids/Cuds, rel),
+        remove(rel, oclass)
 
         :param args: UIDs of the elements or the elements themselves
         :type args: Union[Cuds, UUID]
         :param rel: Only remove cuds_object which are connected by subclass of
             given relationship
         :type rel: OntologyRelationship
-        :param entity: Type of the subelements
-        :type entity: OntologyClass
+        :param oclass: Type (Ontology Class) of the subelements
+        :type oclass: OntologyClass
         """
         uids = [arg.uid if isinstance(arg, Cuds) else arg for arg in args]
 
         # Get mapping from uids to connecting relationships
-        _, relationship_mapping = self._get(*uids, rel=rel, entity=entity,
+        _, relationship_mapping = self._get(*uids, rel=rel, oclass=oclass,
                                             return_mapping=True)
         if not relationship_mapping:
             raise RuntimeError("Did not remove any Cuds object, "
@@ -202,11 +202,11 @@ class Cuds():
     def iter(self,
              *uids: uuid.UUID,
              rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
-             entity: OntologyClass = None) -> Iterator["Cuds"]:
+             oclass: OntologyClass = None) -> Iterator["Cuds"]:
         """
         Iterates over the contained elements of a certain type, uid or
         relationship. Expected calls are iter(), iter(*uids), iter(rel),
-        iter(entity), iter(*uids, rel), iter(rel, entity).
+        iter(oclass), iter(*uids, rel), iter(rel, oclass).
         If uids are specified, the each element will be yielded in the order
         given by list of uids.
         In this case, elements can be None values if a given uid is not
@@ -217,12 +217,12 @@ class Cuds():
         :type uids: UUID
         :param rel: class of the relationship.
         :type rel: OntologyRelationship
-        :param entity: Type of the subelements.
-        :type entity: OntologyClass
+        :param oclass: Type of the subelements.
+        :type oclass: OntologyClass
         :return: Iterator over of queried objects, or None, if not found.
         :rtype: Iterator[Cuds]
         """
-        collected_uids = self._get(*uids, rel=rel, entity=entity)
+        collected_uids = self._get(*uids, rel=rel, oclass=oclass)
         yield from self._load_cuds_objects(collected_uids)
 
     def _str_attributes(self):
@@ -424,11 +424,11 @@ class Cuds():
                 if relationship not in new_cuds_object._neighbours:
                     new_cuds_object._neighbours[relationship] = \
                         NeighbourDictTarget({}, new_cuds_object, relationship)
-                for (uid, entity), parent in \
+                for (uid, oclass), parent in \
                         zip(old_cuds_object._neighbours[relationship].items(),
                             neighbour._neighbours):
                     if parent is not None:
-                        new_cuds_object._neighbours[relationship][uid] = entity
+                        new_cuds_object._neighbours[relationship][uid] = oclass
 
     def _add_direct(self, cuds_object, rel):
         """
@@ -459,12 +459,12 @@ class Cuds():
         inverse_rel = rel.inverse
         self._add_direct(cuds_object, inverse_rel)
 
-    def _get(self, *uids, rel=None, entity=None, return_mapping=False):
+    def _get(self, *uids, rel=None, oclass=None, return_mapping=False):
         """
         Returns the uid of contained elements of a certain type, uid or
         relationship.
-        Expected calls are _get(), _get(*uids), _get(rel),_ get(entity),
-        _get(*uids, rel), _get(rel, entity).
+        Expected calls are _get(), _get(*uids), _get(rel),_ get(oclass),
+        _get(*uids, rel), _get(rel, oclass).
         If uids are specified, the result is the input, but
         non-available uids are replaced by None.
 
@@ -472,8 +472,8 @@ class Cuds():
         :type uids
         :param rel: class of the relationship, optional
         :type rel: OntologyRelationship
-        :param entity: Type subelements, optional
-        :type entity: OntologyClass
+        :param oclass: Type subelements, optional
+        :type oclass: OntologyClass
         :param return_mapping: whether to return a mapping from
             uids to relationships, that connect self with the uid.
         :type return_mapping: bool
@@ -482,8 +482,8 @@ class Cuds():
             respective Cuds object.)
         :rtype: List[UUID] (+ Dict[UUID, Set[Relationship]])
         """
-        if uids and entity is not None:
-            raise RuntimeError("Do not specify both uids and entity")
+        if uids and oclass is not None:
+            raise TypeError("Do not specify both uids and oclass")
 
         if uids:
             check_arguments(uuid.UUID, *uids)
@@ -505,7 +505,7 @@ class Cuds():
         if uids:
             return self._get_by_uids(uids, consider_relationships,
                                      return_mapping=return_mapping)
-        return self._get_by_entity(entity, consider_relationships,
+        return self._get_by_oclass(oclass, consider_relationships,
                                    return_mapping=return_mapping)
 
     def _get_by_uids(self, uids, relationships, return_mapping):
@@ -554,14 +554,14 @@ class Cuds():
             return collected_uids, relationship_mapping
         return collected_uids
 
-    def _get_by_entity(self, entity, relationships, return_mapping):
-        """Get the cuds_objects with given entity that are connected to self
+    def _get_by_oclass(self, oclass, relationships, return_mapping):
+        """Get the cuds_objects with given oclass that are connected to self
         with any of the given relationships. Optionally return a mapping
         from uids to the set of relationships, which connect self and
         the cuds_objects with the uid.
 
-        :param entity: Filter by the given entity. None means no filter.
-        :type entity: OntologyClass
+        :param oclass: Filter by the given OntologyClass. None means no filter.
+        :type oclass: OntologyClass
         :param relationships: Filter by list of relationships
         :type relationships: List[Relationship]
         :param return_mapping: whether to return a mapping from
@@ -578,7 +578,7 @@ class Cuds():
             # Collect all uids who are object of the current relationship.
             # Possibly filter by Cuba-Key.
             for uid, target_class in self._neighbours[relationship].items():
-                if entity is None or target_class in entity.subclasses:
+                if oclass is None or target_class in oclass.subclasses:
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
                     relationship_mapping[uid].add(relationship)
@@ -640,7 +640,7 @@ class Cuds():
         """
         Redefines the str() for Cuds.
 
-        :return: string with the entity and uid.
+        :return: string with the Ontology class and uid.
         """
         return "%s: %s" % (self.is_a, self.uid)
 
@@ -717,7 +717,7 @@ class Cuds():
         """Get the state for pickling or copying
 
         :return: The state of the object. Does not contain session.
-            Contains the string of the entity class.
+            Contains the string of the OntologyClass.
         :rtype: Dict[str, Any]
         """
         state = {k: v for k, v in self.__dict__.items()
@@ -738,11 +738,11 @@ class Cuds():
         """Set the state for pickling or copying
 
         :param state: The state of the object. Does not contain session.
-            Contains the string of the entity class.
+            Contains the string of the OntologyClass.
         :type state: Dict[str, Any]
         """
-        namespace, entity_class = state["_is_a"]
-        is_a = ONTOLOGY_NAMESPACE_REGISTRY[namespace][entity_class]
+        namespace, oclass = state["_is_a"]
+        is_a = ONTOLOGY_NAMESPACE_REGISTRY[namespace][oclass]
         state["_is_a"] = is_a
         state["_session"] = None
         state["_neighbours"] = NeighbourDictRel({

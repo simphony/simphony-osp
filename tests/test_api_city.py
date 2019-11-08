@@ -226,9 +226,9 @@ class TestAPICity(unittest.TestCase):
          - get()
          - get(*uids)
          - get(rel)
-         - get(entity)
+         - get(oclass)
          - get(*uids, rel)
-         - get(rel, entity)
+         - get(rel, oclass)
         """
         c = CITY.CITY(name="a city")
         n = CITY.NEIGHBOURHOOD(name="a neigbourhood")
@@ -259,15 +259,15 @@ class TestAPICity(unittest.TestCase):
         get_inhabits = c.get(rel=CITY.IS_INHABITANT_OF)
         self.assertEqual(get_inhabits, [])
 
-        # get(entity)
-        get_citizen = c.get(entity=CITY.CITIZEN)
+        # get(oclass)
+        get_citizen = c.get(oclass=CITY.CITIZEN)
         self.assertEqual(set(get_citizen), {q, p})
-        get_building = c.get(entity=CITY.BUILDING)
+        get_building = c.get(oclass=CITY.BUILDING)
         self.assertEqual(get_building, [])
-        get_citizen = c.get(entity=CITY.PERSON)
+        get_citizen = c.get(oclass=CITY.PERSON)
         self.assertEqual(set(get_citizen), {q, p})
         get_building = c.get(
-            entity=CITY.ARCHITECTURAL_STRUCTURE)
+            oclass=CITY.ARCHITECTURAL_STRUCTURE)
         self.assertEqual(get_building, [])
 
         # get(*uids, rel)
@@ -277,9 +277,9 @@ class TestAPICity(unittest.TestCase):
         get_has_part_q = c.get(q.uid, rel=CITY.HAS_PART)
         self.assertEqual(get_has_part_q, None)
 
-        # get(rel, entity)
+        # get(rel, oclass)
         get_inhabited_citizen = c.get(rel=CITY.HAS_INHABITANT,
-                                      entity=CITY.CITIZEN)
+                                      oclass=CITY.CITIZEN)
         self.assertEqual(set(get_inhabited_citizen), {p, q})
 
     def test_get_throws_exception(self):
@@ -294,9 +294,9 @@ class TestAPICity(unittest.TestCase):
         c.add(n)
 
         self.assertRaises(TypeError, c.get, "not a proper key")
-        self.assertRaises(RuntimeError, c.get,
+        self.assertRaises(TypeError, c.get,
                           n.uid,
-                          entity=CITY.NEIGHBOURHOOD)
+                          oclass=CITY.NEIGHBOURHOOD)
 
     def test_update(self):
         """
@@ -311,7 +311,7 @@ class TestAPICity(unittest.TestCase):
 
         old_neighbourhood = c.get(n.uid)
         old_streets = old_neighbourhood.get(
-            entity=CITY.STREET)
+            oclass=CITY.STREET)
         self.assertEqual(old_streets, [])
 
         c.update(new_n)
@@ -319,7 +319,7 @@ class TestAPICity(unittest.TestCase):
         new_neighbourhood = c.get(n.uid)
         self.assertIs(new_neighbourhood, n)
         new_streets = new_neighbourhood.get(
-            entity=CITY.STREET)
+            oclass=CITY.STREET)
         self.assertEqual(new_streets, [new_s])
 
     def test_remove(self):
@@ -329,8 +329,8 @@ class TestAPICity(unittest.TestCase):
          - remove()
          - remove(*uids/DataContainers)
          - remove(rel)
-         - remove(entity)
-         - remove(rel, entity)
+         - remove(oclass)
+         - remove(rel, oclass)
          - remove(*uids/DataContainers, rel)
         """
         c = CITY.CITY(name="a city")
@@ -369,8 +369,8 @@ class TestAPICity(unittest.TestCase):
         get_inverse = n.get(rel=CITY.IS_PART_OF)
         self.assertEqual(get_inverse, [])
 
-        # remove(entity)
-        c.remove(entity=CITY.CITIZEN)
+        # remove(oclass)
+        c.remove(oclass=CITY.CITIZEN)
         self.assertNotIn(q, c.get())
         # inverse
         get_inverse = q.get(rel=CITY.IS_INHABITANT_OF)
@@ -385,11 +385,11 @@ class TestAPICity(unittest.TestCase):
         get_inverse = p.get(rel=CITY.IS_INHABITANT_OF)
         self.assertEqual(get_inverse, [])
 
-        # remove(rel, entity)
+        # remove(rel, oclass)
         c.add(p, rel=CITY.HAS_INHABITANT)
         c.add(n)
         c.remove(rel=CITY.HAS_INHABITANT,
-                 entity=CITY.CITIZEN)
+                 oclass=CITY.CITIZEN)
         get_all = c.get()
         self.assertIn(n, get_all)
         self.assertNotIn(p, get_all)
@@ -415,13 +415,13 @@ class TestAPICity(unittest.TestCase):
         self.assertRaises(RuntimeError, c.remove, n.uid)
         self.assertRaises(RuntimeError, c.remove, rel=CITY.HAS_PART)
         self.assertRaises(RuntimeError, c.remove,
-                          entity=CITY.STREET)
+                          oclass=CITY.STREET)
         self.assertRaises(
             RuntimeError, c.remove, n.uid, rel=CITY.HAS_PART)
 
         # Wrong arguments
-        self.assertRaises(RuntimeError, c.remove, n.uid,
-                          entity=CITY.STREET)
+        self.assertRaises(TypeError, c.remove, n.uid,
+                          oclass=CITY.STREET)
 
     def test_update_throws_exception(self):
         """
