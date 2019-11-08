@@ -9,7 +9,7 @@
 from pympler import asizeof
 import time
 import unittest2 as unittest
-import cuds.classes
+from osp.core import CITY
 
 RUN_PERFORMANCE_TEST = False
 
@@ -20,7 +20,7 @@ class TestPerformance(unittest.TestCase):
         if not RUN_PERFORMANCE_TEST:
             return
         self.iterations = 500000
-        self.c = cuds.classes.City("A big city")
+        self.c = CITY.CITY(name="A big city")
         self.start = time.time()
 
     def tearDown(self):
@@ -43,7 +43,7 @@ class TestPerformance(unittest.TestCase):
         if not RUN_PERFORMANCE_TEST:
             return
         for i in range(self.iterations):
-            cuds.classes.Citizen(name='citizen ' + str(i))
+            CITY.CITIZEN(name='citizen ' + str(i))
 
     def test_add_default(self):
         """
@@ -52,8 +52,8 @@ class TestPerformance(unittest.TestCase):
         if not RUN_PERFORMANCE_TEST:
             return
         for i in range(self.iterations):
-            self.c.add(cuds.classes.Neighbourhood(
-                'neighbourhood ' + str(i)))
+            self.c.add(CITY.NEIGHBOURHOOD(
+                name='neighbourhood ' + str(i)))
 
     def test_add_rel(self):
         """
@@ -62,8 +62,8 @@ class TestPerformance(unittest.TestCase):
         if not RUN_PERFORMANCE_TEST:
             return
         for i in range(self.iterations):
-            self.c.add(cuds.classes.Citizen(name='citizen ' + str(i)),
-                       rel=cuds.classes.HasInhabitant)
+            self.c.add(CITY.CITIZEN(name='citizen ' + str(i)),
+                       rel=CITY.HAS_INHABITANT)
 
 
 if __name__ == '__main__':
