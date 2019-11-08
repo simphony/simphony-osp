@@ -9,7 +9,7 @@ build_job:
   script:
     - pip3 install --upgrade flake8
     - flake8 osp/ tests/
-    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.cc-asp.fraunhofer.de:simphony/wrappers/dummy-simulation-wrapper.git
+    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.cc-asp.fraunhofer.de/simphony/wrappers/dummy-simulation-wrapper
     - cd dummy-simulation-wrapper
     - python setup.py install
     - cd ..
