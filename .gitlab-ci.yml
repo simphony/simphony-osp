@@ -14,5 +14,6 @@ build_job:
     - cd dummy-simulation-wrapper
     - python setup.py install
     - cd ..
+    - pip install -r requirements.txt
     - coverage run setup.py test
     - coverage report --omit=tests/* --skip-covered

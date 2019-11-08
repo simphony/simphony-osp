@@ -6,12 +6,6 @@ from subprocess import check_call, CalledProcessError
 from setuptools.command.install import install
 from packageinfo import VERSION, NAME
 
-# Should be in install_requires, but needed for ClassGenerator import
-try:
-    check_call(["pip3", "install", "-r", "requirements.txt"])
-except (FileNotFoundError, CalledProcessError):
-    check_call(["pip", "install", "-r", "requirements.txt"])
-
 # Read description
 with open('README.md', 'r') as readme:
     README_TEXT = readme.read()
