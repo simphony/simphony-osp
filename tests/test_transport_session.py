@@ -148,10 +148,10 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                              {uuid.UUID(int=2): CITY.PERSON,
                              uuid.UUID(int=3): CITY.PERSON})
 
-            invalid_cuba = deepcopy(CUDS_DICT)
-            invalid_cuba["is_a"] = "INVALID_CUBA"
+            invalid_oclass = deepcopy(CUDS_DICT)
+            invalid_oclass["is_a"] = "INVALID_OCLASS"
             self.assertRaises(ValueError, deserialize,
-                              invalid_cuba, session, True)
+                              invalid_oclass, session, True)
 
             invalid_attribute = deepcopy(CUDS_DICT)
             invalid_attribute["attributes"]["invalid_attr"] = 0
@@ -366,7 +366,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client = TransportSessionClient(TestWrapperSession, None, None)
         client.root = 1
         c1 = create_recycle(
-            entity_cls=CITY.CITY,
+            oclass=CITY.CITY,
             kwargs={"name": "Freiburg"},
             uid=1,
             session=client,
@@ -374,7 +374,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         )
         c2 = CITY.CITY(name="London", uid=2)
         c3 = create_recycle(
-            entity_cls=CITY.CITY,
+            oclass=CITY.CITY,
             kwargs={"name": "Paris"},
             uid=3,
             session=client,
@@ -411,7 +411,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client._engine = MockEngine()
 
         # first item
-        c1 = create_recycle(entity_cls=CITY.CITY_WRAPPER,
+        c1 = create_recycle(oclass=CITY.CITY_WRAPPER,
                             kwargs={},
                             uid=1,
                             session=client,
@@ -429,7 +429,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client._engine._sent_data = None
         client._engine._sent_command = None
         c2 = create_recycle(
-            entity_cls=CITY.CITY,
+            oclass=CITY.CITY,
             kwargs={"name": "Freiburg"},
             uid=2,
             session=client,

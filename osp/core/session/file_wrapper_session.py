@@ -27,12 +27,12 @@ class FileWrapperSession(StorageWrapperSession):
         self._reset_buffers(changed_by="user")
         self.expire_all()
 
-    def load_by_cuba_key(self, cuba_key, update_registry=False):
-        """Load cuds_object with given cuba key.
+    def load_by_oclass(self, oclass, update_registry=False):
+        """Load cuds_object with given ontology class.
         Will not replace cuds_object in registry.
 
-        :param cuba_key: The cuba key to query for
-        :type cuba_key: CUBA
+        :param oclass: The ontology class to query for
+        :type oclass: OntologyClass
         :param update_registry: Whether to update cuds_objects which are
             already present in the registry.
         :type update_registry: bool
@@ -42,7 +42,7 @@ class FileWrapperSession(StorageWrapperSession):
         if self.root is None:
             raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")
-        yield from self._load_by_entity(cuba_key, update_registry=False)
+        yield from self._load_by_oclass(oclass, update_registry=False)
 
     def store(self, cuds_object):
         initialize = self.root is None
@@ -86,11 +86,11 @@ class FileWrapperSession(StorageWrapperSession):
         """Load the first level of children of the root from the database."""
 
     @abstractmethod
-    def _load_by_entity(self, cuba, update_registry=False):
-        """Load the cuds_object with the given cuba.
+    def _load_by_oclass(self, oclass, update_registry=False):
+        """Load the cuds_object with the given ontology class.
 
-        :param cuba: The Cuba-Key of the cuds objects
-        :type cuba: CUBA
+        :param oclass: Load cuds objects with given ontology class
+        :type oclass: OntologyClass
         :param update_registry: Whether to update cuds_objects already
             which are already present in the registry.
         :type update_registry: bool

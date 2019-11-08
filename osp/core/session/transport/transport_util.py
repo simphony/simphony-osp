@@ -172,8 +172,8 @@ def _serializable(cuds_object):
         )
     for rel in cuds_object._neighbours:
         result["relationships"][str(rel)] = {
-            convert_from(uid, "UUID"): str(entity)
-            for uid, entity in cuds_object._neighbours[rel].items()
+            convert_from(uid, "UUID"): str(oclass)
+            for uid, oclass in cuds_object._neighbours[rel].items()
         }
     return result
 
@@ -191,10 +191,10 @@ def _to_cuds_object(json_obj, session, add_to_buffers):
     :return: The resulting cuds_object.
     :rtype: Cuds
     """
-    entity = get_entity(json_obj["is_a"])
+    oclass = get_entity(json_obj["is_a"])
     attributes = json_obj["attributes"]
     relationships = json_obj["relationships"]
-    cuds_object = create_recycle(entity_cls=entity,
+    cuds_object = create_recycle(oclass=oclass,
                                  kwargs=attributes,
                                  session=session,
                                  uid=json_obj["uid"],
@@ -207,8 +207,8 @@ def _to_cuds_object(json_obj, session, add_to_buffers):
         )
         for uid, target_name in obj_dict.items():
             uid = convert_to(uid, "UUID")
-            target_entity = get_entity(target_name)
-            cuds_object._neighbours[rel][uid] = target_entity
+            target_oclass = get_entity(target_name)
+            cuds_object._neighbours[rel][uid] = target_oclass
     if not add_to_buffers:
         session._remove_uids_from_buffers([cuds_object.uid])
     return cuds_object

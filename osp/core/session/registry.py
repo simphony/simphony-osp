@@ -127,16 +127,16 @@ class Registry(dict):
                 result[uid] = cuds_object
         return result
 
-    def filter_by_cuba_key(self, cuba_key):
-        """Filter the registry by cuba key.
+    def filter_by_oclass(self, oclass):
+        """Filter the registry by ontolgy class.
 
-        :param cuba_key: The cuba key used for filtering.
-        :type cuba_key: CUBA
+        :param oclass: The oclass used for filtering.
+        :type oclass: OntologyClass
         :return: A subset of the registry,
-            containing cuds objects with given cuba_key.
+            containing cuds objects with given ontology class.
         :rtype: Dict[UUID, Cuds]
         """
-        return self.filter(lambda x: x.is_a == cuba_key)
+        return self.filter(lambda x: x.is_a == oclass)
 
     def filter_by_attribute(self, attribute, value):
         """Filter by attribute and valie
@@ -164,7 +164,7 @@ class Registry(dict):
             defaults to False
         :type consider_subrelationships: bool, optional
         :return: A subset of the registry,
-            containing cuds objects with given cuba_key.
+            containing cuds objects with given relationship.
         :rtype: Dict[UUID, Cuds]
         """
         if consider_subrelationships:

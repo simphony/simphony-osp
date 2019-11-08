@@ -85,20 +85,20 @@ class TestRegistryCity(unittest.TestCase):
                                  n2.uid: n2,
                                  s1.uid: s1})
 
-    def test_filter_by_cuba_key(self):
+    def test_filter_by_oclass(self):
         registry = Cuds._session._registry
         registry.reset()
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertEqual(
-            registry.filter_by_cuba_key(CITY.CITY),
+            registry.filter_by_oclass(CITY.CITY),
             {c.uid: c}
         )
         self.assertEqual(
-            registry.filter_by_cuba_key(CITY.CITIZEN),
+            registry.filter_by_oclass(CITY.CITIZEN),
             {p1.uid: p1, p2.uid: p2, p3.uid: p3}
         )
         self.assertEqual(
-            registry.filter_by_cuba_key(CITY.NEIGHBOURHOOD),
+            registry.filter_by_oclass(CITY.NEIGHBOURHOOD),
             {n1.uid: n1, n2.uid: n2}
         )
 

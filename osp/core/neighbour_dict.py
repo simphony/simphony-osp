@@ -12,7 +12,7 @@ from osp.core.ontology.oclass import OntologyClass
 
 class NeighbourDict(dict):
     """A dictionary that notifies the session if
-    any update occurs. Used to map uids to entitys
+    any update occurs. Used to map uids to ontology classes
     for each relationship.
     """
 
@@ -82,14 +82,14 @@ class NeighbourDictRel(NeighbourDict):
 class NeighbourDictTarget(NeighbourDict):
     def __init__(self, dictionary, cuds_object, rel):
         self.rel = rel
-        for uid, entity in dictionary.items():
-            cuds_object._check_valid_add(entity, rel)
+        for uid, oclass in dictionary.items():
+            cuds_object._check_valid_add(oclass, rel)
         super().__init__(
             dictionary, cuds_object,
             key_check=lambda k: isinstance(k, uuid.UUID),
             value_check=lambda v: isinstance(v, OntologyClass)
         )
 
-    def __setitem__(self, uid, entity):
-        self.cuds_object._check_valid_add(entity, self.rel)
-        return super().__setitem__(uid, entity)
+    def __setitem__(self, uid, oclass):
+        self.cuds_object._check_valid_add(oclass, self.rel)
+        return super().__setitem__(uid, oclass)

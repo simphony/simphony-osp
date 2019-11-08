@@ -69,10 +69,10 @@ class Parser:
                 self._yaml_doc[NAMESPACE_KEY]
             )
             self._namespace_registry.add_namespace(self._ontology_namespace)
-            self._parse_cuds_ontology()
+            self._parse_ontology()
         return self._ontology_namespace
 
-    def _parse_cuds_ontology(self):
+    def _parse_ontology(self):
         """Parse the entity definitions."""
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
 

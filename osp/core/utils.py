@@ -124,13 +124,13 @@ def find_cuds_object_by_uid(uid, root, rel):
     )
 
 
-def find_cuds_objects_by_cuba_key(cuba_key, root, rel):
+def find_cuds_objects_by_oclass(oclass, root, rel):
     """
-    Recursively finds an element with given cuba key inside a cuds object
+    Recursively finds an element with given oclass inside a cuds object
     by considering the given relationship.
 
-    :param cuba_key: The cuba_key of the cuds_object that is searched.
-    :type uid: CUBA
+    :param oclass: The oclass of the cuds_object that is searched.
+    :type uid: OntologyClass
     :param root: Starting point of search
     :type root: Cuds
     :param rel: The relationship (incl. subrelationships) to consider
@@ -139,7 +139,7 @@ def find_cuds_objects_by_cuba_key(cuba_key, root, rel):
     :rtype: List[Cuds]
     """
     return find_cuds_object(
-        criterion=lambda cuds_object: cuds_object.is_a == cuba_key,
+        criterion=lambda cuds_object: cuds_object.is_a == oclass,
         root=root,
         rel=rel,
         find_all=True
@@ -296,7 +296,7 @@ def pretty_print(cuds_object, file=sys.stdout):
     print(pp, file=file)
 
 
-def pp_cuds_object_name(cuds_object, cuba=False):
+def pp_cuds_object_name(cuds_object, print_oclass=False):
     """
     Returns the name of the given element following the
     pretty print format.
@@ -304,18 +304,19 @@ def pp_cuds_object_name(cuds_object, cuba=False):
     :param cuds_object: element to be printed
     :return: string with the pretty printed text
     """
-    title = "Cuds object" if not cuba else "cuds object"
-    cuba = (" %s " % cuds_object.is_a) if cuba else ""
+    title = "Cuds object" if not print_oclass else "cuds object"
+    oclass = (" %s " % cuds_object.is_a) if print_oclass else ""
 
     if hasattr(cuds_object, "name"):
         name = str(cuds_object.name)
-        return "- %s%s named <%s>:" % (cuba, title, name)
-    return "- %s%s:" % (cuba, title)
+        return "- %s%s named <%s>:" % (oclass, title, name)
+    return "- %s%s:" % (oclass, title)
 
 
 def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
     """
-    Recursively formats the subelements from a cuds_object grouped by cuba_key.
+    Recursively formats the subelements from a cuds_object grouped
+        by ontology class.
 
     :param cuds_object: element to inspect
     :param level_indentation: common characters to left-pad the text
@@ -338,7 +339,8 @@ def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
                 indentation = level_indentation + "   "
             else:
                 indentation = level_indentation + " | "
-            pp_sub += indentation + pp_cuds_object_name(element, cuba=True)
+            pp_sub += indentation + pp_cuds_object_name(element,
+                                                        print_oclass=True)
             if j == len(sorted_elements) - 1:
                 indentation += "   "
             else:
@@ -410,13 +412,13 @@ def clone_cuds_object(cuds_object):
     return clone
 
 
-def create_recycle(entity_cls, kwargs, session, uid, add_to_buffers=True):
+def create_recycle(oclass, kwargs, session, uid, add_to_buffers=True):
     """Instantiate a cuds_object with a given session.
     If cuds_object with same uid is already in the session,
     this object will be reused.
 
-    :param entity_cls: The type of cuds_object to instantiate
-    :type entity_cls: Cuds
+    :param oclass: The OntologyClass of cuds_object to instantiate
+    :type oclass: Cuds
     :param kwargs: The kwargs of the cuds_object
     :type kwargs: Dict[str, Any]
     :param session: The session of the new Cuds object
@@ -436,14 +438,14 @@ def create_recycle(entity_cls, kwargs, session, uid, add_to_buffers=True):
     # recycle old object
     if uid in session._registry:
         cuds_object = session._registry.get(uid)
-        cuds_object._is_a = entity_cls
-        attributes = entity_cls._get_attributes(kwargs)
+        cuds_object._is_a = oclass
+        attributes = oclass._get_attributes(kwargs)
         for key, value in attributes.items():
             setattr(cuds_object, key.argname, value)
         for rel in set(cuds_object._neighbours.keys()):
             del cuds_object._neighbours[rel]
     else:  # create new
-        cuds_object = entity_cls(uid=uid, session=session, **kwargs)
+        cuds_object = oclass(uid=uid, session=session, **kwargs)
     if hasattr(session, "_remove_uids_from_buffers") and not add_to_buffers:
         session._remove_uids_from_buffers([cuds_object.uid])
     return cuds_object
@@ -468,13 +470,13 @@ def create_from_cuds_object(cuds_object, session, add_to_buffers):
     assert cuds_object.session is not session
     kwargs = {x.argname: getattr(cuds_object, x.argname)
               for x in cuds_object.is_a.attributes}
-    clone = create_recycle(entity_cls=cuds_object.is_a,
+    clone = create_recycle(oclass=cuds_object.is_a,
                            kwargs=kwargs,
                            session=session,
                            uid=cuds_object.uid,
                            add_to_buffers=add_to_buffers)
-    for rel, uid_cuba in cuds_object._neighbours.items():
+    for rel, target_dict in cuds_object._neighbours.items():
         clone._neighbours[rel] = NeighbourDictTarget(dict(), clone, rel)
-        for uid, cuba in uid_cuba.items():
-            clone._neighbours[rel][uid] = cuba
+        for uid, target_oclass in target_dict.items():
+            clone._neighbours[rel][uid] = target_oclass
     return clone

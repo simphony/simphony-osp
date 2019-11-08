@@ -19,7 +19,7 @@ from osp.core.utils import (
     check_arguments, format_class_name, find_cuds_object,
     find_cuds_object_by_uid, remove_cuds_object,
     pretty_print,
-    find_cuds_objects_by_cuba_key, find_relationships,
+    find_cuds_objects_by_oclass, find_relationships,
     find_cuds_objects_by_attribute, post,
     get_relationships_between,
     get_neighbour_diff
@@ -120,7 +120,7 @@ class TestUtils(unittest.TestCase):
         with DummySimSession() as session:
             w = CITY.CITY_WRAPPER(session=session)
             b = create_recycle(
-                entity_cls=CITY.CITY,
+                oclass=CITY.CITY,
                 kwargs={"name": "Offenburg"},
                 uid=a.uid,
                 session=session,
@@ -139,7 +139,7 @@ class TestUtils(unittest.TestCase):
             x = CITY.CITIZEN()
             b.add(x, rel=CITY.HAS_INHABITANT)
 
-            c = create_recycle(entity_cls=CITY.CITY,
+            c = create_recycle(oclass=CITY.CITY,
                                kwargs={"name": "Emmendingen"},
                                session=session, uid=a.uid,
                                add_to_buffers=True)
@@ -280,23 +280,23 @@ class TestUtils(unittest.TestCase):
         self.assertIs(find_cuds_object_by_uid(
             s1.uid, n1, CUBA.ACTIVE_RELATIONSHIP), s1)
 
-    def test_find_cuds_objects_by_cuba_key(self):
+    def test_find_cuds_objects_by_oclass(self):
         """ Test find by cuba key """
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
-        self.assertEqual(find_cuds_objects_by_cuba_key(
+        self.assertEqual(find_cuds_objects_by_oclass(
             CITY.CITY, c, CUBA.ACTIVE_RELATIONSHIP),
             [c])
-        found = find_cuds_objects_by_cuba_key(
+        found = find_cuds_objects_by_oclass(
             CITY.CITIZEN,
             c, CUBA.ACTIVE_RELATIONSHIP)
         self.assertEqual(len(found), 3)
         self.assertEqual(set(found), {p1, p2, p3})
-        found = find_cuds_objects_by_cuba_key(
+        found = find_cuds_objects_by_oclass(
             CITY.NEIGHBOURHOOD, c,
             CUBA.ACTIVE_RELATIONSHIP)
         self.assertEqual(set(found), {n1, n2})
         self.assertEqual(len(found), 2)
-        self.assertEqual(find_cuds_objects_by_cuba_key(
+        self.assertEqual(find_cuds_objects_by_oclass(
             CITY.STREET, c, CUBA.ACTIVE_RELATIONSHIP),
             [s1])
 

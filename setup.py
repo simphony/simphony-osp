@@ -17,6 +17,23 @@ with open('README.md', 'r') as readme:
     README_TEXT = readme.read()
 
 
+def reset_ontology():
+    import osp.core
+    from osp.core.ontology.namespace_registry import \
+        INSTALLED_ONTOLOGY_PATH, ONTOLOGY_NAMESPACE_REGISTRY, \
+        MAIN_ONTOLOGY_NAMESPACE
+
+    # remove from namespace registry
+    for name in set(ONTOLOGY_NAMESPACE_REGISTRY._namespaces.keys()):
+        if name == MAIN_ONTOLOGY_NAMESPACE:
+            continue
+        del ONTOLOGY_NAMESPACE_REGISTRY._namespaces[name]
+        delattr(osp.core, name)
+
+    if os.path.exists(INSTALLED_ONTOLOGY_PATH):
+        os.remove(INSTALLED_ONTOLOGY_PATH)
+
+
 def install_ontology(ontology):
     ontology_file = ontology
     if not ontology.endswith(".yml"):
@@ -45,13 +62,18 @@ class Install(install):
     user_options = install.user_options + [
         ('ontology=', 'o', 'The ontology to install: stable / city / toy / '
          'path to yaml file. Default: stable'),
+        ('reset', 'r', 'Reset the installed ontologies.')
     ]
 
     def initialize_options(self):
         install.initialize_options(self)
         self.ontology = ''
+        self.reset = False
 
     def run(self):
+        if self.reset:
+            reset_ontology()
+
         install_ontology(self.ontology or "city")
         install.run(self)
 
@@ -71,7 +93,8 @@ setup(
         "osp.core.ontology": ["*.pkl"]
     },
     cmdclass={
-        'install': Install
+        'install': Install,
+        'develop': Install
     },
     test_suite='tests'
 )

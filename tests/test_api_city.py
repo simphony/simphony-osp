@@ -437,7 +437,7 @@ class TestAPICity(unittest.TestCase):
 
     def test_iter(self):
         """
-        Tests the iter() method when no cuba key is provided.
+        Tests the iter() method when no ontology class is provided.
         """
         c = CITY.CITY(name="a city")
         n = CITY.NEIGHBOURHOOD(name="a neigbourhood")

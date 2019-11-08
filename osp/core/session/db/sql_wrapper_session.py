@@ -24,17 +24,17 @@ class SqlWrapperSession(DbWrapperSession):
     RELATIONSHIP_TABLE = "OSP_RELATIONSHIPS"
     MASTER_TABLE = "OSP_MASTER"
     COLUMNS = {
-        MASTER_TABLE: ["uid", "entity", "first_level"],
-        RELATIONSHIP_TABLE: ["origin", "target", "name", "target_entity"]
+        MASTER_TABLE: ["uid", "oclass", "first_level"],
+        RELATIONSHIP_TABLE: ["origin", "target", "name", "target_oclass"]
     }
     DATATYPES = {
         MASTER_TABLE: {"uid": "UUID",
-                       "entity": "STRING",
+                       "oclass": "STRING",
                        "first_level": "BOOL"},
         RELATIONSHIP_TABLE: {"origin": "UUID",
                              "target": "UUID",
                              "name": "STRING",
-                             "target_entity": "STRING"}
+                             "target_oclass": "STRING"}
     }
     PRIMARY_KEY = {
         MASTER_TABLE: ["uid"],
@@ -48,7 +48,7 @@ class SqlWrapperSession(DbWrapperSession):
         }
     }
     INDEX = {
-        MASTER_TABLE: ["entity", "first_level"],
+        MASTER_TABLE: ["oclass", "first_level"],
         RELATIONSHIP_TABLE: ["origin"]
     }
 
@@ -315,11 +315,11 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # Create tables
-            entity = added.is_a
-            columns, datatypes = self._get_col_spec(entity)
+            oclass = added.is_a
+            columns, datatypes = self._get_col_spec(oclass)
             if columns:
                 self._do_db_create(
-                    table_name=self.CUDS_PREFIX + entity.tblname,
+                    table_name=self.CUDS_PREFIX + oclass.tblname,
                     columns=columns,
                     datatypes=datatypes,
                     primary_key=["uid"],
@@ -332,8 +332,8 @@ class SqlWrapperSession(DbWrapperSession):
                                  for uids in added._neighbours.values())
             self._do_db_insert(
                 table_name=self.MASTER_TABLE,
-                columns=["uid", "entity", "first_level"],
-                values=[added.uid, entity, is_first_level],
+                columns=["uid", "oclass", "first_level"],
+                values=[added.uid, oclass, is_first_level],
                 datatypes=self.DATATYPES[self.MASTER_TABLE]
             )
 
@@ -341,7 +341,7 @@ class SqlWrapperSession(DbWrapperSession):
             if columns:
                 values = [getattr(added, attr) for attr in columns]
                 self._do_db_insert(
-                    table_name=self.CUDS_PREFIX + entity.tblname,
+                    table_name=self.CUDS_PREFIX + oclass.tblname,
                     columns=columns,
                     values=values,
                     datatypes=datatypes
@@ -349,13 +349,13 @@ class SqlWrapperSession(DbWrapperSession):
 
             # Insert the relationships
             for rel, neighbour_dict in added._neighbours.items():
-                for uid, target_entity in neighbour_dict.items():
+                for uid, target_oclass in neighbour_dict.items():
                     target_uid = uid if uid != self.root else uuid.UUID(int=0)
                     self._do_db_insert(
                         self.RELATIONSHIP_TABLE,
-                        ["origin", "target", "name", "target_entity"],
+                        ["origin", "target", "name", "target_oclass"],
                         [added.uid, target_uid,
-                         rel, target_entity],
+                         rel, target_oclass],
                         self.DATATYPES[self.RELATIONSHIP_TABLE]
                     )
 
@@ -368,16 +368,16 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # Update the values
-            entity = updated.is_a
-            columns, datatypes = self._get_col_spec(entity)
+            oclass = updated.is_a
+            columns, datatypes = self._get_col_spec(oclass)
             if columns:
                 values = [getattr(updated, attr) for attr in columns]
                 self._do_db_update(
-                    table_name=self.CUDS_PREFIX + entity.tblname,
+                    table_name=self.CUDS_PREFIX + oclass.tblname,
                     columns=columns,
                     values=values,
                     condition=EqualsCondition(
-                        table_name=self.CUDS_PREFIX + entity.tblname,
+                        table_name=self.CUDS_PREFIX + oclass.tblname,
                         column="uid",
                         value=updated.uid,
                         datatype="UUID"
@@ -396,14 +396,14 @@ class SqlWrapperSession(DbWrapperSession):
                 )
             )
             for rel, neighbour_dict in updated._neighbours.items():
-                for uid, target_entity in neighbour_dict.items():
+                for uid, target_oclass in neighbour_dict.items():
                     first_level = first_level or uid == self.root
                     target_uuid = uid if uid != self.root else uuid.UUID(int=0)
                     self._do_db_insert(
                         table_name=self.RELATIONSHIP_TABLE,
                         columns=self.COLUMNS[self.RELATIONSHIP_TABLE],
                         values=[updated.uid, target_uuid,
-                                rel, target_entity],
+                                rel, target_oclass],
                         datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE]
                     )
 
@@ -426,13 +426,13 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # Update the values
-            entity = deleted.is_a
-            columns, datatypes = self._get_col_spec(entity)
+            oclass = deleted.is_a
+            columns, datatypes = self._get_col_spec(oclass)
             if columns:
                 self._do_db_delete(
-                    table_name=self.CUDS_PREFIX + entity.tblname,
+                    table_name=self.CUDS_PREFIX + oclass.tblname,
                     condition=EqualsCondition(
-                        table_name=self.CUDS_PREFIX + entity.tblname,
+                        table_name=self.CUDS_PREFIX + oclass.tblname,
                         column="uid",
                         value=deleted.uid,
                         datatype="UUID"
@@ -462,12 +462,12 @@ class SqlWrapperSession(DbWrapperSession):
     def _load_from_backend(self, uids, expired=None):
         for uid in uids:
             if isinstance(uid, uuid.UUID):
-                cuba = self._get_cuba(uid)
+                oclass = self._get_oclass(uid)
             elif isinstance(uid, tuple) and len(uid) == 2:
-                uid, cuba = uid
+                uid, oclass = uid
             else:
                 raise ValueError("Invalid uid given %s" % uid)
-            loaded = list(self._load_by_entity(entity=cuba,
+            loaded = list(self._load_by_oclass(oclass=oclass,
                                                update_registry=True,
                                                uid=uid))
             yield loaded[0] if loaded else None
@@ -495,7 +495,7 @@ class SqlWrapperSession(DbWrapperSession):
     def _load_first_level(self):
         c = self._do_db_select(
             self.MASTER_TABLE,
-            ["uid", "entity"],
+            ["uid", "oclass"],
             EqualsCondition(self.MASTER_TABLE,
                             "first_level", True, "BOOL"),
             self.DATATYPES[self.MASTER_TABLE]
@@ -504,12 +504,12 @@ class SqlWrapperSession(DbWrapperSession):
             map(lambda x: (x[0], get_entity(x[1])), c)
         ))
 
-    def _load_by_entity(self, entity, update_registry=False, uid=None):
-        """Load the cuds_object with the given entity (+ uid).
-        If uid is None return all cuds_objects with given cuba_key.
+    def _load_by_oclass(self, oclass, update_registry=False, uid=None):
+        """Load the cuds_object with the given oclass (+ uid).
+        If uid is None return all cuds_objects with given ontology class.
 
-        :param entity: The entity of the cuds_object
-        :type entity: OntologyClass
+        :param oclass: The oclass of the cuds_object
+        :type oclass: OntologyClass
         :param uid: The uid of the Cuds to load.
         :type uid: UUID
         :param update_registry: Whether to update cuds_objects already
@@ -518,10 +518,10 @@ class SqlWrapperSession(DbWrapperSession):
         :return: The loaded cuds_object.
         :rtype: Cuds
         """
-        # Check if entity is given
-        if entity is None and uid is not None:
+        # Check if oclass is given
+        if oclass is None and uid is not None:
             yield None
-        if entity is None:
+        if oclass is None:
             return
 
         # Check if object in registry can be used
@@ -531,19 +531,19 @@ class SqlWrapperSession(DbWrapperSession):
 
         # gather the data needed to fetch object from the database
         tables = self._get_table_names(
-            prefix=(self.CUDS_PREFIX + entity.tblname)
+            prefix=(self.CUDS_PREFIX + oclass.tblname)
         )
-        if not (self.CUDS_PREFIX + entity.tblname) in tables:
+        if not (self.CUDS_PREFIX + oclass.tblname) in tables:
             return
-        condition = EqualsCondition(self.CUDS_PREFIX + entity.tblname,
+        condition = EqualsCondition(self.CUDS_PREFIX + oclass.tblname,
                                     "uid", uid, "UUID") \
             if uid else None
 
-        columns, datatypes = self._get_col_spec(entity)
+        columns, datatypes = self._get_col_spec(oclass)
 
         # fetch the data
         c = self._do_db_select(
-            table_name=self.CUDS_PREFIX + entity.tblname,
+            table_name=self.CUDS_PREFIX + oclass.tblname,
             columns=columns,
             condition=condition,
             datatypes=datatypes
@@ -557,7 +557,7 @@ class SqlWrapperSession(DbWrapperSession):
             if not update_registry and uid in self._registry:
                 yield self._registry.get(uid)
                 continue
-            cuds_object = create_recycle(entity_cls=entity,
+            cuds_object = create_recycle(oclass=oclass,
                                          kwargs=kwargs,
                                          session=self,
                                          uid=uid,
@@ -574,7 +574,7 @@ class SqlWrapperSession(DbWrapperSession):
         # Fetch the data
         c = self._do_db_select(
             table_name=self.RELATIONSHIP_TABLE,
-            columns=["target", "name", "target_entity"],
+            columns=["target", "name", "target_oclass"],
             condition=EqualsCondition(
                 table_name=self.RELATIONSHIP_TABLE,
                 column="origin",
@@ -585,8 +585,8 @@ class SqlWrapperSession(DbWrapperSession):
         )
 
         # update the cuds object
-        for target, name, target_entity in c:
-            target_entity = get_entity(target_entity)
+        for target, name, target_oclass in c:
+            target_oclass = get_entity(target_oclass)
             rel = get_entity(name)
 
             if rel not in cuds_object._neighbours:
@@ -607,19 +607,19 @@ class SqlWrapperSession(DbWrapperSession):
 
             # Target is not root. Simply add the relationship
             elif target != uuid.UUID(int=0):
-                cuds_object._neighbours[rel][target] = target_entity
+                cuds_object._neighbours[rel][target] = target_oclass
 
-    def _get_cuba(self, uid):
-        """Get the cuba-key of the given uid from the database.
+    def _get_oclass(self, uid):
+        """Get the ontology class of the given uid from the database.
 
-        :param uid: Load the cuba-key of this uis.
+        :param uid: Load the OntologyClass of this uis.
         :type uid: UUID
-        :return: The cuba-key.
+        :return: The ontology class.
         :rtype: OntologyClass
         """
         c = self._do_db_select(
             self.MASTER_TABLE,
-            ["entity"],
+            ["oclass"],
             EqualsCondition(self.MASTER_TABLE,
                             "uid", uid,
                             "UUID"),
@@ -647,8 +647,8 @@ class SqlWrapperSession(DbWrapperSession):
                 )
             yield output
 
-    def _get_col_spec(self, entity):
-        attributes = entity.attributes
+    def _get_col_spec(self, oclass):
+        attributes = oclass.attributes
         columns = [x.argname for x in attributes if x != "session"] + ["uid"]
         datatypes = dict(uid="UUID", **{x.argname: x.datatype
                          for x in attributes if x != "session"})

@@ -576,7 +576,7 @@ class Cuds():
         for relationship in relationships:
 
             # Collect all uids who are object of the current relationship.
-            # Possibly filter by Cuba-Key.
+            # Possibly filter by OntologyClass.
             for uid, target_class in self._neighbours[relationship].items():
                 if oclass is None or target_class in oclass.subclasses:
                     if uid not in relationship_mapping:
