@@ -1,0 +1,35 @@
+---
+VERSION: "0.0.1"
+
+NAMESPACE: "CUBA"
+
+ONTOLOGY:
+
+  ENTITY:
+    definition: The root of the ontology
+    subclass_of: []
+
+ ################
+
+  RELATIONSHIP:
+    definition: The root of all relationships
+    subclass_of:
+    - CUBA.ENTITY
+    inverse:
+
+  ACTIVE_RELATIONSHIP:
+    definition:
+    subclass_of:
+    - CUBA.RELATIONSHIP
+
+  ################
+
+  WRAPPER:
+    definition:
+    subclass_of:
+    - CUBA.ENTITY
+
+  VALUE:
+    definition:
+    subclass_of:
+    - CUBA.ENTITY
