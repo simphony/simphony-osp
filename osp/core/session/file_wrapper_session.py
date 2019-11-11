@@ -29,7 +29,7 @@ class FileWrapperSession(StorageWrapperSession):
 
     def load_by_oclass(self, oclass, update_registry=False):
         """Load cuds_object with given ontology class.
-        Will not replace cuds_object in registry.
+        Will also return cuds objects of subclasses of oclass.
 
         :param oclass: The ontology class to query for
         :type oclass: OntologyClass
@@ -42,7 +42,9 @@ class FileWrapperSession(StorageWrapperSession):
         if self.root is None:
             raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")
-        yield from self._load_by_oclass(oclass, update_registry=False)
+        for subclass in oclass.subclasses:
+            yield from self._load_by_oclass(subclass,
+                                            update_registry=update_registry)
 
     def store(self, cuds_object):
         initialize = self.root is None
