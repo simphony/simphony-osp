@@ -1,5 +1,6 @@
 from osp.core import CITY
 from osp.core.utils import pretty_print
+
 from getpass import getpass
 try:
     from osp.wrappers.sqlalchemy_wrapper_session import \

@@ -27,7 +27,7 @@ explicit written permission.
 
 ## Installation
 
-The package requires python 3 (tested for 3.6), installation is based on
+The package requires python 3.6 or higher (tested for 3.7), installation is based on
 setuptools:
 
 ```sh

@@ -6,3 +6,4 @@ requests
 responses
 numpy
 simphony_dummy_simulation_wrapper
+graphviz
