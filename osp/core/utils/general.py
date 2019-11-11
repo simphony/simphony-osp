@@ -8,10 +8,10 @@
 import requests
 import json
 from osp.core import CUBA
-from osp.core.utils import find_cuds_object
 
 
 def post(url, cuds_object, max_depth=float("inf")):
+    from osp.core.utils import find_cuds_object
     from osp.core.session.transport.transport_util import serializable
     cuds_objects = find_cuds_object(criterion=lambda x: True,
                                     root=cuds_object,
