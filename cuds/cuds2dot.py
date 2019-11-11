@@ -6,9 +6,8 @@
 # No redistribution is allowed without explicit written permission.
 
 import graphviz
-
-import cuds.classes
-from cuds.utils import get_relationships_between
+from osp.core.utils import get_relationships_between
+from osp.core import CUBA
 
 
 class Cuds2dot():
@@ -53,7 +52,7 @@ class Cuds2dot():
         :type current: Cuds
         """
         current_uid = self.shorten_uid(current.uid)
-        for cuds_object in current.iter():
+        for cuds_object in current.iter(rel=CUBA.RELATIONSHIP):
             cuds_object_uid = self.shorten_uid(cuds_object.uid)
             # Add the relationships
             relationship_set = get_relationships_between(current, cuds_object)
@@ -101,10 +100,9 @@ class Cuds2dot():
         :param relationship: relationship between start and end
         :type relationship: Cuds
         """
-        if not isinstance(relationship, cuds.classes.PassiveRelationship):
-            self._graph.edge(start,
-                             end,
-                             label=str(relationship.__name__))
+        self._graph.edge(start,
+                         end,
+                         label=str(relationship))
 
     @staticmethod
     def shorten_uid(uid):

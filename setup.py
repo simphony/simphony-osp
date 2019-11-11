@@ -1,55 +1,53 @@
 import os
-
-from setuptools import setup
-from subprocess import check_call, CalledProcessError
+import pickle
+import traceback
+from setuptools import setup, find_namespace_packages
 from setuptools.command.install import install
-from setuptools.command.develop import develop
 from packageinfo import VERSION, NAME
-
-# Should be in install_requires, but needed for ClassGenerator import
-try:
-    check_call(["pip3", "install", "-r", "requirements.txt"])
-except (FileNotFoundError, CalledProcessError):
-    check_call(["pip", "install", "-r", "requirements.txt"])
-
-from cuds.generator.class_generator import ClassGenerator
 
 # Read description
 with open('README.md', 'r') as readme:
     README_TEXT = readme.read()
 
 
-def create_ontology_classes(ontology):
+def reset_ontology():
+    import osp.core
+    from osp.core.ontology.namespace_registry import \
+        INSTALLED_ONTOLOGY_PATH, ONTOLOGY_NAMESPACE_REGISTRY, \
+        MAIN_ONTOLOGY_NAMESPACE
+
+    # remove from namespace registry
+    for name in set(ONTOLOGY_NAMESPACE_REGISTRY._namespaces.keys()):
+        if name == MAIN_ONTOLOGY_NAMESPACE:
+            continue
+        del ONTOLOGY_NAMESPACE_REGISTRY._namespaces[name]
+        delattr(osp.core, name)
+
+    if os.path.exists(INSTALLED_ONTOLOGY_PATH):
+        os.remove(INSTALLED_ONTOLOGY_PATH)
+
+
+def install_ontology(ontology):
     ontology_file = ontology
     if not ontology.endswith(".yml"):
         ontology_file = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            'cuds', 'ontology', 'ontology.' + ontology + '.yml')
-    entity_template = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        'cuds', 'generator', 'template_entity')
-    relationship_template = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        'cuds', 'generator', 'template_relationship')
-
-    if not os.path.exists(ontology_file):
-        text = 'Unrecoverable error. Cannot find ' + ontology + ' file in {}'
-        raise RuntimeError(text.format(ontology_file))
-
-    if not os.path.exists(entity_template):
-        text = 'Unrecoverable error. Cannot find \'template\' file in {}'
-        raise RuntimeError(text.format(entity_template))
-
-    if not os.path.exists(relationship_template):
-        text = 'Unrecoverable error. Cannot find \'template\' file in {}'
-        raise RuntimeError(text.format(relationship_template))
-
-    print('Building classes from ontology...')
-    path = "cuds/classes/generated"
-    ClassGenerator(ontology_file,
-                   entity_template,
-                   relationship_template,
-                   path).generate_classes()
+            "osp", "core", "ontology", "yml",
+            "ontology.%s.yml" % ontology
+        )
+    from osp.core.ontology.namespace_registry import \
+        ONTOLOGY_NAMESPACE_REGISTRY, INSTALLED_ONTOLOGY_PATH
+    from osp.core.ontology.parser import Parser
+    p = Parser()
+    try:
+        p.parse(ontology_file)
+        with open(INSTALLED_ONTOLOGY_PATH, "wb") as f:
+            pickle.dump(
+                ONTOLOGY_NAMESPACE_REGISTRY, f
+            )
+    except ValueError:
+        traceback.print_exc()
+        print("Ontology namespace already installed!")
 
 
 class Install(install):
@@ -57,42 +55,21 @@ class Install(install):
     user_options = install.user_options + [
         ('ontology=', 'o', 'The ontology to install: stable / city / toy / '
          'path to yaml file. Default: stable'),
+        ('reset', 'r', 'Reset the installed ontologies.')
     ]
 
     def initialize_options(self):
         install.initialize_options(self)
         self.ontology = ''
+        self.reset = False
 
     def run(self):
-        create_ontology_classes(self.ontology or "city")
+        if self.reset:
+            reset_ontology()
+
+        install_ontology(self.ontology or "city")
         install.run(self)
 
-
-class Develop(develop):
-    def run(self):
-        create_ontology_classes('city')
-        develop.run(self)
-
-
-# Create the directory for the classes, otherwise the package is not added
-
-try:
-    os.makedirs("cuds/classes/generated")
-except OSError:
-    pass
-
-# We cannot use find_packages because we are generating files during build.
-packages = [
-    'cuds',
-    'cuds.classes',
-    'cuds.classes.generated',
-    'cuds.session',
-    'cuds.session.db',
-    'cuds.session.transport',
-    'cuds.generator',
-    'cuds.ontology',
-    'cuds.testing'
-]
 
 # main setup configuration class
 setup(
@@ -103,16 +80,18 @@ setup(
     description='The native implementation of the SimPhoNy cuds objects',
     keywords='simphony, cuds, Fraunhofer IWM',
     long_description=README_TEXT,
-    packages=packages,
+    packages=find_namespace_packages(include=["osp.*"]),
+    package_data={
+        "osp.core.ontology.yml": ["*.yml"],
+        "osp.core.ontology": ["*.pkl"]
+    },
     python_requires=">=3.6",
     cmdclass={
         'install': Install,
-        'develop': Develop
+        'develop': Install
     },
-    test_suite='cuds.testing',
+    test_suite='tests',
     entry_points={
-        'console_scripts': [
-            'simphony-class-generator = cuds.generator.class_generator:main'],
-        'wrappers': 'osp-core = cuds.classes:Cuds'
+        'wrappers': 'osp-core = osp.core.session.core_session:CoreSession'
     }
 )

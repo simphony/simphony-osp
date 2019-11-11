@@ -124,7 +124,7 @@ For values, these keys are described in
 > This is the root of all relationships. Its direct superclass is `ENTITY`.
 
 `VALUE`
-> This is the root of all values. A value is some kind of data, like a String or a Number. It can be an attribute of a cuds entity. Its direct superclass is `ENTITY`.
+> This is the root of all values. A value is some kind of data, like a String or a Number. Its direct superclass is `ENTITY`.
 
 ## Value format
 
@@ -222,20 +222,20 @@ OR:
 
 This describes the subset of all individuals that are elementary or have at least one physical as proper part.
 
-## CUDS entities format
+## CUDS classes format
 
-Every cuds entity is a sub-entity of `CUDS_ENTITY`.
+Every cuds class is a sub-entity of `CUDS_ENTITY`.
 The declaration of a cuds entity is a special case of the declaration of an entity.
 It must have the keys described in [Ontology entities format](#ontology-entities-format).
 It can contain further information:
 
-`attributes`: List[**\`\`qualified CUBA key\`\`**]
+`values`: Dict[**\`\`qualified CUBA key\`\`**, default_value]
 > Expects a mapping from the **\`\`qualified CUBA key\`\`** to its default. Each key must correspond to a sub-entity of `VALUE`. For example:
 >
 > ```yml
 > ADDRESS:
 >   ...
->   attributes:
+>   values:
 >     CUBA.NAME: "Street"
 >     CUBA.NUMBER:
 > ```
