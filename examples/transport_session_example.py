@@ -2,15 +2,14 @@ import os
 import sys
 import subprocess
 import time
-import cuds.classes
-from cuds.classes import CUBA
-from cuds.utils import pretty_print
-from cuds.session.transport.transport_session_client import \
+from osp.core import CITY
+from osp.core.utils import pretty_print
+from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
-from cuds.session.transport.transport_session_server import \
+from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
 try:
-    from cudsqlite.sqlite_wrapper_session import \
+    from osp.wrappers.sqlite_wrapper_session import \
         SqliteWrapperSession
 except ImportError as e:
     raise ImportError("For this example, the SQLite "
@@ -36,22 +35,22 @@ time.sleep(1)
 
 try:
     # Construct the Datastructure.
-    c = cuds.classes.City("Freiburg")
-    p1 = cuds.classes.Citizen(name="Peter")
-    p2 = cuds.classes.Citizen(name="Hans")
-    p3 = cuds.classes.Citizen(name="Michel")
-    n = cuds.classes.Neighbourhood("Zähringen")
-    s = cuds.classes.Street("Le street")
-    b = cuds.classes.Building("Theater")
-    a = cuds.classes.Address(postal_code=79123, name='Le street', number=12)
-    c.add(p1, p2, p3, rel=cuds.classes.HasInhabitant)
+    c = CITY.CITY(name="Freiburg")
+    p1 = CITY.CITIZEN(name="Peter")
+    p2 = CITY.CITIZEN(name="Hans")
+    p3 = CITY.CITIZEN(name="Michel")
+    n = CITY.NEIGHBOURHOOD(name="Zähringen")
+    s = CITY.STREET(name="Le street")
+    b = CITY.BUILDING(name="Theater")
+    a = CITY.ADDRESS(postal_code=79123, name='Le street', number=12)
+    c.add(p1, p2, p3, rel=CITY.HAS_INHABITANT)
     c.add(n).add(s).add(b).add(a)
 
     print("Connect to DB via transport session")
     with TransportSessionClient(
         SqliteWrapperSession, "localhost", 8688, "test.db"
     ) as session:
-        wrapper = cuds.classes.CityWrapper(session=session)
+        wrapper = CITY.CITY_WRAPPER(session=session)
         wrapper.add(c)
         wrapper.session.commit()
 
@@ -59,16 +58,16 @@ try:
     with TransportSessionClient(
         SqliteWrapperSession, "localhost", 8688, "test.db"
     ) as session:
-        wrapper = cuds.classes.CityWrapper(session=session)
-        city = wrapper.get(cuba_key=CUBA.CITY)[0]
+        wrapper = CITY.CITY_WRAPPER(session=session)
+        city = wrapper.get(oclass=CITY.CITY)[0]
         pretty_print(city)
 
     print("Reconnect and make some changes")
     with TransportSessionClient(
         SqliteWrapperSession, "localhost", 8688, "test.db"
     ) as session:
-        wrapper = cuds.classes.CityWrapper(session=session)
-        city = wrapper.get(cuba_key=CUBA.CITY)[0]
+        wrapper = CITY.CITY_WRAPPER(session=session)
+        city = wrapper.get(oclass=CITY.CITY)[0]
         city.name = "Paris"
         wrapper.session.commit()
 
@@ -76,16 +75,16 @@ try:
     with TransportSessionClient(
         SqliteWrapperSession, "localhost", 8688, "test.db"
     ) as session:
-        wrapper = cuds.classes.CityWrapper(session=session)
-        city = wrapper.get(cuba_key=CUBA.CITY)[0]
+        wrapper = CITY.CITY_WRAPPER(session=session)
+        city = wrapper.get(oclass=CITY.CITY)[0]
         pretty_print(city)
 
     print("Delete the city")
     with TransportSessionClient(
         SqliteWrapperSession, "localhost", 8688, "test.db"
     ) as session:
-        wrapper = cuds.classes.CityWrapper(session=session)
-        city = wrapper.get(cuba_key=CUBA.CITY)[0]
+        wrapper = CITY.CITY_WRAPPER(session=session)
+        city = wrapper.get(oclass=CITY.CITY)[0]
         wrapper.remove(city)
         wrapper.session.prune()
         wrapper.session.commit()
@@ -94,8 +93,8 @@ try:
     with TransportSessionClient(
         SqliteWrapperSession, "localhost", 8688, "test.db"
     ) as session:
-        wrapper = cuds.classes.CityWrapper(session=session)
-        print("All cities:", wrapper.get(cuba_key=CUBA.CITY))
+        wrapper = CITY.CITY_WRAPPER(session=session)
+        print("All cities:", wrapper.get(oclass=CITY.CITY))
 
 finally:
     p.terminate()

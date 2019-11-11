@@ -18,6 +18,13 @@ radon:
 unittesting:
   stage: test
   script:
+    - pip3 install --upgrade flake8
+    - flake8 osp/ tests/
+    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.cc-asp.fraunhofer.de/simphony/wrappers/dummy-simulation-wrapper
+    - cd dummy-simulation-wrapper
+    - python setup.py develop
+    - cd ..
+    - pip install -r requirements.txt
     - python3 setup.py install -o city
     - coverage run setup.py test
-    - coverage report --omit=cuds/classes/generated/*,cuds/testing/* --skip-covered
+    - coverage report --omit=tests/* --skip-covered
