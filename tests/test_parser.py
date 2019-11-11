@@ -71,7 +71,6 @@ class TestParser(unittest.TestCase):
     def test_ontology_class(self):
         """Test the ontology relationships"""
         Citizen = osp.core.CITY.CITIZEN
-        Person = osp.core.CITY.PERSON
         Name = osp.core.CITY.NAME
         Age = osp.core.CITY.AGE
 
