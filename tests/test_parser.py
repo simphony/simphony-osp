@@ -80,14 +80,6 @@ class TestParser(unittest.TestCase):
             {Name: "John Smith", Age: 25}
         )
         self.assertEqual(
-            Citizen.inherited_attributes,
-            {Name: "John Smith", Age: 25}
-        )
-        self.assertEqual(
-            Person.inherited_attributes,
-            {Name: "John Smith", Age: 25}
-        )
-        self.assertEqual(
             Citizen.own_attributes,
             dict()
         )

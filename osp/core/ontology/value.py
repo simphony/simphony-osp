@@ -9,6 +9,10 @@ from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.datatypes import (
     ONTOLOGY_DATATYPES, convert_from, convert_to
 )
+import warnings
+
+
+CONFLICTING = "2L4N4lGLYBU8mBNx8H6X6dC6Mcf2AcBqIKnFnXUI"
 
 
 class OntologyValue(OntologyEntity):
@@ -26,6 +30,13 @@ class OntologyValue(OntologyEntity):
 
     @property
     def datatype(self):
+        result = self._get_datatype_recursively()
+        if result == CONFLICTING:
+            warnings.warn("Conflicting datatype for %s" % self)
+            return "UNDEFINED"
+        return result or "UNDEFINED"
+
+    def _get_datatype_recursively(self):
         """Get the datatype of the value
 
         :return: The datatype of the ontology value
@@ -39,13 +50,14 @@ class OntologyValue(OntologyEntity):
         for p in self.direct_superclasses:
             if not isinstance(p, OntologyValue):
                 continue
-            superclass_datatype = p.datatype
-            if datatype is not None and superclass_datatype is not None:
-                return "UNDEFINED"  # conflicting datatypes of superclasses
+            superclass_datatype = p._get_datatype_recursively()
+            if (
+                datatype is not None
+                and superclass_datatype is not None
+                and datatype != superclass_datatype
+            ):
+                return CONFLICTING  # conflicting datatypes of superclasses
             datatype = datatype or superclass_datatype
-
-        if datatype is None:
-            return "UNDEFINED"  # undefined datatype
         return datatype
 
     def __call__(self, value):

@@ -8,6 +8,10 @@
 
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.value import OntologyValue
+import warnings
+
+
+CONFLICTING = "2L4N4lGLYBU8mBNx8H6X6dC6Mcf2AcBqIKnFnXUI"
 
 
 class OntologyClass(OntologyEntity):
@@ -19,11 +23,16 @@ class OntologyClass(OntologyEntity):
     def attributes(self):
         """Get all (inherited + own) the attributes of this Cuds object.
 
-        :return: The attributes of the class
-        :rtype: List[OntologyValue]
+        :return: Mapping from attributes of the class to the default
+        :rtype: Dict[OntologyValue, str]
         """
-        result = self.inherited_attributes
-        result.update(self.own_attributes)
+        result = self._get_attributes_recursively()
+        conflicting = [k for k in result.keys() if k == CONFLICTING]
+        if conflicting:
+            result = {k: (v if v != CONFLICTING else None)
+                      for k, v in result.items()}
+            warnings.warn("Conflicting defaults for %s in %s."
+                          % (conflicting, self))
         return result
 
     @property
@@ -35,21 +44,21 @@ class OntologyClass(OntologyEntity):
         """
         return self._attributes
 
-    @property
-    def inherited_attributes(self):
-        """Get all the inherited attributes of this Cuds object.
+    def _get_attributes_recursively(self):
+        """Get the attributes and defaults recursively
 
-        :return: The attributes of the class
-        :rtype: List[OntologyValue]
         """
         result = dict()
-        superclasses = self.superclasses
-        for c in superclasses:
-            if c is self:
-                continue
-            tmp = dict(c.own_attributes)
-            tmp.update(result)
-            result = tmp
+
+        for p in self.direct_superclasses:
+            superclass_attributes = p._get_attributes_recursively()
+            conflicting = [a for a in superclass_attributes.keys()
+                           if a in result   # different defaults
+                           and result[a] != superclass_attributes[a]]
+            superclass_attributes.update({a: CONFLICTING for a in conflicting})
+            result.update(superclass_attributes)
+
+        result.update(self.own_attributes)
         return result
 
     def _add_attribute(self, attribute, default):
