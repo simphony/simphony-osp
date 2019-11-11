@@ -6,7 +6,6 @@
 # No redistribution is allowed without explicit written permission.
 
 import graphviz
-from osp.core.utils import get_relationships_between
 from osp.core import CUBA
 
 
@@ -51,6 +50,7 @@ class Cuds2dot():
         :param current: root of the entities to add
         :type current: Cuds
         """
+        from osp.core.utils import get_relationships_between
         current_uid = self.shorten_uid(current.uid)
         for cuds_object in current.iter(rel=CUBA.RELATIONSHIP):
             cuds_object_uid = self.shorten_uid(cuds_object.uid)
