@@ -63,7 +63,7 @@ class OwlToYmlConverter():
         # get superclasses and characteristics
         superclasses = []
         characteristics = []
-        for c in relationship.is_a:
+        for c in relationship.oclass:
             if c is owlready2.ObjectProperty:
                 continue
             if isinstance(c, owlready2.ObjectPropertyClass):  # superclasses
@@ -105,7 +105,7 @@ class OwlToYmlConverter():
 
         superclasses = []
         restrictions = []
-        for ce in onto_class.is_a:
+        for ce in onto_class.oclass:
             is_superclass, parsed_ce = self._parse_class_expression(
                 ce, restrictions
             )

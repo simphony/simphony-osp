@@ -108,7 +108,7 @@ def deserialize(json_obj, session, add_to_buffers):
     if isinstance(json_obj, list):
         return [deserialize(x, session, add_to_buffers) for x in json_obj]
     if isinstance(json_obj, dict) \
-            and "is_a" in json_obj \
+            and "oclass" in json_obj \
             and "uid" in json_obj \
             and "attributes" in json_obj \
             and "relationships" in json_obj:
@@ -160,11 +160,11 @@ def _serializable(cuds_object):
     :return: The cuds_object to make serializable.
     :rtype: Cuds
     """
-    result = {"is_a": str(cuds_object.is_a),
+    result = {"oclass": str(cuds_object.oclass),
               "uid": convert_from(cuds_object.uid, "UUID"),
               "attributes": dict(),
               "relationships": dict()}
-    attributes = cuds_object.is_a.attributes
+    attributes = cuds_object.oclass.attributes
     for attribute in attributes:
         result["attributes"][attribute.argname] = convert_from(
             getattr(cuds_object, attribute.argname),
@@ -191,7 +191,7 @@ def _to_cuds_object(json_obj, session, add_to_buffers):
     :return: The resulting cuds_object.
     :rtype: Cuds
     """
-    oclass = get_entity(json_obj["is_a"])
+    oclass = get_entity(json_obj["oclass"])
     attributes = json_obj["attributes"]
     relationships = json_obj["relationships"]
     cuds_object = create_recycle(oclass=oclass,

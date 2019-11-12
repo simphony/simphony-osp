@@ -12,14 +12,14 @@ def pretty_print(cuds_object, file=sys.stdout):
     """
     pp = pp_cuds_object_name(cuds_object)
     pp += "\n  uuid: " + str(cuds_object.uid)
-    pp += "\n  type: " + str(cuds_object.is_a)
+    pp += "\n  type: " + str(cuds_object.oclass)
     pp += "\n  superclasses: " + ", ".join(
-        map(str, cuds_object.is_a.superclasses)
+        map(str, cuds_object.oclass.superclasses)
     )
     values_str = pp_values(cuds_object)
     if values_str:
         pp += "\n  values: " + pp_values(cuds_object)
-    pp += "\n  description: \n    %s\n" % cuds_object.is_a.definition
+    pp += "\n  description: \n    %s\n" % cuds_object.oclass.definition
     pp += pp_subelements(cuds_object)
 
     print(pp, file=file)
@@ -34,7 +34,7 @@ def pp_cuds_object_name(cuds_object, print_oclass=False):
     :return: string with the pretty printed text
     """
     title = "Cuds object" if not print_oclass else "cuds object"
-    oclass = (" %s " % cuds_object.is_a) if print_oclass else ""
+    oclass = (" %s " % cuds_object.oclass) if print_oclass else ""
 
     if hasattr(cuds_object, "name"):
         name = str(cuds_object.name)
@@ -53,7 +53,7 @@ def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
     """
     pp_sub = ""
     filtered_relationships = filter(
-        lambda x: x in CUBA.ACTIVE_RELATIONSHIP.subclasses,
+        lambda x: x.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP),
         cuds_object._neighbours.keys())
     sorted_relationships = sorted(filtered_relationships, key=str)
     visited = visited or set()
@@ -62,7 +62,7 @@ def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
         pp_sub += level_indentation \
             + " |_Relationship %s:" % relationship
         sorted_elements = sorted(cuds_object.iter(rel=relationship),
-                                 key=lambda x: str(x.is_a))
+                                 key=lambda x: str(x.oclass))
         for j, element in enumerate(sorted_elements):
             if i == len(sorted_relationships) - 1:
                 indentation = level_indentation + "   "
@@ -99,7 +99,7 @@ def pp_values(cuds_object, indentation="\n          "):
     :rtype: [type]
     """
     result = []
-    for value in cuds_object.is_a.attributes:
+    for value in cuds_object.oclass.attributes:
         if value.argname != "name":
             v = getattr(cuds_object, value.argname)
             result.append("%s: %s" % (value.argname, v))

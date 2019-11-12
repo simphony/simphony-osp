@@ -59,7 +59,7 @@ class TestSessionCity(unittest.TestCase):
         w.remove(cities[1].uid, cities[2].uid)
         session.prune(rel=None)
         self.assertEqual(
-            set(["wrapper" if k.is_a in CUBA.WRAPPER.subclasses else k.name
+            set(["wrapper" if k.is_a(CUBA.WRAPPER) else k.name
                  for k in session._registry.values()]),
             set(["city 0", "neighbourhood 0 0", "neighbourhood 0 1",
                  "street 0 0 0", "street 0 0 1", "street 0 1 0",
