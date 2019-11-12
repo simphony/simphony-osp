@@ -20,6 +20,16 @@ class TestAPICity(unittest.TestCase):
     def setUp(self):
         pass
 
+    def test_is_a(self):
+        """Test instance check"""
+        c = CITY.CITY(name="City")
+        self.assertTrue(c.is_a(CITY.CITY))
+        self.assertTrue(c.is_a(CITY.POPULATED_PLACE))
+        self.assertTrue(c.is_a(CUBA.ENTITY))
+        self.assertFalse(c.is_a(CUBA.RELATIONSHIP))
+        self.assertFalse(c.is_a(CITY.CITIZEN))
+        self.assertFalse(c.is_a(CITY.NEIGHBOURHOOD))
+
     def test_creation(self):
         """
         Tests the instantiation and type of the objects
@@ -30,8 +40,8 @@ class TestAPICity(unittest.TestCase):
 
         c = CITY.CITY(name="a city")
         p = CITY.PERSON()
-        self.assertEqual(c.is_a, CITY.CITY)
-        self.assertEqual(p.is_a, CITY.PERSON)
+        self.assertEqual(c.oclass, CITY.CITY)
+        self.assertEqual(p.oclass, CITY.PERSON)
 
     def test_uid(self):
         """

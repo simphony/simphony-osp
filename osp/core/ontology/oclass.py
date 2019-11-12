@@ -104,9 +104,9 @@ class OntologyClass(OntologyEntity):
 
         # build attributes dictionary by combining
         # kwargs and defaults
-        if self in CUBA.WRAPPER.subclasses and session is None:
+        if self.is_subclass_of(CUBA.WRAPPER) and session is None:
             raise TypeError("Missing keyword argument 'session' for wrapper.")
         return Cuds(attributes=self._get_attributes(kwargs),
-                    is_a=self,
+                    oclass=self,
                     session=session,
                     uid=uid)

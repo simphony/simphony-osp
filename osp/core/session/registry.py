@@ -136,7 +136,7 @@ class Registry(dict):
             containing cuds objects with given ontology class.
         :rtype: Dict[UUID, Cuds]
         """
-        return self.filter(lambda x: x.is_a == oclass)
+        return self.filter(lambda x: x.oclass == oclass)
 
     def filter_by_attribute(self, attribute, value):
         """Filter by attribute and valie
@@ -170,7 +170,7 @@ class Registry(dict):
         if consider_subrelationships:
             def criterion(cuds_object):
                 for rel in cuds_object._neighbours.keys():
-                    if relationship in rel.superclasses:
+                    if relationship.is_superclass_of(rel):
                         return True
                 return False
         else:

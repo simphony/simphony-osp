@@ -11,7 +11,7 @@ This example shows some options how to use the API
 print("Creating a City object, c...")
 c = CITY.CITY(name="Freiburg", coordinates=[47, 7])
 print("  uid of c: " + str(c.uid))
-print("  oclass of c: " + str(c.is_a) + "\n")
+print("  oclass of c: " + str(c.oclass) + "\n")
 
 print("Creating Citizen objects, p1, p2...")
 p1 = CITY.CITIZEN(name="Peter")

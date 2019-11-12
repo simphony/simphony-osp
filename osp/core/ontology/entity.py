@@ -113,6 +113,26 @@ class OntologyEntity(ABC):
             return self._definition
         return "To Be Determined"
 
+    def is_subclass_of(self, other):
+        """Subclass check.
+
+        :param other: Check if self is a subclass of this entity.
+        :type other: OntologyEntity
+        :return: Whether self is a subclass of other.
+        :rtype: bool
+        """
+        return self in other.subclasses
+
+    def is_superclass_of(self, other):
+        """Superclass check.
+
+        :param other: Check if self is a superclass of this entity.
+        :type other: OntologyEntity
+        :return: Whether self is a superclass of other.
+        :rtype: bool
+        """
+        return self in other.superclasses
+
     def _add_subclass(self, subclass):
         """Add a subclass to the entity
 

@@ -24,7 +24,7 @@ from osp.core.session.transport.transport_util import (
 from osp.core.utils import create_from_cuds_object
 
 CUDS_DICT = {
-    "is_a": "CITY.CITIZEN",
+    "oclass": "CITY.CITIZEN",
     "uid": str(uuid.UUID(int=0)),
     "attributes": {
         "name": "Peter",
@@ -38,7 +38,7 @@ CUDS_DICT = {
 }
 
 ROOT_DICT = {
-    "is_a": "CITY.CITY_WRAPPER",
+    "oclass": "CITY.CITY_WRAPPER",
     "uid": str(uuid.UUID(int=43)),
     "attributes": {},
     "relationships": {
@@ -48,7 +48,7 @@ ROOT_DICT = {
 
 SERIALIZED_BUFFERS = (
     '{"added": [{'
-    '"is_a": "CITY.CITY", '
+    '"oclass": "CITY.CITY", '
     '"uid": "00000000-0000-0000-0000-000000000002", '
     '"attributes": {"name": "Paris", '
     '"coordinates": [0, 0]}, '
@@ -56,14 +56,14 @@ SERIALIZED_BUFFERS = (
     '{"00000000-0000-0000-0000-000000000000": '
     '"CITY.CITY_WRAPPER"}}}], '
     '"updated": [{'
-    '"is_a": "CITY.CITY_WRAPPER", '
+    '"oclass": "CITY.CITY_WRAPPER", '
     '"uid": "00000000-0000-0000-0000-000000000000", '
     '"attributes": {}, '
     '"relationships": {"CITY.HAS_PART": '
     '{"00000000-0000-0000-0000-000000000002": '
     '"CITY.CITY"}}}], '
     '"deleted": [{'
-    '"is_a": "CITY.CITY", '
+    '"oclass": "CITY.CITY", '
     '"uid": "00000000-0000-0000-0000-000000000001", '
     '"attributes": {"name": "Freiburg", '
     '"coordinates": [0, 0]}, '
@@ -74,7 +74,7 @@ SERIALIZED_BUFFERS = (
 
 SERIALIZED_BUFFERS_EXPIRED = (
     '{"added": [{'
-    '"is_a": "CITY.CITY", '
+    '"oclass": "CITY.CITY", '
     '"uid": "00000000-0000-0000-0000-000000000002", '
     '"attributes": {"name": "Paris", '
     '"coordinates": [0, 0]}, '
@@ -82,14 +82,14 @@ SERIALIZED_BUFFERS_EXPIRED = (
     '{"00000000-0000-0000-0000-000000000000": '
     '"CITY.CITY_WRAPPER"}}}], '
     '"updated": [{'
-    '"is_a": "CITY.CITY_WRAPPER", "uid": '
+    '"oclass": "CITY.CITY_WRAPPER", "uid": '
     '"00000000-0000-0000-0000-000000000000", '
     '"attributes": {}, '
     '"relationships": {"CITY.HAS_PART": '
     '{"00000000-0000-0000-0000-000000000002": '
     '"CITY.CITY"}}}], '
     '"deleted": [{'
-    '"is_a": "CITY.CITY", '
+    '"oclass": "CITY.CITY", '
     '"uid": "00000000-0000-0000-0000-000000000001", '
     '"attributes": {"name": "Freiburg", '
     '"coordinates": [0, 0]}, '
@@ -101,7 +101,7 @@ SERIALIZED_BUFFERS_EXPIRED = (
 
 SERIALIZED_BUFFERS2 = (
     '{"added": [{'
-    '"is_a": "CITY.CITY", '
+    '"oclass": "CITY.CITY", '
     '"uid": "00000000-0000-0000-0000-00000000002a", '
     '"attributes": {"name": "London", '
     '"coordinates": [0, 0]}, '
@@ -109,7 +109,7 @@ SERIALIZED_BUFFERS2 = (
 )
 
 SERIALIZED_BUFFERS3 = (
-    '{"result": [{"is_a": "CITY.CITY", '
+    '{"result": [{"oclass": "CITY.CITY", '
     '"uid": "00000000-0000-0000-0000-000000000001", '
     '"attributes": {"name": "Freiburg", '
     '"coordinates": [0, 0]}, '
@@ -118,7 +118,7 @@ SERIALIZED_BUFFERS3 = (
     '{"00000000-0000-0000-0000-000000000002": "CITY.CITIZEN"}, '
     '"CITY.IS_PART_OF": '
     '{"00000000-0000-0000-0000-000000000003": "CITY.CITY_WRAPPER"}}'
-    '}, {"is_a": "CITY.CITY_WRAPPER", "uid": '
+    '}, {"oclass": "CITY.CITY_WRAPPER", "uid": '
     '"00000000-0000-0000-0000-000000000003", '
     '"attributes": {}, '
     '"relationships": {'
@@ -138,7 +138,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(cuds_object.uid.int, 0)
             self.assertEqual(cuds_object.name, "Peter")
             self.assertEqual(cuds_object.age, 23)
-            self.assertEqual(cuds_object.is_a, CITY.CITIZEN)
+            self.assertEqual(cuds_object.oclass, CITY.CITIZEN)
             self.assertEqual(set(cuds_object._neighbours.keys()),
                              {CITY.IS_INHABITANT_OF,
                              CITY.HAS_CHILD})
@@ -149,7 +149,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                              uuid.UUID(int=3): CITY.PERSON})
 
             invalid_oclass = deepcopy(CUDS_DICT)
-            invalid_oclass["is_a"] = "INVALID_OCLASS"
+            invalid_oclass["oclass"] = "INVALID_OCLASS"
             self.assertRaises(ValueError, deserialize,
                               invalid_oclass, session, True)
 
@@ -419,7 +419,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
         self.assertEqual(client._engine._sent_data, (
             '{"args": [], "kwargs": {}, '
-            '"root": {"is_a": "CITY.CITY_WRAPPER", '
+            '"root": {"oclass": "CITY.CITY_WRAPPER", '
             '"uid": "00000000-0000-0000-0000-000000000001", '
             '"attributes": {}, '
             '"relationships": {}}}'))

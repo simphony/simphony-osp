@@ -35,7 +35,7 @@ class Cuds():
     def __init__(
         self,
         attributes: Dict[OntologyValue, Any],
-        is_a: OntologyEntity,
+        oclass: OntologyEntity,
         session: Session = None,
         uid: uuid.UUID = None
     ):
@@ -52,7 +52,7 @@ class Cuds():
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         self._session = session or Cuds._session
         self._values = {k.argname: k for k in attributes}
-        self._is_a = is_a
+        self._oclass = oclass
         self.session.store(self)
 
     @property
@@ -66,9 +66,19 @@ class Cuds():
         return self._session
 
     @property
-    def is_a(self):
+    def oclass(self):
         """The type of the cuds object"""
-        return self._is_a
+        return self._oclass
+
+    def is_a(self, oclass):
+        """Check if self is an instance of the given oclass.
+
+        :param oclass: Check if self is an instance of this oclass.
+        :type oclass: OntologyClass
+        :return: Whether self is an instance of the given oclass.
+        :rtype: bool
+        """
+        return self.oclass in oclass.subclasses
 
     def add(self,
             *args: "Cuds",
@@ -272,7 +282,7 @@ class Cuds():
             for outgoing_rel in new_cuds_object._neighbours:
 
                 # do not recursively add parents
-                if outgoing_rel not in CUBA.ACTIVE_RELATIONSHIP.subclasses:
+                if not outgoing_rel.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP):
                     continue
 
                 # add children not already added
@@ -374,7 +384,7 @@ class Cuds():
         # Iterate over the new parents
         for (parent_uid, relationship), parent in zip(new_parent_diff,
                                                       new_parents):
-            if relationship in CUBA.ACTIVE_RELATIONSHIP.subclasses:
+            if relationship.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP):
                 continue
             inverse = relationship.inverse
             # Delete connection to parent if parent is not present
@@ -390,7 +400,7 @@ class Cuds():
                                                                   inverse)
 
             parent._neighbours[inverse][new_cuds_object.uid] = \
-                new_cuds_object.is_a
+                new_cuds_object.oclass
 
     @staticmethod
     def _fix_old_neighbours(new_cuds_object, old_cuds_object, old_neighbours,
@@ -415,7 +425,7 @@ class Cuds():
             inverse = relationship.inverse
 
             # delete the inverse if neighbours are children
-            if relationship in CUBA.ACTIVE_RELATIONSHIP.subclasses:
+            if relationship.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP):
                 if inverse in neighbour._neighbours:
                     neighbour._remove_direct(inverse, new_cuds_object.uid)
 
@@ -442,12 +452,12 @@ class Cuds():
         # First element, create set
         if rel not in self._neighbours.keys():
             self._neighbours[rel] = NeighbourDictTarget(
-                {cuds_object.uid: cuds_object.is_a},
+                {cuds_object.uid: cuds_object.oclass},
                 self, rel
             )
         # Element not already there
         elif cuds_object.uid not in self._neighbours[rel]:
-            self._neighbours[rel][cuds_object.uid] = cuds_object.is_a
+            self._neighbours[rel][cuds_object.uid] = cuds_object.oclass
 
     def _add_inverse(self, cuds_object, rel):
         """
@@ -578,7 +588,7 @@ class Cuds():
             # Collect all uids who are object of the current relationship.
             # Possibly filter by OntologyClass.
             for uid, target_class in self._neighbours[relationship].items():
-                if oclass is None or target_class in oclass.subclasses:
+                if oclass is None or target_class.is_subclass_of(oclass):
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
                     relationship_mapping[uid].add(relationship)
@@ -642,7 +652,7 @@ class Cuds():
 
         :return: string with the Ontology class and uid.
         """
-        return "%s: %s" % (self.is_a, self.uid)
+        return "%s: %s" % (self.oclass, self.uid)
 
     def __getattr__(self, name):
         """Set the attributes corresponding to ontology values
@@ -690,7 +700,7 @@ class Cuds():
 
         :return: string with the official string representation for Cuds.
         """
-        return "<%s: %s,  %s: @%s>" % (self.is_a, self.uid,
+        return "<%s: %s,  %s: @%s>" % (self.oclass, self.uid,
                                        type(self.session).__name__,
                                        hex(id(self.session)))
 
@@ -711,7 +721,7 @@ class Cuds():
         :param other: Instance to check
         :return: True if they share the uid and class, false otherwise
         """
-        return other.is_a == self.is_a and self.uid == other.uid
+        return other.oclass == self.oclass and self.uid == other.uid
 
     def __getstate__(self):
         """Get the state for pickling or copying
@@ -721,8 +731,8 @@ class Cuds():
         :rtype: Dict[str, Any]
         """
         state = {k: v for k, v in self.__dict__.items()
-                 if k not in {"_session", "_is_a", "_values"}}
-        state["_is_a"] = (self.is_a.namespace.name, self._is_a.name)
+                 if k not in {"_session", "_oclass", "_values"}}
+        state["_oclass"] = (self.oclass.namespace.name, self._oclass.name)
         state["_neighbours"] = [
             (k.namespace.name, k.name, [
                 (uid, vv.namespace.name, vv.name)
@@ -741,9 +751,9 @@ class Cuds():
             Contains the string of the OntologyClass.
         :type state: Dict[str, Any]
         """
-        namespace, oclass = state["_is_a"]
-        is_a = ONTOLOGY_NAMESPACE_REGISTRY[namespace][oclass]
-        state["_is_a"] = is_a
+        namespace, oclass = state["_oclass"]
+        oclass = ONTOLOGY_NAMESPACE_REGISTRY[namespace][oclass]
+        state["_oclass"] = oclass
         state["_session"] = None
         state["_neighbours"] = NeighbourDictRel({
             ONTOLOGY_NAMESPACE_REGISTRY[ns][cl]: NeighbourDictTarget({

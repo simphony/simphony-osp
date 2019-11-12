@@ -65,10 +65,10 @@ def get_neighbour_diff(cuds1, cuds2, mode="all"):
     for relationship in cuds1._neighbours.keys():
         if ((
             mode == "active"
-            and relationship not in CUBA.ACTIVE_RELATIONSHIP.subclasses
+            and not relationship.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP)
         ) or (
             mode == "non-active"
-            and relationship in CUBA.ACTIVE_RELATIONSHIP.subclasses
+            and relationship.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP)
         )):
             continue
 
@@ -95,12 +95,12 @@ def destroy_cuds_object(cuds_object):
         session._expired.remove(cuds_object.uid)
     for rel in set(cuds_object._neighbours.keys()):
         del cuds_object._neighbours[rel]
-    for attr in cuds_object.is_a.attributes:
+    for attr in cuds_object.oclass.attributes:
         if attr.argname != "session":
             del cuds_object._attributes[attr.argname]
     if cuds_object.uid in cuds_object._session._registry:
         del cuds_object._session._registry[cuds_object.uid]
-    cuds_object._is_a = None
+    cuds_object._oclass = None
 
 
 def clone_cuds_object(cuds_object):
@@ -143,7 +143,7 @@ def create_recycle(oclass, kwargs, session, uid, add_to_buffers=True):
     # recycle old object
     if uid in session._registry:
         cuds_object = session._registry.get(uid)
-        cuds_object._is_a = oclass
+        cuds_object._oclass = oclass
         attributes = oclass._get_attributes(kwargs)
         for key, value in attributes.items():
             setattr(cuds_object, key.argname, value)
@@ -174,8 +174,8 @@ def create_from_cuds_object(cuds_object, session, add_to_buffers):
     """
     assert cuds_object.session is not session
     kwargs = {x.argname: getattr(cuds_object, x.argname)
-              for x in cuds_object.is_a.attributes}
-    clone = create_recycle(oclass=cuds_object.is_a,
+              for x in cuds_object.oclass.attributes}
+    clone = create_recycle(oclass=cuds_object.oclass,
                            kwargs=kwargs,
                            session=session,
                            uid=cuds_object.uid,
