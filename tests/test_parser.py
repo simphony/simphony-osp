@@ -41,7 +41,7 @@ class TestParser(unittest.TestCase):
             set(all_names),
             {"ENTITY", "RELATIONSHIP", "ACTIVE_RELATIONSHIP",
              "WRAPPER", "VALUE", "INVERSE_OF_RELATIONSHIP",
-             "INVERSE_OF_ACTIVE_RELATIONSHIP"}
+             "INVERSE_OF_ACTIVE_RELATIONSHIP", "NOTHING"}
         )
 
     def test_subclass_check(self):
