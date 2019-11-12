@@ -102,10 +102,15 @@ class OntologyClass(OntologyEntity):
         from osp.core.cuds import Cuds
         from osp.core import CUBA
 
-        # build attributes dictionary by combining
-        # kwargs and defaults
         if self.is_subclass_of(CUBA.WRAPPER) and session is None:
             raise TypeError("Missing keyword argument 'session' for wrapper.")
+
+        if self.is_subclass_of(CUBA.NOTHING):
+            raise TypeError("Cannot instantiate cuds object for ontology class"
+                            " CUBA.NOTHING.")
+
+        # build attributes dictionary by combining
+        # kwargs and defaults
         return Cuds(attributes=self._get_attributes(kwargs),
                     oclass=self,
                     session=session,

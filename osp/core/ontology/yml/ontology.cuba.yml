@@ -8,6 +8,11 @@ ONTOLOGY:
   ENTITY:
     definition: The root of the ontology
     subclass_of: []
+  
+  NOTHING:
+    definition: The empty set.
+    subclass_of:
+    - CUBA.ENTITY
 
  ################
 
