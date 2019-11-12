@@ -315,7 +315,7 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # Create tables
-            oclass = added.is_a
+            oclass = added.oclass
             columns, datatypes = self._get_col_spec(oclass)
             if columns:
                 self._do_db_create(
@@ -368,7 +368,7 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # Update the values
-            oclass = updated.is_a
+            oclass = updated.oclass
             columns, datatypes = self._get_col_spec(oclass)
             if columns:
                 values = [getattr(updated, attr) for attr in columns]
@@ -426,7 +426,7 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # Update the values
-            oclass = deleted.is_a
+            oclass = deleted.oclass
             columns, datatypes = self._get_col_spec(oclass)
             if columns:
                 self._do_db_delete(
@@ -597,13 +597,13 @@ class SqlWrapperSession(DbWrapperSession):
             # Special case: target is root --> Add inverse to root
             if target == uuid.UUID(int=0):
                 root_obj = self._registry.get(self.root)
-                cuds_object._neighbours[rel][self.root] = root_obj.is_a
+                cuds_object._neighbours[rel][self.root] = root_obj.oclass
                 if rel.inverse not in root_obj._neighbours:
                     root_obj._neighbours[rel.inverse] = NeighbourDictTarget(
                         {}, root_obj, rel.inverse
                     )
                 root_obj._neighbours[rel.inverse][cuds_object.uid] = \
-                    cuds_object.is_a
+                    cuds_object.oclass
 
             # Target is not root. Simply add the relationship
             elif target != uuid.UUID(int=0):

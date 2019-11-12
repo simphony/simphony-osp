@@ -88,7 +88,7 @@ def find_cuds_objects_by_oclass(oclass, root, rel):
     :rtype: List[Cuds]
     """
     return find_cuds_object(
-        criterion=lambda cuds_object: cuds_object.is_a == oclass,
+        criterion=lambda cuds_object: cuds_object.oclass == oclass,
         root=root,
         rel=rel,
         find_all=True
@@ -134,7 +134,7 @@ def find_relationships(find_rel, root, consider_rel, find_sub_rels=False):
     if find_sub_rels:
         def criterion(cuds_object):
             for rel in cuds_object._neighbours.keys():
-                if find_rel in rel.superclasses:
+                if find_rel.is_superclass_of(rel):
                     return True
             return False
     else:

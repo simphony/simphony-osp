@@ -44,6 +44,16 @@ class TestParser(unittest.TestCase):
              "INVERSE_OF_ACTIVE_RELATIONSHIP"}
         )
 
+    def test_subclass_check(self):
+        """ Test subclass and superclass check"""
+        CITY = ONTOLOGY_NAMESPACE_REGISTRY.CITY
+        self.assertTrue(CITY.CITY.is_subclass_of(CITY.POPULATED_PLACE))
+        self.assertTrue(CITY.POPULATED_PLACE.is_superclass_of(CITY.CITY))
+        self.assertFalse(CITY.CITY.is_superclass_of(CITY.POPULATED_PLACE))
+        self.assertFalse(CITY.POPULATED_PLACE.is_subclass_of(CITY.CITY))
+        self.assertTrue(CITY.CITY.is_subclass_of(CITY.CITY))
+        self.assertTrue(CITY.CITY.is_superclass_of(CITY.CITY))
+
     def test_ontology_entity(self):
         """Test the ontology entities"""
         Citizen = osp.core.CITY.CITIZEN
