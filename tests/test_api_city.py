@@ -43,6 +43,10 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(c.oclass, CITY.CITY)
         self.assertEqual(p.oclass, CITY.PERSON)
 
+        self.assertRaises(TypeError, CUBA.NOTHING)
+        self.assertRaises(TypeError, CUBA.WRAPPER)
+        CUBA.WRAPPER(session=CoreSession())
+
     def test_uid(self):
         """
         Tests that the uid variable contains a UUID object
