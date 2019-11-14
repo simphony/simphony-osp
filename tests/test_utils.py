@@ -12,7 +12,7 @@ import osp.core
 from osp.core import CITY, CUBA
 from osp.core.session.transport.transport_util import serializable
 from osp.core.session.core_session import CoreSession
-from osp.wrappers.dummy_simulation_wrapper import DummySimWrapperSession
+from .dummy_simulation_wrapper import DummySimWrapperSession
 from osp.core.utils import (
     destroy_cuds_object, clone_cuds_object,
     create_recycle, create_from_cuds_object,
