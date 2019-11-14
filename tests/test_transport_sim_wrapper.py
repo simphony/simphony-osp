@@ -12,7 +12,10 @@ from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
-from osp.wrappers.dummy_simulation_wrapper import DummySimWrapperSession
+try:
+    from .dummy_simulation_wrapper import DummySimWrapperSession
+except ImportError:
+    from dummy_simulation_wrapper import DummySimWrapperSession
 import unittest2 as unittest
 from osp.core import CITY
 

@@ -1,4 +1,4 @@
-from osp.wrappers.dummy_simulation_wrapper import DummySimWrapperSession
+from .dummy_simulation_wrapper import DummySimWrapperSession
 from osp.core import CITY
 import unittest2 as unittest
 
