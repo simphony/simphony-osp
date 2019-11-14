@@ -93,5 +93,26 @@ setup(
     test_suite='tests',
     entry_points={
         'wrappers': 'osp-core = osp.core.session.core_session:CoreSession'
-    }
+    },
+    install_requires=[
+        "PyYaml",
+        "websockets",
+        "requests",
+        "numpy",
+        "graphviz",
+        "owlready2"
+    ],
+    setup_requires=[
+        "PyYaml",
+        "websockets",
+        "requests",
+        "numpy",
+        "graphviz",
+        "owlready2"
+    ],
+    tests_require=[
+        "unittest2",
+        "pympler",
+        "responses"
+    ]
 )

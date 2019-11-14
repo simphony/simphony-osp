@@ -31,9 +31,6 @@ The package requires python 3.6 or higher (tested for 3.7), installation is base
 setuptools:
 
 ```sh
-# install requirements first
-cat requirements.txt | xargs -n 1 -L 1 pip install
-
 # build and install
 python3 setup.py install
 ```
