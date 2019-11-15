@@ -1,16 +1,19 @@
-import yaml
 import os
-import sys
+import yaml
 import owlready2
-import re
+import argparse
 import warnings
+import re
 from collections import OrderedDict as odict
+from functools import reduce
+import operator
 
 
 class OwlToYmlConverter():
     """Class that converts OWL ontologies to yml"""
 
-    def __init__(self, owl_ontology_file, version="0.0.1"):
+    def __init__(self, owl_ontology_file, conversion_options_file,
+                 namespace, version):
         """Initialize the converter
 
         :param owl_ontology_file: The owl file to convert
@@ -18,59 +21,15 @@ class OwlToYmlConverter():
         """
         self.owl_onto = owlready2.get_ontology(owl_ontology_file)
         self.yaml_onto = odict()
-        self.yaml_onto["VERSION"] = version
-        self.yaml_onto["ONTOLOGY_MODE"] = "minimum_requirements"
-        self.class_onto = odict()
-        self.yaml_onto["CUDS_ONTOLOGY"] = odict(
-            ENTITY=odict(
-                definition="Root of all CUDS entities",
-                subclass_of=None
-            ),
-            NOTHING=odict(
-                definition="Nothing",
-                subclass_of="CUBA.ENTITY"
-            ),
-            VALUE=odict(
-                definition="The root of all values",
-                subclass_of="CUBA.ENTITY"
-            )
-        )
-        self.rel_onto = odict(
-            RELATIONSHIP=odict(
-                definition="Root of all relationships",
-                subclass_of="CUBA.ENTITY"
-            ),
-            IS_A=odict(
-                definition="Secondary superclasses",
-                subclass_of="CUBA.RELATIONSHIP",
-                inverse="CUBA.SUPERCLASS_OF"
-            ),
-            SUPERCLASS_OF=odict(
-                definition="Inverse of CUBA.IS_A",
-                subclass_of="CUBA.RELATIONSHIP",
-                inverse="CUBA.IS_A"
-            )
-        )
-        self.class_onto = self.yaml_onto["CUDS_ONTOLOGY"]
+        self.yaml_onto["VERSION"] = self.version = version
+        self.yaml_onto["NAMESPACE"] = self.namespace = namespace
+        self.yaml_onto["ONTOLOGY"] = self.onto = odict()
+        self.parsed_entities = set()
 
-    def print_warning(self):
-        print("")
-        print("Converting OWL ontology to YAML ontology...")
-        print("Note that the current version of osp-core does not support "
-              "every OWL ontology.")
-        print("Therefore, the user has to make some decisions in order to "
-              "convert the ontology.")
-        print("Make sure you are aware of the current constraints of "
-              "a YAML ontology (See doc/conversion_owl_to_yaml.md and "
-              "doc/yaml_spec.md).")
-        print("OSP-core will fully support EMMO and other OWL ontologies "
-              "very soon!")
-        print()
-        print("For example: In OWL it is common that an entity can "
-              "be the subclass of multiple classes. OSP-core currently "
-              "allows a single superclass per class only. This will be "
-              "changed in the upcoming days.")
-        input("Press ENTER to continue! ")
+        self.conversion_options = None
+        if conversion_options_file:
+            with open(conversion_options_file, "r") as f:
+                self.conversion_options = yaml.safe_load(f)
 
     def convert(self):
         """Perform the conversion"""
@@ -81,181 +40,7 @@ class OwlToYmlConverter():
         for c in self.owl_onto.classes():
             self._add_class(c)
 
-        self._inject_obligatory_entity("ACTIVE_RELATIONSHIP",
-                                       self.rel_onto,
-                                       inverse="PASSIVE_RELATIONSHIP")
-        self._inject_arguments()
-        self._add_missing_inverses()
-        self._resolve_duplicates()
-        default_rel = self._input_cuds_label("Default relationship: ")
-        self.rel_onto[default_rel]["default_rel"] = True
-        self.yaml_onto["CUDS_ONTOLOGY"].update(self.rel_onto)
-        self.yaml_onto["CUDS_ONTOLOGY"].update(self.class_onto)
-
-    def _inject_arguments(self):
-        """Inject children of CUBA.VALUE that will be arguments of
-        the cuds classes"""
-        arguments = dict()
-        while True:
-            name = self._input_cuds_label(
-                "Enter classes that should have arguments: "
-            )
-            if not name:
-                break
-            while True:
-                arg = self._input_cuds_label("argument name: ")
-                if not arg:
-                    break
-                datatype = arguments.get(arg) or input("datatype: ")
-                arguments[arg] = datatype
-                assert arg not in self.class_onto, \
-                    "Argument must not be in the ontology"
-                self.class_onto[name]["CUBA." + arg] = None
-
-        for arg, datatype in arguments.items():
-            self.class_onto[arg] = odict(
-                definition="",
-                subclass_of="CUBA.VALUE",
-                datatype=datatype.upper()
-            )
-
-    def _resolve_duplicates(self):
-        """Resolve duplicates by renaming"""
-        duplicates = set(self.rel_onto.keys()) & set(self.class_onto.keys())
-        for duplicate in duplicates:
-            rename_type = self._user_choice(
-                ["class", "relationship"],
-                "%s has been specified as class and relationship. "
-                "Which one do you want to rename?" % duplicate
-            )
-            rename_name = self._input_cuds_label("Rename to: ")
-            rename_onto = self.rel_onto if rename_type == "relationship" \
-                else self.class_onto
-            self._rename_entity_recursively(
-                rename_onto, duplicate, rename_name
-            )
-
-    def _add_missing_inverses(self):
-        """ Add the missing inverse relationships"""
-        print()
-        print("OSP-core currently does not allow missing inverses. "
-              "Please specify an inverse for every relationship. "
-              "Each specified inverse must be in the ontology. "
-              "Specifying an inverse for every entity will not be "
-              "necessary in upcoming osp-core versions.")
-        no_inverse = [entity
-                      for entity, entity_def in self.rel_onto.items()
-                      if "inverse" in entity_def
-                      and entity_def["inverse"] is None]
-        for entity in no_inverse:
-            inverse = self._input_cuds_label(
-                "Specify inverse of %s: " % entity
-            )
-            assert inverse in self.rel_onto, \
-                "Specify an entity that is in the ontology"
-            self.rel_onto[entity]["inverse"] = "CUBA." + inverse
-        self.rel_onto["RELATIONSHIP"]["inverse"] = None
-
-    def _inject_obligatory_entity(self, to_inject, onto, inverse=None,
-                                  child=None):
-        """Inject entities that must be present in yml ontologies.
-
-        :param to_inject: The entity to inject
-        :type to_inject: str
-        :param onto: The ontology to inject it in
-        :type onto: OrderedDict
-        :param inverse: If given, inject given inverse as well,
-            defaults to None
-        :type inverse: str, optional
-        :param child: The direct child of the injected class.
-            User will be asked if not given, defaults to None
-        :type child: str, optional
-        """
-        if child is None:
-            print()
-            print("OSP-core does currently have some requirements "
-                  "in the ontology. There are some entities which must "
-                  "be in the ontology. Please specify where to put "
-                  "these obligatory entities in the ontology. "
-                  "These constraints will "
-                  "be relaxed very soon.")
-        if to_inject not in onto:
-            if child is None:
-                print("\nNo CUBA.%s in the ontology." % to_inject)
-                print("Specify the entity, that should "
-                      "be a subclass of %s:" % to_inject)
-                child = self._input_cuds_label("> ")
-            superclass = onto[child]["subclass_of"]
-            onto[to_inject] = odict(
-                definition=None,
-                subclass_of=superclass
-            )
-            onto[child]["subclass_of"] = "CUBA.%s" % to_inject
-            if inverse is not None:
-                onto[to_inject]["inverse"] = "CUBA." + inverse
-                self._inject_obligatory_entity(
-                    to_inject=inverse,
-                    onto=onto,
-                    inverse=to_inject,
-                    child=onto[child]["inverse"].replace("CUBA.", "")
-                )
-
-    def write(self, filename="ontology.yml"):
-        """Write the yml ontology to disk"""
-        Dumper = self._get_yml_dumper()
-        with open(filename, "w") as f:
-            s = yaml.dump(
-                data=self.yaml_onto,
-                Dumper=Dumper,
-                default_flow_style=False,
-                allow_unicode=True,
-                explicit_start=True
-            )
-            # s = s.replace(r"\n", "\n      ")
-            print(s, file=f)
-
-    def _add_relationship(self, relationship):
-        """ Add the given relationship to the yaml ontology
-
-        :param relationship: The relationship to add.
-        :type relationship: owlready2.ObjectPropertyClass
-        """
-        label = self._get_cuds_label(relationship)
-        definition = self._get_definition(relationship)
-        inverse = None
-        if relationship.inverse_property:
-            inverse = self._get_cuba_label(relationship.inverse_property)
-
-        # get superclasses and characteristics
-        superclasses = []
-        characteristics = []
-        for c in relationship.oclass:
-            if c is owlready2.ObjectProperty:
-                continue
-            if isinstance(c, owlready2.ObjectPropertyClass):  # superclasses
-                superclasses.append(
-                    self._get_cuba_label(c)
-                    if repr(c) != "owl.topObjectProperty"
-                    else "CUBA.RELATIONSHIP"
-                )
-            elif repr(c).startswith("owl."):  # characteristics
-                characteristics.append(repr(c)[4:-8].lower())
-            elif isinstance(c, owlready2.Inverse):
-                pass
-            else:
-                warnings.warn('omits %r for %r' % (c, label))
-
-        superclass = self._user_choice(
-            superclasses,
-            "%s should be the subclass of which class? " % label
-        )
-
-        # add it
-        self.rel_onto[label] = odict(
-            definition=definition,
-            inverse=inverse,
-            subclass_of=superclass
-        )
+        self._apply_conversion_options()
 
     def _add_class(self, onto_class):
         """Add a class to the yaml ontology
@@ -263,111 +48,119 @@ class OwlToYmlConverter():
         :param onto_class: The class to add.
         :type onto_class: owlready2.ThingClass
         """
-        label = self._get_cuds_label(onto_class)
-        definition = self._get_definition(onto_class)
+        if onto_class in self.parsed_entities:
+            return
+        self.parsed_entities.add(onto_class)
 
-        superclasses = []
-        restrictions = odict()
-        for ce in onto_class.oclass:
-            is_superclass, parsed_ce = self._parse_class_expression(
-                ce, restrictions
-            )
-            if is_superclass:
-                superclasses.append(parsed_ce)
-            elif parsed_ce is not None:
-                restrictions.update(parsed_ce)
+        label = self._get_label(onto_class)
+        description = self._get_description(onto_class)
 
-        superclass = self._user_choice(
-            superclasses,
-            "%s should primarily be the subclass of which class? "
-            "The other classes will be related by CUBA.IS_A." % label,
-            "CUBA.ENTITY"
+        # parse subclasses
+        superclasses = self._parse_class_expressions(onto_class.is_a)
+        equivalent_to = self._parse_class_expressions(onto_class.equivalent_to)
+
+        # parse disjoint statements
+        disjoints = list()  # disjoint all
+        for disjoint in onto_class.disjoints():
+            disjoints.extend(self._parse_class_expressions(
+                [e for e in disjoint.entities if e != onto_class]
+            ))
+        for disjoint_union in onto_class.disjoint_unions:
+            equivalent_to.append(self._parse_class_expressions(
+                disjoint_union, combine_operator="OR"
+            ))
+            for entity in disjoint_union:  # disjoint union
+                if entity not in self.parsed_entities:
+                    self._add_class(entity)
+                self.onto[self._get_label(entity)]["disjoint_with"].extend(
+                    self._parse_class_expressions(
+                        [x for x in disjoint_union if x != entity]
+                    )
+                )
+
+        # add to the ontology
+        self.onto[label] = odict(
+            description=description,
+            subclass_of=superclasses,
+            equivalent_to=equivalent_to,
+            disjoint_with=disjoints
         )
 
-        if len(superclasses) > 1:
-            secondary_superclasses = set(superclasses) - {superclass}
-            restrictions.update({
-                "CUBA.IS_A": odict({p: odict(cardinality=(1, 1))})
-                for p in secondary_superclasses
-            })
-        self.class_onto[label] = odict(
-            definition=definition,
-            subclass_of=superclass,
-            **self._restrictions_to_yml(restrictions),
-        )
+    def _add_relationship(self, relationship):
+        """ Add the given relationship to the yaml ontology
 
-    def _parse_class_expression(self, ce, old_restrictions=None):
-        """Parse class expressions
-
-        :param ce: The class expression to parse
-        :type ce: Union[owlready2.Restriction, owlready2.ClassConstruct,
-                        owlready2.ThingClass]
-        :param old_restrictions: The old restrictions.
-            Used to merge some + only restrictions, defaults to None
-        :type old_restrictions: dict(), optional
-        :return: The parsed class expression
-        :rtype: dict()
+        :param relationship: The relationship to add.
+        :type relationship: owlready2.ObjectPropertyClass
         """
-        old_restrictions = old_restrictions or odict()
-        if ce is owlready2.Thing:
-            return True, "CUBA.ENTITY"
-        if isinstance(ce, owlready2.ThingClass):
-            return True, self._get_cuba_label(ce)
-        elif isinstance(ce, owlready2.Restriction):
-            return False, self._parse_restriction(ce, old_restrictions)
+        if relationship in self.parsed_entities:
+            return
+        self.parsed_entities.add(relationship)
 
-        warnings.warn('Unexpected class expression: %s' % type(ce))
-        warnings.warn("OSP-core will support that very soon!")
-        return False, None
+        label = self._get_label(relationship)
+        description = self._get_description(relationship)
+        inverse = None
+        if relationship.inverse_property:
+            inverse = self._get_prefixed_label(relationship.inverse_property)
 
-    def _get_cuds_label(self, entity):
-        """Returns CUDS label for entity (upper case)."""
-        return self._to_cuds_label(self._get_label(entity))
+        # get superclasses and characteristics
+        superclasses = []
+        characteristics = []
+        for c in relationship.is_a:
+            if c is owlready2.ObjectProperty:
+                continue
+            if isinstance(c, owlready2.ObjectPropertyClass):  # superclasses
+                superclasses.append(self._get_prefixed_label(c))
+            elif repr(c).startswith("owl."):  # characteristics
+                characteristics.append(repr(c)[4:-8].lower())
+            elif isinstance(c, owlready2.Inverse):
+                pass
+            else:
+                warnings.warn('omits %r for %r' % (c, label))
 
-    def _get_cuba_label(self, entity):
-        """Returns CUBA label for entity ("CUBA." prepended and upper case)."""
-        return 'CUBA.' + self._to_cuds_label(self._get_label(entity))
+        domains = self._parse_class_expressions(relationship.domain,
+                                                combine_operator="AND")
+        ranges = self._parse_class_expressions(relationship.range,
+                                               combine_operator="AND")
+
+        # add it
+        self.onto[label] = odict(
+            description=description,
+            inverse=inverse,
+            subclass_of=superclasses,
+            domain=domains,
+            range=ranges,
+            characteristics=characteristics
+        )
+
+    def _get_prefixed_label(self, entity, namespace=None):
+        """Returns label with namespace for entity
+        ("<NAMESPACE>." prepended and upper case)."""
+        if entity is owlready2.Thing:
+            return "CUBA.ENTITY"
+        if entity is owlready2.Nothing:
+            return "CUBA.NOTHING"
+        if repr(entity) == "owl.topObjectProperty":
+            return "CUBA.RELATIONSHIP"
+        namespace = namespace or self.namespace
+        label = self._get_label(entity)
+        return '%s.%s' % (namespace, label)
 
     def _get_label(self, entity):
         """Returns a label for entity."""
-        if entity is owlready2.Nothing:
-            label = 'Nothing'
-        elif hasattr(entity, 'label') and entity.label:
+        if entity in [owlready2.Nothing, owlready2.Thing]:
+            raise RuntimeError("No non-prefixed label for %s !" % entity)
+        if hasattr(entity, 'label') and entity.label:
             label = entity.label.first()
         elif isinstance(entity, owlready2.ClassConstruct):
             label = entity.__class__.__name__
         else:
             label = re.sub(r'^.*\.', '', repr(entity))
-        return str(label)
-
-    def _input_cuds_label(self, msg):
-        """Let the user input a cuds label
-
-        :param msg: The message to show the user.
-        :type msg: str
-        :return: The cuds label the user typed in.
-        :rtype: str
-        """
-        x = input(msg)
-        return self._to_cuds_label(x)
-
-    def _to_cuds_label(self, label):
-        """Convert a label to cuds label.
-
-        :param label: The label to convert.
-        :type label: str
-        :return: The converted label.
-        :rtype: str
-        """
-        if label.startswith("CUBA."):
-            label = label[5:]
-        label = label.upper()
         label = label.replace(" ", "_")
         label = label.replace("-", "_")
-        return label
+        return str(label).upper()
 
-    def _get_definition(self, entity):
-        """Returns definition for owl class or object property `entity` by
+    def _get_description(self, entity):
+        """Returns description for owl class or object property `entity` by
         combining its annotations."""
         if isinstance(entity, str):
             entity = self.owl_onto[entity]
@@ -404,107 +197,151 @@ class OwlToYmlConverter():
                 self.owl_onto.get_triples(entity.storid, a.storid, None)]
         return d
 
-    def _parse_restriction(self, new_restriction, old_restrictions):
-        """Parse an owl restriction and convert it to YAML.
-        Will modify old_restrictions the new restriction is already present.
+    def _parse_class_expressions(self, class_expressions, group_result=False,
+                                 combine_operator=None):
+        """Parse class expressions
 
-        :param new_restriction: The new owl restrictions to add
-        :type new_restriction: owlready2.restriction
-        :param old_restrictions: The parsed old restrictions
-        :type old_restrictions: dict
-        :return: The parsed restriction, if it was not
-            contained in old_restrictions
-        :rtype: Optional[Dict]
+        :param class_expressions: The class expression to parse
+        :type class_expressions: Union[owlready2.Restriction,
+                                       owlready2.ClassConstruct,
+                                       owlready2.ThingClass]
+        :return: The parsed class expression
+        :rtype: dict()
         """
-        relationship = self._get_cuba_label(new_restriction.property)
-        is_simple, target = self._parse_class_expression(new_restriction.value)
-        if not is_simple:
-            return
-        rtype = owlready2.class_construct. \
-            _restriction_type_2_label[new_restriction.type]
+        class_names = list()
+        rel_ces = dict()
+        op_class_expressions = list()
 
-        # test of old restriction can be modified
-        modify_restriction = None
-        for restriction_rel, restriction in old_restrictions.items():
-            for restriction_target, restriction_options in restriction.items():
-                if restriction_rel == relationship \
-                        and restriction_target == target:
-                    modify_restriction = restriction_options
-                    break
-            else:
-                continue
-            break
-
-        # Create a new restriction
-        is_new = modify_restriction is None
-        if modify_restriction is None:
-            modify_restriction = odict({target: odict(cardinality=[0, None])})
-
-        # Parse restriction and set cardinality accordingly
-        cardinality = modify_restriction[target]["cardinality"]
-        if rtype == "exactly":
-            cardinality[0] = new_restriction.cardinality
-            cardinality[1] = new_restriction.cardinality
-        elif rtype == "min":
-            cardinality[0] = new_restriction.cardinality
-        elif rtype == "max":
-            cardinality[1] = new_restriction.cardinality
-        elif rtype == "some":
-            cardinality[0] = 1
-
-        return odict({relationship: modify_restriction}) if is_new else None
-
-    def _restrictions_to_yml(self, restrictions):
-        """Convert the restriction tuples to a+ / a-b
-
-        :param restrictions: The restrictions to convert
-        :type restrictions: OrderedDict
-        :return: The converted restrictions
-        :rtype: OrderedDict
-        """
-        if isinstance(restrictions, list):
-            for x in restrictions:
-                self._restrictions_to_yml(x)
-        if isinstance(restrictions, dict):
-            for key, value in restrictions.items():
-                if key == "cardinality" and value[1] is None:
-                    restrictions["cardinality"] = "%s+" % value[0]
-                elif key == "cardinality":
-                    restrictions["cardinality"] = "%s-%s" % tuple(value)
-                else:
-                    self._restrictions_to_yml(value)
-        return restrictions
-
-    def _rename_entity_recursively(self, sub_onto, old_name,
-                                   new_name, prefix=""):
-        """Rename an entity recursively.
-
-        :param sub_onto: The (part of an) ontology where
-            the entity should be renamed.
-        :type sub_onto: Union[Dict, List, str]
-        :param old_name: The entities old name
-        :type old_name: str
-        :param new_name: The entities new name
-        :type new_name: str
-        :param prefix: The prefix for the names, defaults to ""
-        :type prefix: str, optional
-        """
-        if isinstance(sub_onto, list):
-            for x in sub_onto:
-                self._rename_entity_recursively(
-                    x, old_name, new_name, prefix="CUBA."
+        # Parse the class expression depending on the type of expression
+        for ce in class_expressions:
+            if ce is owlready2.Thing or isinstance(ce, owlready2.ThingClass):
+                class_names.append(self._get_prefixed_label(ce))
+            elif isinstance(ce, owlready2.Restriction):
+                if isinstance(ce.property, owlready2.Inverse):
+                    continue
+                key = (ce.property, ce.value)
+                if key not in rel_ces:
+                    rel_ces[key] = list()
+                rel_ces[key].append(ce)
+            elif isinstance(ce, owlready2.ClassConstruct):
+                op_class_expressions.append(
+                    self._parse_op_class_expression(ce)
                 )
-        if isinstance(sub_onto, dict):
-            if prefix + old_name in sub_onto.keys():
-                sub_onto[prefix + new_name] = sub_onto[prefix + old_name]
-                del sub_onto[prefix + old_name]
-            for key in sub_onto.keys():
-                if sub_onto[key] == prefix + old_name:
-                    sub_onto[key] = prefix + new_name
-                else:
-                    self._rename_entity_recursively(
-                        sub_onto[key], old_name, new_name, prefix="CUBA."
-                    )
+        # TODO HasSelf
+
+        # relationship class expressions have not been parsed yet.
+        # Parse them now.
+        rel_class_expressions = list()
+        for (relationship, target), ces in rel_ces.items():
+            rel_class_expressions.append(
+                self._parse_rel_class_expressions(relationship, target, ces)
+            )
+
+        result = (class_names,
+                  rel_class_expressions,
+                  op_class_expressions)
+        if group_result and combine_operator:
+            return [{combine_operator: x} for x in result]
+        if group_result:
+            return result
+        if combine_operator:
+            return {combine_operator: reduce(operator.add, result)}
+        return reduce(operator.add, result)
+
+    def _parse_op_class_expression(self, class_expression):
+        """Parse a class construct (Union / Intersection / ...)
+
+        :param class_expression: The class construct to parse
+        :type class_expression: owlready2.ClassConstruct
+        :return: The parsed class construct
+        :rtype: Ordered dict
+        """
+        label = self._get_label(class_expression)
+        classes = class_expression.Classes \
+            if hasattr(class_expression, "Classes") \
+            else [class_expression.Class]
+
+        return self._parse_class_expressions(classes, combine_operator=label)
+
+    def _parse_rel_class_expressions(self, relationship, target, restrictions):
+        """Parse a class expression describing the relationships of the class.
+
+        :param relationship: The relationship the restriction is about.
+        :type relationship: owlready2.ObjectProperty
+        :param target: The class expression the class can be related with
+        :type target: owlready2.ClassExpression
+        :param restrictions: The class expressions/restrictions
+        :type restrictions: owlready2.Restriction
+        :raises ValueError: Unsupported restriction
+        :return: The parsed expression
+        :rtype: Dict[Str, Any]
+        """
+        relationship = self._get_prefixed_label(relationship)
+        target = self._parse_class_expressions([target])[0]
+        exclusive = False
+        cardinality = [0, None]
+
+        for restriction in restrictions:
+            rtype = owlready2.class_construct. \
+                _restriction_type_2_label[restriction.type]
+
+            if rtype == "exactly":
+                cardinality[0] = restriction.cardinality
+                cardinality[1] = restriction.cardinality
+            elif rtype == "min":
+                cardinality[0] = restriction.cardinality
+            elif rtype == "max":
+                cardinality[1] = restriction.cardinality
+            elif rtype == "some":
+                cardinality[0] = 1
+            elif rtype == "only":
+                exclusive = True
+            else:
+                raise ValueError("Unsupported restriction type %s"
+                                 % restriction)
+
+        if cardinality[1] is None:
+            cardinality = "%s+" % cardinality[0]
+        else:
+            cardinality = "%s-%s" % tuple(cardinality)
+        return odict({relationship: odict(
+            exclusive=exclusive,
+            cardinality=cardinality,
+            range=target
+        )})
+
+    def _apply_conversion_options(self):
+        """Apply the conversion options"""
+        if "default_rel" in self.conversion_options:
+            entity = owlready2.IRIS[self.conversion_options["default_rel"]]
+            label = self._get_label(entity)
+            self.onto[label]["default_rel"] = True
+        if "active_relationships" in self.conversion_options:
+            for iri in self.conversion_options["active_relationships"]:
+                entity = owlready2.IRIS[iri]
+                label = self._get_label(entity)
+                self.onto[label]["subclass_of"].append(
+                    "CUBA.ACTIVE_RELATIONSHIP"
+                )
+        if "insert_entities" in self.conversion_options:
+            self.onto.update(self.conversion_options["insert_entities"])
+        if "update_entities" in self.conversion_options:
+            for key, value in self.conversion_options["update_entities"].items():
+                self.onto[key].update(value)
+
+    def write(self, filename="ontology.yml"):
+        """Write the yml ontology to disk"""
+        Dumper = self._get_yml_dumper()
+        with open(filename, "w") as f:
+            s = yaml.dump(
+                data=self.yaml_onto,
+                Dumper=Dumper,
+                default_flow_style=False,
+                allow_unicode=True,
+                explicit_start=True
+            )
+            # s = s.replace(r"\n", "\n      ")
+            print(s, file=f)
 
     def _get_yml_dumper(self):
         """ Make sure YAML file is ordered"""
@@ -536,40 +373,42 @@ class OwlToYmlConverter():
         )
         return Dumper
 
-    def _user_choice(self, items, prompt_msg, fallback=None):
-        """Let the user choose which item is the correct one.
-
-        :param items: A list of items to choose from
-        :type items: list[Any]
-        :param prompt_msg: The message to display the user.
-        :type prompt_msg: str
-        :param fallback: The object that will be returned if items is empty,
-            defaults to None
-        :type fallback: Any, optional
-        :return: The chosen item
-        :rtype: Any
-        """
-        if not items:
-            return fallback
-        if len(items) == 1:
-            return items[0]
-        print()
-        print("A choice has to be made by the user. ")
-        print("In the very near future osp-core will fully support "
-              "OWL ontologies. Then no user choices will be required.")
-        print()
-        print(prompt_msg)
-        for i, item in enumerate(items):
-            print("%s)" % (i + 1), item)
-        choice = input("Type the number of your choice: ")
-        choice = int(choice) - 1
-        return items[choice]
-
 
 if __name__ == "__main__":
-    owl_ontology_file = sys.argv[-1]
-    name = os.path.splitext(os.path.basename(owl_ontology_file))[0]
-    converter = OwlToYmlConverter(owl_ontology_file)
-    converter.print_warning()
+    # Parse the user arguments
+    parser = argparse.ArgumentParser(
+        description="Convert an ontology in OWL format to "
+                    "an ontology in YAML format."
+    )
+    parser.add_argument("input_file", metavar="input-file",
+                        type=os.path.abspath,
+                        help="The path to the input owl file")
+    parser.add_argument("--namespace", "-n",
+                        type=str.upper, required=True,
+                        help="The namespace for the resulting YAML file "
+                        "in UPPERCASE")
+    parser.add_argument("--conversion_options_file", "-c",
+                        type=str, default=None,
+                        help="Path to a file explaining how the ontology "
+                             "should be transformed, s.t. it is compatible "
+                             "with osp-core")
+    parser.add_argument("--version", "-v",
+                        type=str, default="0.0.1",
+                        help="The version string for the resulting YAML file")
+    parser.add_argument("--output-file", "-o",
+                        type=os.path.abspath, default=None,
+                        help="Where the output file should be saved")
+    args = parser.parse_args()
+
+    # Convert the OWL file to a YAML file
+    converter = OwlToYmlConverter(
+        owl_ontology_file=args.input_file,
+        conversion_options_file=args.conversion_options_file,
+        namespace=args.namespace,
+        version=args.version
+    )
     converter.convert()
-    converter.write("ontology.%s.yml" % name)
+    output_filename = args.output_file or os.path.abspath(
+        "ontology.%s.yml" % os.path.basename(args.input_file)[:-4]
+    )
+    converter.write(filename=output_filename)

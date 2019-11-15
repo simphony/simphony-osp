@@ -17,7 +17,7 @@ ROOT_RELATIONSHIP = "RELATIONSHIP"
 ROOT_VALUE = "VALUE"
 NAMESPACE_KEY = "NAMESPACE"
 
-DEFINITION_KEY = "definition"
+DESCRIPTION_KEY = "description"
 SUPERCLASSES_KEY = "subclass_of"
 INVERSE_KEY = "inverse"
 DEFAULT_REL_KEY = "default_rel"
@@ -73,7 +73,7 @@ class Parser:
         return self._ontology_namespace
 
     def _parse_ontology(self):
-        """Parse the entity definitions."""
+        """Parse the entity descriptions."""
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
 
         for entity_name in cuds_yaml_doc:
@@ -109,28 +109,32 @@ class Parser:
 
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
         entity_yaml_doc = cuds_yaml_doc[entity_name]
-        definition = entity_yaml_doc[DEFINITION_KEY]
+        description = None
+        if DESCRIPTION_KEY in entity_yaml_doc:
+            description = entity_yaml_doc[DESCRIPTION_KEY]
 
         # load the superclasses first
         superclass_names = entity_yaml_doc[SUPERCLASSES_KEY]
         superclasses = list()
         for p in superclass_names:
+            if not isinstance(p, str):
+                continue
             namespace, superclass_name = self._split_name(p)
             namespace = self._namespace_registry[namespace]
             if namespace is self._ontology_namespace:
                 self._load_entity(superclass_name)
             superclasses.append(namespace[superclass_name])
-        entity = self._create_entity(entity_name, superclasses, definition)
+        entity = self._create_entity(entity_name, superclasses, description)
         self._ontology_namespace._add_entity(entity)
         for p in superclasses:
             p._add_subclass(entity)
 
-    def _create_entity(self, entity_name, superclasses, definition):
+    def _create_entity(self, entity_name, superclasses, description):
         """Create an entity object
 
         :param entity_name: The name of the entity
         :type entity_name: str
-        :param definition: The definition of the entity
+        :param description: The description of the entity
         :type yaml_def: str
         """
         superclass_names = {entity_name}
@@ -145,7 +149,7 @@ class Parser:
         result = Class(namespace=self._ontology_namespace,
                        name=entity_name,
                        superclasses=superclasses,
-                       definition=definition)
+                       description=description)
         self._ontology_namespace._add_entity(result)
         return result
 
@@ -207,7 +211,7 @@ class Parser:
             name="INVERSE_OF_%s" % entity.name,
             superclasses=[self._namespace_registry
                           .get_main_namespace().RELATIONSHIP],
-            definition="Inverse of %s" % entity.name
+            description="Inverse of %s" % entity.name
         )
         self._ontology_namespace._add_entity(inverse)
         inverse._set_inverse(entity)
