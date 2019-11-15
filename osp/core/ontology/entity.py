@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 
 class OntologyEntity(ABC):
     @abstractmethod
-    def __init__(self, namespace, name, superclasses, definition):
+    def __init__(self, namespace, name, superclasses, description):
         """Initialize the ontology entity
 
         :param namespace: The namespace of the entity
@@ -19,14 +19,14 @@ class OntologyEntity(ABC):
         :type name: str
         :param superclasses: The superclasses of the entity
         :type superclasses: List[OntologyEntity]
-        :param definition: The defintion of the entity
-        :type definition: str
+        :param description: The defintion of the entity
+        :type description: str
         """
         self._name = name
         self._namespace = namespace
         self._subclasses = list()
         self._superclasses = list(superclasses)
-        self._definition = definition
+        self._description = description
 
     def __str__(self):
         return "%s.%s" % (self.namespace.name, self._name)
@@ -103,14 +103,14 @@ class OntologyEntity(ABC):
         return result
 
     @property
-    def definition(self):
-        """Get the definition of the entity
+    def description(self):
+        """Get the description of the entity
 
-        :return: The definition of the entity
+        :return: The description of the entity
         :rtype: str
         """
-        if self._definition:
-            return self._definition
+        if self._description:
+            return self._description
         return "To Be Determined"
 
     def is_subclass_of(self, other):

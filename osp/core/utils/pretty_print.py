@@ -19,7 +19,7 @@ def pretty_print(cuds_object, file=sys.stdout):
     values_str = pp_values(cuds_object)
     if values_str:
         pp += "\n  values: " + pp_values(cuds_object)
-    pp += "\n  description: \n    %s\n" % cuds_object.oclass.definition
+    pp += "\n  description: \n    %s\n" % cuds_object.oclass.description
     pp += pp_subelements(cuds_object)
 
     print(pp, file=file)

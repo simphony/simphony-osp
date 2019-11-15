@@ -8,74 +8,74 @@ ONTOLOGY:
  ################
 
   ENCLOSES:
-    definition:
+    description:
     subclass_of:
     - CUBA.ACTIVE_RELATIONSHIP
     inverse: CITY.IS_ENCLOSED_BY
 
   HAS_PART:
-    definition:
+    description:
     subclass_of:
     - CITY.ENCLOSES
     inverse: CITY.IS_PART_OF
     default_rel: true
 
   IS_INHABITANT_OF:
-    definition:
+    description:
     subclass_of:
     - CITY.IS_ENCLOSED_BY
     inverse: CITY.HAS_INHABITANT
 
   IS_ENCLOSED_BY:
-    definition:
+    description:
     subclass_of:
     - CUBA.RELATIONSHIP
     inverse: CITY.ENCLOSES
 
   IS_PART_OF:
-    definition:
+    description:
     subclass_of:
     - CITY.IS_ENCLOSED_BY
     inverse: CITY.HAS_PART
 
   HAS_INHABITANT:
-    definition:
+    description:
     subclass_of:
     - CITY.ENCLOSES
     inverse: CITY.IS_INHABITANT_OF
   
   HAS_CHILD:
-    definition:
+    description:
     subclass_of:
     - CITY.HAS_PART
     inverse: CITY.IS_CHILD_OF
 
   IS_CHILD_OF:
-    definition:
+    description:
     subclass_of:
     - CITY.IS_PART_OF
     inverse: CITY.HAS_CHILD
   
   HAS_WORKER:
-    definition:
+    description:
     subclass_of:
     - CITY.HAS_PART
     inverse: CITY.WORKS_IN
 
   WORKS_IN:
-    definition:
+    description:
     subclass_of:
     - CITY.IS_PART_OF
     inverse: CITY.HAS_WORKER
 
   HAS_MAJOR:
-    definition:
+    description:
     subclass_of:
     - CITY.HAS_WORKER
     inverse: CITY.IS_MAJOR_OF
 
   IS_MAJOR_OF:
-    definition:
+    description:
     subclass_of:
     - CITY.WORKS_IN
     inverse: CITY.HAS_MAJOR
@@ -83,7 +83,7 @@ ONTOLOGY:
  ################
 
   CITY_WRAPPER:
-    definition:
+    description:
     subclass_of:
     - CUBA.WRAPPER
     restrictions:
@@ -93,7 +93,7 @@ ONTOLOGY:
         only: false
 
   CITY_SIM_WRAPPER:
-    definition:
+    description:
     subclass_of:
     - CITY.CITY_WRAPPER
     values:
@@ -109,26 +109,26 @@ ONTOLOGY:
         only: false
   
   NUM_STEPS:
-    definition:
+    description:
     subclass_of:
     - CITY.NUMBER
 
   ################
 
   GEOGRAPHICAL_PLACE:
-    definition:
+    description:
     subclass_of:
     - CUBA.ENTITY
     values:
       CITY.NAME:
 
   ARCHITECTURAL_COMPONENT:
-    definition:
+    description:
     subclass_of:
     - CUBA.ENTITY
 
   LIVING_BEING:
-    definition:
+    description:
     subclass_of:
     - CUBA.ENTITY
     values:
@@ -141,29 +141,29 @@ ONTOLOGY:
         only: false
 
   NUMBER:
-    definition:
+    description:
     subclass_of:
     - CUBA.VALUE
     datatype: INT
 
   POSTAL_CODE:
-    definition:
+    description:
     subclass_of:
     - CITY.NUMBER
 
   NAME:
-    definition:
+    description:
     subclass_of:
     - CUBA.VALUE
 
   COORDINATES:
-    definition:
+    description:
     subclass_of:
     - CUBA.VALUE
     datatype: VECTOR:2
 
   ADDRESS:
-    definition:
+    description:
     subclass_of:
     - CUBA.ENTITY
     values:
@@ -177,7 +177,7 @@ ONTOLOGY:
         only: false
 
   POPULATED_PLACE:
-    definition:
+    description:
     subclass_of:
     - CITY.GEOGRAPHICAL_PLACE
     values:
@@ -193,7 +193,7 @@ ONTOLOGY:
         only: true
 
   CITY:
-    definition:
+    description:
     subclass_of:
     - CITY.POPULATED_PLACE
     restrictions:
@@ -211,7 +211,7 @@ ONTOLOGY:
         only: true
 
   NEIGHBOURHOOD:
-    definition:
+    description:
     subclass_of:
     - CITY.POPULATED_PLACE
     restrictions:
@@ -225,7 +225,7 @@ ONTOLOGY:
         only: true
 
   STREET:
-    definition:
+    description:
     subclass_of:
     - CITY.POPULATED_PLACE
     restrictions:
@@ -239,12 +239,12 @@ ONTOLOGY:
         only: true
 
   ARCHITECTURAL_STRUCTURE:
-    definition:
+    description:
     subclass_of:
     - CITY.GEOGRAPHICAL_PLACE
 
   BUILDING:
-    definition:
+    description:
     subclass_of:
     - CITY.ARCHITECTURAL_STRUCTURE
     restrictions:
@@ -262,12 +262,12 @@ ONTOLOGY:
         only: true
 
   FLOOR:
-    definition:
+    description:
     subclass_of:
     - CITY.ARCHITECTURAL_COMPONENT
 
   PERSON:
-    definition:
+    description:
     subclass_of:
     - CITY.LIVING_BEING
     restrictions:
@@ -281,7 +281,7 @@ ONTOLOGY:
         only: false
 
   CITIZEN:
-    definition:
+    description:
     subclass_of:
     - CITY.PERSON
     restrictions:
@@ -295,6 +295,6 @@ ONTOLOGY:
         only: true
 
   AGE:
-    definition:
+    description:
     subclass_of:
     - CITY.NUMBER

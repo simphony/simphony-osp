@@ -9,8 +9,8 @@ from osp.core.ontology.entity import OntologyEntity
 
 
 class OntologyRelationship(OntologyEntity):
-    def __init__(self, namespace, name, superclasses, definition):
-        super().__init__(namespace, name, superclasses, definition)
+    def __init__(self, namespace, name, superclasses, description):
+        super().__init__(namespace, name, superclasses, description)
         self._inverse = None
 
     @property
