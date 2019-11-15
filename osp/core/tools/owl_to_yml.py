@@ -326,7 +326,8 @@ class OwlToYmlConverter():
         if "insert_entities" in self.conversion_options:
             self.onto.update(self.conversion_options["insert_entities"])
         if "update_entities" in self.conversion_options:
-            for key, value in self.conversion_options["update_entities"].items():
+            update_entities = self.conversion_options["update_entities"]
+            for key, value in update_entities.items():
                 self.onto[key].update(value)
 
     def write(self, filename="ontology.yml"):
