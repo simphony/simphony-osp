@@ -1,0 +1,14 @@
+---
+default_rel: http://emmc.info/emmo-core#EMMO_17e27c22_37e1_468c_9dd7_95e137f73e7f
+active_relationships:
+- http://emmc.info/emmo-semiotics#EMMO_60577dea_9019_4537_ac41_80b0fb563d41
+- http://emmc.info/emmo-core#EMMO_8c898653_1118_4682_9bbf_6cc334d16a99
+insert_entities:
+  VALUE:
+    subclass_of:
+    - CUBA.VALUE
+    datatype: FLOAT
+update_entities:
+  NUMBER:
+    attributes:
+    - EMMO.VALUE

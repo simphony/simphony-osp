@@ -6,35 +6,35 @@ NAMESPACE: "CUBA"
 ONTOLOGY:
 
   ENTITY:
-    definition: The root of the ontology
+    description: The root of the ontology
     subclass_of: []
   
   NOTHING:
-    definition: The empty set.
+    description: The empty set.
     subclass_of:
     - CUBA.ENTITY
 
  ################
 
   RELATIONSHIP:
-    definition: The root of all relationships
+    description: The root of all relationships
     subclass_of:
     - CUBA.ENTITY
     inverse:
 
   ACTIVE_RELATIONSHIP:
-    definition:
+    description:
     subclass_of:
     - CUBA.RELATIONSHIP
 
   ################
 
   WRAPPER:
-    definition:
+    description:
     subclass_of:
     - CUBA.ENTITY
 
   VALUE:
-    definition:
+    description:
     subclass_of:
     - CUBA.ENTITY
