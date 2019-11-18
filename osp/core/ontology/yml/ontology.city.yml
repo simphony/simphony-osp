@@ -86,7 +86,6 @@ ONTOLOGY:
     description:
     subclass_of:
     - CUBA.WRAPPER
-    restrictions:
     - CITY.HAS_PART:
         target: CITY.CITY
         cardinality: 1+
@@ -96,9 +95,6 @@ ONTOLOGY:
     description:
     subclass_of:
     - CITY.CITY_WRAPPER
-    values:
-      CITY.NUM_STEPS:
-    restrictions:
     - CITY.HAS_PART:
         target: CITY.PERSON
         cardinality: many
@@ -107,6 +103,8 @@ ONTOLOGY:
         target: CITY.CITY
         cardinality: 1
         only: false
+    attributes:
+      CITY.NUM_STEPS:
   
   NUM_STEPS:
     description:
@@ -119,7 +117,7 @@ ONTOLOGY:
     description:
     subclass_of:
     - CUBA.ENTITY
-    values:
+    attributes:
       CITY.NAME:
 
   ARCHITECTURAL_COMPONENT:
@@ -131,14 +129,13 @@ ONTOLOGY:
     description:
     subclass_of:
     - CUBA.ENTITY
-    values:
-      CITY.NAME: "John Smith"
-      CITY.AGE:  25
-    restrictions:
     - CITY.IS_CHILD_OF:
         target: CITY.LIVING_BEING
         cardinality: 0-2
         only: false
+    attributes:
+      CITY.NAME: "John Smith"
+      CITY.AGE:  25
 
   NUMBER:
     description:
@@ -166,23 +163,19 @@ ONTOLOGY:
     description:
     subclass_of:
     - CUBA.ENTITY
-    values:
-      CITY.NAME:  "Street"
-      CITY.NUMBER: 7
-      CITY.POSTAL_CODE:
-    restrictions:
     - CITY.IS_PART_OF:
         target: CITY.BUILDING
         cardinality: 1
         only: false
+    attributes:
+      CITY.NAME:  "Street"
+      CITY.NUMBER: 7
+      CITY.POSTAL_CODE:
 
   POPULATED_PLACE:
     description:
     subclass_of:
     - CITY.GEOGRAPHICAL_PLACE
-    values:
-      CITY.COORDINATES: [0, 0]
-    restrictions:
     - CITY.HAS_INHABITANT:
         target: CITY.CITIZEN
         cardinality: many
@@ -191,12 +184,13 @@ ONTOLOGY:
         target: CITY.PERSON
         cardinality: many
         only: true
+    attributes:
+      CITY.COORDINATES: [0, 0]
 
   CITY:
     description:
     subclass_of:
     - CITY.POPULATED_PLACE
-    restrictions:
     - CITY.HAS_PART:
         target: CITY.NEIGHBOURHOOD
         cardinality: many
@@ -214,7 +208,6 @@ ONTOLOGY:
     description:
     subclass_of:
     - CITY.POPULATED_PLACE
-    restrictions:
     - CITY.IS_PART_OF:
         target: CITY.CITY
         cardinality: 1
@@ -228,7 +221,6 @@ ONTOLOGY:
     description:
     subclass_of:
     - CITY.POPULATED_PLACE
-    restrictions:
     - CITY.HAS_PART:
         target: CITY.BUILDING
         cardinality: many
@@ -247,7 +239,6 @@ ONTOLOGY:
     description:
     subclass_of:
     - CITY.ARCHITECTURAL_STRUCTURE
-    restrictions:
     - CITY.HAS_PART:
         target: CITY.ADDRESS
         cardinality: 1
@@ -270,7 +261,6 @@ ONTOLOGY:
     description:
     subclass_of:
     - CITY.LIVING_BEING
-    restrictions:
     - CITY.WORKS_IN:
         target: CITY.POPULATED_PLACE
         cardinality: 0-1
@@ -284,7 +274,6 @@ ONTOLOGY:
     description:
     subclass_of:
     - CITY.PERSON
-    restrictions:
     - CITY.IS_INHABITANT_OF:
         target: CITY.POPULATED_PLACE
         cardinality: 0-1

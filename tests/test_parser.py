@@ -7,6 +7,7 @@
 
 import unittest2 as unittest
 import osp.core
+from osp.core import Parser
 from osp.core.ontology.namespace_registry import ONTOLOGY_NAMESPACE_REGISTRY
 
 
@@ -107,13 +108,25 @@ class TestParser(unittest.TestCase):
         self.assertEqual(PassiveRelationship.direct_superclasses,
                          [Relationship])
 
-    def test_ontology_values(self):
+    def test_ontology_attributes(self):
         """Test the ontology values"""
         self.assertEqual(osp.core.CUBA.VALUE.datatype, "UNDEFINED")
         self.assertEqual(osp.core.CITY.NUMBER.datatype, "INT")
         self.assertEqual(osp.core.CITY.NAME.datatype, "UNDEFINED")
         self.assertEqual(osp.core.CITY.COORDINATES.datatype, "VECTOR:2")
         self.assertEqual(osp.core.CITY.NUM_STEPS.datatype, "INT")
+
+    def test_multiple_inheritance(self):
+        """Test corner cases of multiple inheritance"""
+        parser = Parser()
+        ONTO = parser.parse(
+            "osp/core/ontology/yml/ontology.parser_test.yml"
+        )
+        self.assertEqual(ONTO.ENTITY_C.attributes, {ONTO.ATTRIBUTE_A: None})
+        self.assertEqual(ONTO.ENTITY_D.attributes,
+                         {ONTO.ATTRIBUTE_A: "DEFAULT_D"})
+        self.assertEqual(ONTO.ATTRIBUTE_C.datatype, "UNDEFINED")
+        self.assertEqual(ONTO.ATTRIBUTE_D.datatype, "FLOAT")
 
 
 if __name__ == '__main__':
