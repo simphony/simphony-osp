@@ -1,4 +1,5 @@
 from osp.core.ontology.namespace_registry import ONTOLOGY_NAMESPACE_REGISTRY
+from osp.core.ontology.parser import Parser
 import sys
 
 thismodule = sys.modules[__name__]
