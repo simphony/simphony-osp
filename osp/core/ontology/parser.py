@@ -22,7 +22,7 @@ SUPERCLASSES_KEY = "subclass_of"
 INVERSE_KEY = "inverse"
 DEFAULT_REL_KEY = "default_rel"
 DATATYPE_KEY = "datatype"
-VALUES_KEY = "values"
+ATTRIBUTES_KEY = "attributes"
 RESTRICTIONS_KEY = "restrictions"  # TODO
 DISJOINTS_KEY = "disjoints"  # TODO
 EQUIVALENT_TO_KEY = "equivalent_to"  # TODO
@@ -82,7 +82,7 @@ class Parser:
         missing_inverse = set()
         for entity in self._ontology_namespace._entities.values():
             if isinstance(entity, OntologyClass):
-                self._add_values(entity)
+                self._add_attributes(entity)
             elif isinstance(entity, OntologyRelationship):
                 missing_inverse |= self._set_inverse(entity)
                 self._check_default_rel(entity)
@@ -153,28 +153,29 @@ class Parser:
         self._ontology_namespace._add_entity(result)
         return result
 
-    def _add_values(self, entity: OntologyClass):
-        """Add a value to an ontology class
+    def _add_attributes(self, entity: OntologyClass):
+        """Add a attribute to an ontology class
 
-        :param entity: The ontology to add the values to
+        :param entity: The ontology to add the attributes to
         :type entity: OntologyClass
         """
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
         entity_yaml_doc = cuds_yaml_doc[entity.name]
 
-        values_def = None
-        if VALUES_KEY in entity_yaml_doc:
-            values_def = entity_yaml_doc[VALUES_KEY]
+        attributes_def = None
+        if ATTRIBUTES_KEY in entity_yaml_doc:
+            attributes_def = entity_yaml_doc[ATTRIBUTES_KEY]
 
-        if values_def is None:
+        if attributes_def is None:
             return
 
-        # Add the values one by one
-        for value_name, default in values_def.items():
-            value_namespace, value_name = self._split_name(value_name)
-            value_namespace = self._namespace_registry[value_namespace]
-            value = value_namespace[value_name]
-            entity._add_attribute(value, default)
+        # Add the attributes one by one
+        for attribute_name, default in attributes_def.items():
+            attribute_namespace, attribute_name = \
+                self._split_name(attribute_name)
+            attribute_namespace = self._namespace_registry[attribute_namespace]
+            attribute = attribute_namespace[attribute_name]
+            entity._add_attribute(attribute, default)
 
     def _set_inverse(self, entity: OntologyRelationship):
         """Set the inverse of the given entity
@@ -232,9 +233,9 @@ class Parser:
             self._ontology_namespace._default_rel = entity
 
     def _set_datatype(self, entity: OntologyValue):
-        """Set the datatype of a value
+        """Set the datatype of a attribute
 
-        :param entity: The value to set the datatype of
+        :param entity: The attribute to set the datatype of
         :type entity: OntologyValue
         """
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]

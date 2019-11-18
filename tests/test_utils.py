@@ -166,7 +166,7 @@ class TestUtils(unittest.TestCase):
             self.assertIs(default_session._registry.get(a.uid), a)
             self.assertEqual(set(session._registry.keys()), {b.uid, w.uid})
             self.assertIs(session._registry.get(b.uid), b)
-            self.assertEquals(session._added, {w.uid: w})
+            self.assertEqual(session._added, {w.uid: w})
 
             b.name = "Emmendingen"
             x = CITY.CITIZEN(age=54, name="Franz")
@@ -183,7 +183,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(set(default_session._registry.keys()),
                              {a.uid, x.uid, y.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
-            self.assertEquals(session._updated, {c.uid: c})
+            self.assertEqual(session._updated, {c.uid: c})
 
     def test_check_arguments(self):
         """ Test checking of arguments """
