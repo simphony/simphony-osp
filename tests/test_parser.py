@@ -41,7 +41,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(
             set(all_names),
             {"ENTITY", "RELATIONSHIP", "ACTIVE_RELATIONSHIP",
-             "WRAPPER", "VALUE", "INVERSE_OF_RELATIONSHIP",
+             "WRAPPER", "ATTRIBUTE", "INVERSE_OF_RELATIONSHIP",
              "INVERSE_OF_ACTIVE_RELATIONSHIP", "NOTHING"}
         )
 
@@ -110,7 +110,7 @@ class TestParser(unittest.TestCase):
 
     def test_ontology_attributes(self):
         """Test the ontology values"""
-        self.assertEqual(osp.core.CUBA.VALUE.datatype, "UNDEFINED")
+        self.assertEqual(osp.core.CUBA.ATTRIBUTE.datatype, "UNDEFINED")
         self.assertEqual(osp.core.CITY.NUMBER.datatype, "INT")
         self.assertEqual(osp.core.CITY.NAME.datatype, "UNDEFINED")
         self.assertEqual(osp.core.CITY.COORDINATES.datatype, "VECTOR:2")

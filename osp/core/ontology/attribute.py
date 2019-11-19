@@ -15,7 +15,7 @@ import warnings
 CONFLICTING = "2L4N4lGLYBU8mBNx8H6X6dC6Mcf2AcBqIKnFnXUI"
 
 
-class OntologyValue(OntologyEntity):
+class OntologyAttribute(OntologyEntity):
     def __init__(self, namespace, name, superclasses, description):
         super().__init__(namespace, name, superclasses, description)
         self._datatype = None
@@ -48,7 +48,7 @@ class OntologyValue(OntologyEntity):
         # check for inherited datatype
         datatype = None
         for p in self.direct_superclasses:
-            if not isinstance(p, OntologyValue):
+            if not isinstance(p, OntologyAttribute):
                 continue
             superclass_datatype = p._get_datatype_recursively()
             if (

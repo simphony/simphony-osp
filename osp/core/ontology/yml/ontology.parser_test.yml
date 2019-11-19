@@ -37,13 +37,13 @@ ONTOLOGY:
     description:
     datatype: STRING
     subclass_of:
-    - CUBA.VALUE
+    - CUBA.ATTRIBUTE
 
   ATTRIBUTE_B:
     description:
     datatype: INT
     subclass_of:
-    - CUBA.VALUE
+    - CUBA.ATTRIBUTE
 
   ATTRIBUTE_C:
     description:

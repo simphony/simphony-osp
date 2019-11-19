@@ -7,7 +7,7 @@
 
 
 from osp.core.ontology.entity import OntologyEntity
-from osp.core.ontology.value import OntologyValue
+from osp.core.ontology.attribute import OntologyAttribute
 import warnings
 
 
@@ -24,7 +24,7 @@ class OntologyClass(OntologyEntity):
         """Get all (inherited + own) the attributes of this Cuds object.
 
         :return: Mapping from attributes of the class to the default
-        :rtype: Dict[OntologyValue, str]
+        :rtype: Dict[OntologyAttribute, str]
         """
         result = self._get_attributes_recursively()
         conflicting = [v for v in result.values() if v == CONFLICTING]
@@ -40,7 +40,7 @@ class OntologyClass(OntologyEntity):
         """Get all the own attributes of this Cuds object.
 
         :return: The attributes of the class
-        :rtype: List[OntologyValue]
+        :rtype: List[OntologyAttribute]
         """
         return self._attributes
 
@@ -65,12 +65,12 @@ class OntologyClass(OntologyEntity):
         """Add an attribute to the class
 
         :param attribute: The attribute to add
-        :type attribute: OntologyValue
+        :type attribute: OntologyAttribute
         """
-        assert isinstance(attribute, OntologyValue)
+        assert isinstance(attribute, OntologyAttribute)
         self._attributes[attribute] = default
 
-    def _get_attributes(self, kwargs):
+    def _get_attributes_values(self, kwargs):
         """Get the cuds object's attributes from the given kwargs.
         Combine defaults and given attribute attributes
 
@@ -79,7 +79,7 @@ class OntologyClass(OntologyEntity):
         :raises TypeError: Unexpected keyword argument
         :raises TypeError: Missing keword argument
         :return: The resulting attributes
-        :rtype: Dict[OntologyValue, Any]
+        :rtype: Dict[OntologyAttribute, Any]
         """
         kwargs = dict(kwargs)
         attributes = dict()
@@ -111,7 +111,7 @@ class OntologyClass(OntologyEntity):
 
         # build attributes dictionary by combining
         # kwargs and defaults
-        return Cuds(attributes=self._get_attributes(kwargs),
+        return Cuds(attributes=self._get_attributes_values(kwargs),
                     oclass=self,
                     session=session,
                     uid=uid)
