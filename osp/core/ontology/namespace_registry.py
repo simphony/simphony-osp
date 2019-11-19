@@ -83,6 +83,11 @@ class NamespaceRegistry():
         """
         return self._namespaces[MAIN_ONTOLOGY_NAMESPACE]
 
+    def install(self):
+        """Reset the namespace registry"""
+        with open(INSTALLED_ONTOLOGY_PATH, "wb") as f:
+            pickle.dump(self, f)
+
 
 # initialize registry singleton
 if ONTOLOGY_NAMESPACE_REGISTRY is None:
