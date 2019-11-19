@@ -15,6 +15,11 @@ radon:
     - radon cc -s -a .
     - radon mi -s .
 
+bandit:
+  stage: code_analysis
+  script:
+    - bandit -r osp --skip B101
+
 unittesting:
   stage: test
   script:

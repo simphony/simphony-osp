@@ -32,7 +32,7 @@ class Session(ABC):
     def __str__(self):
         pass
 
-    def store(self, cuds_object):
+    def _store(self, cuds_object):
         """Store a copy of given cuds_object in the session.
         Return the stored object.
 

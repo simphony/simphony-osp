@@ -5,7 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-import pickle
+import pickle  # nosec
 import os
 
 ONTOLOGY_NAMESPACE_REGISTRY = None
@@ -57,7 +57,7 @@ class NamespaceRegistry():
         if len(rels) == 1:
             return rels[0]
 
-    def add_namespace(self, namespace):
+    def _add_namespace(self, namespace):
         """Add a namespace to the registry
 
         :param namespace: The namespace to add
@@ -104,7 +104,7 @@ if ONTOLOGY_NAMESPACE_REGISTRY is None:
     try:
         if os.path.exists(INSTALLED_ONTOLOGY_PATH):
             with open(INSTALLED_ONTOLOGY_PATH, "rb") as f:
-                ONTOLOGY_NAMESPACE_REGISTRY = pickle.load(f)
+                ONTOLOGY_NAMESPACE_REGISTRY = pickle.load(f)  # nosec
     except EOFError:
         pass
 

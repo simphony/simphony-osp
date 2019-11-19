@@ -86,5 +86,6 @@ class OntologyValue(OntologyEntity):
         :param datatype: The datatype of the value
         :type datatype: str
         """
-        assert datatype.split(":")[0] in ONTOLOGY_DATATYPES
+        if datatype.split(":")[0] not in ONTOLOGY_DATATYPES:
+            raise ValueError("Invalid datatype %s specified" % datatype)
         self._datatype = datatype
