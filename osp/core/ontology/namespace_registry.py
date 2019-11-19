@@ -36,7 +36,7 @@ class NamespaceRegistry():
         self.__dict__ = state
 
     def get(self, name):
-        return self._namespaces[name]
+        return self._namespaces[name.lower()]
 
     @property
     def default_rel(self):
@@ -61,19 +61,22 @@ class NamespaceRegistry():
         """
         from osp.core.ontology.namespace import OntologyNamespace
         assert isinstance(namespace, OntologyNamespace)
-        assert bool(namespace.name == MAIN_ONTOLOGY_NAMESPACE) \
-            != bool(self._namespaces), "CUBA namespace must be installed first"
-        if namespace.name in self._namespaces:
+        assert (
+            bool(namespace.name.lower() == MAIN_ONTOLOGY_NAMESPACE.lower())
+            != bool(self._namespaces)
+        ), "CUBA namespace must be installed first"
+        if namespace.name.lower() in self._namespaces:
             raise ValueError("Namespace %s already added to namespace "
                              "registry!" % namespace.name)
-        self._namespaces[namespace.name] = namespace
+        self._namespaces[namespace.name.lower()] = namespace
 
         if (
             ONTOLOGY_NAMESPACE_REGISTRY is self
             and namespace.name != MAIN_ONTOLOGY_NAMESPACE
         ):
             import osp.core
-            setattr(osp.core, namespace.name, namespace)
+            setattr(osp.core, namespace.name.upper(), namespace)
+            setattr(osp.core, namespace.name.lower(), namespace)
 
     def get_main_namespace(self):
         """Get the main namespace (CUBA)
@@ -81,7 +84,7 @@ class NamespaceRegistry():
         :return: The main namespace
         :rtype: OntologyNamespace
         """
-        return self._namespaces[MAIN_ONTOLOGY_NAMESPACE]
+        return self._namespaces[MAIN_ONTOLOGY_NAMESPACE.lower()]
 
     def install(self):
         """Reset the namespace registry"""
