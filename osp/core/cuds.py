@@ -53,7 +53,7 @@ class Cuds():
         self._session = session or Cuds._session
         self._values = {k.argname: k for k in attributes}
         self._oclass = oclass
-        self.session.store(self)
+        self.session._store(self)
 
     @property
     def uid(self) -> uuid.UUID:

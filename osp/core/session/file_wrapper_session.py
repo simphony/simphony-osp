@@ -46,7 +46,7 @@ class FileWrapperSession(StorageWrapperSession):
             yield from self._load_by_oclass(subclass,
                                             update_registry=update_registry)
 
-    def store(self, cuds_object):
+    def _store(self, cuds_object):
         initialize = self.root is None
         super().store(cuds_object)
 
