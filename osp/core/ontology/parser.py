@@ -80,7 +80,7 @@ class Parser:
             self._load_entity(entity_name)
 
         missing_inverse = set()
-        for entity in self._ontology_namespace._entities.values():
+        for entity in self._ontology_namespace:
             if isinstance(entity, OntologyClass):
                 self._add_attributes(entity)
             elif isinstance(entity, OntologyRelationship):
@@ -104,7 +104,7 @@ class Parser:
         :param entity_name: The name of the entity to load.
         :type entity_name: str
         """
-        if entity_name in self._ontology_namespace._entities:
+        if entity_name in self._ontology_namespace:
             return
 
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
