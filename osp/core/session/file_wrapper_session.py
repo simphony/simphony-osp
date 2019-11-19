@@ -6,8 +6,8 @@
 # No redistribution is allowed without explicit written permission.
 
 from abc import abstractmethod
-from cuds.session.wrapper_session import consumes_buffers
-from cuds.session.storage_wrapper_session import \
+from osp.core.session.wrapper_session import consumes_buffers
+from osp.core.session.storage_wrapper_session import \
     StorageWrapperSession
 
 
