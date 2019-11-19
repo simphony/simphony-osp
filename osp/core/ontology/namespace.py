@@ -80,7 +80,9 @@ class OntologyNamespace():
         return iter(self._entities.values())
 
     def __contains__(self, obj):
-        return obj.lower() in self._entities
+        if isinstance(obj, str):
+            return obj.lower() in self._entities.keys()
+        return obj in self._entities.values()
 
     def _add_entity(self, entity):
         """Add an entity to the namespace.

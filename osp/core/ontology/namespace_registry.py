@@ -9,7 +9,7 @@ import pickle
 import os
 
 ONTOLOGY_NAMESPACE_REGISTRY = None
-MAIN_ONTOLOGY_NAMESPACE = "CUBA"
+MAIN_ONTOLOGY_NAMESPACE = "CUBA".lower()
 MAIN_ONTOLOGY_PATH = os.path.join(os.path.dirname(__file__),
                                   "yml", "ontology.cuba.yml")
 INSTALLED_ONTOLOGY_PATH = os.path.join(os.path.dirname(__file__),
@@ -34,6 +34,11 @@ class NamespaceRegistry():
 
     def __setstate__(self, state):
         self.__dict__ = state
+
+    def __contains__(self, other):
+        if isinstance(other, str):
+            return other.lower() in self._namespaces.keys()
+        return other in self._namespaces.values()
 
     def get(self, name):
         return self._namespaces[name.lower()]
@@ -62,7 +67,7 @@ class NamespaceRegistry():
         from osp.core.ontology.namespace import OntologyNamespace
         assert isinstance(namespace, OntologyNamespace)
         assert (
-            bool(namespace.name.lower() == MAIN_ONTOLOGY_NAMESPACE.lower())
+            bool(namespace.name.lower() == MAIN_ONTOLOGY_NAMESPACE)
             != bool(self._namespaces)
         ), "CUBA namespace must be installed first"
         if namespace.name.lower() in self._namespaces:
@@ -72,7 +77,7 @@ class NamespaceRegistry():
 
         if (
             ONTOLOGY_NAMESPACE_REGISTRY is self
-            and namespace.name != MAIN_ONTOLOGY_NAMESPACE
+            and namespace.name.lower() != MAIN_ONTOLOGY_NAMESPACE
         ):
             import osp.core
             setattr(osp.core, namespace.name.upper(), namespace)
@@ -84,7 +89,7 @@ class NamespaceRegistry():
         :return: The main namespace
         :rtype: OntologyNamespace
         """
-        return self._namespaces[MAIN_ONTOLOGY_NAMESPACE.lower()]
+        return self._namespaces[MAIN_ONTOLOGY_NAMESPACE]
 
     def install(self):
         """Reset the namespace registry"""
