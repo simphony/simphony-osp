@@ -6,7 +6,8 @@ thismodule = sys.modules[__name__]
 
 
 for name, namespace in ONTOLOGY_NAMESPACE_REGISTRY._namespaces.items():
-    setattr(thismodule, name, namespace)
+    setattr(thismodule, name.upper(), namespace)
+    setattr(thismodule, name.lower(), namespace)
 
 
 user_defined_default_rel = None

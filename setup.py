@@ -18,7 +18,7 @@ def reset_ontology():
 
     # remove from namespace registry
     for name in set(ONTOLOGY_NAMESPACE_REGISTRY._namespaces.keys()):
-        if name == MAIN_ONTOLOGY_NAMESPACE:
+        if name.lower() == MAIN_ONTOLOGY_NAMESPACE:
             continue
         del ONTOLOGY_NAMESPACE_REGISTRY._namespaces[name]
         delattr(osp.core, name)
