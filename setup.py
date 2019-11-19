@@ -1,5 +1,4 @@
 import os
-import pickle
 import traceback
 from setuptools import setup, find_namespace_packages
 from setuptools.command.install import install
@@ -36,15 +35,12 @@ def install_ontology(ontology):
             "ontology.%s.yml" % ontology
         )
     from osp.core.ontology.namespace_registry import \
-        ONTOLOGY_NAMESPACE_REGISTRY, INSTALLED_ONTOLOGY_PATH
+        ONTOLOGY_NAMESPACE_REGISTRY
     from osp.core.ontology.parser import Parser
     p = Parser()
     try:
         p.parse(ontology_file)
-        with open(INSTALLED_ONTOLOGY_PATH, "wb") as f:
-            pickle.dump(
-                ONTOLOGY_NAMESPACE_REGISTRY, f
-            )
+        ONTOLOGY_NAMESPACE_REGISTRY.install()
     except ValueError:
         traceback.print_exc()
         print("Ontology namespace already installed!")
@@ -66,8 +62,8 @@ class Install(install):
     def run(self):
         if self.reset:
             reset_ontology()
-
-        install_ontology(self.ontology or "city")
+        if self.ontology:
+            install_ontology(self.ontology)
         install.run(self)
 
 
