@@ -58,7 +58,18 @@ class OntologyNamespace():
         :return: The ontology entity
         :rtype: OntologyEntity
         """
-        return self._entities.__getitem__(name)
+        if (
+            any(x.islower() for x in name)
+            and any(x.isupper() for x in name)
+            and "_" not in name
+        ):
+            given = name
+            name = name[0]
+            for x in given[1:]:
+                if x.isupper():
+                    name += "_"
+                name += x
+        return self._entities[name.lower()]
 
     def __iter__(self):
         """Iterate over the ontology entities in the namespace.
@@ -69,7 +80,9 @@ class OntologyNamespace():
         return iter(self._entities.values())
 
     def __contains__(self, obj):
-        return obj in self._entities
+        if isinstance(obj, str):
+            return obj.lower() in self._entities.keys()
+        return obj in self._entities.values()
 
     def _add_entity(self, entity):
         """Add an entity to the namespace.
@@ -79,4 +92,4 @@ class OntologyNamespace():
         """
         from osp.core.ontology.entity import OntologyEntity
         assert isinstance(entity, OntologyEntity)
-        self._entities[entity.name] = entity
+        self._entities[entity.name.lower()] = entity

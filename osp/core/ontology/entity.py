@@ -28,6 +28,13 @@ class OntologyEntity(ABC):
         self._superclasses = list(superclasses)
         self._description = description
 
+        from osp.core.ontology.namespace_registry import \
+            ONTOLOGY_NAMESPACE_REGISTRY
+        assert (
+            namespace.name not in ONTOLOGY_NAMESPACE_REGISTRY
+            or name not in ONTOLOGY_NAMESPACE_REGISTRY[namespace.name]
+        )
+
     def __str__(self):
         return "%s.%s" % (self.namespace.name, self._name)
 

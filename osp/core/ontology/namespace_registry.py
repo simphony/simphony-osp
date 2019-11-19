@@ -9,7 +9,7 @@ import pickle
 import os
 
 ONTOLOGY_NAMESPACE_REGISTRY = None
-MAIN_ONTOLOGY_NAMESPACE = "CUBA"
+MAIN_ONTOLOGY_NAMESPACE = "CUBA".lower()
 MAIN_ONTOLOGY_PATH = os.path.join(os.path.dirname(__file__),
                                   "yml", "ontology.cuba.yml")
 INSTALLED_ONTOLOGY_PATH = os.path.join(os.path.dirname(__file__),
@@ -35,8 +35,13 @@ class NamespaceRegistry():
     def __setstate__(self, state):
         self.__dict__ = state
 
+    def __contains__(self, other):
+        if isinstance(other, str):
+            return other.lower() in self._namespaces.keys()
+        return other in self._namespaces.values()
+
     def get(self, name):
-        return self._namespaces[name]
+        return self._namespaces[name.lower()]
 
     @property
     def default_rel(self):
@@ -61,19 +66,22 @@ class NamespaceRegistry():
         """
         from osp.core.ontology.namespace import OntologyNamespace
         assert isinstance(namespace, OntologyNamespace)
-        assert bool(namespace.name == MAIN_ONTOLOGY_NAMESPACE) \
-            != bool(self._namespaces), "CUBA namespace must be installed first"
-        if namespace.name in self._namespaces:
+        assert (
+            bool(namespace.name.lower() == MAIN_ONTOLOGY_NAMESPACE)
+            != bool(self._namespaces)
+        ), "CUBA namespace must be installed first"
+        if namespace.name.lower() in self._namespaces:
             raise ValueError("Namespace %s already added to namespace "
                              "registry!" % namespace.name)
-        self._namespaces[namespace.name] = namespace
+        self._namespaces[namespace.name.lower()] = namespace
 
         if (
             ONTOLOGY_NAMESPACE_REGISTRY is self
-            and namespace.name != MAIN_ONTOLOGY_NAMESPACE
+            and namespace.name.lower() != MAIN_ONTOLOGY_NAMESPACE
         ):
             import osp.core
-            setattr(osp.core, namespace.name, namespace)
+            setattr(osp.core, namespace.name.upper(), namespace)
+            setattr(osp.core, namespace.name.lower(), namespace)
 
     def get_main_namespace(self):
         """Get the main namespace (CUBA)
