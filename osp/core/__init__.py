@@ -34,3 +34,7 @@ def set_default_rel(rel):
 def get_entity(entity_name):
     namespace, name = entity_name.split(".")
     return ONTOLOGY_NAMESPACE_REGISTRY[namespace][name]
+
+
+def install_current_ontology():
+    ONTOLOGY_NAMESPACE_REGISTRY.install()
