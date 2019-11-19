@@ -2,6 +2,7 @@ import os
 import traceback
 from setuptools import setup, find_namespace_packages
 from setuptools.command.install import install
+from setuptools.command.test import test
 from packageinfo import VERSION, NAME
 
 # Read description
@@ -46,6 +47,15 @@ def install_ontology(ontology):
         print("Ontology namespace already installed!")
 
 
+def parse_test_ontology():
+    try:
+        from osp.core.ontology.parser import Parser
+        p = Parser()
+        p.parse("osp/core/ontology/yml/ontology.city.yml")
+    except ValueError:
+        pass
+
+
 class Install(install):
     # The format is (long option, short option, description).
     user_options = install.user_options + [
@@ -67,6 +77,12 @@ class Install(install):
         install.run(self)
 
 
+class Test(test):
+    def run(self):
+        parse_test_ontology()
+        super().run()
+
+
 # main setup configuration class
 setup(
     name=NAME,
@@ -84,7 +100,8 @@ setup(
     python_requires=">=3.6",
     cmdclass={
         'install': Install,
-        'develop': Install
+        'develop': Install,
+        'test': Test
     },
     test_suite='tests',
     entry_points={

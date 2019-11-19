@@ -12,12 +12,21 @@ from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
-try:
-    from .dummy_simulation_wrapper import DummySimWrapperSession
-except ImportError:
-    from dummy_simulation_wrapper import DummySimWrapperSession
 import unittest2 as unittest
-from osp.core import CITY
+
+# imports depend how file is started
+if __name__ != "__main__":
+    from .dummy_simulation_wrapper import DummySimWrapperSession
+    from osp.core import CITY
+else:
+    try:
+        from osp.core.ontology.parser import Parser
+        p = Parser()
+        p.parse("osp/core/ontology/yml/ontology.city.yml")
+    except ValueError:
+        pass
+    from dummy_simulation_wrapper import DummySimWrapperSession
+    from osp.core import CITY
 
 HOST = "127.0.0.1"
 PORT = 8689
