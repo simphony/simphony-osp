@@ -36,7 +36,7 @@ class WrapperSession(Session):
         pass
 
     # OVERRIDE
-    def store(self, cuds_object):
+    def _store(self, cuds_object):
         """Store the cuds_objects in the registry and add it to buffers.
 
         :param cuds_object: The cuds_object to store.
@@ -51,7 +51,7 @@ class WrapperSession(Session):
             raise RuntimeError("Please add a wrapper to the session first")
 
         # store
-        super().store(cuds_object)
+        super()._store(cuds_object)
 
         # update buffers
         if cuds_object.uid in self._deleted:
@@ -108,7 +108,10 @@ class WrapperSession(Session):
         :return: Whether the buffers have been resetted.
         :rtype: bool
         """
-        assert changed_by in ["user", "engine"]
+        allowed = ["user", "engine"]
+        if changed_by not in allowed:
+            raise ValueError("Illegal value for changed_by. "
+                             "Allowed values are %s" % allowed)
         if changed_by == self._forbid_buffer_reset_by:
             return False
         self._added = dict()

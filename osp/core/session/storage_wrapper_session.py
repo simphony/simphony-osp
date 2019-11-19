@@ -56,10 +56,12 @@ class StorageWrapperSession(WrapperSession):
         """
         for c in cuds_or_uids:
             if isinstance(c, uuid.UUID):
-                assert c != self.root, "Cannot expire root"
+                if c == self.root:
+                    raise RuntimeError("Cannot expire root")
                 self._expired.add(c)
             else:
-                assert c != self.root, "Cannot expire root"
+                if c.uid == self.root:
+                    raise RuntimeError("Cannot expire root")
                 self._expired.add(c.uid)
         self._expired &= (set(self._registry.keys()) - set([self.root]))
 

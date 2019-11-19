@@ -56,7 +56,10 @@ def get_neighbour_diff(cuds1, cuds2, mode="all"):
     :return: List of Tuples that contain the found uids and relationships.
     :rtype: List[Tuple[UUID, Relationship]]
     """
-    assert mode in ["all", "active", "non-active"]
+    allowed_modes = ["all", "active", "non-active"]
+    if mode not in allowed_modes:
+        raise ValueError("Illegal mode specified. Choose one of %s"
+                         % allowed_modes)
     if cuds1 is None:
         return []
 
