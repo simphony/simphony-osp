@@ -312,6 +312,8 @@ class OwlToYmlConverter():
 
     def _apply_conversion_options(self):
         """Apply the conversion options"""
+        if self.conversion_options is None:
+            return
         if "default_rel" in self.conversion_options:
             entity = owlready2.IRIS[self.conversion_options["default_rel"]]
             label = self._get_label(entity)
@@ -330,19 +332,23 @@ class OwlToYmlConverter():
             for key, value in update_entities.items():
                 self.onto[key].update(value)
 
-    def write(self, filename="ontology.yml"):
+    def write(self, file="ontology.yml"):
         """Write the yml ontology to disk"""
         Dumper = self._get_yml_dumper()
-        with open(filename, "w") as f:
-            s = yaml.dump(
-                data=self.yaml_onto,
-                Dumper=Dumper,
-                default_flow_style=False,
-                allow_unicode=True,
-                explicit_start=True
-            )
-            # s = s.replace(r"\n", "\n      ")
-            print(s, file=f)
+        s = yaml.dump(
+            data=self.yaml_onto,
+            Dumper=Dumper,
+            default_flow_style=False,
+            allow_unicode=True,
+            explicit_start=True
+        )
+        # s = s.replace(r"\n", "\n      ")
+
+        if isinstance(file, str):
+            with open(file, "w") as f:
+                print(s, file=f)
+        else:
+            print(s, file=file)
 
     def _get_yml_dumper(self):
         """ Make sure YAML file is ordered"""
@@ -412,4 +418,4 @@ if __name__ == "__main__":
     output_filename = args.output_file or os.path.abspath(
         "ontology.%s.yml" % os.path.basename(args.input_file)[:-4]
     )
-    converter.write(filename=output_filename)
+    converter.write(file=output_filename)
