@@ -147,7 +147,7 @@ def create_recycle(oclass, kwargs, session, uid, add_to_buffers=True):
     if uid in session._registry:
         cuds_object = session._registry.get(uid)
         cuds_object._oclass = oclass
-        attributes = oclass._get_attributes(kwargs)
+        attributes = oclass._get_attributes_values(kwargs)
         for key, value in attributes.items():
             setattr(cuds_object, key.argname, value)
         for rel in set(cuds_object._neighbours.keys()):

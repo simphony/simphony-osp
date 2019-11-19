@@ -34,7 +34,7 @@ ONTOLOGY:
     subclass_of:
     - CUBA.ENTITY
 
-  VALUE:
+  ATTRIBUTE:
     description:
     subclass_of:
     - CUBA.ENTITY

@@ -7,14 +7,14 @@
 
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.value import OntologyValue
+from osp.core.ontology.attribute import OntologyAttribute
 import yaml
 
 VERSION_KEY = "VERSION"  # TODO
 ONTOLOGY_MODE_KEY = "ONTOLOGY_MODE"  # TODO
 ONTOLOGY_KEY = "ONTOLOGY"
 ROOT_RELATIONSHIP = "RELATIONSHIP"
-ROOT_VALUE = "VALUE"
+ROOT_ATTRIBUTE = "ATTRIBUTE"
 NAMESPACE_KEY = "NAMESPACE"
 
 DESCRIPTION_KEY = "description"
@@ -140,8 +140,8 @@ class Parser:
         superclass_names = {entity_name}
         for p in superclasses:
             superclass_names |= {x.name for x in p.superclasses}
-        if ROOT_VALUE in superclass_names:
-            Class = OntologyValue
+        if ROOT_ATTRIBUTE in superclass_names:
+            Class = OntologyAttribute
         elif ROOT_RELATIONSHIP in superclass_names:
             Class = OntologyRelationship
         else:
@@ -232,11 +232,11 @@ class Parser:
                 and entity_yaml_doc[DEFAULT_REL_KEY]:
             self._ontology_namespace._default_rel = entity
 
-    def _set_datatype(self, entity: OntologyValue):
+    def _set_datatype(self, entity: OntologyAttribute):
         """Set the datatype of a attribute
 
         :param entity: The attribute to set the datatype of
-        :type entity: OntologyValue
+        :type entity: OntologyAttribute
         """
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
         entity_yaml_doc = cuds_yaml_doc[entity.name]

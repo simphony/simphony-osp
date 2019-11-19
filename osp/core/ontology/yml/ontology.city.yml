@@ -140,7 +140,7 @@ ONTOLOGY:
   NUMBER:
     description:
     subclass_of:
-    - CUBA.VALUE
+    - CUBA.ATTRIBUTE
     datatype: INT
 
   POSTAL_CODE:
@@ -151,12 +151,12 @@ ONTOLOGY:
   NAME:
     description:
     subclass_of:
-    - CUBA.VALUE
+    - CUBA.ATTRIBUTE
 
   COORDINATES:
     description:
     subclass_of:
-    - CUBA.VALUE
+    - CUBA.ATTRIBUTE
     datatype: VECTOR:2
 
   ADDRESS:
