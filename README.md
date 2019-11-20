@@ -19,11 +19,10 @@ explicit written permission.
 - PyYaml (on Windows, use <https://stackoverflow.com/a/33673823>) for parsing yaml files
 - numpy for vector attributes of cuds
 - websockets for the transport layer
-- requests for sending cuds to a server
+- requests for sending CUDS to a server
 - unittest2 to run unittests
 - pympler for the performance test
 - responses for unittesting requests
-- simphony_dummy_simulation_wrapper for testing (See https://gitlab.cc-asp.fraunhofer.de/simphony/wrappers/dummy-simulation-wrapper)
 
 ## Installation
 
@@ -36,7 +35,7 @@ python3 setup.py install
 ```
 
 ```sh
-# install own ontologies
+# install ontologies
 python3 setup.py install -o <path/to/ontology.own-ontology.yml>
 ```
 
@@ -54,8 +53,8 @@ python3 setup.py develop
 
 ### Installation of OWL ontologies
 
-See doc/conversion_owl_to_yaml.md for working with an OWL ontology. \
-See doc/working_with_emmo.md for working with the EMMO.
+See doc/working_with_emmo.md for working with the EMMO. \
+See doc/conversion_owl_to_yaml.md if you want to work with any OWL ontology.
 
 ## Testing
 
@@ -69,38 +68,42 @@ python3 setup.py test
 ## Documentation
 
 ### API
+
 A standard, simple API has to be defined for the user to interact with OSP:
 
 ```python
-  from osp.core import A_NAMESPACE
+  from osp.core import MY_NAMESPACE
+  # from osp.core import my_namespace  # lowercase works as well!
 
-  a_cuds_object = A_NAMESPACE.A_ONTOLOGY_CLASS()
-  a_relationship = A_NAMESPACE.A_RELATIONSHIP
+  my_ontology_class = MY_NAMESPACE.MY_ONTOLOGY_CLASS
+  # my_ontology_class = my_namespace.MyOntologyClass  # CamelCase works as well!
+  my_cuds_object = MY_NAMESPACE.MY_ONTOLOGY_CLASS()
+  my_relationship = MY_NAMESPACE.MY_RELATIONSHIP
 
   # These will also add the opposed relationship to the new contained cuds object
-  a_cuds_object.add(*other_cuds, rel=a_relationship)
-  a_cuds_object.add(yet_another_cuds)                          # Defaults to default relationship specified in ontology
+  my_cuds_object.add(*other_cuds, rel=my_relationship)
+  my_cuds_object.add(yet_another_cuds)                           # Defaults to default relationship specified in ontology
 
-  a_cuds_object.get()                                          # Returns the list of all the contained cuds objects
-  a_cuds_object.get(rel=a_relationship)                        # Returns the list of the entities under that relationship
-  a_cuds_object.get(*uids)                                     # Searches through all the relationships for the uids
-  a_cuds_object.get(*uids, rel=a_relationship)                 # Faster, can filter through the relationship
-  a_cuds_object.get(oclass=a_ontology_class)                   # Returns the list of all the cuds object of that class
-  a_cuds_object.get(rel=a_relationship, oclass=a_ontology_class)   # Returns the list of all the entities of that class under the given relationship
+  my_cuds_object.get()                                           # Returns the list of all the contained cuds objects
+  my_cuds_object.get(rel=my_relationship)                        # Returns the list of the entities under that relationship
+  my_cuds_object.get(*uids)                                      # Searches through all the relationships for the uids
+  my_cuds_object.get(*uids, rel=my_relationship)                 # Faster, can filter through the relationship
+  my_cuds_object.get(oclass=a_ontology_class)                    # Returns the list of all the cuds object of that class
+  my_cuds_object.get(rel=my_relationship, oclass=a_ontology_class)   # Returns the list of all the entities of that class under the given relationship
 
   # These will trigger the update in the opposed relationship of the erased element
-  a_cuds_object.remove()                                       # Removes all
-  a_cuds_object.remove(*uids/cuds_objects)                     # Searches through all the relationships for the uids/objects to remove
-  a_cuds_object.remove(*uids/cuds_objects, rel=a_relationship) # Faster, can filter through the relationship
-  a_cuds_object.remove(rel=a_relationship)                     # Delete all elements under a relationship
-  a_cuds_object.remove(oclass=a_ontology_class)                # Delete all elements of a certain class
-  a_cuds_object.remove(rel=a_relationship, oclass=a_ontology_class)   # Delete all elements of a certain class under the given relationship
+  my_cuds_object.remove()                                        # Removes all
+  my_cuds_object.remove(*uids/cuds_objects)                      # Searches through all the relationships for the uids/objects to remove
+  my_cuds_object.remove(*uids/cuds_objects, rel=my_relationship) # Faster, can filter through the relationship
+  my_cuds_object.remove(rel=my_relationship)                     # Delete all elements under a relationship
+  my_cuds_object.remove(oclass=a_ontology_class)                 # Delete all elements of a certain class
+  my_cuds_object.remove(rel=my_relationship, oclass=my_ontology_class)   # Delete all elements of a certain class under the given relationship
 
-  a_cuds_object.update(*cuds_objects)                          # Searches through all the relationships for the objects to update
+  my_cuds_object.update(*cuds_objects)                           # Searches through all the relationships for the objects to update
 
-  a_cuds_object.iter()                                         # Iterates through all
-  a_cuds_object.iter(oclass=a_ontology_class)                  # Iterates filtering by the ontology class
-  a_cuds_object.iter(rel=a_relationship)                       # Iterates filtering by the relationship
+  my_cuds_object.iter()                                          # Iterates through all
+  my_cuds_object.iter(oclass=a_ontology_class)                   # Iterates filtering by the ontology class
+  my_cuds_object.iter(rel=my_relationship)                       # Iterates filtering by the relationship
 ```
 
 ### Data structure

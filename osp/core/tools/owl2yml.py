@@ -381,7 +381,7 @@ class OwlToYmlConverter():
         return Dumper
 
 
-if __name__ == "__main__":
+def run_from_terminal():
     # Parse the user arguments
     parser = argparse.ArgumentParser(
         description="Convert an ontology in OWL format to "
@@ -419,3 +419,7 @@ if __name__ == "__main__":
         "ontology.%s.yml" % os.path.basename(args.input_file)[:-4]
     )
     converter.write(file=output_filename)
+
+
+if __name__ == "__main__":
+    run_from_terminal()

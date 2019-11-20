@@ -8,7 +8,7 @@
 import os
 import io
 import unittest2 as unittest
-from osp.core.tools.owl_to_yml import OwlToYmlConverter
+from osp.core.tools.owl2yml import OwlToYmlConverter
 
 
 class TestOwlToYml(unittest.TestCase):
