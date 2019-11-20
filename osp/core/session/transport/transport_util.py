@@ -9,7 +9,6 @@ import json
 import uuid
 from osp.core import get_entity
 from osp.core.utils import create_recycle
-from osp.core.cuds import Cuds
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.neighbour_dict import NeighbourDictTarget
@@ -135,6 +134,7 @@ def serializable(obj):
     :return: The serializable object.
     :rtype: Union[Dict, List, str, None]
     """
+    from osp.core.cuds import Cuds
     if obj is None:
         return obj
     if isinstance(obj, (str, int, float)):
