@@ -194,7 +194,7 @@ class WrapperSession(Session):
     #         min_occurrences = max_occurrences = cardinality
     #     elif cardinality in ["*", "many"]:
     #         pass
-    #     elif cardinality == "+":
+    #     elif cardinality in ["+", "some"]:
     #         min_occurrences = 1
     #     elif cardinality == "?":
     #         min_occurrences = 0

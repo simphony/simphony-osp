@@ -61,7 +61,6 @@ class OntologyNamespace():
         if (
             any(x.islower() for x in name)
             and any(x.isupper() for x in name)
-            and "_" not in name
         ):
             given = name
             name = name[0]

@@ -4,27 +4,12 @@ OSP-core requires an ontology in YAML format for installation.
 This document explains how an ontology in OWL format can be
 converted to YAML.
 
-## Disclaimer
-
-In the current version of OSP core, not all OWL-ontologies are supported.
-We are working hard to change that as soon as possible.
-In the course of converting the OWL ontology to YAML, the ontology
-has to be modified to match the constraints of a YAML ontology.
-These constraints are explained in doc/yaml_specification.md
-The conversion script will perform the modifications.
-It will ask the user to make decisions on how the ontology should be modified.
-
-As soon as OWL is supported completely, there will be a script converting
-OWL to YAML without user input.
-
-If you have any issues with the conversion, please use the GitLab
-issue tracker. Attach the `owl-conversion` label to your issue.
-
 ## Prerequisites
 
 - We use owlready2 for the conversion. Therefore, the ontology
 must be in one of the following formats: RDF/XML, OWL/XML, NTriples.
 - Make sure you ran the reasoner and exported the inferred axioms.
+- OSP core must be installed
 
 ## Conversion
 
@@ -32,111 +17,87 @@ This section will explain in detail how you can convert an OWL ontology
 to YAML. We will use the EMMO as an example.
 The document doc/working_with_emmo.md explains how you can get the EMMO.
 
-1. Run the conversion script. It is located in `cuds/generator/owl_to_yml.py`.
-   Give the path to your OWL file as the only argument.
+1. The script for the conversion is called owl2yml. Call it with the -h option
+   to print help:
 
    ```sh
-   python cuds/generator/owl_to_yml.py emmo.owl
+   $ owl2yml -h
+   usage: owl2yml [-h] --namespace NAMESPACE [--conversion_options_file CONVERSION_OPTIONS_FILE] [--version VERSION] [--output-file OUTPUT_FILE] input-file
+
+   Convert an ontology in OWL format to an ontology in YAML format.
+
+   positional arguments:
+     input-file            The path to the input owl file
+
+   optional arguments:
+     -h, --help            show this help message and exit
+     --namespace NAMESPACE, -n NAMESPACE
+                           The namespace for the resulting YAML file in UPPERCASE
+     --conversion_options_file CONVERSION_OPTIONS_FILE, -c CONVERSION_OPTIONS_FILE
+                           Path to a file explaining how the ontology should be transformed, s.t. it is compatible with osp-core
+     --version VERSION, -v VERSION
+                           The version string for the resulting YAML file
+     --output-file OUTPUT_FILE, -o OUTPUT_FILE
+                           Where the output file should be saved
    ```
 
-2. Choose the superclass for the relationships:
-   In OWL ontologies it is common that relationships are
-   sub-relationship of multiple relationships.
-   This is currently not allowed by OSP-core, but will be in the near future.
-   For now, the user has to choose a single superclass per relationship.
+2. You have to specify the owl input file and the namespace,
+   with which the entities in the owl file should be accessible in OSP core:
 
    ```sh
-   HAS_TEMPORAL_PROPER_PART should be the subclass of which class? 
-   1) CUBA.HAS_TEMPORAL_PART
-   2) CUBA.HAS_PROPER_PART
-   Type the number of your choice: 1
+   $ owl2yml -n MY_NAMESPACE path/to/owlfile.owl
    ```
 
-3. Choose the primary superclass for the classes.
-   In OWL ontologies it is common that classes are a sub-class of
-   multiple classes.
-   This is currently not allowed by OSP-core, but will be in the near future.
-   For now, the user has to choose a single primary superclass per class.
-   The other (secondary) superclasses will be connected by a CUBA.IS_A relationship.
+3. Optionally, you can specify a version string:
 
-    ```sh
-    ELEMENTARY should primarily be the subclass of which class? The other classes will be related by CUBA.IS_A.
-    1) CUBA.STATE
-    2) CUBA.PHYSICAL
-    Type the number of your choice: 2
-    ```
-
-    This will result in:
-
-    ```yml
-    ELEMENTARY:
-      definition: ...
-      subclass_of: CUBA.PHYSICAL
-      ...
-      CUBA.IS_A:
-        CUBA.STATE:
-          cardinality: 1
-    ```
-
-4. Choose where to insert ACTIVE_RELATIONSHIP.
-   Cuds objects can be seen as containers, that contain other cuds objects.
-   In OSP-core, there is (currently) the concept of active (and passive) relationships.
-   Active relationships describe which cuds objects are contained in other cuds objects.
-
-   ```txt
-   No CUBA.ACTIVE_RELATIONSHIP in the ontology.
-   Specify the entity, that should be a subclass of ACTIVE_RELATIONSHIP:
-   > encloses
+   ```sh
+   $ owl2yml -n MY_NAMESPACE path/to/owlfile.owl -v 0.0.1
    ```
 
-5. In the next step you can add arguments to the classes.
-   The datatypes are specified
-   in doc/yaml_spec.md. The argument must not be in the ontology.
-   Alternatively you
-   can have a VALUE entity in the OWL ontology. Then each sub-entity of value
-   will be a argument for other cuds-classes.
+4. Optionally, you can specify where the resulting yaml file should be stored:
 
-   ```txt
-   Enter classes that should have arguments: number
-   argument name: x
-   datatype: float
+   ```sh
+   $ owl2yml -n MY_NAMESPACE ../../owlfile.owl -o result.yml
    ```
 
-6. Specify missing inverses.
-   In OSP-core every relation must have an inverse (currently). In this step
-   you can specify an inverse for every relationship that does not have one.
-   Note that the specified inverse must be in the ontology.
+5. It is recommended that you extend the ontology,
+   such that it is easier to use with OSP core.
+   For that you have to create a yaml file in
+   the following format:
 
-   ```txt
-   OSP-core currently does not allow missing inverses. Please specify an inverse for every relationship. Each specified inverse must be in the ontology. Specifying an inverse for every entity will not be necessary in upcoming osp-core versions.
-   Specify inverse of RELATION: relation
-   Specify inverse of HAS_ICON: is icon of
-   Specify inverse of HAS_INDEX: is index of
-   Specify inverse of IS_ICON_OF: has icon
-   Specify inverse of SEMIOTIC: semiotic
-   Specify inverse of IS_INDEX_OF: has index
+   ```yml
+   ---
+   default_rel: <iri_of_default_relationship>
+   active_relationships: [list_of_iris]
+   insert_entities:
+     VALUE:
+       subclass_of:
+       - CUBA.ATTRIBUTE
+       datatype: FLOAT
+   update_entities:
+     NUMBER:
+       attributes:
+       - MY_NAMESPACE.VALUE
    ```
 
-7. Rename duplicates.
-   In OWL it is possible to have a class and a relationship with the same name. This is (currently)
-   not allowed in OSP-core. If you have such duplicates, the script will
-   ask you to rename one of them.
+   - For EMMO, this file is provided and located in `osp/core/tools/conversion_options/emmo.conversion_options.yml`
 
-   ```txt
-   SEMIOTIC has been specified as class and relationship. Which one do you want to rename?
-   1) class
-   2) relationship
-   Type the number of your choice: 2
-   Rename to: semiotic rel
-   ```
+   - You can specify a default relationship with the `default_rel` keyword.
+     You have to provide the IRI of the relationship.
+     In OSP core, when you add one CUDS objects to another without specifying a relationship, this relationship will be used.
 
-8. Choose a default relationship. When you add one cuds object to another, without specifying a relationship, the default relationship will be used.
+   - CUDS objects are containers conceptually.
+     Therefore, you need to specify which relationships encode a containment in a CUDS objects.
+     We call these relationships `active relationships`.
+     Let's say you have a relationship `contains` in the ontology.
+     You want to specify that every cuds object related to cuds object A with `contains` should be in the container of A.
+     Then `contains` should be marked as an active relationship.
+     Note that the edge-induced graph of the cuds objects by only considering active relationships must be acyclic at any point in time.
+     Active relationships must not be symmetric.
+     See `doc/yaml_spec.md` for more details.
+     You can specify active relationships with the `active_relationships` keyword.
+     You need to provide a list of IRIs of relationships that should become an active relationship.
 
-   ```txt
-   Default relationship: has part
-   ```
-
-9. The ontology will be saved as ontology.<name>.yml in your current working directory.
-   Take a look at it by opening it with a text editor. The great thing about
-   yaml ontologies is that they are understandable by humans. If you are not
-   satisfied with the result, you can modify the resulting ontology by hand.
+   - If you are not satisfied with your result, you can manually modify the resulting yml file.
+     You can also use the keywords `insert_entities` or `update_entities` to modify the resulting
+     yml automatically.
