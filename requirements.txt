@@ -1,7 +1,0 @@
-PyYaml
-unittest2
-pympler
-websockets
-requests
-responses
-numpy

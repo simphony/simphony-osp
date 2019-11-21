@@ -1,13 +1,30 @@
 image: "registry.gitlab.cc-asp.fraunhofer.de:4567/simphony/osp-core:latest"
 
 stages:
-  - build
-  #- test
+  - code_analysis
+  - test
 
-build_job:
-  stage: build
+pep8:
+  stage: code_analysis
   script:
+    - flake8 . --exclude=*/__init__.py --ignore=W503
+
+radon:
+  stage: code_analysis
+  script:
+    - radon cc -s -a .
+    - radon mi -s .
+
+bandit:
+  stage: code_analysis
+  script:
+    - bandit -r osp --skip B101
+
+unittesting:
+  stage: test
+  script:
+    - pip3 install --upgrade flake8
+    - flake8 --exclude=*/__init__.py osp/ tests/
     - python3 setup.py install -o city
-    - flake8 cuds/ --exclude=cuds/classes/generated,*/__init__.py,build --ignore=W503
     - coverage run setup.py test
-    - coverage report --omit=cuds/classes/generated/*,cuds/testing/* --skip-covered
+    - coverage report --omit=tests/*,.eggs/* --skip-covered
