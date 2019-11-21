@@ -28,19 +28,12 @@ def reset_ontology():
 
 
 def install_ontology(ontology):
-    ontology_file = ontology
-    if not ontology.endswith(".yml"):
-        ontology_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "osp", "core", "ontology", "yml",
-            "ontology.%s.yml" % ontology
-        )
     from osp.core.ontology.namespace_registry import \
         ONTOLOGY_NAMESPACE_REGISTRY
     from osp.core.ontology.parser import Parser
     p = Parser()
     try:
-        p.parse(ontology_file)
+        p.parse(ontology)
         ONTOLOGY_NAMESPACE_REGISTRY.install()
     except ValueError:
         traceback.print_exc()

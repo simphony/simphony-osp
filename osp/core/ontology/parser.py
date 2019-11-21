@@ -5,10 +5,11 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+import os
+import yaml
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
-import yaml
 
 VERSION_KEY = "VERSION"  # TODO
 ONTOLOGY_MODE_KEY = "ONTOLOGY_MODE"  # TODO
@@ -60,6 +61,12 @@ class Parser:
         Reads the YAML and extracts the dictionary with the CUDS.
         """
         from osp.core.ontology.namespace import OntologyNamespace
+
+        if not filename.endswith(".yml"):
+            filename = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "yml", "ontology.%s.yml" % filename
+            )
 
         self.__init__()
         self._filename = filename
