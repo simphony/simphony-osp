@@ -1,3 +1,10 @@
+# If you did not install the CITY ontology
+# (osp_core$ python setup.py install -o city),
+# you have to execute these commands first:
+# from osp.core import Parser
+# p = Parser()
+# p.parse("city")
+
 from osp.core import CITY
 
 """
