@@ -1,0 +1,40 @@
+---
+VERSION: "0.0.1"
+
+NAMESPACE: "CUBA"
+
+ONTOLOGY:
+
+  ENTITY:
+    description: The root of the ontology.
+    subclass_of: []
+  
+  NOTHING:
+    description: A class without any individuals.
+    subclass_of:
+    - CUBA.ENTITY
+
+ ################
+
+  RELATIONSHIP:
+    description: The root of all relationships.
+    subclass_of:
+    - CUBA.ENTITY
+    inverse:
+
+  ACTIVE_RELATIONSHIP:
+    description: The root of all active relationships. Active relationships express that one cuds object is in the container of another.
+    subclass_of:
+    - CUBA.RELATIONSHIP
+
+  ################
+
+  WRAPPER:
+    description: The root of all wrappers. These are the bridge to simulation engines and databases. The bridge to simulation engines and databases.
+    subclass_of:
+    - CUBA.ENTITY
+
+  ATTRIBUTE:
+    description: The root of all attributes.
+    subclass_of:
+    - CUBA.ENTITY
