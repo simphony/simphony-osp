@@ -55,9 +55,15 @@ class DbWrapperSession(StorageWrapperSession):
         super()._store(cuds_object)
 
         if initialize:
-            self._initialize()
-            self._load_first_level()
-            self._reset_buffers(changed_by="engine")
+            self._init_transaction()
+            try:
+                self._initialize()
+                self._load_first_level()
+                self._reset_buffers(changed_by="engine")
+                self._commit()
+            except Exception as e:
+                self._rollback_transaction()
+                raise e
 
     def _commit(self):
         """Commit to the database"""
