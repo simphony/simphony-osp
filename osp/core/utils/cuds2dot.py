@@ -73,12 +73,12 @@ class Cuds2dot():
         :param uid: string with the node id
         :type uid: str
         """
-        attr = ""
-        # HACK: Values to check are hard-coded
-        for key in ["cuba_key", "name", "value", "vector"]:
-            if hasattr(cuds_object, key):
-                attr += self.attribute.format(key,
-                                              str(getattr(cuds_object, key)))
+        attr = self.attribute.format("class", cuds_object.oclass)
+        for key in cuds_object.oclass.attributes.keys():
+            if hasattr(cuds_object, key.argname):
+                attr += self.attribute.format(
+                    key.argname, str(getattr(cuds_object, key.argname))
+                )
         if uid == self._root_uid:
             attr += self.attribute.format("session",
                                           type(self._root.session).__name__)

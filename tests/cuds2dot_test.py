@@ -1,5 +1,5 @@
 from osp.core import CITY
-from cuds.cuds2dot import Cuds2dot
+from osp.core.utils.cuds2dot import Cuds2dot
 
 city = CITY.CITY(name="Freiburg", uid='f3a6eb24-bfda-4c95-8a23-799c2bab2004')
 neighbourhood = CITY.NEIGHBOURHOOD(name="Zähringen")
