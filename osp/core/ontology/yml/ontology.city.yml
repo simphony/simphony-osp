@@ -1,0 +1,289 @@
+---
+VERSION: "0.0.2"
+
+NAMESPACE: "CITY"
+
+ONTOLOGY:
+
+ ################
+
+  ENCLOSES:
+    description:
+    subclass_of:
+    - CUBA.ACTIVE_RELATIONSHIP
+    inverse: CITY.IS_ENCLOSED_BY
+
+  HAS_PART:
+    description:
+    subclass_of:
+    - CITY.ENCLOSES
+    inverse: CITY.IS_PART_OF
+    default_rel: true
+
+  IS_INHABITANT_OF:
+    description:
+    subclass_of:
+    - CITY.IS_ENCLOSED_BY
+    inverse: CITY.HAS_INHABITANT
+
+  IS_ENCLOSED_BY:
+    description:
+    subclass_of:
+    - CUBA.RELATIONSHIP
+    inverse: CITY.ENCLOSES
+
+  IS_PART_OF:
+    description:
+    subclass_of:
+    - CITY.IS_ENCLOSED_BY
+    inverse: CITY.HAS_PART
+
+  HAS_INHABITANT:
+    description:
+    subclass_of:
+    - CITY.ENCLOSES
+    inverse: CITY.IS_INHABITANT_OF
+  
+  HAS_CHILD:
+    description:
+    subclass_of:
+    - CITY.HAS_PART
+    inverse: CITY.IS_CHILD_OF
+
+  IS_CHILD_OF:
+    description:
+    subclass_of:
+    - CITY.IS_PART_OF
+    inverse: CITY.HAS_CHILD
+  
+  HAS_WORKER:
+    description:
+    subclass_of:
+    - CITY.HAS_PART
+    inverse: CITY.WORKS_IN
+
+  WORKS_IN:
+    description:
+    subclass_of:
+    - CITY.IS_PART_OF
+    inverse: CITY.HAS_WORKER
+
+  HAS_MAJOR:
+    description:
+    subclass_of:
+    - CITY.HAS_WORKER
+    inverse: CITY.IS_MAJOR_OF
+
+  IS_MAJOR_OF:
+    description:
+    subclass_of:
+    - CITY.WORKS_IN
+    inverse: CITY.HAS_MAJOR
+
+ ################
+
+  CITY_WRAPPER:
+    description:
+    subclass_of:
+    - CUBA.WRAPPER
+    - CITY.HAS_PART:
+        target: CITY.CITY
+        cardinality: 1+
+        only: false
+
+  CITY_SIM_WRAPPER:
+    description:
+    subclass_of:
+    - CITY.CITY_WRAPPER
+    - CITY.HAS_PART:
+        target: CITY.PERSON
+        cardinality: many
+        only: false
+    - CITY.HAS_PART:
+        target: CITY.CITY
+        cardinality: 1
+        only: false
+    attributes:
+      CITY.NUM_STEPS:
+  
+  NUM_STEPS:
+    description:
+    subclass_of:
+    - CITY.NUMBER
+
+  ################
+
+  GEOGRAPHICAL_PLACE:
+    description:
+    subclass_of:
+    - CUBA.ENTITY
+    attributes:
+      CITY.NAME:
+
+  ARCHITECTURAL_COMPONENT:
+    description:
+    subclass_of:
+    - CUBA.ENTITY
+
+  LIVING_BEING:
+    description:
+    subclass_of:
+    - CUBA.ENTITY
+    - CITY.IS_CHILD_OF:
+        target: CITY.LIVING_BEING
+        cardinality: 0-2
+        only: false
+    attributes:
+      CITY.NAME: "John Smith"
+      CITY.AGE:  25
+
+  NUMBER:
+    description:
+    subclass_of:
+    - CUBA.ATTRIBUTE
+    datatype: INT
+
+  POSTAL_CODE:
+    description:
+    subclass_of:
+    - CITY.NUMBER
+
+  NAME:
+    description:
+    subclass_of:
+    - CUBA.ATTRIBUTE
+
+  COORDINATES:
+    description:
+    subclass_of:
+    - CUBA.ATTRIBUTE
+    datatype: VECTOR:2
+
+  ADDRESS:
+    description:
+    subclass_of:
+    - CUBA.ENTITY
+    - CITY.IS_PART_OF:
+        target: CITY.BUILDING
+        cardinality: 1
+        only: false
+    attributes:
+      CITY.NAME:  "Street"
+      CITY.NUMBER: 7
+      CITY.POSTAL_CODE:
+
+  POPULATED_PLACE:
+    description:
+    subclass_of:
+    - CITY.GEOGRAPHICAL_PLACE
+    - CITY.HAS_INHABITANT:
+        target: CITY.CITIZEN
+        cardinality: many
+        only: true
+    - CITY.HAS_WORKER:
+        target: CITY.PERSON
+        cardinality: many
+        only: true
+    attributes:
+      CITY.COORDINATES: [0, 0]
+
+  CITY:
+    description:
+    subclass_of:
+    - CITY.POPULATED_PLACE
+    - CITY.HAS_PART:
+        target: CITY.NEIGHBOURHOOD
+        cardinality: many
+        only: true
+    - CITY.IS_PART_OF:
+        target: CITY.CITY_WRAPPER
+        cardinality: 0-1
+        only: true
+    - CITY.HAS_MAJOR:
+        target: CITY.CITIZEN
+        cardinality: 0-1
+        only: true
+
+  NEIGHBOURHOOD:
+    description:
+    subclass_of:
+    - CITY.POPULATED_PLACE
+    - CITY.IS_PART_OF:
+        target: CITY.CITY
+        cardinality: 1
+        only: true
+    - CITY.HAS_PART:
+        target: CITY.STREET
+        cardinality: many
+        only: true
+
+  STREET:
+    description:
+    subclass_of:
+    - CITY.POPULATED_PLACE
+    - CITY.HAS_PART:
+        target: CITY.BUILDING
+        cardinality: many
+        only: true
+    - CITY.IS_PART_OF:
+        target: CITY.NEIGHBOURHOOD
+        cardinality: 1
+        only: true
+
+  ARCHITECTURAL_STRUCTURE:
+    description:
+    subclass_of:
+    - CITY.GEOGRAPHICAL_PLACE
+
+  BUILDING:
+    description:
+    subclass_of:
+    - CITY.ARCHITECTURAL_STRUCTURE
+    - CITY.HAS_PART:
+        target: CITY.ADDRESS
+        cardinality: 1
+        only: false
+    - CITY.HAS_PART:
+        target: CITY.FLOOR
+        cardinality: many
+        only: false
+    - CITY.IS_PART_OF:
+        target: CITY.STREET
+        cardinality: 1
+        only: true
+
+  FLOOR:
+    description:
+    subclass_of:
+    - CITY.ARCHITECTURAL_COMPONENT
+
+  PERSON:
+    description:
+    subclass_of:
+    - CITY.LIVING_BEING
+    - CITY.WORKS_IN:
+        target: CITY.POPULATED_PLACE
+        cardinality: 0-1
+        only: true
+    - CITY.IS_PART_OF:
+        target: CITY.CITY_SIM_WRAPPER
+        cardinality: 0-1
+        only: false
+
+  CITIZEN:
+    description:
+    subclass_of:
+    - CITY.PERSON
+    - CITY.IS_INHABITANT_OF:
+        target: CITY.POPULATED_PLACE
+        cardinality: 0-1
+        only: true
+    - CITY.IS_MAJOR_OF:
+        target: CITY.CITY
+        cardinality: 0-1
+        only: true
+
+  AGE:
+    description:
+    subclass_of:
+    - CITY.NUMBER

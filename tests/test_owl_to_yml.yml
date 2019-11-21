@@ -1,0 +1,96 @@
+---
+VERSION: 0.0.1
+NAMESPACE: TEST
+ONTOLOGY:
+  REL_A:
+    description: ''
+    inverse: TEST.REL_B
+    subclass_of:
+    - CUBA.RELATIONSHIP
+    - CUBA.ACTIVE_RELATIONSHIP
+    domain:
+      AND:
+      - TEST.CLASS_A
+    range:
+      AND:
+      - TEST.CLASS_B
+    characteristics:
+    - asymmetric
+    - transitive
+  REL_B:
+    description: ''
+    inverse: TEST.REL_A
+    subclass_of:
+    - CUBA.RELATIONSHIP
+    domain:
+      AND:
+      - TEST.CLASS_B
+    range:
+      AND:
+      - TEST.CLASS_A
+    characteristics:
+    - asymmetric
+    - transitive
+  REL_C:
+    description: ''
+    inverse: TEST.REL_C
+    subclass_of:
+    - TEST.REL_A
+    - TEST.REL_B
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - symmetric
+    default_rel: true
+  CLASS_A:
+    description: ''
+    subclass_of:
+    - CUBA.ENTITY
+    - TEST.REL_A:
+        exclusive: true
+        cardinality: 1+
+        range: TEST.CLASS_B
+    equivalent_to: []
+    disjoint_with:
+    - TEST.CLASS_B
+    attributes:
+    - TEST.VALUE
+  CLASS_B:
+    description: ''
+    subclass_of:
+    - CUBA.ENTITY
+    - TEST.REL_B:
+        exclusive: true
+        cardinality: 1+
+        range: TEST.CLASS_A
+    equivalent_to: []
+    disjoint_with:
+    - TEST.CLASS_A
+  CLASS_C:
+    description: ''
+    subclass_of:
+    - TEST.CLASS_A
+    - TEST.CLASS_B
+    - TEST.REL_A:
+        exclusive: false
+        cardinality: 1+
+        range:
+          OR:
+          - TEST.CLASS_A
+          - TEST.CLASS_B
+    - TEST.REL_B:
+        exclusive: false
+        cardinality: 1+
+        range:
+          AND:
+          - TEST.CLASS_A
+          - TEST.CLASS_B
+    equivalent_to: []
+    disjoint_with: []
+  VALUE:
+    datatype: FLOAT
+    subclass_of:
+    - CUBA.VALUE
+
