@@ -48,7 +48,7 @@ class FileWrapperSession(StorageWrapperSession):
 
     def _store(self, cuds_object):
         initialize = self.root is None
-        super().store(cuds_object)
+        super()._store(cuds_object)
 
         if initialize:
             self._initialize()
