@@ -1,6 +1,6 @@
 import os
 import traceback
-from setuptools import setup, find_namespace_packages
+from setuptools import setup, find_packages
 from setuptools.command.install import install
 from setuptools.command.test import test
 from packageinfo import VERSION, NAME
@@ -85,7 +85,7 @@ setup(
     description='The native implementation of the SimPhoNy cuds objects',
     keywords='simphony, cuds, Fraunhofer IWM',
     long_description=README_TEXT,
-    packages=find_namespace_packages(include=["osp.*"]),
+    packages=find_packages(),
     package_data={
         "osp.core.ontology.yml": ["*.yml"],
         "osp.core.ontology": ["*.pkl"]
