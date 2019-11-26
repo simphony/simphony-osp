@@ -35,9 +35,12 @@ def install_ontology(ontology):
     try:
         p.parse(ontology)
         ONTOLOGY_NAMESPACE_REGISTRY.install()
-    except ValueError:
-        traceback.print_exc()
-        print("Ontology namespace already installed!")
+    except ValueError as e:
+        if "already added to namespace registry!" in str(e):
+            traceback.print_exc()
+            print("Ontology namespace already installed!")
+        else:
+            raise(e)
 
 
 def parse_test_ontology():
