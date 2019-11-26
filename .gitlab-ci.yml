@@ -23,4 +23,5 @@ bandit:
 unittesting:
   stage: test
   script:
+    - pip install tox
     - tox
