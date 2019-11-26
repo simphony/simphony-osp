@@ -86,6 +86,10 @@ setup(
     keywords='simphony, cuds, Fraunhofer IWM',
     long_description=README_TEXT,
     packages=find_packages(),
+    package_data={
+        "osp.core.ontology.yml": ["*.yml"],
+        "osp.core.ontology": ["*.pkl"]
+    },
     python_requires=">=3.6",
     cmdclass={
         'install': Install,

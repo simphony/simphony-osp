@@ -1,3 +1,2 @@
 include packageinfo.py
 include osp/core/ontology/yml/*.yml
-include osp/core/ontology/*.pkl
