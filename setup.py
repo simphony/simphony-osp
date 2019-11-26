@@ -112,10 +112,5 @@ setup(
         "numpy",
         "graphviz",
         "owlready2"
-    ],
-    tests_require=[
-        "unittest2",
-        "pympler",
-        "responses"
     ]
 )
