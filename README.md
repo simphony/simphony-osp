@@ -20,6 +20,7 @@ explicit written permission.
 - numpy for vector attributes of cuds
 - websockets for the transport layer
 - requests for sending CUDS to a server
+- tox to run unittests
 - unittest2 to run unittests
 - pympler for the performance test
 - responses for unittesting requests
@@ -58,11 +59,14 @@ See doc/conversion_owl_to_yaml.md if you want to work with any OWL ontology.
 
 ## Testing
 
-Testing is included in setuptools:
+Testing is done using tox (`pip install tox`):
 
 ```sh
-# run tests automatically
-python3 setup.py test
+# run tests automatically in different environments
+tox
+
+# run tests in your current environment
+python -m unittest -v
 ```
 
 ## Documentation
