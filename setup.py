@@ -96,7 +96,6 @@ setup(
         'develop': Install,
         'test': Test
     },
-    test_suite='tests',
     entry_points={
         'wrappers': 'osp-core = osp.core.session.core_session:CoreSession',
         'console_scripts':
@@ -117,10 +116,5 @@ setup(
         "numpy",
         "graphviz",
         "owlready2"
-    ],
-    tests_require=[
-        "unittest2",
-        "pympler",
-        "responses"
     ]
 )
