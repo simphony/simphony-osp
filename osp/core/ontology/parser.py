@@ -91,6 +91,7 @@ class Parser:
 
         missing_inverse = set()
         for entity in self._ontology_namespace:
+            self._validate_entity(entity)
             if isinstance(entity, OntologyClass):
                 self._add_attributes(entity)
             elif isinstance(entity, OntologyRelationship):
@@ -257,3 +258,19 @@ class Parser:
 
         if datatype_def is not None:
             entity._set_datatype(datatype_def)
+
+    def _validate_entity(self, entity):
+        cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
+        entity_yaml_doc = cuds_yaml_doc[entity.name]
+        if isinstance(entity, OntologyClass):
+            pattern = "class_def"
+        elif isinstance(entity, OntologyRelationship):
+            pattern = "relationship_def"
+        else:
+            pattern = "attribute_def"
+
+        validate(
+            entity_yaml_doc, pattern,
+            context="<%s>/ONTOLOGY/%s" % (os.path.basename(self._filename),
+                                          entity.name)
+        )
