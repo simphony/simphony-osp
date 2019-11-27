@@ -219,8 +219,8 @@ OR:
   - CITY.CITY
   - CITY.HAS_PART:
       cardinality: 1+
-      target: CITY.NEIGHBOURHOOD
-      only: false
+      range: CITY.NEIGHBOURHOOD
+      exclusive: false
 ```
 
 This describes the set of all individuals that are a city or have a neighbourhood.
@@ -238,7 +238,7 @@ It can contain further information:
 > ```yml
 > ADDRESS:
 >   ...
->   values:
+>   attributes:
 >     CITY.NAME: "Street"
 >     CITY.NUMBER:
 > ```
@@ -258,14 +258,14 @@ It can contain further information:
 >    subclass_of:
 >    - CITY.GEOGRAPHICAL_PLACE
 >    - CITY.HAS_INHABITANT:
->        target: CITY.CITIZEN
+>        range: CITY.CITIZEN
 >        cardinality: many
->        only: true
+>        exclusive: true
 > ```
 >
 > Here, a populated place is a geographical place which must have citizens as inhabitants.
 
-`disjoints`: List[Class expression]
+`disjoint_with`: List[Class expression]
 > A list of class expressions that are not allowed to share any individuals with the cuds entity.
 
 `equivalent_to`: List[Class expression]
@@ -277,9 +277,9 @@ It can contain further information:
 >    equivalent_to:
 >    - CITY.GEOGRAPHICAL_PLACE
 >    - CITY.HAS_INHABITANT:
->        target: CITY.CITIZEN
+>        range: CITY.CITIZEN
 >        cardinality: many
->        only: true
+>        exclusive: true
 > ```
 >
 > Here every geographical place that has citizens as inhabitants is automatically a populated place.
