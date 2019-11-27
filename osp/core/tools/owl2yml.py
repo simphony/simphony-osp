@@ -1,12 +1,20 @@
 import os
+import re
 import yaml
 import owlready2
 import argparse
 import warnings
-import re
 from collections import OrderedDict as odict
 from functools import reduce
 import operator
+
+
+convert_special_chars = {
+    "+": "_PLUS",
+    "-": "_MINUS",
+    "~": "_TILDE",
+    ".": "_DOT"
+}
 
 
 class OwlToYmlConverter():
@@ -125,12 +133,13 @@ class OwlToYmlConverter():
         # add it
         self.onto[label] = odict(
             description=description,
-            inverse=inverse,
             subclass_of=superclasses,
             domain=domains,
             range=ranges,
             characteristics=characteristics
         )
+        if inverse:
+            self.onto[label]["inverse"] = inverse
 
     def _get_prefixed_label(self, entity, namespace=None):
         """Returns label with namespace for entity
@@ -157,6 +166,10 @@ class OwlToYmlConverter():
             label = re.sub(r'^.*\.', '', repr(entity))
         label = label.replace(" ", "_")
         label = label.replace("-", "_")
+        if re.compile("^\d").match(label):
+            label = "_" + label
+        for old, new in convert_special_chars.items():
+            label = label.replace(old, new)
         return str(label).upper()
 
     def _get_description(self, entity):
@@ -257,11 +270,13 @@ class OwlToYmlConverter():
         :rtype: Ordered dict
         """
         label = self._get_label(class_expression)
-        classes = class_expression.Classes \
-            if hasattr(class_expression, "Classes") \
-            else [class_expression.Class]
-
-        return self._parse_class_expressions(classes, combine_operator=label)
+        if hasattr(class_expression, "Classes"):
+            classes = class_expression.Classes
+            return self._parse_class_expressions(classes,
+                                                 combine_operator=label)
+        else:
+            classes = [class_expression.Class]
+            return {label: self._parse_class_expressions(classes)[0]}
 
     def _parse_rel_class_expressions(self, relationship, target, restrictions):
         """Parse a class expression describing the relationships of the class.
@@ -394,7 +409,7 @@ def run_from_terminal():
                         type=str.upper, required=True,
                         help="The namespace for the resulting YAML file "
                         "in UPPERCASE")
-    parser.add_argument("--conversion_options_file", "-c",
+    parser.add_argument("--conversion-options-file", "-c",
                         type=str, default=None,
                         help="Path to a file explaining how the ontology "
                              "should be transformed, s.t. it is compatible "

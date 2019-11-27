@@ -265,7 +265,7 @@ It can contain further information:
 >
 > Here, a populated place is a geographical place which must have citizens as inhabitants.
 
-`disjoints`: List[Class expression]
+`disjoint_with`: List[Class expression]
 > A list of class expressions that are not allowed to share any individuals with the cuds entity.
 
 `equivalent_to`: List[Class expression]
