@@ -166,7 +166,7 @@ class OwlToYmlConverter():
             label = re.sub(r'^.*\.', '', repr(entity))
         label = label.replace(" ", "_")
         label = label.replace("-", "_")
-        if re.compile("^\d").match(label):
+        if re.compile(r"^\d").match(label):
             label = "_" + label
         for old, new in convert_special_chars.items():
             label = label.replace(old, new)
