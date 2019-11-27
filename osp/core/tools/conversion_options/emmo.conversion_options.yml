@@ -11,4 +11,4 @@ insert_entities:
 update_entities:
   NUMBER:
     attributes:
-    - EMMO.VALUE
+      EMMO.VALUE:
