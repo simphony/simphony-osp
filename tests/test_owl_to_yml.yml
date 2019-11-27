@@ -4,7 +4,6 @@ NAMESPACE: TEST
 ONTOLOGY:
   REL_A:
     description: ''
-    inverse: TEST.REL_B
     subclass_of:
     - CUBA.RELATIONSHIP
     - CUBA.ACTIVE_RELATIONSHIP
@@ -17,9 +16,9 @@ ONTOLOGY:
     characteristics:
     - asymmetric
     - transitive
+    inverse: TEST.REL_B
   REL_B:
     description: ''
-    inverse: TEST.REL_A
     subclass_of:
     - CUBA.RELATIONSHIP
     domain:
@@ -31,9 +30,9 @@ ONTOLOGY:
     characteristics:
     - asymmetric
     - transitive
+    inverse: TEST.REL_A
   REL_C:
     description: ''
-    inverse: TEST.REL_C
     subclass_of:
     - TEST.REL_A
     - TEST.REL_B
@@ -43,6 +42,7 @@ ONTOLOGY:
       AND: []
     characteristics:
     - symmetric
+    inverse: TEST.REL_C
     default_rel: true
   CLASS_A:
     description: ''
