@@ -8,74 +8,62 @@ ONTOLOGY:
  ################
 
   ENCLOSES:
-    description:
     subclass_of:
     - CUBA.ACTIVE_RELATIONSHIP
     inverse: CITY.IS_ENCLOSED_BY
 
   HAS_PART:
-    description:
     subclass_of:
     - CITY.ENCLOSES
     inverse: CITY.IS_PART_OF
     default_rel: true
 
   IS_INHABITANT_OF:
-    description:
     subclass_of:
     - CITY.IS_ENCLOSED_BY
     inverse: CITY.HAS_INHABITANT
 
   IS_ENCLOSED_BY:
-    description:
     subclass_of:
     - CUBA.RELATIONSHIP
     inverse: CITY.ENCLOSES
 
   IS_PART_OF:
-    description:
     subclass_of:
     - CITY.IS_ENCLOSED_BY
     inverse: CITY.HAS_PART
 
   HAS_INHABITANT:
-    description:
     subclass_of:
     - CITY.ENCLOSES
     inverse: CITY.IS_INHABITANT_OF
   
   HAS_CHILD:
-    description:
     subclass_of:
     - CITY.HAS_PART
     inverse: CITY.IS_CHILD_OF
 
   IS_CHILD_OF:
-    description:
     subclass_of:
     - CITY.IS_PART_OF
     inverse: CITY.HAS_CHILD
   
   HAS_WORKER:
-    description:
     subclass_of:
     - CITY.HAS_PART
     inverse: CITY.WORKS_IN
 
   WORKS_IN:
-    description:
     subclass_of:
     - CITY.IS_PART_OF
     inverse: CITY.HAS_WORKER
 
   HAS_MAJOR:
-    description:
     subclass_of:
     - CITY.HAS_WORKER
     inverse: CITY.IS_MAJOR_OF
 
   IS_MAJOR_OF:
-    description:
     subclass_of:
     - CITY.WORKS_IN
     inverse: CITY.HAS_MAJOR
@@ -83,7 +71,6 @@ ONTOLOGY:
  ################
 
   CITY_WRAPPER:
-    description:
     subclass_of:
     - CUBA.WRAPPER
     - CITY.HAS_PART:
@@ -92,7 +79,6 @@ ONTOLOGY:
         exclusive: false
 
   CITY_SIM_WRAPPER:
-    description:
     subclass_of:
     - CITY.CITY_WRAPPER
     - CITY.HAS_PART:
@@ -107,26 +93,22 @@ ONTOLOGY:
       CITY.NUM_STEPS:
   
   NUM_STEPS:
-    description:
     subclass_of:
     - CITY.NUMBER
 
   ################
 
   GEOGRAPHICAL_PLACE:
-    description:
     subclass_of:
     - CUBA.ENTITY
     attributes:
       CITY.NAME:
 
   ARCHITECTURAL_COMPONENT:
-    description:
     subclass_of:
     - CUBA.ENTITY
 
   LIVING_BEING:
-    description:
     subclass_of:
     - CUBA.ENTITY
     - CITY.IS_CHILD_OF:
@@ -138,29 +120,24 @@ ONTOLOGY:
       CITY.AGE:  25
 
   NUMBER:
-    description:
     subclass_of:
     - CUBA.ATTRIBUTE
     datatype: INT
 
   POSTAL_CODE:
-    description:
     subclass_of:
     - CITY.NUMBER
 
   NAME:
-    description:
     subclass_of:
     - CUBA.ATTRIBUTE
 
   COORDINATES:
-    description:
     subclass_of:
     - CUBA.ATTRIBUTE
     datatype: VECTOR:2
 
   ADDRESS:
-    description:
     subclass_of:
     - CUBA.ENTITY
     - CITY.IS_PART_OF:
@@ -173,7 +150,6 @@ ONTOLOGY:
       CITY.POSTAL_CODE:
 
   POPULATED_PLACE:
-    description:
     subclass_of:
     - CITY.GEOGRAPHICAL_PLACE
     - CITY.HAS_INHABITANT:
@@ -188,7 +164,6 @@ ONTOLOGY:
       CITY.COORDINATES: [0, 0]
 
   CITY:
-    description:
     subclass_of:
     - CITY.POPULATED_PLACE
     - CITY.HAS_PART:
@@ -205,7 +180,6 @@ ONTOLOGY:
         exclusive: true
 
   NEIGHBOURHOOD:
-    description:
     subclass_of:
     - CITY.POPULATED_PLACE
     - CITY.IS_PART_OF:
@@ -218,7 +192,6 @@ ONTOLOGY:
         exclusive: true
 
   STREET:
-    description:
     subclass_of:
     - CITY.POPULATED_PLACE
     - CITY.HAS_PART:
@@ -231,12 +204,10 @@ ONTOLOGY:
         exclusive: true
 
   ARCHITECTURAL_STRUCTURE:
-    description:
     subclass_of:
     - CITY.GEOGRAPHICAL_PLACE
 
   BUILDING:
-    description:
     subclass_of:
     - CITY.ARCHITECTURAL_STRUCTURE
     - CITY.HAS_PART:
@@ -253,12 +224,10 @@ ONTOLOGY:
         exclusive: true
 
   FLOOR:
-    description:
     subclass_of:
     - CITY.ARCHITECTURAL_COMPONENT
 
   PERSON:
-    description:
     subclass_of:
     - CITY.LIVING_BEING
     - CITY.WORKS_IN:
@@ -271,7 +240,6 @@ ONTOLOGY:
         exclusive: false
 
   CITIZEN:
-    description:
     subclass_of:
     - CITY.PERSON
     - CITY.IS_INHABITANT_OF:
@@ -284,6 +252,5 @@ ONTOLOGY:
         exclusive: true
 
   AGE:
-    description:
     subclass_of:
     - CITY.NUMBER
