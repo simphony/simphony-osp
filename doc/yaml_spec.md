@@ -133,7 +133,8 @@ The CUBA namespace is always installed in OSP-core.
 
 Every attribute is a subclass of `ATTRIBUTE`.
 The declaration of an attribute is a special case of the declaration of an entity.
-It must have the keys described in [Ontology entities format](#ontology-entities-format). It furthermore can have the following keys:
+It must have the keys described in [Ontology entities format](#ontology-entities-format).
+It can additionally have the following keys:
 
 `datatype`: string
 
@@ -289,7 +290,7 @@ It can contain further information:
 Every relationship is a subclass of `RELATIONSHIP`.
 The declaration of a relationship is a special case of the declaration of an entity.
 It must have the keys described in [Ontology entities format](#ontology-entities-format).
-Furthermore, it mus have the following keys:
+Furthermore, it can contain the following information:
 
 `inverse`: **\`\`qualified entity name\`\`** or empty (None)
 > If CUDS object A is related to CUDS object B via relationship REL, then B is related
