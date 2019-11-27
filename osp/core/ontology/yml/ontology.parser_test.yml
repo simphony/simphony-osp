@@ -6,27 +6,23 @@ NAMESPACE: "PARSER_TEST"
 ONTOLOGY:
 
   ENTITY_A:
-    description:
     attributes:
       PARSER_TEST.ATTRIBUTE_A: DEFAULT_A
     subclass_of: 
     - CUBA.ENTITY
   
   ENTITY_B:
-    description:
     attributes:
       PARSER_TEST.ATTRIBUTE_A: DEFAULT_B
     subclass_of:
     - CUBA.ENTITY
 
   ENTITY_C:
-    description:
     subclass_of:
     - PARSER_TEST.ENTITY_A
     - PARSER_TEST.ENTITY_B
 
   ENTITY_D:
-    description:
     attributes:
       PARSER_TEST.ATTRIBUTE_A: DEFAULT_D
     subclass_of:
@@ -34,25 +30,21 @@ ONTOLOGY:
     - PARSER_TEST.ENTITY_B
 
   ATTRIBUTE_A:
-    description:
     datatype: STRING
     subclass_of:
     - CUBA.ATTRIBUTE
 
   ATTRIBUTE_B:
-    description:
     datatype: INT
     subclass_of:
     - CUBA.ATTRIBUTE
 
   ATTRIBUTE_C:
-    description:
     subclass_of:
     - PARSER_TEST.ATTRIBUTE_A
     - PARSER_TEST.ATTRIBUTE_B
 
   ATTRIBUTE_D:
-    description:
     datatype: FLOAT
     subclass_of:
     - PARSER_TEST.ATTRIBUTE_A

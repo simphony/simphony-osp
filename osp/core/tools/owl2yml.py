@@ -60,7 +60,10 @@ class OwlToYmlConverter():
             return
         self.parsed_entities.add(onto_class)
 
-        label = self._get_label(onto_class)
+        try:
+            label = self._get_label(onto_class)
+        except RuntimeError:
+            return
         description = self._get_description(onto_class)
 
         # parse subclasses
@@ -104,7 +107,10 @@ class OwlToYmlConverter():
             return
         self.parsed_entities.add(relationship)
 
-        label = self._get_label(relationship)
+        try:
+            label = self._get_label(relationship)
+        except RuntimeError:
+            return
         description = self._get_description(relationship)
         inverse = None
         if relationship.inverse_property:
@@ -157,6 +163,8 @@ class OwlToYmlConverter():
     def _get_label(self, entity):
         """Returns a label for entity."""
         if entity in [owlready2.Nothing, owlready2.Thing]:
+            raise RuntimeError("No non-prefixed label for %s !" % entity)
+        if repr(entity) == "owl.topObjectProperty":
             raise RuntimeError("No non-prefixed label for %s !" % entity)
         if hasattr(entity, 'label') and entity.label:
             label = entity.label.first()

@@ -7,34 +7,46 @@ qualified_entity_name_pattern = re.compile(
     r"^%s.%s$" % tuple([entity_name_regex] * 2)
 )
 
+entity_common_keys = {
+    "description": str,
+    "!subclass_of": ["class_expression"],
+}
+
+class_definition = {
+    "attributes": {qualified_entity_name_pattern: None},
+    "disjoint_with": ["class_expression"],
+    "equivalent_to": ["class_expression"],
+}
+
+relationship_definition = {
+    "inverse": qualified_entity_name_pattern,
+    "default_rel": bool,
+    "domain": "class_expression",
+    "range": "class_expression",
+    "characteristics": [re.compile(r"^(%s)$" % "|".join([
+        "reflexive",
+        "symmetric",
+        "transitive",
+        "functional",
+        "irreflexive",
+        "asymmetric",
+        "inversefunctional"
+    ]))]
+}
+
+attribute_definition = {
+    "datatype": re.compile(r"^(%s)(:\d+)*$"
+                           % "|".join(map(re.escape, ONTOLOGY_DATATYPES)))
+}
+
 format_description = {
     "/": {
         "!VERSION": re.compile(r"^\d+\.\d+(\.\d+)?$"),
         "!NAMESPACE": entity_name_pattern,
         "!ONTOLOGY": {entity_name_pattern: "entity_def"}
     },
-    "entity_def": {
-        "description": str,
-        "!subclass_of": ["class_expression"],
-        "inverse": qualified_entity_name_pattern,
-        "default_rel": bool,
-        "datatype": re.compile(r"^(%s)(:\d+)*$"
-                               % "|".join(map(re.escape, ONTOLOGY_DATATYPES))),
-        "attributes": {qualified_entity_name_pattern: str},
-        "disjoint_with": ["class_expression"],
-        "equivalent_to": ["class_expression"],
-        "domain": "class_expression",
-        "range": "class_expression",
-        "characteristics": [re.compile(r"^(%s)$" % "|".join([
-            "reflexive",
-            "symmetric",
-            "transitive",
-            "functional",
-            "irreflexive",
-            "asymmetric",
-            "inversefunctional"
-        ]))]
-    },
+    "entity_def": dict(**entity_common_keys, **class_definition,
+                       **relationship_definition, **attribute_definition),
     "class_expression": [
         qualified_entity_name_pattern,
         {qualified_entity_name_pattern:
@@ -47,6 +59,9 @@ format_description = {
         "cardinality": re.compile(r"^(many|some|\*|\+|\?|\d+\+|\d+-\d|\d+)$"),
         "exclusive": bool
     },
+    "class_def": dict(**entity_common_keys, **class_definition),
+    "relationship_def": dict(**entity_common_keys, **relationship_definition),
+    "attribute_def": dict(**entity_common_keys, **attribute_definition)
 }
 
 
@@ -61,8 +76,11 @@ def validate(yaml_doc, pattern="/", context=""):
     :type context: str, optional
     :raises ValueError: The YAML doc does not match
     """
+    if pattern is None:
+        return
+
     # Pattern is string -> match with format description in dictionary above
-    if isinstance(pattern, str):
+    elif isinstance(pattern, str):
         _validate_format(yaml_doc, format_description[pattern], context)
 
     # Pattern is regex -> match regex
@@ -92,15 +110,16 @@ def validate(yaml_doc, pattern="/", context=""):
             raise ValueError("%s must be a dict." % context)
         for key, value in yaml_doc.items():
             validate(key, key_pattern, context)
-            validate(value, value_pattern, context + "/" + key)
+            validate(value, value_pattern, context + "/" + str(key))
 
     # Pattern is callable -> Check if call throws an error
     else:
+        error = ValueError("%s is not of type %s" % (context, pattern))
         try:
-            pattern(yaml_doc)
+            if pattern(yaml_doc) != yaml_doc:
+                raise error
         except ValueError as e:
-            raise ValueError("%s is not of type %s"
-                             % (context, pattern)) from e
+            raise error from e
 
 
 def _validate_format(yaml_doc, format_desc, context):
