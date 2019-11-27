@@ -10,6 +10,7 @@ import yaml
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
+from osp.core.ontology.validator import validate
 
 VERSION_KEY = "VERSION"  # TODO
 ONTOLOGY_MODE_KEY = "ONTOLOGY_MODE"  # TODO
@@ -72,6 +73,8 @@ class Parser:
         self._filename = filename
         with open(self._filename, 'r') as stream:
             self._yaml_doc = yaml.safe_load(stream)
+            validate(self._yaml_doc,
+                     context="<%s>" % os.path.basename(self._filename))
             self._ontology_namespace = OntologyNamespace(
                 self._yaml_doc[NAMESPACE_KEY]
             )

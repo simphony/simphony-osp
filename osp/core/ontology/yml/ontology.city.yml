@@ -1,5 +1,5 @@
 ---
-VERSION: "0.0.2"
+VERSION: "0.0.3"
 
 NAMESPACE: "CITY"
 
@@ -87,22 +87,22 @@ ONTOLOGY:
     subclass_of:
     - CUBA.WRAPPER
     - CITY.HAS_PART:
-        target: CITY.CITY
+        range: CITY.CITY
         cardinality: 1+
-        only: false
+        exclusive: false
 
   CITY_SIM_WRAPPER:
     description:
     subclass_of:
     - CITY.CITY_WRAPPER
     - CITY.HAS_PART:
-        target: CITY.PERSON
+        range: CITY.PERSON
         cardinality: many
-        only: false
+        exclusive: false
     - CITY.HAS_PART:
-        target: CITY.CITY
+        range: CITY.CITY
         cardinality: 1
-        only: false
+        exclusive: false
     attributes:
       CITY.NUM_STEPS:
   
@@ -130,9 +130,9 @@ ONTOLOGY:
     subclass_of:
     - CUBA.ENTITY
     - CITY.IS_CHILD_OF:
-        target: CITY.LIVING_BEING
+        range: CITY.LIVING_BEING
         cardinality: 0-2
-        only: false
+        exclusive: false
     attributes:
       CITY.NAME: "John Smith"
       CITY.AGE:  25
@@ -164,9 +164,9 @@ ONTOLOGY:
     subclass_of:
     - CUBA.ENTITY
     - CITY.IS_PART_OF:
-        target: CITY.BUILDING
+        range: CITY.BUILDING
         cardinality: 1
-        only: false
+        exclusive: false
     attributes:
       CITY.NAME:  "Street"
       CITY.NUMBER: 7
@@ -177,13 +177,13 @@ ONTOLOGY:
     subclass_of:
     - CITY.GEOGRAPHICAL_PLACE
     - CITY.HAS_INHABITANT:
-        target: CITY.CITIZEN
+        range: CITY.CITIZEN
         cardinality: many
-        only: true
+        exclusive: true
     - CITY.HAS_WORKER:
-        target: CITY.PERSON
+        range: CITY.PERSON
         cardinality: many
-        only: true
+        exclusive: true
     attributes:
       CITY.COORDINATES: [0, 0]
 
@@ -192,43 +192,43 @@ ONTOLOGY:
     subclass_of:
     - CITY.POPULATED_PLACE
     - CITY.HAS_PART:
-        target: CITY.NEIGHBOURHOOD
+        range: CITY.NEIGHBOURHOOD
         cardinality: many
-        only: true
+        exclusive: true
     - CITY.IS_PART_OF:
-        target: CITY.CITY_WRAPPER
+        range: CITY.CITY_WRAPPER
         cardinality: 0-1
-        only: true
+        exclusive: true
     - CITY.HAS_MAJOR:
-        target: CITY.CITIZEN
+        range: CITY.CITIZEN
         cardinality: 0-1
-        only: true
+        exclusive: true
 
   NEIGHBOURHOOD:
     description:
     subclass_of:
     - CITY.POPULATED_PLACE
     - CITY.IS_PART_OF:
-        target: CITY.CITY
+        range: CITY.CITY
         cardinality: 1
-        only: true
+        exclusive: true
     - CITY.HAS_PART:
-        target: CITY.STREET
+        range: CITY.STREET
         cardinality: many
-        only: true
+        exclusive: true
 
   STREET:
     description:
     subclass_of:
     - CITY.POPULATED_PLACE
     - CITY.HAS_PART:
-        target: CITY.BUILDING
+        range: CITY.BUILDING
         cardinality: many
-        only: true
+        exclusive: true
     - CITY.IS_PART_OF:
-        target: CITY.NEIGHBOURHOOD
+        range: CITY.NEIGHBOURHOOD
         cardinality: 1
-        only: true
+        exclusive: true
 
   ARCHITECTURAL_STRUCTURE:
     description:
@@ -240,17 +240,17 @@ ONTOLOGY:
     subclass_of:
     - CITY.ARCHITECTURAL_STRUCTURE
     - CITY.HAS_PART:
-        target: CITY.ADDRESS
+        range: CITY.ADDRESS
         cardinality: 1
-        only: false
+        exclusive: false
     - CITY.HAS_PART:
-        target: CITY.FLOOR
+        range: CITY.FLOOR
         cardinality: many
-        only: false
+        exclusive: false
     - CITY.IS_PART_OF:
-        target: CITY.STREET
+        range: CITY.STREET
         cardinality: 1
-        only: true
+        exclusive: true
 
   FLOOR:
     description:
@@ -262,26 +262,26 @@ ONTOLOGY:
     subclass_of:
     - CITY.LIVING_BEING
     - CITY.WORKS_IN:
-        target: CITY.POPULATED_PLACE
+        range: CITY.POPULATED_PLACE
         cardinality: 0-1
-        only: true
+        exclusive: true
     - CITY.IS_PART_OF:
-        target: CITY.CITY_SIM_WRAPPER
+        range: CITY.CITY_SIM_WRAPPER
         cardinality: 0-1
-        only: false
+        exclusive: false
 
   CITIZEN:
     description:
     subclass_of:
     - CITY.PERSON
     - CITY.IS_INHABITANT_OF:
-        target: CITY.POPULATED_PLACE
+        range: CITY.POPULATED_PLACE
         cardinality: 0-1
-        only: true
+        exclusive: true
     - CITY.IS_MAJOR_OF:
-        target: CITY.CITY
+        range: CITY.CITY
         cardinality: 0-1
-        only: true
+        exclusive: true
 
   AGE:
     description:
