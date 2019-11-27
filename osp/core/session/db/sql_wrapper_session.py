@@ -510,7 +510,7 @@ class SqlWrapperSession(DbWrapperSession):
             self._db_insert(
                 table_name=self.MASTER_TABLE,
                 columns=self.COLUMNS[self.MASTER_TABLE],
-                values=[uuid.UUID(int=0), "", False],
+                values=[str(uuid.UUID(int=0)), "", False],
                 datatypes=self.DATATYPES[self.MASTER_TABLE]
             )
 
