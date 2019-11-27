@@ -170,7 +170,10 @@ class OwlToYmlConverter():
             label = "_" + label
         for old, new in convert_special_chars.items():
             label = label.replace(old, new)
-        return str(label).upper()
+        label = str(label).upper()
+        if not re.compile(r"(_|[A-Z])([A-Z]|[0-9]|_)*").match(label):
+            raise ValueError("Invalid name %s." % label)
+        return label
 
     def _get_description(self, entity):
         """Returns description for owl class or object property `entity` by
