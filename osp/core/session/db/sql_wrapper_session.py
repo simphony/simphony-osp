@@ -44,7 +44,7 @@ class SqlWrapperSession(DbWrapperSession):
         MASTER_TABLE: {},
         RELATIONSHIP_TABLE: {
             "origin": (MASTER_TABLE, "uid"),
-            # "target": (MASTER_TABLE, "uid")
+            "target": (MASTER_TABLE, "uid")
         }
     }
     INDEX = {
@@ -347,6 +347,10 @@ class SqlWrapperSession(DbWrapperSession):
                     datatypes=datatypes
                 )
 
+        for added in self._added.values():
+            if added.uid == self.root:
+                continue
+
             # Insert the relationships
             for rel, neighbour_dict in added._neighbours.items():
                 for uid, target_oclass in neighbour_dict.items():
@@ -490,6 +494,25 @@ class SqlWrapperSession(DbWrapperSession):
             foreign_key=self.FOREIGN_KEY[self.RELATIONSHIP_TABLE],
             index=self.INDEX[self.RELATIONSHIP_TABLE]
         )
+        # Add the dummy root element if it doesn't exist.
+        # We do not want to store the actual root element since it will be
+        # created by the user for every connect (root is the wrapper).
+        # Adding it the dummy root here is necessary because other cuds
+        # objects can have relations with the root.
+        c = self._db_select(
+            table_name=self.MASTER_TABLE,
+            columns=["uid"],
+            condition=EqualsCondition(self.MASTER_TABLE,
+                                      "uid", str(uuid.UUID(int=0)), "STRING"),
+            datatypes=self.DATATYPES[self.MASTER_TABLE]
+        )
+        if len(list(c)) == 0:
+            self._db_insert(
+                table_name=self.MASTER_TABLE,
+                columns=self.COLUMNS[self.MASTER_TABLE],
+                values=[uuid.UUID(int=0), "", False],
+                datatypes=self.DATATYPES[self.MASTER_TABLE]
+            )
 
     # OVERRIDE
     def _load_first_level(self):
@@ -519,7 +542,7 @@ class SqlWrapperSession(DbWrapperSession):
         :rtype: Cuds
         """
         # Check if oclass is given
-        if oclass is None and uid is not None:
+        if (oclass is None and uid is not None) or (uid == uuid.UUID(int=0)):
             yield None
         if oclass is None:
             return
