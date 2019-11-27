@@ -27,13 +27,13 @@ class OntologyClass(OntologyEntity):
         :rtype: Dict[OntologyAttribute, str]
         """
         result = self._get_attributes_recursively()
-        conflicting = [v for v in result.values() if v == CONFLICTING]
+        conflicting = [k for k, v in result.items() if v == CONFLICTING]
         if conflicting:
             result = {k: (v if v != CONFLICTING else None)
                       for k, v in result.items()}
             warnings.warn("Conflicting defaults for %s in %s."
                           % (conflicting, self))
-        return {k: v for k, v in result.items() if k not in conflicting}
+        return result
 
     @property
     def own_attributes(self):

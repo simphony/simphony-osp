@@ -23,8 +23,4 @@ bandit:
 unittesting:
   stage: test
   script:
-    - pip3 install --upgrade flake8
-    - flake8 --exclude=*/__init__.py osp/ tests/
-    - python3 setup.py install -o city
-    - coverage run setup.py test
-    - coverage report --omit=tests/*,.eggs/* --skip-covered
+    - tox

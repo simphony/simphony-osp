@@ -13,3 +13,5 @@ cuds/ontology/tools/__pycache__/
 coverage.xml
 .coverage
 *.pkl
+.tox/
+dist/
