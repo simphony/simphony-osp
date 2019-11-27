@@ -1,0 +1,3423 @@
+---
+VERSION: 0.0.1
+NAMESPACE: EMMO
+ONTOLOGY:
+  HAS_INESSENTIAL_PART:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_SPATIAL_PART
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - transitive
+  HAS_SPATIAL_PART:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_PROPER_PART
+    domain:
+      AND:
+      - EMMO.ITEM
+    range:
+      AND:
+      - EMMO.ITEM
+    characteristics:
+    - transitive
+  HAS_PROPER_PART:
+    description: PPxy := Pxy ∧ ¬(x=y)
+    subclass_of:
+    - EMMO.HAS_PART
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - transitive
+  MEREOTOPOLOGICAL:
+    description: 'COMMENT:
+
+      Mereotopology merges mereological and topological concepts and provides relations
+      between wholes, parts, boundaries, etc.'
+    subclass_of:
+    - EMMO.EMMO_RELATION
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics: []
+  EMMO_RELATION:
+    description: ''
+    subclass_of:
+    - CUBA.RELATIONSHIP
+    domain:
+      AND:
+      - EMMO.EMMO
+    range:
+      AND:
+      - EMMO.EMMO
+    characteristics: []
+  HAS_PART:
+    description: ''
+    subclass_of:
+    - EMMO.ENCLOSES
+    - EMMO.OVERLAPS
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - transitive
+    default_rel: true
+  ENCLOSES:
+    description: 'Exy := ∀z(Czx -> Czy)
+
+
+      COMMENT:
+
+      Enclosure is reflexive and transitive.'
+    subclass_of:
+    - EMMO.CONNECTED
+    - CUBA.ACTIVE_RELATIONSHIP
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - transitive
+  OVERLAPS:
+    description: 'Definition:
+
+      Oxy <=> ∃z(Pzx ∧ Pzy)
+
+
+      x overlap with y means that there exists a z that is part of both x and y
+
+      Oxy := ∃z(Pzx ∧ Pzy)
+
+
+      x overlap with y means that there exists a z that is part of both x and y'
+    subclass_of:
+    - EMMO.CONNECTED
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - symmetric
+    inverse: EMMO.OVERLAPS
+  HAS_ESSENTIAL_PART:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_SPATIAL_PART
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - transitive
+  CONTACTS:
+    description: ECxy := Cxy ∧ ¬Oxy
+    subclass_of:
+    - EMMO.CONNECTED
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - symmetric
+    inverse: EMMO.CONTACTS
+  CONNECTED:
+    description: "Definition:\nCxy := x is connected with y\n\nAxiom:\n 1) Cxx (x\
+      \ is always connected with itself (reflexivity))\nAxiom:\n2) Cxy->Cyx (if x\
+      \ is connected with y then y is connected with x (symmetry))\n\nCOMMENT:\nCausality\
+      \ is a topological property between connected items.\n\nCOMMENT:\nItems being\
+      \ connected means that there is a topological contact or \"interaction\" between\
+      \ them."
+    subclass_of:
+    - EMMO.MEREOTOPOLOGICAL
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - symmetric
+    inverse: EMMO.CONNECTED
+  DISCONNECTED:
+    description: ''
+    subclass_of:
+    - EMMO.MEREOTOPOLOGICAL
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - symmetric
+    inverse: EMMO.DISCONNECTED
+  HAS_MEMBER:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_PROPER_PART
+    domain:
+      AND:
+      - EMMO.COLLECTION
+    range:
+      AND:
+      - EMMO.ITEM
+    characteristics:
+    - asymmetric
+    - irreflexive
+  HAS_TEMPORAL_PART:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_PROPER_PART
+    domain:
+      AND:
+      - EMMO.ITEM
+    range:
+      AND:
+      - EMMO.ITEM
+    characteristics:
+    - transitive
+  OVERCROSSES:
+    description: ''
+    subclass_of:
+    - EMMO.OVERLAPS
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - symmetric
+    inverse: EMMO.OVERCROSSES
+  TOPOBJECTPROPERTY:
+    description: ''
+    subclass_of: []
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - symmetric
+    - transitive
+    - reflexive
+    inverse: CUBA.RELATIONSHIP
+  HAS_TEMPORAL_DIRECT_PART:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_TEMPORAL_PART
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - inversefunctional
+    - asymmetric
+    - irreflexive
+  HAS_DIRECT_PART:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_PROPER_PART
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - inversefunctional
+    - asymmetric
+    - irreflexive
+  HAS_SPATIAL_DIRECT_PART:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_ESSENTIAL_PART
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics:
+    - inversefunctional
+    - asymmetric
+    - irreflexive
+  HAS_VARIABLE:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_CONVENTION
+    domain:
+      AND:
+      - EMMO.NUMBER
+    range:
+      AND:
+      - EMMO.VARIABLE
+    characteristics: []
+  HAS_CONVENTION:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_SIGN
+    domain:
+      AND: []
+    range:
+      AND:
+      - EMMO.CONVENTIONAL
+    characteristics: []
+  HAS_MODEL:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_ICON
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics: []
+  HAS_ICON:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_SIGN
+    domain:
+      AND: []
+    range:
+      AND:
+      - EMMO.ICON
+    characteristics: []
+  HAS_PARTICIPANT:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_PART
+    domain:
+      AND:
+      - EMMO.PROCESS
+    range:
+      AND:
+      - EMMO.PARTICIPANT
+    characteristics: []
+  HAS_PROPER_PARTICIPANT:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_PROPER_PART
+    - EMMO.HAS_PARTICIPANT
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics: []
+  HAS_PROPERTY:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_CONVENTION
+    domain:
+      AND: []
+    range:
+      AND:
+      - EMMO.PROPERTY
+    characteristics: []
+  SEMIOTICAL:
+    description: ''
+    subclass_of:
+    - EMMO.EMMO_RELATION
+    domain:
+      AND: []
+    range:
+      AND: []
+    characteristics: []
+  HAS_INDEX:
+    description: ''
+    subclass_of:
+    - EMMO.HAS_SIGN
+    domain:
+      AND: []
+    range:
+      AND:
+      - EMMO.INDEX
+    characteristics: []
+  HAS_SIGN:
+    description: ''
+    subclass_of:
+    - EMMO.SEMIOTICAL
+    - CUBA.ACTIVE_RELATIONSHIP
+    domain:
+      AND:
+      - EMMO.OBJECT
+    range:
+      AND:
+      - EMMO.SIGN
+    characteristics: []
+  VOID:
+    description: A 'item' that has no 'physical' parts.
+    subclass_of:
+    - EMMO.ITEM
+    - EMMO.HAS_PART:
+        exclusive: true
+        cardinality: 0+
+        range: EMMO.VOID
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.PHYSICAL
+  PHYSICAL:
+    description: "COMMENT:\nA 'physical' is the class that contains all the individuals\
+      \ that stand for real world objects that interact physically with the interpreter.\n\
+      \nPerception is a subcategory of interaction.\n\nA physical must be perceived\
+      \ through physical interaction by the ontologist. Then the ontologist can declare\
+      \ an individual standing for the physical object just perceived.\n\nCOMMENT:\n\
+      A 'physical' must include at least an 'elementary' part, but can also include\
+      \ void parts.\n\nA 'physical' may include as part also the 'void' surrounding\
+      \ or enclosed by its 'physical' sub parts.\n\nThere are no particular criteria\
+      \ for 'physical'-s structure, except that is made of some 'elementary'-s as\
+      \ proper parts and not only 'void'.\n\nThis is done in order to:\na) take into\
+      \ account the quantum nature of physical systems, in which the actual position\
+      \ of sub-components (e.g. electrons in an atom) is not known except for its\
+      \ probability distribution function (according to the Copenhagen interpretation.)\n\
+      b) take into account the fact that large entities (e.g. devices, cars, materials)\
+      \ have some void into them.\n\ne.g. a 'spacetime' that has spatial parts an\
+      \ atom and a cubic light year of 'void' extending for some time can be a 'physical'\
+      \ individual.\n\nCOMMENT:\nA 'physical' with dimensions other than 4D cannot\
+      \ exist, following the restriction of the parent 'emmo' class.\n\nIt follows\
+      \ from the fact that perception is always a process (e.g. it unfolds in time).\n\
+      \ne.g. you always have an aperture time when you take a picture or measure a\
+      \ property. Instantaneous perceptions are idealizations (abstractions) or a\
+      \ very small time measurement.\n\nCOMMENT:\nIn the EMMO there are no relations\
+      \ such as 'occupies_space', since 'physical'-s are themselves the 4D region.\n\
+      \nCOMMENT:\nThe EMMO can be used to represent real world entities as 'physical'-s\
+      \ that are easy to connect to classical or quantum mechanical based models.\n\
+      \nClassical mechanics poses no representational issues, for the EMMO: the 4D\
+      \ representation of 'physical'-s is consistent with classical physics systems.\n\
+      \nHowever, the representation of 'physical'-s that are typically analized through\
+      \ quantum mechanics (e.g. molecules, atoms, clusters), is not straightforward.\n\
+      \n1) De Broglie - Bohm interpretation\nThe most simple approach is to rely on\
+      \ Bohmian mechanics, in which each particle is supposed to exists in a specific\
+      \ position between measurements (hidden variables approach), while its trajectory\
+      \ is calculated using a Guiding Equation based on a quantum field calculated\
+      \ with the Schroedinger Equation.\n\nWhile this approach is really easy to implement\
+      \ in an ontology, since each entity has its own well defined 4D region, its\
+      \ mathematical representation failed to receive large consensus due to the difficulties\
+      \ to include relativistic effects, to be extended to subnuclear scale and the\
+      \ strong non-locality assumtpion of the quantum field.\n\nNevertheless, the\
+      \ Bohmian mechanics is a numerical approach that is used in electronic models\
+      \ to reduce the computational effort of the solution of Schroedinger Equation.\n\
+      \nIn practice, an EMMO user can declare a 'physical' individual that stand for\
+      \ the whole quantum system to be described, and at the same time all sub-parts\
+      \ individuals can be declared, having them a well defined position in time,\
+      \ according to De Broglie - Bohm interpretation. The Hamiltonian can be calculated\
+      \ by considering the sub-part individuals.\n\n'physical'-s are then made of\
+      \ 'physical' parts and 'void' parts that stand for the space between 'physical'-s\
+      \ (e.g. the void between electrons and nucleus in an atom).\n\n2) Copenhagen\
+      \ interpretation\nIn this interpretation the properties (e.g. energy level,\
+      \ position, spin) of a particle are not defined in the interval between two\
+      \ measurements and the quantum system is entangled (i.e. properties of particles\
+      \ in the sysyem are correlated) and described by a global wavefunction obtained\
+      \ solving the Schroedinger Equation. \n\nUpon measurement, the wavefunction\
+      \ collapses to a combination of close eigenstates that provide information about\
+      \ bservables of the system components (e.g. position, energy).\n\nThe EMMO can\
+      \ be used to represent 'physical'-s that can be related to Copenhagen based\
+      \ models. In practice, the user should follow these steps:\n\na) define the\
+      \ quantum system as a 'physical' individual (e.g. an H2 molecule) under a specific\
+      \ class (e.g. 'h2_molecule'). This individual is the whole.\n\nb) define the\
+      \ axioms of the  class that describe how many sub-parts are expected for the\
+      \ whole and their class types (e.g. 'h2_molecule' has axioms 'has_proper_part\
+      \ exactly 2 electron' and 'has_proper_part exactly 2 nucleus)\n\nc) the user\
+      \ can now connect the whole to a Schroedinger equation based model whose Hamiltonian\
+      \ is calculated trough the information coming only from the axioms. No individuals\
+      \ are declared for the subparts!\n\nd) a measurement done on the quantum system\
+      \ that provides information on the sub-part observables is interpreted as wavefunction\
+      \ collapse and leads to the end of the whole and the declaration of the sub-parts\
+      \ individuals which can be themselves other quantum systems \n\ne.g. if the\
+      \ outer electron of the H2 molecule interacts with another entity defining its\
+      \ state, then the whole that stands for the entangled H2 molecule becomes a\
+      \ 'physical' made of an electron individual, a quantum system made of one electron\
+      \ and two nuclei and the void between them.\n\ne.g. in the Born-Oppenheimer\
+      \ approximation the user represent the atom by un-entangling nucleus and electronic\
+      \ cloud. The un-entanglement comes in the form of declaration of individual\
+      \ as parts.\n\ne.g. the double slit experiment can be represent in the EMMO\
+      \ as:\na) before the slit: a 'physical' that extend in space and has parts 'electron'\
+      \ and 'void', called 'single_electron_wave_function'. 'electron' and 'void'\
+      \ are only in the axioms and not decalred individuals.\nb) during slit passage:\
+      \ a 'physical' made of one declared individual, the 'electron'.\nc) after the\
+      \ slit: again 'single_electron_wave_function'\nd) upon collision with the detector:\
+      \  'physical' made of one declared individual, the 'electron'.\n\nCOMMENT:\n\
+      The purpose of the 'physical' branch is to provide a representation of the real\
+      \ world objects, while the models used to explain or predict the behaviour of\
+      \ the real world objects lay under the 'semiotic' branch.\n\nMore than one model\
+      \ can be connected to the same 'physical'.\n\ne.g. Navier-Stokes or Euler equation\
+      \ applied to the same fluid"
+    subclass_of:
+    - EMMO.ITEM
+    - EMMO.HAS_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.ELEMENTARY
+    - EMMO.HAS_TEMPORAL_PART:
+        exclusive: true
+        cardinality: 0+
+        range: EMMO.PHYSICAL
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.VOID
+  ITEM:
+    description: "COMMENT:\nA real world object is self-connected if any two parts\
+      \ that make up the whole are connected to each other (here the concept of connection\
+      \ is primitive). \n\nAlternatively, using the primitive path-connectivity concept\
+      \ we can define a self-connected real world object as an object for which each\
+      \ couple of points is path-connected.\n\nCOMMENT:\nAn 'item' individual stands\
+      \ for a real world self-connected object which can be represented as a whole\
+      \ made of connected parts (e.g. a car made of components).\n\nIn the EMMO, connectivity\
+      \ is the topological foundation of causality.\n\nAll physical systems, i.e.\
+      \ systems whose behaviour is explained by physics laws, are always represented\
+      \ by 'item'-s.\n\nMembers of a 'collection' lack of causality connection, i.e.\
+      \ they do not constitute a physical system as a whole.\n\nCOMMENT:\nThe 'item'\
+      \ class and all its sub-classes are 'set' individuals.\n\nThe 'item' branch\
+      \ will be used to represent the world things and can be seen in practice as\
+      \ the ontology core."
+    subclass_of:
+    - EMMO.EMMO
+    equivalent_to:
+    - OR:
+      - EMMO.VOID
+      - EMMO.PHYSICAL
+    disjoint_with:
+    - EMMO.COLLECTION
+  COLLECTION:
+    description: "COMMENT:\nA 'collection' individual is a sign that stands for a\
+      \ non-self-connected real world object.\n\nA 'collection' individual is related\
+      \ to each 'item' individuals of the collection (i.e. the members) through the\
+      \ membership relation.\n\nAn 'item' individual stands for a real world self-connected\
+      \ object which can be represented as a whole made of connected parts (e.g. a\
+      \ car made of components).\n\nCOMMENT:\nA 'set' individual cannot be member\
+      \ of a 'set' (to avoid Russel's paradox).\n\nCOMMENT:\nFormally, 'set' is axiomatized\
+      \ as the class of individuals that 'has_member' some 'item'.\n\nA 'set' cannot\
+      \ have as member another 'set'. This relation is expressed instead by the subset\
+      \ relation, which is the OWL-DL built-in 'is_a' relation used to declare subclasses\
+      \ of 'set'.\n\nCOMMENT:\nSince OWL-DL classes are intended as signs that stand\
+      \ for real world sets, we can consider the 'set' branch as a meta-ontological\
+      \ branch, since 'item' class and all its subclasses are then individuals of\
+      \ 'set'.\n\nIt is also possible to define a relation 'is_subset_of' valid only\
+      \ between 'set' individuals that is equivalent to the OWL-DL built-in 'is_a'\
+      \ relation between classes in the 'item' branch. \n\nHowever this is not done\
+      \ in the EMMO for the sake of simplicity and due to the limitation of the language.\n\
+      \nCOMMENT:\nThe 'set' class can be used to declare individuals that stand for\
+      \ collections of parts that does not form a self-connected whole in mereotopological\
+      \ sense.\n\ne.g. the set of users of a particular software, the set of atoms\
+      \ that have been part of that just dissociated molecule, or even the set of\
+      \ atoms that are part of a molecule considered as single individual entities\
+      \ and not as a mereotopological self-connected fusion."
+    subclass_of:
+    - EMMO.EMMO
+    - EMMO.HAS_MEMBER:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.ITEM
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.ITEM
+  EMMO:
+    description: "COMMENT:\n'emmo' is the disjoint union of 'item' and 'collection'\
+      \ (covering axiom).\n\nThe union implies that 'emmo' individuals can only be\
+      \ 'item' individuals (standing for self-connected real world objects) or 'collection'\
+      \ individuals (standing for a collection of disconnected items).\n\nDisjointness\
+      \ means that a 'collection' individual cannot be an 'item' individual and viceversa,\
+      \ meaning that a real world object cannot be self-connected and non-self connected\
+      \ at the same time.\n\nCOMMENT:\nFor the EMMO the universe is represented at\
+      \ meta-ontological level (i.e. the representational level that includes the\
+      \ ontologist, the ontology and the universe) as a 4D path-connected topological\
+      \ manifold (i.e. the spacetime).\n\nA real world object is then a topological\
+      \ sub-region of the whole 4D manifold that describes our universe. \n\nA universe\
+      \ sub-region is isolated and defined as a real world object by the ontologist,\
+      \ through a semiotic process that occurs at the meta-ontological level (i.e.\
+      \ outside the ontology).\n\nMereotopology is the fundamental logical representation\
+      \ used to characterize the universe and to provide the definitions for the EMMO\
+      \ concepts at interpreter's level.\n\nThe fundamental distinction between real\
+      \ world objects upon which the EMMO is based in self-connectedness: a real world\
+      \ object can be self-connected xor not self-connected.\n\nCOMMENT:\nIn the EMMO\
+      \ we will refer to the universe as a Minkowski space, restricting the ontology\
+      \ to special relativity only. However, exension to general relativity, will\
+      \ adding more complexity, should not change the overall approach.\n\nCOMMENT:\n\
+      Parthood relations does not change dimensionality of an 'emmo' individual, i.e.\
+      \ every part of a real world object always retains its 4D dimensionality. \n\
+      \nThe smallest part is a 'quantum'.\n\nIt follows that, for the EMMO, real world\
+      \ objects of dimensionality lower than 4D do not exist (e.g. surfaces, lines)."
+    subclass_of:
+    - CUBA.ENTITY
+    - EMMO.HAS_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.QUANTUM
+    equivalent_to:
+    - OR:
+      - EMMO.COLLECTION
+      - EMMO.ITEM
+    disjoint_with: []
+  NUMBER:
+    description: ''
+    subclass_of:
+    - EMMO.MATH_SYMBOL
+    equivalent_to: []
+    disjoint_with: []
+    attributes:
+      EMMO.VALUE:
+  VARIABLE:
+    description: 'COMMENT:
+
+      A ''variable'' is a ''symbol'' that stands for a numerical defined ''mathematical''
+      entity like e.g. a number, a vector, a matrix.'
+    subclass_of:
+    - EMMO.MATH_SYMBOL
+    equivalent_to: []
+    disjoint_with: []
+  PROCESS:
+    description: "A 'process' is defined as a temporal part of a 'physical' that is\
+      \ categorized in a primitive process subclass according to what type of process\
+      \ we want to represent.\n\nFollowing the common definition of process, every\
+      \ 'physical' is a process since every 4D object always has a time dimension.\
+      \ However, in the EMMO we restrict the meaning of the word process to 'physical'-s\
+      \ whose evolution in time have a particular meaning for the ontologist. \n\n\
+      i.e. a 'process' is not only something that unfolds in time (which is automatically\
+      \ represented in a 4D ontology), but something happening that has a meaning\
+      \ for the interpreter."
+    subclass_of:
+    - EMMO.PHYSICAL
+    - EMMO.HAS_PARTICIPANT:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.PARTICIPANT
+    equivalent_to: []
+    disjoint_with: []
+  PARTICIPANT:
+    description: 'COMMENT:
+
+      In the EMMO the relation of participation to a process falls under mereotopology.'
+    subclass_of:
+    - EMMO.PHYSICAL
+    equivalent_to: []
+    disjoint_with: []
+  SUBJECTIVE_PROPERTY:
+    description: "COMMENT:\nThe word subjective means that a non-well defined or an\
+      \ unknown procedure is used for the definition of the property.\n\nThis happens\
+      \ due to e.g. the complexity of the object, the lack of a underlying model for\
+      \ the representation of the object, the non-well specified meaning of the property\
+      \ symbols. \n\nA 'subjective_property' cannot be used to univocally compare\
+      \ 'object'-s.\n\ne.g. you cannot evaluate the beauty of a person on objective\
+      \ basis.\n\nEXAMPLE:\nThe beauty of that girl.\nThe style of your clothing."
+    subclass_of:
+    - EMMO.PROPERTY
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.OBJECTIVE_PROPERTY
+  OBJECTIVE_PROPERTY:
+    description: 'COMMENT:
+
+      The word objective does not mean that each observation will provide the same
+      results. It means that the observation followed a well defined procedure.
+
+
+      COMMENT:
+
+      a.k.a. physical_property'
+    subclass_of:
+    - EMMO.PROPERTY
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.SUBJECTIVE_PROPERTY
+  PROPERTY:
+    description: "COMMENT:\nWe know real world entities through observation/perception.\n\
+      \nA non-perceivable real world entity does not exist (or it exists on a plane\
+      \ of existance that has no intersection with us and we can say nothing about\
+      \ it).\n\nPerception/observation of a real wolrd entity occurs when the entity\
+      \ stimulate an observer in a peculiar way through a well defined perception\
+      \ channel.\n\nFor this reason each property is related to a specific observation\
+      \ process which involves a specific observer with its own perception mechanisms.\n\
+      \nThe observation process (e.g. a look, a photo shot, a measurement) is performed\
+      \  by an observer (e.g. you, a camera, an instrument) through a specific perception\
+      \ mechanism (e.g. retina impression, CMOS excitation, piezoelectric sensor activation)\
+      \ and involves an observed entity.\n\nAn observation is a semiotic process,\
+      \ since it stimulate an interpretant within the interpreter who can communicate\
+      \ the perception result to other interpreters through a sign which is the property.\
+      \ \n\nProperty subclasses are specializations that depend on the type of observation\
+      \ processes.\n\ne.g. the property 'colour' is related to a process that involves\
+      \ emission or interaction of photon and an observer who can perceive electromagnetic\
+      \ radiation in the visible frequency range. \n\nProperties usually relies on\
+      \ symbolic systems (e.g. for colour it can be palette or RGB).\n\nEXAMPLE:\n\
+      Hardness is a subclass of properties.\n\nVickers hardness is a subclass of hardness\
+      \ that involves the procedures and instruments defined by the standard hardness\
+      \ test.\n\nEXAMPLE:\nLet's define the class 'colour' as the subclass of the\
+      \ properties that involve photon emission and an electromagnetic radiation sensible\
+      \ observer.\n\nAn individual C of this class 'colour' can be defined be declaring\
+      \ the process individual (e.g. daylight illumination) and the observer (e.g.\
+      \ my eyes)\n\nStating that an entity E has_property C, we mean that it can be\
+      \ observed by such setup of process + observer (i.e. observed by my eyes under\
+      \ daylight).\n\nThis definition can be generalized by using a generic human\
+      \ eye, so that the observer can be a generic human.\n\nThis can be used in material\
+      \ characterization, to define exactly the type of measurement done, including\
+      \ the instrument type."
+    subclass_of:
+    - EMMO.SYMBOLIC
+    - EMMO.CONVENTIONAL
+    equivalent_to:
+    - OR:
+      - EMMO.SUBJECTIVE_PROPERTY
+      - EMMO.OBJECTIVE_PROPERTY
+    disjoint_with: []
+  INDEX:
+    description: 'EXAMPLE:
+
+      Smoke stands for a combustion process (a fire).
+
+
+      My facial expression stands for my emotional status.'
+    subclass_of:
+    - EMMO.SIGN
+    equivalent_to: []
+    disjoint_with: []
+  ICON:
+    description: "COMMENT:\nThree subtypes of icon are possible:\n \n(a) the image,\
+      \ which depends on a simple quality (e.g. picture)\n\n(b) the diagram, whose\
+      \ internal relations, mainly dyadic or so taken, represent by analogy the relations\
+      \ in something (e.g. math formula, geometric flowchart)\n\n(c) the metaphor,\
+      \ which represents the representative character of a sign by representing a\
+      \ parallelism in something else\n\n[Wikipedia]\n\nEXAMPLE:\nA picture that reproduces\
+      \ the aspect of a person. \n\nAn equation that reproduces the logical connection\
+      \ of the properties of a physical entity."
+    subclass_of:
+    - EMMO.SIGN
+    equivalent_to: []
+    disjoint_with: []
+  OBJECT:
+    description: "COMMENT:\nHere is assumed that the concept of 'object' is always\
+      \ relative to a 'semiotic' process. An 'object' does not exists per se, but\
+      \ it's always part of an interpretation.\n\nThe EMMO relies on strong reductionism,\
+      \ i.e. everything real is a formless collection of elementary particles: we\
+      \ give a meaning to real world entities only by giving them boundaries and defining\
+      \ them using 'sign'-s. \n\nIn this way the 'sign'-ed entity become and 'object',\
+      \ and the 'object' is the basic entity needed in order to apply a logical formalism\
+      \ to the real world entities (i.e. we can speak of it through its sign, and\
+      \ use logics on it through its sign)."
+    subclass_of:
+    - EMMO.SEMIOTIC
+    equivalent_to:
+    - EMMO.HAS_SIGN:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.SIGN
+    disjoint_with: []
+  SIGN:
+    description: "COMMENT:\nA 'sign' can have temporal-direct-parts which are 'sign'\
+      \ themselves.\n\nA 'sign' usually have 'sign' spatial direct parts only up to\
+      \ a certain elementary semiotic level, in which the part is only a 'physical'\
+      \ and no more a 'sign' (i.e. it stands for nothing). This elementary semiotic\
+      \ level is peculiar to each particular system of signs (e.g. text, painting).\n\
+      \nJust like an 'elementary' in the 'physical' branch, each 'sign' branch should\
+      \ have an a-tomistic mereological part.\n\nCOMMENT:\nAccording to Peirce, 'sign'\
+      \ includes three subcategories:\n- symbols: that stand for an object through\
+      \ convention\n- indeces: that stand for an object due to causal continguity\n\
+      - icon: that stand for an object due to similitudes e.g. in shape or composition\n\
+      \nCOMMENT:\nIn a 4D ontology one could question if a 'sign' should be defined\
+      \ as a spatial direct part of a 'semiosis' i.e. a proper part of a 'semiosis'\
+      \ during all its existence.\n\ne.g. one can say that an unread text is not a\
+      \ 'sign': it was a 'sign' during the 'semiosis' process in which it was written,\
+      \ but after that it is something else, until somebody read it again.\n\nHowever,\
+      \ this is not the case for an ontology, since declaring an individual under\
+      \ the 'sign' class (a semiosis outside the EMMO, a meta-semiosis) is equivalent\
+      \ to say that for the ontologist (an interpreter outside the EMMO, a meta-interpreter)\
+      \ the real entity (an object outside the EMMO, a meta-object) is a 'sign'.\n\
+      \nSo the 'semiosis' process within the EMMO is about how other 'interpreter'-s\
+      \ deal with the 'sign'-s here declared.\n\nCOMMENT:\nIt can be defined as the\
+      \ semiotic branch of the EMMO.\n\n'sign' subclasses categorize the type of signs\
+      \ that are used to create representations/models of the real world entities.\n\
+      \nEXAMPLE:\nA novel is made of chapters, paragraphs, sentences, words and characters\
+      \ (in a direct parthood mereological hierarchy). \n\nEach of them are 'sign'-s.\
+      \ \n\nA character can be the a-tomistic 'sign' for the class of texts.\n\nThe\
+      \ horizontal segment in the character \"A\" is direct part of \"A\" but it is\
+      \ not a 'sign' itself.\n\nFor plain text we can propose the ASCII symbols, for\
+      \ math the fundamental math symbols."
+    subclass_of:
+    - EMMO.SEMIOTIC
+    - EMMO.HAS_TEMPORAL_PART:
+        exclusive: true
+        cardinality: 0+
+        range: EMMO.SIGN
+    equivalent_to:
+    - OR:
+      - EMMO.INDEX
+      - EMMO.CONVENTIONAL
+      - EMMO.ICON
+    disjoint_with: []
+  CONVENTIONAL:
+    description: 'COMMENT:
+
+      In Peirce semiotics this kind of sign category is called symbol. However, since
+      symbol is also used in formal languages, the name is changed in conventional.'
+    subclass_of:
+    - EMMO.SIGN
+    equivalent_to: []
+    disjoint_with: []
+  QUARK:
+    description: ''
+    subclass_of:
+    - EMMO.MASSIVE
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.ELECTRON
+  ELECTRON:
+    description: ''
+    subclass_of:
+    - EMMO.MASSIVE
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.QUARK
+  MASSIVE:
+    description: ''
+    subclass_of:
+    - EMMO.ELEMENTARY
+    equivalent_to:
+    - OR:
+      - EMMO.QUARK
+      - EMMO.ELECTRON
+    disjoint_with:
+    - EMMO.MASSLESS
+  PHOTON:
+    description: ''
+    subclass_of:
+    - EMMO.MASSLESS
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.GLUON
+    - EMMO.GRAVITON
+  GLUON:
+    description: ''
+    subclass_of:
+    - EMMO.MASSLESS
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.PHOTON
+    - EMMO.GRAVITON
+  GRAVITON:
+    description: ''
+    subclass_of:
+    - EMMO.MASSLESS
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.PHOTON
+    - EMMO.GLUON
+  MASSLESS:
+    description: ''
+    subclass_of:
+    - EMMO.ELEMENTARY
+    equivalent_to:
+    - OR:
+      - EMMO.PHOTON
+      - EMMO.GLUON
+      - EMMO.GRAVITON
+    disjoint_with:
+    - EMMO.MASSIVE
+  ELEMENTARY:
+    description: 'COMMENT:
+
+      ''elementary'' is by definition the most simple example of ''state''.
+
+
+      COMMENT:
+
+      According to mereology, this should be call ''a-tomistic'' in the strict etimological
+      sense of the word (from greek, a-tomos: un-divisible).
+
+
+      Mereology based on such items is called atomistic mereology.
+
+
+      However, in order not to confuse the lexicon between mereology and physics (in
+      which an atom is a divisible physical entity) we prefer to call it ''elementary'',
+      recalling the concept of elementary particle coming from the standard particles
+      model.'
+    subclass_of:
+    - EMMO.SUBATOMIC
+    - EMMO.STATE
+    - EMMO.PHYSICAL
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: true
+        cardinality: 0+
+        range: CUBA.NOTHING
+    - EMMO.HAS_TEMPORAL_PART:
+        exclusive: true
+        cardinality: 0+
+        range: EMMO.ELEMENTARY
+    equivalent_to:
+    - OR:
+      - EMMO.MASSIVE
+      - EMMO.MASSLESS
+    disjoint_with: []
+  STATE:
+    description: "COMMENT:\nDirect partitions declaration is a choice of the ontology\
+      \ developer that choses the classes to be used as direct parts, according to\
+      \ its own world view.\n\nA 'state' can always be direct partitioned in 'elementary'-s\
+      \ and 'void' or 'physical'.\n\ne.g. the water in my glass can be seen as a single\
+      \ object without declaring direct parts, or as made of H2O molecules direct\
+      \ parts.\n\nCOMMENT:\nThe definition of 'state' implies that its direct parts\
+      \ (i.e. 'physicals') are not gained or lost during its temporal extension (they\
+      \ exist from the left to the right side of the time interval), so that the granularity\
+      \ of a 'state' is constant.\n\nThis does not mean that there cannot be a change\
+      \ in the internal structure of the 'state' direct parts. It means only that\
+      \ this change must not affect the existence of the direct part itself.\n\nThere\
+      \ is no change in granularity or cardinality of direct parts within a 'state'.\n\
+      \nAlso, the 'state' must cover all the time interval between two successive\
+      \ cardinality changes.\n\nThe use of spatial direct parthood in 'state' definition\
+      \ means that a 'state' cannot overlap in space another 'state'.\n\nCOMMENT:\n\
+      The usefulness of 'state' is that it makes it possible to describe the evolution\
+      \ in time of an 'existent' in terms of series of 'state'-s that can take into\
+      \ account the disappearance or appearance of parts within a 'physical'. \n\n\
+      A 'state' is a recognizable granularity level of matter, in the sense that its\
+      \ direct parts do not appear or disappear within its lifetime as it can be for\
+      \ a generic 'existent'.\n\nCOMMENT:\nThere is no change in granularity or cardinality\
+      \ of parts within a state.\n\nThe use of spatial direct parthood in state definition\
+      \ means that a state cannot overlap in space another state that is direct part\
+      \ of the same whole.\n\nEXAMPLE:\ne.g. the existent in my glass is declared\
+      \ at t = t_start as made of two direct parts: the ice and the water. It will\
+      \ continue to exists as state as long as the ice is completely melt at t = t_end.\
+      \ The new state will be completely made of water. Between t_start and t_end\
+      \ there is an exchange of molecules between the ice and the water, but this\
+      \ does not affect the existence of the two states.\n\nIf we partition the existent\
+      \ in my glass as ice surrounded by several molecules (we do not use the object\
+      \ water as direct part) then the appearance of a molecule coming from the ice\
+      \ will cause a state to end and another state to begin."
+    subclass_of:
+    - EMMO.EXISTENT
+    - OR:
+      - EMMO.ELEMENTARY
+      - EMMO.HAS_SPATIAL_DIRECT_PART:
+          exclusive: false
+          cardinality: 1+
+          range: EMMO.EXISTENT
+    equivalent_to: []
+    disjoint_with: []
+  SUBATOMIC:
+    description: ''
+    subclass_of:
+    - EMMO.STATE
+    equivalent_to: []
+    disjoint_with: []
+  QUANTUM:
+    description: "COMMENT:\nA 'quantum' is the most fundamental subclass of 'item',\
+      \ since we consider it as the smallest possible self-connected 4D real world\
+      \ object.\n\nThe quantum concept recalls the fact that there is lower epistemological\
+      \ limit to our knowledge of the universe, related to the uncertainity principle.\n\
+      \nCOMMENT:\nA 'quantum' stands for a 4D real world object.\n\nCOMMENT:\nA quantum\
+      \ is the EMMO mereological a-tomic entity. \n\nTo avoid confusion with the concept\
+      \ of atom coming from physics, we will use the expression quantum mereology,\
+      \ instead of a-tomistic mereology.\n\nEXAMPLE:\nFor a physics based ontology,\
+      \ like the EMMO, the 'quantum' can stand for the smallest identifiable portion\
+      \ of spacetime defined by the Planck limit in length (1.616e-35 m) and time\
+      \ (5.39e-44 s).\n\nFor a manpower management ontology, a 'quantum' can stand\
+      \ for an hour (time) of a worker (space) activity."
+    subclass_of:
+    - EMMO.ITEM
+    - EMMO.HAS_PROPER_PART:
+        exclusive: true
+        cardinality: 0+
+        range: CUBA.NOTHING
+    equivalent_to: []
+    disjoint_with: []
+  EXISTENT:
+    description: "A 'item' which is a 'state' or made only of 'state' temporal direct\
+      \ parts.\n\nCOMMENT:\n'existent' is the most important class to be used for\
+      \ representing real world objects under a reductionistic perspective (i.e. objects\
+      \ come from the composition of sub-part objects). \n\n'existent' class collects\
+      \ all individuals that stand for real world objects that can be structured in\
+      \ temporal sub-parts of constant mereological cardinality (i.e. number of parts)\
+      \ through the temporal direct parthood, that provides a way to axiomatize tassellation\
+      \ principles for a specific whole class, and non-transitivity to retain the\
+      \ granularity levels.\n\ne.g. a car, a supersaturated gas with nucleating nanoparticles,\
+      \ an atom that becomes ionized and then recombines with an electron.\n\nCOMMENT:\n\
+      IMPORTANT:\nif we agree that every item can be partitioned in time into 'state'-s\
+      \ with constant cardinality, then 'existent' is conincident with 'item'.\n\n\
+      COMMENT:\nex-sistere (latin): to stay (to persist through time) outside others\
+      \ of the same type (to be distinct from the rest)."
+    subclass_of:
+    - EMMO.PHYSICAL
+    - EMMO.HAS_TEMPORAL_DIRECT_PART:
+        exclusive: true
+        cardinality: 0+
+        range: EMMO.STATE
+    - OR:
+      - EMMO.STATE
+      - EMMO.HAS_TEMPORAL_DIRECT_PART:
+          exclusive: false
+          cardinality: 1+
+          range: EMMO.STATE
+    equivalent_to: []
+    disjoint_with: []
+  PYTHON:
+    description: ''
+    subclass_of:
+    - EMMO.SOFTWARE
+    equivalent_to: []
+    disjoint_with: []
+  SOFTWARE:
+    description: ''
+    subclass_of:
+    - EMMO.FORMULA
+    equivalent_to: []
+    disjoint_with: []
+  PUNCTUATION:
+    description: ''
+    subclass_of:
+    - EMMO.SYMBOL
+    equivalent_to: []
+    disjoint_with: []
+  SYMBOL:
+    description: "COMMENT:\nSubclasses of 'symbol' are alphabets, in formal languages\
+      \ terminology.\n\nCOMMENT:\nSymbols of a formal language need not be symbols\
+      \ of anything. For instance there are logical constants which do not refer to\
+      \ any idea, but rather serve as a form of punctuation in the language (e.g.\
+      \ parentheses). \n\nSymbols of a formal language must be capable of being specified\
+      \ without any reference to any interpretation of them. \n(Wikipedia)\n\nCOMMENT:\n\
+      The class is the idea of the symbol, while the individual of that class stands\
+      \ for a specific mark (or token) of that idea.\n\nEXAMPLE:\nThe class of letter\
+      \ \"A\" is the symbol as idea and the letter A is the mark."
+    subclass_of:
+    - EMMO.SYMBOLIC
+    equivalent_to: []
+    disjoint_with: []
+  _3:
+    description: ''
+    subclass_of:
+    - EMMO.ARABIC_NUMERAL
+    equivalent_to: []
+    disjoint_with:
+    - EMMO._6
+    - EMMO._7
+    - EMMO._9
+    - EMMO._2
+    - EMMO._1
+    - EMMO._5
+    - EMMO._8
+    - EMMO._0
+    - EMMO._4
+  ARABIC_NUMERAL:
+    description: ''
+    subclass_of:
+    - EMMO.SYMBOL
+    equivalent_to: []
+    disjoint_with: []
+  JAVA:
+    description: ''
+    subclass_of:
+    - EMMO.SOFTWARE
+    equivalent_to: []
+    disjoint_with: []
+  F:
+    description: ''
+    subclass_of:
+    - EMMO.ITALIAN_LETTER
+    - EMMO.ENGLISH_LETTER
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.H
+    - EMMO.C
+    - EMMO.K
+    - EMMO.B
+    - EMMO.A
+    - EMMO.D
+    - EMMO.G
+    - EMMO.L
+    - EMMO.J
+    - EMMO.E
+  ITALIAN_LETTER:
+    description: ''
+    subclass_of:
+    - EMMO.SYMBOL
+    equivalent_to: []
+    disjoint_with: []
+  ENGLISH_LETTER:
+    description: ''
+    subclass_of:
+    - EMMO.SYMBOL
+    equivalent_to: []
+    disjoint_with: []
+  H:
+    description: ''
+    subclass_of:
+    - EMMO.ITALIAN_LETTER
+    - EMMO.ENGLISH_LETTER
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.F
+    - EMMO.C
+    - EMMO.K
+    - EMMO.B
+    - EMMO.A
+    - EMMO.D
+    - EMMO.G
+    - EMMO.L
+    - EMMO.J
+    - EMMO.E
+  FORMULA:
+    description: "COMMENT:\nIn formal languages the terms word or well-formed formula\
+      \ are used with the same meaning.\n\nEXAMPLE:\nThe word \"cat\" considered as\
+      \ a collection of 'symbol'-s respecting the rules of english language. \n\n\
+      In this example the 'symbolic' entity \"cat\" is not related to the real cat,\
+      \ but it is only a word (like it would be to an italian person that ignores\
+      \ the meaning of this english word).\n\nIf an 'interpreter' skilled in english\
+      \ language is involved in a 'semiotic' process with this word, that \"cat\"\
+      \ became also a 'sign' i.e. it became for the 'interpreter' a representation\
+      \ for a real cat."
+    subclass_of:
+    - EMMO.SYMBOLIC
+    equivalent_to: []
+    disjoint_with: []
+  C:
+    description: ''
+    subclass_of:
+    - EMMO.ITALIAN_LETTER
+    - EMMO.ENGLISH_LETTER
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.F
+    - EMMO.H
+    - EMMO.K
+    - EMMO.B
+    - EMMO.A
+    - EMMO.D
+    - EMMO.G
+    - EMMO.L
+    - EMMO.J
+    - EMMO.E
+  K:
+    description: ''
+    subclass_of:
+    - EMMO.ENGLISH_LETTER
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.F
+    - EMMO.H
+    - EMMO.C
+    - EMMO.B
+    - EMMO.A
+    - EMMO.D
+    - EMMO.G
+    - EMMO.L
+    - EMMO.J
+    - EMMO.E
+  _6:
+    description: ''
+    subclass_of:
+    - EMMO.ARABIC_NUMERAL
+    equivalent_to: []
+    disjoint_with:
+    - EMMO._3
+    - EMMO._7
+    - EMMO._9
+    - EMMO._2
+    - EMMO._1
+    - EMMO._5
+    - EMMO._8
+    - EMMO._0
+    - EMMO._4
+  _7:
+    description: ''
+    subclass_of:
+    - EMMO.ARABIC_NUMERAL
+    equivalent_to: []
+    disjoint_with:
+    - EMMO._3
+    - EMMO._6
+    - EMMO._9
+    - EMMO._2
+    - EMMO._1
+    - EMMO._5
+    - EMMO._8
+    - EMMO._0
+    - EMMO._4
+  B:
+    description: ''
+    subclass_of:
+    - EMMO.ITALIAN_LETTER
+    - EMMO.ENGLISH_LETTER
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.F
+    - EMMO.H
+    - EMMO.C
+    - EMMO.K
+    - EMMO.A
+    - EMMO.D
+    - EMMO.G
+    - EMMO.L
+    - EMMO.J
+    - EMMO.E
+  A:
+    description: ''
+    subclass_of:
+    - EMMO.ITALIAN_LETTER
+    - EMMO.ENGLISH_LETTER
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.F
+    - EMMO.H
+    - EMMO.C
+    - EMMO.K
+    - EMMO.B
+    - EMMO.D
+    - EMMO.G
+    - EMMO.L
+    - EMMO.J
+    - EMMO.E
+  D:
+    description: ''
+    subclass_of:
+    - EMMO.ITALIAN_LETTER
+    - EMMO.ENGLISH_LETTER
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.F
+    - EMMO.H
+    - EMMO.C
+    - EMMO.K
+    - EMMO.B
+    - EMMO.A
+    - EMMO.G
+    - EMMO.L
+    - EMMO.J
+    - EMMO.E
+  _9:
+    description: ''
+    subclass_of:
+    - EMMO.ARABIC_NUMERAL
+    equivalent_to: []
+    disjoint_with:
+    - EMMO._3
+    - EMMO._6
+    - EMMO._7
+    - EMMO._2
+    - EMMO._1
+    - EMMO._5
+    - EMMO._8
+    - EMMO._0
+    - EMMO._4
+  NANODOME:
+    description: ''
+    subclass_of:
+    - EMMO.C_PLUS_PLUS
+    equivalent_to: []
+    disjoint_with: []
+  C_PLUS_PLUS:
+    description: ''
+    subclass_of:
+    - EMMO.SOFTWARE
+    equivalent_to: []
+    disjoint_with: []
+  _2:
+    description: ''
+    subclass_of:
+    - EMMO.ARABIC_NUMERAL
+    equivalent_to: []
+    disjoint_with:
+    - EMMO._3
+    - EMMO._6
+    - EMMO._7
+    - EMMO._9
+    - EMMO._1
+    - EMMO._5
+    - EMMO._8
+    - EMMO._0
+    - EMMO._4
+  G:
+    description: ''
+    subclass_of:
+    - EMMO.ITALIAN_LETTER
+    - EMMO.ENGLISH_LETTER
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.F
+    - EMMO.H
+    - EMMO.C
+    - EMMO.K
+    - EMMO.B
+    - EMMO.A
+    - EMMO.D
+    - EMMO.L
+    - EMMO.J
+    - EMMO.E
+  OPENFOAM:
+    description: ''
+    subclass_of:
+    - EMMO.C_PLUS_PLUS
+    equivalent_to: []
+    disjoint_with: []
+  L:
+    description: ''
+    subclass_of:
+    - EMMO.ITALIAN_LETTER
+    - EMMO.ENGLISH_LETTER
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.F
+    - EMMO.H
+    - EMMO.C
+    - EMMO.K
+    - EMMO.B
+    - EMMO.A
+    - EMMO.D
+    - EMMO.G
+    - EMMO.J
+    - EMMO.E
+  _1:
+    description: ''
+    subclass_of:
+    - EMMO.ARABIC_NUMERAL
+    equivalent_to: []
+    disjoint_with:
+    - EMMO._3
+    - EMMO._6
+    - EMMO._7
+    - EMMO._9
+    - EMMO._2
+    - EMMO._5
+    - EMMO._8
+    - EMMO._0
+    - EMMO._4
+  J:
+    description: ''
+    subclass_of:
+    - EMMO.ENGLISH_LETTER
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.F
+    - EMMO.H
+    - EMMO.C
+    - EMMO.K
+    - EMMO.B
+    - EMMO.A
+    - EMMO.D
+    - EMMO.G
+    - EMMO.L
+    - EMMO.E
+  _5:
+    description: ''
+    subclass_of:
+    - EMMO.ARABIC_NUMERAL
+    equivalent_to: []
+    disjoint_with:
+    - EMMO._3
+    - EMMO._6
+    - EMMO._7
+    - EMMO._9
+    - EMMO._2
+    - EMMO._1
+    - EMMO._8
+    - EMMO._0
+    - EMMO._4
+  _8:
+    description: ''
+    subclass_of:
+    - EMMO.ARABIC_NUMERAL
+    equivalent_to: []
+    disjoint_with:
+    - EMMO._3
+    - EMMO._6
+    - EMMO._7
+    - EMMO._9
+    - EMMO._2
+    - EMMO._1
+    - EMMO._5
+    - EMMO._0
+    - EMMO._4
+  SYMPHONY:
+    description: ''
+    subclass_of:
+    - EMMO.PYTHON
+    equivalent_to: []
+    disjoint_with: []
+  IDIOMATIC:
+    description: ''
+    subclass_of:
+    - EMMO.FORMULA
+    equivalent_to: []
+    disjoint_with: []
+  E:
+    description: ''
+    subclass_of:
+    - EMMO.ITALIAN_LETTER
+    - EMMO.ENGLISH_LETTER
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.F
+    - EMMO.H
+    - EMMO.C
+    - EMMO.K
+    - EMMO.B
+    - EMMO.A
+    - EMMO.D
+    - EMMO.G
+    - EMMO.L
+    - EMMO.J
+  _0:
+    description: ''
+    subclass_of:
+    - EMMO.ARABIC_NUMERAL
+    equivalent_to: []
+    disjoint_with:
+    - EMMO._3
+    - EMMO._6
+    - EMMO._7
+    - EMMO._9
+    - EMMO._2
+    - EMMO._1
+    - EMMO._5
+    - EMMO._8
+    - EMMO._4
+  ENGLISH:
+    description: 'EXAMPLE:
+
+      What''s the weather?'
+    subclass_of:
+    - EMMO.IDIOMATIC
+    equivalent_to: []
+    disjoint_with: []
+  _4:
+    description: ''
+    subclass_of:
+    - EMMO.ARABIC_NUMERAL
+    equivalent_to: []
+    disjoint_with:
+    - EMMO._3
+    - EMMO._6
+    - EMMO._7
+    - EMMO._9
+    - EMMO._2
+    - EMMO._1
+    - EMMO._5
+    - EMMO._8
+    - EMMO._0
+  SPACING:
+    description: ''
+    subclass_of:
+    - EMMO.SYMBOL
+    equivalent_to: []
+    disjoint_with: []
+  ITALIAN:
+    description: 'EXAMPLE:
+
+      Viva la mamma.'
+    subclass_of:
+    - EMMO.IDIOMATIC
+    equivalent_to: []
+    disjoint_with: []
+  MONOMER:
+    description: ''
+    subclass_of:
+    - EMMO.MOLECULE
+    equivalent_to: []
+    disjoint_with: []
+  MOLECULE:
+    description: 'COMMENT:
+
+      An entity is called essential if removing one direct part will lead to a change
+      in entity class.
+
+
+      An entity is called redundand if removing one direct part will not lead to a
+      change in entity class.
+
+
+      COMMENT:
+
+      This definition states that this object is a non-periodic set of atoms or a
+      set with a finite periodicity.
+
+
+      Removing an atom from the state will result in another type of atom_based state.
+
+
+      e.g. you cannot remove H from H20 without changing the molecule type (essential).
+      However, you can remove a C from a nanotube (redundant). C60 fullerene is a
+      molecule, since it has a finite periodicity and is made of a well defined number
+      of atoms (essential). A C nanotube is not a molecule, since it has an infinite
+      periodicity (redundant).
+
+
+      EXAMPLE:
+
+      H20, C6H12O6, CH4'
+    subclass_of:
+    - EMMO.MESOSCOPIC
+    - EMMO.MATTER
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 2+
+        range: EMMO.E_BONDED_ATOM
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1-1
+        range: EMMO.ELECTRON_CLOUD
+    equivalent_to: []
+    disjoint_with: []
+  ELECTRON_CLOUD:
+    description: ''
+    subclass_of:
+    - EMMO.MATTER
+    - EMMO.SUBATOMIC
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.ELECTRON
+    equivalent_to: []
+    disjoint_with: []
+  MATTER:
+    description: ''
+    subclass_of:
+    - EMMO.PHYSICAL
+    equivalent_to:
+    - EMMO.HAS_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.MASSIVE
+    disjoint_with: []
+  AEROSOL:
+    description: ''
+    subclass_of:
+    - EMMO.MATTER
+    - EMMO.SUSPENSION
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.PARTICLE
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range:
+          OR:
+          - EMMO.MOLECULE
+          - EMMO.ATOM
+    equivalent_to: []
+    disjoint_with: []
+  SUSPENSION:
+    description: ''
+    subclass_of:
+    - EMMO.FLUID
+    equivalent_to: []
+    disjoint_with: []
+  PARTICLE:
+    description: 'COMMENT:
+
+      Solid or liquid particles suspended in a fluid medium.'
+    subclass_of:
+    - EMMO.MESOSCOPIC
+    - EMMO.CONTINUUM
+    - OR:
+      - EMMO.LIQUID
+      - EMMO.SOLID
+    equivalent_to: []
+    disjoint_with: []
+  ATOM:
+    description: "EXAMPLE:\nA standalone atom has direct part one 'nucleus' and one\
+      \ 'electron_cloud'. \n\nAn O 'atom' within an O2 'molecule' is an 'e-bonded_atom'.\n\
+      \nIn this material branch, H atom is a particular case, with respect to higher\
+      \ atomic number atoms, since as soon as it shares its electron it has no nucleus\
+      \ entangled electron cloud.\n\nWe cannot say that H2 molecule has direct part\
+      \ two H atoms, but has direct part two H nucleus."
+    subclass_of:
+    - EMMO.MATTER
+    - EMMO.ATOMIC
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1-1
+        range: EMMO.ELECTRON_CLOUD
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1-1
+        range: EMMO.NUCLEUS
+    equivalent_to: []
+    disjoint_with: []
+  MESOSCOPIC:
+    description: ''
+    subclass_of:
+    - EMMO.STATE
+    equivalent_to: []
+    disjoint_with: []
+  NEUTRAL_ATOM:
+    description: ''
+    subclass_of:
+    - EMMO.STANDALONE_ATOM
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.ION_ATOM
+  ION_ATOM:
+    description: 'COMMENT:
+
+      The ion_atom is the basic part of a pure ionic bonded compound i.e. without
+      eclectron sharing,'
+    subclass_of:
+    - EMMO.STANDALONE_ATOM
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.NEUTRAL_ATOM
+  STANDALONE_ATOM:
+    description: 'COMMENT:
+
+      A standalone atom can be bonded with other atoms by intermolecular forces (i.e.
+      dipole–dipole, London dispersion force, hydrogen bonding), since this bonds
+      does not involve electron sharing.'
+    subclass_of:
+    - EMMO.ATOM
+    equivalent_to:
+    - OR:
+      - EMMO.NEUTRAL_ATOM
+      - EMMO.ION_ATOM
+    disjoint_with: []
+  E_BONDED_ATOM:
+    description: 'COMMENT:
+
+      A real bond between atoms is always something hybrid between covalent, metallic
+      and ionic.
+
+
+      In general, metallic and ionic bonds have atoms sharing electrons.
+
+
+      COMMENT:
+
+      The bond types that are covered by this definition are the strong electonic
+      bonds: covalent, metallic and ionic.
+
+
+      COMMENT:
+
+      This class can be used to represent molecules as simplified quantum systems,
+      in which outer molecule shared electrons are un-entangled with the inner shells
+      of the atoms composing the molecule.'
+    subclass_of:
+    - EMMO.ATOM
+    equivalent_to: []
+    disjoint_with: []
+  VACUUM:
+    description: ''
+    subclass_of:
+    - EMMO.FIELD
+    equivalent_to:
+    - AND:
+      - EMMO.PHYSICAL
+      - NOT:
+          EMMO.HAS_PART:
+            exclusive: false
+            cardinality: 1+
+            range: EMMO.MASSIVE
+    disjoint_with: []
+  FIELD:
+    description: ''
+    subclass_of:
+    - EMMO.PHYSICAL
+    equivalent_to:
+    - EMMO.HAS_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.MASSLESS
+    disjoint_with: []
+  PURE_WATER:
+    description: ''
+    subclass_of:
+    - EMMO.MATTER
+    - EMMO.LIQUID
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.H2O
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: true
+        cardinality: 0+
+        range:
+          OR:
+          - EMMO.VACUUM
+          - EMMO.H2O
+    equivalent_to: []
+    disjoint_with: []
+  LIQUID:
+    description: ''
+    subclass_of:
+    - EMMO.FLUID
+    equivalent_to: []
+    disjoint_with: []
+  H2O:
+    description: ''
+    subclass_of:
+    - EMMO.MOLECULE
+    equivalent_to: []
+    disjoint_with: []
+  CRYSTAL:
+    description: 'COMMENT:
+
+      The definition does not exclude the presence of defects or impurities.'
+    subclass_of:
+    - EMMO.SOLID
+    equivalent_to: []
+    disjoint_with: []
+  SOLID:
+    description: ''
+    subclass_of:
+    - EMMO.CONTINUUM
+    equivalent_to: []
+    disjoint_with: []
+  CONTINUUM:
+    description: 'COMMENT:
+
+      A continuum is made of a sufficient number of parts that it continues to exists
+      as continuum individual even after the loss of one of them i.e. a continuum
+      is a redundant.
+
+
+      COMMENT:
+
+      A continuum is not necessarily small (i.e. composed by the minimum amount of
+      sates to fulfill the definition).
+
+
+      A single continuum individual can be the whole fluid in a pipe.
+
+
+      COMMENT:
+
+      A continuum is the bearer of properties that are generated by the interactions
+      of parts such as viscosity and thermal or electrical conductivity.'
+    subclass_of:
+    - EMMO.STATE
+    equivalent_to: []
+    disjoint_with: []
+  PROTON:
+    description: ''
+    subclass_of:
+    - EMMO.NUCLEON
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.QUARK
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.NEUTRON
+  NEUTRON:
+    description: ''
+    subclass_of:
+    - EMMO.NUCLEON
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.QUARK
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.PROTON
+  NUCLEON:
+    description: ''
+    subclass_of:
+    - EMMO.MATTER
+    - EMMO.SUBATOMIC
+    equivalent_to:
+    - OR:
+      - EMMO.PROTON
+      - EMMO.NEUTRON
+    disjoint_with: []
+  AMORPHOUS:
+    description: ''
+    subclass_of:
+    - EMMO.SOLID
+    equivalent_to: []
+    disjoint_with: []
+  ATOMIC:
+    description: ''
+    subclass_of:
+    - EMMO.STATE
+    equivalent_to: []
+    disjoint_with: []
+  NANOPARTICLE:
+    description: ''
+    subclass_of:
+    - EMMO.NANOSTRUCTURE
+    equivalent_to: []
+    disjoint_with: []
+  NANOSTRUCTURE:
+    description: ''
+    subclass_of:
+    - EMMO.MESOSCOPIC
+    equivalent_to: []
+    disjoint_with: []
+  POLYMER_NANOPARTICLE:
+    description: ''
+    subclass_of:
+    - EMMO.MATTER
+    - EMMO.NANOPARTICLE
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.POLYMER
+    equivalent_to: []
+    disjoint_with: []
+  POLYMER:
+    description: ''
+    subclass_of:
+    - EMMO.MESOSCOPIC
+    - EMMO.MATTER
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.MONOMER
+    equivalent_to: []
+    disjoint_with: []
+  NANOFIBER:
+    description: ''
+    subclass_of:
+    - EMMO.NANOSTRUCTURE
+    equivalent_to: []
+    disjoint_with: []
+  WATER:
+    description: ''
+    subclass_of:
+    - EMMO.MATTER
+    - EMMO.LIQUID
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.H2O
+    equivalent_to: []
+    disjoint_with: []
+  CLUSTER:
+    description: ''
+    subclass_of:
+    - EMMO.MESOSCOPIC
+    - EMMO.MATTER
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range:
+          OR:
+          - EMMO.MOLECULE
+          - EMMO.ATOM
+    equivalent_to: []
+    disjoint_with: []
+  FLUID:
+    description: 'EXAMPLE:
+
+      Gas, liquid, plasma,'
+    subclass_of:
+    - EMMO.CONTINUUM
+    equivalent_to: []
+    disjoint_with: []
+  PLASMA:
+    description: ''
+    subclass_of:
+    - EMMO.MATTER
+    - EMMO.FLUID
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.ELECTRON
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.ION_ATOM
+    equivalent_to: []
+    disjoint_with: []
+  POLYMER_CRYSTAL:
+    description: ''
+    subclass_of:
+    - EMMO.CRYSTAL
+    - EMMO.MATTER
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.POLYMER
+    equivalent_to: []
+    disjoint_with: []
+  GAS:
+    description: ''
+    subclass_of:
+    - EMMO.FLUID
+    equivalent_to: []
+    disjoint_with: []
+  NUCLEUS:
+    description: ''
+    subclass_of:
+    - EMMO.MATTER
+    - EMMO.SUBATOMIC
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.NUCLEON
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.PROTON
+    equivalent_to: []
+    disjoint_with: []
+  NANOPLATE:
+    description: ''
+    subclass_of:
+    - EMMO.NANOSTRUCTURE
+    equivalent_to: []
+    disjoint_with: []
+  FULLERENE:
+    description: ''
+    subclass_of:
+    - EMMO.MOLECULE
+    - EMMO.NANOPARTICLE
+    equivalent_to: []
+    disjoint_with: []
+  MATH_SYMBOL:
+    description: ''
+    subclass_of:
+    - EMMO.SYMBOL
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: true
+        cardinality: 0+
+        range:
+          NOT: EMMO.MATHEMATICAL
+    equivalent_to: []
+    disjoint_with: []
+  MATHEMATICAL:
+    description: 'COMMENT:
+
+      The class of general mathematical symbols.'
+    subclass_of:
+    - EMMO.FORMULA
+    equivalent_to: []
+    disjoint_with: []
+  LAPLACIAN:
+    description: ''
+    subclass_of:
+    - EMMO.DIFFERENTIAL_OPERATOR
+    equivalent_to: []
+    disjoint_with: []
+  DIFFERENTIAL_OPERATOR:
+    description: ''
+    subclass_of:
+    - EMMO.OPERATOR
+    equivalent_to: []
+    disjoint_with: []
+  INTEGER:
+    description: ''
+    subclass_of:
+    - EMMO.NUMBER
+    equivalent_to: []
+    disjoint_with: []
+  ALGEBRIC_EXPRESSION:
+    description: 'COMMENT:
+
+      An expression that has parts only integer constants, variables, and the algebraic
+      operations (addition, subtraction, multiplication, division and exponentiation
+      by an exponent that is a rational number)'
+    subclass_of:
+    - EMMO.EXPRESSION
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.VARIABLE
+    equivalent_to: []
+    disjoint_with: []
+  EXPRESSION:
+    description: ''
+    subclass_of:
+    - EMMO.MATHEMATICAL
+    equivalent_to: []
+    disjoint_with: []
+  MATRIX:
+    description: ''
+    subclass_of:
+    - EMMO.MATHEMATICAL
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range:
+          OR:
+          - EMMO.NUMBER
+          - EMMO.VARIABLE
+    equivalent_to: []
+    disjoint_with: []
+  UNIVARIATE:
+    description: ''
+    subclass_of:
+    - EMMO.ALGEBRIC_EQUATION
+    equivalent_to: []
+    disjoint_with: []
+  ALGEBRIC_EQUATION:
+    description: 'COMMENT:
+
+      An ''equation'' that has parts two ''polynomial''-s
+
+
+      EXAMPLE:
+
+      2 * a - b = c'
+    subclass_of:
+    - EMMO.EQUATION
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.ALGEBRIC_EXPRESSION
+    equivalent_to: []
+    disjoint_with: []
+  EXPONENT:
+    description: ''
+    subclass_of:
+    - EMMO.ALGEBRIC_OPERATOR
+    equivalent_to: []
+    disjoint_with: []
+  ALGEBRIC_OPERATOR:
+    description: ''
+    subclass_of:
+    - EMMO.OPERATOR
+    equivalent_to: []
+    disjoint_with: []
+  VECTOR:
+    description: ''
+    subclass_of:
+    - EMMO.MATHEMATICAL
+    equivalent_to: []
+    disjoint_with: []
+  DEFINING_EQUATION:
+    description: 'EXAMPLE:
+
+      The definition of velocity as v = dx/dt.
+
+
+      The definition of density as mass/volume.
+
+
+      y = f(x)'
+    subclass_of:
+    - EMMO.EQUATION
+    equivalent_to: []
+    disjoint_with: []
+  EQUATION:
+    description: "COMMENT:\nThe class of 'mathematical'-s that stand for a mathematical\
+      \ expression that puts in relation some variables and that can always be represented\
+      \ as:\n\nf(v0, v1, ..., vn) = g(v0, v1, ..., vn)\n\nwhere f is the left hand\
+      \ and g the right hand  side expressions and v0, v1, ..., vn are the variables.\n\
+      \ne.g. \n\nx^2 +3x  = 5x\n\ndv/dt = a\n\nsin(x) = y"
+    subclass_of:
+    - EMMO.MATHEMATICAL
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.VARIABLE
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.EXPRESSION
+    equivalent_to: []
+    disjoint_with: []
+  MULTIPLICATION_SIGN:
+    description: ''
+    subclass_of:
+    - EMMO.ALGEBRIC_OPERATOR
+    equivalent_to: []
+    disjoint_with: []
+  OPERATOR:
+    description: ''
+    subclass_of:
+    - EMMO.MATH_SYMBOL
+    equivalent_to: []
+    disjoint_with: []
+  MINUS:
+    description: ''
+    subclass_of:
+    - EMMO.ALGEBRIC_OPERATOR
+    equivalent_to: []
+    disjoint_with: []
+  FUNCTION:
+    description: ''
+    subclass_of:
+    - EMMO.MATHEMATICAL
+    equivalent_to: []
+    disjoint_with: []
+  EQUALS:
+    description: ''
+    subclass_of:
+    - EMMO.MATH_SYMBOL
+    equivalent_to: []
+    disjoint_with: []
+  NUMERICAL:
+    description: ''
+    subclass_of:
+    - EMMO.MATHEMATICAL
+    - EMMO.HAS_PROPER_PART:
+        exclusive: true
+        cardinality: 0+
+        range:
+          NOT:
+            OR:
+            - EMMO.VARIABLE
+            - EMMO.DIFFERENTIAL_OPERATOR
+    equivalent_to: []
+    disjoint_with: []
+  PLUS:
+    description: ''
+    subclass_of:
+    - EMMO.ALGEBRIC_OPERATOR
+    equivalent_to: []
+    disjoint_with: []
+  POLYNOMIAL:
+    description: 'EXAMPLE:
+
+      2 * x^2 + x + 3'
+    subclass_of:
+    - EMMO.ALGEBRIC_EXPRESSION
+    equivalent_to: []
+    disjoint_with: []
+  REAL:
+    description: ''
+    subclass_of:
+    - EMMO.NUMBER
+    equivalent_to: []
+    disjoint_with: []
+  DIVISION_SIGN:
+    description: ''
+    subclass_of:
+    - EMMO.ALGEBRIC_OPERATOR
+    equivalent_to: []
+    disjoint_with: []
+  ARITHMETIC_EQUATION:
+    description: 'EXAMPLE:
+
+      1 + 1 = 2'
+    subclass_of:
+    - EMMO.EQUATION
+    equivalent_to: []
+    disjoint_with: []
+  CONSTANT:
+    description: 'COMMENT:
+
+      pi = 3.14'
+    subclass_of:
+    - EMMO.VARIABLE
+    equivalent_to: []
+    disjoint_with: []
+  GRADIENT:
+    description: ''
+    subclass_of:
+    - EMMO.DIFFERENTIAL_OPERATOR
+    equivalent_to: []
+    disjoint_with: []
+  MULTIVARIATE:
+    description: ''
+    subclass_of:
+    - EMMO.ALGEBRIC_EQUATION
+    equivalent_to: []
+    disjoint_with: []
+  PARAMETER:
+    description: 'COMMENT:
+
+      A ''variable'' whose value is assumed to be known independently from the equation,
+      but whose value is not explicitated in the equation.
+
+
+      EXAMPLE:
+
+      Viscosity, the total energy of the system given by an Hamiltonian, the force
+      between two atoms.'
+    subclass_of:
+    - EMMO.VARIABLE
+    equivalent_to: []
+    disjoint_with: []
+  BRACKET:
+    description: ''
+    subclass_of:
+    - EMMO.MATH_SYMBOL
+    equivalent_to: []
+    disjoint_with: []
+  UNKNOWN:
+    description: 'EXAMPLE:
+
+      Velocity, for the Navier-Stokes equation.'
+    subclass_of:
+    - EMMO.VARIABLE
+    equivalent_to: []
+    disjoint_with: []
+  EXPERIMENT:
+    description: ''
+    subclass_of:
+    - EMMO.OBSERVATION
+    - EMMO.HAS_PARTICIPANT:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.PHYSICAL_PHENOMENON
+    equivalent_to: []
+    disjoint_with: []
+  OBSERVATION:
+    description: ''
+    subclass_of:
+    - EMMO.SEMIOSIS
+    - EMMO.HAS_PARTICIPANT:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.OBSERVER
+    - EMMO.HAS_PARTICIPANT:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  PHYSICAL_PHENOMENON:
+    description: ''
+    subclass_of:
+    - EMMO.PROCESS
+    equivalent_to: []
+    disjoint_with: []
+  PHYSICS_EQUATION:
+    description: 'COMMENT:
+
+      The Newton''s equation of motion.
+
+
+      The Schrodinger equation.
+
+
+      The Navier-Stokes equation.'
+    subclass_of:
+    - EMMO.EQUATION
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.PHYSICAL_QUANTITY
+    equivalent_to: []
+    disjoint_with: []
+  PHYSICAL_QUANTITY:
+    description: 'COMMENT:
+
+      Measured or simulated ''physical propertiy''-s are always defined by a physical
+      law, connected to a physical entity through a model perspective and measurement
+      is done according to the same model.
+
+
+      Systems of units suggests that this is the correct approach, since except for
+      the fundamental units (length, time, charge) every other unit is derived by
+      mathematical relations between these fundamental units, implying a physical
+      laws or definitions.'
+    subclass_of:
+    - EMMO.QUANTITATIVE_PROPERTY
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.NUMBER
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.MEASUREMENT_UNIT
+    equivalent_to: []
+    disjoint_with: []
+  CONTINUUM_MODEL:
+    description: ''
+    subclass_of:
+    - EMMO.PHYSICS_BASED_MODEL
+    equivalent_to: []
+    disjoint_with: []
+  PHYSICS_BASED_MODEL:
+    description: ''
+    subclass_of:
+    - EMMO.MATHEMATICAL_MODEL
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.PHYSICS_EQUATION
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.MATERIAL_RELATION
+    equivalent_to: []
+    disjoint_with: []
+  MESOSCOPIC_MODEL:
+    description: ''
+    subclass_of:
+    - EMMO.PHYSICS_BASED_MODEL
+    equivalent_to: []
+    disjoint_with: []
+  THEORIZATION:
+    description: ''
+    subclass_of:
+    - EMMO.OBSERVATION
+    equivalent_to: []
+    disjoint_with: []
+  ELECTRONIC_MODEL:
+    description: ''
+    subclass_of:
+    - EMMO.PHYSICS_BASED_MODEL
+    equivalent_to: []
+    disjoint_with: []
+  ATOMISTIC_MODEL:
+    description: ''
+    subclass_of:
+    - EMMO.PHYSICS_BASED_MODEL
+    equivalent_to: []
+    disjoint_with: []
+  THEORY:
+    description: 'COMMENT:
+
+      The ''theory'' is e.g. a proposition, a book or a paper whose sub-symbols suggest
+      in the mind of the interpreter an interpretant structure that can represent
+      a ''physical''.
+
+
+      It is not an ''icon'' (like a math equation), because it has no common resemblance
+      or logical structure with the ''physical''.
+
+
+      In Peirce semiotics: legisign-symbol-argument'
+    subclass_of:
+    - EMMO.CONVENTIONAL
+    equivalent_to: []
+    disjoint_with: []
+  MODEL:
+    description: 'COMMENT:
+
+      A ''model'' prediction is always a prediction of the properties of an entity,
+      since an entity is known by an interpreter only through perception.'
+    subclass_of:
+    - EMMO.ICON
+    equivalent_to: []
+    disjoint_with: []
+  PHYSICAL_LAW:
+    description: ''
+    subclass_of:
+    - EMMO.NATURAL_LAW
+    equivalent_to: []
+    disjoint_with: []
+  NATURAL_LAW:
+    description: ''
+    subclass_of:
+    - EMMO.THEORY
+    equivalent_to: []
+    disjoint_with: []
+  DATA_BASED_MODEL:
+    description: ''
+    subclass_of:
+    - EMMO.MATHEMATICAL_MODEL
+    equivalent_to: []
+    disjoint_with: []
+  MATHEMATICAL_MODEL:
+    description: ''
+    subclass_of:
+    - EMMO.MATHEMATICAL
+    - EMMO.MODEL
+    equivalent_to: []
+    disjoint_with: []
+  MATERIAL_RELATION:
+    description: 'COMMENT:
+
+      A material_relation can e.g. return a predefined number, return a database query,
+      be an equation that depends on other physics_quantities.
+
+
+      EXAMPLE:
+
+      The Lennard-Jones potential.
+
+
+      A force field.
+
+
+      An Hamiltonian.'
+    subclass_of:
+    - EMMO.EQUATION
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.PHYSICAL_QUANTITY
+    equivalent_to: []
+    disjoint_with: []
+  MATERIAL_LAW:
+    description: ''
+    subclass_of:
+    - EMMO.NATURAL_LAW
+    equivalent_to: []
+    disjoint_with: []
+  QUANTITATIVE_PROPERTY:
+    description: ''
+    subclass_of:
+    - EMMO.OBJECTIVE_PROPERTY
+    - EMMO.FORMULA
+    equivalent_to: []
+    disjoint_with: []
+  MEASUREMENT_UNIT:
+    description: ''
+    subclass_of:
+    - EMMO.QUANTITATIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  MEASUREMENT:
+    description: ''
+    subclass_of:
+    - EMMO.OBSERVATION
+    - EMMO.HAS_PARTICIPANT:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.MEASUREMENT_INSTRUMENT
+    equivalent_to: []
+    disjoint_with: []
+  MEASUREMENT_INSTRUMENT:
+    description: ''
+    subclass_of:
+    - EMMO.OBSERVER
+    equivalent_to: []
+    disjoint_with: []
+  QUALITATIVE_PROPERTY:
+    description: 'EXAMPLE:
+
+      CFC is a ''sign'' that stands for the fact that the morphology of atoms composing
+      the microstructure of an entity is predominantly Cubic Face Centered'
+    subclass_of:
+    - EMMO.OBJECTIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  DESCRIPTIVE_PROPERTY:
+    description: ''
+    subclass_of:
+    - EMMO.QUANTITATIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  OBSERVER:
+    description: ''
+    subclass_of:
+    - EMMO.INTERPRETER
+    equivalent_to: []
+    disjoint_with: []
+  STERADIAN:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  DERIVED_UNIT:
+    description: ''
+    subclass_of:
+    - EMMO.SINGLE_MEASUREMENT_UNIT
+    equivalent_to: []
+    disjoint_with: []
+  OHM:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  WEBER:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  CANDELA:
+    description: ''
+    subclass_of:
+    - EMMO.BASE_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.KELVIN
+    - EMMO.KILOGRAM
+    - EMMO.AMPERE
+    - EMMO.SECOND
+    - EMMO.METRE
+    - EMMO.MOLE
+  BASE_UNIT:
+    description: ''
+    subclass_of:
+    - EMMO.SINGLE_MEASUREMENT_UNIT
+    equivalent_to: []
+    disjoint_with: []
+  BECQUEREL:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  KELVIN:
+    description: ''
+    subclass_of:
+    - EMMO.BASE_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.CANDELA
+    - EMMO.KILOGRAM
+    - EMMO.AMPERE
+    - EMMO.SECOND
+    - EMMO.METRE
+    - EMMO.MOLE
+  COULOMB:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  NEWTON:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  KILOGRAM:
+    description: ''
+    subclass_of:
+    - EMMO.BASE_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.CANDELA
+    - EMMO.KELVIN
+    - EMMO.AMPERE
+    - EMMO.SECOND
+    - EMMO.METRE
+    - EMMO.MOLE
+  CHEMICAL_POTENTIAL:
+    description: ''
+    subclass_of:
+    - EMMO.INTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  INTENSIVE_PROPERTY:
+    description: ''
+    subclass_of:
+    - EMMO.PHYSICAL_QUANTITY
+    equivalent_to: []
+    disjoint_with: []
+  HARDNESS:
+    description: ''
+    subclass_of:
+    - EMMO.DESCRIPTIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  SPECIES_CONCENTRATION:
+    description: ''
+    subclass_of:
+    - EMMO.INTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  RESILIENCE:
+    description: ''
+    subclass_of:
+    - EMMO.DESCRIPTIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  ENERGY:
+    description: ''
+    subclass_of:
+    - EMMO.EXTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  EXTENSIVE_PROPERTY:
+    description: ''
+    subclass_of:
+    - EMMO.PHYSICAL_QUANTITY
+    equivalent_to: []
+    disjoint_with: []
+  LUMEN:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  SINGLE_MEASUREMENT_UNIT:
+    description: ''
+    subclass_of:
+    - EMMO.MEASUREMENT_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.COMPOSITE_MEASUREMENT_UNIT
+  AMPERE:
+    description: ''
+    subclass_of:
+    - EMMO.BASE_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.CANDELA
+    - EMMO.KELVIN
+    - EMMO.KILOGRAM
+    - EMMO.SECOND
+    - EMMO.METRE
+    - EMMO.MOLE
+  TESLA:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  HENRY:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  MASS:
+    description: ''
+    subclass_of:
+    - EMMO.EXTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  DENSITY:
+    description: ''
+    subclass_of:
+    - EMMO.INTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  CRYSTAL_STRUCTURE:
+    description: ''
+    subclass_of:
+    - EMMO.MORPHOLOGICAL_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  MORPHOLOGICAL_PROPERTY:
+    description: ''
+    subclass_of:
+    - EMMO.QUALITATIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  VISCOSITY:
+    description: ''
+    subclass_of:
+    - EMMO.INTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  THERMAL_CONDUCTIVITY_UNIT:
+    description: ''
+    subclass_of:
+    - EMMO.COMPOSITE_MEASUREMENT_UNIT
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.KELVIN
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.METRE
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.WATT
+    equivalent_to: []
+    disjoint_with: []
+  COMPOSITE_MEASUREMENT_UNIT:
+    description: ''
+    subclass_of:
+    - EMMO.MEASUREMENT_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.SINGLE_MEASUREMENT_UNIT
+  METRE:
+    description: ''
+    subclass_of:
+    - EMMO.BASE_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.CANDELA
+    - EMMO.KELVIN
+    - EMMO.KILOGRAM
+    - EMMO.AMPERE
+    - EMMO.SECOND
+    - EMMO.MOLE
+  WATT:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  SPECIFIC_PROPERTY:
+    description: ''
+    subclass_of:
+    - EMMO.INTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  CELSIUS:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  SECOND:
+    description: ''
+    subclass_of:
+    - EMMO.BASE_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.CANDELA
+    - EMMO.KELVIN
+    - EMMO.KILOGRAM
+    - EMMO.AMPERE
+    - EMMO.METRE
+    - EMMO.MOLE
+  RADIAN:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  SPECIFIC_VOLUME:
+    description: ''
+    subclass_of:
+    - EMMO.SPECIFIC_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  ELECTRIC_CHARGE:
+    description: ''
+    subclass_of:
+    - EMMO.EXTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  CRYSTALLINE_FRACTION:
+    description: ''
+    subclass_of:
+    - EMMO.INTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  PRESSURE:
+    description: ''
+    subclass_of:
+    - EMMO.INTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  VOLT:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  ENTHALPY:
+    description: ''
+    subclass_of:
+    - EMMO.EXTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  DYNAMIC_VISCOSITY:
+    description: ''
+    subclass_of:
+    - EMMO.COMPOSITE_MEASUREMENT_UNIT
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.SECOND
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.PASCAL
+    equivalent_to: []
+    disjoint_with: []
+  PASCAL:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  SIEMENS:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  THERMAL_CONDUCTIVITY:
+    description: ''
+    subclass_of:
+    - EMMO.INTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  MASS_CONCENTRATION:
+    description: ''
+    subclass_of:
+    - EMMO.SPECIES_CONCENTRATION
+    equivalent_to: []
+    disjoint_with: []
+  SPECIFIC_HEAT_CAPACITY:
+    description: ''
+    subclass_of:
+    - EMMO.SPECIFIC_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  KATAL:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  MOLE:
+    description: ''
+    subclass_of:
+    - EMMO.BASE_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.CANDELA
+    - EMMO.KELVIN
+    - EMMO.KILOGRAM
+    - EMMO.AMPERE
+    - EMMO.SECOND
+    - EMMO.METRE
+  TEMPERATURE:
+    description: ''
+    subclass_of:
+    - EMMO.INTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  LUX:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  JOULE:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  HERTZ:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+    - EMMO.GRAY
+  ENTROPY:
+    description: ''
+    subclass_of:
+    - EMMO.EXTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  SIEVERT:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.FARAD
+    - EMMO.GRAY
+  FARAD:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.GRAY
+  GRAY:
+    description: ''
+    subclass_of:
+    - EMMO.DERIVED_UNIT
+    equivalent_to: []
+    disjoint_with:
+    - EMMO.STERADIAN
+    - EMMO.OHM
+    - EMMO.WEBER
+    - EMMO.BECQUEREL
+    - EMMO.COULOMB
+    - EMMO.NEWTON
+    - EMMO.LUMEN
+    - EMMO.TESLA
+    - EMMO.HENRY
+    - EMMO.CELSIUS
+    - EMMO.RADIAN
+    - EMMO.VOLT
+    - EMMO.SIEMENS
+    - EMMO.PASCAL
+    - EMMO.KATAL
+    - EMMO.WATT
+    - EMMO.LUX
+    - EMMO.JOULE
+    - EMMO.HERTZ
+    - EMMO.SIEVERT
+    - EMMO.FARAD
+  LATTICE_CONSTANT:
+    description: ''
+    subclass_of:
+    - EMMO.INTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  MOLAR_CONCENTRATION:
+    description: ''
+    subclass_of:
+    - EMMO.SPECIES_CONCENTRATION
+    equivalent_to: []
+    disjoint_with: []
+  ELECTRICAL_CONDUCTIVITY:
+    description: ''
+    subclass_of:
+    - EMMO.INTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  SPECIFIC_ENTHALPY:
+    description: ''
+    subclass_of:
+    - EMMO.SPECIFIC_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  MAGNETIC_PERMEABILITY:
+    description: ''
+    subclass_of:
+    - EMMO.INTENSIVE_PROPERTY
+    equivalent_to: []
+    disjoint_with: []
+  SEMIOSIS:
+    description: 'EXAMPLE:
+
+      Me looking a cat and saying loud: "Cat!" -> the semiosis process
+
+
+      me -> interpreter
+
+      cat -> object (in Peirce semiotics)
+
+      the cat perceived by my mind -> interpretant
+
+      "Cat!" -> sign, the produced sign'
+    subclass_of:
+    - EMMO.PROCESS
+    - EMMO.HAS_PARTICIPANT:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.INTERPRETER
+    - EMMO.HAS_PROPER_PARTICIPANT:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.OBJECT
+    - EMMO.HAS_PROPER_PARTICIPANT:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.SIGN
+    equivalent_to: []
+    disjoint_with: []
+  INTERPRETER:
+    description: ''
+    subclass_of:
+    - EMMO.SEMIOTIC
+    - EMMO.HAS_SPATIAL_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.INTERPRETANT
+    equivalent_to: []
+    disjoint_with: []
+  SYMBOLIC:
+    description: 'COMMENT:
+
+      In formal languages it is called a string of symbols.
+
+
+      EXAMPLE:
+
+      fe@è0
+
+      emmo
+
+      !5*a
+
+      cat'
+    subclass_of:
+    - EMMO.PHYSICAL
+    - OR:
+      - EMMO.SYMBOL
+      - EMMO.HAS_SPATIAL_PART:
+          exclusive: false
+          cardinality: 1+
+          range: EMMO.SYMBOL
+    equivalent_to: []
+    disjoint_with: []
+  SEMIOTIC:
+    description: 'COMMENT:
+
+      Semiotic subclasse are defined using Peirce''s semiotic theory.
+
+
+      "Namely, a sign is something, A, which brings something, B, its interpretant
+      sign determined or created by it, into the same sort of correspondence with
+      something, C, its object, as that in which itself stands to C." (Peirce 1902,
+      NEM 4, 20–21).
+
+
+      The triadic elements:
+
+      - ''sign'': the sign A (e.g. a name)
+
+      - ''interpretant'': the sign B as the effects of the sign A on the interpreter
+      (e.g. the mental concept of what a name means)
+
+      - ''object'': the object C (e.g. the entity to which the sign A and B refer
+      to)
+
+
+      This class includes also the ''interpeter'' i.e. the entity that connects the
+      ''sign'' to the ''object'''
+    subclass_of:
+    - EMMO.PARTICIPANT
+    equivalent_to:
+    - OR:
+      - EMMO.INTERPRETER
+      - EMMO.OBJECT
+      - EMMO.SIGN
+    disjoint_with: []
+  INTERPRETANT:
+    description: ''
+    subclass_of:
+    - EMMO.SIGN
+    equivalent_to: []
+    disjoint_with: []
+  MATERIAL:
+    description: ''
+    subclass_of:
+    - EMMO.EXISTENT
+    equivalent_to: []
+    disjoint_with: []
+  COMPONENT:
+    description: ''
+    subclass_of:
+    - EMMO.ENGINEERED_ENTITY
+    equivalent_to: []
+    disjoint_with: []
+  ENGINEERED_ENTITY:
+    description: 'COMMENT:
+
+      While the ''state'' branch describes single simple entities (e.g. atoms, molecules,
+      nanoparticles), the ''engineered_entity'' branch describe entities that show
+      some level of complexity/heterogeneity in their composition, and are made for
+      a specific use.
+
+
+      Classes in this branch are primitive.
+
+
+      e.g. car, tire, composite material.'
+    subclass_of:
+    - EMMO.EXISTENT
+    equivalent_to: []
+    disjoint_with: []
+  SYSTEM:
+    description: ''
+    subclass_of:
+    - EMMO.ENGINEERED_ENTITY
+    equivalent_to:
+    - EMMO.HAS_SPATIAL_DIRECT_PART:
+        exclusive: false
+        cardinality: 1+
+        range: EMMO.COMPONENT
+    disjoint_with: []
+  VALUE:
+    datatype: FLOAT
+    subclass_of:
+    - CUBA.ATTRIBUTE
+
