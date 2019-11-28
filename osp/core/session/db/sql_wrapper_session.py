@@ -47,14 +47,16 @@ class SqlWrapperSession(DbWrapperSession):
             "target": (MASTER_TABLE, "uid")
         }
     }
-    INDEX = {
-        MASTER_TABLE: ["oclass", "first_level"],
-        RELATIONSHIP_TABLE: ["origin"]
+    INDEXES = {
+        MASTER_TABLE: [
+            ["oclass"], ["first_level"]
+        ],
+        RELATIONSHIP_TABLE: [["origin"]]
     }
 
     @abstractmethod
     def _db_create(self, table_name, columns, datatypes,
-                   primary_key, foreign_key, index):
+                   primary_key, foreign_key, indexes):
         """Create a new table with the given name and columns
 
         :param table_name: The name of the new table.
@@ -67,8 +69,9 @@ class SqlWrapperSession(DbWrapperSession):
         :type primary_key: List[str]
         :param foreign_key: mapping from column to other tables column.
         :type foreign_key: Dict[str, Tuple[str (table), str (column)]]
-        :param index: List of column for which an index should be built.
-        :type index: List(str)
+        :param indexes: List of indexes. Each index is a list of column names
+            for which an index should be built.
+        :type indexes: List(str)
         """
 
     @abstractmethod
@@ -254,11 +257,11 @@ class SqlWrapperSession(DbWrapperSession):
         return old_vector_datatype, False
 
     def _do_db_create(self, table_name, columns, datatypes,
-                      primary_key, foreign_key, index):
+                      primary_key, foreign_key, indexes):
         """Call db_create but expand the vectors first."""
         columns, datatypes = self._expand_vector_cols(columns, datatypes)
         self._db_create(table_name, columns, datatypes,
-                        primary_key, foreign_key, index)
+                        primary_key, foreign_key, indexes)
 
     def _do_db_select(self, table_name, columns, condition, datatypes):
         """Call db_select but consider vectors"""
@@ -324,7 +327,7 @@ class SqlWrapperSession(DbWrapperSession):
                     datatypes=datatypes,
                     primary_key=["uid"],
                     foreign_key={"uid": (self.MASTER_TABLE, "uid")},
-                    index=[]
+                    indexes=[]
                 )
 
             # Add to master
@@ -484,7 +487,7 @@ class SqlWrapperSession(DbWrapperSession):
             datatypes=self.DATATYPES[self.MASTER_TABLE],
             primary_key=self.PRIMARY_KEY[self.MASTER_TABLE],
             foreign_key=self.FOREIGN_KEY[self.MASTER_TABLE],
-            index=self.INDEX[self.MASTER_TABLE]
+            indexes=self.INDEXES[self.MASTER_TABLE]
         )
         self._do_db_create(
             table_name=self.RELATIONSHIP_TABLE,
@@ -492,7 +495,7 @@ class SqlWrapperSession(DbWrapperSession):
             datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE],
             primary_key=self.PRIMARY_KEY[self.RELATIONSHIP_TABLE],
             foreign_key=self.FOREIGN_KEY[self.RELATIONSHIP_TABLE],
-            index=self.INDEX[self.RELATIONSHIP_TABLE]
+            indexes=self.INDEXES[self.RELATIONSHIP_TABLE]
         )
         # Add the dummy root element if it doesn't exist.
         # We do not want to store the actual root element since it will be
@@ -674,5 +677,5 @@ class SqlWrapperSession(DbWrapperSession):
         attributes = oclass.attributes
         columns = [x.argname for x in attributes if x != "session"] + ["uid"]
         datatypes = dict(uid="UUID", **{x.argname: x.datatype
-                         for x in attributes if x != "session"})
+                                        for x in attributes if x != "session"})
         return columns, datatypes
