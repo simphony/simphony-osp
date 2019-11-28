@@ -5,15 +5,11 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-import pickle  # nosec
 import os
 
-ONTOLOGY_NAMESPACE_REGISTRY = None
 MAIN_ONTOLOGY_NAMESPACE = "CUBA".lower()
 MAIN_ONTOLOGY_PATH = os.path.join(os.path.dirname(__file__),
                                   "yml", "ontology.cuba.yml")
-INSTALLED_ONTOLOGY_PATH = os.path.join(os.path.dirname(__file__),
-                                       "installed-ontology.pkl")
 
 
 class NamespaceRegistry():
@@ -75,13 +71,12 @@ class NamespaceRegistry():
                              "registry!" % namespace.name)
         self._namespaces[namespace.name.lower()] = namespace
 
-        if (
-            ONTOLOGY_NAMESPACE_REGISTRY is self
-            and namespace.name.lower() != MAIN_ONTOLOGY_NAMESPACE
-        ):
+        try:
             import osp.core
             setattr(osp.core, namespace.name.upper(), namespace)
             setattr(osp.core, namespace.name.lower(), namespace)
+        except AttributeError:
+            pass
 
     def get_main_namespace(self):
         """Get the main namespace (CUBA)
@@ -91,25 +86,3 @@ class NamespaceRegistry():
         """
         return self._namespaces[MAIN_ONTOLOGY_NAMESPACE]
 
-    def install(self):
-        """Reset the namespace registry"""
-        with open(INSTALLED_ONTOLOGY_PATH, "wb") as f:
-            pickle.dump(self, f)
-
-
-# initialize registry singleton
-if ONTOLOGY_NAMESPACE_REGISTRY is None:
-
-    # load from installation
-    try:
-        if os.path.exists(INSTALLED_ONTOLOGY_PATH):
-            with open(INSTALLED_ONTOLOGY_PATH, "rb") as f:
-                ONTOLOGY_NAMESPACE_REGISTRY = pickle.load(f)  # nosec
-    except EOFError:
-        pass
-
-if ONTOLOGY_NAMESPACE_REGISTRY is None:
-    from osp.core.ontology.parser import Parser
-    ONTOLOGY_NAMESPACE_REGISTRY = NamespaceRegistry()
-    p = Parser()
-    namespace = p.parse(MAIN_ONTOLOGY_PATH)

@@ -47,12 +47,13 @@ class Parser:
     contained.
     """
 
-    def __init__(self, namespace_registry=None):
-        from osp.core.ontology.namespace_registry import \
-            ONTOLOGY_NAMESPACE_REGISTRY
+    def __init__(self, installer=None):
+        self._installer = installer
+        if not installer:
+            from osp.core import ONTOLOGY_INSTALLER
+            self._installer = ONTOLOGY_INSTALLER
+        self._namespace_registry = self._installer.namespace_registry
 
-        self._namespace_registry = namespace_registry or \
-            ONTOLOGY_NAMESPACE_REGISTRY
         self._filename = None
         self._yaml_doc = None
         self._ontology_namespace = None
@@ -69,6 +70,7 @@ class Parser:
                 "yml", "ontology.%s.yml" % filename
             )
 
+        self._installer.tmp_open(filename)
         self.__init__()
         self._filename = filename
         with open(self._filename, 'r') as stream:
