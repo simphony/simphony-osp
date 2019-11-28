@@ -101,8 +101,10 @@ setup(
     },
     entry_points={
         'wrappers': 'osp-core = osp.core.session.core_session:CoreSession',
-        'console_scripts':
-            'owl2yml = osp.core.tools.owl2yml:run_from_terminal'
+        'console_scripts': {
+            'owl2yml = osp.core.tools.owl2yml:run_from_terminal',
+            'pico = osp.core.ontology.installation:install_from_terminal'
+        }
     },
     install_requires=[
         "PyYaml",
