@@ -42,3 +42,5 @@ def get_entity(entity_name):
 
 def install_current_ontology():
     ONTOLOGY_INSTALLER.install()
+
+from osp.core.ontology.parser import Parser

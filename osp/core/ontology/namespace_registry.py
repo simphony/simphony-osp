@@ -85,4 +85,3 @@ class NamespaceRegistry():
         :rtype: OntologyNamespace
         """
         return self._namespaces[MAIN_ONTOLOGY_NAMESPACE]
-

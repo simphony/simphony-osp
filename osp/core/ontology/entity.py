@@ -31,7 +31,8 @@ class OntologyEntity(ABC):
         from osp.core import ONTOLOGY_INSTALLER
         assert (
             namespace.name not in ONTOLOGY_INSTALLER.namespace_registry
-            or name not in ONTOLOGY_INSTALLER.namespace_registry[namespace.name]
+            or name not in
+            ONTOLOGY_INSTALLER.namespace_registry[namespace.name]
         )
 
     def __str__(self):

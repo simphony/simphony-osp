@@ -23,8 +23,10 @@ class TestParser(unittest.TestCase):
             ONTOLOGY_INSTALLER.namespace_registry["CITY"].name,
             "CITY"
         )
-        self.assertEqual(ONTOLOGY_INSTALLER.namespace_registry.get_main_namespace().name,
-                         "CUBA")
+        self.assertEqual(
+            ONTOLOGY_INSTALLER.namespace_registry.get_main_namespace().name,
+            "CUBA"
+        )
 
     def test_ontology_namespace(self):
         """Test the namespaces"""

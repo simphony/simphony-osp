@@ -756,10 +756,11 @@ class Cuds():
         state["_oclass"] = oclass
         state["_session"] = None
         state["_neighbours"] = NeighbourDictRel({
-            ONTOLOGY_INSTALLER.namespace_registry[ns][cl]: NeighbourDictTarget({
-                uid: ONTOLOGY_INSTALLER.namespace_registry[ns2][cl2]
-                for uid, ns2, cl2 in v
-            }, self, ONTOLOGY_INSTALLER.namespace_registry[ns][cl])
+            ONTOLOGY_INSTALLER.namespace_registry[ns][cl]:
+                NeighbourDictTarget({
+                    uid: ONTOLOGY_INSTALLER.namespace_registry[ns2][cl2]
+                    for uid, ns2, cl2 in v
+                }, self, ONTOLOGY_INSTALLER.namespace_registry[ns][cl])
             for ns, cl, v in state["_neighbours"]
         }, self)
         state["_values"] = {k: ONTOLOGY_INSTALLER.namespace_registry[ns][cl]

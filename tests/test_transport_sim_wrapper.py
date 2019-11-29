@@ -14,6 +14,12 @@ from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
 import unittest2 as unittest
 
+try:
+    from osp.core import CITY
+except ImportError:
+    from osp.core.ontology import Parser
+    CITY = Parser().parse("city")
+
 # imports depend how file is started
 if __name__ != "__main__":
     from .dummy_simulation_wrapper import DummySimWrapperSession

@@ -8,21 +8,6 @@ with open('README.md', 'r') as readme:
     README_TEXT = readme.read()
 
 
-def parse_test_ontology():
-    try:
-        from osp.core import ONTOLOGY_INSTALLER
-        p = ONTOLOGY_INSTALLER.parser
-        p.parse("city")
-    except ValueError:
-        pass
-
-
-class Test(test):
-    def run(self):
-        parse_test_ontology()
-        super().run()
-
-
 # main setup configuration class
 setup(
     name=NAME,
@@ -38,9 +23,6 @@ setup(
         "osp.core.ontology": ["*.pkl"]
     },
     python_requires=">=3.6",
-    cmdclass={
-        'test': Test
-    },
     entry_points={
         'wrappers': 'osp-core = osp.core.session.core_session:CoreSession',
         'console_scripts': {
