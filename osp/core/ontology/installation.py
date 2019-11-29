@@ -1,7 +1,7 @@
 import os
 import argparse
 import uuid
-import pickle
+import pickle  # nosec
 from shutil import copyfile
 from osp.core.ontology.parser import Parser
 from osp.core.ontology.namespace_registry import NamespaceRegistry

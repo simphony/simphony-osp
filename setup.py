@@ -1,6 +1,4 @@
 from setuptools import setup, find_packages
-from setuptools.command.install import install
-from setuptools.command.test import test
 from packageinfo import VERSION, NAME
 
 # Read description
