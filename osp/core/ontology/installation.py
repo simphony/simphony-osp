@@ -3,6 +3,7 @@ import argparse
 import uuid
 import pickle  # nosec
 from shutil import copyfile
+import osp.core
 from osp.core.ontology.parser import Parser
 from osp.core.ontology.namespace_registry import NamespaceRegistry
 
@@ -30,10 +31,9 @@ class OntologyInstallationManager():
         if namespace is None:
             raise RuntimeError("The file %s is missing a namespace"
                                % file_path)
-        copyfile(
-            file_path, os.path.join(self.tmp_path,
-                                    "ontology.%s.yml" % namespace)
-        )
+        filename = "ontology.%s.yml" % namespace
+        if not os.path.exists(os.path.join(self.installed_path, filename)):
+            copyfile(file_path, os.path.join(self.tmp_path, filename))
 
     def _clean(self):
         # remove the files in the session
@@ -54,8 +54,8 @@ class OntologyInstallationManager():
 
         # move the files
         for file in os.listdir(self.tmp_path):
-            copyfile(os.path.join(self.tmp_path, file),
-                     os.path.join(self.installed_path, file))
+            os.replace(os.path.join(self.tmp_path, file),
+                       os.path.join(self.installed_path, file))
 
         # create the pickle file
         if os.path.exists(self.pkl_path):
@@ -70,11 +70,10 @@ class OntologyInstallationManager():
             namespace = namespace.lower()
             p = os.path.join(self.installed_path,
                              "ontology.%s.yml" % namespace)
-            p2 = os.path.join(self.tmp_path,
-                              "ontology.%s.yml" % namespace)
             if os.path.exists(p):
                 os.remove(p)
-                os.remove(p2)
+                delattr(osp.core, namespace.upper())
+                delattr(osp.core, namespace.lower())
             else:
                 raise ValueError("Namespace %s not installed" % namespace)
 
@@ -114,9 +113,12 @@ class OntologyInstallationManager():
         self.parse_files(installed_files or list())
 
     def _sort_for_installation(self, files):
-        return ["cuba"] + [f for f in files  # TODO parse requirements
-                           if f != "cuba"
-                           and not f.endswith("ontology.cuba.yml")]
+        files = [f for f in files  # TODO parse requirements
+                 if f != "cuba"
+                 and not f.endswith("ontology.cuba.yml")]
+        if "cuba" not in self.namespace_registry:
+            files = ["cuba"] + files
+        return files
 
 
 def install_from_terminal():
@@ -162,5 +164,9 @@ def install_from_terminal():
     from osp.core import ONTOLOGY_INSTALLER
     if args.command == "install":
         ONTOLOGY_INSTALLER.install(args.files, do_pickle=args.pickle)
-    if args.command == "uninstall":
+    elif args.command == "uninstall":
         ONTOLOGY_INSTALLER.uninstall(args.namespaces)
+
+
+if __name__ == "__main__":
+    install_from_terminal()

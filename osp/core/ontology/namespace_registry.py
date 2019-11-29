@@ -65,7 +65,9 @@ class NamespaceRegistry():
         assert (
             bool(namespace.name.lower() == MAIN_ONTOLOGY_NAMESPACE)
             != bool(self._namespaces)
-        ), "CUBA namespace must be installed first"
+        ), ("CUBA namespace must be installed first. "
+            "Installing %s. Already installed: %s"
+            % (namespace.name, self._namespaces.keys()))
         if namespace.name.lower() in self._namespaces:
             raise ValueError("Namespace %s already added to namespace "
                              "registry!" % namespace.name)
