@@ -21,7 +21,13 @@ class OntologyInstallationManager():
         self.pkl_path = os.path.join(self.path, "ontology.pkl")
 
     def tmp_open(self, file_path):
-        # move the files in the temporary folder
+        """Copy the yaml file to the temporary folder.
+
+        :param file_path: The file to move to the tmp folder
+        :type file_path: str
+        :raises RuntimeError: No namespace defined in file.
+        """
+        # Get the namespace
         namespace = None
         with open(file_path, "r") as f:
             for line in f:
@@ -31,11 +37,14 @@ class OntologyInstallationManager():
         if namespace is None:
             raise RuntimeError("The file %s is missing a namespace"
                                % file_path)
+
+        # copy the file
         filename = "ontology.%s.yml" % namespace
         if not os.path.exists(os.path.join(self.installed_path, filename)):
             copyfile(file_path, os.path.join(self.tmp_path, filename))
 
     def _clean(self):
+        """Remove the temporary files."""
         # remove the files in the session
         for file in os.listdir(self.tmp_path):
             file = os.path.join(self.tmp_path, file)
@@ -43,11 +52,23 @@ class OntologyInstallationManager():
         os.rmdir(self.tmp_path)
 
     def parse_files(self, files):
+        """Parse multiple files. Will install them in the right order.
+
+        :param files: The files to parse
+        :type files: List[str]
+        """
         files = self._sort_for_installation(files)
         for file in files:
             self.parser.parse(file)
 
-    def install(self, files=None, do_pickle=True):
+    def install(self, *files, do_pickle=True):
+        """Install the given files with the current namespace registry.
+
+        :param files: The files to install, defaults to None
+        :type files: str, optional
+        :param do_pickle: Whether to pickle for installing, defaults to True
+        :type do_pickle: bool, optional
+        """
         # parse the files
         if files:
             self.parse_files(files)
@@ -64,7 +85,13 @@ class OntologyInstallationManager():
             with open(self.pkl_path, "wb") as f:
                 pickle.dump(self.namespace_registry, f)
 
-    def uninstall(self, namespaces):
+    def uninstall(self, *namespaces):
+        """Uninstall the given namespaces
+
+        :param namespaces: The namespaces to uninstall
+        :type namespaces: List[str]
+        :raises ValueError: The namespace to uninstall is not installed
+        """
         # Remove the yaml files
         for namespace in namespaces:
             namespace = namespace.lower()
@@ -87,6 +114,12 @@ class OntologyInstallationManager():
         self.install(do_pickle=pkl_exists)
 
     def initialize_installed_ontologies(self, use_pickle=True):
+        """Load the installed ontologies.
+
+        :param use_pickle: Whether to use the provided pickle file,
+            defaults to True
+        :type use_pickle: bool, optional
+        """
         # Create necessary directories
         for p in [self.path, self.yaml_path,
                   self.installed_path, self.tmp_path]:
@@ -113,6 +146,13 @@ class OntologyInstallationManager():
         self.parse_files(installed_files or list())
 
     def _sort_for_installation(self, files):
+        """Get the right order to install the files.
+
+        :param files: The list of file paths to sort.
+        :type files: List[str]
+        :return: The sorted list of file paths.
+        :rtype: List[str]
+        """
         files = [f for f in files  # TODO parse requirements
                  if f != "cuba"
                  and not f.endswith("ontology.cuba.yml")]
@@ -163,9 +203,9 @@ def install_from_terminal():
 
     from osp.core import ONTOLOGY_INSTALLER
     if args.command == "install":
-        ONTOLOGY_INSTALLER.install(args.files, do_pickle=args.pickle)
+        ONTOLOGY_INSTALLER.install(*args.files, do_pickle=args.pickle)
     elif args.command == "uninstall":
-        ONTOLOGY_INSTALLER.uninstall(args.namespaces)
+        ONTOLOGY_INSTALLER.uninstall(*args.namespaces)
 
 
 if __name__ == "__main__":
