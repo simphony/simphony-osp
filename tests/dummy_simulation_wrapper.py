@@ -1,5 +1,10 @@
-from osp.core import CITY
 from osp.core.session.sim_wrapper_session import SimWrapperSession
+
+try:
+    from osp.core import CITY
+except ImportError:
+    from osp.core.ontology import Parser
+    CITY = Parser().parse("city")
 
 
 class DummySimWrapperSession(SimWrapperSession):

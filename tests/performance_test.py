@@ -9,7 +9,12 @@
 from pympler import asizeof
 import time
 import unittest2 as unittest
-from osp.core import CITY
+
+try:
+    from osp.core import CITY
+except ImportError:
+    from osp.core.ontology import Parser
+    CITY = Parser().parse("city")
 
 RUN_PERFORMANCE_TEST = False
 
