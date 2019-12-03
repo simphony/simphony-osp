@@ -8,7 +8,7 @@
 import unittest2 as unittest
 import osp.core
 from osp.core import Parser
-from osp.core.ontology.namespace_registry import ONTOLOGY_NAMESPACE_REGISTRY
+from osp.core import ONTOLOGY_INSTALLER
 
 
 class TestParser(unittest.TestCase):
@@ -16,19 +16,21 @@ class TestParser(unittest.TestCase):
     def test_ontology_namespace_registry(self):
         """Test the namespace registry"""
         self.assertEqual(
-            ONTOLOGY_NAMESPACE_REGISTRY.CUBA.name,
+            ONTOLOGY_INSTALLER.namespace_registry.CUBA.name,
             "CUBA"
         )
         self.assertEqual(
-            ONTOLOGY_NAMESPACE_REGISTRY["CITY"].name,
+            ONTOLOGY_INSTALLER.namespace_registry["CITY"].name,
             "CITY"
         )
-        self.assertEqual(ONTOLOGY_NAMESPACE_REGISTRY.get_main_namespace().name,
-                         "CUBA")
+        self.assertEqual(
+            ONTOLOGY_INSTALLER.namespace_registry.get_main_namespace().name,
+            "CUBA"
+        )
 
     def test_ontology_namespace(self):
         """Test the namespaces"""
-        CUBA = ONTOLOGY_NAMESPACE_REGISTRY.CUBA
+        CUBA = ONTOLOGY_INSTALLER.namespace_registry.CUBA
         self.assertEqual(
             CUBA.RELATIONSHIP.name,
             "RELATIONSHIP"
@@ -47,7 +49,7 @@ class TestParser(unittest.TestCase):
 
     def test_subclass_check(self):
         """ Test subclass and superclass check"""
-        CITY = ONTOLOGY_NAMESPACE_REGISTRY.CITY
+        CITY = ONTOLOGY_INSTALLER.namespace_registry.CITY
         self.assertTrue(CITY.CITY.is_subclass_of(CITY.POPULATED_PLACE))
         self.assertTrue(CITY.POPULATED_PLACE.is_superclass_of(CITY.CITY))
         self.assertFalse(CITY.CITY.is_superclass_of(CITY.POPULATED_PLACE))

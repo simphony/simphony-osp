@@ -99,6 +99,18 @@ class OntologyClass(OntologyEntity):
         return attributes
 
     def __call__(self, uid=None, session=None, **kwargs):
+        """Create a Cuds object from this ontology class.
+
+        :param uid: The uid of the Cuds object. Should be set to None in most
+            cases. Then a new UUID is generated, defaults to None
+        :type uid: uuid.UUID, optional
+        :param session: The session to create the cuds object in,
+            defaults to None
+        :type session: Session, optional
+        :raises TypeError: Error occurred during instantiation.
+        :return: The created cuds object
+        :rtype: Cuds
+        """
         from osp.core.cuds import Cuds
         from osp.core import CUBA
 

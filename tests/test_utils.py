@@ -9,7 +9,7 @@ import io
 import unittest
 import responses
 import osp.core
-from osp.core import CITY, CUBA
+from osp.core import CUBA
 from osp.core.session.transport.transport_util import serializable
 from osp.core.session.core_session import CoreSession
 from .dummy_simulation_wrapper import DummySimWrapperSession
@@ -25,6 +25,12 @@ from osp.core.utils import (
     get_neighbour_diff
 )
 from osp.core.cuds import Cuds
+
+try:
+    from osp.core import CITY
+except ImportError:
+    from osp.core.ontology import Parser
+    CITY = Parser().parse("city")
 
 
 def get_test_city():
