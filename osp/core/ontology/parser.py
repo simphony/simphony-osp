@@ -47,29 +47,35 @@ class Parser:
     contained.
     """
 
-    def __init__(self, namespace_registry=None):
-        from osp.core.ontology.namespace_registry import \
-            ONTOLOGY_NAMESPACE_REGISTRY
+    def __init__(self, installer=None):
+        self._installer = installer
+        if not installer:
+            from osp.core import ONTOLOGY_INSTALLER
+            self._installer = ONTOLOGY_INSTALLER
+        self._namespace_registry = self._installer.namespace_registry
 
-        self._namespace_registry = namespace_registry or \
-            ONTOLOGY_NAMESPACE_REGISTRY
         self._filename = None
         self._yaml_doc = None
         self._ontology_namespace = None
 
-    def parse(self, filename):
-        """
-        Reads the YAML and extracts the dictionary with the CUDS.
-        """
-        from osp.core.ontology.namespace import OntologyNamespace
-
+    @staticmethod
+    def get_filepath(filename):
         if not filename.endswith(".yml"):
             filename = os.path.join(
                 os.path.dirname(os.path.abspath(__file__)),
                 "yml", "ontology.%s.yml" % filename
             )
+        return filename
 
-        self.__init__()
+    def parse(self, filename, osp_module=None):
+        """
+        Reads the YAML and extracts the dictionary with the CUDS.
+        """
+        from osp.core.ontology.namespace import OntologyNamespace
+
+        filename = self.get_filepath(filename)
+        self._installer.tmp_open(filename)
+        self.__init__(self._installer)
         self._filename = filename
         with open(self._filename, 'r') as stream:
             self._yaml_doc = yaml.safe_load(stream)
@@ -80,6 +86,7 @@ class Parser:
             )
             self._namespace_registry._add_namespace(self._ontology_namespace)
             self._parse_ontology()
+        self._installer.set_module_attr(osp_module)
         return self._ontology_namespace
 
     def _parse_ontology(self):

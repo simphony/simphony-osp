@@ -29,7 +29,7 @@ ONTOLOGY:
   ################
 
   WRAPPER:
-    description: The root of all wrappers. These are the bridge to simulation engines and databases. The bridge to simulation engines and databases.
+    description: The root of all wrappers. These are the bridge to simulation engines and databases.
     subclass_of:
     - CUBA.ENTITY
 
