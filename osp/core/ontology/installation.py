@@ -13,8 +13,9 @@ class OntologyInstallationManager():
         self.namespace_registry = None
         self.parser = None
         self.session_id = uuid.uuid4()
-        self.path = path or os.path.join(os.path.expanduser("~"),
-                                         ".osp_ontologies")
+        self.path = os.path.join(
+            path or os.path.expanduser("~"),
+            ".osp_ontologies")
         self.yaml_path = os.path.join(self.path, "yml")
         self.installed_path = os.path.join(self.yaml_path, "installed")
         self.tmp_path = os.path.join(self.yaml_path, str(self.session_id))
@@ -27,16 +28,7 @@ class OntologyInstallationManager():
         :type file_path: str
         :raises RuntimeError: No namespace defined in file.
         """
-        # Get the namespace
-        namespace = None
-        with open(file_path, "r") as f:
-            for line in f:
-                line = line.strip().lower()
-                if line.startswith("namespace"):
-                    namespace = line.split(":")[1].strip().strip("\"'")
-        if namespace is None:
-            raise RuntimeError("The file %s is missing a namespace"
-                               % file_path)
+        namespace = self._get_namespace(file_path)
 
         # copy the file
         filename = "ontology.%s.yml" % namespace
@@ -51,7 +43,7 @@ class OntologyInstallationManager():
             os.remove(file)
         os.rmdir(self.tmp_path)
 
-    def parse_files(self, files):
+    def parse_files(self, files, osp_module=None):
         """Parse multiple files. Will install them in the right order.
 
         :param files: The files to parse
@@ -59,15 +51,15 @@ class OntologyInstallationManager():
         """
         files = self._sort_for_installation(files)
         for file in files:
-            self.parser.parse(file)
+            self.parser.parse(file, osp_module=osp_module)
 
-    def install(self, *files, do_pickle=True):
+    def install(self, *files, use_pickle=True):
         """Install the given files with the current namespace registry.
 
         :param files: The files to install, defaults to None
         :type files: str, optional
-        :param do_pickle: Whether to pickle for installing, defaults to True
-        :type do_pickle: bool, optional
+        :param use_pickle: Whether to pickle for installing, defaults to True
+        :type use_pickle: bool, optional
         """
         # parse the files
         if files:
@@ -81,9 +73,10 @@ class OntologyInstallationManager():
         # create the pickle file
         if os.path.exists(self.pkl_path):
             os.remove(self.pkl_path)
-        if do_pickle:
+        if use_pickle:
             with open(self.pkl_path, "wb") as f:
                 pickle.dump(self.namespace_registry, f)
+        self.set_module_attr()
 
     def uninstall(self, *namespaces):
         """Uninstall the given namespaces
@@ -111,20 +104,16 @@ class OntologyInstallationManager():
 
         # reinstall remaining namespaces
         self.initialize_installed_ontologies()
-        self.install(do_pickle=pkl_exists)
+        self.install(use_pickle=pkl_exists)
 
-    def initialize_installed_ontologies(self, use_pickle=True):
+    def initialize_installed_ontologies(self, osp_module=None, use_pickle=True):
         """Load the installed ontologies.
 
         :param use_pickle: Whether to use the provided pickle file,
             defaults to True
         :type use_pickle: bool, optional
         """
-        # Create necessary directories
-        for p in [self.path, self.yaml_path,
-                  self.installed_path, self.tmp_path]:
-            if not os.path.exists(p):
-                os.mkdir(p)
+        self._create_directories()
 
         # Load pickle
         self.namespace_registry = None
@@ -134,6 +123,7 @@ class OntologyInstallationManager():
                 with open(self.pkl_path, "rb") as f:
                     self.namespace_registry = pickle.load(f)  # nosec
                     self.parser = Parser(self)
+                    self.set_module_attr(osp_module)
                     return
             except EOFError:
                 pass
@@ -143,7 +133,14 @@ class OntologyInstallationManager():
         self.parser = Parser(self)
         installed_files = [os.path.join(self.installed_path, file)
                            for file in os.listdir(self.installed_path)]
-        self.parse_files(installed_files or list())
+        self.parse_files(installed_files or list(), osp_module=osp_module)
+
+    def _create_directories(self):
+        """Create the necessary directories if they don't exist."""
+        for p in [self.path, self.yaml_path,
+                  self.installed_path, self.tmp_path]:
+            if not os.path.exists(p):
+                os.mkdir(p)
 
     def _sort_for_installation(self, files):
         """Get the right order to install the files.
@@ -153,12 +150,51 @@ class OntologyInstallationManager():
         :return: The sorted list of file paths.
         :rtype: List[str]
         """
-        files = [f for f in files  # TODO parse requirements
-                 if f != "cuba"
-                 and not f.endswith("ontology.cuba.yml")]
-        if "cuba" not in self.namespace_registry:
-            files = ["cuba"] + files
-        return files
+        namespaces = [self._get_namespace(f) for f in files]
+        if "cuba" in namespaces:
+            cuba_idx = namespaces.index("cuba")
+            files = files[cuba_idx: cuba_idx + 1] + files[:cuba_idx] + \
+                files[cuba_idx + 1:]
+            namespaces = namespaces[cuba_idx: cuba_idx + 1] + \
+                namespaces[:cuba_idx] + namespaces[cuba_idx + 1:]
+        else:
+            namespaces = ["cuba"] + namespaces
+            files = ["cuba"] + list(files)
+
+        result = list()
+        for file, namespace in zip(files, namespaces):
+            if namespace not in self.namespace_registry:
+                result.append(file)
+        return result
+
+    @staticmethod
+    def _get_namespace(file_path):
+        """Get the namespace of a file
+
+        :param file_path: The path to the yaml ontology file
+        :type file_path: str
+        :raises RuntimeError: There is no namespace defined
+        """
+
+        # Get the namespace
+        namespace = None
+        file_path = Parser.get_filepath(file_path)
+        with open(file_path, "r") as f:
+            for line in f:
+                line = line.strip().lower()
+                if line.startswith("namespace"):
+                    namespace = line.split(":")[1].strip().strip("\"'")
+        if namespace is None:
+            raise RuntimeError("The file %s is missing a namespace"
+                               % file_path)
+        return namespace.lower()
+
+    def set_module_attr(self, module=None):
+        if module is None:
+            import osp.core as module
+        for name, namespace in self.namespace_registry._namespaces.items():
+            setattr(module, name.upper(), namespace)
+            setattr(module, name.lower(), namespace)
 
 
 def install_from_terminal():
@@ -203,7 +239,7 @@ def install_from_terminal():
 
     from osp.core import ONTOLOGY_INSTALLER
     if args.command == "install":
-        ONTOLOGY_INSTALLER.install(*args.files, do_pickle=args.pickle)
+        ONTOLOGY_INSTALLER.install(*args.files, use_pickle=args.pickle)
     elif args.command == "uninstall":
         ONTOLOGY_INSTALLER.uninstall(*args.namespaces)
 

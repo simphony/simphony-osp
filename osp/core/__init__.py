@@ -2,17 +2,10 @@ import sys
 import atexit
 from osp.core.ontology.installation import OntologyInstallationManager
 
-ONTOLOGY_INSTALLER = OntologyInstallationManager()
-ONTOLOGY_INSTALLER.initialize_installed_ontologies()
-atexit.register(ONTOLOGY_INSTALLER._clean)
-
 thismodule = sys.modules[__name__]
-
-
-for name, namespace in ONTOLOGY_INSTALLER.namespace_registry._namespaces.items():
-    setattr(thismodule, name.upper(), namespace)
-    setattr(thismodule, name.lower(), namespace)
-
+ONTOLOGY_INSTALLER = OntologyInstallationManager()
+ONTOLOGY_INSTALLER.initialize_installed_ontologies(thismodule)
+atexit.register(ONTOLOGY_INSTALLER._clean)
 
 user_defined_default_rel = None
 installed_default_rel = ONTOLOGY_INSTALLER.namespace_registry.default_rel

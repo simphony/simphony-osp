@@ -73,13 +73,6 @@ class NamespaceRegistry():
                              "registry!" % namespace.name)
         self._namespaces[namespace.name.lower()] = namespace
 
-        try:
-            import osp.core
-            setattr(osp.core, namespace.name.upper(), namespace)
-            setattr(osp.core, namespace.name.lower(), namespace)
-        except AttributeError:
-            pass
-
     def get_main_namespace(self):
         """Get the main namespace (CUBA)
 
