@@ -8,7 +8,7 @@
 import os
 import shutil
 import unittest2 as unittest
-from osp.core.ontology import OntologyInstallationManager, Parser
+from osp.core.ontology import OntologyInstallationManager
 
 
 class TestInstallation(unittest.TestCase):
@@ -21,12 +21,12 @@ class TestInstallation(unittest.TestCase):
         self.assertEqual(
             oim.yaml_path,
             os.path.join(os.path.dirname(__file__),
-                            ".osp_ontologies", "yml")
+                         ".osp_ontologies", "yml")
         )
         self.assertEqual(
             oim.installed_path,
             os.path.join(os.path.dirname(__file__),
-                            ".osp_ontologies", "yml", "installed")
+                         ".osp_ontologies", "yml", "installed")
         )
         self.assertEqual(
             oim.tmp_path,

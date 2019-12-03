@@ -106,7 +106,8 @@ class OntologyInstallationManager():
         self.initialize_installed_ontologies()
         self.install(use_pickle=pkl_exists)
 
-    def initialize_installed_ontologies(self, osp_module=None, use_pickle=True):
+    def initialize_installed_ontologies(self, osp_module=None,
+                                        use_pickle=True):
         """Load the installed ontologies.
 
         :param use_pickle: Whether to use the provided pickle file,
