@@ -115,7 +115,13 @@ SERIALIZED_BUFFERS2 = (
 )
 
 SERIALIZED_BUFFERS3 = (
-    '{"result": [{"oclass": "CITY.CITY", '
+    '{"added": [{"oclass": "CITY.CITIZEN", '
+    '"uid": "00000000-0000-0000-0000-000000000002", '
+    '"attributes": {"name": "Peter", "age": 12}, '
+    '"relationships": {"CITY.IS_INHABITANT_OF": '
+    '{"00000000-0000-0000-0000-000000000001": "CITY.CITY"}}}], '
+    '"updated": [], "deleted": [], "expired": [], '
+    '"result": [{"oclass": "CITY.CITY", '
     '"uid": "00000000-0000-0000-0000-000000000001", '
     '"attributes": {"name": "Freiburg", '
     '"coordinates": [0, 0]}, '
@@ -129,8 +135,7 @@ SERIALIZED_BUFFERS3 = (
     '"attributes": {}, '
     '"relationships": {'
     '"CITY.HAS_PART": '
-    '{"00000000-0000-0000-0000-000000000001": "CITY.CITY"}}}], '
-    '"added": [], "deleted": [], "updated": []}'
+    '{"00000000-0000-0000-0000-000000000001": "CITY.CITY"}}}]}'
 )
 
 
@@ -538,8 +543,10 @@ class TestCommunicationEngineServer(unittest.TestCase):
             w.add(c)
             server = TransportSessionServer(TestWrapperSession, None, None)
             server.session_objs["user"] = s1
+            s1._expired |= {c.uid, w.uid}
             result = server._load_from_session(
                 '{"uids": [{"UUID": 1}, {"UUID": 3}]}', "user")
+            self.maxDiff = None
             self.assertEqual(result, SERIALIZED_BUFFERS3)
 
     def test_init_session(self):

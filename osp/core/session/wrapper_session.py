@@ -65,7 +65,8 @@ class WrapperSession(Session):
             new_cuds_object = self._get_next_missing(missing)
             self._expire_neighour_diff(old_cuds_object, new_cuds_object, uids)
             if old_cuds_object is not None and new_cuds_object is None:
-                destroy_cuds_object(self._registry.get(uid))
+                destroy_cuds_object(self._registry.get(uid),
+                                    add_to_buffers=False)
             yield new_cuds_object
 
     def expire(self, *cuds_or_uids):
@@ -77,21 +78,17 @@ class WrapperSession(Session):
         """
         for c in cuds_or_uids:
             if isinstance(c, uuid.UUID):
-                if c == self.root:
-                    raise RuntimeError("Cannot expire root")
                 self._expired.add(c)
             else:
-                if c.uid == self.root:
-                    raise RuntimeError("Cannot expire root")
                 self._expired.add(c.uid)
-        self._expired &= (set(self._registry.keys()) - set([self.root]))
+        self._expired &= set(self._registry.keys())
 
     def expire_all(self):
         """Let all cuds_objects of the session expire.
         Expired objects will be reloaded lazily
         when attributed or relationships are accessed.
         """
-        self._expired = set(self._registry.keys()) - set([self.root])
+        self._expired = set(self._registry.keys())
 
     def refresh(self, *cuds_or_uids):
         """Refresh cuds_objects. Load possibly data of cuds_object
@@ -108,7 +105,7 @@ class WrapperSession(Session):
                 uids.append(c)
             else:
                 uids.append(c.uid)
-        uids = set(uids) - set([self.root])
+        uids = set(uids)
         self._expired |= uids
         list(self.load(*uids))
 

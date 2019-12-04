@@ -474,6 +474,9 @@ class SqlWrapperSession(DbWrapperSession):
                 uid, oclass = uid
             else:
                 raise ValueError("Invalid uid given %s" % uid)
+            if uid == self.root:  # root not stored explicitly in database
+                self._load_first_level()
+                yield self._registry.get(uid)
             loaded = list(self._load_by_oclass(oclass=oclass,
                                                update_registry=True,
                                                uid=uid))
@@ -546,9 +549,9 @@ class SqlWrapperSession(DbWrapperSession):
         """
         # Check if oclass is given
         if (oclass is None and uid is not None) or (uid == uuid.UUID(int=0)):
-            yield None
+            yield None  # uid given --> return iterator containing None
         if oclass is None:
-            return
+            return  # uid not given --> return None
 
         # Check if object in registry can be used
         if not update_registry and uid is not None and uid in self._registry:
