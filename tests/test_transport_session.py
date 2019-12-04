@@ -381,7 +381,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
             kwargs={"name": "Freiburg"},
             uid=1,
             session=client,
-            add_to_buffers=True
+            add_to_buffers=True,
+            fix_neighbours=False
         )
         c2 = CITY.CITY(name="London", uid=2)
         c3 = create_recycle(
@@ -389,7 +390,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
             kwargs={"name": "Paris"},
             uid=3,
             session=client,
-            add_to_buffers=True
+            add_to_buffers=True,
+            fix_neighbours=False
         )
         client.expire(c3.uid)
         client._reset_buffers(changed_by="user")
@@ -426,7 +428,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
                             kwargs={},
                             uid=1,
                             session=client,
-                            add_to_buffers=True)  # store will be called here
+                            add_to_buffers=True,
+                            fix_neighbours=False)  # store will be called here
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
         self.assertEqual(client._engine._sent_data, (
             '{"args": [], "kwargs": {}, '
@@ -444,7 +447,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
             kwargs={"name": "Freiburg"},
             uid=2,
             session=client,
-            add_to_buffers=True
+            add_to_buffers=True,
+            fix_neighbours=False
         )
         self.assertEqual(client._engine._sent_command, None)
         self.assertEqual(client._engine._sent_data, None)

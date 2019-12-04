@@ -124,7 +124,8 @@ def clone_cuds_object(cuds_object):
     return clone
 
 
-def create_recycle(oclass, kwargs, session, uid, add_to_buffers=True):
+def create_recycle(oclass, kwargs, session, uid, add_to_buffers=True,
+                   fix_neighbours=True):
     """Instantiate a cuds_object with a given session.
     If cuds_object with same uid is already in the session,
     this object will be reused.
@@ -140,6 +141,9 @@ def create_recycle(oclass, kwargs, session, uid, add_to_buffers=True):
     :param add_to_buffers: Whether the new cuds object should be added
         to the buffers
     :type add_to_buffers: bool
+    :param fix_neighbours: Whether to remove the link from the old neighbours
+        to this cuds object, defaults to True
+    :type fix_neighbours: bool
     :result: The created cuds object
     :rtype: Cuds
     """
@@ -151,7 +155,10 @@ def create_recycle(oclass, kwargs, session, uid, add_to_buffers=True):
     if uid in session._registry:
         cuds_object = session._registry.get(uid)
         for rel in set(cuds_object._neighbours.keys()):
-            del cuds_object._neighbours[rel]
+            if not fix_neighbours:
+                del cuds_object._neighbours[rel]
+            else:
+                cuds_object.remove(rel=rel)
         change_oclass(cuds_object, oclass, kwargs)
     else:  # create new
         cuds_object = oclass(uid=uid, session=session, **kwargs)
@@ -183,7 +190,8 @@ def create_from_cuds_object(cuds_object, session, add_to_buffers):
                            kwargs=kwargs,
                            session=session,
                            uid=cuds_object.uid,
-                           add_to_buffers=add_to_buffers)
+                           add_to_buffers=add_to_buffers,
+                           fix_neighbours=False)
     for rel, target_dict in cuds_object._neighbours.items():
         clone._neighbours[rel] = NeighbourDictTarget(dict(), clone, rel)
         for uid, target_oclass in target_dict.items():

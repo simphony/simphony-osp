@@ -130,7 +130,8 @@ class TestUtils(unittest.TestCase):
                 kwargs={"name": "Offenburg"},
                 uid=a.uid,
                 session=session,
-                add_to_buffers=False)
+                add_to_buffers=False,
+                fix_neighbours=False)
             self.assertEqual(b.name, "Offenburg")
             self.assertEqual(b.uid, a.uid)
             self.assertEqual(set(default_session._registry.keys()), {a.uid})
@@ -148,7 +149,8 @@ class TestUtils(unittest.TestCase):
             c = create_recycle(oclass=CITY.CITY,
                                kwargs={"name": "Emmendingen"},
                                session=session, uid=a.uid,
-                               add_to_buffers=True)
+                               add_to_buffers=True,
+                               fix_neighbours=False)
             self.assertIs(b, c)
             self.assertEqual(c.name, "Emmendingen")
             self.assertEqual(c.get(rel=CUBA.RELATIONSHIP), [])

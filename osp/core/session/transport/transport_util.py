@@ -197,7 +197,8 @@ def _to_cuds_object(json_obj, session, add_to_buffers):
                                  kwargs=attributes,
                                  session=session,
                                  uid=json_obj["uid"],
-                                 add_to_buffers=add_to_buffers)
+                                 add_to_buffers=add_to_buffers,
+                                 fix_neighbours=False)
 
     for rel_name, obj_dict in relationships.items():
         rel = get_entity(rel_name)
