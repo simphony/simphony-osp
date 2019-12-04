@@ -211,7 +211,8 @@ def change_oclass(cuds_object, new_oclass, kwargs):
         cuds_object._oclass = new_oclass
         for neighbour in cuds_object.get(rel=CUBA.RELATIONSHIP):
             for rel in get_relationships_between(cuds_object, neighbour):
-                neighbour._neighbours[rel.inverse][cuds_object.uid] = new_oclass
+                neighbour._neighbours[rel.inverse][cuds_object.uid] = \
+                    new_oclass
 
     # update attributes
     attributes = new_oclass._get_attributes_values(kwargs)
