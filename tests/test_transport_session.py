@@ -73,6 +73,7 @@ SERIALIZED_BUFFERS = (
     '"attributes": {"name": "Freiburg", '
     '"coordinates": [0, 0]}, '
     '"relationships": {}}], '
+    '"expired": [], '
     '"args": [42], '
     '"kwargs": {"name": "London"}}'
 )
@@ -110,7 +111,7 @@ SERIALIZED_BUFFERS2 = (
     '"uid": "00000000-0000-0000-0000-00000000002a", '
     '"attributes": {"name": "London", '
     '"coordinates": [0, 0]}, '
-    '"relationships": {}}], "updated": [], "deleted": []}'
+    '"relationships": {}}], "updated": [], "deleted": [], "expired": []}'
 )
 
 SERIALIZED_BUFFERS3 = (
@@ -291,7 +292,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             ws1.remove(c.uid)
             s1.prune()
             self.assertEqual(
-                '{"args": [42], "kwargs": {"name": "London"}}',
+                '{"expired": [], "args": [42], "kwargs": {"name": "London"}}',
                 serialize(
                     s1,
                     consume_buffers=False,
