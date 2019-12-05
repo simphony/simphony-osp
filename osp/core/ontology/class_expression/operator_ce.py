@@ -38,19 +38,6 @@ class OperatorClassExpression(ClassExpression):
                     "Expected ClassExpression as operand not %s" % x
                 )
 
-    @property
-    def class_expressions(self):
-        return self._class_expressions
-
-    @property
-    def class_expression(self):
-        if num_args(self.operator) != 1:
-            raise AttributeError(
-                "'class_expression' not defined for %s-ary operator %s"
-                % (num_args(self.operator), self.operator)
-            )
-        return self._class_expressions[0]
-
     def __str__(self):
         return "(%s)" % ((" %s " % self.operator).join([
             str(x) for x in self.operands

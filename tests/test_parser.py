@@ -7,8 +7,14 @@
 
 import unittest2 as unittest
 import osp.core
-from osp.core import Parser
 from osp.core import ONTOLOGY_INSTALLER
+
+try:
+    from osp.core import PARSER_TEST as ONTO
+except ImportError:
+    ONTO = ONTOLOGY_INSTALLER.parser.parse(
+        "osp/core/ontology/yml/ontology.parser_test.yml"
+    )
 
 
 class TestParser(unittest.TestCase):
@@ -120,15 +126,59 @@ class TestParser(unittest.TestCase):
 
     def test_multiple_inheritance(self):
         """Test corner cases of multiple inheritance"""
-        parser = Parser()
-        ONTO = parser.parse(
-            "osp/core/ontology/yml/ontology.parser_test.yml"
-        )
         self.assertEqual(ONTO.ENTITY_C.attributes, {ONTO.ATTRIBUTE_A: None})
         self.assertEqual(ONTO.ENTITY_D.attributes,
                          {ONTO.ATTRIBUTE_A: "DEFAULT_D"})
         self.assertEqual(ONTO.ATTRIBUTE_C.datatype, "UNDEFINED")
         self.assertEqual(ONTO.ATTRIBUTE_D.datatype, "FLOAT")
+
+    def test_parse_class_expressions(self):
+        """Test the parsing of class expressions"""
+        self.assertEqual(
+            len(ONTO.RELATIONSHIP_B.domain_expressions), 2
+        )
+        self.assertEqual(
+            ONTO.RELATIONSHIP_B.domain_expressions[0].operator, "and"
+        )
+        self.assertEqual(
+            ONTO.RELATIONSHIP_B.domain_expressions[1].operator, "or"
+        )
+        self.assertEqual(
+            ONTO.RELATIONSHIP_B.domain_expressions[1].operands,
+            [ONTO.ENTITY_A, ONTO.ENTITY_B]
+        )
+        self.assertEqual(
+            len(ONTO.RELATIONSHIP_B.domain_expressions[0].operands), 2
+        )
+        self.assertEqual(
+            ONTO.RELATIONSHIP_B.domain_expressions[0].operands[0],
+            ONTO.ENTITY_C
+        )
+        self.assertEqual(
+            ONTO.RELATIONSHIP_B.domain_expressions[0].operands[1].operator,
+            "not"
+        )
+        self.assertEqual(
+            ONTO.RELATIONSHIP_B.domain_expressions[0].operands[1].operands[0],
+            ONTO.ENTITY_D
+        )
+        self.assertEqual(
+            len(ONTO.RELATIONSHIP_B.range_expressions), 1
+        )
+        self.assertEqual(
+            ONTO.RELATIONSHIP_B.range_expressions[0].relationship,
+            ONTO.RELATIONSHIP_A
+        )
+        self.assertEqual(
+            ONTO.RELATIONSHIP_B.range_expressions[0].range,
+            ONTO.ENTITY_A
+        )
+        self.assertEqual(
+            ONTO.RELATIONSHIP_B.range_expressions[0].cardinality, "some"
+        )
+        self.assertEqual(
+            ONTO.RELATIONSHIP_B.range_expressions[0].exclusive, True
+        )
 
 
 if __name__ == '__main__':
