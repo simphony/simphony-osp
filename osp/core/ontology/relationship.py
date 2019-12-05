@@ -18,5 +18,7 @@ class OntologyRelationship(OntologyEntity):
         return self._inverse
 
     def _set_inverse(self, inverse):
-        assert isinstance(inverse, OntologyRelationship)
+        if not isinstance(inverse, OntologyRelationship):
+            raise TypeError("Tried to add non-relationship %s "
+                            "as inverse to %s" % (inverse, self))
         self._inverse = inverse

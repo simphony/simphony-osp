@@ -18,12 +18,12 @@ class NamespaceRegistry():
 
     def __getattr__(self, name):
         try:
-            return self.get(name)
-        except KeyError:
-            raise AttributeError(name)
+            return self._get(name)
+        except KeyError as e:
+            raise AttributeError(str(e)) from e
 
     def __getitem__(self, name):
-        return self.get(name)
+        return self._get(name)
 
     def __getstate__(self):
         return self.__dict__
@@ -36,8 +36,17 @@ class NamespaceRegistry():
             return other.lower() in self._namespaces.keys()
         return other in self._namespaces.values()
 
-    def get(self, name):
-        return self._namespaces[name.lower()]
+    def get(self, name, fallback=None):
+        try:
+            return self._get(name)
+        except KeyError:
+            return fallback
+
+    def _get(self, name):
+        try:
+            return self._namespaces[name.lower()]
+        except KeyError as e:
+            raise KeyError("namespace %s not installed" % name) from e
 
     @property
     def default_rel(self):

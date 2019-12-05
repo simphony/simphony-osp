@@ -67,7 +67,10 @@ class OntologyClass(OntologyEntity):
         :param attribute: The attribute to add
         :type attribute: OntologyAttribute
         """
-        assert isinstance(attribute, OntologyAttribute)
+        if not isinstance(attribute, OntologyAttribute):
+            raise TypeError("Tried to add non-attribute %s as "
+                            "attribute to %s"
+                            % (attribute, self))
         self._attributes[attribute] = default
 
     def _get_attributes_values(self, kwargs):
