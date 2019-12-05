@@ -22,7 +22,7 @@ from osp.core.utils import (
     find_cuds_objects_by_oclass, find_relationships,
     find_cuds_objects_by_attribute, post,
     get_relationships_between,
-    get_neighbour_diff
+    get_neighbour_diff, change_oclass
 )
 from osp.core.cuds import Cuds
 
@@ -144,7 +144,7 @@ class TestUtils(unittest.TestCase):
             )
 
             x = CITY.CITIZEN()
-            b.add(x, rel=CITY.HAS_INHABITANT)
+            x = b.add(x, rel=CITY.HAS_INHABITANT)
 
             c = create_recycle(oclass=CITY.CITY,
                                kwargs={"name": "Emmendingen"},
@@ -154,10 +154,21 @@ class TestUtils(unittest.TestCase):
             self.assertIs(b, c)
             self.assertEqual(c.name, "Emmendingen")
             self.assertEqual(c.get(rel=CUBA.RELATIONSHIP), [])
+            self.assertNotEqual(x.get(rel=CUBA.RELATIONSHIP), [])
             self.assertEqual(set(default_session._registry.keys()),
                              {a.uid, x.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
             self.assertEqual(session._updated, {c.uid: c})
+
+            x = CITY.CITIZEN()
+            x = c.add(x, rel=CITY.HAS_INHABITANT)
+
+            c = create_recycle(oclass=CITY.CITY,
+                               kwargs={"name": "Karlsruhe"},
+                               session=session, uid=a.uid,
+                               add_to_buffers=True,
+                               fix_neighbours=True)
+            self.assertEqual(x.get(rel=CUBA.RELATIONSHIP), [])
 
     def test_create_from_cuds_object(self):
         """Test copying cuds_objects to different session"""
@@ -192,6 +203,21 @@ class TestUtils(unittest.TestCase):
                              {a.uid, x.uid, y.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
             self.assertEqual(session._updated, {c.uid: c})
+
+    def test_change_oclass(self):
+        """Check utility method to change oclass"""
+        c = CITY.CITY(name="Freiburg")
+        p1 = CITY.CITIZEN(name="Tim")
+        p2 = CITY.CITIZEN(name="Tom")
+        c.add(p1, p2, rel=CITY.HAS_INHABITANT)
+        change_oclass(c, CITY.POPULATED_PLACE, {
+            "name": "Umkirch"
+        })
+        self.assertIs(c.oclass, CITY.POPULATED_PLACE)
+        self.assertEquals(p1._neighbours[CITY.IS_INHABITANT_OF],
+                          {c.uid: CITY.POPULATED_PLACE})
+        self.assertEquals(p2._neighbours[CITY.IS_INHABITANT_OF],
+                          {c.uid: CITY.POPULATED_PLACE})
 
     def test_check_arguments(self):
         """ Test checking of arguments """
