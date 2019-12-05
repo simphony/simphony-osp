@@ -8,13 +8,14 @@
 
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.attribute import OntologyAttribute
+from osp.core.ontology.class_expression import ClassExpression
 import warnings
 
 
 CONFLICTING = "2L4N4lGLYBU8mBNx8H6X6dC6Mcf2AcBqIKnFnXUI"
 
 
-class OntologyClass(OntologyEntity):
+class OntologyClass(OntologyEntity, ClassExpression):
     def __init__(self, namespace, name, superclasses, description):
         super().__init__(namespace, name, superclasses, description)
         self._attributes = dict()
@@ -43,6 +44,24 @@ class OntologyClass(OntologyEntity):
         :rtype: List[OntologyAttribute]
         """
         return self._attributes
+
+    @property
+    def subclass_of_expressions(self):
+        """Get the subclass_of class expressions"""
+        from osp.core.ontology.parser import SUPERCLASSES_KEY
+        return self._collect_class_expressions(SUPERCLASSES_KEY)
+
+    @property
+    def equivalent_to_expressions(self):
+        """Get the subclass_of class expressions"""
+        from osp.core.ontology.parser import EQUIVALENT_TO_KEY
+        return self._collect_class_expressions(EQUIVALENT_TO_KEY)
+
+    @property
+    def disjoint_with_expressions(self):
+        """Get the subclass_of class expressions"""
+        from osp.core.ontology.parser import DISJOINTS_KEY
+        return self._collect_class_expressions(DISJOINTS_KEY)
 
     def _get_attributes_recursively(self):
         """Get the attributes and defaults recursively
