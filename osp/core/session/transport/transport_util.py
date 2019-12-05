@@ -36,8 +36,7 @@ def serialize(session_obj, consume_buffers=True, additional_items=None):
         "deleted": serializable(session_obj._deleted.values()),
     } if consume_buffers else dict()
 
-    if hasattr(session_obj, "_expired"):
-        result["expired"] = serializable(session_obj._expired)
+    result["expired"] = serializable(session_obj._expired)
 
     if additional_items is not None:
         result.update({k: serializable(v)
@@ -64,7 +63,7 @@ def deserialize_buffers(session_obj, data, add_to_buffers):
     """
     data = json.loads(data)
 
-    if "expired" in data and hasattr(session_obj, "_expired"):
+    if "expired" in data:
         session_obj._expired |= set(deserialize(json_obj=data["expired"],
                                                 session=session_obj,
                                                 add_to_buffers=add_to_buffers))
@@ -198,7 +197,8 @@ def _to_cuds_object(json_obj, session, add_to_buffers):
                                  kwargs=attributes,
                                  session=session,
                                  uid=json_obj["uid"],
-                                 add_to_buffers=add_to_buffers)
+                                 add_to_buffers=add_to_buffers,
+                                 fix_neighbours=False)
 
     for rel_name, obj_dict in relationships.items():
         rel = get_entity(rel_name)

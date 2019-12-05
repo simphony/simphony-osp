@@ -7,11 +7,10 @@
 
 from abc import abstractmethod
 from osp.core.session.wrapper_session import consumes_buffers
-from osp.core.session.storage_wrapper_session import \
-    StorageWrapperSession
+from osp.core.session.wrapper_session import WrapperSession
 
 
-class FileWrapperSession(StorageWrapperSession):
+class FileWrapperSession(WrapperSession):
     """Abstract class for a File Wrapper Session"""
 
     @consumes_buffers

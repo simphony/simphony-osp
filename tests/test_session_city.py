@@ -227,3 +227,6 @@ class TestWrapperSession(WrapperSession):
 
     def _notify_read(self, cuds_object):
         pass
+
+    def _load_from_backend(self, uids, expired=None):
+        yield from Session.load(self, *uids)
