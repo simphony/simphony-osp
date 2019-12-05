@@ -29,7 +29,7 @@ def set_default_rel(rel):
 
 
 def get_entity(entity_name):
-    namespace, name = entity_name.split(".")
+    namespace, name = ONTOLOGY_INSTALLER.parser.split_name(entity_name)
     return ONTOLOGY_INSTALLER.namespace_registry[namespace][name]
 
 
