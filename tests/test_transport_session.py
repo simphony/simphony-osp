@@ -9,7 +9,6 @@ import unittest2 as unittest
 import uuid
 import json
 from copy import deepcopy
-from osp.core import CITY
 from osp.core.utils import create_recycle
 from osp.core.session.wrapper_session import consumes_buffers
 from .test_session_city import TestWrapperSession
@@ -22,6 +21,12 @@ from osp.core.session.transport.transport_util import (
     serialize, LOAD_COMMAND, INITIALIZE_COMMAND
 )
 from osp.core.utils import create_from_cuds_object
+
+try:
+    from osp.core import CITY
+except ImportError:
+    from osp.core.ontology import Parser
+    CITY = Parser().parse("city")
 
 CUDS_DICT = {
     "oclass": "CITY.CITIZEN",

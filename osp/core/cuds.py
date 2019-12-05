@@ -9,7 +9,7 @@
 import uuid
 from typing import Union, List, Iterator, Dict, Any
 
-from osp.core import ONTOLOGY_NAMESPACE_REGISTRY
+from osp.core import ONTOLOGY_INSTALLER
 from osp.core.ontology.relationship import OntologyEntity
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
@@ -752,16 +752,17 @@ class Cuds():
         :type state: Dict[str, Any]
         """
         namespace, oclass = state["_oclass"]
-        oclass = ONTOLOGY_NAMESPACE_REGISTRY[namespace][oclass]
+        oclass = ONTOLOGY_INSTALLER.namespace_registry[namespace][oclass]
         state["_oclass"] = oclass
         state["_session"] = None
         state["_neighbours"] = NeighbourDictRel({
-            ONTOLOGY_NAMESPACE_REGISTRY[ns][cl]: NeighbourDictTarget({
-                uid: ONTOLOGY_NAMESPACE_REGISTRY[ns2][cl2]
-                for uid, ns2, cl2 in v
-            }, self, ONTOLOGY_NAMESPACE_REGISTRY[ns][cl])
+            ONTOLOGY_INSTALLER.namespace_registry[ns][cl]:
+                NeighbourDictTarget({
+                    uid: ONTOLOGY_INSTALLER.namespace_registry[ns2][cl2]
+                    for uid, ns2, cl2 in v
+                }, self, ONTOLOGY_INSTALLER.namespace_registry[ns][cl])
             for ns, cl, v in state["_neighbours"]
         }, self)
-        state["_values"] = {k: ONTOLOGY_NAMESPACE_REGISTRY[ns][cl]
+        state["_values"] = {k: ONTOLOGY_INSTALLER.namespace_registry[ns][cl]
                             for k, ns, cl in state["_values"]}
         self.__dict__ = state

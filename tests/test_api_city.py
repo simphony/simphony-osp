@@ -12,7 +12,13 @@ from osp.core.utils import clone_cuds_object, create_from_cuds_object, \
     get_neighbour_diff
 from osp.core.session.core_session import CoreSession
 from osp.core.cuds import Cuds
-from osp.core import CITY, CUBA
+from osp.core import CUBA
+
+try:
+    from osp.core import CITY
+except ImportError:
+    from osp.core.ontology import Parser
+    CITY = Parser().parse("city")
 
 
 class TestAPICity(unittest.TestCase):

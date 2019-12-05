@@ -30,10 +30,10 @@ Follow these steps to use EMMO with OSP-core.
    owl2yml -n EMMO emmo_inferred.owl -c osp/core/tools/conversion_options/emmo.conversion_options.yml
    ```
 
-8. Install osp-core with the resulting YAML file:
+8. Install the resulting YAML file:
 
    ```sh
-   python setup.py install -o ontology.emmo.yml
+   pico install ontology.emmo.yml
    ```
 
 9. Start creating cuds objects. Check the getting-started repository in the SimPhoNy group.

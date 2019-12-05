@@ -35,21 +35,33 @@ setuptools:
 python3 setup.py install
 ```
 
-```sh
-# install ontologies
-python3 setup.py install -o <path/to/ontology.own-ontology.yml>
-```
-
-```sh
-# reset installed ontologies
-python3 setup.py install -r
-```
-
 or:
 
 ```sh
 # build for in-place development
 python3 setup.py develop
+```
+
+## Installation of ontologies
+
+After you installed osp-core you can install your ontology namespaces. We provide the tool pico
+(**p**ico **i**nstalls **c**uds **o**ntologies) for that purpose. The following command
+installs the example city ontology namespace:
+
+```sh
+pico install city
+```
+
+You can also install your own ontologies:
+
+```sh
+pico install path/to/your/ontology.yml
+```
+
+If you want to uninstall an ontology use the following command:
+
+```sh
+pico uninstall <namespace>  # e.g. city
 ```
 
 ### Installation of OWL ontologies
