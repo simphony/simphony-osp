@@ -109,9 +109,11 @@ class Parser:
         for entity in missing_inverse:
             self._create_missing_inverse(entity)
 
-    def _split_name(self, name):
+    @staticmethod
+    def split_name(name):
         try:
-            return name.split(".")
+            a, b = name.split(".")
+            return a, b
         except ValueError as e:
             raise ValueError("Reference to entity %s without namespace"
                              % name) from e
@@ -137,7 +139,7 @@ class Parser:
         for p in superclass_names:
             if not isinstance(p, str):
                 continue
-            namespace, superclass_name = self._split_name(p)
+            namespace, superclass_name = self.split_name(p)
             namespace = self._namespace_registry[namespace]
             if namespace is self._ontology_namespace:
                 self._load_entity(superclass_name)
@@ -190,7 +192,7 @@ class Parser:
         # Add the attributes one by one
         for attribute_name, default in attributes_def.items():
             attribute_namespace, attribute_name = \
-                self._split_name(attribute_name)
+                self.split_name(attribute_name)
             attribute_namespace = self._namespace_registry[attribute_namespace]
             attribute = attribute_namespace[attribute_name]
             entity._add_attribute(attribute, default)
@@ -210,7 +212,7 @@ class Parser:
 
         # Inverse is defined
         if inverse_def is not None:
-            inverse_namespace, inverse_name = self._split_name(inverse_def)
+            inverse_namespace, inverse_name = self.split_name(inverse_def)
             inverse_namespace = self._namespace_registry[inverse_namespace]
             inverse = inverse_namespace[inverse_name]
             entity._set_inverse(inverse)

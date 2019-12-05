@@ -30,9 +30,9 @@ class OntologyNamespace():
         :rtype: OntologyEntity
         """
         try:
-            return self.get(name)
-        except KeyError:
-            raise AttributeError(name)
+            return self._get(name)
+        except KeyError as e:
+            raise AttributeError(str(e)) from e
 
     def __getitem__(self, name):
         """Get an ontology entity from the registry by name.
@@ -42,7 +42,7 @@ class OntologyNamespace():
         :return: The ontology entity
         :rtype: OntologyEntity
         """
-        return self.get(name)
+        return self._get(name)
 
     def __getstate__(self):
         return self.__dict__
@@ -50,7 +50,22 @@ class OntologyNamespace():
     def __setstate__(self, state):
         self.__dict__ = state
 
-    def get(self, name):
+    def get(self, name, fallback=None):
+        """Get an ontology entity from the registry by name.
+
+        :param name: The name of the ontology entity
+        :type name: str
+        :param default: The value to return if it doesn't exist
+        :type default: Any
+        :return: The ontology entity
+        :rtype: OntologyEntity
+        """
+        try:
+            return self._get(name)
+        except KeyError:
+            return fallback
+
+    def _get(self, name):
         """Get an ontology entity from the registry by name.
 
         :param name: The name of the ontology entity
@@ -68,7 +83,11 @@ class OntologyNamespace():
                 if x.isupper():
                     name += "_"
                 name += x
-        return self._entities[name.lower()]
+        try:
+            return self._entities[name.lower()]
+        except KeyError as e:
+            raise KeyError("%s not defined in namespace %s"
+                           % (name, self.name)) from e
 
     def __iter__(self):
         """Iterate over the ontology entities in the namespace.
