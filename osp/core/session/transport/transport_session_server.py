@@ -7,8 +7,7 @@
 
 import json
 import traceback
-from osp.core.session.storage_wrapper_session \
-    import StorageWrapperSession
+from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.transport.communication_engine \
     import CommunicationEngineServer
 from osp.core.session.transport.transport_util import (
@@ -73,7 +72,7 @@ class TransportSessionServer():
         elif not command.startswith("_") and \
                 user in self.session_objs and \
                 hasattr(self.session_objs[user], command) and \
-                not hasattr(StorageWrapperSession, command) and \
+                not hasattr(WrapperSession, command) and \
                 callable(getattr(self.session_objs[user], command)):
             try:
                 return self._run_command(data, command, user)
@@ -97,11 +96,7 @@ class TransportSessionServer():
         arguments = deserialize_buffers(session, data, add_to_buffers=True)
         result = getattr(session, command)(*arguments["args"],
                                            **arguments["kwargs"])
-        additional = dict()
-        if result:
-            additional["result"] = result
-        if hasattr(session, "_expired"):
-            additional["expired"] = session._expired
+        additional = {"result": result} if result else dict()
         return serialize(session, additional_items=additional)
 
     def _load_from_session(self, data, user):
@@ -115,11 +110,8 @@ class TransportSessionServer():
         session = self.session_objs[user]
         uids = deserialize_buffers(session, data, add_to_buffers=False)["uids"]
         cuds_objects = session.load(*uids)
-        serialized = [serializable(x) for x in cuds_objects]
-        return json.dumps({"result": serialized,
-                           "added": [],
-                           "deleted": [],
-                           "updated": []})
+        additional = {"result": [serializable(x) for x in cuds_objects]}
+        return serialize(session, additional_items=additional)
 
     def _init_session(self, data, user):
         """Start a new session.

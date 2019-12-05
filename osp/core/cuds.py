@@ -46,12 +46,12 @@ class Cuds():
             uid will be created.
         :type uid: UUID
         """
-        self._attributes = {k.argname: k(v) for k, v in attributes.items()}
+        self._attr_values = {k.argname: k(v) for k, v in attributes.items()}
         self._neighbours = NeighbourDictRel({}, self)
 
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         self._session = session or Cuds._session
-        self._values = {k.argname: k for k in attributes}
+        self._onto_attributes = {k.argname: k for k in attributes}
         self._oclass = oclass
         self.session._store(self)
 
@@ -663,13 +663,13 @@ class Cuds():
         :return: The value of the attribute
         :rtype: Any
         """
-        if name not in self._attributes:
+        if name not in self._attr_values:
             raise AttributeError(name)
         if self.session:
             self.session._notify_read(self)
-        if name not in self._attributes:
+        if name not in self._attr_values:
             raise AttributeError(name)
-        return self._attributes[name]
+        return self._attr_values[name]
 
     def __setattr__(self, name, new_value):
         """Set an attribute.
@@ -684,13 +684,13 @@ class Cuds():
         if name.startswith("_"):
             super().__setattr__(name, new_value)
             return
-        if name not in self._attributes:
+        if name not in self._attr_values:
             raise AttributeError(name)
         if self.session:
             self.session._notify_read(self)
-        if name not in self._attributes:
+        if name not in self._attr_values:
             raise AttributeError(name)
-        self._attributes[name] = self._values[name](new_value)
+        self._attr_values[name] = self._onto_attributes[name](new_value)
         if self.session:
             self.session._notify_update(self)
 
@@ -741,7 +741,7 @@ class Cuds():
             for k, v in self._neighbours.items()
         ]
         state["_values"] = [(k, v.namespace.name, v.name)
-                            for k, v in self._values.items()]
+                            for k, v in self._onto_attributes.items()]
         return state
 
     def __setstate__(self, state):

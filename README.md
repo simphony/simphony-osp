@@ -160,20 +160,10 @@ Further examples can be found in the /examples folder. There the usage of wrappe
 - osp/core -- The source code
   - tools -- various tools to work with osp-core.
   - ontology -- the parser and generation of the entities and classes.
+    - yml -- The supplied ontology files
   - session -- Different abstract classes for wrappers.
 - doc -- documentation related files.
 - examples -- examples of usage.
 - tests -- unittesting of the code
 
-### Architecture
-
-The main components, their sub-components, and the interactions between them are given in the following diagrams.
-
-The structure of a pure python OSP case:
-![Standalone CUDS](doc/standalone_cuds.svg)
-
-The structure of a local wrapper:
-![Local CUDS](doc/local_cuds.svg)
-
-The structure of a wrapper with a back-end in a remote server:
-![Distributed CUDS](doc/distributed_cuds.svg)
+For further documentation refer to https://gitlab.cc-asp.fraunhofer.de/simphony/getting-started.
