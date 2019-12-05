@@ -73,6 +73,7 @@ SERIALIZED_BUFFERS = (
     '"attributes": {"name": "Freiburg", '
     '"coordinates": [0, 0]}, '
     '"relationships": {}}], '
+    '"expired": [], '
     '"args": [42], '
     '"kwargs": {"name": "London"}}'
 )
@@ -110,11 +111,17 @@ SERIALIZED_BUFFERS2 = (
     '"uid": "00000000-0000-0000-0000-00000000002a", '
     '"attributes": {"name": "London", '
     '"coordinates": [0, 0]}, '
-    '"relationships": {}}], "updated": [], "deleted": []}'
+    '"relationships": {}}], "updated": [], "deleted": [], "expired": []}'
 )
 
 SERIALIZED_BUFFERS3 = (
-    '{"result": [{"oclass": "CITY.CITY", '
+    '{"added": [{"oclass": "CITY.CITIZEN", '
+    '"uid": "00000000-0000-0000-0000-000000000002", '
+    '"attributes": {"name": "Peter", "age": 12}, '
+    '"relationships": {"CITY.IS_INHABITANT_OF": '
+    '{"00000000-0000-0000-0000-000000000001": "CITY.CITY"}}}], '
+    '"updated": [], "deleted": [], "expired": [], '
+    '"result": [{"oclass": "CITY.CITY", '
     '"uid": "00000000-0000-0000-0000-000000000001", '
     '"attributes": {"name": "Freiburg", '
     '"coordinates": [0, 0]}, '
@@ -128,8 +135,7 @@ SERIALIZED_BUFFERS3 = (
     '"attributes": {}, '
     '"relationships": {'
     '"CITY.HAS_PART": '
-    '{"00000000-0000-0000-0000-000000000001": "CITY.CITY"}}}], '
-    '"added": [], "deleted": [], "updated": []}'
+    '{"00000000-0000-0000-0000-000000000001": "CITY.CITY"}}}]}'
 )
 
 
@@ -291,7 +297,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             ws1.remove(c.uid)
             s1.prune()
             self.assertEqual(
-                '{"args": [42], "kwargs": {"name": "London"}}',
+                '{"expired": [], "args": [42], "kwargs": {"name": "London"}}',
                 serialize(
                     s1,
                     consume_buffers=False,
@@ -375,7 +381,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
             kwargs={"name": "Freiburg"},
             uid=1,
             session=client,
-            add_to_buffers=True
+            add_to_buffers=True,
+            fix_neighbours=False
         )
         c2 = CITY.CITY(name="London", uid=2)
         c3 = create_recycle(
@@ -383,7 +390,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
             kwargs={"name": "Paris"},
             uid=3,
             session=client,
-            add_to_buffers=True
+            add_to_buffers=True,
+            fix_neighbours=False
         )
         client.expire(c3.uid)
         client._reset_buffers(changed_by="user")
@@ -420,7 +428,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
                             kwargs={},
                             uid=1,
                             session=client,
-                            add_to_buffers=True)  # store will be called here
+                            add_to_buffers=True,
+                            fix_neighbours=False)  # store will be called here
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
         self.assertEqual(client._engine._sent_data, (
             '{"args": [], "kwargs": {}, '
@@ -438,7 +447,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
             kwargs={"name": "Freiburg"},
             uid=2,
             session=client,
-            add_to_buffers=True
+            add_to_buffers=True,
+            fix_neighbours=False
         )
         self.assertEqual(client._engine._sent_command, None)
         self.assertEqual(client._engine._sent_data, None)
@@ -537,8 +547,10 @@ class TestCommunicationEngineServer(unittest.TestCase):
             w.add(c)
             server = TransportSessionServer(TestWrapperSession, None, None)
             server.session_objs["user"] = s1
+            s1._expired |= {c.uid, w.uid}
             result = server._load_from_session(
                 '{"uids": [{"UUID": 1}, {"UUID": 3}]}', "user")
+            self.maxDiff = None
             self.assertEqual(result, SERIALIZED_BUFFERS3)
 
     def test_init_session(self):
