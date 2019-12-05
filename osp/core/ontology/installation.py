@@ -193,6 +193,8 @@ class OntologyInstallationManager():
     def set_module_attr(self, module=None):
         if module is None:
             import osp.core as module
+        setattr(module, "ONTOLOGY_NAMESPACE_REGISTRY",
+                self.namespace_registry)
         for name, namespace in self.namespace_registry._namespaces.items():
             setattr(module, name.upper(), namespace)
             setattr(module, name.lower(), namespace)

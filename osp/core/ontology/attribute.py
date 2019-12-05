@@ -87,5 +87,6 @@ class OntologyAttribute(OntologyEntity):
         :type datatype: str
         """
         if datatype.split(":")[0] not in ONTOLOGY_DATATYPES:
-            raise ValueError("Invalid datatype %s specified" % datatype)
+            raise ValueError("Invalid datatype %s specified for %s"
+                             % (datatype, self))
         self._datatype = datatype
