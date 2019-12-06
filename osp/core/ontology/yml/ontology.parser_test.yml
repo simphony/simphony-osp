@@ -3,6 +3,8 @@ version: "0.0.1"
 
 namespace: "PARSER_TEST"
 
+requirements: ["CITY"]
+
 ontology:
 
   ENTITY_A:

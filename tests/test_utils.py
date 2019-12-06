@@ -214,10 +214,10 @@ class TestUtils(unittest.TestCase):
             "name": "Umkirch"
         })
         self.assertIs(c.oclass, CITY.POPULATED_PLACE)
-        self.assertEquals(p1._neighbours[CITY.IS_INHABITANT_OF],
-                          {c.uid: CITY.POPULATED_PLACE})
-        self.assertEquals(p2._neighbours[CITY.IS_INHABITANT_OF],
-                          {c.uid: CITY.POPULATED_PLACE})
+        self.assertEqual(p1._neighbours[CITY.IS_INHABITANT_OF],
+                         {c.uid: CITY.POPULATED_PLACE})
+        self.assertEqual(p2._neighbours[CITY.IS_INHABITANT_OF],
+                         {c.uid: CITY.POPULATED_PLACE})
 
     def test_check_arguments(self):
         """ Test checking of arguments """
