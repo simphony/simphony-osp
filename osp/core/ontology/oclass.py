@@ -55,7 +55,7 @@ class OntologyClass(OntologyEntity, ClassExpression):
     def equivalent_to_expressions(self):
         """Get the subclass_of class expressions"""
         from osp.core.ontology.parser import EQUIVALENT_TO_KEY
-        return self._collect_class_expressions(EQUIVALENT_TO_KEY)
+        return self._class_expressions[EQUIVALENT_TO_KEY]
 
     @property
     def disjoint_with_expressions(self):

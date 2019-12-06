@@ -39,6 +39,10 @@ class OperatorClassExpression(ClassExpression):
                 )
 
     def __str__(self):
-        return "(%s)" % ((" %s " % self.operator).join([
+        if len(self.operands) > 1:
+            return "(%s)" % ((" %s " % self.operator).join([
+                str(x) for x in self.operands
+            ]))
+        return "%s(%s)" % (self.operator, "".join([
             str(x) for x in self.operands
         ]))
