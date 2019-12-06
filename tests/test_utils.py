@@ -249,9 +249,9 @@ class TestUtils(unittest.TestCase):
         self.assertIs(find_cuds_object(
             find_maria, c, CUBA.ACTIVE_RELATIONSHIP, False), p3)
         self.assertIs(find_cuds_object(
-            find_maria, c, CUBA.INVERSE_OF_ACTIVE_RELATIONSHIP, False), None)
+            find_maria, c, CUBA.PASSIVE_RELATIONSHIP, False), None)
         self.assertEqual(find_cuds_object(
-            find_maria, c, CUBA.INVERSE_OF_ACTIVE_RELATIONSHIP, True), list())
+            find_maria, c, CUBA.PASSIVE_RELATIONSHIP, True), list())
         all_found = find_cuds_object(
             find_maria, c, CUBA.ACTIVE_RELATIONSHIP, True)
         self.assertIs(all_found[0], p3)
@@ -345,7 +345,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(len(found), 3)
         self.assertEqual(set(found), {p1, p2, p3})
         found = find_cuds_objects_by_attribute(
-            "age", 25, c, CUBA.INVERSE_OF_ACTIVE_RELATIONSHIP
+            "age", 25, c, CUBA.PASSIVE_RELATIONSHIP
         )
         self.assertEqual(found, [])
 

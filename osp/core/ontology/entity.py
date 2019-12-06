@@ -150,6 +150,15 @@ class OntologyEntity(ABC):
         if subclass not in self._subclasses:
             self._subclasses.append(subclass)
 
+    def _add_superclass(self, superclass):
+        """Add a superclass to the entity
+
+        :param superclass: The superclass to add
+        :type superclass: OntologyEntity
+        """
+        if superclass not in self._superclasses:
+            self._superclasses.append(superclass)
+
     def _add_class_expression(self, keyword, class_expression):
         from osp.core.ontology.class_expression import ClassExpression
         if not isinstance(class_expression, ClassExpression):
