@@ -22,3 +22,15 @@ class OntologyRelationship(OntologyEntity):
             raise TypeError("Tried to add non-relationship %s "
                             "as inverse to %s" % (inverse, self))
         self._inverse = inverse
+
+    @property
+    def domain_expressions(self):
+        """Get the subclass_of class expressions"""
+        from osp.core.ontology.parser import DOMAIN_KEY
+        return self._collect_class_expressions(DOMAIN_KEY)
+
+    @property
+    def range_expressions(self):
+        """Get the subclass_of class expressions"""
+        from osp.core.ontology.parser import RANGE_KEY
+        return self._collect_class_expressions(RANGE_KEY)
