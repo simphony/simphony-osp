@@ -236,26 +236,28 @@ class Parser:
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
         entity_yaml_doc = cuds_yaml_doc[entity.name]
 
+        # Check if incerse is defined
         inverse_def = None
         if INVERSE_KEY in entity_yaml_doc:
             inverse_def = entity_yaml_doc[INVERSE_KEY]
+        if inverse_def is None:
+            missing_inverse |= {entity}
+            return
 
-        # Inverse is defined
-        if inverse_def is not None:
-            inverse_namespace, inverse_name = self.split_name(inverse_def)
-            inverse_namespace = self._namespace_registry[inverse_namespace]
-            inverse = inverse_namespace[inverse_name]
-            if inverse.inverse and inverse.inverse != entity:
-                raise RuntimeError(
-                    "Conflicting inverses for %s, %s, %s"
-                    % (entity, inverse, inverse.inverse)
-                )
-            entity._set_inverse(inverse)
-            inverse._set_inverse(entity)
-            if inverse in missing_inverse:
-                missing_inverse.remove(inverse)
-            self._set_missing_passive(entity)
-        missing_inverse |= {entity}
+        # inverse is defined
+        inverse_namespace, inverse_name = self.split_name(inverse_def)
+        inverse_namespace = self._namespace_registry[inverse_namespace]
+        inverse = inverse_namespace[inverse_name]
+        if inverse.inverse and inverse.inverse != entity:
+            raise RuntimeError(
+                "Conflicting inverses for %s, %s, %s"
+                % (entity, inverse, inverse.inverse)
+            )
+        entity._set_inverse(inverse)
+        inverse._set_inverse(entity)
+        if inverse in missing_inverse:
+            missing_inverse.remove(inverse)
+        self._set_missing_passive(entity)
 
     def _set_missing_passive(self, entity):
         CUBA = self._namespace_registry.get_main_namespace()

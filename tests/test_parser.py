@@ -7,7 +7,7 @@
 
 import unittest2 as unittest
 import osp.core
-from osp.core import ONTOLOGY_INSTALLER
+from osp.core import ONTOLOGY_INSTALLER, CUBA
 
 try:
     from osp.core import PARSER_TEST as ONTO
@@ -178,6 +178,68 @@ class TestParser(unittest.TestCase):
         )
         self.assertEqual(
             ONTO.RELATIONSHIP_B.range_expressions[0].exclusive, True
+        )
+
+    def test_inverses(self):
+        """ Test if missing inverses and active + passive relationships
+        have been added"""
+        self.assertIs(
+            ONTO.RELATIONSHIP_A.inverse,
+            ONTO.RELATIONSHIP_C
+        )
+        self.assertIs(
+            ONTO.RELATIONSHIP_A,
+            ONTO.RELATIONSHIP_C.inverse
+        )
+        self.assertIs(
+            ONTO.RELATIONSHIP_B.inverse,
+            ONTO.INVERSE_OF_RELATIONSHIP_B
+        )
+        self.assertIs(
+            ONTO.RELATIONSHIP_B,
+            ONTO.INVERSE_OF_RELATIONSHIP_B.inverse
+        )
+        # created inverse
+        self.assertEquals(
+            ONTO.INVERSE_OF_RELATIONSHIP_B.direct_superclasses,
+            [ONTO.RELATIONSHIP_C, CUBA.PASSIVE_RELATIONSHIP]
+        )
+
+        # active and passive
+        self.assertIn(
+            CUBA.ACTIVE_RELATIONSHIP,
+            ONTO.RELATIONSHIP_A.direct_superclasses
+        )
+        self.assertIn(
+            CUBA.PASSIVE_RELATIONSHIP,
+            ONTO.RELATIONSHIP_C.direct_superclasses
+        )
+
+        self.assertIn(
+            ONTO.RELATIONSHIP_A,
+            CUBA.ACTIVE_RELATIONSHIP.direct_subclasses,
+        )
+        self.assertIn(
+            ONTO.RELATIONSHIP_C,
+            CUBA.PASSIVE_RELATIONSHIP.direct_subclasses,
+        )
+
+        self.assertIn(
+            CUBA.ACTIVE_RELATIONSHIP,
+            ONTO.RELATIONSHIP_B.direct_superclasses
+        )
+        self.assertIn(
+            CUBA.PASSIVE_RELATIONSHIP,
+            ONTO.INVERSE_OF_RELATIONSHIP_B.direct_superclasses
+        )
+
+        self.assertIn(
+            ONTO.RELATIONSHIP_B,
+            CUBA.ACTIVE_RELATIONSHIP.direct_subclasses,
+        )
+        self.assertIn(
+            ONTO.INVERSE_OF_RELATIONSHIP_B,
+            CUBA.PASSIVE_RELATIONSHIP.direct_subclasses,
         )
 
 
