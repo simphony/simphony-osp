@@ -78,6 +78,7 @@ class OntologyInstallationManager():
             with open(self.pkl_path, "wb") as f:
                 pickle.dump(self.namespace_registry, f)
         self.set_module_attr()
+        print("Installation successful!")
 
     def uninstall(self, *namespaces):
         """Uninstall the given namespaces
@@ -93,8 +94,10 @@ class OntologyInstallationManager():
                              "ontology.%s.yml" % namespace)
             if os.path.exists(p):
                 os.remove(p)
-                delattr(osp.core, namespace.upper())
-                delattr(osp.core, namespace.lower())
+                if hasattr(osp.core, namespace.upper()):
+                    delattr(osp.core, namespace.upper())
+                if hasattr(osp.core, namespace.lower()):
+                    delattr(osp.core, namespace.lower())
             else:
                 raise ValueError("Namespace %s not installed" % namespace)
 
@@ -106,6 +109,7 @@ class OntologyInstallationManager():
         # reinstall remaining namespaces
         self.initialize_installed_ontologies()
         self.install(use_pickle=pkl_exists)
+        print("Uninstallation successful!")
 
     def initialize_installed_ontologies(self, osp_module=None,
                                         use_pickle=True):
@@ -155,9 +159,10 @@ class OntologyInstallationManager():
         result = list()
         files = {self._get_namespace(f): f for f in files}
         requirements = {n: self.get_requirements(f) for n, f in files.items()}
-        if "cuba" not in files:
-            files["cuba"] = "cuba"
-        requirements["cuba"] = set()
+        if "cuba" not in self.namespace_registry:
+            if "cuba" not in files:
+                files["cuba"] = "cuba"
+            requirements["cuba"] = set()
 
         # Check what has been already installed
         already_installed = list()
