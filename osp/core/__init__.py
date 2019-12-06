@@ -4,7 +4,11 @@ from osp.core.ontology.installation import OntologyInstallationManager
 
 thismodule = sys.modules[__name__]
 ONTOLOGY_INSTALLER = OntologyInstallationManager()
-ONTOLOGY_INSTALLER.initialize_installed_ontologies(thismodule)
+try:
+    ONTOLOGY_INSTALLER.initialize_installed_ontologies(thismodule)
+except RuntimeError as e:
+    print("Could not load installed ontologies:")
+    print(e)
 atexit.register(ONTOLOGY_INSTALLER._clean)
 
 user_defined_default_rel = None

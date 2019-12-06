@@ -10,6 +10,12 @@ import osp.core
 from osp.core import ONTOLOGY_INSTALLER, CUBA
 
 try:
+    from osp.core import CITY
+except ImportError:
+    from osp.core.ontology import Parser
+    CITY = Parser().parse("city")
+
+try:
     from osp.core import PARSER_TEST as ONTO
 except ImportError:
     ONTO = ONTOLOGY_INSTALLER.parser.parse(
@@ -200,7 +206,7 @@ class TestParser(unittest.TestCase):
             ONTO.INVERSE_OF_RELATIONSHIP_B.inverse
         )
         # created inverse
-        self.assertEquals(
+        self.assertEqual(
             ONTO.INVERSE_OF_RELATIONSHIP_B.direct_superclasses,
             [ONTO.RELATIONSHIP_C, CUBA.PASSIVE_RELATIONSHIP]
         )

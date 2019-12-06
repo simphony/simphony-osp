@@ -76,8 +76,16 @@ class TestInstallation(unittest.TestCase):
         )
 
         self.assertEqual(
-            oim._sort_for_installation(["city", "cuba"]),
-            ["cuba", "city"]
+            oim._sort_for_installation(["city", "parser_test"]),
+            ["cuba", "city", "parser_test"]
+        )
+
+        self.assertRaises(RuntimeError,
+                          oim._sort_for_installation, ["parser_test"])
+
+        self.assertEqual(
+            oim._sort_for_installation(["parser_test", "city", "cuba"]),
+            ["cuba", "city", "parser_test"]
         )
 
         self.assertEqual(
@@ -94,6 +102,12 @@ class TestInstallation(unittest.TestCase):
         oim.namespace_registry = set(["cuba", "city"])
         self.assertEqual(
             oim._sort_for_installation(["city", "cuba", "parser_test"]),
+            ["parser_test"]
+        )
+
+        oim.namespace_registry = set(["cuba", "city"])
+        self.assertEqual(
+            oim._sort_for_installation(["parser_test"]),
             ["parser_test"]
         )
 

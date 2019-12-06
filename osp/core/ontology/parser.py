@@ -15,11 +15,14 @@ from osp.core.ontology.class_expression import \
     OperatorClassExpression, RelationshipClassExpression
 from osp.core.ontology.validator import validate
 
-VERSION_KEY = "VERSION"  # TODO
-ONTOLOGY_KEY = "ONTOLOGY"
+VERSION_KEY = "version"  # TODO
+AUTHOR_KEY = "author"  # TODO
+ONTOLOGY_KEY = "ontology"
+NAMESPACE_KEY = "namespace"
+REQUIREMENTS_KEY = "requirements"
+
 ROOT_RELATIONSHIP = "RELATIONSHIP"
 ROOT_ATTRIBUTE = "ATTRIBUTE"
-NAMESPACE_KEY = "NAMESPACE"
 
 DESCRIPTION_KEY = "description"
 SUPERCLASSES_KEY = "subclass_of"
