@@ -2,6 +2,7 @@ import os
 import argparse
 import uuid
 import pickle  # nosec
+import ast
 from shutil import copyfile
 import osp.core
 from osp.core.ontology.parser import Parser
@@ -151,22 +152,41 @@ class OntologyInstallationManager():
         :return: The sorted list of file paths.
         :rtype: List[str]
         """
-        namespaces = [self._get_namespace(f) for f in files]
-        if "cuba" in namespaces:
-            cuba_idx = namespaces.index("cuba")
-            files = files[cuba_idx: cuba_idx + 1] + files[:cuba_idx] + \
-                files[cuba_idx + 1:]
-            namespaces = namespaces[cuba_idx: cuba_idx + 1] + \
-                namespaces[:cuba_idx] + namespaces[cuba_idx + 1:]
-        else:
-            namespaces = ["cuba"] + namespaces
-            files = ["cuba"] + list(files)
-
         result = list()
-        for file, namespace in zip(files, namespaces):
-            if namespace not in self.namespace_registry:
-                result.append(file)
-        return result
+        files = {self._get_namespace(f): f for f in files}
+        requirements = {n: self.get_requirements(f) for n, f in files.items()}
+        if "cuba" not in files:
+            files["cuba"] = "cuba"
+        requirements["cuba"] = set()
+
+        # Check what has been already installed
+        already_installed = list()
+        for namespace, file in files.items():
+            if namespace in self.namespace_registry:
+                print("Skipping %s. Namespace %s already installed!"
+                      % (file, namespace))
+                already_installed.append(namespace)
+        for x in already_installed:
+            del requirements[x]
+
+        # order the files
+        while requirements:
+            add_to_result = list()
+            for namespace, req in requirements.items():
+                req -= set([r for r in req if r in self.namespace_registry])
+                req -= set(result)
+                if not req:
+                    add_to_result.append(namespace)
+            if not add_to_result:
+                raise RuntimeError(
+                    "Installation failed. Unsatisfied requirements: \n - %s"
+                    % "\n - ".join(["%s: %s" % (n, r)
+                                   for n, r in requirements.items()])
+                )
+            result += add_to_result
+            for x in add_to_result:
+                del requirements[x]
+        return [files[n] for n in result]
 
     @staticmethod
     def _get_namespace(file_path):
@@ -189,6 +209,26 @@ class OntologyInstallationManager():
             raise RuntimeError("The file %s is missing a namespace"
                                % file_path)
         return namespace.lower()
+
+    @staticmethod
+    def get_requirements(file_path):
+        """Get the requirements of a yml file
+
+        :param file_path: The path to the yaml ontology file
+        :type file_path: str
+        """
+        requirements = []
+        file_path = Parser.get_filepath(file_path)
+        with open(file_path, "r") as f:
+            for line in f:
+                line = line.strip().lower()
+                if line.startswith("ontology"):
+                    break
+                if line.startswith("requirements"):
+                    requirements = ast.literal_eval(
+                        line.split(":")[1].strip()
+                    )
+        return set(requirements) | set(["cuba"])
 
     def set_module_attr(self, module=None):
         if module is None:
