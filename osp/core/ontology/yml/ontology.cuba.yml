@@ -1,9 +1,9 @@
 ---
-VERSION: "0.0.1"
+version: "0.0.1"
 
-NAMESPACE: "CUBA"
+namespace: "CUBA"
 
-ONTOLOGY:
+ontology:
 
   ENTITY:
     description: The root of the ontology.

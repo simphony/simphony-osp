@@ -203,20 +203,20 @@ They can be either:
 - A composition of several class expressions. For example:
 
   ```yml
-  OR:
+  or:
     - CITY.CITY
     - CITY.NEIGHBOURHOOD
   ```
 
   This is the union of all individuals that are a city or a neighbourhood.
-  We use the keyword `OR` for union, `AND` for intersection and `NOT` for complement.
-  After `OR` and `AND`, a list of  class expressions for the union / intersection is expected.
-  After `NOT` a single class expression is expected.
+  We use the keyword `or` for union, `and` for intersection and `not` for complement.
+  After `or` and `and`, a list of  class expressions for the union / intersection is expected.
+  After `not` a single class expression is expected.
 
 The definition of class expressions is recursive. For example:
 
 ```yml
-OR:
+or:
   - CITY.CITY
   - CITY.HAS_PART:
       cardinality: 1+

@@ -1,9 +1,11 @@
 ---
-VERSION: "0.0.1"
+version: "0.0.1"
 
-NAMESPACE: "PARSER_TEST"
+namespace: "PARSER_TEST"
 
-ONTOLOGY:
+requirements: ["CITY"]
+
+ontology:
 
   ENTITY_A:
     attributes:
@@ -54,7 +56,7 @@ ONTOLOGY:
     subclass_of:
     - CUBA.ACTIVE_RELATIONSHIP
     domain:
-      OR:
+      or:
       - PARSER_TEST.ENTITY_A
       - PARSER_TEST.ENTITY_B
     range:
@@ -68,9 +70,9 @@ ONTOLOGY:
     - PARSER_TEST.RELATIONSHIP_A
     - CUBA.ACTIVE_RELATIONSHIP
     domain:
-      AND:
+      and:
       - PARSER_TEST.ENTITY_C
-      - NOT: PARSER_TEST.ENTITY_D
+      - not: PARSER_TEST.ENTITY_D
   
   RELATIONSHIP_C:
     subclass_of:
