@@ -49,3 +49,24 @@ ONTOLOGY:
     subclass_of:
     - PARSER_TEST.ATTRIBUTE_A
     - PARSER_TEST.ATTRIBUTE_B
+
+  RELATIONSHIP_A:
+    subclass_of:
+    - CUBA.RELATIONSHIP
+    domain:
+      OR:
+      - PARSER_TEST.ENTITY_A
+      - PARSER_TEST.ENTITY_B
+    range:
+      PARSER_TEST.RELATIONSHIP_A:
+        range: PARSER_TEST.ENTITY_A
+        cardinality: some
+        exclusive: true
+  
+  RELATIONSHIP_B:
+    subclass_of:
+    - PARSER_TEST.RELATIONSHIP_A
+    domain:
+      AND:
+      - PARSER_TEST.ENTITY_C
+      - NOT: PARSER_TEST.ENTITY_D
