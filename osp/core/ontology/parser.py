@@ -74,21 +74,30 @@ class Parser:
         """
         from osp.core.ontology.namespace import OntologyNamespace
 
-        filename = self.get_filepath(filename)
-        self._installer.tmp_open(filename)
         self.__init__(self._installer)
-        self._filename = filename
-        with open(self._filename, 'r') as stream:
-            self._yaml_doc = yaml.safe_load(stream)
-            validate(self._yaml_doc,
-                     context="<%s>" % os.path.basename(self._filename))
-            self._ontology_namespace = OntologyNamespace(
-                self._yaml_doc[NAMESPACE_KEY]
-            )
-            self._namespace_registry._add_namespace(self._ontology_namespace)
-            self._parse_ontology()
+        self._filename = self.get_filepath(filename)
+        self._yaml_doc = self.get_yaml_doc(self._filename)
+        self._installer.tmp_open(self._filename)
+        validate(self._yaml_doc,
+                 context="<%s>" % os.path.basename(self._filename))
+        self._ontology_namespace = OntologyNamespace(
+            self._yaml_doc[NAMESPACE_KEY]
+        )
+        self._namespace_registry._add_namespace(self._ontology_namespace)
+        self._parse_ontology()
         self._installer.set_module_attr(osp_module)
         return self._ontology_namespace
+
+    @staticmethod
+    def get_yaml_doc(file_path):
+        """Parse the file path to yaml
+
+        :param file_path: The path to the file to parse.
+        :type file_path: str
+        """
+        with open(file_path, 'r') as stream:
+            yaml_doc = yaml.safe_load(stream)
+        return yaml_doc
 
     def _parse_ontology(self):
         """Parse the entity descriptions."""
