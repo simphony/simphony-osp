@@ -20,6 +20,13 @@ bandit:
   script:
     - bandit -r osp --skip B101
 
+# loc:
+#   stage: code_analysis
+#   script:
+#     - pygount osp --suffix py
+#     - echo "Total lines of code:"
+#     - pygount osp --suffix py | awk '{s+=$1} END {print s}'
+
 unittesting:
   stage: test
   script:

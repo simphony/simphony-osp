@@ -20,11 +20,20 @@ ONTOLOGY:
     description: The root of all relationships.
     subclass_of:
     - CUBA.ENTITY
+    inverse: CUBA.RELATIONSHIP
 
   ACTIVE_RELATIONSHIP:
     description: The root of all active relationships. Active relationships express that one cuds object is in the container of another.
     subclass_of:
     - CUBA.RELATIONSHIP
+    inverse: CUBA.PASSIVE_RELATIONSHIP
+
+  PASSIVE_RELATIONSHIP:
+    description: The inverse of ACTIVE_RELATIONSHIP.
+    subclass_of:
+    - CUBA.RELATIONSHIP
+    inverse: CUBA.ACTIVE_RELATIONSHIP 
+    
 
   ################
 
