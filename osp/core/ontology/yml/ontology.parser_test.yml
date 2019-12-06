@@ -52,7 +52,7 @@ ONTOLOGY:
 
   RELATIONSHIP_A:
     subclass_of:
-    - CUBA.RELATIONSHIP
+    - CUBA.ACTIVE_RELATIONSHIP
     domain:
       OR:
       - PARSER_TEST.ENTITY_A
@@ -66,7 +66,13 @@ ONTOLOGY:
   RELATIONSHIP_B:
     subclass_of:
     - PARSER_TEST.RELATIONSHIP_A
+    - CUBA.ACTIVE_RELATIONSHIP
     domain:
       AND:
       - PARSER_TEST.ENTITY_C
       - NOT: PARSER_TEST.ENTITY_D
+  
+  RELATIONSHIP_C:
+    subclass_of:
+    - CUBA.RELATIONSHIP
+    inverse: PARSER_TEST.RELATIONSHIP_A
