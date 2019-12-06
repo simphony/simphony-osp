@@ -29,9 +29,9 @@ class OwlToYmlConverter():
         """
         self.owl_onto = owlready2.get_ontology(owl_ontology_file)
         self.yaml_onto = odict()
-        self.yaml_onto["VERSION"] = self.version = version
-        self.yaml_onto["NAMESPACE"] = self.namespace = namespace
-        self.yaml_onto["ONTOLOGY"] = self.onto = odict()
+        self.yaml_onto["version"] = self.version = version
+        self.yaml_onto["namespace"] = self.namespace = namespace
+        self.yaml_onto["ontology"] = self.onto = odict()
         self.parsed_entities = set()
 
         self.conversion_options = None
@@ -78,7 +78,7 @@ class OwlToYmlConverter():
             ))
         for disjoint_union in onto_class.disjoint_unions:
             equivalent_to.append(self._parse_class_expressions(
-                disjoint_union, combine_operator="OR"
+                disjoint_union, combine_operator="or"
             ))
             for entity in disjoint_union:  # disjoint union
                 if entity not in self.parsed_entities:
@@ -132,9 +132,9 @@ class OwlToYmlConverter():
                 warnings.warn('omits %r for %r' % (c, label))
 
         domains = self._parse_class_expressions(relationship.domain,
-                                                combine_operator="AND")
+                                                combine_operator="and")
         ranges = self._parse_class_expressions(relationship.range,
-                                               combine_operator="AND")
+                                               combine_operator="and")
 
         # add it
         self.onto[label] = odict(
@@ -280,7 +280,7 @@ class OwlToYmlConverter():
         :return: The parsed class construct
         :rtype: Ordered dict
         """
-        label = self._get_label(class_expression)
+        label = self._get_label(class_expression).lower()
         if hasattr(class_expression, "Classes"):
             classes = class_expression.Classes
             return self._parse_class_expressions(classes,

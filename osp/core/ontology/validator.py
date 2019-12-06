@@ -41,9 +41,11 @@ attribute_definition = {
 
 format_description = {
     "/": {
-        "!VERSION": re.compile(r"^\d+\.\d+(\.\d+)?$"),
-        "!NAMESPACE": entity_name_pattern,
-        "!ONTOLOGY": {entity_name_pattern: "entity_def"}
+        "!version": re.compile(r"^\d+\.\d+(\.\d+)?$"),
+        "!namespace": entity_name_pattern,
+        "!ontology": {entity_name_pattern: "entity_def"},
+        "author": str,
+        "requirements": [entity_name_pattern]
     },
     "entity_def": dict(**entity_common_keys, **class_definition,
                        **relationship_definition, **attribute_definition),
@@ -51,8 +53,8 @@ format_description = {
         qualified_entity_name_pattern,
         {qualified_entity_name_pattern:
             "relationship_class_expression"},
-        {re.compile(r"^(OR|AND)$"): ["class_expression"]},
-        {re.compile(r"^NOT$"): "class_expression"}
+        {re.compile(r"^(or|and)$"): ["class_expression"]},
+        {re.compile(r"^not$"): "class_expression"}
     ],
     "relationship_class_expression": {
         "!range": "class_expression",

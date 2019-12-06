@@ -1,17 +1,17 @@
 ---
-VERSION: 0.0.1
-NAMESPACE: TEST
-ONTOLOGY:
+version: 0.0.1
+namespace: TEST
+ontology:
   REL_A:
     description: ''
     subclass_of:
     - CUBA.RELATIONSHIP
     - CUBA.ACTIVE_RELATIONSHIP
     domain:
-      AND:
+      and:
       - TEST.CLASS_A
     range:
-      AND:
+      and:
       - TEST.CLASS_B
     characteristics:
     - asymmetric
@@ -22,10 +22,10 @@ ONTOLOGY:
     subclass_of:
     - CUBA.RELATIONSHIP
     domain:
-      AND:
+      and:
       - TEST.CLASS_B
     range:
-      AND:
+      and:
       - TEST.CLASS_A
     characteristics:
     - asymmetric
@@ -37,9 +37,9 @@ ONTOLOGY:
     - TEST.REL_A
     - TEST.REL_B
     domain:
-      AND: []
+      and: []
     range:
-      AND: []
+      and: []
     characteristics:
     - symmetric
     inverse: TEST.REL_C
@@ -77,14 +77,14 @@ ONTOLOGY:
         exclusive: false
         cardinality: 1+
         range:
-          OR:
+          or:
           - TEST.CLASS_A
           - TEST.CLASS_B
     - TEST.REL_B:
         exclusive: false
         cardinality: 1+
         range:
-          AND:
+          and:
           - TEST.CLASS_A
           - TEST.CLASS_B
     equivalent_to: []
