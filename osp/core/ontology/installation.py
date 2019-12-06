@@ -2,10 +2,12 @@ import os
 import argparse
 import uuid
 import pickle  # nosec
-import ast
+import yaml
 from shutil import copyfile
 import osp.core
-from osp.core.ontology.parser import Parser
+from osp.core.ontology.parser import (
+    Parser, ONTOLOGY_KEY, NAMESPACE_KEY, REQUIREMENTS_KEY
+)
 from osp.core.ontology.namespace_registry import NamespaceRegistry
 
 
@@ -186,7 +188,7 @@ class OntologyInstallationManager():
                 raise RuntimeError(
                     "Installation failed. Unsatisfied requirements: \n - %s"
                     % "\n - ".join(["%s: %s" % (n, r)
-                                   for n, r in requirements.items()])
+                                    for n, r in requirements.items()])
                 )
             result += add_to_result
             for x in add_to_result:
@@ -194,8 +196,8 @@ class OntologyInstallationManager():
         return [files[n] for n in result]
 
     @staticmethod
-    def _get_namespace(file_path):
-        """Get the namespace of a file
+    def _get_onto_metadata(file_path):
+        """Get the metadata of the ontology
 
         :param file_path: The path to the yaml ontology file
         :type file_path: str
@@ -203,17 +205,26 @@ class OntologyInstallationManager():
         """
 
         # Get the namespace
-        namespace = None
         file_path = Parser.get_filepath(file_path)
+        lines = ""
         with open(file_path, "r") as f:
             for line in f:
+                lines += line
                 line = line.strip().lower()
-                if line.startswith("namespace"):
-                    namespace = line.split(":")[1].strip().strip("\"'")
-        if namespace is None:
-            raise RuntimeError("The file %s is missing a namespace"
-                               % file_path)
-        return namespace.lower()
+                if line.startswith(ONTOLOGY_KEY):
+                    break
+        return yaml.safe_load(lines)
+
+    @staticmethod
+    def _get_namespace(file_path):
+        """Get the namespace of the ontology
+
+        :param file_path: The path to the yaml ontology file
+        :type file_path: str
+        :raises RuntimeError: There is no namespace defined
+        """
+        yaml_doc = OntologyInstallationManager._get_onto_metadata(file_path)
+        return yaml_doc[NAMESPACE_KEY].lower()
 
     @staticmethod
     def get_requirements(file_path):
@@ -222,18 +233,11 @@ class OntologyInstallationManager():
         :param file_path: The path to the yaml ontology file
         :type file_path: str
         """
-        requirements = []
-        file_path = Parser.get_filepath(file_path)
-        with open(file_path, "r") as f:
-            for line in f:
-                line = line.strip().lower()
-                if line.startswith("ontology"):
-                    break
-                if line.startswith("requirements"):
-                    requirements = ast.literal_eval(
-                        line.split(":")[1].strip()
-                    )
-        return set(requirements) | set(["cuba"])
+        yaml_doc = OntologyInstallationManager._get_onto_metadata(file_path)
+        try:
+            return set(map(str.lower, yaml_doc[REQUIREMENTS_KEY])) | {"cuba"}
+        except KeyError:
+            return set(["cuba"])
 
     def set_module_attr(self, module=None):
         if module is None:
