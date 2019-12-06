@@ -49,8 +49,8 @@ class TestParser(unittest.TestCase):
         self.assertEqual(
             set(all_names),
             {"ENTITY", "RELATIONSHIP", "ACTIVE_RELATIONSHIP",
-             "WRAPPER", "ATTRIBUTE", "INVERSE_OF_RELATIONSHIP",
-             "INVERSE_OF_ACTIVE_RELATIONSHIP", "NOTHING"}
+             "WRAPPER", "ATTRIBUTE",
+             "PASSIVE_RELATIONSHIP", "NOTHING"}
         )
 
     def test_subclass_check(self):
@@ -108,7 +108,7 @@ class TestParser(unittest.TestCase):
         IsPartOf = osp.core.CITY.IS_PART_OF
         ActiveRelationship = osp.core.CUBA.ACTIVE_RELATIONSHIP
         Relationship = osp.core.CUBA.RELATIONSHIP
-        PassiveRelationship = osp.core.CUBA.INVERSE_OF_ACTIVE_RELATIONSHIP
+        PassiveRelationship = osp.core.CUBA.PASSIVE_RELATIONSHIP
         self.assertEqual(HasPart.inverse, IsPartOf)
         self.assertEqual(IsPartOf.inverse, HasPart)
         self.assertEqual(ActiveRelationship.inverse, PassiveRelationship)

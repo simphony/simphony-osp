@@ -286,7 +286,7 @@ class Parser:
 
         # Try to infer the superclasses of the inverse
         inverse_superclasses = list()
-        for x in entity.direct_subclasses:
+        for x in entity.direct_superclasses:
             if x.inverse:
                 inverse_superclasses.append(x.inverse)
             elif x.namespace == self._ontology_namespace:
@@ -303,6 +303,8 @@ class Parser:
             superclasses=inverse_superclasses,
             description="Inverse of %s" % entity.name
         )
+        for x in inverse_superclasses:
+            x._add_subclass(inverse)
         self._ontology_namespace._add_entity(inverse)
         inverse._set_inverse(entity)  # set the inverses
         entity._set_inverse(inverse)
