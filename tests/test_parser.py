@@ -127,7 +127,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(osp.core.CUBA.ATTRIBUTE.datatype, "UNDEFINED")
         self.assertEqual(osp.core.CITY.NUMBER.datatype, "INT")
         self.assertEqual(osp.core.CITY.NAME.datatype, "UNDEFINED")
-        self.assertEqual(osp.core.CITY.COORDINATES.datatype, "VECTOR:2")
+        self.assertEqual(osp.core.CITY.COORDINATES.datatype, "VECTOR:INT:2")
         self.assertEqual(osp.core.CITY.NUM_STEPS.datatype, "INT")
 
     def test_multiple_inheritance(self):

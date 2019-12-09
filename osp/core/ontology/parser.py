@@ -15,31 +15,13 @@ from osp.core.ontology.class_expression import \
     OperatorClassExpression, RelationshipClassExpression
 from osp.core.ontology.validator import validate
 
-VERSION_KEY = "version"  # TODO
-AUTHOR_KEY = "author"  # TODO
-ONTOLOGY_KEY = "ontology"
-NAMESPACE_KEY = "namespace"
-REQUIREMENTS_KEY = "requirements"
-
-ROOT_RELATIONSHIP = "RELATIONSHIP"
-ROOT_ATTRIBUTE = "ATTRIBUTE"
-
-DESCRIPTION_KEY = "description"
-SUPERCLASSES_KEY = "subclass_of"
-INVERSE_KEY = "inverse"
-DEFAULT_REL_KEY = "default_rel"
-DATATYPE_KEY = "datatype"
-ATTRIBUTES_KEY = "attributes"
-DISJOINTS_KEY = "disjoint_with"  # TODO
-EQUIVALENT_TO_KEY = "equivalent_to"  # TODO
-DOMAIN_KEY = "domain"  # TODO
-RANGE_KEY = "range"  # TODO
-CHARACTERISTICS_KEY = "characteristics"  # TODO
-
-# class expressions
-CARDINALITY_KEY = "cardinality"  # TODO
-TARGET_KEY = "range"  # TODO
-EXCLUSIVE_KEY = "exclusive"  # TODO
+from osp.core.ontology.keywords import (
+    ONTOLOGY_KEY, NAMESPACE_KEY,
+    ROOT_RELATIONSHIP, ROOT_ATTRIBUTE, DESCRIPTION_KEY, SUPERCLASSES_KEY,
+    INVERSE_KEY, DEFAULT_REL_KEY, DATATYPE_KEY, ATTRIBUTES_KEY, DISJOINTS_KEY,
+    EQUIVALENT_TO_KEY, DOMAIN_KEY, RANGE_KEY,
+    CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY
+)
 
 
 class Parser:

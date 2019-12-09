@@ -48,9 +48,23 @@ def to_uuid(x):
     raise ValueError("Specify a valid UUID")
 
 
-def to_vector(x, *shape):
-    x = np.array(x)
+def to_vector(x, *args):
+    datatype, shape = parse_vector_args(args)
+    np_dtype = ONTOLOGY_DATATYPES[datatype][2]
+    if np_dtype is None:
+        raise ValueError("Cannot instantiate Vector with datatype %s"
+                         % datatype)
+    x = np.array(x, dtype=np_dtype)
     return x.reshape([int(x) for x in shape])
+
+
+def parse_vector_args(args):
+    datatype = "FLOAT"
+    shape = args
+    if args[0] in ONTOLOGY_DATATYPES:
+        datatype = args[0]
+        shape = args[1:]
+    return datatype, list(map(int, shape))
 
 
 def from_vector(x):
@@ -58,11 +72,11 @@ def from_vector(x):
 
 
 ONTOLOGY_DATATYPES = {
-    "BOOL": (bool, bool),
-    "INT": (int, int),
-    "FLOAT": (float, float),
-    "STRING": (to_string, str),
-    "UUID": (to_uuid, str),
-    "UNDEFINED": (str, str),
-    "VECTOR": (to_vector, from_vector)
+    "BOOL": (bool, bool, np.dtype("bool")),
+    "INT": (int, int, np.dtype("int")),
+    "FLOAT": (float, float, np.dtype("float")),
+    "STRING": (to_string, str, np.dtype("str")),
+    "UUID": (to_uuid, str, None),
+    "UNDEFINED": (str, str, np.dtype("str")),
+    "VECTOR": (to_vector, from_vector, None)
 }
