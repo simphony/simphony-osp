@@ -20,7 +20,7 @@ from osp.core.session.session import Session
 from osp.core.neighbour_dict import NeighbourDictRel, NeighbourDictTarget
 from osp.core.utils import check_arguments, clone_cuds_object, \
     create_from_cuds_object, get_neighbour_diff
-from osp.core import CUBA, get_default_rel
+from osp.core import CUBA
 
 
 class Cuds():
@@ -96,10 +96,11 @@ class Cuds():
         :raises ValueError: adding an element already there
         """
         check_arguments(Cuds, *args)
-        rel = rel or get_default_rel()
+        rel = rel or self.oclass.namespace.default_rel
         if rel is None:
-            raise TypeError("Specify a relationship or call "
-                            "osp.core.set_default_rel()!")
+            raise TypeError("Missing argument 'rel'! No default "
+                            "relationship specified for namespace %s."
+                            % self.oclass.namespace)
         result = list()
         # update cuds objects if they are already in the session
         old_objects = self._session.load(
