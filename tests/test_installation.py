@@ -60,7 +60,7 @@ class TestInstallation(unittest.TestCase):
             for l1, l2 in zip(f1, f2):
                 self.assertEqual(l1, l2)
                 num_lines += 1
-            self.assertEqual(num_lines, 256)
+            self.assertEqual(num_lines, 258)
         finally:
             shutil.rmtree(oim.path)
             f1.close()

@@ -17,6 +17,8 @@ ontology:
     - CITY.ENCLOSES
     inverse: CITY.IS_PART_OF
     default_rel: true
+    characteristics:
+    - transitive
 
   IS_INHABITANT_OF:
     subclass_of:

@@ -19,8 +19,8 @@ from osp.core.ontology.keywords import (
     ONTOLOGY_KEY, NAMESPACE_KEY,
     ROOT_RELATIONSHIP, ROOT_ATTRIBUTE, DESCRIPTION_KEY, SUPERCLASSES_KEY,
     INVERSE_KEY, DEFAULT_REL_KEY, DATATYPE_KEY, ATTRIBUTES_KEY, DISJOINTS_KEY,
-    EQUIVALENT_TO_KEY, DOMAIN_KEY, RANGE_KEY,
-    CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY
+    EQUIVALENT_TO_KEY, DOMAIN_KEY, RANGE_KEY, CHARACTERISTICS_KEY,
+    CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY, AUTHOR_KEY, VERSION_KEY
 )
 
 
@@ -62,8 +62,12 @@ class Parser:
         self._installer.tmp_open(self._filename)
         validate(self._yaml_doc,
                  context="<%s>" % os.path.basename(self._filename))
+        author = (self._yaml_doc[AUTHOR_KEY]
+                  if AUTHOR_KEY in self._yaml_doc else None)
         self._ontology_namespace = OntologyNamespace(
-            self._yaml_doc[NAMESPACE_KEY]
+            name=self._yaml_doc[NAMESPACE_KEY],
+            author=author,
+            version=self._yaml_doc[VERSION_KEY]
         )
         self._namespace_registry._add_namespace(self._ontology_namespace)
         self._parse_ontology()
@@ -96,6 +100,7 @@ class Parser:
                 self._add_attributes(entity)
             elif isinstance(entity, OntologyRelationship):
                 self._set_inverse(entity, missing_inverse)
+                self._parse_rel_characteristics(entity)
                 self._check_default_rel(entity)
             else:
                 self._set_datatype(entity)
@@ -356,6 +361,20 @@ class Parser:
             context="<%s>/ONTOLOGY/%s" % (os.path.basename(self._filename),
                                           entity.name)
         )
+
+    def _parse_rel_characteristics(self, entity):
+        """Parse the characteristics of a relationship
+
+        :param entity: The relationship to parse the characteristics for.
+        :type entity: OntologyRelationship
+        """
+        cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
+        entity_yaml_doc = cuds_yaml_doc[entity.name]
+        if CHARACTERISTICS_KEY not in entity_yaml_doc:
+            return
+        characteristics = entity_yaml_doc[CHARACTERISTICS_KEY]
+        for c in characteristics:
+            entity._add_characteristic(c)
 
     def _parse_class_expression(self, yaml_ce):
         """Recursively parse a class expression in yaml format.
