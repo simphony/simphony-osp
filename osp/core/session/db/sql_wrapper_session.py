@@ -10,7 +10,8 @@ from operator import mul
 from functools import reduce
 from abc import abstractmethod
 from osp.core.utils import create_recycle
-from osp.core.ontology.datatypes import convert_to, convert_from
+from osp.core.ontology.datatypes import convert_to, convert_from, \
+    parse_vector_args
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from osp.core.session.db.conditions import EqualsCondition
 from osp.core.neighbour_dict import NeighbourDictTarget
@@ -169,10 +170,12 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # create a column for each element in the vector
-            size = reduce(mul, map(int, datatypes[column].split(":")[1:]))
+            vector_args = datatypes[column].split(":")[1:]
+            datatype, shape = parse_vector_args(vector_args)
+            size = reduce(mul, map(int, shape))
             expanded_cols = ["%s___%s" % (column, x) for x in range(size)]
             columns_expanded.extend(expanded_cols)
-            datatypes_expanded.update({c: "FLOAT" for c in expanded_cols})
+            datatypes_expanded.update({c: datatype for c in expanded_cols})
             datatypes_expanded[column] = datatypes[column]
             if values:
                 values_expanded.extend(convert_from(values[i],

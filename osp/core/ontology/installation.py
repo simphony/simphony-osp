@@ -5,8 +5,9 @@ import pickle  # nosec
 import yaml
 from shutil import copyfile
 import osp.core
-from osp.core.ontology.parser import (
-    Parser, ONTOLOGY_KEY, NAMESPACE_KEY, REQUIREMENTS_KEY
+from osp.core.ontology.parser import Parser
+from osp.core.ontology.keywords import (
+    ONTOLOGY_KEY, NAMESPACE_KEY, REQUIREMENTS_KEY
 )
 from osp.core.ontology.namespace_registry import NamespaceRegistry
 
