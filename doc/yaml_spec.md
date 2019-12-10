@@ -55,7 +55,7 @@ Name any ontolgy `ontology.<name>.yml`, where `<name>` should be replaced by a u
 
 ## Syntax of the .yml ontology
 
-`VERSION`: string
+`version`: string
 
 > Contains semantic version Major.minor in format M.m with M and m
 > positive integers. minor MUST be incremented when backward
@@ -63,13 +63,21 @@ Name any ontolgy `ontology.<name>.yml`, where `<name>` should be replaced by a u
 > when backward compatibility is removed. Due to the strict nature of
 > the format, a change in minor is unlikely.
 
-`NAMESPACE`: string
+`namespace`: string
 
 > Defines the namespace of the current file. We recommend to use
   ALL_UPPERCASE for the namespace name, with underscore as separation.
   All entities defined in this file will live in the namespace defined here.
 
-`ONTOLOGY`: dict
+`requirements`: List[string]
+
+> A list of namespaces that this namespace depends on.
+
+`author`: string
+
+> Reference to the person(s) who created the file.
+
+`ontology`: dict
 
 > Contains individual declarations for ontology entities as a mapping.
 > Each key of the mapping is the name of an ontology entity.
@@ -128,6 +136,9 @@ The CUBA namespace is always installed in OSP-core.
 
 `CUBA.ACTIVE_RELATIONSHIP`
 > The root of all active relationships. Active relationships express that one cuds object is in the container of another.
+
+`CUBA.PASSIVE_RELATIONSHIP`
+> The inverse of `CUBA.ACTIVE_RELATIONSHIP`.
 
 ## Attribute format
 
