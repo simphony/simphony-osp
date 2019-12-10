@@ -7,10 +7,12 @@
 
 
 class OntologyNamespace():
-    def __init__(self, name):
+    def __init__(self, name, author, version):
         self._name = name
         self._entities = dict()
         self._default_rel = None
+        self._author = author
+        self._version = version
 
     @property
     def name(self):
@@ -19,7 +21,18 @@ class OntologyNamespace():
 
     @property
     def default_rel(self):
+        """Get the default relationship of the namespace"""
         return self._default_rel
+
+    @property
+    def author(self):
+        """Get the author of the namespace"""
+        return self._author
+
+    @property
+    def version(self):
+        """Get the version of the namespace"""
+        return self._version
 
     def __getattr__(self, name):
         """Get an ontology entity from the registry by name.
