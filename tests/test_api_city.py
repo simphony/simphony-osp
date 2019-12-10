@@ -344,6 +344,8 @@ class TestAPICity(unittest.TestCase):
             oclass=CITY.STREET)
         self.assertEqual(new_streets, [new_s])
 
+        self.assertRaises(ValueError, c.update, n)
+
     def test_remove(self):
         """
         Tests the standard, normal behaviour of the remove() method.
