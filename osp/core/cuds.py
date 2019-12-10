@@ -351,8 +351,8 @@ class Cuds():
                                                 new_cuds_object)
 
         # Load all the cuds_objects of the session
-        cuds_objects = session.load(
-            *[uid for uid, _ in new_parent_diff + old_neighbour_diff])
+        cuds_objects = iter(session.load(
+            *[uid for uid, _ in new_parent_diff + old_neighbour_diff]))
 
         # Perform the fixes
         Cuds._fix_new_parents(new_cuds_object=new_cuds_object,
@@ -495,6 +495,13 @@ class Cuds():
         """
         if uids and oclass is not None:
             raise TypeError("Do not specify both uids and oclass")
+        if rel is not None and not isinstance(rel, OntologyRelationship):
+            raise ValueError("Found object of type %s passed to argument rel. "
+                             "Should be an OntologyRelationship." % type(rel))
+        if oclass is not None and not isinstance(oclass, OntologyClass):
+            raise ValueError("Found object of type %s passed to argument "
+                             "oclass. Should be an OntologyClass."
+                             % type(oclass))
 
         if uids:
             check_arguments(uuid.UUID, *uids)
