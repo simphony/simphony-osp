@@ -8,6 +8,7 @@
 import uuid
 from abc import abstractmethod
 from osp.core.session.session import Session
+from osp.core.session.result import returns_query_result
 from osp.core.utils import destroy_cuds_object, clone_cuds_object, \
     get_neighbour_diff
 
@@ -40,6 +41,7 @@ class WrapperSession(Session):
         pass
 
     # OVERRIDE
+    @returns_query_result
     def load(self, *uids):
         if self.root is None:
             raise RuntimeError("This Session is not yet initialized. "
