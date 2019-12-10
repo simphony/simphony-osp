@@ -274,7 +274,12 @@ class WrapperSession(Session):
     def _check_cardinalities(self):
         """Check if the cardinalities specified in the ontology
         are satisfied for the added and updated cuds_object."""
-        pass  # TODO
+        if self.root is None:
+            raise RuntimeError(
+                "No wrapper defined for that session. Please instantiate a "
+                "wrapper and provide this session as an argument."
+            )
+        # TODO
 
     # @staticmethod
     # def _check_cuds_object_cardinalities(cuds_object):
