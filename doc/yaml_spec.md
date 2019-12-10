@@ -157,22 +157,26 @@ It can additionally have the following keys:
 >
 > - `BOOL`: a form of data with only two possible values (usually
 >   \"true\" or \"false\")
-> - `INT`: a sequence of positive and negative digits
-> - `FLOAT`: a digit containing values on both sides of the decimal
+> - `INT`: a positive or negative integer number.
+> - `FLOAT`: a number containing values on both sides of the decimal
 >   point
-> - `STRING`: a set of characters that can also contain spaces and
+> - `STRING`: a sequence of characters that can also contain spaces and
 >   numbers. The length can be specified with "STRING:LENGTH" (e.g.
 >   STRING:20 means the length of the string should be maximum 20
 >   characters).
-> - `VECTOR:D1:D2:...:Dn`: a vector of the given dimensions, from the
->   outside inwards. For example, a VECTOR:4:2:1 would be:
->   { [(a), (b)],  [(c), (d)], [(e), (f)], [(g), (h)] } 
->   (the different delimiters are only used for visual purposes)
+> - `VECTOR:datatype:D1:D2:...:Dn`: a vector of the given dimensions
+>   (D1 x D2 x ... x Dn) and the given datatype.
+>
+>   For example, a VECTOR:INT:4:2:1 would be: \
+>   { [(a), (b)],  [(c), (d)], [(e), (f)], [(g), (h)] } \
+>   where all elements (a, b, ...) are integers.
+>   (the different delimiters are only used for visual purposes).
+>   If no datatype is specified, it would be a `FLOAT` vector.
 >
 > In case a datatype is not specified the default datatype is assumed to
 > be STRING
 >
-> For example: The datatype of entity NUMBER is INT.
+> For example: The datatype of entity NUMBER_OF_OCCURRENCES is INT.
 
 ## Class expressions
 
