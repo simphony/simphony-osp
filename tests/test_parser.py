@@ -124,6 +124,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(HasPart.characteristics, ["transitive"])
         self.assertTrue(HasPart.is_transitive)
         self.assertFalse(HasPart.is_symmetric)
+        self.assertRaises(AttributeError, getattr, HasPart, "is_cool")
         self.assertRaises(AttributeError, getattr, HasPart, "cool")
 
     def test_ontology_attributes(self):
