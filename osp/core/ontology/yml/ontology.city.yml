@@ -17,6 +17,8 @@ ontology:
     - CITY.ENCLOSES
     inverse: CITY.IS_PART_OF
     default_rel: true
+    characteristics:
+    - transitive
 
   IS_INHABITANT_OF:
     subclass_of:
@@ -135,7 +137,7 @@ ontology:
   COORDINATES:
     subclass_of:
     - CUBA.ATTRIBUTE
-    datatype: VECTOR:2
+    datatype: VECTOR:INT:2
 
   ADDRESS:
     subclass_of:

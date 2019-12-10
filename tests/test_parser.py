@@ -121,13 +121,17 @@ class TestParser(unittest.TestCase):
         self.assertEqual(PassiveRelationship.inverse, ActiveRelationship)
         self.assertEqual(PassiveRelationship.direct_superclasses,
                          [Relationship])
+        self.assertEqual(HasPart.characteristics, ["transitive"])
+        self.assertTrue(HasPart.is_transitive)
+        self.assertFalse(HasPart.is_symmetric)
+        self.assertRaises(AttributeError, getattr, HasPart, "cool")
 
     def test_ontology_attributes(self):
         """Test the ontology values"""
         self.assertEqual(osp.core.CUBA.ATTRIBUTE.datatype, "UNDEFINED")
         self.assertEqual(osp.core.CITY.NUMBER.datatype, "INT")
         self.assertEqual(osp.core.CITY.NAME.datatype, "UNDEFINED")
-        self.assertEqual(osp.core.CITY.COORDINATES.datatype, "VECTOR:2")
+        self.assertEqual(osp.core.CITY.COORDINATES.datatype, "VECTOR:INT:2")
         self.assertEqual(osp.core.CITY.NUM_STEPS.datatype, "INT")
 
     def test_multiple_inheritance(self):
