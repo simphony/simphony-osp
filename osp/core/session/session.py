@@ -7,6 +7,7 @@
 
 from abc import ABC, abstractmethod
 from osp.core.session.registry import Registry
+from osp.core.session.result import returns_query_result
 
 
 class Session(ABC):
@@ -46,6 +47,7 @@ class Session(ABC):
         if self.root is None:
             self.root = cuds_object.uid
 
+    @returns_query_result
     def load(self, *uids):
         """Load the cuds_objects of the given uids.
 

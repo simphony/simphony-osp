@@ -8,6 +8,7 @@
 from abc import abstractmethod
 from osp.core.session.wrapper_session import consumes_buffers
 from osp.core.session.wrapper_session import WrapperSession
+from osp.core.session.result import returns_query_result
 
 
 class FileWrapperSession(WrapperSession):
@@ -26,6 +27,7 @@ class FileWrapperSession(WrapperSession):
         self._reset_buffers(changed_by="user")
         self.expire_all()
 
+    @returns_query_result
     def load_by_oclass(self, oclass, update_registry=False):
         """Load cuds_object with given ontology class.
         Will also return cuds objects of subclasses of oclass.

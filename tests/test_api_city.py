@@ -317,6 +317,8 @@ class TestAPICity(unittest.TestCase):
         self.assertRaises(TypeError, c.get,
                           n.uid,
                           oclass=CITY.NEIGHBOURHOOD)
+        self.assertRaises(ValueError, c.get, oclass=CITY.HAS_INHABITANT)
+        self.assertRaises(ValueError, c.get, rel=CITY.CITIZEN)
 
     def test_update(self):
         """
