@@ -167,6 +167,9 @@ class Cuds():
 
         result = list()
         for arg, old_cuds_object in zip(args, old_objects):
+            if arg.session is self.session:
+                raise ValueError("Please provide CUDS objects from a "
+                                 "different session to update()")
             # Updates all instances
             result.append(self._recursive_store(arg, old_cuds_object))
 
