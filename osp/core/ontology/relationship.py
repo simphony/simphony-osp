@@ -6,6 +6,7 @@
 # No redistribution is allowed without explicit written permission.
 
 from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.keywords import CHARACTERISTICS
 
 
 class OntologyRelationship(OntologyEntity):
@@ -35,7 +36,7 @@ class OntologyRelationship(OntologyEntity):
         return self._collect_class_expressions(RANGE_KEY)
 
     def __getattr__(self, attr):
-        if attr.startswith("is_"):
+        if attr.startswith("is_") and attr[3:] in CHARACTERISTICS:
             return attr[3:] in self.characteristics
         raise AttributeError("Undefined attribute %s" % attr)
 
