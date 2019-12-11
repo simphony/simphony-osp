@@ -13,6 +13,10 @@ from osp.core.session.transport.transport_session_client import \
 from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
 import unittest2 as unittest
+import logging
+
+logger = logging.getLogger("osp.core")
+logger.setLevel(logging.CRITICAL)
 
 try:
     from osp.core import CITY

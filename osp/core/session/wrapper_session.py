@@ -6,11 +6,14 @@
 # No redistribution is allowed without explicit written permission.
 
 import uuid
+import logging
 from abc import abstractmethod
 from osp.core.session.session import Session
 from osp.core.session.result import returns_query_result
 from osp.core.utils import destroy_cuds_object, clone_cuds_object, \
     get_neighbour_diff
+
+logger = logging.getLogger(__name__)
 
 
 def consumes_buffers(func):
@@ -110,6 +113,22 @@ class WrapperSession(Session):
         uids = set(uids)
         self._expired |= uids
         list(self.load(*uids))
+
+    def log_buffer_status(self):
+        for x in self._added.values():
+            logger.debug("%s has been added to %s", x, self)
+        for x in self._updated.values():
+            logger.debug("%s has been updated %s", x, self)
+        for x in self._deleted.values():
+            logger.debug("%s has been deleted %s", x, self)
+        plural = "%s CUDS objects have been %s %s"
+        singular = "%s CUDS object has been %s %s"
+        logger.info(singular if len(self._added) == 1 else plural,
+                    len(self._added), "added to", self)
+        logger.info(singular if len(self._updated) == 1 else plural,
+                    len(self._updated), "updated in", self)
+        logger.info(singular if len(self._deleted) == 1 else plural,
+                    len(self._deleted), "deleted from", self)
 
     # OVERRIDE
     def _store(self, cuds_object):

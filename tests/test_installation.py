@@ -9,6 +9,10 @@ import os
 import shutil
 import unittest2 as unittest
 from osp.core.ontology import OntologyInstallationManager
+import logging
+
+logger = logging.getLogger("osp.core")
+logger.setLevel(logging.CRITICAL)
 
 
 class TestInstallation(unittest.TestCase):

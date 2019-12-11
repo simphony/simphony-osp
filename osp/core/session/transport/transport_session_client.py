@@ -21,8 +21,7 @@ class TransportSessionClient(WrapperSession):
     client and a server. The client is a WrapperSession, that wraps another
     session that runs on the server. Each request will be sent to the server"""
 
-    def __init__(self, session_cls, host, port, *args,
-                 verbose=False, **kwargs):
+    def __init__(self, session_cls, host, port, *args, **kwargs):
         """Construct the client of the transport session.
 
         :param session_cls: The session class to wrap.
@@ -36,8 +35,7 @@ class TransportSessionClient(WrapperSession):
             engine=CommunicationEngineClient(
                 host=host,
                 port=port,
-                handle_response=self._receive,
-                verbose=verbose),
+                handle_response=self._receive),
             forbid_buffer_reset_by=None
         )
         self.session_cls = session_cls
