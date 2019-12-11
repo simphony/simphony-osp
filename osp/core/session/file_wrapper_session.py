@@ -17,6 +17,7 @@ class FileWrapperSession(WrapperSession):
     @consumes_buffers
     def save(self):
         """Saves the changes in the buffers to the file."""
+        self.log_buffer_status()
         self._check_cardinalities()
         self._open()
         self._apply_added()

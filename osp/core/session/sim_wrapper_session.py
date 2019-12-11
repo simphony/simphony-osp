@@ -16,6 +16,7 @@ class SimWrapperSession(WrapperSession):
 
     @consumes_buffers
     def run(self):
+        self.log_buffer_status()
         self._check_cardinalities()
         root_cuds = self._registry.get(self.root)
         self._apply_added()

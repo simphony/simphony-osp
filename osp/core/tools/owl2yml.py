@@ -3,11 +3,12 @@ import re
 import yaml
 import owlready2
 import argparse
-import warnings
+import logging
 from collections import OrderedDict as odict
 from functools import reduce
 import operator
 
+logger = logging.getLogger(__name__)
 
 convert_special_chars = {
     "+": "_PLUS",
@@ -129,7 +130,7 @@ class OwlToYmlConverter():
             elif isinstance(c, owlready2.Inverse):
                 pass
             else:
-                warnings.warn('omits %r for %r' % (c, label))
+                logger.warning('omits %r for %r' % (c, label))
 
         domains = self._parse_class_expressions(relationship.domain,
                                                 combine_operator="and")

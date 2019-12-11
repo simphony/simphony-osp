@@ -9,7 +9,9 @@
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.class_expression import ClassExpression
-import warnings
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 CONFLICTING = "2L4N4lGLYBU8mBNx8H6X6dC6Mcf2AcBqIKnFnXUI"
@@ -32,8 +34,8 @@ class OntologyClass(OntologyEntity, ClassExpression):
         if conflicting:
             result = {k: (v if v != CONFLICTING else None)
                       for k, v in result.items()}
-            warnings.warn("Conflicting defaults for %s in %s."
-                          % (conflicting, self))
+            logger.warning("Conflicting defaults for %s in %s.",
+                           conflicting, self)
         return result
 
     @property

@@ -1,5 +1,9 @@
 from .dummy_simulation_wrapper import DummySimWrapperSession
 import unittest2 as unittest
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.CRITICAL)
 
 try:
     from osp.core import CITY

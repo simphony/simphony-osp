@@ -3,6 +3,7 @@ import argparse
 import uuid
 import pickle  # nosec
 import yaml
+import logging
 from shutil import copyfile
 import osp.core
 from osp.core.ontology.parser import Parser
@@ -10,6 +11,8 @@ from osp.core.ontology.keywords import (
     ONTOLOGY_KEY, NAMESPACE_KEY, REQUIREMENTS_KEY
 )
 from osp.core.ontology.namespace_registry import NamespaceRegistry
+
+logger = logging.getLogger(__name__)
 
 
 class OntologyInstallationManager():
@@ -81,7 +84,7 @@ class OntologyInstallationManager():
             with open(self.pkl_path, "wb") as f:
                 pickle.dump(self.namespace_registry, f)
         self.set_module_attr()
-        print("Installation successful!")
+        logger.info("Installation successful!")
 
     def uninstall(self, *namespaces):
         """Uninstall the given namespaces
@@ -112,7 +115,7 @@ class OntologyInstallationManager():
         # reinstall remaining namespaces
         self.initialize_installed_ontologies()
         self.install(use_pickle=pkl_exists)
-        print("Uninstallation successful!")
+        logger.info("Uninstallation successful!")
 
     def initialize_installed_ontologies(self, osp_module=None,
                                         use_pickle=True):
@@ -171,8 +174,8 @@ class OntologyInstallationManager():
         already_installed = list()
         for namespace, file in files.items():
             if namespace in self.namespace_registry:
-                print("Skipping %s. Namespace %s already installed!"
-                      % (file, namespace))
+                logger.warning("Skipping %s. Namespace %s already installed!",
+                               file, namespace)
                 already_installed.append(namespace)
         for x in already_installed:
             del requirements[x]
