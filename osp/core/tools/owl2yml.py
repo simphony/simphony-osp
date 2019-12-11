@@ -3,11 +3,12 @@ import re
 import yaml
 import owlready2
 import argparse
-import warnings
+import logging
 from collections import OrderedDict as odict
 from functools import reduce
 import operator
 
+logger = logging.getLogger(__name__)
 
 convert_special_chars = {
     "+": "_PLUS",
@@ -29,9 +30,9 @@ class OwlToYmlConverter():
         """
         self.owl_onto = owlready2.get_ontology(owl_ontology_file)
         self.yaml_onto = odict()
-        self.yaml_onto["VERSION"] = self.version = version
-        self.yaml_onto["NAMESPACE"] = self.namespace = namespace
-        self.yaml_onto["ONTOLOGY"] = self.onto = odict()
+        self.yaml_onto["version"] = self.version = version
+        self.yaml_onto["namespace"] = self.namespace = namespace
+        self.yaml_onto["ontology"] = self.onto = odict()
         self.parsed_entities = set()
 
         self.conversion_options = None
@@ -60,7 +61,10 @@ class OwlToYmlConverter():
             return
         self.parsed_entities.add(onto_class)
 
-        label = self._get_label(onto_class)
+        try:
+            label = self._get_label(onto_class)
+        except RuntimeError:
+            return
         description = self._get_description(onto_class)
 
         # parse subclasses
@@ -75,7 +79,7 @@ class OwlToYmlConverter():
             ))
         for disjoint_union in onto_class.disjoint_unions:
             equivalent_to.append(self._parse_class_expressions(
-                disjoint_union, combine_operator="OR"
+                disjoint_union, combine_operator="or"
             ))
             for entity in disjoint_union:  # disjoint union
                 if entity not in self.parsed_entities:
@@ -104,7 +108,10 @@ class OwlToYmlConverter():
             return
         self.parsed_entities.add(relationship)
 
-        label = self._get_label(relationship)
+        try:
+            label = self._get_label(relationship)
+        except RuntimeError:
+            return
         description = self._get_description(relationship)
         inverse = None
         if relationship.inverse_property:
@@ -123,12 +130,12 @@ class OwlToYmlConverter():
             elif isinstance(c, owlready2.Inverse):
                 pass
             else:
-                warnings.warn('omits %r for %r' % (c, label))
+                logger.warning('omits %r for %r' % (c, label))
 
         domains = self._parse_class_expressions(relationship.domain,
-                                                combine_operator="AND")
+                                                combine_operator="and")
         ranges = self._parse_class_expressions(relationship.range,
-                                               combine_operator="AND")
+                                               combine_operator="and")
 
         # add it
         self.onto[label] = odict(
@@ -157,6 +164,8 @@ class OwlToYmlConverter():
     def _get_label(self, entity):
         """Returns a label for entity."""
         if entity in [owlready2.Nothing, owlready2.Thing]:
+            raise RuntimeError("No non-prefixed label for %s !" % entity)
+        if repr(entity) == "owl.topObjectProperty":
             raise RuntimeError("No non-prefixed label for %s !" % entity)
         if hasattr(entity, 'label') and entity.label:
             label = entity.label.first()
@@ -272,7 +281,7 @@ class OwlToYmlConverter():
         :return: The parsed class construct
         :rtype: Ordered dict
         """
-        label = self._get_label(class_expression)
+        label = self._get_label(class_expression).lower()
         if hasattr(class_expression, "Classes"):
             classes = class_expression.Classes
             return self._parse_class_expressions(classes,

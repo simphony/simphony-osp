@@ -8,6 +8,7 @@
 from copy import deepcopy
 from osp.core.neighbour_dict import NeighbourDictTarget
 from osp.core.ontology.datatypes import convert_to
+from osp.core.utils.general import get_relationships_between
 from osp.core import CUBA
 
 
@@ -86,7 +87,7 @@ def get_neighbour_diff(cuds1, cuds2, mode="all"):
     return result
 
 
-def destroy_cuds_object(cuds_object):
+def destroy_cuds_object(cuds_object, add_to_buffers=True):
     """Reset all attributes and relationships.
     Use this for example if a cuds object has been deleted on the backend.
 
@@ -99,11 +100,14 @@ def destroy_cuds_object(cuds_object):
     for rel in set(cuds_object._neighbours.keys()):
         del cuds_object._neighbours[rel]
     for attr in cuds_object.oclass.attributes:
-        if attr.argname != "session":
-            del cuds_object._attributes[attr.argname]
+        del cuds_object._attr_values[attr.argname]
+        del cuds_object._onto_attributes[attr.argname]
     if cuds_object.uid in cuds_object._session._registry:
         del cuds_object._session._registry[cuds_object.uid]
+    session._notify_delete(cuds_object)
     cuds_object._oclass = None
+    if not add_to_buffers:
+        session._remove_uids_from_buffers([cuds_object.uid])
 
 
 def clone_cuds_object(cuds_object):
@@ -120,7 +124,8 @@ def clone_cuds_object(cuds_object):
     return clone
 
 
-def create_recycle(oclass, kwargs, session, uid, add_to_buffers=True):
+def create_recycle(oclass, kwargs, session, uid, add_to_buffers=True,
+                   fix_neighbours=True):
     """Instantiate a cuds_object with a given session.
     If cuds_object with same uid is already in the session,
     this object will be reused.
@@ -136,6 +141,9 @@ def create_recycle(oclass, kwargs, session, uid, add_to_buffers=True):
     :param add_to_buffers: Whether the new cuds object should be added
         to the buffers
     :type add_to_buffers: bool
+    :param fix_neighbours: Whether to remove the link from the old neighbours
+        to this cuds object, defaults to True
+    :type fix_neighbours: bool
     :result: The created cuds object
     :rtype: Cuds
     """
@@ -146,12 +154,12 @@ def create_recycle(oclass, kwargs, session, uid, add_to_buffers=True):
     # recycle old object
     if uid in session._registry:
         cuds_object = session._registry.get(uid)
-        cuds_object._oclass = oclass
-        attributes = oclass._get_attributes_values(kwargs)
-        for key, value in attributes.items():
-            setattr(cuds_object, key.argname, value)
         for rel in set(cuds_object._neighbours.keys()):
-            del cuds_object._neighbours[rel]
+            if not fix_neighbours:
+                del cuds_object._neighbours[rel]
+            else:
+                cuds_object.remove(rel=rel)
+        change_oclass(cuds_object, oclass, kwargs)
     else:  # create new
         cuds_object = oclass(uid=uid, session=session, **kwargs)
     if hasattr(session, "_remove_uids_from_buffers") and not add_to_buffers:
@@ -182,9 +190,40 @@ def create_from_cuds_object(cuds_object, session, add_to_buffers):
                            kwargs=kwargs,
                            session=session,
                            uid=cuds_object.uid,
-                           add_to_buffers=add_to_buffers)
+                           add_to_buffers=add_to_buffers,
+                           fix_neighbours=False)
     for rel, target_dict in cuds_object._neighbours.items():
         clone._neighbours[rel] = NeighbourDictTarget(dict(), clone, rel)
         for uid, target_oclass in target_dict.items():
             clone._neighbours[rel][uid] = target_oclass
     return clone
+
+
+def change_oclass(cuds_object, new_oclass, kwargs):
+    """Change the oclass of a cuds object. Only allowed if cuds object does
+    not have any neighbours.
+
+    :param cuds_object: The cuds object to change the oclass of
+    :type cuds_object: Cuds
+    :param new_oclass: The new oclass of the cuds object
+    :type new_oclass: OntologyClass
+    :param kwargs: The keyword arguments used to instantiate
+        cuds object of the new oclass
+    :type kwargs: Dict[str, Any]
+    :return: The cuds object with the changed oclass
+    :rtype: Cuds
+    """
+    cuds_object.session._notify_read(cuds_object)
+    # change oclass
+    if cuds_object.oclass != new_oclass:
+        cuds_object._oclass = new_oclass
+        for neighbour in cuds_object.get(rel=CUBA.RELATIONSHIP):
+            for rel in get_relationships_between(cuds_object, neighbour):
+                neighbour._neighbours[rel.inverse][cuds_object.uid] = \
+                    new_oclass
+
+    # update attributes
+    attributes = new_oclass._get_attributes_values(kwargs)
+    cuds_object._attr_values = {k.argname: k(v) for k, v in attributes.items()}
+    cuds_object._onto_attributes = {k.argname: k for k in attributes}
+    cuds_object.session._notify_update(cuds_object)

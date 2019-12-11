@@ -8,13 +8,16 @@
 
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.attribute import OntologyAttribute
-import warnings
+from osp.core.ontology.class_expression import ClassExpression
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 CONFLICTING = "2L4N4lGLYBU8mBNx8H6X6dC6Mcf2AcBqIKnFnXUI"
 
 
-class OntologyClass(OntologyEntity):
+class OntologyClass(OntologyEntity, ClassExpression):
     def __init__(self, namespace, name, superclasses, description):
         super().__init__(namespace, name, superclasses, description)
         self._attributes = dict()
@@ -31,8 +34,8 @@ class OntologyClass(OntologyEntity):
         if conflicting:
             result = {k: (v if v != CONFLICTING else None)
                       for k, v in result.items()}
-            warnings.warn("Conflicting defaults for %s in %s."
-                          % (conflicting, self))
+            logger.warning("Conflicting defaults for %s in %s.",
+                           conflicting, self)
         return result
 
     @property
@@ -43,6 +46,24 @@ class OntologyClass(OntologyEntity):
         :rtype: List[OntologyAttribute]
         """
         return self._attributes
+
+    @property
+    def subclass_of_expressions(self):
+        """Get the subclass_of class expressions"""
+        from osp.core.ontology.parser import SUPERCLASSES_KEY
+        return self._collect_class_expressions(SUPERCLASSES_KEY)
+
+    @property
+    def equivalent_to_expressions(self):
+        """Get the subclass_of class expressions"""
+        from osp.core.ontology.parser import EQUIVALENT_TO_KEY
+        return self._class_expressions[EQUIVALENT_TO_KEY]
+
+    @property
+    def disjoint_with_expressions(self):
+        """Get the subclass_of class expressions"""
+        from osp.core.ontology.parser import DISJOINTS_KEY
+        return self._collect_class_expressions(DISJOINTS_KEY)
 
     def _get_attributes_recursively(self):
         """Get the attributes and defaults recursively
@@ -67,7 +88,10 @@ class OntologyClass(OntologyEntity):
         :param attribute: The attribute to add
         :type attribute: OntologyAttribute
         """
-        assert isinstance(attribute, OntologyAttribute)
+        if not isinstance(attribute, OntologyAttribute):
+            raise TypeError("Tried to add non-attribute %s as "
+                            "attribute to %s"
+                            % (attribute, self))
         self._attributes[attribute] = default
 
     def _get_attributes_values(self, kwargs):
@@ -99,6 +123,18 @@ class OntologyClass(OntologyEntity):
         return attributes
 
     def __call__(self, uid=None, session=None, **kwargs):
+        """Create a Cuds object from this ontology class.
+
+        :param uid: The uid of the Cuds object. Should be set to None in most
+            cases. Then a new UUID is generated, defaults to None
+        :type uid: uuid.UUID, optional
+        :param session: The session to create the cuds object in,
+            defaults to None
+        :type session: Session, optional
+        :raises TypeError: Error occurred during instantiation.
+        :return: The created cuds object
+        :rtype: Cuds
+        """
         from osp.core.cuds import Cuds
         from osp.core import CUBA
 

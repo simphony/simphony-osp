@@ -1,6 +1,15 @@
 from .dummy_simulation_wrapper import DummySimWrapperSession
-from osp.core import CITY
 import unittest2 as unittest
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.CRITICAL)
+
+try:
+    from osp.core import CITY
+except ImportError:
+    from osp.core.ontology import Parser
+    CITY = Parser().parse("city")
 
 
 class TestSimWrapperCity(unittest.TestCase):

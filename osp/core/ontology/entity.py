@@ -27,12 +27,13 @@ class OntologyEntity(ABC):
         self._subclasses = list()
         self._superclasses = list(superclasses)
         self._description = description
+        self._class_expressions = dict()
 
-        from osp.core.ontology.namespace_registry import \
-            ONTOLOGY_NAMESPACE_REGISTRY
+        from osp.core import ONTOLOGY_INSTALLER
         assert (
-            namespace.name not in ONTOLOGY_NAMESPACE_REGISTRY
-            or name not in ONTOLOGY_NAMESPACE_REGISTRY[namespace.name]
+            namespace.name not in ONTOLOGY_INSTALLER.namespace_registry
+            or name not in
+            ONTOLOGY_INSTALLER.namespace_registry[namespace.name]
         )
 
     def __str__(self):
@@ -148,6 +149,31 @@ class OntologyEntity(ABC):
         """
         if subclass not in self._subclasses:
             self._subclasses.append(subclass)
+
+    def _add_superclass(self, superclass):
+        """Add a superclass to the entity
+
+        :param superclass: The superclass to add
+        :type superclass: OntologyEntity
+        """
+        if superclass not in self._superclasses:
+            self._superclasses.append(superclass)
+
+    def _add_class_expression(self, keyword, class_expression):
+        from osp.core.ontology.class_expression import ClassExpression
+        if not isinstance(class_expression, ClassExpression):
+            raise ValueError("Tried to add %s as class expression to %s"
+                             % (class_expression, self))
+        if keyword not in self._class_expressions:
+            self._class_expressions[keyword] = list()
+        self._class_expressions[keyword].append(class_expression)
+
+    def _collect_class_expressions(self, keyword):
+        result = list()
+        for superclass in self.superclasses:
+            if keyword in superclass._class_expressions:
+                result += superclass._class_expressions[keyword]
+        return result
 
     def __getstate__(self):
         return self.__dict__

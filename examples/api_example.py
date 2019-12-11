@@ -1,5 +1,5 @@
 # If you did not install the CITY ontology
-# (osp_core$ python setup.py install -o city),
+# (pico install city),
 # you have to execute these commands first:
 # from osp.core import Parser
 # p = Parser()
