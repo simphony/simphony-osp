@@ -56,9 +56,12 @@ class OntologyInstallationManager():
         :param files: The files to parse
         :type files: List[str]
         """
+        result = list()
         files = self._sort_for_installation(files)
         for file in files:
-            self.parser.parse(file, osp_module=osp_module)
+            n = self.parser.parse(file, osp_module=osp_module)
+            result.append(n)
+        return result
 
     def install(self, *files, use_pickle=True):
         """Install the given files with the current namespace registry.
