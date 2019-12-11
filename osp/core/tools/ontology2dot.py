@@ -8,9 +8,12 @@
 import os
 import graphviz
 import argparse
+import logging
 from osp.core import ONTOLOGY_INSTALLER
 from osp.core.ontology import OntologyClass, OntologyRelationship, \
     OntologyAttribute
+
+logger = logging.getLogger(__name__)
 
 
 class Ontology2Dot():
@@ -193,6 +196,11 @@ def run_from_terminal():
     for x in args.to_plot:
         if x in ONTOLOGY_INSTALLER.namespace_registry:
             namespaces.append(x)
+            continue
+        n = ONTOLOGY_INSTALLER._get_namespace(x)
+        if n in ONTOLOGY_INSTALLER.namespace_registry:
+            logger.warning("Using installed version of namespace %s" % n)
+            namespaces.append(ONTOLOGY_INSTALLER.namespace_registry[n])
         else:
             files.append(ONTOLOGY_INSTALLER.parser.get_filepath(x))
     namespaces.extend(ONTOLOGY_INSTALLER.parse_files(files))
