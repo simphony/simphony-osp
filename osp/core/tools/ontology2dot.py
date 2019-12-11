@@ -173,6 +173,7 @@ class Ontology2Dot():
 
 
 def run_from_terminal():
+    """Run ontology2dot from the terminal"""
     # Parse the user arguments
     parser = argparse.ArgumentParser(
         description="Convert an ontology in OWL format to "
