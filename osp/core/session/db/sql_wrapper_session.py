@@ -10,7 +10,8 @@ from operator import mul
 from functools import reduce
 from abc import abstractmethod
 from osp.core.utils import create_recycle
-from osp.core.ontology.datatypes import convert_to, convert_from
+from osp.core.ontology.datatypes import convert_to, convert_from, \
+    parse_vector_args
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from osp.core.session.db.conditions import EqualsCondition
 from osp.core.neighbour_dict import NeighbourDictTarget
@@ -44,17 +45,19 @@ class SqlWrapperSession(DbWrapperSession):
         MASTER_TABLE: {},
         RELATIONSHIP_TABLE: {
             "origin": (MASTER_TABLE, "uid"),
-            # "target": (MASTER_TABLE, "uid")
+            "target": (MASTER_TABLE, "uid")
         }
     }
-    INDEX = {
-        MASTER_TABLE: ["oclass", "first_level"],
-        RELATIONSHIP_TABLE: ["origin"]
+    INDEXES = {
+        MASTER_TABLE: [
+            ["oclass"], ["first_level"]
+        ],
+        RELATIONSHIP_TABLE: [["origin"]]
     }
 
     @abstractmethod
     def _db_create(self, table_name, columns, datatypes,
-                   primary_key, foreign_key, index):
+                   primary_key, foreign_key, indexes):
         """Create a new table with the given name and columns
 
         :param table_name: The name of the new table.
@@ -67,8 +70,9 @@ class SqlWrapperSession(DbWrapperSession):
         :type primary_key: List[str]
         :param foreign_key: mapping from column to other tables column.
         :type foreign_key: Dict[str, Tuple[str (table), str (column)]]
-        :param index: List of column for which an index should be built.
-        :type index: List(str)
+        :param indexes: List of indexes. Each index is a list of column names
+            for which an index should be built.
+        :type indexes: List(str)
         """
 
     @abstractmethod
@@ -166,10 +170,12 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # create a column for each element in the vector
-            size = reduce(mul, map(int, datatypes[column].split(":")[1:]))
+            vector_args = datatypes[column].split(":")[1:]
+            datatype, shape = parse_vector_args(vector_args)
+            size = reduce(mul, map(int, shape))
             expanded_cols = ["%s___%s" % (column, x) for x in range(size)]
             columns_expanded.extend(expanded_cols)
-            datatypes_expanded.update({c: "FLOAT" for c in expanded_cols})
+            datatypes_expanded.update({c: datatype for c in expanded_cols})
             datatypes_expanded[column] = datatypes[column]
             if values:
                 values_expanded.extend(convert_from(values[i],
@@ -254,11 +260,11 @@ class SqlWrapperSession(DbWrapperSession):
         return old_vector_datatype, False
 
     def _do_db_create(self, table_name, columns, datatypes,
-                      primary_key, foreign_key, index):
+                      primary_key, foreign_key, indexes):
         """Call db_create but expand the vectors first."""
         columns, datatypes = self._expand_vector_cols(columns, datatypes)
         self._db_create(table_name, columns, datatypes,
-                        primary_key, foreign_key, index)
+                        primary_key, foreign_key, indexes)
 
     def _do_db_select(self, table_name, columns, condition, datatypes):
         """Call db_select but consider vectors"""
@@ -324,7 +330,7 @@ class SqlWrapperSession(DbWrapperSession):
                     datatypes=datatypes,
                     primary_key=["uid"],
                     foreign_key={"uid": (self.MASTER_TABLE, "uid")},
-                    index=[]
+                    indexes=[]
                 )
 
             # Add to master
@@ -346,6 +352,10 @@ class SqlWrapperSession(DbWrapperSession):
                     values=values,
                     datatypes=datatypes
                 )
+
+        for added in self._added.values():
+            if added.uid == self.root:
+                continue
 
             # Insert the relationships
             for rel, neighbour_dict in added._neighbours.items():
@@ -467,6 +477,9 @@ class SqlWrapperSession(DbWrapperSession):
                 uid, oclass = uid
             else:
                 raise ValueError("Invalid uid given %s" % uid)
+            if uid == self.root:  # root not stored explicitly in database
+                self._load_first_level()
+                yield self._registry.get(uid)
             loaded = list(self._load_by_oclass(oclass=oclass,
                                                update_registry=True,
                                                uid=uid))
@@ -480,7 +493,7 @@ class SqlWrapperSession(DbWrapperSession):
             datatypes=self.DATATYPES[self.MASTER_TABLE],
             primary_key=self.PRIMARY_KEY[self.MASTER_TABLE],
             foreign_key=self.FOREIGN_KEY[self.MASTER_TABLE],
-            index=self.INDEX[self.MASTER_TABLE]
+            indexes=self.INDEXES[self.MASTER_TABLE]
         )
         self._do_db_create(
             table_name=self.RELATIONSHIP_TABLE,
@@ -488,8 +501,27 @@ class SqlWrapperSession(DbWrapperSession):
             datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE],
             primary_key=self.PRIMARY_KEY[self.RELATIONSHIP_TABLE],
             foreign_key=self.FOREIGN_KEY[self.RELATIONSHIP_TABLE],
-            index=self.INDEX[self.RELATIONSHIP_TABLE]
+            indexes=self.INDEXES[self.RELATIONSHIP_TABLE]
         )
+        # Add the dummy root element if it doesn't exist.
+        # We do not want to store the actual root element since it will be
+        # created by the user for every connect (root is the wrapper).
+        # Adding it the dummy root here is necessary because other cuds
+        # objects can have relations with the root.
+        c = self._db_select(
+            table_name=self.MASTER_TABLE,
+            columns=["uid"],
+            condition=EqualsCondition(self.MASTER_TABLE,
+                                      "uid", str(uuid.UUID(int=0)), "STRING"),
+            datatypes=self.DATATYPES[self.MASTER_TABLE]
+        )
+        if len(list(c)) == 0:
+            self._db_insert(
+                table_name=self.MASTER_TABLE,
+                columns=self.COLUMNS[self.MASTER_TABLE],
+                values=[str(uuid.UUID(int=0)), "", False],
+                datatypes=self.DATATYPES[self.MASTER_TABLE]
+            )
 
     # OVERRIDE
     def _load_first_level(self):
@@ -519,10 +551,10 @@ class SqlWrapperSession(DbWrapperSession):
         :rtype: Cuds
         """
         # Check if oclass is given
-        if oclass is None and uid is not None:
-            yield None
+        if (oclass is None and uid is not None) or (uid == uuid.UUID(int=0)):
+            yield None  # uid given --> return iterator containing None
         if oclass is None:
-            return
+            return  # uid not given --> return None
 
         # Check if object in registry can be used
         if not update_registry and uid is not None and uid in self._registry:
@@ -561,7 +593,8 @@ class SqlWrapperSession(DbWrapperSession):
                                          kwargs=kwargs,
                                          session=self,
                                          uid=uid,
-                                         add_to_buffers=False)
+                                         add_to_buffers=False,
+                                         fix_neighbours=False)
             self._load_relationships(cuds_object)
             yield cuds_object
 
@@ -651,5 +684,5 @@ class SqlWrapperSession(DbWrapperSession):
         attributes = oclass.attributes
         columns = [x.argname for x in attributes if x != "session"] + ["uid"]
         datatypes = dict(uid="UUID", **{x.argname: x.datatype
-                         for x in attributes if x != "session"})
+                                        for x in attributes if x != "session"})
         return columns, datatypes

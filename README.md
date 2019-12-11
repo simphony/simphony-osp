@@ -35,16 +35,6 @@ setuptools:
 python3 setup.py install
 ```
 
-```sh
-# install ontologies
-python3 setup.py install -o <path/to/ontology.own-ontology.yml>
-```
-
-```sh
-# reset installed ontologies
-python3 setup.py install -r
-```
-
 or:
 
 ```sh
@@ -52,10 +42,42 @@ or:
 python3 setup.py develop
 ```
 
+## Installation of ontologies
+
+After you installed osp-core you can install your ontology namespaces. We provide the tool `pico`
+(**p**ico **i**nstalls **c**uds **o**ntologies) for that purpose. The following command
+installs the example city ontology namespace:
+
+```sh
+pico install city
+```
+
+You can also install your own ontologies:
+
+```sh
+pico install path/to/your/ontology.yml
+```
+
+If you want to uninstall an ontology use the following command:
+
+```sh
+pico uninstall <namespace>  # e.g. city
+```
+
 ### Installation of OWL ontologies
 
 See doc/working_with_emmo.md for working with the EMMO. \
 See doc/conversion_owl_to_yaml.md if you want to work with any OWL ontology.
+
+## Visualization of ontologies
+
+We provide the tool `ontology2dot` to visualize your ontologies. You can visualize installed namespaces together with non-installed yaml files:
+
+```sh
+ontology2dot <installed-namespace-1> ... <installed-namespace-n> <path/to/ontology-1.yml> ... <path/to/ontology-m.yml>
+```
+
+You can use parameter `-g` to group the namespaces. Use `-o` to change the filename of the resulting png file.
 
 ## Testing
 
@@ -148,20 +170,10 @@ Further examples can be found in the /examples folder. There the usage of wrappe
 - osp/core -- The source code
   - tools -- various tools to work with osp-core.
   - ontology -- the parser and generation of the entities and classes.
+    - yml -- The supplied ontology files
   - session -- Different abstract classes for wrappers.
 - doc -- documentation related files.
 - examples -- examples of usage.
 - tests -- unittesting of the code
 
-### Architecture
-
-The main components, their sub-components, and the interactions between them are given in the following diagrams.
-
-The structure of a pure python OSP case:
-![Standalone CUDS](doc/standalone_cuds.svg)
-
-The structure of a local wrapper:
-![Local CUDS](doc/local_cuds.svg)
-
-The structure of a wrapper with a back-end in a remote server:
-![Distributed CUDS](doc/distributed_cuds.svg)
+For further documentation refer to https://gitlab.cc-asp.fraunhofer.de/simphony/getting-started.

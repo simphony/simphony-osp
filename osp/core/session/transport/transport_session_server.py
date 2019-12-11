@@ -6,9 +6,8 @@
 # No redistribution is allowed without explicit written permission.
 
 import json
-import traceback
-from osp.core.session.storage_wrapper_session \
-    import StorageWrapperSession
+import logging
+from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.transport.communication_engine \
     import CommunicationEngineServer
 from osp.core.session.transport.transport_util import (
@@ -16,13 +15,15 @@ from osp.core.session.transport.transport_util import (
     serializable, serialize
 )
 
+logger = logging.getLogger(__name__)
+
 
 class TransportSessionServer():
     """The TransportSession implements the transport layer. It consists of a
     client and a server. The server runs on the remote part and delegates each
     request to the session it wraps."""
 
-    def __init__(self, session_cls, host, port, verbose=False):
+    def __init__(self, session_cls, host, port):
         """Construct the server.
 
         :param session_cls: The Session class to manage.
@@ -36,8 +37,7 @@ class TransportSessionServer():
             host=host,
             port=port,
             handle_request=self.handle_request,
-            handle_disconnect=self.handle_disconnect,
-            verbose=verbose
+            handle_disconnect=self.handle_disconnect
         )
         self.session_cls = session_cls
         self.session_objs = dict()
@@ -73,13 +73,12 @@ class TransportSessionServer():
         elif not command.startswith("_") and \
                 user in self.session_objs and \
                 hasattr(self.session_objs[user], command) and \
-                not hasattr(StorageWrapperSession, command) and \
+                not hasattr(WrapperSession, command) and \
                 callable(getattr(self.session_objs[user], command)):
             try:
                 return self._run_command(data, command, user)
             except Exception as e:
-                traceback.print_exc()
-                print(e)
+                logger.error(str(e), exc_info=1)
                 return "ERROR: %s: %s" % (type(e).__name__, e)
         return "ERROR: Invalid command"
 
@@ -97,11 +96,7 @@ class TransportSessionServer():
         arguments = deserialize_buffers(session, data, add_to_buffers=True)
         result = getattr(session, command)(*arguments["args"],
                                            **arguments["kwargs"])
-        additional = dict()
-        if result:
-            additional["result"] = result
-        if hasattr(session, "_expired"):
-            additional["expired"] = session._expired
+        additional = {"result": result} if result else dict()
         return serialize(session, additional_items=additional)
 
     def _load_from_session(self, data, user):
@@ -115,11 +110,8 @@ class TransportSessionServer():
         session = self.session_objs[user]
         uids = deserialize_buffers(session, data, add_to_buffers=False)["uids"]
         cuds_objects = session.load(*uids)
-        serialized = [serializable(x) for x in cuds_objects]
-        return json.dumps({"result": serialized,
-                           "added": [],
-                           "deleted": [],
-                           "updated": []})
+        additional = {"result": [serializable(x) for x in cuds_objects]}
+        return serialize(session, additional_items=additional)
 
     def _init_session(self, data, user):
         """Start a new session.

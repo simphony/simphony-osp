@@ -12,7 +12,13 @@ from osp.core.utils import clone_cuds_object, create_from_cuds_object, \
     get_neighbour_diff
 from osp.core.session.core_session import CoreSession
 from osp.core.cuds import Cuds
-from osp.core import CITY, CUBA
+from osp.core import CUBA
+
+try:
+    from osp.core import CITY
+except ImportError:
+    from osp.core.ontology import Parser
+    CITY = Parser().parse("city")
 
 
 class TestAPICity(unittest.TestCase):
@@ -311,6 +317,8 @@ class TestAPICity(unittest.TestCase):
         self.assertRaises(TypeError, c.get,
                           n.uid,
                           oclass=CITY.NEIGHBOURHOOD)
+        self.assertRaises(ValueError, c.get, oclass=CITY.HAS_INHABITANT)
+        self.assertRaises(ValueError, c.get, rel=CITY.CITIZEN)
 
     def test_update(self):
         """
@@ -335,6 +343,8 @@ class TestAPICity(unittest.TestCase):
         new_streets = new_neighbourhood.get(
             oclass=CITY.STREET)
         self.assertEqual(new_streets, [new_s])
+
+        self.assertRaises(ValueError, c.update, n)
 
     def test_remove(self):
         """
