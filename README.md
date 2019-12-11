@@ -44,7 +44,7 @@ python3 setup.py develop
 
 ## Installation of ontologies
 
-After you installed osp-core you can install your ontology namespaces. We provide the tool pico
+After you installed osp-core you can install your ontology namespaces. We provide the tool `pico`
 (**p**ico **i**nstalls **c**uds **o**ntologies) for that purpose. The following command
 installs the example city ontology namespace:
 
@@ -68,6 +68,16 @@ pico uninstall <namespace>  # e.g. city
 
 See doc/working_with_emmo.md for working with the EMMO. \
 See doc/conversion_owl_to_yaml.md if you want to work with any OWL ontology.
+
+## Visualization of ontologies
+
+We provide the tool `ontology2dot` to visualize your ontologies. You can visualize installed namespaces together with non-installed yaml files:
+
+```sh
+ontology2dot <installed-namespace-1> ... <installed-namespace-n> <path/to/ontology-1.yml> ... <path/to/ontology-m.yml>
+```
+
+You can use parameter `-g` to group the namespaces. Use `-o` to change the filename of the resulting png file.
 
 ## Testing
 
