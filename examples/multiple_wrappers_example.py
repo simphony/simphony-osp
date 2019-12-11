@@ -1,6 +1,5 @@
 from osp.core import CITY
 from osp.core.utils import pretty_print
-
 from getpass import getpass
 try:
     from osp.wrappers.sqlalchemy_wrapper_session import \
@@ -14,6 +13,9 @@ except ImportError as e:
     raise ImportError("For this example, the dummy simulation "
                       "wrapper for SimPhoNy is required!") from e
 
+# import logging
+# logger = logging.getLogger("osp.core")
+# logger.setLevel(logging.DEBUG)
 
 print("Input data to connect to Postgres table!")
 user = input("User: ")

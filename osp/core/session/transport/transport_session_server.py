@@ -6,7 +6,7 @@
 # No redistribution is allowed without explicit written permission.
 
 import json
-import traceback
+import logging
 from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.transport.communication_engine \
     import CommunicationEngineServer
@@ -15,13 +15,15 @@ from osp.core.session.transport.transport_util import (
     serializable, serialize
 )
 
+logger = logging.getLogger(__name__)
+
 
 class TransportSessionServer():
     """The TransportSession implements the transport layer. It consists of a
     client and a server. The server runs on the remote part and delegates each
     request to the session it wraps."""
 
-    def __init__(self, session_cls, host, port, verbose=False):
+    def __init__(self, session_cls, host, port):
         """Construct the server.
 
         :param session_cls: The Session class to manage.
@@ -35,8 +37,7 @@ class TransportSessionServer():
             host=host,
             port=port,
             handle_request=self.handle_request,
-            handle_disconnect=self.handle_disconnect,
-            verbose=verbose
+            handle_disconnect=self.handle_disconnect
         )
         self.session_cls = session_cls
         self.session_objs = dict()
@@ -77,8 +78,7 @@ class TransportSessionServer():
             try:
                 return self._run_command(data, command, user)
             except Exception as e:
-                traceback.print_exc()
-                print(e)
+                logger.error(str(e), exc_info=1)
                 return "ERROR: %s: %s" % (type(e).__name__, e)
         return "ERROR: Invalid command"
 
