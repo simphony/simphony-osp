@@ -6,9 +6,15 @@
 # No redistribution is allowed without explicit written permission.
 
 import unittest2 as unittest
-from osp.core import CITY, CUBA
+from osp.core import CUBA
 from osp.core.cuds import Cuds
 from .test_utils import get_test_city
+
+try:
+    from osp.core import CITY
+except ImportError:
+    from osp.core.ontology import Parser
+    CITY = Parser().parse("city")
 
 
 class TestRegistryCity(unittest.TestCase):

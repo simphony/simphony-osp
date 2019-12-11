@@ -6,9 +6,8 @@
 # No redistribution is allowed without explicit written permission.
 
 import json
-from osp.core.session.storage_wrapper_session \
-    import StorageWrapperSession
-from osp.core.session.wrapper_session import check_consumes_buffers
+from osp.core.session.wrapper_session import check_consumes_buffers, \
+    WrapperSession
 from osp.core.session.transport.communication_engine \
     import CommunicationEngineClient
 from osp.core.session.transport.transport_util import (
@@ -17,13 +16,12 @@ from osp.core.session.transport.transport_util import (
 )
 
 
-class TransportSessionClient(StorageWrapperSession):
+class TransportSessionClient(WrapperSession):
     """The TransportSession implements the transport layer. It consists of a
     client and a server. The client is a WrapperSession, that wraps another
     session that runs on the server. Each request will be sent to the server"""
 
-    def __init__(self, session_cls, host, port, *args,
-                 verbose=False, **kwargs):
+    def __init__(self, session_cls, host, port, *args, **kwargs):
         """Construct the client of the transport session.
 
         :param session_cls: The session class to wrap.
@@ -37,8 +35,7 @@ class TransportSessionClient(StorageWrapperSession):
             engine=CommunicationEngineClient(
                 host=host,
                 port=port,
-                handle_response=self._receive,
-                verbose=verbose),
+                handle_response=self._receive),
             forbid_buffer_reset_by=None
         )
         self.session_cls = session_cls

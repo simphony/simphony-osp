@@ -9,7 +9,9 @@ from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.datatypes import (
     ONTOLOGY_DATATYPES, convert_from, convert_to
 )
-import warnings
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 CONFLICTING = "2L4N4lGLYBU8mBNx8H6X6dC6Mcf2AcBqIKnFnXUI"
@@ -32,7 +34,7 @@ class OntologyAttribute(OntologyEntity):
     def datatype(self):
         result = self._get_datatype_recursively()
         if result == CONFLICTING:
-            warnings.warn("Conflicting datatype for %s" % self)
+            logger.warning("Conflicting datatype for %s" % self)
             return "UNDEFINED"
         return result or "UNDEFINED"
 
@@ -87,5 +89,6 @@ class OntologyAttribute(OntologyEntity):
         :type datatype: str
         """
         if datatype.split(":")[0] not in ONTOLOGY_DATATYPES:
-            raise ValueError("Invalid datatype %s specified" % datatype)
+            raise ValueError("Invalid datatype %s specified for %s"
+                             % (datatype, self))
         self._datatype = datatype

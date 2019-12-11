@@ -10,6 +10,12 @@ import numpy as np
 from osp.core.session.db.sql_wrapper_session import \
     SqlWrapperSession
 
+try:
+    from osp.core import CITY
+except ImportError:
+    from osp.core.ontology import Parser
+    CITY = Parser().parse("city")
+
 EXPANDED_COLS = ['1',
                  '2___0', '2___1',
                  '3___0', '3___1', '3___2',

@@ -1,9 +1,9 @@
 ---
-VERSION: "0.0.1"
+version: "0.0.1"
 
-NAMESPACE: "CUBA"
+namespace: "CUBA"
 
-ONTOLOGY:
+ontology:
 
   ENTITY:
     description: The root of the ontology.
@@ -20,16 +20,25 @@ ONTOLOGY:
     description: The root of all relationships.
     subclass_of:
     - CUBA.ENTITY
+    inverse: CUBA.RELATIONSHIP
 
   ACTIVE_RELATIONSHIP:
     description: The root of all active relationships. Active relationships express that one cuds object is in the container of another.
     subclass_of:
     - CUBA.RELATIONSHIP
+    inverse: CUBA.PASSIVE_RELATIONSHIP
+
+  PASSIVE_RELATIONSHIP:
+    description: The inverse of ACTIVE_RELATIONSHIP.
+    subclass_of:
+    - CUBA.RELATIONSHIP
+    inverse: CUBA.ACTIVE_RELATIONSHIP 
+    
 
   ################
 
   WRAPPER:
-    description: The root of all wrappers. These are the bridge to simulation engines and databases. The bridge to simulation engines and databases.
+    description: The root of all wrappers. These are the bridge to simulation engines and databases.
     subclass_of:
     - CUBA.ENTITY
 

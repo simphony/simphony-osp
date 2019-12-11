@@ -9,7 +9,7 @@
 import uuid
 from typing import Union, List, Iterator, Dict, Any
 
-from osp.core import ONTOLOGY_NAMESPACE_REGISTRY
+from osp.core import ONTOLOGY_INSTALLER
 from osp.core.ontology.relationship import OntologyEntity
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
@@ -20,7 +20,7 @@ from osp.core.session.session import Session
 from osp.core.neighbour_dict import NeighbourDictRel, NeighbourDictTarget
 from osp.core.utils import check_arguments, clone_cuds_object, \
     create_from_cuds_object, get_neighbour_diff
-from osp.core import CUBA, get_default_rel
+from osp.core import CUBA
 
 
 class Cuds():
@@ -46,12 +46,12 @@ class Cuds():
             uid will be created.
         :type uid: UUID
         """
-        self._attributes = {k.argname: k(v) for k, v in attributes.items()}
+        self._attr_values = {k.argname: k(v) for k, v in attributes.items()}
         self._neighbours = NeighbourDictRel({}, self)
 
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         self._session = session or Cuds._session
-        self._values = {k.argname: k for k in attributes}
+        self._onto_attributes = {k.argname: k for k in attributes}
         self._oclass = oclass
         self.session._store(self)
 
@@ -96,10 +96,11 @@ class Cuds():
         :raises ValueError: adding an element already there
         """
         check_arguments(Cuds, *args)
-        rel = rel or get_default_rel()
+        rel = rel or self.oclass.namespace.default_rel
         if rel is None:
-            raise TypeError("Specify a relationship or call "
-                            "osp.core.set_default_rel()!")
+            raise TypeError("Missing argument 'rel'! No default "
+                            "relationship specified for namespace %s."
+                            % self.oclass.namespace)
         result = list()
         # update cuds objects if they are already in the session
         old_objects = self._session.load(
@@ -166,6 +167,9 @@ class Cuds():
 
         result = list()
         for arg, old_cuds_object in zip(args, old_objects):
+            if arg.session is self.session:
+                raise ValueError("Please provide CUDS objects from a "
+                                 "different session to update()")
             # Updates all instances
             result.append(self._recursive_store(arg, old_cuds_object))
 
@@ -350,8 +354,8 @@ class Cuds():
                                                 new_cuds_object)
 
         # Load all the cuds_objects of the session
-        cuds_objects = session.load(
-            *[uid for uid, _ in new_parent_diff + old_neighbour_diff])
+        cuds_objects = iter(session.load(
+            *[uid for uid, _ in new_parent_diff + old_neighbour_diff]))
 
         # Perform the fixes
         Cuds._fix_new_parents(new_cuds_object=new_cuds_object,
@@ -494,6 +498,13 @@ class Cuds():
         """
         if uids and oclass is not None:
             raise TypeError("Do not specify both uids and oclass")
+        if rel is not None and not isinstance(rel, OntologyRelationship):
+            raise ValueError("Found object of type %s passed to argument rel. "
+                             "Should be an OntologyRelationship." % type(rel))
+        if oclass is not None and not isinstance(oclass, OntologyClass):
+            raise ValueError("Found object of type %s passed to argument "
+                             "oclass. Should be an OntologyClass."
+                             % type(oclass))
 
         if uids:
             check_arguments(uuid.UUID, *uids)
@@ -663,13 +674,13 @@ class Cuds():
         :return: The value of the attribute
         :rtype: Any
         """
-        if name not in self._attributes:
+        if name not in self._attr_values:
             raise AttributeError(name)
         if self.session:
             self.session._notify_read(self)
-        if name not in self._attributes:
+        if name not in self._attr_values:
             raise AttributeError(name)
-        return self._attributes[name]
+        return self._attr_values[name]
 
     def __setattr__(self, name, new_value):
         """Set an attribute.
@@ -684,13 +695,13 @@ class Cuds():
         if name.startswith("_"):
             super().__setattr__(name, new_value)
             return
-        if name not in self._attributes:
+        if name not in self._attr_values:
             raise AttributeError(name)
         if self.session:
             self.session._notify_read(self)
-        if name not in self._attributes:
+        if name not in self._attr_values:
             raise AttributeError(name)
-        self._attributes[name] = self._values[name](new_value)
+        self._attr_values[name] = self._onto_attributes[name](new_value)
         if self.session:
             self.session._notify_update(self)
 
@@ -741,7 +752,7 @@ class Cuds():
             for k, v in self._neighbours.items()
         ]
         state["_values"] = [(k, v.namespace.name, v.name)
-                            for k, v in self._values.items()]
+                            for k, v in self._onto_attributes.items()]
         return state
 
     def __setstate__(self, state):
@@ -752,16 +763,17 @@ class Cuds():
         :type state: Dict[str, Any]
         """
         namespace, oclass = state["_oclass"]
-        oclass = ONTOLOGY_NAMESPACE_REGISTRY[namespace][oclass]
+        oclass = ONTOLOGY_INSTALLER.namespace_registry[namespace][oclass]
         state["_oclass"] = oclass
         state["_session"] = None
         state["_neighbours"] = NeighbourDictRel({
-            ONTOLOGY_NAMESPACE_REGISTRY[ns][cl]: NeighbourDictTarget({
-                uid: ONTOLOGY_NAMESPACE_REGISTRY[ns2][cl2]
-                for uid, ns2, cl2 in v
-            }, self, ONTOLOGY_NAMESPACE_REGISTRY[ns][cl])
+            ONTOLOGY_INSTALLER.namespace_registry[ns][cl]:
+                NeighbourDictTarget({
+                    uid: ONTOLOGY_INSTALLER.namespace_registry[ns2][cl2]
+                    for uid, ns2, cl2 in v
+                }, self, ONTOLOGY_INSTALLER.namespace_registry[ns][cl])
             for ns, cl, v in state["_neighbours"]
         }, self)
-        state["_values"] = {k: ONTOLOGY_NAMESPACE_REGISTRY[ns][cl]
+        state["_values"] = {k: ONTOLOGY_INSTALLER.namespace_registry[ns][cl]
                             for k, ns, cl in state["_values"]}
         self.__dict__ = state

@@ -5,15 +5,11 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-import pickle  # nosec
 import os
 
-ONTOLOGY_NAMESPACE_REGISTRY = None
 MAIN_ONTOLOGY_NAMESPACE = "CUBA".lower()
 MAIN_ONTOLOGY_PATH = os.path.join(os.path.dirname(__file__),
                                   "yml", "ontology.cuba.yml")
-INSTALLED_ONTOLOGY_PATH = os.path.join(os.path.dirname(__file__),
-                                       "installed-ontology.pkl")
 
 
 class NamespaceRegistry():
@@ -22,12 +18,12 @@ class NamespaceRegistry():
 
     def __getattr__(self, name):
         try:
-            return self.get(name)
-        except KeyError:
-            raise AttributeError(name)
+            return self._get(name)
+        except KeyError as e:
+            raise AttributeError(str(e)) from e
 
     def __getitem__(self, name):
-        return self.get(name)
+        return self._get(name)
 
     def __getstate__(self):
         return self.__dict__
@@ -40,8 +36,17 @@ class NamespaceRegistry():
             return other.lower() in self._namespaces.keys()
         return other in self._namespaces.values()
 
-    def get(self, name):
-        return self._namespaces[name.lower()]
+    def get(self, name, fallback=None):
+        try:
+            return self._get(name)
+        except KeyError:
+            return fallback
+
+    def _get(self, name):
+        try:
+            return self._namespaces[name.lower()]
+        except KeyError as e:
+            raise KeyError("namespace %s not installed" % name) from e
 
     @property
     def default_rel(self):
@@ -69,19 +74,13 @@ class NamespaceRegistry():
         assert (
             bool(namespace.name.lower() == MAIN_ONTOLOGY_NAMESPACE)
             != bool(self._namespaces)
-        ), "CUBA namespace must be installed first"
+        ), ("CUBA namespace must be installed first. "
+            "Installing %s. Already installed: %s"
+            % (namespace.name, self._namespaces.keys()))
         if namespace.name.lower() in self._namespaces:
             raise ValueError("Namespace %s already added to namespace "
                              "registry!" % namespace.name)
         self._namespaces[namespace.name.lower()] = namespace
-
-        if (
-            ONTOLOGY_NAMESPACE_REGISTRY is self
-            and namespace.name.lower() != MAIN_ONTOLOGY_NAMESPACE
-        ):
-            import osp.core
-            setattr(osp.core, namespace.name.upper(), namespace)
-            setattr(osp.core, namespace.name.lower(), namespace)
 
     def get_main_namespace(self):
         """Get the main namespace (CUBA)
@@ -90,26 +89,3 @@ class NamespaceRegistry():
         :rtype: OntologyNamespace
         """
         return self._namespaces[MAIN_ONTOLOGY_NAMESPACE]
-
-    def install(self):
-        """Reset the namespace registry"""
-        with open(INSTALLED_ONTOLOGY_PATH, "wb") as f:
-            pickle.dump(self, f)
-
-
-# initialize registry singleton
-if ONTOLOGY_NAMESPACE_REGISTRY is None:
-
-    # load from installation
-    try:
-        if os.path.exists(INSTALLED_ONTOLOGY_PATH):
-            with open(INSTALLED_ONTOLOGY_PATH, "rb") as f:
-                ONTOLOGY_NAMESPACE_REGISTRY = pickle.load(f)  # nosec
-    except EOFError:
-        pass
-
-if ONTOLOGY_NAMESPACE_REGISTRY is None:
-    from osp.core.ontology.parser import Parser
-    ONTOLOGY_NAMESPACE_REGISTRY = NamespaceRegistry()
-    p = Parser()
-    namespace = p.parse(MAIN_ONTOLOGY_PATH)

@@ -1,41 +1,38 @@
-from osp.core.ontology.namespace_registry import ONTOLOGY_NAMESPACE_REGISTRY
-from osp.core.ontology.parser import Parser
 import sys
+import atexit
+import logging
+from osp.core.ontology.installation import OntologyInstallationManager
 
+# set up logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+    '%(levelname)s [%(name)s]: %(message)s'
+)
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+
+# load installed ontologies
 thismodule = sys.modules[__name__]
-
-
-for name, namespace in ONTOLOGY_NAMESPACE_REGISTRY._namespaces.items():
-    setattr(thismodule, name.upper(), namespace)
-    setattr(thismodule, name.lower(), namespace)
-
+ONTOLOGY_INSTALLER = OntologyInstallationManager()
+try:
+    ONTOLOGY_INSTALLER.initialize_installed_ontologies(thismodule)
+except RuntimeError as e:
+    logger.critical("Could not load installed ontologies.", exc_info=1)
+atexit.register(ONTOLOGY_INSTALLER._clean)
 
 user_defined_default_rel = None
-installed_default_rel = ONTOLOGY_NAMESPACE_REGISTRY.default_rel
+installed_default_rel = ONTOLOGY_INSTALLER.namespace_registry.default_rel
 
-
-def get_default_rel():
-    global user_defined_default_rel, installed_default_rel, \
-        ONTOLOGY_NAMESPACE_REGISTRY
-
-    result = (
-        user_defined_default_rel
-        or ONTOLOGY_NAMESPACE_REGISTRY.default_rel
-        or installed_default_rel
-    )
-    user_defined_default_rel = result
-    return result
-
-
-def set_default_rel(rel):
-    global user_defined_default_rel
-    user_defined_default_rel = rel
-
-
+# utility functions
 def get_entity(entity_name):
-    namespace, name = entity_name.split(".")
-    return ONTOLOGY_NAMESPACE_REGISTRY[namespace][name]
+    namespace, name = ONTOLOGY_INSTALLER.parser.split_name(entity_name)
+    return ONTOLOGY_INSTALLER.namespace_registry[namespace][name]
 
 
 def install_current_ontology():
-    ONTOLOGY_NAMESPACE_REGISTRY.install()
+    ONTOLOGY_INSTALLER.install()
+
+from osp.core.ontology.parser import Parser

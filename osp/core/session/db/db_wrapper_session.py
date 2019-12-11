@@ -6,17 +6,17 @@
 # No redistribution is allowed without explicit written permission.
 
 from abc import abstractmethod
-from osp.core.session.wrapper_session import consumes_buffers
-from osp.core.session.storage_wrapper_session import \
-    StorageWrapperSession
+from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
+from osp.core.session.result import returns_query_result
 
 
-class DbWrapperSession(StorageWrapperSession):
+class DbWrapperSession(WrapperSession):
     """Abstract class for a DB Wrapper Session"""
 
     @consumes_buffers
     def commit(self):
         """Commit the changes in the buffers to the database."""
+        self.log_buffer_status()
         self._check_cardinalities()
         self._init_transaction()
         try:
@@ -31,6 +31,7 @@ class DbWrapperSession(StorageWrapperSession):
         self._reset_buffers(changed_by="engine")
         self.expire_all()
 
+    @returns_query_result
     def load_by_oclass(self, oclass, update_registry=False):
         """Load cuds_object with given OntologyClass.
         Will also return cuds objects of subclasses of oclass.

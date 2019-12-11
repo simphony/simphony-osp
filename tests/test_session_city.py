@@ -6,9 +6,15 @@
 # No redistribution is allowed without explicit written permission.
 
 import unittest2 as unittest
-from osp.core import CITY, CUBA
+from osp.core import CUBA
 from osp.core.session.session import Session
 from osp.core.session.wrapper_session import WrapperSession
+
+try:
+    from osp.core import CITY
+except ImportError:
+    from osp.core.ontology import Parser
+    CITY = Parser().parse("city")
 
 
 class TestSessionCity(unittest.TestCase):
@@ -221,3 +227,6 @@ class TestWrapperSession(WrapperSession):
 
     def _notify_read(self, cuds_object):
         pass
+
+    def _load_from_backend(self, uids, expired=None):
+        yield from Session.load(self, *uids)

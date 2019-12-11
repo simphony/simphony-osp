@@ -55,7 +55,7 @@ Name any ontolgy `ontology.<name>.yml`, where `<name>` should be replaced by a u
 
 ## Syntax of the .yml ontology
 
-`VERSION`: string
+`version`: string
 
 > Contains semantic version Major.minor in format M.m with M and m
 > positive integers. minor MUST be incremented when backward
@@ -63,13 +63,21 @@ Name any ontolgy `ontology.<name>.yml`, where `<name>` should be replaced by a u
 > when backward compatibility is removed. Due to the strict nature of
 > the format, a change in minor is unlikely.
 
-`NAMESPACE`: string
+`namespace`: string
 
 > Defines the namespace of the current file. We recommend to use
   ALL_UPPERCASE for the namespace name, with underscore as separation.
   All entities defined in this file will live in the namespace defined here.
 
-`ONTOLOGY`: dict
+`requirements`: List[string]
+
+> A list of namespaces that this namespace depends on.
+
+`author`: string
+
+> Reference to the person(s) who created the file.
+
+`ontology`: dict
 
 > Contains individual declarations for ontology entities as a mapping.
 > Each key of the mapping is the name of an ontology entity.
@@ -129,11 +137,15 @@ The CUBA namespace is always installed in OSP-core.
 `CUBA.ACTIVE_RELATIONSHIP`
 > The root of all active relationships. Active relationships express that one cuds object is in the container of another.
 
+`CUBA.PASSIVE_RELATIONSHIP`
+> The inverse of `CUBA.ACTIVE_RELATIONSHIP`.
+
 ## Attribute format
 
 Every attribute is a subclass of `ATTRIBUTE`.
 The declaration of an attribute is a special case of the declaration of an entity.
-It must have the keys described in [Ontology entities format](#ontology-entities-format). It furthermore can have the following keys:
+It must have the keys described in [Ontology entities format](#ontology-entities-format).
+It can additionally have the following keys:
 
 `datatype`: string
 
@@ -145,22 +157,26 @@ It must have the keys described in [Ontology entities format](#ontology-entities
 >
 > - `BOOL`: a form of data with only two possible values (usually
 >   \"true\" or \"false\")
-> - `INT`: a sequence of positive and negative digits
-> - `FLOAT`: a digit containing values on both sides of the decimal
+> - `INT`: a positive or negative integer number.
+> - `FLOAT`: a number containing values on both sides of the decimal
 >   point
-> - `STRING`: a set of characters that can also contain spaces and
+> - `STRING`: a sequence of characters that can also contain spaces and
 >   numbers. The length can be specified with "STRING:LENGTH" (e.g.
 >   STRING:20 means the length of the string should be maximum 20
 >   characters).
-> - `VECTOR:D1:D2:...:Dn`: a vector of the given dimensions, from the
->   outside inwards. For example, a VECTOR:4:2:1 would be:
->   { [(a), (b)],  [(c), (d)], [(e), (f)], [(g), (h)] } 
->   (the different delimiters are only used for visual purposes)
+> - `VECTOR:datatype:D1:D2:...:Dn`: a vector of the given dimensions
+>   (D1 x D2 x ... x Dn) and the given datatype.
+>
+>   For example, a VECTOR:INT:4:2:1 would be: \
+>   { [(a), (b)],  [(c), (d)], [(e), (f)], [(g), (h)] } \
+>   where all elements (a, b, ...) are integers.
+>   (the different delimiters are only used for visual purposes).
+>   If no datatype is specified, it would be a `FLOAT` vector.
 >
 > In case a datatype is not specified the default datatype is assumed to
 > be STRING
 >
-> For example: The datatype of entity NUMBER is INT.
+> For example: The datatype of entity NUMBER_OF_OCCURRENCES is INT.
 
 ## Class expressions
 
@@ -202,20 +218,20 @@ They can be either:
 - A composition of several class expressions. For example:
 
   ```yml
-  OR:
+  or:
     - CITY.CITY
     - CITY.NEIGHBOURHOOD
   ```
 
   This is the union of all individuals that are a city or a neighbourhood.
-  We use the keyword `OR` for union, `AND` for intersection and `NOT` for complement.
-  After `OR` and `AND`, a list of  class expressions for the union / intersection is expected.
-  After `NOT` a single class expression is expected.
+  We use the keyword `or` for union, `and` for intersection and `not` for complement.
+  After `or` and `and`, a list of  class expressions for the union / intersection is expected.
+  After `not` a single class expression is expected.
 
 The definition of class expressions is recursive. For example:
 
 ```yml
-OR:
+or:
   - CITY.CITY
   - CITY.HAS_PART:
       cardinality: 1+
@@ -289,7 +305,7 @@ It can contain further information:
 Every relationship is a subclass of `RELATIONSHIP`.
 The declaration of a relationship is a special case of the declaration of an entity.
 It must have the keys described in [Ontology entities format](#ontology-entities-format).
-Furthermore, it mus have the following keys:
+Furthermore, it can contain the following information:
 
 `inverse`: **\`\`qualified entity name\`\`** or empty (None)
 > If CUDS object A is related to CUDS object B via relationship REL, then B is related

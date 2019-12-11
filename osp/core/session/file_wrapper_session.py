@@ -7,16 +7,17 @@
 
 from abc import abstractmethod
 from osp.core.session.wrapper_session import consumes_buffers
-from osp.core.session.storage_wrapper_session import \
-    StorageWrapperSession
+from osp.core.session.wrapper_session import WrapperSession
+from osp.core.session.result import returns_query_result
 
 
-class FileWrapperSession(StorageWrapperSession):
+class FileWrapperSession(WrapperSession):
     """Abstract class for a File Wrapper Session"""
 
     @consumes_buffers
     def save(self):
         """Saves the changes in the buffers to the file."""
+        self.log_buffer_status()
         self._check_cardinalities()
         self._open()
         self._apply_added()
@@ -27,6 +28,7 @@ class FileWrapperSession(StorageWrapperSession):
         self._reset_buffers(changed_by="user")
         self.expire_all()
 
+    @returns_query_result
     def load_by_oclass(self, oclass, update_registry=False):
         """Load cuds_object with given ontology class.
         Will also return cuds objects of subclasses of oclass.
