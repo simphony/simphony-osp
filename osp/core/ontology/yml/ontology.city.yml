@@ -111,6 +111,7 @@ ontology:
     - CUBA.ENTITY
 
   LIVING_BEING:
+    description: A being that lives
     subclass_of:
     - CUBA.ENTITY
     - CITY.IS_CHILD_OF:
