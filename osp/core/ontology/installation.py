@@ -4,7 +4,7 @@ import uuid
 import pickle  # nosec
 import yaml
 import logging
-from shutil import copyfile
+from shutil import copyfile, rmtree
 import osp.core
 from osp.core.ontology.parser import Parser
 from osp.core.ontology.keywords import (
@@ -63,7 +63,7 @@ class OntologyInstallationManager():
             result.append(n)
         return result
 
-    def install(self, *files, use_pickle=True):
+    def install(self, *files, use_pickle=True, success_msg=True):
         """Install the given files with the current namespace registry.
 
         :param files: The files to install, defaults to None
@@ -87,7 +87,8 @@ class OntologyInstallationManager():
             with open(self.pkl_path, "wb") as f:
                 pickle.dump(self.namespace_registry, f)
         self.set_module_attr()
-        logger.info("Installation successful!")
+        if success_msg:
+            logger.info("Installation successful!")
 
     def uninstall(self, *namespaces):
         """Uninstall the given namespaces
@@ -96,29 +97,48 @@ class OntologyInstallationManager():
         :type namespaces: List[str]
         :raises ValueError: The namespace to uninstall is not installed
         """
-        # Remove the yaml files
-        for namespace in namespaces:
-            namespace = namespace.lower()
-            p = os.path.join(self.installed_path,
-                             "ontology.%s.yml" % namespace)
-            if os.path.exists(p):
-                os.remove(p)
-                if hasattr(osp.core, namespace.upper()):
-                    delattr(osp.core, namespace.upper())
-                if hasattr(osp.core, namespace.lower()):
-                    delattr(osp.core, namespace.lower())
-            else:
-                raise ValueError("Namespace %s not installed" % namespace)
+        # Move the YAML files in a temporary folder
+        remove_path = os.path.join(self.yaml_path, "remove")
+        try:
+            os.mkdir(remove_path)
+            for namespace in namespaces:
+                namespace = namespace.lower()
+                filename = "ontology.%s.yml" % namespace
+                old_path = os.path.join(self.installed_path, filename)
+                new_path = os.path.join(remove_path, filename)
+                if os.path.exists(old_path):
+                    os.rename(old_path, new_path)
 
-        # remove the pickle file
-        pkl_exists = os.path.exists(self.pkl_path)
-        if pkl_exists:
-            os.remove(self.pkl_path)
+                    # Remove the attributes of the osp.core package
+                    if hasattr(osp.core, namespace.upper()):
+                        delattr(osp.core, namespace.upper())
+                    if hasattr(osp.core, namespace.lower()):
+                        delattr(osp.core, namespace.lower())
+                else:
+                    raise ValueError("Namespace %s not installed" % namespace)
 
-        # reinstall remaining namespaces
-        self.initialize_installed_ontologies()
-        self.install(use_pickle=pkl_exists)
-        logger.info("Uninstallation successful!")
+            # remove the pickle file
+            pkl_exists = os.path.exists(self.pkl_path)
+            if pkl_exists:
+                os.remove(self.pkl_path)
+
+            try:
+                # reinstall remaining namespaces
+                self.initialize_installed_ontologies()
+                self.install(use_pickle=pkl_exists, success_msg=False)
+                logger.info("Uninstallation successful!")
+            except RuntimeError:  # unsatisfied requirements
+                # roll back
+                for file in os.listdir(remove_path):
+                    os.rename(os.path.join(remove_path, file),
+                              os.path.join(self.installed_path, file))
+                self.initialize_installed_ontologies()
+                self.install(use_pickle=pkl_exists, success_msg=False)
+                logger.error("Unsatisfied requirements after uninstallation.",
+                             exc_info=1)
+                logger.error("Uninstallation failed. Rolling back!")
+        finally:
+            rmtree(remove_path)  # remove the temporary folder
 
     def initialize_installed_ontologies(self, osp_module=None,
                                         use_pickle=True):
