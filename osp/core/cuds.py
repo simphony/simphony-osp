@@ -70,6 +70,13 @@ class Cuds():
         """The type of the cuds object"""
         return self._oclass
 
+    def get_attributes(self):
+        """Get the attributes as a dictionary"""
+        result = {}
+        for attribute in self.oclass.attributes:
+            result[attribute] = getattr(self, attribute.argname)
+        return result
+
     def is_a(self, oclass):
         """Check if self is an instance of the given oclass.
 
