@@ -7,14 +7,6 @@
 
 from osp.core import CITY
 
-"""
-The objects without any other entities added are shown as
-empty dictionaries '{}'. This is so because the uid, name and other
-properties are stored elsewhere and not shown.
-
-This example shows some options how to use the API
-"""
-
 print("Creating a City object, c...")
 c = CITY.CITY(name="Freiburg", coordinates=[47, 7])
 print("  uid of c: " + str(c.uid))
