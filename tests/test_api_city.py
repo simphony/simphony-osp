@@ -627,6 +627,13 @@ class TestAPICity(unittest.TestCase):
             self.assertEqual(set(pw1.get(rel=CITY.IS_INHABITANT_OF)),
                              {c1w, c2w})
 
+    def test_get_attributes(self):
+        p = CITY.CITIZEN(name="Ralf")
+        self.assertEqual(
+            p.get_attributes(),
+            {CITY.NAME: "Ralf", CITY.AGE: 25}
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
