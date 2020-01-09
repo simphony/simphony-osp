@@ -7,7 +7,7 @@
 
 import rdflib
 import uuid
-from osp.core import ONTOLOGY_NAMESPACE_REGISTRY, get_entity
+from osp.core import ONTOLOGY_NAMESPACE_REGISTRY, get_entity, cuba
 from osp.core.ontology import OntologyRelationship
 
 UID_NAMESPACE_PREFIX = "uid"
@@ -34,46 +34,11 @@ class SessionRDFLibStore(rdflib.store.Store):
 
     def triples(self, triple_pattern, context=None):
         s, p, o = triple_pattern
-        if (
-            not isinstance(s, rdflib.term.URIRef)
-            or not str(s).startswith(UID_NAMESPACE)
-        ):
-            raise NotImplementedError
-        s_cuds = self.session.load(uuid.UUID(s[len(UID_NAMESPACE):])).one()
-
-        if p is None:
-            for o_cuds, rel in s_cuds.get(return_rel=True):
-                if o is None or o == o_cuds.get_iri():
-                    yield (
-                        s_cuds.get_iri(),
-                        rel.get_iri(),
-                        o_cuds.get_iri()
-                    ), self.context
-
-            for attribute, value in s_cuds.get_attributes().items():
-                if o is None or o.eq(value):
-                    yield (
-                        s_cuds.get_iri(),
-                        attribute.get_iri(),
-                        rdflib.term.Literal(value)
-                    ), self.context
+        if s is not None:
+            return self._triples_s__(s, p, o, context)
         else:
-            rel = get_entity_from_iri(p)
-            if isinstance(rel, OntologyRelationship):
-                for o_cuds in s_cuds.get(rel=rel):
-                    if o is None or o == o_cuds.get_iri():
-                        yield (
-                            s_cuds.get_iri(),
-                            rel.get_iri(),
-                            o_cuds.get_iri()
-                        ), self.context
-            else:
-                if o is None or o.eq(s_cuds.get_attributes()[rel]):
-                    yield (
-                        s_cuds.get_iri(),
-                        rel.get_iri(),
-                        rdflib.term.Literal(s_cuds.get_attributes()[rel])
-                    ), self.context
+            return self._triples_x__(p, o, context)
+        
 
     def namespaces(self):
         result = [(UID_NAMESPACE_PREFIX, rdflib.term.URIRef(UID_NAMESPACE))]
@@ -86,3 +51,63 @@ class SessionRDFLibStore(rdflib.store.Store):
 
     def context(self):
         yield from []
+
+    def _triples_s__(self, s, p, o, context, inverse=False):
+        if (
+            not isinstance(s, rdflib.term.URIRef)
+            or not str(s).startswith(UID_NAMESPACE)
+        ):
+            raise NotImplementedError
+        s_cuds = self.session.load(uuid.UUID(s[len(UID_NAMESPACE):])).one()
+
+        if p is not None:
+            return self._triples_sp_(s_cuds, p, o, context, inverse=inverse)
+        else:
+            return self._triples_sx_(s_cuds, o, context, inverse=inverse)
+
+    def _triples_x__(self, p, o, context):
+        if (
+            isinstance(o, rdflib.term.URIRef)
+            and str(o).startswith(UID_NAMESPACE)
+        ):
+            for (a, b, c), _ in self._triples_s__(o, p, None, context, inverse=True):
+                yield (c, b, a), self.context
+
+    def _triples_sp_(self, s_cuds, p, o, context, inverse=False):
+        rel = get_entity_from_iri(p)
+        if isinstance(rel, OntologyRelationship):
+            for o_cuds in s_cuds.get(rel=rel if not inverse else rel.inverse, return_rel=True):
+                if o is None or o == o_cuds.get_iri():
+                    yield (
+                        s_cuds.get_iri(),
+                        (rel if not inverse else rel.inverse).get_iri(),
+                        o_cuds.get_iri()
+                    ), self.context
+        else:
+            if inverse:
+                return
+            if o is None or o.eq(s_cuds.get_attributes()[rel]):
+                yield (
+                    s_cuds.get_iri(),
+                    rel.get_iri(),
+                    rdflib.term.Literal(s_cuds.get_attributes()[rel])
+                ), self.context
+
+    def _triples_sx_(self, s_cuds, o, context, inverse=False):
+        for o_cuds, rel in s_cuds.get(rel=cuba.Relationship, return_rel=True):
+            if o is None or o == o_cuds.get_iri():
+                yield (
+                    s_cuds.get_iri(),
+                    (rel if not inverse else rel.inverse).get_iri(),
+                    o_cuds.get_iri()
+                ), self.context
+
+        if inverse:
+            return
+        for attribute, value in s_cuds.get_attributes().items():
+            if o is None or o.eq(value):
+                yield (
+                    s_cuds.get_iri(),
+                    attribute.get_iri(),
+                    rdflib.term.Literal(value)
+                ), self.context
