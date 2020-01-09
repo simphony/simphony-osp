@@ -21,7 +21,7 @@ class Session(ABC):
     def __init__(self):
         self._registry = Registry()
         self.root = None
-        self.rdflib_graph = rdflib.Graph(SessionRDFLibStore(self)) 
+        self.rdflib_graph = rdflib.Graph(SessionRDFLibStore(self))
 
     def __enter__(self):
         return self
@@ -77,8 +77,8 @@ class Session(ABC):
             self._notify_delete(d)
 
     def sparql_query(self, query):
-        """Execute the given SPARQL query 
-        
+        """Execute the given SPARQL query
+
         :param query: The query to execute
         :type query: str
         """

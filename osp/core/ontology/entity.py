@@ -125,9 +125,10 @@ class OntologyEntity(ABC):
     def get_iri(self):
         from osp.core.session.rdf.session_store import ENTITY_NAMESPACE
         return rdflib.term.URIRef(
-            (ENTITY_NAMESPACE % self.namespace.name.lower()) + self.name.lower()
+            (ENTITY_NAMESPACE % self.namespace.name.lower())
+            + self.name.lower()
         )
-    
+
     def get_shortened_iri(self):
         return "%s:%s" % (self.namespace.name.lower(), self.name.lower())
 

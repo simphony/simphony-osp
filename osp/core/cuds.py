@@ -160,7 +160,8 @@ class Cuds():
         :rtype: Union[Cuds, List[Cuds]]
         """
         if return_rel:
-            collected_uids, mapping = self._get(*uids, rel=rel, oclass=oclass, return_mapping=True)
+            collected_uids, mapping = self._get(*uids, rel=rel, oclass=oclass,
+                                                return_mapping=True)
         else:
             collected_uids = self._get(*uids, rel=rel, oclass=oclass)
 
