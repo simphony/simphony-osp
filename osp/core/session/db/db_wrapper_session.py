@@ -32,15 +32,12 @@ class DbWrapperSession(WrapperSession):
         self.expire_all()
 
     @returns_query_result
-    def load_by_oclass(self, oclass, update_registry=False):
+    def load_by_oclass(self, oclass):
         """Load cuds_object with given OntologyClass.
         Will also return cuds objects of subclasses of oclass.
 
         :param oclass: Load cuds objects with this ontology class
         :type oclass: OntologyClass
-        :param update_registry: Whether to update cuds_objects which are
-            already present in the registry.
-        :type update_registry: bool
         :return: The list of loaded cuds objects
         :rtype: Iterator[Cuds]
         """
@@ -48,8 +45,7 @@ class DbWrapperSession(WrapperSession):
             raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")
         for subclass in oclass.subclasses:
-            yield from self._load_by_oclass(subclass,
-                                            update_registry=update_registry)
+            yield from self._load_by_oclass(subclass)
 
     def _store(self, cuds_object):
         initialize = self.root is None
@@ -103,14 +99,11 @@ class DbWrapperSession(WrapperSession):
         """Close the connection to the database"""
 
     @abstractmethod
-    def _load_by_oclass(self, oclass, update_registry=False):
+    def _load_by_oclass(self, oclass):
         """Load the cuds_object with the given ontology class.
 
         :param oclass: The OntologyClass of the cuds objects
         :type oclass: OntologyClass
-        :param update_registry: Whether to update cuds_objects already
-            which are already present in the registry.
-        :type update_registry: bool
         :return: The loaded cuds_object.
         :rtype: Cuds
         """

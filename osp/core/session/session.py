@@ -65,6 +65,18 @@ class Session(ABC):
             except KeyError:
                 yield None
 
+    @returns_query_result
+    def load_by_oclass(self, oclass):
+        raise NotImplementedError
+
+    @returns_query_result
+    def load_by_relationship(self, relationship):
+        raise NotImplementedError
+
+    @returns_query_result
+    def load_by_attribute(self, attribute=None, value=None):
+        raise NotImplementedError
+
     def prune(self, rel=None):
         """Remove all elements not reachable from the sessions root.
         Only consider given relationship and its subclasses.

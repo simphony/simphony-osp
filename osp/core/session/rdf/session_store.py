@@ -38,7 +38,6 @@ class SessionRDFLibStore(rdflib.store.Store):
             return self._triples_s__(s, p, o, context)
         else:
             return self._triples_x__(p, o, context)
-        
 
     def namespaces(self):
         result = [(UID_NAMESPACE_PREFIX, rdflib.term.URIRef(UID_NAMESPACE))]
@@ -70,13 +69,15 @@ class SessionRDFLibStore(rdflib.store.Store):
             isinstance(o, rdflib.term.URIRef)
             and str(o).startswith(UID_NAMESPACE)
         ):
-            for (a, b, c), _ in self._triples_s__(o, p, None, context, inverse=True):
+            for (a, b, c), _ in self._triples_s__(o, p, None, context,
+                                                  inverse=True):
                 yield (c, b, a), self.context
 
     def _triples_sp_(self, s_cuds, p, o, context, inverse=False):
         rel = get_entity_from_iri(p)
         if isinstance(rel, OntologyRelationship):
-            for o_cuds in s_cuds.get(rel=rel if not inverse else rel.inverse, return_rel=True):
+            for o_cuds in s_cuds.get(rel=rel if not inverse else rel.inverse,
+                                     return_rel=True):
                 if o is None or o == o_cuds.get_iri():
                     yield (
                         s_cuds.get_iri(),
