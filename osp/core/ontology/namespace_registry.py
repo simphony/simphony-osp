@@ -36,6 +36,9 @@ class NamespaceRegistry():
             return other.lower() in self._namespaces.keys()
         return other in self._namespaces.values()
 
+    def __iter__(self):
+        return iter(self._namespaces.values())
+
     def get(self, name, fallback=None):
         try:
             return self._get(name)

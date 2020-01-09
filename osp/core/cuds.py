@@ -7,6 +7,7 @@
 
 # from __future__ import annotations
 import uuid
+import rdflib
 from typing import Union, List, Iterator, Dict, Any
 
 from osp.core import ONTOLOGY_INSTALLER
@@ -70,6 +71,21 @@ class Cuds():
         """The type of the cuds object"""
         return self._oclass
 
+    def get_iri(self):
+        """Get the IRI of the CUDS object"""
+        from osp.core.session.rdf.session_store import UID_NAMESPACE
+        return rdflib.term.URIRef(UID_NAMESPACE + str(self.uid))
+
+    def get_shortened_iri(self):
+        return "uid:%s" % self.uid
+
+    def get_attributes(self):
+        """Get the attributes as a dictionary"""
+        result = {}
+        for attribute in self.oclass.attributes:
+            result[attribute] = getattr(self, attribute.argname)
+        return result
+
     def is_a(self, oclass):
         """Check if self is an instance of the given oclass.
 
@@ -121,7 +137,8 @@ class Cuds():
     def get(self,
             *uids: uuid.UUID,
             rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
-            oclass: OntologyClass = None) -> Union["Cuds", List["Cuds"]]:
+            oclass: OntologyClass = None,
+            return_rel=False) -> Union["Cuds", List["Cuds"]]:
         """
         Returns the contained elements of a certain type, uid or relationship.
         Expected calls are get(), get(*uids), get(rel), get(oclass),
@@ -142,8 +159,14 @@ class Cuds():
         :return: the queried objects, or None, if not found
         :rtype: Union[Cuds, List[Cuds]]
         """
-        collected_uids = self._get(*uids, rel=rel, oclass=oclass)
+        if return_rel:
+            collected_uids, mapping = self._get(*uids, rel=rel, oclass=oclass, return_mapping=True)
+        else:
+            collected_uids = self._get(*uids, rel=rel, oclass=oclass)
+
         result = list(self._load_cuds_objects(collected_uids))
+        if return_rel:
+            return [(r, m) for r in result for m in mapping[r.uid]]
         if len(uids) == 1:
             return result[0]
         return result

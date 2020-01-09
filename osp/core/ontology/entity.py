@@ -5,6 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+import rdflib
 from abc import ABC, abstractmethod
 
 
@@ -120,6 +121,15 @@ class OntologyEntity(ABC):
         if self._description:
             return self._description
         return "To Be Determined"
+
+    def get_iri(self):
+        from osp.core.session.rdf.session_store import ENTITY_NAMESPACE
+        return rdflib.term.URIRef(
+            (ENTITY_NAMESPACE % self.namespace.name.lower()) + self.name.lower()
+        )
+    
+    def get_shortened_iri(self):
+        return "%s:%s" % (self.namespace.name.lower(), self.name.lower())
 
     def is_subclass_of(self, other):
         """Subclass check.

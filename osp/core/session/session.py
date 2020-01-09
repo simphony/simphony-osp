@@ -6,8 +6,10 @@
 # No redistribution is allowed without explicit written permission.
 
 from abc import ABC, abstractmethod
+import rdflib
 from osp.core.session.registry import Registry
 from osp.core.session.result import returns_query_result
+from osp.core.session.rdf.session_store import SessionRDFLibStore
 
 
 class Session(ABC):
@@ -19,6 +21,7 @@ class Session(ABC):
     def __init__(self):
         self._registry = Registry()
         self.root = None
+        self.rdflib_graph = rdflib.Graph(SessionRDFLibStore(self)) 
 
     def __enter__(self):
         return self
@@ -72,6 +75,14 @@ class Session(ABC):
         deleted = self._registry.prune(self.root, rel=rel)
         for d in deleted:
             self._notify_delete(d)
+
+    def sparql_query(self, query):
+        """Execute the given SPARQL query 
+        
+        :param query: The query to execute
+        :type query: str
+        """
+        return self.rdflib_graph.query(query)
 
     @abstractmethod
     def _notify_delete(self, cuds_object):
