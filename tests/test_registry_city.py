@@ -113,11 +113,11 @@ class TestRegistryCity(unittest.TestCase):
         registry.reset()
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertEqual(
-            registry.filter_by_attribute("name", "Freiburg"),
+            registry.filter_by_attribute(CITY.NAME, "Freiburg"),
             {c.uid: c}
         )
         self.assertEqual(
-            registry.filter_by_attribute("age", 25),
+            registry.filter_by_attribute(CITY.AGE, 25),
             {p1.uid: p1, p2.uid: p2, p3.uid: p3}
         )
 

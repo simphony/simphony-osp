@@ -72,6 +72,21 @@ class SessionRDFLibStore(rdflib.store.Store):
             for (a, b, c), _ in self._triples_s__(o, p, None, context,
                                                   inverse=True):
                 yield (c, b, a), self.context
+        elif p is not None:
+            pp = get_entity_from_iri(p)
+            if isinstance(pp, OntologyRelationship):
+                iterator = self.session.load_by_relationship(pp)
+            else:
+                v = o.toPython() if o is not None else None
+                iterator = self.session.load_by_attribute(
+                    attribute=pp, value=v)
+            for s_cuds in iterator:
+                yield from self._triples_sp_(s_cuds, p, o, context)
+        else:
+            v = o.toPython() if o is not None else None
+            iterator = self.session.load_by_attribute(value=v)
+            for s_cuds in iterator:
+                yield from self._triples_sx_(s_cuds, o, context)
 
     def _triples_sp_(self, s_cuds, p, o, context, inverse=False):
         rel = get_entity_from_iri(p)
@@ -95,20 +110,22 @@ class SessionRDFLibStore(rdflib.store.Store):
                 ), self.context
 
     def _triples_sx_(self, s_cuds, o, context, inverse=False):
-        for o_cuds, rel in s_cuds.get(rel=cuba.Relationship, return_rel=True):
-            if o is None or o == o_cuds.get_iri():
-                yield (
-                    s_cuds.get_iri(),
-                    (rel if not inverse else rel.inverse).get_iri(),
-                    o_cuds.get_iri()
-                ), self.context
+        if isinstance(o, rdflib.term.URIRef):
+            for o_cuds, rel in s_cuds.get(rel=cuba.Relationship, return_rel=True):
+                if o is None or o == o_cuds.get_iri():
+                    yield (
+                        s_cuds.get_iri(),
+                        (rel if not inverse else rel.inverse).get_iri(),
+                        o_cuds.get_iri()
+                    ), self.context
 
         if inverse:
             return
-        for attribute, value in s_cuds.get_attributes().items():
-            if o is None or o.eq(value):
-                yield (
-                    s_cuds.get_iri(),
-                    attribute.get_iri(),
-                    rdflib.term.Literal(value)
-                ), self.context
+        if isinstance(o, rdflib.term.Literal):
+            for attribute, value in s_cuds.get_attributes().items():
+                if o is None or o.eq(value):
+                    yield (
+                        s_cuds.get_iri(),
+                        attribute.get_iri(),
+                        rdflib.term.Literal(value)
+                    ), self.context

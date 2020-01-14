@@ -138,7 +138,7 @@ class Registry(dict):
         """
         return self.filter(lambda x: x.oclass == oclass)
 
-    def filter_by_attribute(self, attribute, value):
+    def filter_by_attribute(self, attribute=None, value=None):
         """Filter by attribute and valie
 
         :param attribute: The attribute to look for
@@ -149,8 +149,17 @@ class Registry(dict):
             containing cuds objects with given attribute and value.
         :rtype: Dict[UUID, Cuds]
         """
-        return self.filter(lambda x: hasattr(x, attribute)
-                           and getattr(x, attribute) == value)
+        if attribute is None and value is None:
+            return dict(self)
+        if attribute is not None and value is not None:
+            return self.filter(
+                lambda x: attribute in x.get_attributes().keys()
+                and value in x.get_attributes().values()
+            )
+        if attribute is not None:
+            return self.filter(lambda x: attribute in x.get_attributes().keys())
+        if value is not None:
+            return self.filter(lambda x: value in x.get_attributes().values())
 
     def filter_by_relationships(self, relationship,
                                 consider_subrelationships=False):
