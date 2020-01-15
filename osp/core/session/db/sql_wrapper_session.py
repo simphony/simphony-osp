@@ -325,7 +325,8 @@ class SqlWrapperSession(DbWrapperSession):
     # OVERRIDE
     def _expire_neighour_diff(self, old_cuds_object, new_cuds_object, uids):
         # do not expire if root is loaded
-        if old_cuds_object.uid != self.root:
+        x = old_cuds_object or new_cuds_object
+        if x and x.uid != self.root:
             super()._expire_neighour_diff(old_cuds_object, new_cuds_object,
                                           uids)
 
