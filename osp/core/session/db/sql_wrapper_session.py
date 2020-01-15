@@ -301,15 +301,33 @@ class SqlWrapperSession(DbWrapperSession):
         """Delete the contents of every table."""
         self._init_transaction()
         try:
+            # clear local datastructure
+            from osp.core import cuba
+            self._reset_buffers(changed_by="user")
+            self._registry.get(self.root).remove(rel=cuba.Relationship)
+            for uid in list(self._registry.keys()):
+                if uid != self.root:
+                    del self._registry[uid]
+            self._reset_buffers(changed_by="user")
+
+            # delete the data
             for table_name in self._get_table_names(
                     SqlWrapperSession.CUDS_PREFIX):
                 self._do_db_delete(table_name, None)
             self._do_db_delete(self.RELATIONSHIP_TABLE, None)
             self._do_db_delete(self.MASTER_TABLE, None)
+            self._initialize()
             self._commit()
         except Exception as e:
             self._rollback_transaction()
             raise e
+
+    # OVERRIDE
+    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object, uids):
+        # do not expire if root is loaded
+        if old_cuds_object.uid != self.root:
+            super()._expire_neighour_diff(old_cuds_object, new_cuds_object,
+                                          uids)
 
     # OVERRIDE
     def _apply_added(self):
@@ -532,9 +550,10 @@ class SqlWrapperSession(DbWrapperSession):
                             "first_level", True, "BOOL"),
             self.DATATYPES[self.MASTER_TABLE]
         )
-        list(self._load_from_backend(
+        cuds_objects = list(self._load_from_backend(
             map(lambda x: (x[0], get_entity(x[1])), c)
         ))
+        self._remove_uids_from_buffers([c.uid for c in cuds_objects])
 
     def _load_by_oclass(self, oclass, update_registry=False, uid=None):
         """Load the cuds_object with the given oclass (+ uid).

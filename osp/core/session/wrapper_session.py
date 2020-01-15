@@ -80,20 +80,26 @@ class WrapperSession(Session):
 
         :param cuds_or_uids: The cuds_object or uids to expire
         :type cuds_or_uids: Union[Cuds, UUID]
+        :return: The set of uids that became expired
+        :rtype: Set[UUID]
         """
+        uids = set()
         for c in cuds_or_uids:
             if isinstance(c, uuid.UUID):
-                self._expired.add(c)
+                uids.add(c)
             else:
-                self._expired.add(c.uid)
-        self._expired &= set(self._registry.keys())
+                uids.add(c.uid)
+        return self._expire(uids)
 
     def expire_all(self):
         """Let all cuds_objects of the session expire.
         Expired objects will be reloaded lazily
         when attributed or relationships are accessed.
+
+        :return: The set of uids that became expired
+        :rtype: Set[UUID]
         """
-        self._expired = set(self._registry.keys())
+        return self._expire(set(self._registry.keys()))
 
     def refresh(self, *cuds_or_uids):
         """Refresh cuds_objects. Load possibly data of cuds_object
@@ -104,15 +110,7 @@ class WrapperSession(Session):
         """
         if not cuds_or_uids:
             return
-        uids = list()
-        for c in cuds_or_uids:
-            if isinstance(c, uuid.UUID):
-                uids.append(c)
-            else:
-                uids.append(c.uid)
-        uids = set(uids)
-        self._expired |= uids
-        list(self.load(*uids))
+        list(self.load(*self.expire(*cuds_or_uids)))
 
     def log_buffer_status(self):
         for x in self._added.values():
@@ -193,6 +191,22 @@ class WrapperSession(Session):
         if cuds_object.uid in self._expired:
             self.refresh(cuds_object)
 
+    def _expire(self, uids):
+        """Expire the given uids
+
+        :param uids: The uids to expire
+        :type uids: Set[UUID]
+        """
+        not_expirable = uids & self._get_buffer_uids()
+        if not_expirable:
+            logger.warning("Did not expire %s, because you have uncommitted "
+                           "local changes. You might be out of sync with "
+                           "the backend." % not_expirable)
+            uids -= not_expirable
+        self._expired |= uids
+        self._expired &= self._registry.keys()
+        return uids & self._registry.keys()
+
     def _reset_buffers(self, changed_by="user"):
         """Reset the buffers. When you run an engine,
         call this with changed_by="user" right before you execute the
@@ -233,6 +247,18 @@ class WrapperSession(Session):
                 del self._updated[uid]
             if uid in self._deleted:
                 del self._deleted[uid]
+
+    def _get_buffer_uids(self):
+        """Get all the uids of CUDS objects in buffers
+
+        :return: The uids of cuds objects in buffers
+        :rtype: Set[UUID]
+        """
+        return (
+            set(self._added.keys())
+            | set(self._updated.keys())
+            | set(self._deleted.keys())
+        )
 
     @abstractmethod
     def _load_from_backend(self, uids, expired=None):
@@ -277,7 +303,7 @@ class WrapperSession(Session):
             diff2 = get_neighbour_diff(old_cuds_object, new_cuds_object)
             diff2 = set([x[0] for x in diff2])
             diff = (diff1 | diff2) - set(uids)
-            self._expired |= diff
+            self._expire(diff)
 
     def _get_old_cuds_object_clone(self, uid):
         """Get old version of expired cuds object from registry
