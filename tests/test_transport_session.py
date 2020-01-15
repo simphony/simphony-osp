@@ -227,18 +227,22 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
     def test_deserialize_buffers(self):
         # no reset
         with TestWrapperSession() as s1:
-            s1._expired = {uuid.UUID(int=4)}
             ws1 = CITY.CITY_WRAPPER(session=s1, uid=0)
             c = CITY.CITY(name="Freiburg", uid=1)
+            p1 = CITY.CITIZEN(uid=uuid.UUID(int=3))
+            p2 = CITY.CITIZEN(uid=uuid.UUID(int=4))
+            c.add(p1, p2, rel=CITY.HAS_INHABITANT)
             ws1.add(c)
             s1._reset_buffers(changed_by="user")
+            s1.expire(p2)
 
             additional = deserialize_buffers(s1, SERIALIZED_BUFFERS_EXPIRED,
                                              add_to_buffers=True)
             self.assertEqual(additional, {"args": [42],
                                           "kwargs": {"name": "London"}})
             self.assertEqual(set(s1._registry.keys()),
-                             {uuid.UUID(int=0), uuid.UUID(int=2)})
+                             {uuid.UUID(int=0), uuid.UUID(int=2),
+                              uuid.UUID(int=3), uuid.UUID(int=4)})
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
             self.assertEqual(ws1._neighbours[CITY.HAS_PART],
@@ -252,22 +256,26 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(s1._updated, {ws1.uid: ws1})
             self.assertEqual(s1._deleted, {c.uid: c})
             self.assertEqual(s1._uids_in_registry_after_last_buffer_reset,
-                             {ws1.uid, c.uid})
+                             {ws1.uid, c.uid, p1.uid, p2.uid})
 
         # with reset
         with TestWrapperSession() as s1:
-            s1._expired = {uuid.UUID(int=4)}
             ws1 = CITY.CITY_WRAPPER(session=s1, uid=0)
             c = CITY.CITY(name="Freiburg", uid=1)
+            p1 = CITY.CITIZEN(uid=uuid.UUID(int=3))
+            p2 = CITY.CITIZEN(uid=uuid.UUID(int=4))
+            c.add(p1, p2, rel=CITY.HAS_INHABITANT)
             ws1.add(c)
             s1._reset_buffers(changed_by="user")
+            s1.expire(p2)
 
             additional = deserialize_buffers(s1, SERIALIZED_BUFFERS_EXPIRED,
                                              add_to_buffers=False)
             self.assertEqual(additional, {"args": [42],
                                           "kwargs": {"name": "London"}})
             self.assertEqual(set(s1._registry.keys()),
-                             {uuid.UUID(int=0), uuid.UUID(int=2)})
+                             {uuid.UUID(int=0), uuid.UUID(int=2),
+                              uuid.UUID(int=3), uuid.UUID(int=4)})
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
             self.assertEqual(ws1._neighbours[CITY.HAS_PART],
@@ -281,7 +289,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(s1._updated, dict())
             self.assertEqual(s1._deleted, dict())
             self.assertEqual(s1._uids_in_registry_after_last_buffer_reset,
-                             {cn.uid, c.uid, ws1.uid})
+                             {cn.uid, c.uid, ws1.uid, p1.uid, p2.uid})
 
     def test_serialize(self):
         """ Test if serialization of buffers work """
@@ -393,8 +401,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
             add_to_buffers=True,
             fix_neighbours=False
         )
-        client.expire(c3.uid)
         client._reset_buffers(changed_by="user")
+        client.expire(c3.uid)
 
         def on_send(command, data):
             create_from_cuds_object(c2, client, False)
