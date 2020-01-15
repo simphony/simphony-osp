@@ -97,7 +97,7 @@ class TransportSessionClient(WrapperSession):
         remainder = deserialize_buffers(self, data, add_to_buffers=False)
         result = None
         if remainder and "expired" in remainder:
-            self._expired |= set(remainder["expired"])
+            self.expire(set(remainder["expired"]))
         if remainder and "result" in remainder:
             result = remainder["result"]
         return result
