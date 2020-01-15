@@ -554,7 +554,8 @@ class SqlWrapperSession(DbWrapperSession):
         cuds_objects = list(self._load_from_backend(
             map(lambda x: (x[0], get_entity(x[1])), c)
         ))
-        self._remove_uids_from_buffers([c.uid for c in cuds_objects])
+        self._remove_uids_from_buffers([c.uid for c in cuds_objects],
+                                       changed_by="engine")
 
     def _load_by_oclass(self, oclass, update_registry=False, uid=None):
         """Load the cuds_object with the given oclass (+ uid).

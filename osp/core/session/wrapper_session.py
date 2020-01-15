@@ -218,12 +218,9 @@ class WrapperSession(Session):
         :return: Whether the buffers have been resetted.
         :rtype: bool
         """
-        allowed = ["user", "engine"]
-        if changed_by not in allowed:
-            raise ValueError("Illegal value for changed_by. "
-                             "Allowed values are %s" % allowed)
-        if changed_by == self._forbid_buffer_reset_by:
+        if not self._is_buffer_reset_allowed(changed_by):
             return False
+
         self._added = dict()
         self._updated = dict()
         self._deleted = dict()
@@ -233,12 +230,17 @@ class WrapperSession(Session):
             set(self._registry.keys())
         return True
 
-    def _remove_uids_from_buffers(self, uids):
+    def _remove_uids_from_buffers(self, uids, changed_by="user"):
         """Remove the given uids from the buffers.
 
         :param uids: A set/list of uids to remove from the buffers.
         :type uids: Iterable[UUID]
+        :return: Whether the buffers have been resetted.
+        :rtype: bool
         """
+        if not self._is_buffer_reset_allowed(changed_by):
+            return False
+
         for uid in uids:
             self._uids_in_registry_after_last_buffer_reset.add(uid)
             if uid in self._added:
@@ -247,6 +249,24 @@ class WrapperSession(Session):
                 del self._updated[uid]
             if uid in self._deleted:
                 del self._deleted[uid]
+        return True
+
+    def _is_buffer_reset_allowed(self, changed_by):
+        """Check whether a buffer reset is allowed.
+
+        :param changed_by: Who wants to reset the buffers? (engine/user)
+        :type changed_by: str
+        :raises ValueError: Illegal value for changed_by
+        :return: Whether buffers are allowed to be resetted
+        :rtype: bool
+        """
+        allowed = ["user", "engine"]
+        if changed_by not in allowed:
+            raise ValueError("Illegal value for changed_by. "
+                             "Allowed values are %s" % allowed)
+        if changed_by == self._forbid_buffer_reset_by:
+            return False
+        return True
 
     def _get_buffer_uids(self):
         """Get all the uids of CUDS objects in buffers
