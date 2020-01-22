@@ -9,6 +9,7 @@ import unittest2 as unittest
 from osp.core import CUBA
 from osp.core.session.session import Session
 from osp.core.session.wrapper_session import WrapperSession
+from osp.core.session.buffers import BufferOperator
 
 try:
     from osp.core import CITY
@@ -82,9 +83,10 @@ class TestSessionCity(unittest.TestCase):
     def test_buffers(self):
         """test if the buffers work correctly"""
         session = TestWrapperSession()
-        self.assertEqual(session._added, dict())
-        self.assertEqual(session._updated, dict())
-        self.assertEqual(session._deleted, dict())
+        self.assertEqual(
+            session._buffers,
+            [[dict(), dict(), dict()], [dict(), dict(), dict()]]
+        )
 
         w = CITY.CITY_WRAPPER(session=session)
         c = CITY.CITY(name="city 1")
@@ -95,20 +97,20 @@ class TestSessionCity(unittest.TestCase):
         cw.name = "city 2"
         w.session.prune()
 
-        self.assertEqual(session._added, {cw.uid: cw, w.uid: w})
-        self.assertEqual(session._updated, dict())
-        self.assertEqual(session._deleted, dict())
+        self.assertEqual(session._buffers, [
+            [{cw.uid: cw, w.uid: w}, dict(), dict()],
+            [dict(), dict(), dict()]])
 
-        w.session._reset_buffers(changed_by="user")
+        w.session._reset_buffers(operator=BufferOperator.USER)
         c2 = CITY.CITY(name="city3")
         w.add(c2)
         cw2 = w.get(c2.uid)
         w.remove(cw.uid)
         w.session.prune()
 
-        self.assertEqual(session._added, {cw2.uid: cw2})
-        self.assertEqual(session._updated, {w.uid: w})
-        self.assertEqual(session._deleted, {cw.uid: cw})
+        self.assertEqual(session._buffers, [
+            [{cw2.uid: cw2}, {w.uid: w}, {cw.uid: cw}],
+            [dict(), dict(), dict()]])
 
     # def test_parse_cardinality(self):
     #     """Test parsing cardinality from the ontology."""
@@ -216,13 +218,13 @@ class TestWrapperSession(WrapperSession):
     def __str__(self):
         return ""
 
-    def _apply_added(self):
+    def _apply_added(self, root_obj, buffer):
         pass
 
-    def _apply_deleted(self):
+    def _apply_deleted(self, root_obj, buffer):
         pass
 
-    def _apply_updated(self):
+    def _apply_updated(self, root_obj, buffer):
         pass
 
     def _notify_read(self, cuds_object):

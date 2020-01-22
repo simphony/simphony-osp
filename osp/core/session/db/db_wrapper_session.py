@@ -8,6 +8,7 @@
 from abc import abstractmethod
 from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
 from osp.core.session.result import returns_query_result
+from osp.core.session.buffers import BufferOperator, OperatorEngine
 
 
 class DbWrapperSession(WrapperSession):
@@ -20,15 +21,16 @@ class DbWrapperSession(WrapperSession):
         self._check_cardinalities()
         self._init_transaction()
         try:
-            self._apply_added()
-            self._apply_updated()
-            self._apply_deleted()
-            self._reset_buffers(changed_by="user")
+            root_obj = self._registry.get(self.root)
+            added, updated, deleted = self._buffers[BufferOperator.USER]
+            self._apply_added(root_obj, added)
+            self._apply_updated(root_obj, updated)
+            self._apply_deleted(root_obj, deleted)
+            self._reset_buffers(operator=BufferOperator.USER)
             self._commit()
         except Exception as e:
             self._rollback_transaction()
             raise e
-        self._reset_buffers(changed_by="engine")
         self.expire_all()
 
     @returns_query_result
@@ -56,15 +58,15 @@ class DbWrapperSession(WrapperSession):
         super()._store(cuds_object)
 
         if initialize:
-            self._init_transaction()
-            try:
-                self._initialize()
-                self._load_first_level()
-                self._reset_buffers(changed_by="engine")
-                self._commit()
-            except Exception as e:
-                self._rollback_transaction()
-                raise e
+            with OperatorEngine(self):
+                self._init_transaction()
+                try:
+                    self._initialize()
+                    self._load_first_level()
+                    self._commit()
+                except Exception as e:
+                    self._rollback_transaction()
+                    raise e
 
     def _commit(self):
         """Commit to the database"""
@@ -75,15 +77,15 @@ class DbWrapperSession(WrapperSession):
         """Initialize the database. Create missing tables etc."""
 
     @abstractmethod
-    def _apply_added(self):
+    def _apply_added(self, root_obj, buffer):
         """Add the added cuds_objects to the engine"""
 
     @abstractmethod
-    def _apply_updated(self):
+    def _apply_updated(self, root_obj, buffer):
         """Update the updated cuds_objects in the engine"""
 
     @abstractmethod
-    def _apply_deleted(self):
+    def _apply_deleted(self, root_obj, buffer):
         """Delete the deleted cuds_objects from the engine"""
 
     @abstractmethod

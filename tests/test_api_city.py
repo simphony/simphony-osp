@@ -326,7 +326,7 @@ class TestAPICity(unittest.TestCase):
         """
         c = CITY.CITY(name="a city")
         n = CITY.NEIGHBOURHOOD(name="a neigbourhood")
-        new_n = create_from_cuds_object(n, CoreSession(), True)
+        new_n = create_from_cuds_object(n, CoreSession())
         new_s = CITY.STREET(name="a new street")
         new_n.add(new_s)
         c.add(n)

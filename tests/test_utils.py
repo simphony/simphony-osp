@@ -13,6 +13,7 @@ from osp.core import CUBA
 from osp.core.session.transport.transport_util import serializable
 from osp.core.session.core_session import CoreSession
 from .test_session_city import TestWrapperSession
+from osp.core.session.buffers import OperatorEngine
 from osp.core.utils import (
     destroy_cuds_object, clone_cuds_object,
     create_recycle, create_from_cuds_object,
@@ -125,22 +126,22 @@ class TestUtils(unittest.TestCase):
         self.assertIs(a.session, default_session)
         with TestWrapperSession() as session:
             w = CITY.CITY_WRAPPER(session=session)
-            b = create_recycle(
-                oclass=CITY.CITY,
-                kwargs={"name": "Offenburg"},
-                uid=a.uid,
-                session=session,
-                add_to_buffers=False,
-                fix_neighbours=False)
+            with OperatorEngine(session):
+                b = create_recycle(
+                    oclass=CITY.CITY,
+                    kwargs={"name": "Offenburg"},
+                    uid=a.uid,
+                    session=session,
+                    fix_neighbours=False)
             self.assertEqual(b.name, "Offenburg")
             self.assertEqual(b.uid, a.uid)
             self.assertEqual(set(default_session._registry.keys()), {a.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
             self.assertEqual(set(session._registry.keys()), {b.uid, w.uid})
             self.assertIs(session._registry.get(b.uid), b)
-            self.assertEqual(session._added, {w.uid: w})
-            self.assertEqual(
-                session._uids_in_registry_after_last_buffer_reset, {b.uid}
+            self.assertEqual(session._buffers, [
+                [{w.uid: w}, dict(), dict()],
+                [{b.uid: b}, dict(), dict()]]
             )
 
             x = CITY.CITIZEN()
@@ -149,7 +150,6 @@ class TestUtils(unittest.TestCase):
             c = create_recycle(oclass=CITY.CITY,
                                kwargs={"name": "Emmendingen"},
                                session=session, uid=a.uid,
-                               add_to_buffers=True,
                                fix_neighbours=False)
             self.assertIs(b, c)
             self.assertEqual(c.name, "Emmendingen")
@@ -158,7 +158,10 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(set(default_session._registry.keys()),
                              {a.uid, x.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
-            self.assertEqual(session._updated, {c.uid: c})
+            self.assertEqual(session._buffers, [
+                [{w.uid: w, x.uid: x}, {c.uid: c}, dict()],
+                [dict(), dict(), dict()]]
+            )
 
             x = CITY.CITIZEN()
             x = c.add(x, rel=CITY.HAS_INHABITANT)
@@ -166,7 +169,6 @@ class TestUtils(unittest.TestCase):
             c = create_recycle(oclass=CITY.CITY,
                                kwargs={"name": "Karlsruhe"},
                                session=session, uid=a.uid,
-                               add_to_buffers=True,
                                fix_neighbours=True)
             self.assertEqual(x.get(rel=CUBA.RELATIONSHIP), [])
 
@@ -178,14 +180,17 @@ class TestUtils(unittest.TestCase):
         self.assertIs(a.session, default_session)
         with TestWrapperSession() as session:
             w = CITY.CITY_WRAPPER(session=session)
-            b = create_from_cuds_object(a, session, False)
+            with OperatorEngine(session):
+                b = create_from_cuds_object(a, session)
             self.assertEqual(b.name, "Freiburg")
             self.assertEqual(b.uid, a.uid)
             self.assertEqual(set(default_session._registry.keys()), {a.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
             self.assertEqual(set(session._registry.keys()), {b.uid, w.uid})
             self.assertIs(session._registry.get(b.uid), b)
-            self.assertEqual(session._added, {w.uid: w})
+            self.assertEqual(session._buffers, [
+                [{w.uid: w}, dict(), dict()],
+                [{b.uid: b}, dict(), dict()]])
 
             b.name = "Emmendingen"
             x = CITY.CITIZEN(age=54, name="Franz")
@@ -193,7 +198,7 @@ class TestUtils(unittest.TestCase):
             y = CITY.CITIZEN(age=21, name="Rolf")
             a.add(y, rel=CITY.HAS_INHABITANT)
 
-            c = create_from_cuds_object(a, session, True)
+            c = create_from_cuds_object(a, session)
             self.assertIs(b, c)
             self.assertEqual(c.name, "Freiburg")
             self.assertEqual(len(c.get(rel=CUBA.RELATIONSHIP)), 1)
@@ -202,7 +207,9 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(set(default_session._registry.keys()),
                              {a.uid, x.uid, y.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
-            self.assertEqual(session._updated, {c.uid: c})
+            self.assertEqual(session._buffers, [
+                [{x.uid: x, w.uid: w}, {c.uid: c}, dict()],
+                [dict(), dict(), dict()]])
 
     def test_change_oclass(self):
         """Check utility method to change oclass"""
