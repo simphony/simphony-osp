@@ -1,5 +1,14 @@
 from enum import IntEnum
-from contextlib import nullcontext
+
+try:
+    from contextlib import nullcontext
+except Exception:  # Python <= 3.6
+    class nullcontext():
+        def __enter__(self):
+            pass
+
+        def __exit__(self, *args, **kwargs):
+            pass
 
 
 class BufferType(IntEnum):
