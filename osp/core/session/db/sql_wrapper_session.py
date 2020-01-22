@@ -16,6 +16,7 @@ from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from osp.core.session.db.conditions import EqualsCondition
 from osp.core.neighbour_dict import NeighbourDictTarget
 from osp.core import get_entity
+from osp.core.session.buffers import BufferContext
 
 
 class SqlWrapperSession(DbWrapperSession):
@@ -303,12 +304,12 @@ class SqlWrapperSession(DbWrapperSession):
         try:
             # clear local datastructure
             from osp.core import cuba
-            self._reset_buffers(changed_by="user")
+            self._reset_buffers(BufferContext.USER)
             self._registry.get(self.root).remove(rel=cuba.Relationship)
             for uid in list(self._registry.keys()):
                 if uid != self.root:
                     del self._registry[uid]
-            self._reset_buffers(changed_by="user")
+            self._reset_buffers(BufferContext.USER)
 
             # delete the data
             for table_name in self._get_table_names(
@@ -331,11 +332,11 @@ class SqlWrapperSession(DbWrapperSession):
                                           uids)
 
     # OVERRIDE
-    def _apply_added(self):
+    def _apply_added(self, root_obj, buffer):
         # Perform the SQL-Statements to add the elements
         # in the buffers to the DB.
 
-        for added in self._added.values():
+        for added in buffer.values():
             if added.uid == self.root:
                 continue
 
@@ -372,7 +373,7 @@ class SqlWrapperSession(DbWrapperSession):
                     datatypes=datatypes
                 )
 
-        for added in self._added.values():
+        for added in buffer.values():
             if added.uid == self.root:
                 continue
 
@@ -389,10 +390,10 @@ class SqlWrapperSession(DbWrapperSession):
                     )
 
     # OVERRIDE
-    def _apply_updated(self):
+    def _apply_updated(self, root_obj, buffer):
         # Perform the SQL-Statements to update the elements
         # in the buffers in the DB.
-        for updated in self._updated.values():
+        for updated in buffer.values():
             if updated.uid == self.root:
                 continue
 
@@ -447,10 +448,10 @@ class SqlWrapperSession(DbWrapperSession):
             )
 
     # OVERRIDE
-    def _apply_deleted(self):
+    def _apply_deleted(self, root_obj, buffer):
         # Perform the SQL-Statements to delete the elements
         # in the buffers in the DB.
-        for deleted in self._deleted.values():
+        for deleted in buffer.values():
             if deleted.uid == self.root:
                 continue
 
@@ -551,11 +552,9 @@ class SqlWrapperSession(DbWrapperSession):
                             "first_level", True, "BOOL"),
             self.DATATYPES[self.MASTER_TABLE]
         )
-        cuds_objects = list(self._load_from_backend(
+        list(self._load_from_backend(
             map(lambda x: (x[0], get_entity(x[1])), c)
         ))
-        self._remove_uids_from_buffers([c.uid for c in cuds_objects],
-                                       changed_by="engine")
 
     def _load_by_oclass(self, oclass, update_registry=False, uid=None):
         """Load the cuds_object with the given oclass (+ uid).
@@ -614,7 +613,6 @@ class SqlWrapperSession(DbWrapperSession):
                                          kwargs=kwargs,
                                          session=self,
                                          uid=uid,
-                                         add_to_buffers=False,
                                          fix_neighbours=False)
             self._load_relationships(cuds_object)
             yield cuds_object

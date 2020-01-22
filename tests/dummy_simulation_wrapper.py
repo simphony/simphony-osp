@@ -76,12 +76,12 @@ class DummySimWrapperSession(SimWrapperSession):
             city.add(person, rel=CITY.HAS_INHABITANT)
 
     # OVERRIDE
-    def _apply_added(self):
-        if self._ran and self._added:
+    def _apply_added(self, root_obj, buffer):
+        if self._ran and buffer:
             raise RuntimeError("Do not add cuds_objects "
                                "after running the simulation")
         sorted_added = sorted(
-            self._added.values(),
+            buffer.values(),
             key=lambda x: x.name if hasattr(x, "name") else "0")
         for added in sorted_added:
             if (
@@ -94,14 +94,14 @@ class DummySimWrapperSession(SimWrapperSession):
                 self._person_map[added.uid] = idx
 
     # OVERRIDE
-    def _apply_updated(self):
-        if self._ran and self._added:
+    def _apply_updated(self, root_obj, buffer):
+        if self._ran and buffer:
             raise RuntimeError("Do not update cuds_objects after running "
                                + "the simulation")
 
     # OVERRIDE
-    def _apply_deleted(self):
-        if self._ran and self._deleted:
+    def _apply_deleted(self, root_obj, buffer):
+        if self._ran and buffer:
             raise RuntimeError("Do not delete cuds_objects after running "
                                + "the simulation")
 

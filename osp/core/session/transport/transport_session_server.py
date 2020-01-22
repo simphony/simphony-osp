@@ -7,12 +7,13 @@
 
 import json
 import logging
+from osp.core.session.buffers import BufferContext
 from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.transport.communication_engine \
     import CommunicationEngineServer
 from osp.core.session.transport.transport_util import (
     INITIALIZE_COMMAND, LOAD_COMMAND, deserialize, deserialize_buffers,
-    serializable, serialize
+    serializable, serialize_buffers
 )
 
 logger = logging.getLogger(__name__)
@@ -93,11 +94,14 @@ class TransportSessionServer():
         :rtype: str
         """
         session = self.session_objs[user]
-        arguments = deserialize_buffers(session, data, add_to_buffers=True)
+        arguments = deserialize_buffers(session,
+                                        buffer_context=BufferContext.USER,
+                                        data=data)
         result = getattr(session, command)(*arguments["args"],
                                            **arguments["kwargs"])
         additional = {"result": result} if result else dict()
-        return serialize(session, additional_items=additional)
+        return serialize_buffers(session, buffer_context=BufferContext.ENGINE,
+                                 additional_items=additional)
 
     def _load_from_session(self, data, user):
         """Load cuds_objects from the session.
@@ -108,10 +112,12 @@ class TransportSessionServer():
         :rtype: str
         """
         session = self.session_objs[user]
-        uids = deserialize_buffers(session, data, add_to_buffers=False)["uids"]
+        uids = deserialize_buffers(session, buffer_context=None,
+                                   data=data)["uids"]
         cuds_objects = session.load(*uids)
         additional = {"result": [serializable(x) for x in cuds_objects]}
-        return serialize(session, additional_items=additional)
+        return serialize_buffers(session, buffer_context=BufferContext.ENGINE,
+                                 additional_items=additional)
 
     def _init_session(self, data, user):
         """Start a new session.
@@ -127,10 +133,9 @@ class TransportSessionServer():
         data = json.loads(data)
         if user in self.session_objs:
             self.session_objs[user].close()
-        data["kwargs"]["forbid_buffer_reset_by"] = "engine"
         session = self.session_cls(*data["args"],
                                    **data["kwargs"])
         self.session_objs[user] = session
-        root = deserialize(data["root"], session=session, add_to_buffers=False)
-        session._updated[root.uid] = root
-        return serialize(session)
+        deserialize(data["root"], session=session,
+                    buffer_context=BufferContext.USER)
+        return serialize_buffers(session, buffer_context=BufferContext.ENGINE)
