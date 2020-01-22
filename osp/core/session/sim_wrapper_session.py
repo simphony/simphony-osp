@@ -7,7 +7,7 @@
 
 from abc import abstractmethod
 from .wrapper_session import WrapperSession, consumes_buffers
-from osp.core.session.buffers import BufferOperator
+from osp.core.session.buffers import BufferContext
 
 
 class SimWrapperSession(WrapperSession):
@@ -17,14 +17,14 @@ class SimWrapperSession(WrapperSession):
 
     @consumes_buffers
     def run(self):
-        self.log_buffer_status(operator=BufferOperator.USER)
+        self.log_buffer_status(BufferContext.USER)
         self._check_cardinalities()
         root_obj = self._registry.get(self.root)
-        added, updated, deleted = self._buffers[BufferOperator.USER]
+        added, updated, deleted = self._buffers[BufferContext.USER]
         self._apply_added(root_obj, added)
         self._apply_updated(root_obj, updated)
         self._apply_deleted(root_obj, deleted)
-        self._reset_buffers(operator=BufferOperator.USER)
+        self._reset_buffers(BufferContext.USER)
         self._run(root_obj)
         self._ran = True
         self.expire_all()

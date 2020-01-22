@@ -13,7 +13,7 @@ from osp.core import CUBA
 from osp.core.session.transport.transport_util import serializable
 from osp.core.session.core_session import CoreSession
 from .test_session_city import TestWrapperSession
-from osp.core.session.buffers import OperatorEngine
+from osp.core.session.buffers import EngineContext
 from osp.core.utils import (
     destroy_cuds_object, clone_cuds_object,
     create_recycle, create_from_cuds_object,
@@ -126,7 +126,7 @@ class TestUtils(unittest.TestCase):
         self.assertIs(a.session, default_session)
         with TestWrapperSession() as session:
             w = CITY.CITY_WRAPPER(session=session)
-            with OperatorEngine(session):
+            with EngineContext(session):
                 b = create_recycle(
                     oclass=CITY.CITY,
                     kwargs={"name": "Offenburg"},
@@ -180,7 +180,7 @@ class TestUtils(unittest.TestCase):
         self.assertIs(a.session, default_session)
         with TestWrapperSession() as session:
             w = CITY.CITY_WRAPPER(session=session)
-            with OperatorEngine(session):
+            with EngineContext(session):
                 b = create_from_cuds_object(a, session)
             self.assertEqual(b.name, "Freiburg")
             self.assertEqual(b.uid, a.uid)

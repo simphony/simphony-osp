@@ -12,15 +12,15 @@ from osp.core.session.session import Session
 from osp.core.session.result import returns_query_result
 from osp.core.utils import destroy_cuds_object, clone_cuds_object, \
     get_neighbour_diff
-from osp.core.session.buffers import BufferType, BufferOperator, \
-    OperatorEngine
+from osp.core.session.buffers import BufferType, BufferContext, \
+    EngineContext
 
 logger = logging.getLogger(__name__)
 
 
 def consumes_buffers(func):
     def f(session, *args, **kwargs):
-        with OperatorEngine(session):
+        with EngineContext(session):
             func(session, *args, **kwargs)
     f.does_consume_buffers = True
     return f
@@ -40,10 +40,10 @@ class WrapperSession(Session):
     def __init__(self, engine):
         super().__init__()
         self._engine = engine
-        self._current_operator = BufferOperator.USER
+        self._current_context = BufferContext.USER
         self._buffers = [0] * 2
-        self._reset_buffers(BufferOperator.USER)
-        self._reset_buffers(BufferOperator.ENGINE)
+        self._reset_buffers(BufferContext.USER)
+        self._reset_buffers(BufferContext.ENGINE)
         self._expired = set()
         self._remote = False
 
@@ -78,8 +78,7 @@ class WrapperSession(Session):
             new_cuds_object = self._get_next_missing(missing)
             self._expire_neighour_diff(old_cuds_object, new_cuds_object, uids)
             if old_cuds_object is not None and new_cuds_object is None:
-                destroy_cuds_object(self._registry.get(uid),
-                                    add_to_buffers=False)
+                destroy_cuds_object(self._registry.get(uid))
             yield new_cuds_object
 
     def expire(self, *cuds_or_uids):
@@ -120,8 +119,9 @@ class WrapperSession(Session):
             return
         list(self.load(*self.expire(*cuds_or_uids)))
 
-    def log_buffer_status(self, operator):
-        added, updated, deleted = self._buffers[operator]
+    def log_buffer_status(self, context):
+        """ TODO """
+        added, updated, deleted = self._buffers[context]
         for x in added.values():
             logger.debug("%s has been added to %s", x, self)
         for x in updated.values():
@@ -153,7 +153,7 @@ class WrapperSession(Session):
             raise RuntimeError("Please add a wrapper to the session first")
 
         # update buffers
-        added, updated, deleted = self._buffers[self._current_operator]
+        added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in deleted:
             del deleted[cuds_object.uid]
 
@@ -173,7 +173,7 @@ class WrapperSession(Session):
         :type cuds_object: Cuds
         :raises RuntimeError: The updated object has been deleted previously.
         """
-        added, updated, deleted = self._buffers[self._current_operator]
+        added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in deleted:
             raise RuntimeError("Cannot update deleted object")
 
@@ -189,7 +189,7 @@ class WrapperSession(Session):
         :param cuds_object: The cuds_object that has been deleted.
         :type cuds_object: Cuds
         """
-        added, updated, deleted = self._buffers[self._current_operator]
+        added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in added:
             del added[cuds_object.uid]
         elif cuds_object.uid in updated:
@@ -209,7 +209,7 @@ class WrapperSession(Session):
         :param uids: The uids to expire
         :type uids: Set[UUID]
         """
-        not_expirable = uids & self._get_buffer_uids(BufferOperator.USER)
+        not_expirable = uids & self._get_buffer_uids(BufferContext.USER)
         if not_expirable:
             logger.warning("Did not expire %s, because you have uncommitted "
                            "local changes. You might be out of sync with "
@@ -219,34 +219,34 @@ class WrapperSession(Session):
         self._expired &= self._registry.keys()
         return uids & self._registry.keys()
 
-    def _reset_buffers(self, operator):
+    def _reset_buffers(self, context):
         """Reset the buffers. When you run an engine,
         call this with changed_by="user" right before you execute the
         engine. If your engine updates cuds objects, call this method
         afterwards with changed_by="engine".
 
-        :param operator: Which buffers to reset
-        :type operator: BufferOperator
+        :param context: Which buffers to reset
+        :type context: BufferContext
         :return: Whether the buffers have been resetted.
         :rtype: bool
         """
-        self._buffers[operator] = [0] * 3
-        self._buffers[operator][BufferType.ADDED] = dict()
-        self._buffers[operator][BufferType.UPDATED] = dict()
-        self._buffers[operator][BufferType.DELETED] = dict()
+        self._buffers[context] = [0] * 3
+        self._buffers[context][BufferType.ADDED] = dict()
+        self._buffers[context][BufferType.UPDATED] = dict()
+        self._buffers[context][BufferType.DELETED] = dict()
 
-    def _get_buffer_uids(self, operator):
+    def _get_buffer_uids(self, context):
         """Get all the uids of CUDS objects in buffers
 
-        :param operator: Which buffers to consider
-        :type operator: BufferOperator
+        :param context: Which buffers to consider
+        :type context: BufferContext
         :return: The uids of cuds objects in buffers
         :rtype: Set[UUID]
         """
         return (
-            set(self._buffers[operator][BufferType.ADDED].keys())
-            | set(self._buffers[operator][BufferType.UPDATED].keys())
-            | set(self._buffers[operator][BufferType.DELETED].keys())
+            set(self._buffers[context][BufferType.ADDED].keys())
+            | set(self._buffers[context][BufferType.UPDATED].keys())
+            | set(self._buffers[context][BufferType.DELETED].keys())
         )
 
     @abstractmethod

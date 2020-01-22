@@ -9,7 +9,7 @@ from abc import abstractmethod
 from osp.core.session.wrapper_session import consumes_buffers
 from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.result import returns_query_result
-from osp.core.session.buffers import BufferOperator, OperatorEngine
+from osp.core.session.buffers import BufferContext, EngineContext
 
 
 class FileWrapperSession(WrapperSession):
@@ -22,7 +22,7 @@ class FileWrapperSession(WrapperSession):
         self._check_cardinalities()
         self._open()
         root_obj = self._registry.get(self.root)
-        added, updated, deleted = self._buffers[BufferOperator.USER]
+        added, updated, deleted = self._buffers[BufferContext.USER]
         self._apply_added(root_obj, added)
         self._apply_updated(root_obj, updated)
         self._apply_deleted(root_obj, deleted)
@@ -56,7 +56,7 @@ class FileWrapperSession(WrapperSession):
         super()._store(cuds_object)
 
         if initialize:
-            with OperatorEngine(self):
+            with EngineContext(self):
                 self._initialize()
                 self._load_first_level()
                 self._reset_buffers(changed_by="engine")

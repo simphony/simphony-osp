@@ -9,7 +9,7 @@ import unittest2 as unittest
 from osp.core import CUBA
 from osp.core.session.session import Session
 from osp.core.session.wrapper_session import WrapperSession
-from osp.core.session.buffers import BufferOperator
+from osp.core.session.buffers import BufferContext
 
 try:
     from osp.core import CITY
@@ -101,7 +101,7 @@ class TestSessionCity(unittest.TestCase):
             [{cw.uid: cw, w.uid: w}, dict(), dict()],
             [dict(), dict(), dict()]])
 
-        w.session._reset_buffers(operator=BufferOperator.USER)
+        w.session._reset_buffers(BufferContext.USER)
         c2 = CITY.CITY(name="city3")
         w.add(c2)
         cw2 = w.get(c2.uid)

@@ -5,7 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-from osp.core.session.buffers import OperatorEngineIterator
+from osp.core.session.buffers import EngineContextIterator
 
 
 def returns_query_result(func):
@@ -28,7 +28,7 @@ class QueryResult():
     """
 
     def __init__(self, session, result_iterator):
-        self._iterator = OperatorEngineIterator(session, result_iterator)
+        self._iterator = EngineContextIterator(session, result_iterator)
         self._elements = list()
 
     def __iter__(self):

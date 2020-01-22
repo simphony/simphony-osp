@@ -8,7 +8,7 @@
 from abc import abstractmethod
 from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
 from osp.core.session.result import returns_query_result
-from osp.core.session.buffers import BufferOperator, OperatorEngine
+from osp.core.session.buffers import BufferContext, EngineContext
 
 
 class DbWrapperSession(WrapperSession):
@@ -22,11 +22,11 @@ class DbWrapperSession(WrapperSession):
         self._init_transaction()
         try:
             root_obj = self._registry.get(self.root)
-            added, updated, deleted = self._buffers[BufferOperator.USER]
+            added, updated, deleted = self._buffers[BufferContext.USER]
             self._apply_added(root_obj, added)
             self._apply_updated(root_obj, updated)
             self._apply_deleted(root_obj, deleted)
-            self._reset_buffers(operator=BufferOperator.USER)
+            self._reset_buffers(BufferContext.USER)
             self._commit()
         except Exception as e:
             self._rollback_transaction()
@@ -58,7 +58,7 @@ class DbWrapperSession(WrapperSession):
         super()._store(cuds_object)
 
         if initialize:
-            with OperatorEngine(self):
+            with EngineContext(self):
                 self._init_transaction()
                 try:
                     self._initialize()

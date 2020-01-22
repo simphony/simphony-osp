@@ -1,4 +1,5 @@
 from enum import IntEnum
+from contextlib import nullcontext
 
 
 class BufferType(IntEnum):
@@ -7,37 +8,43 @@ class BufferType(IntEnum):
     DELETED = 2
 
 
-class BufferOperator(IntEnum):
+class BufferContext(IntEnum):
     USER = 0
     ENGINE = 1
 
 
-class OperatorEngine():
+class EngineContext():
     def __init__(self, session):
         self._session = session
 
     def __enter__(self):
-        if not hasattr(self._session, "_current_operator"):
+        if not hasattr(self._session, "_current_context"):
             return
-        self._prev_operator = self._session._current_operator
-        if self._prev_operator != BufferOperator.ENGINE:
-            self._session._reset_buffers(operator=BufferOperator.ENGINE)
-        self._session._current_operator = BufferOperator.ENGINE
+        self._prev_ = self._session._current_context
+        if self._prev_ != BufferContext.ENGINE:
+            self._session._reset_buffers(BufferContext.ENGINE)
+        self._session._current_context = BufferContext.ENGINE
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if not hasattr(self._session, "_current_operator"):
+        if not hasattr(self._session, "_current_context"):
             return
-        self._session._current_operator = self._prev_operator
+        self._session._current_context = self._prev_
 
 
-class OperatorEngineIterator():
+class EngineContextIterator():
     def __init__(self, session, iterator):
         self._session = session
         self._iterator = iter(iterator)
 
     def __next__(self):
-        with OperatorEngine(self._session):
+        with EngineContext(self._session):
             return next(self._iterator)
 
     def __iter__(self):
         return self
+
+
+def get_buffer_context_mngr(session, buffer_context):
+    if buffer_context == BufferContext.ENGINE:
+        return EngineContext(session)
+    return nullcontext()

@@ -612,7 +612,6 @@ class SqlWrapperSession(DbWrapperSession):
                                          kwargs=kwargs,
                                          session=self,
                                          uid=uid,
-                                         add_to_buffers=False,
                                          fix_neighbours=False)
             self._load_relationships(cuds_object)
             yield cuds_object
