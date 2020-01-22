@@ -17,7 +17,7 @@ class DbWrapperSession(WrapperSession):
     @consumes_buffers
     def commit(self):
         """Commit the changes in the buffers to the database."""
-        self.log_buffer_status()
+        self.log_buffer_status(BufferContext.USER)
         self._check_cardinalities()
         self._init_transaction()
         try:

@@ -18,7 +18,7 @@ class FileWrapperSession(WrapperSession):
     @consumes_buffers
     def save(self):
         """Saves the changes in the buffers to the file."""
-        self.log_buffer_status()
+        self.log_buffer_status(BufferContext.USER)
         self._check_cardinalities()
         self._open()
         root_obj = self._registry.get(self.root)
@@ -28,7 +28,7 @@ class FileWrapperSession(WrapperSession):
         self._apply_deleted(root_obj, deleted)
         self._save()
         self._close()
-        self._reset_buffers(changed_by="user")
+        self._reset_buffers(BufferContext.USER)
         self.expire_all()
 
     @returns_query_result
@@ -59,7 +59,6 @@ class FileWrapperSession(WrapperSession):
             with EngineContext(self):
                 self._initialize()
                 self._load_first_level()
-                self._reset_buffers(changed_by="engine")
 
     @abstractmethod
     def _open(self):

@@ -16,6 +16,7 @@ from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from osp.core.session.db.conditions import EqualsCondition
 from osp.core.neighbour_dict import NeighbourDictTarget
 from osp.core import get_entity
+from osp.core.session.buffers import BufferContext
 
 
 class SqlWrapperSession(DbWrapperSession):
@@ -303,12 +304,12 @@ class SqlWrapperSession(DbWrapperSession):
         try:
             # clear local datastructure
             from osp.core import cuba
-            self._reset_buffers(changed_by="user")
+            self._reset_buffers(BufferContext.USER)
             self._registry.get(self.root).remove(rel=cuba.Relationship)
             for uid in list(self._registry.keys()):
                 if uid != self.root:
                     del self._registry[uid]
-            self._reset_buffers(changed_by="user")
+            self._reset_buffers(BufferContext.USER)
 
             # delete the data
             for table_name in self._get_table_names(
@@ -551,11 +552,9 @@ class SqlWrapperSession(DbWrapperSession):
                             "first_level", True, "BOOL"),
             self.DATATYPES[self.MASTER_TABLE]
         )
-        cuds_objects = list(self._load_from_backend(
+        list(self._load_from_backend(
             map(lambda x: (x[0], get_entity(x[1])), c)
         ))
-        self._remove_uids_from_buffers([c.uid for c in cuds_objects],
-                                       changed_by="engine")
 
     def _load_by_oclass(self, oclass, update_registry=False, uid=None):
         """Load the cuds_object with the given oclass (+ uid).

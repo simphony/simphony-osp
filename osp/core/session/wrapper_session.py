@@ -220,10 +220,7 @@ class WrapperSession(Session):
         return uids & self._registry.keys()
 
     def _reset_buffers(self, context):
-        """Reset the buffers. When you run an engine,
-        call this with changed_by="user" right before you execute the
-        engine. If your engine updates cuds objects, call this method
-        afterwards with changed_by="engine".
+        """Reset the buffers.
 
         :param context: Which buffers to reset
         :type context: BufferContext
