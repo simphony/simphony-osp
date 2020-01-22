@@ -298,7 +298,6 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                 [dict(), dict(), dict()],
                 [dict(), dict(), dict()]])
 
-
     def test_serialize(self):
         """ Test if serialization of buffers work """
         # no expiration
@@ -326,10 +325,12 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.maxDiff = None
             self.assertEqual(
                 SERIALIZED_BUFFERS,
-                serialize_buffers(s1, buffer_context=BufferContext.USER,
-                                  additional_items={
-                                      "args": [42], "kwargs": {"name": "London"}
-                                  })
+                serialize_buffers(
+                    s1, buffer_context=BufferContext.USER,
+                    additional_items={
+                        "args": [42], "kwargs": {"name": "London"}
+                    }
+                )
             )
             self.assertEqual(s1._buffers, [
                 [dict(), dict(), dict()],
@@ -363,8 +364,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(added.keys(), {uuid.UUID(int=2)})
             self.assertEqual(updated.keys(), {uuid.UUID(int=0)})
             self.assertEqual(deleted.keys(), {uuid.UUID(int=1)})
-            self.assertEqual(s1._buffers[BufferContext.ENGINE], 
-                [dict(), dict(), dict()])
+            self.assertEqual(s1._buffers[BufferContext.ENGINE],
+                             [dict(), dict(), dict()])
 
             self.maxDiff = 3000
             self.assertEqual(

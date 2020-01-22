@@ -69,9 +69,11 @@ def deserialize_buffers(session_obj, buffer_context, data):
         data = json.loads(data)
 
         if "expired" in data:
-            session_obj.expire(*set(deserialize(json_obj=data["expired"],
-                                                session=session_obj,
-                                                buffer_context=buffer_context)))
+            session_obj.expire(
+                *set(deserialize(json_obj=data["expired"],
+                                 session=session_obj,
+                                 buffer_context=buffer_context))
+            )
 
         deserialized = {k: deserialize(json_obj=v,
                                        session=session_obj,
