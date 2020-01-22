@@ -331,11 +331,11 @@ class SqlWrapperSession(DbWrapperSession):
                                           uids)
 
     # OVERRIDE
-    def _apply_added(self):
+    def _apply_added(self, root_obj, buffer):
         # Perform the SQL-Statements to add the elements
         # in the buffers to the DB.
 
-        for added in self._added.values():
+        for added in buffer.values():
             if added.uid == self.root:
                 continue
 
@@ -372,7 +372,7 @@ class SqlWrapperSession(DbWrapperSession):
                     datatypes=datatypes
                 )
 
-        for added in self._added.values():
+        for added in buffer.values():
             if added.uid == self.root:
                 continue
 
@@ -389,10 +389,10 @@ class SqlWrapperSession(DbWrapperSession):
                     )
 
     # OVERRIDE
-    def _apply_updated(self):
+    def _apply_updated(self, root_obj, buffer):
         # Perform the SQL-Statements to update the elements
         # in the buffers in the DB.
-        for updated in self._updated.values():
+        for updated in buffer.values():
             if updated.uid == self.root:
                 continue
 
@@ -447,10 +447,10 @@ class SqlWrapperSession(DbWrapperSession):
             )
 
     # OVERRIDE
-    def _apply_deleted(self):
+    def _apply_deleted(self, root_obj, buffer):
         # Perform the SQL-Statements to delete the elements
         # in the buffers in the DB.
-        for deleted in self._deleted.values():
+        for deleted in buffer.values():
             if deleted.uid == self.root:
                 continue
 
@@ -614,7 +614,6 @@ class SqlWrapperSession(DbWrapperSession):
                                          kwargs=kwargs,
                                          session=self,
                                          uid=uid,
-                                         add_to_buffers=False,
                                          fix_neighbours=False)
             self._load_relationships(cuds_object)
             yield cuds_object

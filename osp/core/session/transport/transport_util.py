@@ -12,89 +12,93 @@ from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.neighbour_dict import NeighbourDictTarget
+from osp.core.session.buffers import get_buffer_context_mngr
 
 INITIALIZE_COMMAND = "_init"
 LOAD_COMMAND = "_load"
 
 
-def serialize(session_obj, consume_buffers=True, additional_items=None):
+def serialize_buffers(session_obj, buffer_context, additional_items=None):
     """Serialize the buffers and additional items.
 
     :param session_obj: Serialize the buffers of this session object.
     :type session_obj: Session
-    :param consume_buffers: Whether to consume and serialize the buffers
-    :type consume_buffers: bool
+    :param buffer_context: Which buffers to serialize
+    :type buffer_context: BufferContext
     :param additional_items: Additional items to be added
         to the serialized json object, defaults to None
     :type additional_items: Dict[str, Any], optional
     :return: The serialized buffers
     :rtype: str
     """
-    result = {
-        "added": serializable(session_obj._added.values()),
-        "updated": serializable(session_obj._updated.values()),
-        "deleted": serializable(session_obj._deleted.values()),
-    } if consume_buffers else dict()
+    result = dict()
+    if buffer_context is not None:
+        added, updated, deleted = session_obj._buffers[buffer_context]
+        result = {
+            "added": serializable(added.values()),
+            "updated": serializable(updated.values()),
+            "deleted": serializable(deleted.values()),
+        }
 
     result["expired"] = serializable(session_obj._expired)
 
     if additional_items is not None:
         result.update({k: serializable(v)
                        for k, v in additional_items.items()})
-    if consume_buffers:
-        session_obj._reset_buffers(changed_by="user")
+    if buffer_context is not None:
+        session_obj._reset_buffers(buffer_context)
     return json.dumps(result)
 
 
-def deserialize_buffers(session_obj, data, add_to_buffers):
+def deserialize_buffers(session_obj, buffer_context, data):
     """Deserialize serialized buffers, add them to the session and push them
     to the registry of the given session object.
     Returns the deserialization of everything but the buffers.
 
     :param session_obj: The session object to load the buffers into.
     :type session_obj: Session
+    :param buffer_context: add the deserialized cuds objects to the
+        selected buffers
+    :type buffer_context: BufferContext
     :param data: Serialized buffers
     :type data: str
-    :param add_to_buffers: Whether the cuds object
-        should be added to the buffers.
-    :type add_to_buffers: bool
     :return: Everything in data, that were not part of the buffers.
     :rtype: Dict[str, Any]
     """
-    data = json.loads(data)
+    with get_buffer_context_mngr(session_obj, buffer_context):
+        data = json.loads(data)
 
-    if "expired" in data:
-        session_obj.expire(*set(deserialize(json_obj=data["expired"],
-                                            session=session_obj,
-                                            add_to_buffers=add_to_buffers)))
+        if "expired" in data:
+            session_obj.expire(*set(deserialize(json_obj=data["expired"],
+                                                session=session_obj,
+                                                buffer_context=buffer_context)))
 
-    deserialized = {k: deserialize(json_obj=v,
-                                   session=session_obj,
-                                   add_to_buffers=add_to_buffers)
-                    for k, v in data.items()}
-    deleted = deserialized["deleted"] if "deleted" in deserialized else []
+        deserialized = {k: deserialize(json_obj=v,
+                                       session=session_obj,
+                                       buffer_context=buffer_context)
+                        for k, v in data.items()}
+        deleted = deserialized["deleted"] if "deleted" in deserialized else []
 
-    if add_to_buffers:
         for x in deleted:
             session_obj._notify_delete(x)
 
-    for cuds_object in deleted:
-        if cuds_object.uid in session_obj._registry:
-            del session_obj._registry[cuds_object.uid]
-    return {k: v for k, v in deserialized.items()
-            if k not in ["added", "updated", "deleted", "expired"]}
+        for cuds_object in deleted:
+            if cuds_object.uid in session_obj._registry:
+                del session_obj._registry[cuds_object.uid]
+        return {k: v for k, v in deserialized.items()
+                if k not in ["added", "updated", "deleted", "expired"]}
 
 
-def deserialize(json_obj, session, add_to_buffers):
+def deserialize(json_obj, session, buffer_context):
     """Deserialize a json object, instantiate the Cuds object in there.
 
     :param json_obj: The json object do deserialize.
     :type json_obj: Union[Dict, List, str, None]
     :param session: When creating a cuds_object, use this session.
     :type session: Session
-    :param add_to_buffers: Whether the cuds object should be
-        added to the buffers.
-    :type add_to_buffers: bool
+    :param buffer_context: add the deserialized cuds objects to the
+        selected buffers
+    :type buffer_context: BufferContext
     :raises ValueError: The json object could not be deserialized.
     :return: The deserialized object
     :rtype: Union[Cuds, UUID, List[Cuds], List[UUID], None]
@@ -104,13 +108,13 @@ def deserialize(json_obj, session, add_to_buffers):
     if isinstance(json_obj, (str, int, float)):
         return json_obj
     if isinstance(json_obj, list):
-        return [deserialize(x, session, add_to_buffers) for x in json_obj]
+        return [deserialize(x, session, buffer_context) for x in json_obj]
     if isinstance(json_obj, dict) \
             and "oclass" in json_obj \
             and "uid" in json_obj \
             and "attributes" in json_obj \
             and "relationships" in json_obj:
-        return _to_cuds_object(json_obj, session, add_to_buffers)
+        return _to_cuds_object(json_obj, session, buffer_context)
     if isinstance(json_obj, dict) \
             and set(["UUID"]) == set(json_obj.keys()):
         return convert_to(json_obj["UUID"], "UUID")
@@ -118,7 +122,7 @@ def deserialize(json_obj, session, add_to_buffers):
             and set(["ENTITY"]) == set(json_obj.keys()):
         return get_entity(json_obj["ENTITY"])
     if isinstance(json_obj, dict):
-        return {k: deserialize(v, session, add_to_buffers)
+        return {k: deserialize(v, session, buffer_context)
                 for k, v in json_obj.items()}
     raise ValueError("Could not deserialize %s." % json_obj)
 
@@ -177,38 +181,39 @@ def _serializable(cuds_object):
     return result
 
 
-def _to_cuds_object(json_obj, session, add_to_buffers):
+def _to_cuds_object(json_obj, session, buffer_context):
     """Transform a json serializable dict to a cuds_object
 
     :param json_obj: The json object to convert to a Cuds object
     :type json_obj: Dict[str, Any]
     :param session: The session to add the cuds object to.
     :type session: Session
-    :param add_to_buffers: Whether the cuds object should
-        be added to the buffers.
-    :type add_to_buffers: bool
+    :param buffer_context: add the deserialized cuds objects to the
+        selected buffers
+    :type buffer_context: BufferContext
     :return: The resulting cuds_object.
     :rtype: Cuds
     """
-    oclass = get_entity(json_obj["oclass"])
-    attributes = json_obj["attributes"]
-    relationships = json_obj["relationships"]
-    cuds_object = create_recycle(oclass=oclass,
-                                 kwargs=attributes,
-                                 session=session,
-                                 uid=json_obj["uid"],
-                                 add_to_buffers=add_to_buffers,
-                                 fix_neighbours=False)
+    if buffer_context is None:
+        raise ValueError("Not allowed to deserialize CUDS object "
+                         "with undefined buffer_context")
+    with get_buffer_context_mngr(session, buffer_context):
+        oclass = get_entity(json_obj["oclass"])
+        attributes = json_obj["attributes"]
+        relationships = json_obj["relationships"]
+        cuds_object = create_recycle(oclass=oclass,
+                                     kwargs=attributes,
+                                     session=session,
+                                     uid=json_obj["uid"],
+                                     fix_neighbours=False)
 
-    for rel_name, obj_dict in relationships.items():
-        rel = get_entity(rel_name)
-        cuds_object._neighbours[rel] = NeighbourDictTarget(
-            dictionary={}, cuds_object=cuds_object, rel=rel
-        )
-        for uid, target_name in obj_dict.items():
-            uid = convert_to(uid, "UUID")
-            target_oclass = get_entity(target_name)
-            cuds_object._neighbours[rel][uid] = target_oclass
-    if not add_to_buffers:
-        session._remove_uids_from_buffers([cuds_object.uid])
-    return cuds_object
+        for rel_name, obj_dict in relationships.items():
+            rel = get_entity(rel_name)
+            cuds_object._neighbours[rel] = NeighbourDictTarget(
+                dictionary={}, cuds_object=cuds_object, rel=rel
+            )
+            for uid, target_name in obj_dict.items():
+                uid = convert_to(uid, "UUID")
+                target_oclass = get_entity(target_name)
+                cuds_object._neighbours[rel][uid] = target_oclass
+        return cuds_object

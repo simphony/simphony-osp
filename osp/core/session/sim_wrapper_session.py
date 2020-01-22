@@ -7,6 +7,7 @@
 
 from abc import abstractmethod
 from .wrapper_session import WrapperSession, consumes_buffers
+from osp.core.session.buffers import BufferContext
 
 
 class SimWrapperSession(WrapperSession):
@@ -16,15 +17,15 @@ class SimWrapperSession(WrapperSession):
 
     @consumes_buffers
     def run(self):
-        self.log_buffer_status()
+        self.log_buffer_status(BufferContext.USER)
         self._check_cardinalities()
-        root_cuds = self._registry.get(self.root)
-        self._apply_added()
-        self._apply_updated()
-        self._apply_deleted()
-        self._reset_buffers()
-        self._run(root_cuds)
-        self._reset_buffers(changed_by="engine")
+        root_obj = self._registry.get(self.root)
+        added, updated, deleted = self._buffers[BufferContext.USER]
+        self._apply_added(root_obj, added)
+        self._apply_updated(root_obj, updated)
+        self._apply_deleted(root_obj, deleted)
+        self._reset_buffers(BufferContext.USER)
+        self._run(root_obj)
         self._ran = True
         self.expire_all()
 
@@ -33,13 +34,13 @@ class SimWrapperSession(WrapperSession):
         """Call the run command of the engine. """
 
     @abstractmethod
-    def _apply_added(self):
+    def _apply_added(self, root_obj, buffer):
         """Add the added cuds_objects to the engine"""
 
     @abstractmethod
-    def _apply_updated(self):
+    def _apply_updated(self, root_obj, buffer):
         """Update the updated cuds_objects in the engine"""
 
     @abstractmethod
-    def _apply_deleted(self):
+    def _apply_deleted(self, root_obj, buffer):
         """Delete the deleted cuds_objects from the engine"""

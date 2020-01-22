@@ -283,8 +283,7 @@ class Cuds():
             old_cuds_object = clone_cuds_object(old_cuds_object)
             new_child_getter = new_cuds_object
             new_cuds_object = create_from_cuds_object(new_cuds_object,
-                                                      add_to.session,
-                                                      True)
+                                                      add_to.session)
             # fix the connections to the neighbours
             add_to._fix_neighbours(new_cuds_object, old_cuds_object,
                                    add_to.session, missing)
