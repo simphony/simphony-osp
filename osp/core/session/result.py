@@ -5,6 +5,8 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+from osp.core.session.buffers import EngineContextIterator
+
 
 def returns_query_result(func):
     """Decorator to decorate methods that return an iterator of cuds objects.
@@ -14,9 +16,9 @@ def returns_query_result(func):
     :return: The wrapped function.
     :rtype: Callable
     """
-    def f(*args, **kwargs):
-        iterator = func(*args, **kwargs)
-        return QueryResult(iterator)
+    def f(session, *args, **kwargs):
+        iterator = func(session, *args, **kwargs)
+        return QueryResult(session, iterator)
     return f
 
 
@@ -25,8 +27,8 @@ class QueryResult():
     The result of a query in the session
     """
 
-    def __init__(self, result_iterator):
-        self._iterator = result_iterator
+    def __init__(self, session, result_iterator):
+        self._iterator = EngineContextIterator(session, result_iterator)
         self._elements = list()
 
     def __iter__(self):

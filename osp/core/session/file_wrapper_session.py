@@ -9,6 +9,7 @@ from abc import abstractmethod
 from osp.core.session.wrapper_session import consumes_buffers
 from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.result import returns_query_result
+from osp.core.session.buffers import BufferContext, EngineContext
 
 
 class FileWrapperSession(WrapperSession):
@@ -17,15 +18,17 @@ class FileWrapperSession(WrapperSession):
     @consumes_buffers
     def save(self):
         """Saves the changes in the buffers to the file."""
-        self.log_buffer_status()
+        self.log_buffer_status(BufferContext.USER)
         self._check_cardinalities()
         self._open()
-        self._apply_added()
-        self._apply_updated()
-        self._apply_deleted()
+        root_obj = self._registry.get(self.root)
+        added, updated, deleted = self._buffers[BufferContext.USER]
+        self._apply_added(root_obj, added)
+        self._apply_updated(root_obj, updated)
+        self._apply_deleted(root_obj, deleted)
         self._save()
         self._close()
-        self._reset_buffers(changed_by="user")
+        self._reset_buffers(BufferContext.USER)
         self.expire_all()
 
     @returns_query_result
@@ -53,9 +56,9 @@ class FileWrapperSession(WrapperSession):
         super()._store(cuds_object)
 
         if initialize:
-            self._initialize()
-            self._load_first_level()
-            self._reset_buffers(changed_by="engine")
+            with EngineContext(self):
+                self._initialize()
+                self._load_first_level()
 
     @abstractmethod
     def _open(self):
@@ -66,15 +69,15 @@ class FileWrapperSession(WrapperSession):
         """Close the connection to the file."""
 
     @abstractmethod
-    def _apply_added(self):
+    def _apply_added(self, root_obj, buffer):
         """Add the added cuds_objects to the file."""
 
     @abstractmethod
-    def _apply_updated(self):
+    def _apply_updated(self, root_obj, buffer):
         """Update the updated cuds_objects in the file."""
 
     @abstractmethod
-    def _apply_deleted(self):
+    def _apply_deleted(self, root_obj, buffer):
         """Delete the deleted cuds_objects from the file."""
 
     @abstractmethod
