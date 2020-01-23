@@ -10,9 +10,10 @@ from osp.core.session.wrapper_session import check_consumes_buffers, \
     WrapperSession
 from osp.core.session.transport.communication_engine \
     import CommunicationEngineClient
+from osp.core.session.buffers import BufferContext
 from osp.core.session.transport.transport_util import (
     INITIALIZE_COMMAND, LOAD_COMMAND, deserialize_buffers,
-    serializable, serialize
+    serializable, serialize_buffers
 )
 
 
@@ -35,8 +36,7 @@ class TransportSessionClient(WrapperSession):
             engine=CommunicationEngineClient(
                 host=host,
                 port=port,
-                handle_response=self._receive),
-            forbid_buffer_reset_by=None
+                handle_response=self._receive)
         )
         self.session_cls = session_cls
         self.args = args
@@ -64,7 +64,9 @@ class TransportSessionClient(WrapperSession):
     # OVERRIDE
     def _load_from_backend(self, uids, expired=None):
         expired = expired or self._expired
-        data = serialize(self, False, {"uids": uids, "expired": expired})
+        data = serialize_buffers(self, buffer_context=None,
+                                 additional_items={"uids": uids,
+                                                   "expired": expired})
         yield from self._engine.send(LOAD_COMMAND, data)
 
     def _send(self, command, consume_buffers, *args, **kwargs):
@@ -82,7 +84,9 @@ class TransportSessionClient(WrapperSession):
         :rtype: Serializable
         """
         arguments = {"args": args, "kwargs": kwargs}
-        data = serialize(self, consume_buffers, arguments)
+        buffer_context = BufferContext.USER if consume_buffers else None
+        data = serialize_buffers(self, buffer_context=buffer_context,
+                                 additional_items=arguments)
         return self._engine.send(command, data)
 
     def _receive(self, data):
@@ -94,7 +98,9 @@ class TransportSessionClient(WrapperSession):
         """
         if data.startswith("ERROR: "):
             raise RuntimeError("Error on Server side: %s" % data[7:])
-        remainder = deserialize_buffers(self, data, add_to_buffers=False)
+        remainder = deserialize_buffers(self,
+                                        buffer_context=BufferContext.ENGINE,
+                                        data=data)
         result = None
         if remainder and "expired" in remainder:
             self.expire(set(remainder["expired"]))

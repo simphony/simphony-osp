@@ -9,6 +9,8 @@ import unittest2 as unittest
 import uuid
 import json
 from copy import deepcopy
+from osp.core.session.buffers import BufferContext, EngineContext, \
+    BufferType
 from osp.core.utils import create_recycle
 from osp.core.session.wrapper_session import consumes_buffers
 from .test_session_city import TestWrapperSession
@@ -18,7 +20,7 @@ from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
 from osp.core.session.transport.transport_util import (
     deserialize, serializable, deserialize_buffers,
-    serialize, LOAD_COMMAND, INITIALIZE_COMMAND
+    serialize_buffers, LOAD_COMMAND, INITIALIZE_COMMAND
 )
 from osp.core.utils import create_from_cuds_object
 
@@ -120,17 +122,20 @@ SERIALIZED_BUFFERS3 = (
     '"attributes": {"name": "Peter", "age": 12}, '
     '"relationships": {"CITY.IS_INHABITANT_OF": '
     '{"00000000-0000-0000-0000-000000000001": "CITY.CITY"}}}], '
-    '"updated": [], "deleted": [], "expired": [], '
+    '"updated": [{"oclass": "CITY.CITY", '
+    '"uid": "00000000-0000-0000-0000-000000000001", "attributes": '
+    '{"name": "Freiburg", "coordinates": [0, 0]}, "relationships": '
+    '{"CITY.IS_PART_OF": {"00000000-0000-0000-0000-000000000003": '
+    '"CITY.CITY_WRAPPER"}, "CITY.HAS_INHABITANT": '
+    '{"00000000-0000-0000-0000-000000000002": "CITY.CITIZEN"}}}], '
+    '"deleted": [], "expired": [], '
     '"result": [{"oclass": "CITY.CITY", '
-    '"uid": "00000000-0000-0000-0000-000000000001", '
-    '"attributes": {"name": "Freiburg", '
-    '"coordinates": [0, 0]}, '
-    '"relationships": {'
-    '"CITY.HAS_INHABITANT": '
-    '{"00000000-0000-0000-0000-000000000002": "CITY.CITIZEN"}, '
-    '"CITY.IS_PART_OF": '
-    '{"00000000-0000-0000-0000-000000000003": "CITY.CITY_WRAPPER"}}'
-    '}, {"oclass": "CITY.CITY_WRAPPER", "uid": '
+    '"uid": "00000000-0000-0000-0000-000000000001", "attributes": '
+    '{"name": "Freiburg", "coordinates": [0, 0]}, "relationships": '
+    '{"CITY.IS_PART_OF": {"00000000-0000-0000-0000-000000000003": '
+    '"CITY.CITY_WRAPPER"}, "CITY.HAS_INHABITANT": '
+    '{"00000000-0000-0000-0000-000000000002": "CITY.CITIZEN"}}}, '
+    '{"oclass": "CITY.CITY_WRAPPER", "uid": '
     '"00000000-0000-0000-0000-000000000003", '
     '"attributes": {}, '
     '"relationships": {'
@@ -225,7 +230,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                          serializable([1, 1.2, "hallo"]))
 
     def test_deserialize_buffers(self):
-        # no reset
+        # buffer context user
         with TestWrapperSession() as s1:
             ws1 = CITY.CITY_WRAPPER(session=s1, uid=0)
             c = CITY.CITY(name="Freiburg", uid=1)
@@ -233,11 +238,12 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             p2 = CITY.CITIZEN(uid=uuid.UUID(int=4))
             c.add(p1, p2, rel=CITY.HAS_INHABITANT)
             ws1.add(c)
-            s1._reset_buffers(changed_by="user")
+            s1._reset_buffers(BufferContext.USER)
             s1.expire(p2)
 
-            additional = deserialize_buffers(s1, SERIALIZED_BUFFERS_EXPIRED,
-                                             add_to_buffers=True)
+            additional = deserialize_buffers(s1,
+                                             buffer_context=BufferContext.USER,
+                                             data=SERIALIZED_BUFFERS_EXPIRED)
             self.assertEqual(additional, {"args": [42],
                                           "kwargs": {"name": "London"}})
             self.assertEqual(set(s1._registry.keys()),
@@ -252,13 +258,11 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                              {ws1.uid: CITY.CITY_WRAPPER})
             self.assertEqual(set(cn._neighbours.keys()), {CITY.IS_PART_OF})
             self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
-            self.assertEqual(s1._added, {cn.uid: cn})
-            self.assertEqual(s1._updated, {ws1.uid: ws1})
-            self.assertEqual(s1._deleted, {c.uid: c})
-            self.assertEqual(s1._uids_in_registry_after_last_buffer_reset,
-                             {ws1.uid, c.uid, p1.uid, p2.uid})
+            self.assertEqual(s1._buffers, [
+                [{cn.uid: cn}, {ws1.uid: ws1}, {c.uid: c}],
+                [dict(), dict(), dict()]])
 
-        # with reset
+        # buffer context engine
         with TestWrapperSession() as s1:
             ws1 = CITY.CITY_WRAPPER(session=s1, uid=0)
             c = CITY.CITY(name="Freiburg", uid=1)
@@ -266,13 +270,18 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             p2 = CITY.CITIZEN(uid=uuid.UUID(int=4))
             c.add(p1, p2, rel=CITY.HAS_INHABITANT)
             ws1.add(c)
-            s1._reset_buffers(changed_by="user")
+            s1._reset_buffers(BufferContext.USER)
             s1.expire(p2)
 
-            additional = deserialize_buffers(s1, SERIALIZED_BUFFERS_EXPIRED,
-                                             add_to_buffers=False)
+            additional = deserialize_buffers(
+                s1, buffer_context=BufferContext.ENGINE,
+                data=SERIALIZED_BUFFERS_EXPIRED
+            )
             self.assertEqual(additional, {"args": [42],
                                           "kwargs": {"name": "London"}})
+            self.assertEqual(s1._buffers, [
+                [dict(), dict(), dict()],
+                [{cn.uid: cn}, {ws1.uid: ws1}, {c.uid: c}]])
             self.assertEqual(set(s1._registry.keys()),
                              {uuid.UUID(int=0), uuid.UUID(int=2),
                               uuid.UUID(int=3), uuid.UUID(int=4)})
@@ -285,11 +294,9 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                              {ws1.uid: CITY.CITY_WRAPPER})
             self.assertEqual(set(cn._neighbours.keys()), {CITY.IS_PART_OF})
             self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
-            self.assertEqual(s1._added, dict())
-            self.assertEqual(s1._updated, dict())
-            self.assertEqual(s1._deleted, dict())
-            self.assertEqual(s1._uids_in_registry_after_last_buffer_reset,
-                             {cn.uid, c.uid, ws1.uid, p1.uid, p2.uid})
+            self.assertEqual(s1._buffers, [
+                [dict(), dict(), dict()],
+                [dict(), dict(), dict()]])
 
     def test_serialize(self):
         """ Test if serialization of buffers work """
@@ -298,7 +305,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             ws1 = CITY.CITY_WRAPPER(session=s1, uid=0)
             c = CITY.CITY(name="Freiburg", uid=1)
             ws1.add(c)
-            s1._reset_buffers(changed_by="user")
+            s1._reset_buffers(BufferContext.USER)
 
             cn = CITY.CITY(name="Paris", uid=2)
             ws1.add(cn)
@@ -306,26 +313,29 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             s1.prune()
             self.assertEqual(
                 '{"expired": [], "args": [42], "kwargs": {"name": "London"}}',
-                serialize(
-                    s1,
-                    consume_buffers=False,
-                    additional_items={"args": [42],
-                                      "kwargs": {"name": "London"}})
+                serialize_buffers(s1, buffer_context=None, additional_items={
+                    "args": [42], "kwargs": {"name": "London"}})
             )
-            self.assertEqual(s1._added.keys(), {uuid.UUID(int=2)})
-            self.assertEqual(s1._updated.keys(), {uuid.UUID(int=0)})
-            self.assertEqual(s1._deleted.keys(), {uuid.UUID(int=1)})
+            added, updated, deleted = s1._buffers[BufferContext.USER]
+            self.assertEqual(added.keys(), {uuid.UUID(int=2)})
+            self.assertEqual(updated.keys(), {uuid.UUID(int=0)})
+            self.assertEqual(deleted.keys(), {uuid.UUID(int=1)})
+            self.assertEqual(s1._buffers[BufferContext.ENGINE],
+                             [dict(), dict(), dict()])
             self.maxDiff = None
             self.assertEqual(
                 SERIALIZED_BUFFERS,
-                serialize(
-                    s1,
-                    additional_items={"args": [42],
-                                      "kwargs": {"name": "London"}})
+                serialize_buffers(
+                    s1, buffer_context=BufferContext.USER,
+                    additional_items={
+                        "args": [42], "kwargs": {"name": "London"}
+                    }
+                )
             )
-            self.assertEqual(s1._added.keys(), set())
-            self.assertEqual(s1._updated.keys(), set())
-            self.assertEqual(s1._deleted.keys(), set())
+            self.assertEqual(s1._buffers, [
+                [dict(), dict(), dict()],
+                [dict(), dict(), dict()]
+            ])
             s1._expired = {uuid.UUID(int=0), uuid.UUID(int=2)}
 
         # with expiration
@@ -333,7 +343,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             ws1 = CITY.CITY_WRAPPER(session=s1, uid=0)
             c = CITY.CITY(name="Freiburg", uid=1)
             ws1.add(c)
-            s1._reset_buffers(changed_by="user")
+            s1._reset_buffers(BufferContext.USER)
 
             cn = CITY.CITY(name="Paris", uid=2)
             ws1.add(cn)
@@ -344,27 +354,32 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                 '{"expired": [{"UUID": '
                 '"00000000-0000-0000-0000-000000000003"}], '
                 '"args": [42], "kwargs": {"name": "London"}}',
-                serialize(
+                serialize_buffers(
                     s1,
-                    consume_buffers=False,
+                    buffer_context=None,
                     additional_items={"args": [42],
                                       "kwargs": {"name": "London"}})
             )
-            self.assertEqual(s1._added.keys(), {uuid.UUID(int=2)})
-            self.assertEqual(s1._updated.keys(), {uuid.UUID(int=0)})
-            self.assertEqual(s1._deleted.keys(), {uuid.UUID(int=1)})
+            added, updated, deleted = s1._buffers[BufferContext.USER]
+            self.assertEqual(added.keys(), {uuid.UUID(int=2)})
+            self.assertEqual(updated.keys(), {uuid.UUID(int=0)})
+            self.assertEqual(deleted.keys(), {uuid.UUID(int=1)})
+            self.assertEqual(s1._buffers[BufferContext.ENGINE],
+                             [dict(), dict(), dict()])
 
             self.maxDiff = 3000
             self.assertEqual(
                 SERIALIZED_BUFFERS_EXPIRED,
-                serialize(
+                serialize_buffers(
                     s1,
+                    buffer_context=BufferContext.USER,
                     additional_items={"args": [42],
                                       "kwargs": {"name": "London"}})
             )
-            self.assertEqual(s1._added.keys(), set())
-            self.assertEqual(s1._updated.keys(), set())
-            self.assertEqual(s1._deleted.keys(), set())
+            self.assertEqual(s1._buffers, [
+                [dict(), dict(), dict()],
+                [dict(), dict(), dict()]
+            ])
             s1._expired = {uuid.UUID(int=0), uuid.UUID(int=2)}
 
 
@@ -389,7 +404,6 @@ class TestCommunicationEngineClient(unittest.TestCase):
             kwargs={"name": "Freiburg"},
             uid=1,
             session=client,
-            add_to_buffers=True,
             fix_neighbours=False
         )
         c2 = CITY.CITY(name="London", uid=2)
@@ -398,15 +412,15 @@ class TestCommunicationEngineClient(unittest.TestCase):
             kwargs={"name": "Paris"},
             uid=3,
             session=client,
-            add_to_buffers=True,
             fix_neighbours=False
         )
-        client._reset_buffers(changed_by="user")
+        client._reset_buffers(BufferContext.USER)
         client.expire(c3.uid)
 
         def on_send(command, data):
-            create_from_cuds_object(c2, client, False)
-            return [c2, None]
+            with EngineContext(client):
+                create_from_cuds_object(c2, client)
+                return [c2, None]
 
         client._engine = MockEngine(on_send)
         result = list(client.load(uuid.UUID(int=1),
@@ -420,11 +434,10 @@ class TestCommunicationEngineClient(unittest.TestCase):
             '{"UUID": "00000000-0000-0000-0000-000000000003"}]}')
         self.assertEqual(result, [c1, c2, None])
         self.assertEqual(set(client._registry.keys()), {c1.uid, c2.uid})
-        self.assertEqual(client._uids_in_registry_after_last_buffer_reset,
-                         {c1.uid, c2.uid, c3.uid})
-        self.assertEqual(client._added, dict())
-        self.assertEqual(client._updated, dict())
-        self.assertEqual(client._deleted, dict())
+        self.assertEqual(client._buffers, [
+            [dict(), dict(), dict()],
+            [dict(), dict(), dict()]
+        ])
 
     def test_store(self):
         """ Test storing of cuds_object. """
@@ -436,7 +449,6 @@ class TestCommunicationEngineClient(unittest.TestCase):
                             kwargs={},
                             uid=1,
                             session=client,
-                            add_to_buffers=True,
                             fix_neighbours=False)  # store will be called here
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
         self.assertEqual(client._engine._sent_data, (
@@ -455,7 +467,6 @@ class TestCommunicationEngineClient(unittest.TestCase):
             kwargs={"name": "Freiburg"},
             uid=2,
             session=client,
-            add_to_buffers=True,
             fix_neighbours=False
         )
         self.assertEqual(client._engine._sent_command, None)
@@ -480,9 +491,12 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client._receive(SERIALIZED_BUFFERS2)
         self.assertEqual(set(client._registry.keys()), {uuid.UUID(int=42),
                                                         w.uid})
-        self.assertEqual(client._added, {w.uid: w})
-        self.assertEqual(client._updated, dict())
-        self.assertEqual(client._deleted, dict())
+        self.assertEqual(client._buffers[BufferContext.USER],
+                         [{w.uid: w}, dict(), dict()])
+        self.assertEqual(
+            list(map(dict.keys, client._buffers[BufferContext.ENGINE])),
+            [set([uuid.UUID(int=42)]), set(), set()]
+        )
 
     def test_getattr(self):
         def command(*args, **kwargs):
@@ -522,22 +536,24 @@ class TestCommunicationEngineServer(unittest.TestCase):
         # command to be executed
         def command(s, uid, name):
             nonlocal correct
-            correct = set(s._added.keys()) == {uuid.UUID(int=2)} and \
-                s._added[uuid.UUID(int=2)].name == "Paris"
-            s._reset_buffers(changed_by="user")
-            s._added[uuid.UUID(int=uid)] = CITY.CITY(name=name,
-                                                     uid=uid)
-            s._reset_buffers(changed_by="engine")
+            added = s._buffers[BufferContext.USER][BufferType.ADDED]
+            correct = set(added.keys()) == {uuid.UUID(int=2)} and \
+                added[uuid.UUID(int=2)].name == "Paris"
+            s._reset_buffers(BufferContext.USER)
 
-        TestWrapperSession.command = command
+            added = s._buffers[BufferContext.ENGINE][BufferType.ADDED]
+            added[uuid.UUID(int=uid)] = CITY.CITY(name=name,
+                                                  uid=uid)
+
+        TestWrapperSession.command = consumes_buffers(command)
         server = TransportSessionServer(TestWrapperSession, None, None)
-        with TestWrapperSession(forbid_buffer_reset_by="engine") as s1:
+        with TestWrapperSession() as s1:
 
             # initialize buffers
             ws1 = CITY.CITY_WRAPPER(session=s1, uid=0)
             c = CITY.CITY(name="Freiburg", uid=1)
             ws1.add(c)
-            s1._reset_buffers(changed_by="user")
+            s1._reset_buffers(BufferContext.USER)
 
             # test the method
             server.session_objs = {"1": s1, "2": 123}
@@ -547,17 +563,19 @@ class TestCommunicationEngineServer(unittest.TestCase):
 
     def test_load_from_session(self):
         """Test loading from the remote side"""
-        with TestWrapperSession(forbid_buffer_reset_by="engine") as s1:
+        with TestWrapperSession() as s1:
             c = CITY.CITY(name="Freiburg", uid=1)
-            p = CITY.CITIZEN(name="Peter", age=12, uid=2)
             w = CITY.CITY_WRAPPER(session=s1, uid=3)
-            c.add(p, rel=CITY.HAS_INHABITANT)
-            w.add(c)
-            server = TransportSessionServer(TestWrapperSession, None, None)
-            server.session_objs["user"] = s1
-            s1._expired |= {c.uid, w.uid}
-            result = server._load_from_session(
-                '{"uids": [{"UUID": 1}, {"UUID": 3}]}', "user")
+            cw = w.add(c)
+
+            with EngineContext(s1):
+                p = CITY.CITIZEN(name="Peter", age=12, uid=2)
+                cw.add(p, rel=CITY.HAS_INHABITANT)
+                server = TransportSessionServer(TestWrapperSession, None, None)
+                server.session_objs["user"] = s1
+                s1._expired |= {c.uid, w.uid}
+                result = server._load_from_session(
+                    '{"uids": [{"UUID": 1}, {"UUID": 3}]}', "user")
             self.maxDiff = None
             self.assertEqual(result, SERIALIZED_BUFFERS3)
 
@@ -586,12 +604,12 @@ class TestCommunicationEngineServer(unittest.TestCase):
             raise RuntimeError("Something went wrong: %s, %s" % (age, name))
         TestWrapperSession.command = command
         server = TransportSessionServer(TestWrapperSession, None, None)
-        with TestWrapperSession(forbid_buffer_reset_by="engine") as s1:
+        with TestWrapperSession() as s1:
             # initialize buffers
             ws1 = CITY.CITY_WRAPPER(session=s1, uid=0)
             c = CITY.CITY(name="Freiburg", uid=1)
             ws1.add(c)
-            s1._reset_buffers(changed_by="user")
+            s1._reset_buffers(BufferContext.USER)
 
             # test
             server.session_objs["user1"] = s1

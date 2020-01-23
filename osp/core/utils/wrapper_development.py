@@ -87,7 +87,7 @@ def get_neighbour_diff(cuds1, cuds2, mode="all"):
     return result
 
 
-def destroy_cuds_object(cuds_object, add_to_buffers=True):
+def destroy_cuds_object(cuds_object):
     """Reset all attributes and relationships.
     Use this for example if a cuds object has been deleted on the backend.
 
@@ -106,8 +106,6 @@ def destroy_cuds_object(cuds_object, add_to_buffers=True):
         del cuds_object._session._registry[cuds_object.uid]
     session._notify_delete(cuds_object)
     cuds_object._oclass = None
-    if not add_to_buffers:
-        session._remove_uids_from_buffers([cuds_object.uid])
 
 
 def clone_cuds_object(cuds_object):
@@ -124,8 +122,7 @@ def clone_cuds_object(cuds_object):
     return clone
 
 
-def create_recycle(oclass, kwargs, session, uid, add_to_buffers=True,
-                   fix_neighbours=True):
+def create_recycle(oclass, kwargs, session, uid, fix_neighbours=True):
     """Instantiate a cuds_object with a given session.
     If cuds_object with same uid is already in the session,
     this object will be reused.
@@ -138,9 +135,6 @@ def create_recycle(oclass, kwargs, session, uid, add_to_buffers=True,
     :type session: Session
     :param uid: The uid of the new Cuds object
     :type uid: UUID
-    :param add_to_buffers: Whether the new cuds object should be added
-        to the buffers
-    :type add_to_buffers: bool
     :param fix_neighbours: Whether to remove the link from the old neighbours
         to this cuds object, defaults to True
     :type fix_neighbours: bool
@@ -162,12 +156,10 @@ def create_recycle(oclass, kwargs, session, uid, add_to_buffers=True,
         change_oclass(cuds_object, oclass, kwargs)
     else:  # create new
         cuds_object = oclass(uid=uid, session=session, **kwargs)
-    if hasattr(session, "_remove_uids_from_buffers") and not add_to_buffers:
-        session._remove_uids_from_buffers([cuds_object.uid])
     return cuds_object
 
 
-def create_from_cuds_object(cuds_object, session, add_to_buffers):
+def create_from_cuds_object(cuds_object, session):
     """Create a copy of the given cuds_object in a different session.
     WARNING: Will not recursively copy children.
 
@@ -177,9 +169,6 @@ def create_from_cuds_object(cuds_object, session, add_to_buffers):
     :type kwargs: Dict[str, Any]
     :param session: The session of the new Cuds object
     :type session: Session
-    :param add_to_buffers: Whether the new cuds object should be added
-        to the buffers
-    :type add_to_buffers: bool
     :return: A copy of self with the given session.
     :rtype: Cuds
     """
@@ -190,7 +179,6 @@ def create_from_cuds_object(cuds_object, session, add_to_buffers):
                            kwargs=kwargs,
                            session=session,
                            uid=cuds_object.uid,
-                           add_to_buffers=add_to_buffers,
                            fix_neighbours=False)
     for rel, target_dict in cuds_object._neighbours.items():
         clone._neighbours[rel] = NeighbourDictTarget(dict(), clone, rel)
