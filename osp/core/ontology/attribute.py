@@ -10,6 +10,7 @@ from osp.core.ontology.datatypes import (
     ONTOLOGY_DATATYPES, convert_from, convert_to
 )
 import logging
+import rdflib
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,15 @@ class OntologyAttribute(OntologyEntity):
             logger.warning("Conflicting datatype for %s" % self)
             return "UNDEFINED"
         return result or "UNDEFINED"
+
+    # OVERRIDE
+    def get_triples(self):
+        return super().get_triples() + [
+            (self.iri, rdflib.RDFS.subPropertyOf, x.iri)
+            for x in self.superclasses
+        ] + [
+            (self.iri, rdflib.RDF.type, rdflib.OWL.DataProperty),
+        ]
 
     def _get_datatype_recursively(self):
         """Get the datatype of the value
