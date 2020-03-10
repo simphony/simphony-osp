@@ -6,6 +6,7 @@
 # No redistribution is allowed without explicit written permission.
 
 from abc import ABC, abstractmethod
+import rdflib
 
 
 class OntologyEntity(ABC):
@@ -50,6 +51,13 @@ class OntologyEntity(ABC):
     def name(self):
         """Get the name of the entity"""
         return self._name
+
+    @property
+    def iri(self):
+        """Get the IRI of the Entity"""
+        from osp.core import IRI_DOMAIN
+        return rdflib.URIRef(IRI_DOMAIN + "/%s#%s" % (self._namespace.name,
+                                                      self.name))
 
     @property
     def tblname(self):
@@ -140,6 +148,13 @@ class OntologyEntity(ABC):
         :rtype: bool
         """
         return self in other.superclasses
+
+    def get_triples(self):
+        """ Get the triples of the entity """
+        return [
+            (self.iri, rdflib.RDFS.label, rdflib.Literal(self.name)),
+            (self.iri, rdflib.RDFS.comment, rdflib.Literal(self.description))
+        ]
 
     def _add_subclass(self, subclass):
         """Add a subclass to the entity

@@ -10,6 +10,7 @@ from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.class_expression import ClassExpression
 import logging
+import rdflib
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,15 @@ class OntologyClass(OntologyEntity, ClassExpression):
         """Get the subclass_of class expressions"""
         from osp.core.ontology.parser import DISJOINTS_KEY
         return self._collect_class_expressions(DISJOINTS_KEY)
+
+    # OVERRIDE
+    def get_triples(self):
+        return super().get_triples() + [
+            (self.iri, rdflib.RDFS.subClassOf, x.iri)
+            for x in self.superclasses
+        ] + [
+            (self.iri, rdflib.RDF.type, rdflib.OWL.Class),
+        ]
 
     def _get_attributes_recursively(self):
         """Get the attributes and defaults recursively
