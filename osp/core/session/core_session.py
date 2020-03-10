@@ -27,3 +27,11 @@ class CoreSession(Session):
     # OVERRIDE
     def _notify_read(self, cuds_object):
         pass
+
+    def get_triples(self):
+        """Get the triples in the core session"""
+        return [
+            triple
+            for uid, cuds_object in self._registry.items()
+            for triple in cuds_object.get_triples()
+        ]
