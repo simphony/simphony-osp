@@ -23,6 +23,8 @@ except RuntimeError as e:
     logger.critical("Could not load installed ontologies.", exc_info=1)
 atexit.register(ONTOLOGY_INSTALLER._clean)
 
+IRI_DOMAIN = "http://www.osp-core.com"
+
 # utility functions
 def get_entity(entity_name):
     namespace, name = ONTOLOGY_INSTALLER.parser.split_name(entity_name)
