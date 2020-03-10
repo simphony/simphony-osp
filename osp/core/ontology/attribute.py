@@ -41,12 +41,23 @@ class OntologyAttribute(OntologyEntity):
 
     # OVERRIDE
     def get_triples(self):
+        from osp.core.ontology.datatypes import ONTOLOGY_DATATYPES
+        datatype_triple = []
+        yml_datatype = self.datatype.split(":")[0]
+        if ONTOLOGY_DATATYPES[yml_datatype][3] is not None:
+            datatype_triple = [
+                (self.iri, rdflib.RDFS.range,
+                 ONTOLOGY_DATATYPES[yml_datatype][3])
+            ]
+
         return super().get_triples() + [
-            (self.iri, rdflib.RDFS.subPropertyOf, x.iri)
-            for x in self.superclasses
+            (self.iri, rdflib.OWL.subDataPropertyOf, x.iri)
+            for x in self.superclasses if str(x) != "CUBA.ENTITY"
         ] + [
-            (self.iri, rdflib.RDF.type, rdflib.OWL.DataProperty),
-        ]
+            (self.iri, rdflib.OWL.subDataPropertyOf,
+             rdflib.OWL.topDataProperty),
+            (self.iri, rdflib.RDF.type, rdflib.OWL.FunctionalDataProperty),
+        ] + datatype_triple
 
     def _get_datatype_recursively(self):
         """Get the datatype of the value

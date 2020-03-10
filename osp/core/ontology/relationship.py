@@ -39,10 +39,12 @@ class OntologyRelationship(OntologyEntity):
     # OVERRIDE
     def get_triples(self):
         return super().get_triples() + [
-            (self.iri, rdflib.RDFS.subPropertyOf, x.iri)
-            for x in self.superclasses
+            (self.iri, rdflib.OWL.subObjectPropertyOf, x.iri)
+            for x in self.superclasses if str(x) != "CUBA.ENTITY"
         ] + [
-            (self.iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty),
+            (self.iri, rdflib.OWL.subObjectPropertyOf,
+             rdflib.OWL.topObjectProperty),
+            (self.iri, rdflib.OWL.inverseOf, self.inverse.iri)
         ]
 
     def __getattr__(self, attr):

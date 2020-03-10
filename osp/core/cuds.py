@@ -85,6 +85,8 @@ class Cuds():
         ] + [
             (self.iri, attribute.iri, rdflib.Literal(value))
             for attribute, value in self.get_attributes().items()
+        ] + [
+            (self.iri, rdflib.RDF.type, self.oclass.iri)
         ]
 
     def get_attributes(self):

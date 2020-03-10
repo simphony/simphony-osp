@@ -123,7 +123,7 @@ class WrapperSession(Session):
         """Get the triples in the core session"""
         from osp.core.utils import find_cuds_object
         from osp.core.utils import CUBA
-        [
+        return [
             triple
             for cuds_object in find_cuds_object(lambda x: True,
                                                 self._registry.get(self.root),

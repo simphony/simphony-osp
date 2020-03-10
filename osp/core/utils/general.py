@@ -12,6 +12,16 @@ from osp.core import CUBA
 
 
 def get_rdf_graph(session=None):
+    """Get the RDF Graph from a session.
+    If no session is, the core session will be used.
+
+    Args:
+        session (Session, optional): The session to compute the RDF Graph of.
+            Defaults to None.
+
+    Returns:
+        rdflib.Graph: The resulting rdf Graph
+    """
     from osp.core.cuds import Cuds
     from osp.core import ONTOLOGY_NAMESPACE_REGISTRY
     session = session or Cuds._session
