@@ -7,6 +7,7 @@
 
 # from __future__ import annotations
 import uuid
+import rdflib
 from typing import Union, List, Iterator, Dict, Any
 
 from osp.core import ONTOLOGY_INSTALLER
@@ -61,6 +62,11 @@ class Cuds():
         return self.__uid
 
     @property
+    def iri(self):
+        """Get the IRI of the CUDS object"""
+        return self._iri_from_uid(self.uid)
+
+    @property
     def session(self):
         """The session of the cuds object"""
         return self._session
@@ -69,6 +75,19 @@ class Cuds():
     def oclass(self):
         """The type of the cuds object"""
         return self._oclass
+
+    def get_triples(self):
+        """ Get the triples of the cuds object."""
+        return [
+            (self.iri, relationship.iri, self._iri_from_uid(uid))
+            for uid, relationships in self._get(return_mapping=True)[1].items()
+            for relationship in relationships
+        ] + [
+            (self.iri, attribute.iri, rdflib.Literal(value))
+            for attribute, value in self.get_attributes().items()
+        ] + [
+            (self.iri, rdflib.RDF.type, self.oclass.iri)
+        ]
 
     def get_attributes(self):
         """Get the attributes as a dictionary"""
@@ -662,6 +681,11 @@ class Cuds():
 
     def _check_valid_add(self, to_add, rel):
         return True  # TODO
+
+    def _iri_from_uid(self, uid):
+        """Transform uid to iri"""
+        from osp.core import IRI_DOMAIN
+        return rdflib.URIRef(IRI_DOMAIN + "/#%s" % uid)
 
     def __str__(self) -> str:
         """

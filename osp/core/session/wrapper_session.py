@@ -119,6 +119,19 @@ class WrapperSession(Session):
             return
         list(self.load(*self.expire(*cuds_or_uids)))
 
+    def get_triples(self):
+        """Get the triples in the core session"""
+        from osp.core.utils import find_cuds_object
+        from osp.core.utils import CUBA
+        return [
+            triple
+            for cuds_object in find_cuds_object(lambda x: True,
+                                                self._registry.get(self.root),
+                                                CUBA.Relationship,
+                                                True)
+            for triple in cuds_object.get_triples()
+        ]
+
     def log_buffer_status(self, context):
         """ TODO """
         added, updated, deleted = self._buffers[context]
