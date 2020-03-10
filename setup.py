@@ -35,7 +35,8 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "owlready2"
+        "owlready2",
+        "rdflib"
     ],
     setup_requires=[
         "PyYaml",
@@ -43,6 +44,7 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "owlready2"
+        "owlready2",
+        "rdflib"
     ]
 )

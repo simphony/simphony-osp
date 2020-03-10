@@ -7,6 +7,7 @@
 
 import uuid
 import numpy as np
+import rdflib
 
 
 def convert_to(x, datatype_string):
@@ -72,11 +73,11 @@ def from_vector(x):
 
 
 ONTOLOGY_DATATYPES = {
-    "BOOL": (bool, bool, np.dtype("bool")),
-    "INT": (int, int, np.dtype("int")),
-    "FLOAT": (float, float, np.dtype("float")),
-    "STRING": (to_string, str, np.dtype("str")),
-    "UUID": (to_uuid, str, None),
-    "UNDEFINED": (str, str, np.dtype("str")),
-    "VECTOR": (to_vector, from_vector, None)
+    "BOOL": (bool, bool, np.dtype("bool"), rdflib.XSD.boolean),
+    "INT": (int, int, np.dtype("int"), rdflib.XSD.integer),
+    "FLOAT": (float, float, np.dtype("float"), rdflib.XSD.float),
+    "STRING": (to_string, str, np.dtype("str"), rdflib.XSD.string),
+    "UUID": (to_uuid, str, None, rdflib.XSD.string),
+    "UNDEFINED": (str, str, np.dtype("str"), rdflib.XSD.string),
+    "VECTOR": (to_vector, from_vector, None, rdflib.XSD.string)
 }

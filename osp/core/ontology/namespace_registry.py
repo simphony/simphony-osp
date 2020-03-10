@@ -16,6 +16,14 @@ class NamespaceRegistry():
     def __init__(self):
         self._namespaces = dict()
 
+    def __iter__(self):
+        """Iterate over the installed namespace.
+
+        :return: An iterator over the namespaces.
+        :rtype: Iterator[OntologyNamespace]
+        """
+        return iter(self._namespaces.values())
+
     def __getattr__(self, name):
         try:
             return self._get(name)
