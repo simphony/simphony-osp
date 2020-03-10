@@ -7,7 +7,32 @@
 
 import requests
 import json
+import rdflib
 from osp.core import CUBA
+
+
+def get_rdf_graph(session=None):
+    """Get the RDF Graph from a session.
+    If no session is, the core session will be used.
+
+    Args:
+        session (Session, optional): The session to compute the RDF Graph of.
+            Defaults to None.
+
+    Returns:
+        rdflib.Graph: The resulting rdf Graph
+    """
+    from osp.core.cuds import Cuds
+    from osp.core import ONTOLOGY_NAMESPACE_REGISTRY
+    session = session or Cuds._session
+    graph = rdflib.Graph()
+    for triple in session.get_triples():
+        graph.add(triple)
+    for namespace in ONTOLOGY_NAMESPACE_REGISTRY:
+        for entity in namespace:
+            for triple in entity.get_triples():
+                graph.add(triple)
+    return graph
 
 
 def post(url, cuds_object, max_depth=float("inf")):

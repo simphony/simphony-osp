@@ -7,6 +7,7 @@
 
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.keywords import CHARACTERISTICS
+import rdflib
 
 
 class OntologyRelationship(OntologyEntity):
@@ -34,6 +35,17 @@ class OntologyRelationship(OntologyEntity):
         """Get the subclass_of class expressions"""
         from osp.core.ontology.parser import RANGE_KEY
         return self._collect_class_expressions(RANGE_KEY)
+
+    # OVERRIDE
+    def get_triples(self):
+        return super().get_triples() + [
+            (self.iri, rdflib.OWL.subObjectPropertyOf, x.iri)
+            for x in self.superclasses if str(x) != "CUBA.ENTITY"
+        ] + [
+            (self.iri, rdflib.OWL.subObjectPropertyOf,
+             rdflib.OWL.topObjectProperty),
+            (self.iri, rdflib.OWL.inverseOf, self.inverse.iri)
+        ]
 
     def __getattr__(self, attr):
         if attr.startswith("is_") and attr[3:] in CHARACTERISTICS:
