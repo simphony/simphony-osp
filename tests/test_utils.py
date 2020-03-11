@@ -447,6 +447,8 @@ class TestUtils(unittest.TestCase):
     def test_pretty_print(self):
         """Test printing cuds objects in a human readable way."""
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
+        px = CITY.PERSON()
+        c.add(px, rel=CITY.ENCLOSES)
         f = io.StringIO()
         pretty_print(c, file=f)
         self.maxDiff = 5000
@@ -460,6 +462,10 @@ class TestUtils(unittest.TestCase):
             "  description: ",
             "    To Be Determined",
             "",
+            "   |_Relationship CITY.ENCLOSES:",
+            "   | -  CITY.PERSON cuds object named <John Smith>:",
+            "   |    uuid: %s" % px.uid,
+            "   |    age: 25",
             "   |_Relationship CITY.HAS_INHABITANT:",
             "   | -  CITY.CITIZEN cuds object named <Rainer>:",
             "   | .  uuid: %s" % p1.uid,
