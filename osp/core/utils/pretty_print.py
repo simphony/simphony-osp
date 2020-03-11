@@ -10,22 +10,22 @@ def pretty_print(cuds_object, file=sys.stdout):
     :param cuds_object: container to be printed
     :type cuds_object: Cuds
     """
-    pp = pp_cuds_object_name(cuds_object)
+    pp = _pp_cuds_object_name(cuds_object)
     pp += "\n  uuid: " + str(cuds_object.uid)
     pp += "\n  type: " + str(cuds_object.oclass)
     pp += "\n  superclasses: " + ", ".join(
         map(str, cuds_object.oclass.superclasses)
     )
-    values_str = pp_values(cuds_object)
+    values_str = _pp_values(cuds_object)
     if values_str:
-        pp += "\n  values: " + pp_values(cuds_object)
+        pp += "\n  values: " + _pp_values(cuds_object)
     pp += "\n  description: \n    %s\n" % cuds_object.oclass.description
-    pp += pp_subelements(cuds_object)
+    pp += _pp_subelements(cuds_object)
 
     print(pp, file=file)
 
 
-def pp_cuds_object_name(cuds_object, print_oclass=False):
+def _pp_cuds_object_name(cuds_object, print_oclass=False):
     """
     Returns the name of the given element following the
     pretty print format.
@@ -42,7 +42,7 @@ def pp_cuds_object_name(cuds_object, print_oclass=False):
     return "- %s%s:" % (oclass, title)
 
 
-def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
+def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
     """
     Recursively formats the subelements from a cuds_object grouped
         by ontology class.
@@ -61,15 +61,19 @@ def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
     for i, relationship in enumerate(sorted_relationships):
         pp_sub += level_indentation \
             + " |_Relationship %s:" % relationship
-        sorted_elements = sorted(cuds_object.iter(rel=relationship),
-                                 key=lambda x: str(x.oclass))
-        for j, element in enumerate(sorted_elements):
+        sorted_elements = sorted(
+            cuds_object.iter(rel=relationship, return_rel=True),
+            key=lambda x: str(x[0].oclass)
+        )
+        for j, (element, rel) in enumerate(sorted_elements):
+            if rel != relationship:
+                continue
             if i == len(sorted_relationships) - 1:
                 indentation = level_indentation + "   "
             else:
                 indentation = level_indentation + " | "
-            pp_sub += indentation + pp_cuds_object_name(element,
-                                                        print_oclass=True)
+            pp_sub += indentation + _pp_cuds_object_name(element,
+                                                         print_oclass=True)
             if j == len(sorted_elements) - 1:
                 indentation += "   "
             else:
@@ -80,15 +84,15 @@ def pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
                 pp_sub += indentation + "(already printed)"
                 continue
 
-            values_str = pp_values(element, indentation)
+            values_str = _pp_values(element, indentation)
             if values_str:
-                pp_sub += indentation + pp_values(element, indentation)
+                pp_sub += indentation + _pp_values(element, indentation)
 
-            pp_sub += pp_subelements(element, indentation, visited)
+            pp_sub += _pp_subelements(element, indentation, visited)
     return pp_sub
 
 
-def pp_values(cuds_object, indentation="\n          "):
+def _pp_values(cuds_object, indentation="\n          "):
     """Print the attributes of a cuds object.
 
     :param cuds_object: Print the values of this cuds object.

@@ -147,7 +147,8 @@ class Cuds():
     def get(self,
             *uids: uuid.UUID,
             rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
-            oclass: OntologyClass = None) -> Union["Cuds", List["Cuds"]]:
+            oclass: OntologyClass = None,
+            return_rel: bool = False) -> Union["Cuds", List["Cuds"]]:
         """
         Returns the contained elements of a certain type, uid or relationship.
         Expected calls are get(), get(*uids), get(rel), get(oclass),
@@ -165,11 +166,15 @@ class Cuds():
         :type rel: OntologyRelationship
         :param oclass: Type (Ontology class) of the subelements
         :type oclass: OntologyClass
+        :param return_rel: Whether to return the connecting relationship,
+            defaults to False
+        :type return_rel: bool
         :return: the queried objects, or None, if not found
         :rtype: Union[Cuds, List[Cuds]]
         """
-        collected_uids = self._get(*uids, rel=rel, oclass=oclass)
-        result = list(self._load_cuds_objects(collected_uids))
+        result = list(
+            self.iter(*uids, rel=rel, oclass=oclass, return_rel=return_rel)
+        )
         if len(uids) == 1:
             return result[0]
         return result
@@ -242,7 +247,8 @@ class Cuds():
     def iter(self,
              *uids: uuid.UUID,
              rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
-             oclass: OntologyClass = None) -> Iterator["Cuds"]:
+             oclass: OntologyClass = None,
+             return_rel: bool = False) -> Iterator["Cuds"]:
         """
         Iterates over the contained elements of a certain type, uid or
         relationship. Expected calls are iter(), iter(*uids), iter(rel),
@@ -259,11 +265,24 @@ class Cuds():
         :type rel: OntologyRelationship
         :param oclass: Type of the subelements.
         :type oclass: OntologyClass
+        :param return_rel: Whether to return the connecting relationship,
+            defaults to False
+        :type return_rel: bool
         :return: Iterator over of queried objects, or None, if not found.
         :rtype: Iterator[Cuds]
         """
-        collected_uids = self._get(*uids, rel=rel, oclass=oclass)
-        yield from self._load_cuds_objects(collected_uids)
+        if return_rel:
+            collected_uids, mapping = self._get(*uids, rel=rel, oclass=oclass,
+                                                return_mapping=True)
+        else:
+            collected_uids = self._get(*uids, rel=rel, oclass=oclass)
+
+        result = self._load_cuds_objects(collected_uids)
+        for r in result:
+            if not return_rel:
+                yield r
+            else:
+                yield from ((r, m) for m in mapping[r.uid])
 
     def _str_attributes(self):
         """
