@@ -1,3 +1,4 @@
+import os
 from setuptools import setup, find_packages
 from packageinfo import VERSION, NAME
 
@@ -5,6 +6,12 @@ from packageinfo import VERSION, NAME
 with open('README.md', 'r') as readme:
     README_TEXT = readme.read()
 
+with open("packageinfo.py", "r") as packageinfo:
+    with open(os.path.join("osp", "core", "packageinfo.py"), "w") as f:
+        print("# DO NOT MODIFY", file=f)
+        for line in packageinfo:
+            print(line, file=f, end="")
+        print("# DO NOT MODIFY", file=f)
 
 # main setup configuration class
 setup(
@@ -15,7 +22,7 @@ setup(
     description='The native implementation of the SimPhoNy cuds objects',
     keywords='simphony, cuds, Fraunhofer IWM',
     long_description=README_TEXT,
-    packages=find_packages(),
+    packages=find_packages(exclude=("examples", "tests")),
     package_data={
         "osp.core.ontology.yml": ["*.yml"],
         "osp.core.ontology": ["*.pkl"]
