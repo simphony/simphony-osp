@@ -340,6 +340,9 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(find_cuds_objects_by_oclass(
             CITY.STREET, c, CUBA.ACTIVE_RELATIONSHIP),
             [s1])
+        found = find_cuds_objects_by_oclass(CUBA.ENTITY,
+                                            c, CUBA.RELATIONSHIP)
+        self.assertEqual(set(found), {c, p1, p2, p3, n1, n2, s1})
 
     def test_find_cuds_objects_by_attribute(self):
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
