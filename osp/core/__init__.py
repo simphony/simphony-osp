@@ -1,6 +1,10 @@
 import sys
 import atexit
 import logging
+
+logging.getLogger("rdflib").setLevel(logging.WARNING)
+
+from osp.core.packageinfo import VERSION, NAME
 from osp.core.ontology.installation import OntologyInstallationManager
 
 # set up logging
