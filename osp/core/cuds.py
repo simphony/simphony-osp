@@ -8,8 +8,9 @@
 # from __future__ import annotations
 import uuid
 import rdflib
-from typing import Union, List, Iterator, Dict, Any
+import logging
 
+from typing import Union, List, Iterator, Dict, Any
 from osp.core import ONTOLOGY_INSTALLER
 from osp.core.ontology.relationship import OntologyEntity
 from osp.core.ontology.relationship import OntologyRelationship
@@ -22,6 +23,8 @@ from osp.core.neighbour_dict import NeighbourDictRel, NeighbourDictTarget
 from osp.core.utils import check_arguments, clone_cuds_object, \
     create_from_cuds_object, get_neighbour_diff
 from osp.core import CUBA
+
+logger = logging.getLogger("osp.core")
 
 
 class Cuds():
@@ -724,7 +727,19 @@ class Cuds():
         :rtype: Any
         """
         if name not in self._attr_values:
-            raise AttributeError(name)
+            if (  # check if user calls session's methods on wrapper
+                self.is_a(CUBA.WRAPPER)
+                and self._session is not None
+                and hasattr(self._session, name)
+            ):
+                logger.warn(
+                    "Trying to get non-defined attribute '%s' "
+                    "of wrapper CUDS object '%s'. Will return attribute of "
+                    "its session '%s' instead." % (name, self, self._session)
+                )
+                return getattr(self._session, name)
+            else:
+                raise AttributeError(name)
         if self.session:
             self.session._notify_read(self)
         if name not in self._attr_values:
