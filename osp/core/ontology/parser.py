@@ -147,6 +147,11 @@ class Parser:
             namespace, superclass_name = self.split_name(p)
             namespace = self._namespace_registry[namespace]
             if namespace is self._ontology_namespace:
+                if superclass_name not in cuds_yaml_doc:
+                    raise KeyError(
+                        "Reference to undefined entity %s in definition of %s"
+                        % (superclass_name, entity_name)
+                    )
                 self._load_entity(superclass_name)
             superclasses.append(namespace[superclass_name])
         entity = self._create_entity(entity_name, superclasses, description)

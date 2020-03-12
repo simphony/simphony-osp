@@ -396,13 +396,20 @@ def install_from_terminal():
     logging.getLogger("osp.core").setLevel(getattr(logging, args.log_level))
 
     from osp.core import ONTOLOGY_INSTALLER
-    if args.command == "install" and args.overwrite:
-        ONTOLOGY_INSTALLER.install_overwrite(*args.files,
-                                             use_pickle=args.pickle)
-    elif args.command == "install":
-        ONTOLOGY_INSTALLER.install(*args.files, use_pickle=args.pickle)
-    elif args.command == "uninstall":
-        ONTOLOGY_INSTALLER.uninstall(*args.namespaces)
+
+    try:
+        if args.command == "install" and args.overwrite:
+            ONTOLOGY_INSTALLER.install_overwrite(*args.files,
+                                                use_pickle=args.pickle)
+        elif args.command == "install":
+            ONTOLOGY_INSTALLER.install(*args.files, use_pickle=args.pickle)
+        elif args.command == "uninstall":
+            ONTOLOGY_INSTALLER.uninstall(*args.namespaces)
+    except Exception:
+        logger.error("An Exception occurred during installation.", exc_info=1)
+        if args.log_level != "DEBUG":
+            logger.error("Consider running 'pico --log-level debug %s ...'"
+                         % args.command)
 
 
 if __name__ == "__main__":
