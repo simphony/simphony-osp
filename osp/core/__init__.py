@@ -12,7 +12,6 @@ IRI_DOMAIN = "http://www.osp-core.com"
 
 # set up logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter(

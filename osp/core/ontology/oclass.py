@@ -22,6 +22,7 @@ class OntologyClass(OntologyEntity, ClassExpression):
     def __init__(self, namespace, name, superclasses, description):
         super().__init__(namespace, name, superclasses, description)
         self._attributes = dict()
+        logger.debug("Created ontology class %s" % self)
 
     @property
     def attributes(self):
@@ -104,6 +105,7 @@ class OntologyClass(OntologyEntity, ClassExpression):
             raise TypeError("Tried to add non-attribute %s as "
                             "attribute to %s"
                             % (attribute, self))
+        logger.debug("Add attribute %s to %s" % (attribute, self))
         self._attributes[attribute] = default
 
     def _get_attributes_values(self, kwargs):
