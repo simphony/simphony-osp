@@ -83,7 +83,7 @@ class OntologyAttribute(OntologyEntity):
             datatype = datatype or superclass_datatype
         return datatype
 
-    def __call__(self, value):
+    def convert_to_datatype(self, value):
         """Convert to the datatype of the value
 
         :param value: The value to convert
