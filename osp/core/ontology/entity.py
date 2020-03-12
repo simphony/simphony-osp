@@ -7,6 +7,9 @@
 
 from abc import ABC, abstractmethod
 import rdflib
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class OntologyEntity(ABC):
@@ -162,6 +165,7 @@ class OntologyEntity(ABC):
         :param subclass: The subclass to add
         :type subclass: OntologyEntity
         """
+        logger.debug("Add subclass %s to %s" % (subclass, self))
         if subclass not in self._subclasses:
             self._subclasses.append(subclass)
 
@@ -171,6 +175,7 @@ class OntologyEntity(ABC):
         :param superclass: The superclass to add
         :type superclass: OntologyEntity
         """
+        logger.debug("Add superclass %s to %s" % (superclass, self))
         if superclass not in self._superclasses:
             self._superclasses.append(superclass)
 
@@ -179,6 +184,8 @@ class OntologyEntity(ABC):
         if not isinstance(class_expression, ClassExpression):
             raise ValueError("Tried to add %s as class expression to %s"
                              % (class_expression, self))
+        logger.debug("Add class expression %s for %s to %s"
+                     % (class_expression, keyword, self))
         if keyword not in self._class_expressions:
             self._class_expressions[keyword] = list()
         self._class_expressions[keyword].append(class_expression)

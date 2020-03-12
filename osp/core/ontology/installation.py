@@ -41,7 +41,9 @@ class OntologyInstallationManager():
         # copy the file
         filename = "ontology.%s.yml" % namespace
         if not os.path.exists(os.path.join(self.installed_path, filename)):
-            copyfile(file_path, os.path.join(self.tmp_path, filename))
+            dest = os.path.join(self.tmp_path, filename)
+            logger.debug("Copy file %s to %s" % (file_path, dest))
+            copyfile(file_path, dest)
 
     def _clean(self):
         """Remove the temporary files."""
@@ -112,6 +114,12 @@ class OntologyInstallationManager():
             if not _force:
                 self._create_rollback_snapshot()
             for namespace in namespaces:
+                if namespace.endswith("yml") and os.path.exists(namespace):
+                    file = namespace
+                    namespace = self._get_onto_metadata(file)[NAMESPACE_KEY]
+                    logger.info("File %s provided for uninstallation. "
+                                % (file))
+                logger.info("Uninstalling namespace %s." % namespace)
                 namespace = namespace.lower()
                 filename = "ontology.%s.yml" % namespace
                 path = os.path.join(self.installed_path, filename)
@@ -279,6 +287,8 @@ class OntologyInstallationManager():
             result += add_to_result
             for x in add_to_result:
                 del requirements[x]
+        logger.info("Will install the follwing namespaces: %s"
+                    % result)
         return [files[n] for n in result]
 
     @staticmethod
@@ -321,7 +331,10 @@ class OntologyInstallationManager():
         """
         yaml_doc = OntologyInstallationManager._get_onto_metadata(file_path)
         try:
-            return set(map(str.lower, yaml_doc[REQUIREMENTS_KEY])) | {"cuba"}
+            req = set(map(str.lower, yaml_doc[REQUIREMENTS_KEY])) | {"cuba"}
+            logger.debug("%s has the follwing requirements: %s"
+                         % (file_path, req))
+            return req
         except KeyError:
             return set(["cuba"])
 
@@ -380,7 +393,7 @@ def install_from_terminal():
     uninstall_parser.set_defaults(pickle=True)
 
     args = parser.parse_args()
-    logger.setLevel(getattr(logging, args.log_level))
+    logging.getLogger("osp.core").setLevel(getattr(logging, args.log_level))
 
     from osp.core import ONTOLOGY_INSTALLER
     if args.command == "install" and args.overwrite:
