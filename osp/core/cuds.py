@@ -47,7 +47,8 @@ class Cuds():
             uid will be created.
         :type uid: UUID
         """
-        self._attr_values = {k.argname: k(v) for k, v in attributes.items()}
+        self._attr_values = {k.argname: k.convert_to_datatype(v)
+                             for k, v in attributes.items()}
         self._neighbours = NeighbourDictRel({}, self)
 
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
@@ -750,7 +751,8 @@ class Cuds():
             self.session._notify_read(self)
         if name not in self._attr_values:
             raise AttributeError(name)
-        self._attr_values[name] = self._onto_attributes[name](new_value)
+        self._attr_values[name] = \
+            self._onto_attributes[name].convert_to_datatype(new_value)
         if self.session:
             self.session._notify_update(self)
 
