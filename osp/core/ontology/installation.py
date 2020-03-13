@@ -83,8 +83,10 @@ class OntologyInstallationManager():
 
         # move the files
         for file in os.listdir(self.tmp_path):
-            os.replace(os.path.join(self.tmp_path, file),
-                       os.path.join(self.installed_path, file))
+            orig = os.path.join(self.tmp_path, file)
+            dest = os.path.join(self.installed_path, file)
+            logger.debug("Move directory %s to %s" % (orig, dest))
+            os.replace(orig, dest)
 
         # create the pickle file
         if os.path.exists(self.pkl_path):
@@ -154,7 +156,7 @@ class OntologyInstallationManager():
                 self._rollback(pkl_exists)
                 logger.error("Unsatisfied requirements after uninstallation.",
                              exc_info=1)
-                logger.error("Uninstallation failed. Rolling back!")
+                logger.error("Uninstallation failed. Rolled back!")
         finally:
             if not _force:
                 self._dismiss_rollback_snapshot()
@@ -171,11 +173,11 @@ class OntologyInstallationManager():
                            success_msg=False, _force=True)
             try:
                 self.install(*files, use_pickle=use_pickle)
-            except RuntimeError:  # unsatisfied requirements
+            except Exception:  # unsatisfied requirements
                 self._rollback(use_pickle)
-                logger.error("Unsatisfied requirements after installation.",
+                logger.error("Error during installation.",
                              exc_info=1)
-                logger.error("Installation failed. Rolling back!")
+                logger.error("Installation failed. Rolled back!")
         finally:
             self._dismiss_rollback_snapshot()
 
@@ -221,8 +223,11 @@ class OntologyInstallationManager():
         Move the YAML file of all installed ontologies to a temporary directory
         """
         self._dismiss_rollback_snapshot()
+        logger.debug("Create snapshot of installed ontologies: %s"
+                     % os.listdir(self.installed_path))
+        logger.debug("Copy directory %s to %s"
+                     % (self.installed_path, self.rollback_path))
         copytree(self.installed_path, self.rollback_path)
-        logger.debug("Create snapshot of installed ontologies!")
 
     def _dismiss_rollback_snapshot(self):
         """Remove the temporary snapshot directory"""
@@ -238,11 +243,17 @@ class OntologyInstallationManager():
             defaults to True
         :type use_pickle: bool, optional
         """
+        if os.path.exists(self.pkl_path):
+            os.remove(self.pkl_path)
         rmtree(self.installed_path)
+        rmtree(self.tmp_path)
+        logger.debug("Rollback installed ontologies to last snapshot: %s"
+                     % os.listdir(self.rollback_path))
+        logger.debug("Copy directory %s to %s" % (self.rollback_path, self.installed_path))
         copytree(self.rollback_path, self.installed_path)
         self.initialize_installed_ontologies()
         self.install(use_pickle=use_pickle, success_msg=False)
-        logger.debug("Rollback installed ontologies to last snapshot!")
+        
 
     def _sort_for_installation(self, files):
         """Get the right order to install the files.
@@ -287,7 +298,7 @@ class OntologyInstallationManager():
             result += add_to_result
             for x in add_to_result:
                 del requirements[x]
-        logger.info("Will install the follwing namespaces: %s"
+        logger.info("Will install the following namespaces: %s"
                     % result)
         return [files[n] for n in result]
 
@@ -332,7 +343,7 @@ class OntologyInstallationManager():
         yaml_doc = OntologyInstallationManager._get_onto_metadata(file_path)
         try:
             req = set(map(str.lower, yaml_doc[REQUIREMENTS_KEY])) | {"cuba"}
-            logger.debug("%s has the follwing requirements: %s"
+            logger.debug("%s has the following requirements: %s"
                          % (file_path, req))
             return req
         except KeyError:
@@ -392,19 +403,30 @@ def install_from_terminal():
     )
     uninstall_parser.set_defaults(pickle=True)
 
+    # list parser
+    list_parser = subparsers.add_parser(
+        "list",
+        help="List all installed ontologies."
+    )
+
     args = parser.parse_args()
     logging.getLogger("osp.core").setLevel(getattr(logging, args.log_level))
 
     from osp.core import ONTOLOGY_INSTALLER
 
     try:
+        all_namespaces = map(lambda x: x.name, ONTOLOGY_INSTALLER.namespace_registry)
         if args.command == "install" and args.overwrite:
             ONTOLOGY_INSTALLER.install_overwrite(*args.files,
                                                 use_pickle=args.pickle)
         elif args.command == "install":
             ONTOLOGY_INSTALLER.install(*args.files, use_pickle=args.pickle)
         elif args.command == "uninstall":
+            if args.namespaces == ["*"]:
+                args.namespaces = all_namespaces
             ONTOLOGY_INSTALLER.uninstall(*args.namespaces)
+        elif args.command == "list":
+            print("\n".join(all_namespaces))
     except Exception:
         logger.error("An Exception occurred during installation.", exc_info=1)
         if args.log_level != "DEBUG":
