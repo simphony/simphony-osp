@@ -21,6 +21,8 @@ class SimWrapperSession(WrapperSession):
         self._check_cardinalities()
         root_obj = self._registry.get(self.root)
         added, updated, deleted = self._buffers[BufferContext.USER]
+        if not self._ran:
+            self._initialize(root_obj)
         self._apply_added(root_obj, added)
         self._apply_updated(root_obj, updated)
         self._apply_deleted(root_obj, deleted)
@@ -31,16 +33,43 @@ class SimWrapperSession(WrapperSession):
 
     @abstractmethod
     def _run(self, root_cuds_object):
-        """Call the run command of the engine. """
+        """Run the engine.
+
+        Args:
+            root_cuds_object (Cuds): The wrapper cuds object
+        """
 
     @abstractmethod
     def _apply_added(self, root_obj, buffer):
-        """Add the added cuds_objects to the engine"""
+        """Add the added cuds_objects to the engine
+
+        Args:
+            root_obj (Cuds): The wrapper cuds object
+            buffer (Dict[UUID, Cuds]): All Cuds objects that have been added
+        """
 
     @abstractmethod
     def _apply_updated(self, root_obj, buffer):
-        """Update the updated cuds_objects in the engine"""
+        """Update the updated cuds_objects in the engine
+
+        Args:
+            root_obj (Cuds): The wrapper cuds object
+            buffer (Dict[UUID, Cuds]): All Cuds objects that have been updated
+        """
 
     @abstractmethod
     def _apply_deleted(self, root_obj, buffer):
-        """Delete the deleted cuds_objects from the engine"""
+        """Delete the deleted cuds_objects from the engine
+
+        Args:
+            root_obj (Cuds): The wrapper cuds object.
+            buffer (Dict[UUID, Cuds]): All Cuds objects that have been deleted
+        """
+
+    def _initialize(self, root_obj):
+        """Initialize the session.
+        This method is executed before the first run.
+
+        Args:
+            root_obj (Cuds): The wrapper cuds object.
+        """

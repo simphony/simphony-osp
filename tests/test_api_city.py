@@ -302,6 +302,17 @@ class TestAPICity(unittest.TestCase):
                                       oclass=CITY.CITIZEN)
         self.assertEqual(set(get_inhabited_citizen), {p, q})
 
+        # return_rel=True
+        get_p_uid, get_p_rel = c.get(p.uid, return_rel=True)
+        self.assertEqual(get_p_uid, p)
+        self.assertEqual(get_p_rel, CITY.HAS_INHABITANT)
+        result = c.get(rel=CITY.ENCLOSES, return_rel=True)
+        self.assertEqual(set(result), set([
+            (p, CITY.HAS_INHABITANT),
+            (q, CITY.HAS_INHABITANT),
+            (n, CITY.HAS_PART)
+        ]))
+
     def test_get_throws_exception(self):
         """
         Tests the get() method for unusual behaviours.
@@ -472,6 +483,17 @@ class TestAPICity(unittest.TestCase):
 
         elements = set(list(c.iter()))
         self.assertEqual(elements, {n, p, q})
+
+        # return_rel=True
+        get_p_uid, get_p_rel = next(c.iter(p.uid, return_rel=True))
+        self.assertEqual(get_p_uid, p)
+        self.assertEqual(get_p_rel, CITY.HAS_INHABITANT)
+        result = c.iter(rel=CITY.ENCLOSES, return_rel=True)
+        self.assertEqual(set(result), set([
+            (p, CITY.HAS_INHABITANT),
+            (q, CITY.HAS_INHABITANT),
+            (n, CITY.HAS_PART)
+        ]))
 
     # def test_check_valid_add(self):  # TODO
     #     """Check if _check_valid_add throws exceptions when illegal

@@ -8,6 +8,9 @@
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.keywords import CHARACTERISTICS
 import rdflib
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class OntologyRelationship(OntologyEntity):
@@ -15,6 +18,7 @@ class OntologyRelationship(OntologyEntity):
         super().__init__(namespace, name, superclasses, description)
         self._inverse = None
         self._characteristics = []
+        logger.debug("Create ontology relationship %s" % self)
 
     @property
     def inverse(self):
@@ -53,10 +57,12 @@ class OntologyRelationship(OntologyEntity):
         raise AttributeError("Undefined attribute %s" % attr)
 
     def _set_inverse(self, inverse):
+        logger.debug("Set inverse of %s to %s" % (self, inverse))
         if not isinstance(inverse, OntologyRelationship):
             raise TypeError("Tried to add non-relationship %s "
                             "as inverse to %s" % (inverse, self))
         self._inverse = inverse
 
     def _add_characteristic(self, characteristic):
+        logger.debug("Add characteristic %s to %s" % (characteristic, self))
         self._characteristics.append(characteristic)

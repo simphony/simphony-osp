@@ -1,4 +1,5 @@
 import re
+import logging
 from osp.core.ontology.datatypes import ONTOLOGY_DATATYPES
 
 from osp.core.ontology.keywords import (
@@ -8,6 +9,8 @@ from osp.core.ontology.keywords import (
     EQUIVALENT_TO_KEY, DOMAIN_KEY, RANGE_KEY, CHARACTERISTICS_KEY,
     CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY, CHARACTERISTICS
 )
+
+logger = logging.getLogger(__name__)
 
 entity_name_regex = r"(_|[A-Z])([A-Z]|[0-9]|_)*"
 entity_name_pattern = re.compile(r"^%s$" % entity_name_regex)
@@ -79,6 +82,7 @@ def validate(yaml_doc, pattern="/", context=""):
     :type context: str, optional
     :raises ValueError: The YAML doc does not match
     """
+    logger.debug("Validate format of %s" % context)
     if pattern is None:
         return
 
@@ -151,6 +155,8 @@ def _validate_format(yaml_doc, format_desc, context):
 
     # format description is dict -> check the individuals items
     elif isinstance(format_desc, dict):
+        if not isinstance(yaml_doc, dict):
+            raise ValueError("Value at %s must be a dictionary" % context)
         allowed_keys = list()
         for key, pattern in format_desc.items():
             if key.startswith("!"):  # starting with ! means the key must exist

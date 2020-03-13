@@ -7,6 +7,7 @@
 
 import os
 import yaml
+import logging
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
@@ -22,6 +23,8 @@ from osp.core.ontology.keywords import (
     EQUIVALENT_TO_KEY, DOMAIN_KEY, RANGE_KEY, CHARACTERISTICS_KEY,
     CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY, AUTHOR_KEY, VERSION_KEY
 )
+
+logger = logging.getLogger(__name__)
 
 
 class Parser:
@@ -40,6 +43,7 @@ class Parser:
         self._filename = None
         self._yaml_doc = None
         self._ontology_namespace = None
+        self._currently_loading_entities = set()
 
     @staticmethod
     def get_filepath(filename):
@@ -56,6 +60,7 @@ class Parser:
         """
         from osp.core.ontology.namespace import OntologyNamespace
 
+        logger.info("Parsing file %s" % filename)
         self.__init__(self._installer)
         self._filename = self.get_filepath(filename)
         self._yaml_doc = self.get_yaml_doc(self._filename)
@@ -87,6 +92,7 @@ class Parser:
 
     def _parse_ontology(self):
         """Parse the entity descriptions."""
+        logger.debug("Parse the ontology %s" % self._ontology_namespace.name)
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
 
         for entity_name in cuds_yaml_doc:
@@ -125,7 +131,12 @@ class Parser:
         """
         if entity_name in self._ontology_namespace:
             return
+        if entity_name in self._currently_loading_entities:
+            raise ValueError("Cycle in taxonomy detected: %s"
+                             % self._currently_loading_entities)
+        self._currently_loading_entities.add(entity_name)
 
+        logger.debug("Parse entity definition for %s" % entity_name)
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
         entity_yaml_doc = cuds_yaml_doc[entity_name]
         description = None
@@ -141,10 +152,16 @@ class Parser:
             namespace, superclass_name = self.split_name(p)
             namespace = self._namespace_registry[namespace]
             if namespace is self._ontology_namespace:
+                if superclass_name not in cuds_yaml_doc:
+                    raise KeyError(
+                        "Reference to undefined entity %s in definition of %s"
+                        % (superclass_name, entity_name)
+                    )
                 self._load_entity(superclass_name)
             superclasses.append(namespace[superclass_name])
         entity = self._create_entity(entity_name, superclasses, description)
         self._ontology_namespace._add_entity(entity)
+        self._currently_loading_entities.remove(entity_name)
         for p in superclasses:
             p._add_subclass(entity)
 
@@ -154,6 +171,7 @@ class Parser:
         :param entity_name: The name of the entity to load.
         :type entity_name: str
         """
+        logger.debug("Parse class expressions for %s" % entity)
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
         entity_yaml_doc = cuds_yaml_doc[entity.name]
 
@@ -385,6 +403,7 @@ class Parser:
         :return: The parsed class expression.
         :rtype: ClassExpression
         """
+        logger.debug("Parse class expression %s" % yaml_ce)
         if isinstance(yaml_ce, str):
             return self._parse_oclass_ce(yaml_ce)
 
