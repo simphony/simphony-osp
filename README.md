@@ -64,10 +64,7 @@ If you want to uninstall an ontology use the following command:
 pico uninstall <namespace>  # e.g. city
 ```
 
-### Installation of OWL ontologies
-
-See doc/working_with_emmo.md for working with the EMMO. \
-See doc/conversion_owl_to_yaml.md if you want to work with any OWL ontology.
+If pico is not available after you install OSP core, try to restart your shell.
 
 ## Visualization of ontologies
 
@@ -93,73 +90,9 @@ python -m unittest -v
 
 ## Documentation
 
-### API
+Our documentation is located at <https://simphony.pages.fraunhofer.de/documentation/latest/>.
 
-A standard, simple API has to be defined for the user to interact with OSP:
-
-```python
-  from osp.core import MY_NAMESPACE
-  # from osp.core import my_namespace  # lowercase works as well!
-
-  my_ontology_class = MY_NAMESPACE.MY_ONTOLOGY_CLASS
-  # my_ontology_class = my_namespace.MyOntologyClass  # CamelCase works as well!
-  my_cuds_object = MY_NAMESPACE.MY_ONTOLOGY_CLASS()
-  my_relationship = MY_NAMESPACE.MY_RELATIONSHIP
-
-  # These will also add the opposed relationship to the new contained cuds object
-  my_cuds_object.add(*other_cuds, rel=my_relationship)
-  my_cuds_object.add(yet_another_cuds)                           # Defaults to default relationship specified in ontology
-
-  my_cuds_object.get()                                           # Returns the list of all the contained cuds objects
-  my_cuds_object.get(rel=my_relationship)                        # Returns the list of the entities under that relationship
-  my_cuds_object.get(*uids)                                      # Searches through all the relationships for the uids
-  my_cuds_object.get(*uids, rel=my_relationship)                 # Faster, can filter through the relationship
-  my_cuds_object.get(oclass=a_ontology_class)                    # Returns the list of all the cuds object of that class
-  my_cuds_object.get(rel=my_relationship, oclass=a_ontology_class)   # Returns the list of all the entities of that class under the given relationship
-
-  # These will trigger the update in the opposed relationship of the erased element
-  my_cuds_object.remove()                                        # Removes all
-  my_cuds_object.remove(*uids/cuds_objects)                      # Searches through all the relationships for the uids/objects to remove
-  my_cuds_object.remove(*uids/cuds_objects, rel=my_relationship) # Faster, can filter through the relationship
-  my_cuds_object.remove(rel=my_relationship)                     # Delete all elements under a relationship
-  my_cuds_object.remove(oclass=a_ontology_class)                 # Delete all elements of a certain class
-  my_cuds_object.remove(rel=my_relationship, oclass=my_ontology_class)   # Delete all elements of a certain class under the given relationship
-
-  my_cuds_object.update(*cuds_objects)                           # Searches through all the relationships for the objects to update
-
-  my_cuds_object.iter()                                          # Iterates through all
-  my_cuds_object.iter(oclass=a_ontology_class)                   # Iterates filtering by the ontology class
-  my_cuds_object.iter(rel=my_relationship)                       # Iterates filtering by the relationship
-```
-
-### Data structure
-
-The cuds objects' neighbours are stored in a dictionary.
-This contains all the relationships of the cuds object.
-
-For example:
-
-```py
-{
-    CUBA.REL1: {"obj-uid-001": CUBA.OBJ1, "obj-uid-002": CUBA.OBJ2},
-    CUBA.REL2: {"obj-uid-003": CUBA.OBJ3, ...},
-    ...
-}
-```
-
-The related cuds object are referenced by their unique id, the uid.
-Each cuds object corresponds to a session.
-The session contains a registry that maps every uid to the corresponding cuds object.
-Each wrapper has a corresponding session. The default session is an instance of CoreSession.
-
-The attributes are fields of the cuds object:
-
-```py
->>> from osp.core import CITY  # the namespace
->>> c = CITY.CITY(name="Freiburg")
->>> c.name
-'Freiburg'
-```
+If you want to build the documentation locally, refer to our [documentation repostitory](https://gitlab.cc-asp.fraunhofer.de/simphony/documentation).
 
 ### Examples
 
@@ -172,8 +105,5 @@ Further examples can be found in the /examples folder. There the usage of wrappe
   - ontology -- the parser and generation of the entities and classes.
     - yml -- The supplied ontology files
   - session -- Different abstract classes for wrappers.
-- doc -- documentation related files.
 - examples -- examples of usage.
 - tests -- unittesting of the code
-
-For further documentation refer to https://gitlab.cc-asp.fraunhofer.de/simphony/getting-started.

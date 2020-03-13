@@ -88,7 +88,7 @@ def find_cuds_objects_by_oclass(oclass, root, rel):
     :rtype: List[Cuds]
     """
     return find_cuds_object(
-        criterion=lambda cuds_object: cuds_object.oclass == oclass,
+        criterion=lambda cuds_object: cuds_object.is_a(oclass),
         root=root,
         rel=rel,
         find_all=True
