@@ -27,7 +27,7 @@ ontology:
 
   IS_ENCLOSED_BY:
     subclass_of:
-    - CUBA.RELATIONSHIP
+    - CUBA.PASSIVE_RELATIONSHIP
     inverse: CITY.ENCLOSES
 
   IS_PART_OF:

@@ -212,6 +212,7 @@ def change_oclass(cuds_object, new_oclass, kwargs):
 
     # update attributes
     attributes = new_oclass._get_attributes_values(kwargs)
-    cuds_object._attr_values = {k.argname: k(v) for k, v in attributes.items()}
+    cuds_object._attr_values = {k.argname: k.convert_to_datatype(v)
+                                for k, v in attributes.items()}
     cuds_object._onto_attributes = {k.argname: k for k in attributes}
     cuds_object.session._notify_update(cuds_object)

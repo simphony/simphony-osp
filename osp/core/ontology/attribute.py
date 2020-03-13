@@ -22,6 +22,7 @@ class OntologyAttribute(OntologyEntity):
     def __init__(self, namespace, name, superclasses, description):
         super().__init__(namespace, name, superclasses, description)
         self._datatype = None
+        logger.debug("Create ontology attribute %s" % self)
 
     @property
     def name(self):
@@ -83,7 +84,7 @@ class OntologyAttribute(OntologyEntity):
             datatype = datatype or superclass_datatype
         return datatype
 
-    def __call__(self, value):
+    def convert_to_datatype(self, value):
         """Convert to the datatype of the value
 
         :param value: The value to convert
@@ -112,4 +113,5 @@ class OntologyAttribute(OntologyEntity):
         if datatype.split(":")[0] not in ONTOLOGY_DATATYPES:
             raise ValueError("Invalid datatype %s specified for %s"
                              % (datatype, self))
+        logger.debug("Set datatype %s for attribute %s" % (datatype, self))
         self._datatype = datatype
