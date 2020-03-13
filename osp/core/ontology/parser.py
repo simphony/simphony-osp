@@ -43,6 +43,7 @@ class Parser:
         self._filename = None
         self._yaml_doc = None
         self._ontology_namespace = None
+        self._currently_loading_entities = set()
 
     @staticmethod
     def get_filepath(filename):
@@ -130,6 +131,10 @@ class Parser:
         """
         if entity_name in self._ontology_namespace:
             return
+        if entity_name in self._currently_loading_entities:
+            raise ValueError("Cycle in taxonomy detected: %s"
+                             % self._currently_loading_entities)
+        self._currently_loading_entities.add(entity_name)
 
         logger.debug("Parse entity definition for %s" % entity_name)
         cuds_yaml_doc = self._yaml_doc[ONTOLOGY_KEY]
@@ -147,10 +152,16 @@ class Parser:
             namespace, superclass_name = self.split_name(p)
             namespace = self._namespace_registry[namespace]
             if namespace is self._ontology_namespace:
+                if superclass_name not in cuds_yaml_doc:
+                    raise KeyError(
+                        "Reference to undefined entity %s in definition of %s"
+                        % (superclass_name, entity_name)
+                    )
                 self._load_entity(superclass_name)
             superclasses.append(namespace[superclass_name])
         entity = self._create_entity(entity_name, superclasses, description)
         self._ontology_namespace._add_entity(entity)
+        self._currently_loading_entities.remove(entity_name)
         for p in superclasses:
             p._add_subclass(entity)
 
