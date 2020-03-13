@@ -155,6 +155,8 @@ def _validate_format(yaml_doc, format_desc, context):
 
     # format description is dict -> check the individuals items
     elif isinstance(format_desc, dict):
+        if not isinstance(yaml_doc, dict):
+            raise ValueError("Value at %s must be a dictionary" % context)
         allowed_keys = list()
         for key, pattern in format_desc.items():
             if key.startswith("!"):  # starting with ! means the key must exist
