@@ -249,11 +249,11 @@ class OntologyInstallationManager():
         rmtree(self.tmp_path)
         logger.debug("Rollback installed ontologies to last snapshot: %s"
                      % os.listdir(self.rollback_path))
-        logger.debug("Copy directory %s to %s" % (self.rollback_path, self.installed_path))
+        logger.debug("Copy directory %s to %s" % (self.rollback_path,
+                                                  self.installed_path))
         copytree(self.rollback_path, self.installed_path)
         self.initialize_installed_ontologies()
         self.install(use_pickle=use_pickle, success_msg=False)
-        
 
     def _sort_for_installation(self, files):
         """Get the right order to install the files.
@@ -404,7 +404,7 @@ def install_from_terminal():
     uninstall_parser.set_defaults(pickle=True)
 
     # list parser
-    list_parser = subparsers.add_parser(
+    subparsers.add_parser(
         "list",
         help="List all installed ontologies."
     )
@@ -415,10 +415,11 @@ def install_from_terminal():
     from osp.core import ONTOLOGY_INSTALLER
 
     try:
-        all_namespaces = map(lambda x: x.name, ONTOLOGY_INSTALLER.namespace_registry)
+        all_namespaces = map(lambda x: x.name,
+                             ONTOLOGY_INSTALLER.namespace_registry)
         if args.command == "install" and args.overwrite:
             ONTOLOGY_INSTALLER.install_overwrite(*args.files,
-                                                use_pickle=args.pickle)
+                                                 use_pickle=args.pickle)
         elif args.command == "install":
             ONTOLOGY_INSTALLER.install(*args.files, use_pickle=args.pickle)
         elif args.command == "uninstall":
