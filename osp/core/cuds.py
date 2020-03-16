@@ -44,7 +44,7 @@ class Cuds():
         uid: uuid.UUID = None
     ):
         """
-        Initialization follows the behavior of the python dict class.
+        Initialisation follows the behaviour of the python dict class.
 
         :param uid: Specify a unique identifier. If None given, a random
             uid will be created.

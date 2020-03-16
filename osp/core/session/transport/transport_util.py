@@ -14,7 +14,7 @@ from osp.core.ontology.entity import OntologyEntity
 from osp.core.neighbour_dict import NeighbourDictTarget
 from osp.core.session.buffers import get_buffer_context_mngr
 
-INITIALIZE_COMMAND = "_init"
+INITIALISE_COMMAND = "_init"
 LOAD_COMMAND = "_load"
 
 
