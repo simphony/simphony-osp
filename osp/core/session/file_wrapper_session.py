@@ -45,19 +45,19 @@ class FileWrapperSession(WrapperSession):
         :rtype: Iterator[Cuds]
         """
         if self.root is None:
-            raise RuntimeError("This Session is not yet initialized. "
+            raise RuntimeError("This Session is not yet initialised. "
                                "Add it to a wrapper first.")
         for subclass in oclass.subclasses:
             yield from self._load_by_oclass(subclass,
                                             update_registry=update_registry)
 
     def _store(self, cuds_object):
-        initialize = self.root is None
+        initialise = self.root is None
         super()._store(cuds_object)
 
-        if initialize:
+        if initialise:
             with EngineContext(self):
-                self._initialize()
+                self._initialise()
                 self._load_first_level()
 
     @abstractmethod
@@ -85,8 +85,8 @@ class FileWrapperSession(WrapperSession):
         """Save changes to the file."""
 
     @abstractmethod
-    def _initialize(self):
-        """Initialize the file. Creates the necessary structures."""
+    def _initialise(self):
+        """Initialise the file. Creates the necessary structures."""
 
     @abstractmethod
     def _load_first_level(self):

@@ -24,7 +24,7 @@ logger.addHandler(ch)
 thismodule = sys.modules[__name__]
 ONTOLOGY_INSTALLER = OntologyInstallationManager()
 try:
-    ONTOLOGY_INSTALLER.initialize_installed_ontologies(thismodule)
+    ONTOLOGY_INSTALLER.initialise_installed_ontologies(thismodule)
 except RuntimeError:
     logger.critical("Could not load installed ontologies.", exc_info=1)
 atexit.register(ONTOLOGY_INSTALLER._clean)
