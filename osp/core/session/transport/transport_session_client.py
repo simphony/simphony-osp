@@ -12,7 +12,7 @@ from osp.core.session.transport.communication_engine \
     import CommunicationEngineClient
 from osp.core.session.buffers import BufferContext
 from osp.core.session.transport.transport_util import (
-    INITIALIZE_COMMAND, LOAD_COMMAND, deserialize_buffers,
+    INITIALISE_COMMAND, LOAD_COMMAND, deserialize_buffers,
     serializable, serialize_buffers
 )
 
@@ -44,7 +44,7 @@ class TransportSessionClient(WrapperSession):
 
     # OVERRIDE
     def _store(self, cuds_object):
-        # Initialize the server, when the first cuds_object is stored.
+        # Initialise the server, when the first cuds_object is stored.
         if self.root is None:
             data = {
                 "args": self.args,
@@ -52,7 +52,7 @@ class TransportSessionClient(WrapperSession):
                 "root": serializable(cuds_object)
             }
             super()._store(cuds_object)
-            self._engine.send(INITIALIZE_COMMAND,
+            self._engine.send(INITIALISE_COMMAND,
                               json.dumps(data))
             return
         super()._store(cuds_object)

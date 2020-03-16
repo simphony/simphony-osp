@@ -47,21 +47,21 @@ class DbWrapperSession(WrapperSession):
         :rtype: Iterator[Cuds]
         """
         if self.root is None:
-            raise RuntimeError("This Session is not yet initialized. "
+            raise RuntimeError("This Session is not yet initialised. "
                                "Add it to a wrapper first.")
         for subclass in oclass.subclasses:
             yield from self._load_by_oclass(subclass,
                                             update_registry=update_registry)
 
     def _store(self, cuds_object):
-        initialize = self.root is None
+        initialise = self.root is None
         super()._store(cuds_object)
 
-        if initialize:
+        if initialise:
             with EngineContext(self):
                 self._init_transaction()
                 try:
-                    self._initialize()
+                    self._initialise()
                     self._load_first_level()
                     self._commit()
                 except Exception as e:
@@ -73,8 +73,8 @@ class DbWrapperSession(WrapperSession):
         self._engine.commit()
 
     @abstractmethod
-    def _initialize(self):
-        """Initialize the database. Create missing tables etc."""
+    def _initialise(self):
+        """se the database. Create missing tables etc."""
 
     @abstractmethod
     def _apply_added(self, root_obj, buffer):
@@ -94,11 +94,11 @@ class DbWrapperSession(WrapperSession):
 
     @abstractmethod
     def _init_transaction(self):
-        """Initialize the transaction"""
+        """Initialise the transaction"""
 
     @abstractmethod
     def _rollback_transaction(self):
-        """Initialize the transaction"""
+        """Cancel the transaction"""
 
     @abstractmethod
     def close(self):

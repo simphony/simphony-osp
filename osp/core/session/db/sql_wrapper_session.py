@@ -317,7 +317,7 @@ class SqlWrapperSession(DbWrapperSession):
                 self._do_db_delete(table_name, None)
             self._do_db_delete(self.RELATIONSHIP_TABLE, None)
             self._do_db_delete(self.MASTER_TABLE, None)
-            self._initialize()
+            self._initialise()
             self._commit()
         except Exception as e:
             self._rollback_transaction()
@@ -506,7 +506,7 @@ class SqlWrapperSession(DbWrapperSession):
             yield loaded[0] if loaded else None
 
     # OVERRIDE
-    def _initialize(self):
+    def _initialise(self):
         self._do_db_create(
             table_name=self.MASTER_TABLE,
             columns=self.COLUMNS[self.MASTER_TABLE],
