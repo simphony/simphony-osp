@@ -23,7 +23,7 @@ class OwlToYmlConverter():
 
     def __init__(self, owl_ontology_file, conversion_options_file,
                  namespace, version):
-        """Initialize the converter
+        """Initialise the converter
 
         :param owl_ontology_file: The owl file to convert
         :type owl_ontology_file: str

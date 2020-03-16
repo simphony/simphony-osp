@@ -12,7 +12,7 @@ from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.transport.communication_engine \
     import CommunicationEngineServer
 from osp.core.session.transport.transport_util import (
-    INITIALIZE_COMMAND, LOAD_COMMAND, deserialize, deserialize_buffers,
+    INITIALISE_COMMAND, LOAD_COMMAND, deserialize, deserialize_buffers,
     serializable, serialize_buffers
 )
 
@@ -67,7 +67,7 @@ class TransportSessionServer():
         :return: The response for the client.
         :rtype: str
         """
-        if command == INITIALIZE_COMMAND:
+        if command == INITIALISE_COMMAND:
             return self._init_session(data, user)
         elif command == LOAD_COMMAND:
             return self._load_from_session(data, user)
@@ -127,7 +127,7 @@ class TransportSessionServer():
         :type data: str
         :param user: The user who requests to start a new session
         :type user: Hashable
-        :return: The buffers after the initialization, serialized.
+        :return: The buffers after the initialisation, serialized.
         :rtype: str
         """
         data = json.loads(data)

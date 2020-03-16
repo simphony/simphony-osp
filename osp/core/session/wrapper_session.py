@@ -55,7 +55,7 @@ class WrapperSession(Session):
     @returns_query_result
     def load(self, *uids):
         if self.root is None:
-            raise RuntimeError("This Session is not yet initialized. "
+            raise RuntimeError("This Session is not yet initialised. "
                                "Add it to a wrapper first.")
 
         # refresh expired

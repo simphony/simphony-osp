@@ -28,7 +28,7 @@ class Ontology2Dot():
 
     def __init__(self, namespaces, output_filename, group=False):
         """Constructor.
-        Initializes the graph.
+        Initialises the graph.
 
         :param namespaces: The namespaces to print.
         :type namespaces: List[str]
