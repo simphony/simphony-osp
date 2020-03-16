@@ -20,7 +20,7 @@ from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
 from osp.core.session.transport.transport_util import (
     deserialize, serializable, deserialize_buffers,
-    serialize_buffers, LOAD_COMMAND, INITIALIZE_COMMAND
+    serialize_buffers, LOAD_COMMAND, INITIALISE_COMMAND
 )
 from osp.core.utils import create_from_cuds_object
 
@@ -450,7 +450,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
                             uid=1,
                             session=client,
                             fix_neighbours=False)  # store will be called here
-        self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
+        self.assertEqual(client._engine._sent_command, INITIALISE_COMMAND)
         self.assertEqual(client._engine._sent_data, (
             '{"args": [], "kwargs": {}, '
             '"root": {"oclass": "CITY.CITY_WRAPPER", '
@@ -549,7 +549,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
         server = TransportSessionServer(TestWrapperSession, None, None)
         with TestWrapperSession() as s1:
 
-            # initialize buffers
+            # initialise buffers
             ws1 = CITY.CITY_WRAPPER(session=s1, uid=0)
             c = CITY.CITY(name="Freiburg", uid=1)
             ws1.add(c)
@@ -580,7 +580,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
             self.assertEqual(result, SERIALIZED_BUFFERS3)
 
     def test_init_session(self):
-        """Test the initialization of the session on the remote side"""
+        """Test the initialisation of the session on the remote side"""
         server = TransportSessionServer(TestWrapperSession, None, None)
         data = json.dumps({
             "args": [],
@@ -605,7 +605,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
         TestWrapperSession.command = command
         server = TransportSessionServer(TestWrapperSession, None, None)
         with TestWrapperSession() as s1:
-            # initialize buffers
+            # initialise buffers
             ws1 = CITY.CITY_WRAPPER(session=s1, uid=0)
             c = CITY.CITY(name="Freiburg", uid=1)
             ws1.add(c)
