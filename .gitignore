@@ -18,3 +18,4 @@ dist/
 java/osp.core/.settings
 java/osp.core/.classpath
 java/osp.core/.project
+java/osp.core/target
