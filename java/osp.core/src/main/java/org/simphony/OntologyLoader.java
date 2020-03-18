@@ -98,7 +98,7 @@ public class OntologyLoader {
     }
 
     public void saveOntology() throws OWLOntologyStorageException {
-        manager.saveOntology(ontology, new RDFXMLDocumentFormat(), ontologyIRI);
+        manager.saveOntology(ontology, new RDFXMLDocumentFormat());
     }
 
     private void loadCatalog(File directory) {
