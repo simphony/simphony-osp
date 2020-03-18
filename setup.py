@@ -25,7 +25,9 @@ setup(
     packages=find_packages(exclude=("examples", "tests")),
     package_data={
         "osp.core.ontology.yml": ["*.yml"],
-        "osp.core.ontology": ["*.pkl"]
+        "osp.core.java.lib.so": ["*"],
+        "osp.core.java.lib.jars": ["*.jar"],
+        "osp.core.java.target": ["*.jar"]
     },
     python_requires=">=3.6",
     entry_points={

@@ -15,8 +15,8 @@ coverage.xml
 *.pkl
 .tox/
 dist/
-java/osp.core/.settings
-java/osp.core/.classpath
-java/osp.core/.project
-java/osp.core/target
-java/osp.core/lib
+osp/core/java/.settings
+osp/core/java/.classpath
+osp/core/java/.project
+osp/core/java/target
+osp/core/java/lib

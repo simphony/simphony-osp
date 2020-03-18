@@ -4,6 +4,7 @@ import uuid
 import pickle  # nosec
 import yaml
 import logging
+import subprocess
 from shutil import copyfile, rmtree, copytree
 import osp.core
 from osp.core.ontology.parser import Parser
@@ -78,6 +79,23 @@ class OntologyInstallationManager():
         :type success_msg: bool
         """
         # parse the files
+        owl_files = {f for f in files
+                     if f.endswith(".owl") or f.endswith(".rdf")}
+        java_base = os.path.abspath(
+            os.path.join(os.path.dirname(__file__),
+                         "..", "java")
+        )
+        cmd = [
+            "java", "-cp",
+            java_base + "/target/osp.core-3.4.4-beta.jar:"
+            + java_base + "/lib/jars/*",
+            "-Djava.library.path="
+            + java_base + "/lib/so", "org.simphony.OntologyLoader"
+        ] + list(owl_files)
+        logger.info("Running Reasoner")
+        logger.debug(" ".join(cmd))
+        subprocess.run(cmd)
+        files = [f for f in files if f not in owl_files]
         if files:
             self.parse_files(files)
 
