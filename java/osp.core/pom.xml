@@ -28,20 +28,19 @@
     <dependency>
       <groupId>net.sourceforge.owlapi</groupId>
       <artifactId>owlapi-distribution</artifactId>
-      <version>5.0.0</version>
-    </dependency>
-    <dependency>
-      <groupId>net.sourceforge.owlapi</groupId>
-      <artifactId>org.semanticweb.hermit</artifactId>
-      <version>1.3.8.500</version>
+      <version>4.5.15</version>
     </dependency>
     <dependency>
       <groupId>edu.stanford.protege</groupId>
       <artifactId>org.protege.xmlcatalog</artifactId>
-      <version>1.0.5</version>
+      <version>1.0.4</version>
+    </dependency>
+    <dependency>
+      <groupId>uk.ac.manchester.cs</groupId>
+      <artifactId>factplusplus</artifactId>
+      <version>1.6.5</version>
     </dependency>
   </dependencies>
-
   <build>
     <pluginManagement>      <!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
       <plugins>
@@ -83,15 +82,6 @@
           <artifactId>maven-deploy-plugin</artifactId>
           <version>2.8.2</version>
         </plugin>
-        <!-- site lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#site_Lifecycle -->
-        <plugin>
-          <artifactId>maven-site-plugin</artifactId>
-          <version>3.7.1</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-project-info-reports-plugin</artifactId>
-          <version>3.0.0</version>
-        </plugin>
 
         <plugin>
           <artifactId>maven-assembly-plugin</artifactId>
@@ -115,6 +105,15 @@
               </goals>
             </execution>
           </executions>
+        </plugin>
+        <!-- site lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#site_Lifecycle -->
+        <plugin>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>3.7.1</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-project-info-reports-plugin</artifactId>
+          <version>3.0.0</version>
         </plugin>
 
       </plugins>
