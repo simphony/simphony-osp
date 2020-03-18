@@ -7,8 +7,8 @@ wget https://bitbucket.org/dtsarkov/factplusplus/downloads/FaCTpp-linux-v1.6.5.z
 unzip *.zip
 cd ..
 
-mkdir java/osp.core/lib/so
-mv tmp/FaCTpp-OWLAPI-4.x-v1.6.5.jar java/osp.core/lib/jars
+mkdir osp/core/java/lib/so
+mv tmp/FaCTpp-OWLAPI-4.x-v1.6.5.jar osp/core/java/lib/jars
 if [[ "$(uname -m)" ==  "x86_64" ]]
   then
     mv tmp/Fact++-linux-v1.6.5/64bit/* osp/core/java/lib/so
