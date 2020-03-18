@@ -2,7 +2,6 @@ package org.simphony;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -51,10 +50,9 @@ public class OntologyLoader {
     private File outputFile;
 
     public OntologyLoader() throws IOException {
-        LOGGER.warning(System.getProperty("java.library.path"));
         this.manager = OWLManager.createOWLOntologyManager();
         this.dataFactory = OWLManager.getOWLDataFactory();
-        this.outputFile = File.createTempFile("inferred_ontology", ".owl");
+        this.outputFile = new File("./inferred_ontology.owl");
     }
 
     public void loadOntologies(String[] args) {
