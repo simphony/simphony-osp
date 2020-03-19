@@ -15,7 +15,6 @@ if [[ "$(uname -m)" ==  "x86_64" ]]
   else
     mv tmp/Fact++-linux-v1.6.5/64bit/* osp/core/java/lib/so
 fi
-mvn package -f osp/core/java/pom.xml
 rm -rf tmp
 touch osp/core/java/target/__init__.py
 touch osp/core/java/lib/__init__.py
