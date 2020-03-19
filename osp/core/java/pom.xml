@@ -6,7 +6,7 @@
 
   <groupId>org.simphony</groupId>
   <artifactId>osp.core</artifactId>
-  <version>3.4.4-beta</version>
+  <version>0.0.1</version>
 
   <name>osp.core</name>
   <!-- FIXME change it to the project's website -->

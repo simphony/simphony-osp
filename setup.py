@@ -1,5 +1,6 @@
 import os
 import subprocess
+import shutil
 from setuptools import setup, find_packages
 from packageinfo import VERSION, NAME
 from setuptools.command.install import install
@@ -18,27 +19,46 @@ with open("packageinfo.py", "r") as packageinfo:
         print("# DO NOT MODIFY", file=f)
 
 
-def install_factplusplus():
-    x = os.path.join(os.path.dirname(__file__), "install_factplusplus.sh")
-    subprocess.run(["bash", x])
+def build_dependencies(force_dependency_download):
+    x = os.path.join(os.path.dirname(__file__), "download_dependencies.sh")
+    if force_dependency_download:
+        shutil.rmtree(os.path.join(os.path.dirname(__file__),
+                                   "osp", "core", "java", "lib"))
+    subprocess.run(["bash", x], check=True)
     try:
         subprocess.run(["mvn", "-Dmaven.test.skip=true",
-                        "package", "-f", "osp/core/java/pom.xml"])
+                        "clean", "package", "-f", "osp/core/java/pom.xml"])
     except Exception as e:
         raise RuntimeError(
             "Error building parser. "
-            "Make sure Maven and JDK is installed.") from e
+            "Make sure Maven and JDK are installed.") from e
 
 
 class Install(install):
+    user_options = install.user_options + [
+        ('force-dependency-download', None, 'Force the download of dependencies')
+    ]
+
+    def initialize_options(self):
+        install.initialize_options(self)
+        self.force_dependency_download = ""
+
     def run(self):
-        install_factplusplus()
+        build_dependencies(self.force_dependency_download)
         install.do_egg_install(self)
 
 
 class Develop(develop):
+    user_options = develop.user_options + [
+        ('force-dependency-download', '-s', 'Force the download of dependencies')
+    ]
+
+    def initialize_options(self):
+        develop.initialize_options(self)
+        self.force_dependency_download = ""
+
     def run(self):
-        install_factplusplus()
+        build_dependencies(self.force_dependency_download)
         develop.run(self)
 
 

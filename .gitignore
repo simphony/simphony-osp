@@ -20,3 +20,4 @@ osp/core/java/.classpath
 osp/core/java/.project
 osp/core/java/target
 osp/core/java/lib
+osp/core/packageinfo.py

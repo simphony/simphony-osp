@@ -4,7 +4,6 @@ import uuid
 import pickle  # nosec
 import yaml
 import logging
-import subprocess
 from shutil import copyfile, rmtree, copytree
 import osp.core
 from osp.core.ontology.parser import Parser
@@ -12,6 +11,7 @@ from osp.core.ontology.keywords import (
     ONTOLOGY_KEY, NAMESPACE_KEY, REQUIREMENTS_KEY
 )
 from osp.core.ontology.namespace_registry import NamespaceRegistry
+from osp.core.ontology.owl_installation import OwlInstaller
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,7 @@ class OntologyInstallationManager():
         self.tmp_path = os.path.join(self.yaml_path, str(self.session_id))
         self.pkl_path = os.path.join(self.path, "ontology.pkl")
         self.rollback_path = os.path.join(self.yaml_path, "rollback")
+        self.owl_installer = OwlInstaller()
 
     def tmp_open(self, file_path):
         """Copy the yaml file to the temporary folder.
@@ -79,23 +80,8 @@ class OntologyInstallationManager():
         :type success_msg: bool
         """
         # parse the files
-        owl_files = {f for f in files
-                     if f.endswith(".owl") or f.endswith(".rdf")}
-        java_base = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "..", "java")
-        )
-        cmd = [
-            "java", "-cp",
-            java_base + "/target/osp.core-3.4.4-beta.jar:"
-            + java_base + "/lib/jars/*",
-            "-Djava.library.path="
-            + java_base + "/lib/so", "org.simphony.OntologyLoader"
-        ] + list(owl_files)
-        logger.info("Running Reasoner")
-        logger.debug(" ".join(cmd))
-        subprocess.run(cmd)
-        files = [f for f in files if f not in owl_files]
+        files = list(files)
+        self.owl_installer.install(files)
         if files:
             self.parse_files(files)
 
