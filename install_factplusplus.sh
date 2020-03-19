@@ -5,6 +5,8 @@ wget https://bitbucket.org/dtsarkov/factplusplus/downloads/FaCTpp-linux-v1.6.5.z
 unzip *.zip
 cd ..
 
+mkdir osp/core/java/lib
+mkdir osp/core/java/lib/jars
 mkdir osp/core/java/lib/so
 mvn install:install-file -Dfile=tmp/FaCTpp-OWLAPI-4.x-v1.6.5.jar -DgroupId=uk.ac.manchester.cs \
     -DartifactId=factplusplus -Dversion=1.6.5 -Dpackaging=jar
