@@ -102,6 +102,9 @@ public class OntologyLoader {
     }
 
     private void loadCatalog(File directory) {
+        if (directory == null) {
+            directory = new File(".");
+        }
         for (String filename : directory.list()) {
             if (filename.startsWith("catalog") && filename.endsWith(".xml")) {
                 try {
