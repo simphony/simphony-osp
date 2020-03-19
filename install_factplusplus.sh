@@ -1,5 +1,3 @@
-mvn dependency:copy-dependencies -DoutputDirectory=lib/jars -Dhttps.protocols=TLSv1.2 -f osp/core/java/pom.xml
-
 mkdir tmp
 cd tmp
 wget https://bitbucket.org/dtsarkov/factplusplus/downloads/FaCTpp-OWLAPI-4.x-v1.6.5.jar
@@ -8,7 +6,9 @@ unzip *.zip
 cd ..
 
 mkdir osp/core/java/lib/so
-mv tmp/FaCTpp-OWLAPI-4.x-v1.6.5.jar osp/core/java/lib/jars
+mvn install:install-file -Dfile=tmp/FaCTpp-OWLAPI-4.x-v1.6.5.jar -DgroupId=uk.ac.manchester.cs \
+    -DartifactId=factplusplus -Dversion=1.6.5 -Dpackaging=jar
+mvn dependency:copy-dependencies -DoutputDirectory=lib/jars -Dhttps.protocols=TLSv1.2 -f osp/core/java/pom.xml
 if [[ "$(uname -m)" ==  "x86_64" ]]
   then
     mv tmp/Fact++-linux-v1.6.5/64bit/* osp/core/java/lib/so
