@@ -1,10 +1,11 @@
 import os
+import sys
 import subprocess
 import shutil
 from setuptools import setup, find_packages
 from packageinfo import VERSION, NAME
-from setuptools.command.install import install
 from setuptools.command.develop import develop
+from setuptools.command.install import install
 
 
 # Read description
@@ -28,10 +29,24 @@ def build_dependencies(force_dependency_download):
     try:
         subprocess.run(["mvn", "-Dmaven.test.skip=true",
                         "clean", "package", "-f", "osp/core/java/pom.xml"])
+        target_dir = os.path.join("osp", "core", "java", "target")
+        lib_dir = os.path.join("osp", "core", "java", "lib", "jars")
+        for file in os.listdir(target_dir):
+            if file.endswith(".jar"):
+                os.replace(os.path.join(target_dir, file),
+                           os.path.join(lib_dir, file))
     except Exception as e:
         raise RuntimeError(
             "Error building parser. "
             "Make sure Maven and JDK are installed.") from e
+
+
+if (
+    ("install" in sys.argv or "develop" in sys.argv)
+    and "-h" not in sys.argv
+    and "--help" not in sys.argv
+):
+    build_dependencies("--force-dependency-download" in sys.argv)
 
 
 class Install(install):
@@ -43,23 +58,15 @@ class Install(install):
         install.initialize_options(self)
         self.force_dependency_download = ""
 
-    def run(self):
-        build_dependencies(self.force_dependency_download)
-        install.do_egg_install(self)
-
 
 class Develop(develop):
     user_options = develop.user_options + [
-        ('force-dependency-download', '-s', 'Force the download of dependencies')
+        ('force-dependency-download', None, 'Force the download of dependencies')
     ]
 
     def initialize_options(self):
         develop.initialize_options(self)
         self.force_dependency_download = ""
-
-    def run(self):
-        build_dependencies(self.force_dependency_download)
-        develop.run(self)
 
 
 # main setup configuration class
@@ -75,14 +82,13 @@ setup(
     package_data={
         "osp.core.ontology.yml": ["*.yml"],
         "osp.core.java.lib.so": ["*"],
-        "osp.core.java.lib.jars": ["*.jar"],
-        "osp.core.java.target": ["*.jar"]
+        "osp.core.java.lib.jars": ["*.jar"]
     },
     include_package_data=True,
     python_requires=">=3.6",
     cmdclass={
-        'install': Install,
-        'develop': Develop
+        'develop': Develop,
+        'install': Install
     },
     entry_points={
         'wrappers': 'osp-core = osp.core.session.core_session:CoreSession',

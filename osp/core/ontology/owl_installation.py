@@ -43,7 +43,6 @@ class OwlInstaller():
         )
         cmd = [
             "java", "-cp",
-            java_base + "/target/osp.core-0.0.1.jar:"
             + java_base + "/lib/jars/*",
             "-Djava.library.path="
             + java_base + "/lib/so", "org.simphony.OntologyLoader"

@@ -34,7 +34,6 @@ if [[ "$(uname -m)" ==  "x86_64" ]]
     mv -v tmp/FaCT++-linux-v1.6.5/32bit/* osp/core/java/lib/so
 fi
 rm -rf tmp
-touch osp/core/java/target/__init__.py
 touch osp/core/java/lib/__init__.py
 touch osp/core/java/lib/so/__init__.py
 touch osp/core/java/lib/jars/__init__.py
