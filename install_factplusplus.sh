@@ -13,9 +13,9 @@ mvn install:install-file -Dfile=tmp/FaCTpp-OWLAPI-4.x-v1.6.5.jar -DgroupId=uk.ac
 mvn dependency:copy-dependencies -DoutputDirectory=lib/jars -Dhttps.protocols=TLSv1.2 -f osp/core/java/pom.xml
 if [[ "$(uname -m)" ==  "x86_64" ]]
   then
-    mv tmp/Fact++-linux-v1.6.5/64bit/* osp/core/java/lib/so
+    mv -v tmp/FaCT++-linux-v1.6.5/64bit/* osp/core/java/lib/so
   else
-    mv tmp/Fact++-linux-v1.6.5/64bit/* osp/core/java/lib/so
+    mv -v tmp/FaCT++-linux-v1.6.5/32bit/* osp/core/java/lib/so
 fi
 rm -rf tmp
 touch osp/core/java/target/__init__.py

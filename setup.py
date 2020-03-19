@@ -33,7 +33,7 @@ def install_factplusplus():
 class Install(install):
     def run(self):
         install_factplusplus()
-        install.run(self)
+        install.do_egg_install(self)
 
 
 class Develop(develop):
@@ -58,6 +58,7 @@ setup(
         "osp.core.java.lib.jars": ["*.jar"],
         "osp.core.java.target": ["*.jar"]
     },
+    include_package_data=True,
     python_requires=">=3.6",
     cmdclass={
         'install': Install,
