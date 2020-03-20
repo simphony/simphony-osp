@@ -59,7 +59,7 @@ public class OntologyLoader {
         for (String arg : args) {
             try {
                 File file = new File(arg);
-                loadCatalog(file.getParentFile());
+                loadCatalog(file);
                 ontology = manager.loadOntologyFromOntologyDocument(file);
             } catch (OWLOntologyCreationException e) {
                 e.printStackTrace();
@@ -101,20 +101,18 @@ public class OntologyLoader {
         manager.saveOntology(ontology, new RDFXMLDocumentFormat());
     }
 
-    private void loadCatalog(File directory) {
-        System.out.println("Hallo");
+    private void loadCatalog(File owl_file) {
+        File directory = owl_file.getParentFile();
         if (directory == null) {
             directory = new File(".");
-        } else {
-            System.out.println(directory.toString());
         }
         for (String filename : directory.list()) {
             if (filename.startsWith("catalog") && filename.endsWith(".xml")) {
                 try {
-                    File file = new File(directory, filename);
-                    OWLOntologyIRIMapper mapper = new XMLCatalogIRIMapper(file);
+                    File catalog = new File(directory, filename);
+                    OWLOntologyIRIMapper mapper = new XMLCatalogIRIMapper(catalog);
                     manager.getIRIMappers().add(mapper);
-                    LOGGER.info("Loaded catalog file " + file.toString());
+                    LOGGER.info("Loaded catalog file " + catalog.toString());
                 } catch (IOException e) {
                     LOGGER.warning("Could not load catalog file "+ filename);
                     continue;

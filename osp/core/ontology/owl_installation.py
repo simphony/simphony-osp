@@ -28,7 +28,7 @@ class OwlInstaller():
         self.parse(yaml_docs)
 
     def parse(self, yaml_docs):
-        owl_files = [os.path.join(file_path, x)
+        owl_files = [os.path.join(os.path.dirname(file_path), x)
                      for file_path, yaml_doc in yaml_docs.items()
                      for x in yaml_doc[OWL_FILES_KEY]]
         self.load_owl_files(owl_files)
@@ -43,7 +43,7 @@ class OwlInstaller():
         )
         cmd = [
             "java", "-cp",
-            + java_base + "/lib/jars/*",
+            java_base + "/lib/jars/*",
             "-Djava.library.path="
             + java_base + "/lib/so", "org.simphony.OntologyLoader"
         ] + list(owl_files)
@@ -73,13 +73,21 @@ class OwlInstaller():
                 self.load_entity(s, rdflib.OWL.DataProperty)
 
     def load_entity(self, uri, rdf_type):
-        for namespace, uri_prefix in self.domain_mapping.items():
+        for top_namespace, uri_prefix in self.domain_mapping.items():
             if str(uri).startswith(uri_prefix):
                 uri_suffix = str(uri)[len(uri_prefix):].strip("/#")
-                name = list(filter(None, re.split("[/#]+", uri_suffix)))
+                name = filter(None, re.split("[/#]+", uri_suffix))
+                name = map(lambda x: x.split(".")[0], name)
                 name = [x.replace("-", "_") for x in name]
+                name = [top_namespace] + name
                 namespace = ".".join(name[:-1])
                 if namespace not in self.namespaces:
                     logger.info("Installed namespace %s" % namespace)
                     self.namespaces[namespace] = dict()
                 self.namespaces[namespace][name[-1]] = uri
+                logger.debug("Use %s.%s to reference %s"
+                             % (namespace, name[-1], uri))
+                for (s, p, o) in self.graph.triples((uri, rdflib.RDFS.label, None)):
+                    self.namespaces[namespace][str(o)] = uri
+                    logger.debug("Use %s.%s to reference %s"
+                                 % (namespace, o, uri))
