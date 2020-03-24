@@ -13,7 +13,7 @@ from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_to, convert_from, \
     parse_vector_args
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
-from osp.core.session.db.conditions import EqualsCondition
+from osp.core.session.db.conditions import EqualsCondition, AndCondition
 from osp.core.neighbour_dict import NeighbourDictTarget
 from osp.core import get_entity
 from osp.core.session.buffers import BufferContext
@@ -264,12 +264,15 @@ class SqlWrapperSession(DbWrapperSession):
                       primary_key, foreign_key, indexes):
         """Call db_create but expand the vectors first."""
         columns, datatypes = self._expand_vector_cols(columns, datatypes)
+        self._check_characters(table_name, columns, datatypes,
+                               primary_key, foreign_key, indexes)
         self._db_create(table_name, columns, datatypes,
                         primary_key, foreign_key, indexes)
 
     def _do_db_select(self, table_name, columns, condition, datatypes):
         """Call db_select but consider vectors"""
         columns, datatypes = self._expand_vector_cols(columns, datatypes)
+        self._check_characters(table_name, columns, condition, datatypes)
         rows = self._db_select(table_name, columns, condition, datatypes)
         rows = self._convert_values(rows, columns, datatypes)
         yield from self._contract_vector_values(columns, datatypes, rows)
@@ -281,6 +284,7 @@ class SqlWrapperSession(DbWrapperSession):
                                                               values)
         values = [convert_from(v, datatypes.get(c))
                   for c, v in zip(columns, values)]
+        self._check_characters(table_name, columns, datatypes)
         self._db_insert(table_name, columns, values, datatypes)
 
     def _do_db_update(self, table_name, columns,
@@ -291,11 +295,14 @@ class SqlWrapperSession(DbWrapperSession):
                                                               values)
         values = [convert_from(v, datatypes.get(c))
                   for c, v in zip(columns, values)]
+        self._check_characters(table_name, columns,
+                               condition, datatypes)
         self._db_update(table_name, columns,
                         values, condition, datatypes)
 
     def _do_db_delete(self, table_name, condition):
         """Call _db_delete but expand vectors"""
+        self._check_characters(table_name, condition)
         self._db_delete(table_name, condition)
 
     def _clear_database(self):
@@ -705,3 +712,37 @@ class SqlWrapperSession(DbWrapperSession):
         datatypes = dict(uid="UUID", **{x.argname: x.datatype
                                         for x in attributes if x != "session"})
         return columns, datatypes
+
+    def _check_characters(self, *to_check):
+        """Check if column or table names contain invalid characters
+
+        Raises:
+            ValueError: Invalid character detected
+        """
+        forbidden_chars = [";", "\0", "\r", "\x08", "\x09", "\x1a", "\n",
+                           "\r", "\"", "'", "`", "\\", "%"]
+        to_check = list(to_check)
+        str_to_check = str(to_check)
+        for c in forbidden_chars:
+            while to_check:
+                s = to_check.pop()
+                if isinstance(s, str):
+                    s = s.encode("utf-8", "strict").decode("utf-8")
+                    if c in s:
+                        raise ValueError(
+                            "Forbidden character %s [chr(%s)] in %s"
+                            % (c, ord(c), s)
+                        )
+                elif isinstance(s, (list, tuple)):
+                    to_check += list(s)
+                elif isinstance(s, dict):
+                    to_check += list(s.keys())
+                    to_check += list(s.values())
+                elif isinstance(s, AndCondition):
+                    to_check += list(s.conditions)
+                elif isinstance(s, EqualsCondition):
+                    to_check += [s.table_name, s.column, s.datatype]
+                elif s is None:
+                    pass
+                else:
+                    raise ValueError("%s - %s" % (s, str_to_check))
