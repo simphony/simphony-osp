@@ -714,6 +714,11 @@ class SqlWrapperSession(DbWrapperSession):
         return columns, datatypes
 
     def _check_characters(self, *to_check):
+        """Check if column or table names contain invalid characters
+
+        Raises:
+            ValueError: Invalid character detected
+        """
         forbidden_chars = [";", "\0", "\r", "\x08", "\x09", "\x1a", "\n",
                            "\r", "\"", "'", "\\", "%"]
         to_check = list(to_check)
@@ -724,8 +729,10 @@ class SqlWrapperSession(DbWrapperSession):
                 if isinstance(s, str):
                     s = s.encode("utf-8", "strict").decode("utf-8")
                     if c in s:
-                        raise ValueError("Forbidden character %s [chr(%s)] in %s"
-                                         % (c, ord(c), s))
+                        raise ValueError(
+                            "Forbidden character %s [chr(%s)] in %s"
+                            % (c, ord(c), s)
+                        )
                 elif isinstance(s, (list, tuple)):
                     to_check += list(s)
                 elif isinstance(s, dict):

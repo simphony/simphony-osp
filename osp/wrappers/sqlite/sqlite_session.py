@@ -75,9 +75,11 @@ class SqliteSession(SqlWrapperSession):
     # OVERRIDE
     def _db_create(self, table_name, columns, datatypes,
                    primary_key, foreign_key, indexes):
-        columns = [c if c not in datatypes
-                   else "'%s' '%s'" % (c, self._to_sqlite_datatype(datatypes[c]))
-                   for c in columns]
+        columns = [
+            c if c not in datatypes
+            else "'%s' '%s'" % (c, self._to_sqlite_datatype(datatypes[c]))
+            for c in columns
+        ]
         constraints = [
             "PRIMARY KEY(%s)" % ", ".join(
                 map(lambda x: "'%s'" % x, primary_key)
