@@ -65,7 +65,8 @@ class SqliteSession(SqlWrapperSession):
     # OVERRIDE
     def _db_select(self, table_name, columns, condition, datatypes):
         cond_pattern, cond_values = self._get_condition_pattern(condition)
-        sql_pattern = "SELECT %s FROM %s WHERE %s;" % (
+        columns = map(lambda x: "'%s'" % x, columns)
+        sql_pattern = "SELECT %s FROM '%s' WHERE %s;" % (  # nosec
             ", ".join(columns), table_name, cond_pattern
         )
         c = self._engine.cursor()
@@ -106,7 +107,7 @@ class SqliteSession(SqlWrapperSession):
     def _db_insert(self, table_name, columns, values, datatypes):
         val_pattern, val_values = self._sql_list_pattern("val", values)
         columns = map(lambda x: "'%s'" % x, columns)
-        sql_pattern = "INSERT INTO '%s' (%s) VALUES (%s);" % (
+        sql_pattern = "INSERT INTO '%s' (%s) VALUES (%s);" % (  # nosec
             table_name, ", ".join(columns), val_pattern
         )
         c = self._engine.cursor()
@@ -119,7 +120,7 @@ class SqliteSession(SqlWrapperSession):
         update_pattern = ", ".join(
             ("'%s' = %s" % (c, v) for c, v in zip(columns, val_pattern))
         )
-        sql_pattern = "UPDATE '%s' SET %s WHERE %s;" % (
+        sql_pattern = "UPDATE '%s' SET %s WHERE %s;" % (  # nosec
             table_name, update_pattern, cond_pattern
         )
         sql_values = dict(**val_values, **cond_values)
@@ -129,7 +130,7 @@ class SqliteSession(SqlWrapperSession):
     # OVERRIDE
     def _db_delete(self, table_name, condition):
         cond_pattern, cond_values = self._get_condition_pattern(condition)
-        sql_pattern = ("DELETE FROM '%s' WHERE %s;"
+        sql_pattern = ("DELETE FROM '%s' WHERE %s;"  # nosec
                        % (table_name, cond_pattern))
         c = self._engine.cursor()
         c.execute(sql_pattern, cond_values)
