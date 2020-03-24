@@ -48,8 +48,9 @@ class SimDummySession(SimWrapperSession):
 
     def _load_city(self, uid):
         city = self._registry.get(uid)
-        inhabitant_uids = set([x.uid
-                               for x in city.get(rel=self.onto.HAS_INHABITANT)])
+        inhabitant_uids = set(
+            [x.uid for x in city.get(rel=self.onto.HAS_INHABITANT)]
+        )
         person_uids = self._person_map.keys() - inhabitant_uids
         for person_uid in person_uids:
             self.refresh(person_uid)
