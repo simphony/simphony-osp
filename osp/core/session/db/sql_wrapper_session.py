@@ -720,7 +720,7 @@ class SqlWrapperSession(DbWrapperSession):
             ValueError: Invalid character detected
         """
         forbidden_chars = [";", "\0", "\r", "\x08", "\x09", "\x1a", "\n",
-                           "\r", "\"", "'", "\\", "%"]
+                           "\r", "\"", "'", "`", "\\", "%"]
         to_check = list(to_check)
         str_to_check = str(to_check)
         for c in forbidden_chars:

@@ -65,8 +65,8 @@ class SqliteSession(SqlWrapperSession):
     # OVERRIDE
     def _db_select(self, table_name, columns, condition, datatypes):
         cond_pattern, cond_values = self._get_condition_pattern(condition)
-        columns = map(lambda x: "'%s'" % x, columns)
-        sql_pattern = "SELECT %s FROM '%s' WHERE %s;" % (  # nosec
+        columns = map(lambda x: "`%s`" % x, columns)
+        sql_pattern = "SELECT %s FROM `%s` WHERE %s;" % (  # nosec
             ", ".join(columns), table_name, cond_pattern
         )
         c = self._engine.cursor()
@@ -78,36 +78,36 @@ class SqliteSession(SqlWrapperSession):
                    primary_key, foreign_key, indexes):
         columns = [
             c if c not in datatypes
-            else "'%s' '%s'" % (c, self._to_sqlite_datatype(datatypes[c]))
+            else "`%s` `%s`" % (c, self._to_sqlite_datatype(datatypes[c]))
             for c in columns
         ]
         constraints = [
             "PRIMARY KEY(%s)" % ", ".join(
-                map(lambda x: "'%s'" % x, primary_key)
+                map(lambda x: "`%s`" % x, primary_key)
             )
         ]
         constraints += [
-            "FOREIGN KEY('%s') REFERENCES '%s'('%s')" % (col, ref[0], ref[1])
+            "FOREIGN KEY(`%s`) REFERENCES `%s`(`%s`)" % (col, ref[0], ref[1])
             for col, ref in foreign_key.items()
         ]
         c = self._engine.cursor()
-        sql = "CREATE TABLE IF NOT EXISTS '%s' (%s);" % (
+        sql = "CREATE TABLE IF NOT EXISTS `%s` (%s);" % (
             table_name,
             ", ".join(columns + constraints)
         )
         c.execute(sql)
         for index in indexes:
-            sql = "CREATE INDEX IF NOT EXISTS 'idx_%s_%s' ON '%s'(%s)" % (
+            sql = "CREATE INDEX IF NOT EXISTS `idx_%s_%s` ON `%s`(%s)" % (
                 table_name, "_".join(index),
-                table_name, ", ".join(map(lambda x: "'%s'" % x, index))
+                table_name, ", ".join(map(lambda x: "`%s`" % x, index))
             )
             c.execute(sql)
 
     # OVERRIDE
     def _db_insert(self, table_name, columns, values, datatypes):
         val_pattern, val_values = self._sql_list_pattern("val", values)
-        columns = map(lambda x: "'%s'" % x, columns)
-        sql_pattern = "INSERT INTO '%s' (%s) VALUES (%s);" % (  # nosec
+        columns = map(lambda x: "`%s`" % x, columns)
+        sql_pattern = "INSERT INTO `%s` (%s) VALUES (%s);" % (  # nosec
             table_name, ", ".join(columns), val_pattern
         )
         c = self._engine.cursor()
@@ -118,9 +118,9 @@ class SqliteSession(SqlWrapperSession):
         cond_pattern, cond_values = self._get_condition_pattern(condition)
         val_pattern, val_values = self._sql_list_pattern("val", values, False)
         update_pattern = ", ".join(
-            ("'%s' = %s" % (c, v) for c, v in zip(columns, val_pattern))
+            ("`%s` = %s" % (c, v) for c, v in zip(columns, val_pattern))
         )
-        sql_pattern = "UPDATE '%s' SET %s WHERE %s;" % (  # nosec
+        sql_pattern = "UPDATE `%s` SET %s WHERE %s;" % (  # nosec
             table_name, update_pattern, cond_pattern
         )
         sql_values = dict(**val_values, **cond_values)
@@ -130,7 +130,7 @@ class SqliteSession(SqlWrapperSession):
     # OVERRIDE
     def _db_delete(self, table_name, condition):
         cond_pattern, cond_values = self._get_condition_pattern(condition)
-        sql_pattern = ("DELETE FROM '%s' WHERE %s;"  # nosec
+        sql_pattern = ("DELETE FROM `%s` WHERE %s;"  # nosec
                        % (table_name, cond_pattern))
         c = self._engine.cursor()
         c.execute(sql_pattern, cond_values)
@@ -153,10 +153,10 @@ class SqliteSession(SqlWrapperSession):
         :rtype: str
         """
         if condition is None:
-            return '1', dict()
+            return "1", dict()
         if isinstance(condition, EqualsCondition):
             value = condition.value
-            pattern = "'%s'.'%s'=:%s_value" % (
+            pattern = "`%s`.`%s`=:%s_value" % (
                 condition.table_name, condition.column, prefix
             )
             values = {
