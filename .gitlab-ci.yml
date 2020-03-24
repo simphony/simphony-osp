@@ -18,6 +18,7 @@ radon:
 bandit:
   stage: code_analysis
   script:
+    - bandit --version
     - bandit -r osp --skip B101
 
 # loc:
