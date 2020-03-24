@@ -8,12 +8,13 @@
 import sys
 import time
 import subprocess
+import unittest2 as unittest
+import logging
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
-import unittest2 as unittest
-import logging
+from osp.wrappers.simdummy import SimDummySession
 
 logger = logging.getLogger("osp.core")
 logger.setLevel(logging.CRITICAL)
@@ -23,20 +24,6 @@ try:
 except ImportError:
     from osp.core.ontology import Parser
     CITY = Parser().parse("city")
-
-# imports depend how file is started
-if __name__ != "__main__":
-    from .dummy_simulation_wrapper import DummySimWrapperSession
-    from osp.core import CITY
-else:
-    try:
-        from osp.core.ontology.parser import Parser
-        p = Parser()
-        p.parse("osp/core/ontology/yml/ontology.city.yml")
-    except ValueError:
-        pass
-    from dummy_simulation_wrapper import DummySimWrapperSession
-    from osp.core import CITY
 
 HOST = "127.0.0.1"
 PORT = 8689
@@ -71,7 +58,7 @@ class TestTransportSimWrapperCity(unittest.TestCase):
         """Create a dummy simulation syntactic layer + test
         if working with this layer works as expected.
         """
-        with TransportSessionClient(DummySimWrapperSession, HOST, PORT) \
+        with TransportSessionClient(SimDummySession, HOST, PORT) \
                 as session:
             wrapper = CITY.CITY_SIM_WRAPPER(num_steps=1, session=session)
             c = CITY.CITY(name="Freiburg")
@@ -100,5 +87,5 @@ class TestTransportSimWrapperCity(unittest.TestCase):
 if __name__ == '__main__':
     if sys.argv[-1] == "server":
         sys.path.append("tests")
-        server = TransportSessionServer(DummySimWrapperSession, HOST, PORT)
+        server = TransportSessionServer(SimDummySession, HOST, PORT)
         server.startListening()
