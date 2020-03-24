@@ -24,7 +24,7 @@ class TransportSessionServer():
     client and a server. The server runs on the remote part and delegates each
     request to the session it wraps."""
 
-    def __init__(self, session_cls, host, port):
+    def __init__(self, session_cls, host, port, session_kwargs=None):
         """Construct the server.
 
         :param session_cls: The Session class to manage.
@@ -33,6 +33,9 @@ class TransportSessionServer():
         :type host: str
         :param port: The port.
         :type port: int
+        :param session_kwargs: Keyword arguments for the session.
+            If None given, the user is allowed to specify them.
+        :type session_kwargs: Dict[str, Any]
         """
         self.com_facility = CommunicationEngineServer(
             host=host,
@@ -42,6 +45,7 @@ class TransportSessionServer():
         )
         self.session_cls = session_cls
         self.session_objs = dict()
+        self._session_kwargs = session_kwargs
 
     def startListening(self):
         """Start the server"""
@@ -67,20 +71,22 @@ class TransportSessionServer():
         :return: The response for the client.
         :rtype: str
         """
-        if command == INITIALISE_COMMAND:
-            return self._init_session(data, user)
-        elif command == LOAD_COMMAND:
-            return self._load_from_session(data, user)
-        elif not command.startswith("_") and \
-                user in self.session_objs and \
-                hasattr(self.session_objs[user], command) and \
-                not hasattr(WrapperSession, command) and \
-                callable(getattr(self.session_objs[user], command)):
-            try:
+        try:
+            if command == INITIALISE_COMMAND:
+                return self._init_session(data, user)
+            elif command == LOAD_COMMAND:
+                return self._load_from_session(data, user)
+            elif (
+                not command.startswith("_")
+                and user in self.session_objs
+                and hasattr(self.session_objs[user], command)
+                and not hasattr(WrapperSession, command)
+                and callable(getattr(self.session_objs[user], command))
+            ):
                 return self._run_command(data, command, user)
-            except Exception as e:
-                logger.error(str(e), exc_info=1)
-                return "ERROR: %s: %s" % (type(e).__name__, e)
+        except Exception as e:
+            logger.error(str(e), exc_info=1)
+            return "ERROR: %s: %s" % (type(e).__name__, e)
         return "ERROR: Invalid command"
 
     def _run_command(self, data, command, user):
@@ -133,8 +139,15 @@ class TransportSessionServer():
         data = json.loads(data)
         if user in self.session_objs:
             self.session_objs[user].close()
-        session = self.session_cls(*data["args"],
-                                   **data["kwargs"])
+        if self._session_kwargs and (data["args"] or data["kwargs"]):
+            raise ValueError("This remote session cannot be parameterized by "
+                             "the user. Only provide host and port and no "
+                             "further arguments.")
+        elif self._session_kwargs:
+            session = self.session_cls(**self._session_kwargs)
+        else:
+            session = self.session_cls(*data["args"],
+                                       **data["kwargs"])
         self.session_objs[user] = session
         deserialize(data["root"], session=session,
                     buffer_context=BufferContext.USER)
