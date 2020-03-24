@@ -41,14 +41,6 @@ def build_dependencies(force_dependency_download):
             "Make sure Maven and JDK are installed.") from e
 
 
-if (
-    ("install" in sys.argv or "develop" in sys.argv)
-    and "-h" not in sys.argv
-    and "--help" not in sys.argv
-):
-    build_dependencies("--force-dependency-download" in sys.argv)
-
-
 class Install(install):
     user_options = install.user_options + [
         ('force-dependency-download', None, 'Force the download of dependencies')
@@ -57,6 +49,10 @@ class Install(install):
     def initialize_options(self):
         install.initialize_options(self)
         self.force_dependency_download = ""
+
+    def run(self):
+        build_dependencies(self.force_dependency_download)
+        install.run(self)
 
 
 class Develop(develop):
@@ -68,6 +64,10 @@ class Develop(develop):
         develop.initialize_options(self)
         self.force_dependency_download = ""
 
+    def run(self):
+        build_dependencies(self.force_dependency_download)
+        develop.run(self)
+
 
 # main setup configuration class
 setup(
@@ -78,7 +78,8 @@ setup(
     description='The native implementation of the SimPhoNy cuds objects',
     keywords='simphony, cuds, Fraunhofer IWM',
     long_description=README_TEXT,
-    packages=find_packages(exclude=("examples", "tests")),
+    packages=find_packages(exclude=("examples", "tests")) + [
+        "osp.core.java.lib", "osp.core.java.lib.so", "osp.core.java.lib.jars"],
     package_data={
         "osp.core.ontology.yml": ["*.yml"],
         "osp.core.java.lib.so": ["*"],
