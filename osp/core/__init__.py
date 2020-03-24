@@ -19,6 +19,7 @@ formatter = logging.Formatter(
 )
 ch.setFormatter(formatter)
 logger.addHandler(ch)
+logging.getLogger("osp.wrappers").addHandler(ch)
 
 # load installed ontologies
 thismodule = sys.modules[__name__]

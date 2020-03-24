@@ -1,16 +1,12 @@
 from osp.core import CITY
 from osp.core.utils import pretty_print
 from getpass import getpass
+from osp.wrappers.simdummy import SimDummySession
 try:
     from osp.wrappers.sqlalchemy_wrapper_session import \
         SqlAlchemyWrapperSession
 except ImportError as e:
     raise ImportError("For this example, the SQLAlchemy "
-                      "wrapper for SimPhoNy is required!") from e
-try:
-    from osp.wrappers.dummy_simulation_wrapper import DummySimWrapperSession
-except ImportError as e:
-    raise ImportError("For this example, the dummy simulation "
                       "wrapper for SimPhoNy is required!") from e
 
 # import logging
@@ -65,7 +61,7 @@ with SqlAlchemyWrapperSession(postgres_url) as db_session:
     pretty_print(db_emmo_town)
 
     # Working with a Simulation wrapper
-    with DummySimWrapperSession() as sim_session:
+    with SimDummySession() as sim_session:
         sim_wrapper = CITY.CITY_SIM_WRAPPER(num_steps=1,
                                             session=sim_session)
         new_inhabitant = CITY.PERSON(age=31, name="Peter")
