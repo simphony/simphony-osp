@@ -124,8 +124,8 @@ class SqliteSession(SqlWrapperSession):
     # OVERRIDE
     def _get_table_names(self, prefix):
         c = self._engine.cursor()
-        tables = c.execute("SELECT name FROM sqlite_master "
-                           + "WHERE type='table';")
+        sql = "SELECT name FROM sqlite_master WHERE type='table';"
+        tables = c.execute(sql)
         return set([x[0] for x in tables if x[0].startswith(prefix)])
 
     def _get_condition_pattern(self, condition, prefix="cond"):
