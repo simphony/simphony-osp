@@ -1,11 +1,11 @@
 import os
-import sys
 import subprocess
 import shutil
 from setuptools import setup, find_packages
 from packageinfo import VERSION, NAME
 from setuptools.command.develop import develop
 from setuptools.command.install import install
+from setuptools.command.build_py import build_py
 
 
 # Read description
@@ -81,6 +81,20 @@ class Develop(develop):
         develop.run(self)
 
 
+class BuildPy(build_py):
+    user_options = build_py.user_options + [
+        ('force-dependency-download', None, 'Force the download of dependencies')
+    ]
+
+    def initialize_options(self):
+        build_py.initialize_options(self)
+        self.force_dependency_download = ""
+
+    def run(self):
+        build_dependencies(self.force_dependency_download)
+        build_py.run(self)
+
+
 # main setup configuration class
 setup(
     name=NAME,
@@ -100,7 +114,8 @@ setup(
     python_requires=">=3.6",
     cmdclass={
         'develop': Develop,
-        'install': Install
+        'install': Install,
+        'build_py': BuildPy
     },
     entry_points={
         'wrappers': 'osp-core = osp.core.session.core_session:CoreSession',
