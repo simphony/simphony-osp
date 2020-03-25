@@ -19,5 +19,7 @@ osp/core/java/.settings
 osp/core/java/.classpath
 osp/core/java/.project
 osp/core/java/target
-osp/core/java/lib
 osp/core/packageinfo.py
+*.jar
+*.so
+osp/core/java/lib/so/FaCT++

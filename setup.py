@@ -20,11 +20,23 @@ with open("packageinfo.py", "r") as packageinfo:
         print("# DO NOT MODIFY", file=f)
 
 
+def delete_dependencies():
+    so = os.path.join(os.path.dirname(__file__),
+                      "osp", "core", "java", "lib", "so")
+    jars = shutil.rmtree(os.path.join(os.path.dirname(__file__),
+                         "osp", "core", "java", "lib", "jars"))
+    shutil.rmtree(so)
+    shutil.rmtree(jars)
+    os.mkdir(so)
+    os.mkdir(jars)
+    open(os.path.join(so, "__init__.py")).close()
+    open(os.path.join(jars, "__init__.py")).close()
+
+
 def build_dependencies(force_dependency_download):
     x = os.path.join(os.path.dirname(__file__), "download_dependencies.sh")
     if force_dependency_download:
-        shutil.rmtree(os.path.join(os.path.dirname(__file__),
-                                   "osp", "core", "java", "lib"))
+        delete_dependencies()
     subprocess.run(["bash", x], check=True)
     try:
         subprocess.run(["mvn", "-Dmaven.test.skip=true",
@@ -78,8 +90,7 @@ setup(
     description='The native implementation of the SimPhoNy cuds objects',
     keywords='simphony, cuds, Fraunhofer IWM',
     long_description=README_TEXT,
-    packages=find_packages(exclude=("examples", "tests")) + [
-        "osp.core.java.lib", "osp.core.java.lib.so", "osp.core.java.lib.jars"],
+    packages=find_packages(exclude=("examples", "tests")),
     package_data={
         "osp.core.ontology.yml": ["*.yml"],
         "osp.core.java.lib.so": ["*"],
