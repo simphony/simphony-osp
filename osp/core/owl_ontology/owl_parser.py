@@ -43,8 +43,13 @@ class Parser():
                      for file_path, yaml_doc in yaml_docs.items()
                      for x in yaml_doc[OWL_FILES_KEY]]
         self._load_owl_files(owl_files)
-        self.iri_namespaces = {y: x for yaml_doc in yaml_docs.values()
-                                  for x, y in yaml_doc[NAMESPACES_KEY].items()}
+        self.iri_namespaces = {
+            x: y
+            if y.endswith("#") or y.endswith("/")
+            else (y + "#")
+            for yaml_doc in yaml_docs.values()
+            for x, y in yaml_doc[NAMESPACES_KEY].items()
+        }
         return self._build_namespaces()
 
     def _load_owl_files(self, owl_files):
@@ -95,16 +100,19 @@ class Parser():
             iri (rdflib.URIRef): The IRI if the entity
             rdf_type (Type): The type of the entity
         """
-        iri_namespace, identifier = str(iri).split("#")  # TODO also support /
-        if iri_namespace not in self.iri_namespaces:
+        for namespace_name, iri_namespace in self.iri_namespaces.items():
+            if str(iri).startswith(str(iri_namespace)):
+                identifier = str(iri)[len(str(iri_namespace)):]
+                break
+        else:
             logger.warning("The YAML file you provided is incomplete. "
                            "It does not provide a namespace name for %s"
                            % iri_namespace)
             return
-        namespace_name = self.iri_namespaces[iri_namespace]
+
         if not identifier.isidentifier():
             logger.warning("The IRI suffix %s of entity %s is not a valid "
-                           "python identifier" % identifier, iri)
+                           "python identifier" % (identifier, iri))
         else:
             logger.debug("Use 'from osp.core.namespaces.%s import %s' to "
                          "import entity %s"
@@ -115,7 +123,6 @@ class Parser():
             #                      rdflib.URIRef(iri_namespace),
             #                      self.graph.namespace_manager)
             self.namespaces[namespace_name] = OntologyNamespace(
-                namespace_name, self.graph)
+                namespace_name, self.graph, rdflib.URIRef(iri_namespace))
             logger.info("Created namespace %s" %
                         self.namespaces[namespace_name])
-        print(self.namespaces[namespace_name].get(identifier))

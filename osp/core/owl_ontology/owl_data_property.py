@@ -5,12 +5,8 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-from osp.core.ontology.entity import OntologyEntity
-from osp.core.ontology.datatypes import (
-    ONTOLOGY_DATATYPES, convert_from, convert_to
-)
+from osp.core.owl_ontology.owl_entity import OntologyEntity
 import logging
-import rdflib
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +19,7 @@ class OntologyDataProperty(OntologyEntity):
         super().__init__(namespace, name)
         logger.debug("Created ontology data property %s" % self)
 
-    # @property TODP
+    # @property TODO
     # def name(self):
     #     return super().name
 

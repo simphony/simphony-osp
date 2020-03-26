@@ -16,10 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyNamespace():
-    def __init__(self, name, graph):
+    def __init__(self, name, graph, iri):
         self._name = name
         self._graph = graph
         self._default_rel = None
+        self._iri = iri
+        # TODO use graph IRI, different graph for each namespace
 
     def __str__(self):
         return "%s: %s" % (self.name, self.iri)
@@ -40,7 +42,7 @@ class OntologyNamespace():
     @property
     def iri(self):
         """Get the IRI of the namespace"""
-        return self.graph.identifier
+        return self._iri
 
     @property
     def graph(self):
@@ -100,8 +102,7 @@ class OntologyNamespace():
         :rtype: OntologyEntity
         """
         iri = rdflib.URIRef(str(self.iri) + name)
-        print(iri)
-        for o in self.graph.triples((iri, rdflib.RDF.type, None)):
+        for s, p, o in self.graph.triples((iri, rdflib.RDF.type, None)):
             if o == rdflib.OWL.DataProperty:
                 return OntologyDataProperty(self, name)
             if o == rdflib.OWL.ObjectProperty:

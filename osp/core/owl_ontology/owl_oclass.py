@@ -6,9 +6,7 @@
 # No redistribution is allowed without explicit written permission.
 
 
-from osp.core.ontology.entity import OntologyEntity
-from osp.core.ontology.attribute import OntologyAttribute
-from osp.core.ontology.class_expression import ClassExpression
+from osp.core.owl_ontology.owl_entity import OntologyEntity
 import logging
 import rdflib
 
@@ -18,7 +16,7 @@ logger = logging.getLogger(__name__)
 CONFLICTING = "2L4N4lGLYBU8mBNx8H6X6dC6Mcf2AcBqIKnFnXUI"
 
 
-class OntologyClass(OntologyEntity, ClassExpression):
+class OntologyClass(OntologyEntity):
     def __init__(self, namespace, name):
         super().__init__(namespace, name)
         logger.debug("Created ontology class %s" % self)
