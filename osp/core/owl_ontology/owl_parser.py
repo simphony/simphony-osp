@@ -30,7 +30,8 @@ class Parser():
                 if OWL_FILES_KEY in yaml_doc:
                     yaml_docs[file_path] = yaml_doc
                     file_paths.remove(file_path)
-        return self._parse(yaml_docs)
+        self._parse(yaml_docs)
+        return self.namespaces
 
     def _parse(self, yaml_docs):
         """Parse the owl files specified in the given YAML docs
@@ -50,7 +51,7 @@ class Parser():
             for yaml_doc in yaml_docs.values()
             for x, y in yaml_doc[NAMESPACES_KEY].items()
         }
-        return self._build_namespaces()
+        self._build_namespaces()
 
     def _load_owl_files(self, owl_files):
         """Load the given owl files
@@ -77,6 +78,7 @@ class Parser():
         logger.info("Loaded ontology with %s triples" % len(self.graph))
 
     def _build_namespaces(self):
+        """Build the namespace objects"""
         for (s, p, o) in self.graph.triples(
             (None, rdflib.RDF.type, rdflib.OWL.Class)
         ):
