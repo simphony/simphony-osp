@@ -11,7 +11,8 @@ from osp.core.ontology.keywords import (
     ONTOLOGY_KEY, NAMESPACE_KEY, REQUIREMENTS_KEY
 )
 from osp.core.ontology.namespace_registry import NamespaceRegistry
-from osp.core.ontology.owl_installation import OwlInstaller
+from osp.core.owl_ontology.owl_parser \
+    import Parser as OwlParser
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class OntologyInstallationManager():
         self.tmp_path = os.path.join(self.yaml_path, str(self.session_id))
         self.pkl_path = os.path.join(self.path, "ontology.pkl")
         self.rollback_path = os.path.join(self.yaml_path, "rollback")
-        self.owl_installer = OwlInstaller()
+        self.owl_parser = OwlParser()
 
     def tmp_open(self, file_path):
         """Copy the yaml file to the temporary folder.
@@ -81,7 +82,7 @@ class OntologyInstallationManager():
         """
         # parse the files
         files = list(files)
-        self.owl_installer.install(files)
+        self.owl_parser.parse_files(files)
         if files:
             self.parse_files(files)
 
