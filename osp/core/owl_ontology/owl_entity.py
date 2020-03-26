@@ -54,23 +54,29 @@ class OntologyEntity(ABC):
         """Get the name of the entity"""
         return self._namespace
 
-    # @property
-    # def direct_superclasses(self):  TODO
-    #     """Get the direct superclass of the entity
+    @property
+    def direct_superclasses(self):
+        """Get the direct superclass of the entity
 
-    #     :return: The direct superclasses of the entity
-    #     :rtype: List[OntologyEntity]
-    #     """
-    #     return self._superclasses
+        :return: The direct superclasses of the entity
+        :rtype: List[OntologyEntity]
+        """
+        pattern = (self.iri, rdflib.RDF.subClassOf, None)
+        for s, p, o in self.namespace.graph.triples(pattern):
+            if isinstance(o, rdflib.URIRef):
+                yield self._create_entity(o)
 
-    # @property
-    # def direct_subclasses(self):  TODO
-    #     """Get the direct subclasses of the entity
+    @property
+    def direct_subclasses(self):
+        """Get the direct subclasses of the entity
 
-    #     :return: The direct subclasses of the entity
-    #     :rtype: Set[OntologyEntity]
-    #     """
-    #     return self._subclasses
+        :return: The direct subclasses of the entity
+        :rtype: Set[OntologyEntity]
+        """
+        pattern = (rdflib.RDF.subClassOf, None, self.iri)
+        for s, p, o in self.namespace.graph.triples(pattern):
+            if isinstance(o, rdflib.URIRef):
+                yield self._create_entity(o)
 
     # @property
     # def subclasses(self):  TODO
@@ -139,6 +145,23 @@ class OntologyEntity(ABC):
         """ Get the triples of the entity """
         return self.namespace.graph.triples((self.iri, None, None))
 
+    def _create_entity(self, iri):
+        from osp.core.owl_ontology.owl_parser import Parser
+        from osp.core import OWL_ONTOLOGY_NAMESPACE_REGISTRY
+        namespace, name = Parser.split_iri(iri)
+        namespace = OWL_ONTOLOGY_NAMESPACE_REGISTRY[namespace]
+        if (iri, rdflib.RDF.type, rdflib.OWL.Class) in self.namespace.graph:
+            from osp.core.owl_ontology.owl_oclass import OntologyClass
+            return OntologyClass(namespace, name)
+        if (iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty) in self.namespace.graph:
+            from osp.core.owl_ontology.owl_object_property import \
+                OntologyObjectProperty
+            return OntologyObjectProperty(namespace, name)
+        if (iri, rdflib.RDF.type, rdflib.OWL.DataProperty) in self.namespace.graph:
+            from osp.core.owl_ontology.owl_data_property import \
+                OntologyDataProperty
+            return OntologyDataProperty(namespace, name)
+
     # def _add_subclass(self, subclass):  TODO for yaml
     #     """Add a subclass to the entity
 
@@ -182,3 +205,4 @@ class OntologyEntity(ABC):
 
     def __setstate__(self, state):
         self.__dict__ = state
+

@@ -45,9 +45,9 @@ class Parser():
                      for x in yaml_doc[OWL_FILES_KEY]]
         self._load_owl_files(owl_files)
         self.iri_namespaces = {
-            x: y
-            if y.endswith("#") or y.endswith("/")
-            else (y + "#")
+            (y
+             if y.endswith("#") or y.endswith("/")
+             else (y + "#")): x
             for yaml_doc in yaml_docs.values()
             for x, y in yaml_doc[NAMESPACES_KEY].items()
         }
@@ -102,10 +102,9 @@ class Parser():
             iri (rdflib.URIRef): The IRI if the entity
             rdf_type (Type): The type of the entity
         """
-        for namespace_name, iri_namespace in self.iri_namespaces.items():
-            if str(iri).startswith(str(iri_namespace)):
-                identifier = str(iri)[len(str(iri_namespace)):]
-                break
+        iri_namespace, identifier = self._split_iri(iri)
+        if str(iri_namespace) in self.iri_namespaces:
+            namespace_name = self.iri_namespaces[str(iri_namespace)]
         else:
             logger.warning("The YAML file you provided is incomplete. "
                            "It does not provide a namespace name for %s"
@@ -120,11 +119,18 @@ class Parser():
                          "import entity %s"
                          % (namespace_name, identifier, iri))
         if namespace_name not in self.namespaces:
-            self.graph.bind(namespace_name, rdflib.URIRef(iri_namespace))
+            self.graph.bind(namespace_name, iri_namespace)
             # graph = rdflib.Graph(self.graph.store, TODO
             #                      rdflib.URIRef(iri_namespace),
             #                      self.graph.namespace_manager)
             self.namespaces[namespace_name] = OntologyNamespace(
-                namespace_name, self.graph, rdflib.URIRef(iri_namespace))
+                namespace_name, self.graph, iri_namespace)
             logger.info("Created namespace %s" %
                         self.namespaces[namespace_name])
+
+    @staticmethod
+    def _split_iri(iri):
+        split_char = "#" if "#" in str(iri) else "/"
+        split = str(iri).split(split_char)
+        namespace = split_char.join(split[:-1]) + split_char
+        return rdflib.URIRef(namespace), split[-1]
