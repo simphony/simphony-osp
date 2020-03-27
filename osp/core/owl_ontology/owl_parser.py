@@ -1,9 +1,9 @@
 import os
 import rdflib
-import subprocess
 import logging
 import yaml
 from osp.core.owl_ontology.owl_namespace import OntologyNamespace
+from osp.core.owl_ontology.owl_owlapi import OwlApi
 
 logger = logging.getLogger(__name__)
 
@@ -13,27 +13,49 @@ NAMESPACES_KEY = "namespaces"
 
 class Parser():
     def __init__(self):
-        self.graph = rdflib.Graph()
+        self.graph = None
         self.iri_namespaces = dict()  # mapping from IRI to namespace name
         self.namespaces = dict()
 
-    def parse_files(self, file_paths):
+    def parse(self, *paths):
         """Parse the given YAML files
 
         Args:
             file_paths (str): path to the YAML files to parse
         """
-        yaml_docs = dict()
-        for file_path in list(file_paths):
-            with open(file_path, 'r') as stream:
-                yaml_doc = yaml.safe_load(stream)
-                if OWL_FILES_KEY in yaml_doc:
-                    yaml_docs[file_path] = yaml_doc
-                    file_paths.remove(file_path)
-        self._parse(yaml_docs)
+        print(paths)
+        # yaml_docs = dict()
+        # for file_path in list(file_paths):
+        #     with open(file_path, 'r') as f:
+        #         yaml_doc = yaml.safe_load(f)
+        #         if OWL_FILES_KEY in yaml_doc:
+        #             yaml_docs[file_path] = yaml_doc
+        #             file_paths.remove(file_path)
+        # owl_files = self._parse_yml(yaml_docs)
+        # reasoner = Reasoner()
+        # self.graph = reasoner.reason(owl_files)
+        # logger.info("Loaded ontology with %s triples" % len(self.graph))
+        # self._build_namespaces()
+        # return self.namespaces
+
+    def store(self, dir):
+        print(dir)
+
+    def parse_reasoned_files(self, yaml_file, rdf_file_paths):
+        """Parse the already reasoned RDF files
+
+        Args:
+            file_paths (str): path to the RDF files to parse"""
+        with open(yaml_file, 'r') as f:
+            yaml_doc = yaml.safe_load(f)
+            self._parse_yml([yaml_doc])
+        self._build_namespaces()
         return self.namespaces
 
-    def _parse(self, yaml_docs):
+    def _create_settings(self, yaml_docs):
+        pass
+
+    def _parse_yml(self, yaml_docs):
         """Parse the owl files specified in the given YAML docs
 
         Args:
@@ -43,7 +65,6 @@ class Parser():
         owl_files = [os.path.join(os.path.dirname(file_path), x)
                      for file_path, yaml_doc in yaml_docs.items()
                      for x in yaml_doc[OWL_FILES_KEY]]
-        self._load_owl_files(owl_files)
         self.iri_namespaces = {
             (y
              if y.endswith("#") or y.endswith("/")
@@ -51,31 +72,7 @@ class Parser():
             for yaml_doc in yaml_docs.values()
             for x, y in yaml_doc[NAMESPACES_KEY].items()
         }
-        self._build_namespaces()
-
-    def _load_owl_files(self, owl_files):
-        """Load the given owl files
-
-        Args:
-            owl_files (str): Path to owl files to load
-        """
-        java_base = os.path.abspath(
-            os.path.join(os.path.dirname(__file__),
-                         "..", "java")
-        )
-        cmd = [
-            "java", "-cp",
-            java_base + "/lib/jars/*",
-            "-Djava.library.path="
-            + java_base + "/lib/so", "org.simphony.OntologyLoader"
-        ] + list(owl_files)
-        logger.info("Running Reasoner")
-        logger.debug(" ".join(cmd))
-        subprocess.run(cmd, check=True)
-
-        self.graph.parse("inferred_ontology.owl")
-        os.remove("inferred_ontology.owl")
-        logger.info("Loaded ontology with %s triples" % len(self.graph))
+        return owl_files
 
     def _build_namespaces(self):
         """Build the namespace objects"""

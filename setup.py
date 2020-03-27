@@ -4,7 +4,6 @@ import shutil
 from setuptools import setup, find_packages
 from packageinfo import VERSION, NAME
 from setuptools.command.develop import develop
-from setuptools.command.install import install
 from setuptools.command.build_py import build_py
 
 
@@ -51,20 +50,6 @@ def build_dependencies(force_dependency_download):
         raise RuntimeError(
             "Error building parser. "
             "Make sure Maven and JDK are installed.") from e
-
-
-class Install(install):
-    user_options = install.user_options + [
-        ('force-dependency-download', None, 'Force the download of dependencies')
-    ]
-
-    def initialize_options(self):
-        install.initialize_options(self)
-        self.force_dependency_download = ""
-
-    def run(self):
-        build_dependencies(self.force_dependency_download)
-        install.run(self)
 
 
 class Develop(develop):
@@ -114,14 +99,14 @@ setup(
     python_requires=">=3.6",
     cmdclass={
         'develop': Develop,
-        'install': Install,
         'build_py': BuildPy
     },
     entry_points={
         'wrappers': 'osp-core = osp.core.session.core_session:CoreSession',
         'console_scripts': {
             'owl2yml = osp.core.tools.owl2yml:run_from_terminal',
-            'pico = osp.core.ontology.installation:install_from_terminal',
+            'pico = osp.core.owl_ontology.owl_installation:'
+            'install_from_terminal',
             'ontology2dot = osp.core.tools.ontology2dot:run_from_terminal'
         }
     },

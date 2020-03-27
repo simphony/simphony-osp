@@ -3,6 +3,7 @@ package org.simphony;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -52,7 +53,7 @@ public class OntologyLoader {
     public OntologyLoader() throws IOException {
         this.manager = OWLManager.createOWLOntologyManager();
         this.dataFactory = OWLManager.getOWLDataFactory();
-        this.outputFile = new File("./inferred_ontology.owl");
+        this.outputFile = new File("./_result_ontology.owl");
     }
 
     public void loadOntologies(String[] args) {
@@ -127,9 +128,12 @@ public class OntologyLoader {
         // System.setProperty("java.library.path",
         //         projectRoot.toString() + "/lib:" + System.getProperty("java.library.path"));
         OntologyLoader loader = new OntologyLoader();
-        loader.loadOntologies(args);
+        String command = args[0];
+        loader.loadOntologies(Arrays.copyOfRange(args, 1, args.length));
         loader.mergeOntologies();
-        loader.generateInferredAxioms();
+        if (command == "--run-reasoner") {
+            loader.generateInferredAxioms();
+        }
         loader.saveOntology();
     }
 }

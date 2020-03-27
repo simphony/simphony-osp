@@ -74,7 +74,7 @@ class NamespaceRegistry():
         if len(rels) == 1:
             return rels[0]
 
-    def _add_namespace(self, namespace):
+    def set_namespaces(self, namespaces, namespace_module=None):
         """Add a namespace to the registry
 
         :param namespace: The namespace to add
@@ -90,16 +90,21 @@ class NamespaceRegistry():
         # ), ("CUBA namespace must be installed first. "
         #     "Installing %s. Already installed: %s"
         #     % (namespace.name, self._namespaces.keys()))
+        self._namespaces = dict()
+        for namespace in namespaces:
+            if namespace.name.lower() in self._namespaces:
+                raise ValueError("Namespace %s already added to namespace "
+                                 "registry!" % namespace.name)
+            self._namespaces[namespace.name.lower()] = namespace
+            if namespace_module is None:
+                import osp.core.namespaces as namespace_module
+            setattr(namespace_module, namespace.name.upper(), namespace)
+            setattr(namespace_module, namespace.name.lower(), namespace)
 
-        if namespace.name.lower() in self._namespaces:
-            raise ValueError("Namespace %s already added to namespace "
-                             "registry!" % namespace.name)
-        self._namespaces[namespace.name.lower()] = namespace
+    # def get_main_namespace(self):
+    #     """Get the main namespace (CUBA)
 
-    def get_main_namespace(self):
-        """Get the main namespace (CUBA)
-
-        :return: The main namespace
-        :rtype: OntologyNamespace
-        """
-        return self._namespaces[MAIN_ONTOLOGY_NAMESPACE]
+    #     :return: The main namespace
+    #     :rtype: OntologyNamespace
+    #     """
+    #     return self._namespaces[MAIN_ONTOLOGY_NAMESPACE]

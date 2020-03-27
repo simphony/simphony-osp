@@ -1,4 +1,5 @@
 ---
+identifier: emmo
 ontology_files:
     - ../emmo-20200109/emmo.owl
 namespaces:
