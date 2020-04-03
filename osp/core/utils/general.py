@@ -11,6 +11,25 @@ import rdflib
 from osp.core import CUBA
 
 
+def branch(cuds_object, *args, rel=None):
+    """
+    Like Cuds.add(), but returns the element you add to.
+    This makes it easier to create large CUDS structures.
+
+    :param cuds_object: the object to add to
+    :type cuds_object: Cuds
+    :param args: object(s) to add
+    :type args: Cuds
+    :param rel: class of the relationship between the objects
+    :type rel: OntologyRelationship
+    :return: The first argument
+    :rtype: Cuds
+    :raises ValueError: adding an element already there
+    """
+    cuds_object.add(*args, rel=rel)
+    return cuds_object
+
+
 def get_rdf_graph(session=None):
     """Get the RDF Graph from a session.
     If no session is, the core session will be used.
