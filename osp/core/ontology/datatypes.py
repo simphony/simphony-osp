@@ -78,6 +78,6 @@ ONTOLOGY_DATATYPES = {
     "FLOAT": (float, float, np.dtype("float"), rdflib.XSD.float),
     "STRING": (to_string, str, np.dtype("str"), rdflib.XSD.string),
     "UUID": (to_uuid, str, None, rdflib.XSD.string),
-    "UNDEFINED": (str, str, np.dtype("str"), rdflib.XSD.string),
+    "UNDEFINED": (str, str, np.dtype("str"), None),
     "VECTOR": (to_vector, from_vector, None, rdflib.XSD.string)
 }

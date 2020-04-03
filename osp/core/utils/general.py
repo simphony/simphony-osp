@@ -31,7 +31,8 @@ def branch(cuds_object, *args, rel=None):
 
 
 def get_rdf_graph(session=None):
-    """Get the RDF Graph from a session.
+    """EXPERIMENTAL
+    Get the RDF Graph from a session.
     If no session is, the core session will be used.
 
     Args:
