@@ -507,6 +507,7 @@ class SqlWrapperSession(DbWrapperSession):
             if uid == self.root:  # root not stored explicitly in database
                 self._load_first_level()
                 yield self._registry.get(uid)
+                continue
             loaded = list(self._load_by_oclass(oclass=oclass,
                                                update_registry=True,
                                                uid=uid))
