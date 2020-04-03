@@ -8,6 +8,7 @@
 import io
 import unittest
 import responses
+import uuid
 import osp.core
 from osp.core import CUBA
 from osp.core.session.transport.transport_util import serializable
@@ -19,11 +20,11 @@ from osp.core.utils import (
     create_recycle, create_from_cuds_object,
     check_arguments, format_class_name, find_cuds_object,
     find_cuds_object_by_uid, remove_cuds_object,
-    pretty_print,
+    pretty_print, deserialize,
     find_cuds_objects_by_oclass, find_relationships,
     find_cuds_objects_by_attribute, post,
     get_relationships_between,
-    get_neighbour_diff, change_oclass
+    get_neighbour_diff, change_oclass, branch
 )
 from osp.core.cuds import Cuds
 
@@ -32,6 +33,20 @@ try:
 except ImportError:
     from osp.core.ontology import Parser
     CITY = Parser().parse("city")
+
+CUDS_DICT = {
+    "oclass": "CITY.CITIZEN",
+    "uid": str(uuid.UUID(int=0)),
+    "attributes": {
+        "name": "Peter",
+        "age": 23
+    },
+    "relationships": {
+        "CITY.IS_INHABITANT_OF": {str(uuid.UUID(int=1)): "CITY.CITY"},
+        "CITY.HAS_CHILD": {str(uuid.UUID(int=2)): "CITY.PERSON",
+                           str(uuid.UUID(int=3)): "CITY.PERSON"}
+    }
+}
 
 
 def get_test_city():
@@ -55,6 +70,25 @@ def get_test_city():
 
 
 class TestUtils(unittest.TestCase):
+
+    def test_branch(self):
+        x = branch(
+            branch(
+                CITY.CITY(name="Freiburg"),
+                CITY.CITIZEN(name="Peter"),
+                CITY.CITIZEN(name="Maria"),
+                rel=CITY.HAS_INHABITANT
+            ),
+            CITY.NEIGHBOURHOOD(name="Herdern"),
+            CITY.NEIGHBOURHOOD(name="Vauban")
+        )
+        self.assertEquals(x.name, "Freiburg")
+        self.assertEquals({"Herdern", "Vauban"},
+                          set(map(lambda x: x.name,
+                                  x.get(oclass=CITY.NEIGHBOURHOOD))))
+        self.assertEquals({"Peter", "Maria"},
+                          set(map(lambda x: x.name,
+                                  x.get(rel=CITY.HAS_INHABITANT))))
 
     @responses.activate
     def test_post(self):
@@ -84,6 +118,12 @@ class TestUtils(unittest.TestCase):
             i = serialized.index(x)
             del serialized[i]
         self.assertEqual(serialized, list())
+
+    def test_deserialize(self):
+        result = deserialize(CUDS_DICT)
+        self.assertTrue(result.is_a(CITY.CITIZEN))
+        self.assertEqual(result.name, "Peter")
+        self.assertEqual(result.age, 23)
 
     def test_destroy_cuds_object(self):
         """Test destroying of cuds"""

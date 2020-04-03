@@ -218,7 +218,7 @@ class OwlToYmlConverter():
         d = {'comment': entity.comment}
         for a in self.owl_onto.annotation_properties():
             d[a.label.first()] = [
-                o.strip('"') for s, p, o in
+                str(o).strip('"') for s, p, o in
                 self.owl_onto.get_triples(entity.storid, a.storid, None)]
         return d
 
