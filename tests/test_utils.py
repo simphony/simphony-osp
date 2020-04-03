@@ -23,7 +23,7 @@ from osp.core.utils import (
     find_cuds_objects_by_oclass, find_relationships,
     find_cuds_objects_by_attribute, post,
     get_relationships_between,
-    get_neighbour_diff, change_oclass
+    get_neighbour_diff, change_oclass, branch
 )
 from osp.core.cuds import Cuds
 
@@ -55,6 +55,25 @@ def get_test_city():
 
 
 class TestUtils(unittest.TestCase):
+
+    def test_branch(self):
+        x = branch(
+            branch(
+                CITY.CITY(name="Freiburg"),
+                CITY.CITIZEN(name="Peter"),
+                CITY.CITIZEN(name="Maria"),
+                rel=CITY.HAS_INHABITANT
+            ),
+            CITY.NEIGHBOURHOOD(name="Herdern"),
+            CITY.NEIGHBOURHOOD(name="Vauban")
+        )
+        self.assertEquals(x.name, "Freiburg")
+        self.assertEquals({"Herdern", "Vauban"},
+                          set(map(lambda x: x.name,
+                                  x.get(oclass=CITY.NEIGHBOURHOOD))))
+        self.assertEquals({"Peter", "Maria"},
+                          set(map(lambda x: x.name,
+                                  x.get(rel=CITY.HAS_INHABITANT))))
 
     @responses.activate
     def test_post(self):
