@@ -59,7 +59,7 @@ class CommunicationEngineServer():
                     response, files = self._handle_request(
                         command=command,
                         data=data,
-                        files_directory=files_directory,
+                        temp_directory=files_directory,
                         user=websocket
                     )   # TODO send files also
                     logger.debug("Response: %s" % response)
@@ -175,12 +175,12 @@ class CommunicationEngineClient():
         len_command = len(command).to_bytes(length=1, byteorder="big")
         version = int(1).to_bytes(length=1, byteorder="big")
         message = version + len_command + len_data + command + data
-        if files:
-            message += _encode_files(files)
+        message += _encode_files(files or [])
         return message
 
 
 def _encode_files(files):
+    logger.debug("Will send %s files" % len(files))
     result = bytes([])
     for file in files:
         with open(file, "rb") as f:
@@ -190,10 +190,12 @@ def _encode_files(files):
             len_name = len(bytes_filename).to_bytes(length=2, byteorder="big")
             result += len_name + len_data + bytes_filename + bytes_data
             logger.info("Will upload %s" % file)
+    logger.debug("Will send files of size %s bytes" % len(result))
     return result
 
 
 def _decode_files(bytes_data, directory):
+    logger.debug("Decode files of size %s bytes" % len(bytes_data))
     while bytes_data:
         len_name = int.from_bytes(bytes_data[0:2], byteorder="big")
         len_data = int.from_bytes(bytes_data[2:10], byteorder="big")
@@ -203,5 +205,5 @@ def _decode_files(bytes_data, directory):
         file_path = os.path.join(directory, name)
         with open(file_path, "wb") as f:
             f.write(content)
-        logger.info("Uploaded file %s and stored at %s" % (name, file_path))
+        logger.debug("Uploaded file %s and stored at %s" % (name, file_path))
         bytes_data = bytes_data[10 + len_name + len_data:]

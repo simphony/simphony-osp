@@ -62,7 +62,7 @@ class TestCommunicationEngine(unittest.TestCase):
         server = CommunicationEngineServer(
             host=None, port=None,
             handle_request=(
-                lambda command, data, files_directory, user:
+                lambda command, data, temp_directory, user:
                     (command + "-" + data + "!", [])),
             handle_disconnect=lambda u: disconnects.append(u)
         )

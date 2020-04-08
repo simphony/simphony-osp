@@ -7,6 +7,9 @@
 
 import json
 import uuid
+import os
+import shutil
+import logging
 from osp.core import get_entity, CUBA
 from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_from, convert_to
@@ -14,13 +17,16 @@ from osp.core.ontology.entity import OntologyEntity
 from osp.core.neighbour_dict import NeighbourDictTarget
 from osp.core.session.buffers import get_buffer_context_mngr
 
+logger = logging.getLogger(__name__)
+
 INITIALISE_COMMAND = "_init"
 LOAD_COMMAND = "_load"
 
 # TODO check all occurences of the methods defined here
 
 
-def serialize_buffers(session_obj, buffer_context, additional_items=None):
+def serialize_buffers(session_obj, buffer_context,
+                      additional_items=None, target_directory=None):
     """Serialize the buffers and additional items.
 
     :param session_obj: Serialize the buffers of this session object.
@@ -34,29 +40,32 @@ def serialize_buffers(session_obj, buffer_context, additional_items=None):
     :rtype: str
     """
     result = dict()
-    file_cuds = {"added": [], "updated": [], "deleted": []}
+    files = list()
     if buffer_context is not None:
         added, updated, deleted = session_obj._buffers[buffer_context]
+        files += move_files(get_file_cuds(added.values()),
+                            None, target_directory)
+        files += move_files(get_file_cuds(updated.values()),
+                            None, target_directory)
         result = {
-            "added": serializable(added.values(), file_cuds["added"]),
-            "updated": serializable(updated.values(), file_cuds["updated"]),
-            "deleted": serializable(deleted.values(), file_cuds["deleted"]),
+            "added": serializable(added.values()),
+            "updated": serializable(updated.values()),
+            "deleted": serializable(deleted.values()),
         }
 
     result["expired"] = serializable(session_obj._expired)
 
     if additional_items is not None:
         for k, v in additional_items.items():
-            file_cuds[k] = []
-            result[k] = serializable(v, file_cuds[k])
+            files += move_files(get_file_cuds(v), None, target_directory)
+            result[k] = serializable(v)
     if buffer_context is not None:
         session_obj._reset_buffers(buffer_context)
-    files = [cuds.path for key, cuds_list in file_cuds.items()
-             for cuds in cuds_list if key != "deleted"]
-    return json.dumps(result), files  # TODO move and rename files
+    return json.dumps(result), files
 
 
-def deserialize_buffers(session_obj, buffer_context, data):
+def deserialize_buffers(session_obj, buffer_context, data,
+                        temp_directory=None, target_directory=None):
     """Deserialize serialized buffers, add them to the session and push them
     to the registry of the given session object.
     Returns the deserialization of everything but the buffers.
@@ -82,13 +91,12 @@ def deserialize_buffers(session_obj, buffer_context, data):
             )
 
         deserialized = dict()
-        file_cuds = dict()
         for k, v in data.items():
-            file_cuds[k] = list()
-            deserialized[k] = deserialize(json_obj=v,
-                                          session=session_obj,
-                                          buffer_context=buffer_context,
-                                          list_of_file_cuds=file_cuds[k])
+            d = deserialize(json_obj=v,
+                            session=session_obj,
+                            buffer_context=buffer_context)
+            deserialized[k] = d
+            move_files(get_file_cuds(d), temp_directory, target_directory)
         deleted = deserialized["deleted"] if "deleted" in deserialized else []
 
         for x in deleted:
@@ -101,7 +109,36 @@ def deserialize_buffers(session_obj, buffer_context, data):
                 if k not in ["added", "updated", "deleted", "expired"]}
 
 
-def deserialize(json_obj, session, buffer_context, list_of_file_cuds=[]):
+def move_files(file_cuds, temp_directory, target_directory):
+    """Move the files associated with the given CUDS
+    from one directory to the other.
+
+    Args:
+        file_cuds (List[Cuds]): Cuds whose oclass is CUBA.FILE
+        temp_directory (path): The directory where the files are stored.
+            If None, file cuds are expected to have the whole path.
+        target_directory (path): The directory to move the files to.
+    """
+    result = list()
+    if target_directory is None:
+        return result
+    for cuds in file_cuds:
+        path = cuds.path
+        if temp_directory is not None:
+            path = os.path.join(temp_directory,
+                                os.path.basename(cuds.path))
+        target_path = os.path.join(
+            target_directory, str(cuds.uid) + os.path.splitext(path)[1]
+        )
+        shutil.copyfile(path, target_path)
+        assert cuds.uid not in cuds.session._expired
+        cuds.path = target_path
+        logger.debug("Copy file %s to %s" % (path, target_path))
+        result.append(target_path)
+    return result
+
+
+def deserialize(json_obj, session, buffer_context):
     """Deserialize a json object, instantiate the Cuds object in there.
 
     :param json_obj: The json object do deserialize.
@@ -120,7 +157,7 @@ def deserialize(json_obj, session, buffer_context, list_of_file_cuds=[]):
     if isinstance(json_obj, (str, int, float)):
         return json_obj
     if isinstance(json_obj, list):
-        return [deserialize(x, session, buffer_context, list_of_file_cuds)
+        return [deserialize(x, session, buffer_context)
                 for x in json_obj]
     if isinstance(json_obj, dict) \
             and "oclass" in json_obj \
@@ -128,8 +165,6 @@ def deserialize(json_obj, session, buffer_context, list_of_file_cuds=[]):
             and "attributes" in json_obj \
             and "relationships" in json_obj:
         cuds = _to_cuds_object(json_obj, session, buffer_context)
-        if cuds.is_a(CUBA.FILE):
-            list_of_file_cuds.append(cuds)
         return cuds
     if isinstance(json_obj, dict) \
             and set(["UUID"]) == set(json_obj.keys()):
@@ -138,12 +173,12 @@ def deserialize(json_obj, session, buffer_context, list_of_file_cuds=[]):
             and set(["ENTITY"]) == set(json_obj.keys()):
         return get_entity(json_obj["ENTITY"])
     if isinstance(json_obj, dict):
-        return {k: deserialize(v, session, buffer_context, list_of_file_cuds)
+        return {k: deserialize(v, session, buffer_context)
                 for k, v in json_obj.items()}
     raise ValueError("Could not deserialize %s." % json_obj)
 
 
-def serializable(obj, list_of_file_cuds=[]):
+def serializable(obj):
     """Make a cuds_object, a list of cuds_objects,
     a uid or a list od uids json serializable.
 
@@ -163,16 +198,32 @@ def serializable(obj, list_of_file_cuds=[]):
     if isinstance(obj, OntologyEntity):
         return {"ENTITY": str(obj)}
     if isinstance(obj, Cuds):
-        if obj.is_a(CUBA.FILE):
-            list_of_file_cuds.append(obj)
         return _serializable(obj)
     if isinstance(obj, dict):
-        return {k: serializable(v, list_of_file_cuds) for k, v in obj.items()}
+        return {k: serializable(v) for k, v in obj.items()}
     try:
-        return [serializable(x, list_of_file_cuds) for x in obj]
+        return [serializable(x) for x in obj]
     except TypeError as e:
         raise ValueError("Could not serialize %s." % obj) \
             from e
+
+
+def get_file_cuds(obj):
+    """Get the file cuds out of cuds_object, or list of cuds_objects.
+
+    :param obj: The object to check for fie cuds..
+    :type obj: Union[Cuds, UUID, List[Cuds], List[UUID], None]
+    :return: The list of file cuds
+    :rtype: List[Cuds]
+    """
+    from osp.core.cuds import Cuds
+
+    if isinstance(obj, Cuds) and obj.is_a(CUBA.FILE):
+        return [obj]
+    if isinstance(obj, (Cuds, str, float, int, uuid.UUID, OntologyEntity)) \
+            or obj is None:
+        return []
+    return [y for x in obj for y in get_file_cuds(x)]
 
 
 def _serializable(cuds_object):

@@ -24,7 +24,8 @@ class TransportSessionServer():
     client and a server. The server runs on the remote part and delegates each
     request to the session it wraps."""
 
-    def __init__(self, session_cls, host, port, session_kwargs=None):
+    def __init__(self, session_cls, host, port,
+                 session_kwargs=None, file_destination=None):
         """Construct the server.
 
         :param session_cls: The Session class to manage.
@@ -36,6 +37,8 @@ class TransportSessionServer():
         :param session_kwargs: Keyword arguments for the session.
             If None given, the user is allowed to specify them.
         :type session_kwargs: Dict[str, Any]
+        :param file_destination: Destination of the uploaded files.
+        :type session_kwargs: str
         """
         self.com_facility = CommunicationEngineServer(
             host=host,
@@ -46,6 +49,7 @@ class TransportSessionServer():
         self.session_cls = session_cls
         self.session_objs = dict()
         self._session_kwargs = session_kwargs
+        self._file_destination = file_destination
 
     def startListening(self):
         """Start the server"""
@@ -61,7 +65,7 @@ class TransportSessionServer():
             self.session_objs[user].close()
             del self.session_objs[user]
 
-    def handle_request(self, command, data, user, files_directory):
+    def handle_request(self, command, data, user, temp_directory=None):
         """Handle requests from the client.
 
         :param command: Kind of request / The command to execute.
@@ -75,7 +79,7 @@ class TransportSessionServer():
             if command == INITIALISE_COMMAND:
                 return self._init_session(data, user)
             elif command == LOAD_COMMAND:
-                return self._load_from_session(data, user)
+                return self._load_from_session(data, user, temp_directory)
             elif (
                 not command.startswith("_")
                 and user in self.session_objs
@@ -83,13 +87,13 @@ class TransportSessionServer():
                 and not hasattr(WrapperSession, command)
                 and callable(getattr(self.session_objs[user], command))
             ):
-                return self._run_command(data, command, user)
+                return self._run_command(data, command, user, temp_directory)
         except Exception as e:
             logger.error(str(e), exc_info=1)
             return ("ERROR: %s: %s" % (type(e).__name__, e), [])
         return ("ERROR: Invalid command", [])
 
-    def _run_command(self, data, command, user):
+    def _run_command(self, data, command, user, temp_directory=None):
         """Run a method of the session.
 
         :param data: The data of the client.
@@ -100,16 +104,20 @@ class TransportSessionServer():
         :rtype: str
         """
         session = self.session_objs[user]
-        arguments = deserialize_buffers(session,
-                                        buffer_context=BufferContext.USER,
-                                        data=data)
+        arguments = deserialize_buffers(
+            session,
+            buffer_context=BufferContext.USER,
+            data=data,
+            temp_directory=temp_directory,
+            target_directory=self._file_destination
+        )
         result = getattr(session, command)(*arguments["args"],
                                            **arguments["kwargs"])
         additional = {"result": result} if result else dict()
         return serialize_buffers(session, buffer_context=BufferContext.ENGINE,
                                  additional_items=additional)
 
-    def _load_from_session(self, data, user):
+    def _load_from_session(self, data, user, temp_directory=None):
         """Load cuds_objects from the session.
 
         :param data: The uids to load as json encoded list.
@@ -118,8 +126,13 @@ class TransportSessionServer():
         :rtype: str
         """
         session = self.session_objs[user]
-        uids = deserialize_buffers(session, buffer_context=None,
-                                   data=data)["uids"]
+        uids = deserialize_buffers(
+            session,
+            buffer_context=None,
+            data=data,
+            temp_directory=temp_directory,
+            target_directory=self._file_destination
+        )["uids"]
         cuds_objects = session.load(*uids)
         additional = {"result": [serializable(x) for x in cuds_objects]}
         return serialize_buffers(session, buffer_context=BufferContext.ENGINE,

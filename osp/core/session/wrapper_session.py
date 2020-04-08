@@ -117,6 +117,7 @@ class WrapperSession(Session):
         """
         if not cuds_or_uids:
             return
+        logger.debug("Refreshing %s in %s" % (list(cuds_or_uids), self))
         list(self.load(*self.expire(*cuds_or_uids)))
 
     def get_triples(self):
@@ -166,13 +167,20 @@ class WrapperSession(Session):
             raise RuntimeError("Please add a wrapper to the session first")
 
         # update buffers
+        logger.debug("Called store on %s in %s" % (cuds_object, self))
         added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in deleted:
+            logger.debug("Removed %s from deleted buffer in %s of %s"
+                         % (cuds_object, self._current_context, self))
             del deleted[cuds_object.uid]
 
         if cuds_object.uid in self._registry:
+            logger.debug("Added %s to updated buffer in %s of %s"
+                         % (cuds_object, self._current_context, self))
             updated[cuds_object.uid] = cuds_object
         else:
+            logger.debug("Added %s to added buffer in %s of %s"
+                         % (cuds_object, self._current_context, self))
             added[cuds_object.uid] = cuds_object
 
         # store
@@ -186,13 +194,14 @@ class WrapperSession(Session):
         :type cuds_object: Cuds
         :raises RuntimeError: The updated object has been deleted previously.
         """
+        logger.debug("Called notify_update on %s in %s" % (cuds_object, self))
         added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in deleted:
             raise RuntimeError("Cannot update deleted object")
 
-        if cuds_object.uid in added:
-            added[cuds_object.uid] = cuds_object
-        else:
+        if cuds_object.uid not in added and cuds_object.uid not in updated:
+            logger.debug("Added %s to updated buffer in %s of %s"
+                         % (cuds_object, self._current_context, self))
             updated[cuds_object.uid] = cuds_object
 
     # OVERRIDE
@@ -202,17 +211,25 @@ class WrapperSession(Session):
         :param cuds_object: The cuds_object that has been deleted.
         :type cuds_object: Cuds
         """
+        logger.debug("Called notify_delete on %s" % cuds_object)
         added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in added:
+            logger.debug("Removed %s from added buffer in %s of %s"
+                         % (cuds_object, self._current_context, self))
             del added[cuds_object.uid]
         elif cuds_object.uid in updated:
+            logger.debug("Moved %s from updated to deleted buffer in %s of %s"
+                         % (cuds_object, self._current_context, self))
             del updated[cuds_object.uid]
             deleted[cuds_object.uid] = cuds_object
-        else:
+        elif cuds_object.uid not in deleted:
+            logger.debug("Added %s to deleted buffer in %s of %s"
+                         % (cuds_object, self._current_context, self))
             deleted[cuds_object.uid] = cuds_object
 
     # OVERRIDE
     def _notify_read(self, cuds_object):
+        logger.debug("Called notify_read on %s in %s" % (cuds_object, self))
         if cuds_object.uid in self._expired:
             self.refresh(cuds_object)
 
@@ -223,6 +240,7 @@ class WrapperSession(Session):
         :type uids: Set[UUID]
         """
         not_expirable = uids & self._get_buffer_uids(BufferContext.USER)
+        logger.debug("Expire %s in %s" % (uids, self))
         if not_expirable:
             logger.warning("Did not expire %s, because you have uncommitted "
                            "local changes. You might be out of sync with "
@@ -240,6 +258,7 @@ class WrapperSession(Session):
         :return: Whether the buffers have been resetted.
         :rtype: bool
         """
+        logger.debug("Reset buffers for %s in %s" % (context, self))
         self._buffers[context] = [0] * 3
         self._buffers[context][BufferType.ADDED] = dict()
         self._buffers[context][BufferType.UPDATED] = dict()

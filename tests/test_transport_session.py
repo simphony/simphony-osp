@@ -387,12 +387,17 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 class MockEngine():
     def __init__(self, on_send=None):
         self.on_send = on_send
+        self.host = None
+        self.port = None
 
     def send(self, command, data, files=None):
         self._sent_command = command
         self._sent_data = data
         if self.on_send:
             return self.on_send(command, data)
+
+    def close(self):
+        pass
 
 
 class TestCommunicationEngineClient(unittest.TestCase):
@@ -439,6 +444,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
             [dict(), dict(), dict()],
             [dict(), dict(), dict()]
         ])
+        client.close()
 
     def test_store(self):
         """ Test storing of cuds_object. """
@@ -473,6 +479,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         self.assertEqual(client._engine._sent_command, None)
         self.assertEqual(client._engine._sent_data, None)
         self.assertEqual(set(client._registry.keys()), {c1.uid, c2.uid})
+        client.close()
 
     def test_send(self):
         """ Test sending data to the server """
@@ -483,6 +490,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         self.assertEqual(client._engine._sent_data, (
             '{"added": [], "updated": [], "deleted": [], "expired": [], '
             '"args": ["hello"], "kwargs": {"bye": "bye"}}'))
+        client.close()
 
     def test_receive(self):
         client = TransportSessionClient(TestWrapperSession, None, None)
@@ -493,11 +501,12 @@ class TestCommunicationEngineClient(unittest.TestCase):
         self.assertEqual(set(client._registry.keys()), {uuid.UUID(int=42),
                                                         w.uid})
         self.assertEqual(client._buffers[BufferContext.USER],
-                         [{w.uid: w}, dict(), dict()])
+                         [dict(), dict(), dict()])
         self.assertEqual(
             list(map(dict.keys, client._buffers[BufferContext.ENGINE])),
             [set([uuid.UUID(int=42)]), set(), set()]
         )
+        client.close()
 
     def test_getattr(self):
         def command(*args, **kwargs):
@@ -512,6 +521,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
             '{"added": [], "updated": [], "deleted": [], "expired": [], '
             '"args": ["arg1", "arg2"], "kwargs": {"kwarg": "kwarg"}}'))
         self.assertRaises(AttributeError, getattr, client, "run")
+        client.close()
 
 
 class TestCommunicationEngineServer(unittest.TestCase):
@@ -616,10 +626,10 @@ class TestCommunicationEngineServer(unittest.TestCase):
             server.session_objs["user1"] = s1
             self.assertEqual(server.handle_request(
                 command="run", data=SERIALIZED_BUFFERS, user="user1",
-                files_directory=None), ("ERROR: Invalid command", []))
+                temp_directory=None), ("ERROR: Invalid command", []))
             self.assertEqual(server.handle_request(
                 command="command", data=SERIALIZED_BUFFERS, user="user1",
-                files_directory=None),
+                temp_directory=None),
                 ("ERROR: RuntimeError: Something went wrong: 42, London", []))
 
 
