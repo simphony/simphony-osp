@@ -11,6 +11,12 @@ from osp.core.session.transport.communication_engine import \
     CommunicationEngineClient, CommunicationEngineServer
 
 
+HELLO_MSG = bytes([1, 5, 0, 0, 0, 0, 0, 0, 0, 5]) \
+    + "greetHello".encode("utf-8")
+GOODBYE_MSG = bytes([1, 11, 0, 0, 0, 0, 0, 0, 0, 3]) + \
+    "say_goodbyeBye".encode("utf-8")
+
+
 def async_test(test):
     def decorate(self):
         event_loop = asyncio.get_event_loop()
@@ -55,12 +61,14 @@ class TestCommunicationEngine(unittest.TestCase):
         disconnects = []
         server = CommunicationEngineServer(
             host=None, port=None,
-            handle_request=lambda c, d, u: c + "-" + d + "!",
+            handle_request=(
+                lambda command, data, files_directory, user:
+                    (command + "-" + data + "!", [])),
             handle_disconnect=lambda u: disconnects.append(u)
         )
         websocket = MockWebsocket(
             id=12,
-            to_recv=["greet:Hello", "say_goodbye:Bye"],
+            to_recv=[HELLO_MSG, GOODBYE_MSG],
             sent_data=responses
         )
         await server._serve(websocket, None)
@@ -82,11 +90,11 @@ class TestCommunicationEngine(unittest.TestCase):
             sent_data=requests
         )
         await client._request("greet", "Hello")
-        self.assertEqual(requests, ["greet:Hello"])
+        self.assertEqual(requests, [HELLO_MSG])
         self.assertEqual(responses, ["hello"])
 
         await client._request("say_goodbye", "Bye")
-        self.assertEqual(requests, ["greet:Hello", "say_goodbye:Bye"])
+        self.assertEqual(requests, [HELLO_MSG, GOODBYE_MSG])
         self.assertEqual(responses, ["hello", "bye"])
 
 

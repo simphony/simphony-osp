@@ -56,7 +56,7 @@ class TestParser(unittest.TestCase):
             set(all_names),
             {"ENTITY", "RELATIONSHIP", "ACTIVE_RELATIONSHIP",
              "WRAPPER", "ATTRIBUTE",
-             "PASSIVE_RELATIONSHIP", "NOTHING"}
+             "PASSIVE_RELATIONSHIP", "NOTHING", "FILE", "PATH"}
         )
 
     def test_subclass_check(self):

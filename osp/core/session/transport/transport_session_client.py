@@ -64,10 +64,10 @@ class TransportSessionClient(WrapperSession):
     # OVERRIDE
     def _load_from_backend(self, uids, expired=None):
         expired = expired or self._expired
-        data = serialize_buffers(self, buffer_context=None,
-                                 additional_items={"uids": uids,
-                                                   "expired": expired})
-        yield from self._engine.send(LOAD_COMMAND, data)
+        data, files = serialize_buffers(self, buffer_context=None,
+                                        additional_items={"uids": uids,
+                                                          "expired": expired})
+        yield from self._engine.send(LOAD_COMMAND, data, files)
 
     def _send(self, command, consume_buffers, *args, **kwargs):
         """Send the buffers and a command to the server.
@@ -85,9 +85,9 @@ class TransportSessionClient(WrapperSession):
         """
         arguments = {"args": args, "kwargs": kwargs}
         buffer_context = BufferContext.USER if consume_buffers else None
-        data = serialize_buffers(self, buffer_context=buffer_context,
-                                 additional_items=arguments)
-        return self._engine.send(command, data)
+        data, files = serialize_buffers(self, buffer_context=buffer_context,
+                                        additional_items=arguments)
+        return self._engine.send(command, data, files)
 
     def _receive(self, data):
         """Process the response of the server.

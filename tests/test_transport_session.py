@@ -312,7 +312,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             ws1.remove(c.uid)
             s1.prune()
             self.assertEqual(
-                '{"expired": [], "args": [42], "kwargs": {"name": "London"}}',
+                ('{"expired": [], "args": [42], "kwargs": {"name": "London"}}',
+                 []),
                 serialize_buffers(s1, buffer_context=None, additional_items={
                     "args": [42], "kwargs": {"name": "London"}})
             )
@@ -324,7 +325,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                              [dict(), dict(), dict()])
             self.maxDiff = None
             self.assertEqual(
-                SERIALIZED_BUFFERS,
+                (SERIALIZED_BUFFERS, []),
                 serialize_buffers(
                     s1, buffer_context=BufferContext.USER,
                     additional_items={
@@ -351,9 +352,9 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             s1.prune()
             s1._expired = {uuid.UUID(int=3)}
             self.assertEqual(
-                '{"expired": [{"UUID": '
-                '"00000000-0000-0000-0000-000000000003"}], '
-                '"args": [42], "kwargs": {"name": "London"}}',
+                ('{"expired": [{"UUID": '
+                 '"00000000-0000-0000-0000-000000000003"}], '
+                 '"args": [42], "kwargs": {"name": "London"}}', []),
                 serialize_buffers(
                     s1,
                     buffer_context=None,
@@ -369,7 +370,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
             self.maxDiff = 3000
             self.assertEqual(
-                SERIALIZED_BUFFERS_EXPIRED,
+                (SERIALIZED_BUFFERS_EXPIRED, []),
                 serialize_buffers(
                     s1,
                     buffer_context=BufferContext.USER,
@@ -387,7 +388,7 @@ class MockEngine():
     def __init__(self, on_send=None):
         self.on_send = on_send
 
-    def send(self, command, data):
+    def send(self, command, data, files=None):
         self._sent_command = command
         self._sent_data = data
         if self.on_send:
@@ -559,7 +560,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
             server.session_objs = {"1": s1, "2": 123}
             result = server._run_command(SERIALIZED_BUFFERS, "command", "1")
             self.assertTrue(correct)
-            self.assertEqual(result, SERIALIZED_BUFFERS2)
+            self.assertEqual(result, (SERIALIZED_BUFFERS2, []))
 
     def test_load_from_session(self):
         """Test loading from the remote side"""
@@ -577,7 +578,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
                 result = server._load_from_session(
                     '{"uids": [{"UUID": 1}, {"UUID": 3}]}', "user")
             self.maxDiff = None
-            self.assertEqual(result, SERIALIZED_BUFFERS3)
+            self.assertEqual(result, (SERIALIZED_BUFFERS3, []))
 
     def test_init_session(self):
         """Test the initialisation of the session on the remote side"""
@@ -614,10 +615,12 @@ class TestCommunicationEngineServer(unittest.TestCase):
             # test
             server.session_objs["user1"] = s1
             self.assertEqual(server.handle_request(
-                "run", SERIALIZED_BUFFERS, "user1"), "ERROR: Invalid command")
+                command="run", data=SERIALIZED_BUFFERS, user="user1",
+                files_directory=None), ("ERROR: Invalid command", []))
             self.assertEqual(server.handle_request(
-                "command", SERIALIZED_BUFFERS, "user1"),
-                "ERROR: RuntimeError: Something went wrong: 42, London")
+                command="command", data=SERIALIZED_BUFFERS, user="user1",
+                files_directory=None),
+                ("ERROR: RuntimeError: Something went wrong: 42, London", []))
 
 
 if __name__ == '__main__':

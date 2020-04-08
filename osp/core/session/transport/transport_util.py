@@ -7,7 +7,7 @@
 
 import json
 import uuid
-from osp.core import get_entity
+from osp.core import get_entity, CUBA
 from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
@@ -16,6 +16,8 @@ from osp.core.session.buffers import get_buffer_context_mngr
 
 INITIALISE_COMMAND = "_init"
 LOAD_COMMAND = "_load"
+
+# TODO check all occurences of the methods defined here
 
 
 def serialize_buffers(session_obj, buffer_context, additional_items=None):
@@ -32,22 +34,26 @@ def serialize_buffers(session_obj, buffer_context, additional_items=None):
     :rtype: str
     """
     result = dict()
+    file_cuds = {"added": [], "updated": [], "deleted": []}
     if buffer_context is not None:
         added, updated, deleted = session_obj._buffers[buffer_context]
         result = {
-            "added": serializable(added.values()),
-            "updated": serializable(updated.values()),
-            "deleted": serializable(deleted.values()),
+            "added": serializable(added.values(), file_cuds["added"]),
+            "updated": serializable(updated.values(), file_cuds["updated"]),
+            "deleted": serializable(deleted.values(), file_cuds["deleted"]),
         }
 
     result["expired"] = serializable(session_obj._expired)
 
     if additional_items is not None:
-        result.update({k: serializable(v)
-                       for k, v in additional_items.items()})
+        for k, v in additional_items.items():
+            file_cuds[k] = []
+            result[k] = serializable(v, file_cuds[k])
     if buffer_context is not None:
         session_obj._reset_buffers(buffer_context)
-    return json.dumps(result)
+    files = [cuds.path for key, cuds_list in file_cuds.items()
+             for cuds in cuds_list if key != "deleted"]
+    return json.dumps(result), files  # TODO move and rename files
 
 
 def deserialize_buffers(session_obj, buffer_context, data):
@@ -75,10 +81,14 @@ def deserialize_buffers(session_obj, buffer_context, data):
                                  buffer_context=buffer_context))
             )
 
-        deserialized = {k: deserialize(json_obj=v,
-                                       session=session_obj,
-                                       buffer_context=buffer_context)
-                        for k, v in data.items()}
+        deserialized = dict()
+        file_cuds = dict()
+        for k, v in data.items():
+            file_cuds[k] = list()
+            deserialized[k] = deserialize(json_obj=v,
+                                          session=session_obj,
+                                          buffer_context=buffer_context,
+                                          list_of_file_cuds=file_cuds[k])
         deleted = deserialized["deleted"] if "deleted" in deserialized else []
 
         for x in deleted:
@@ -91,7 +101,7 @@ def deserialize_buffers(session_obj, buffer_context, data):
                 if k not in ["added", "updated", "deleted", "expired"]}
 
 
-def deserialize(json_obj, session, buffer_context):
+def deserialize(json_obj, session, buffer_context, list_of_file_cuds=[]):
     """Deserialize a json object, instantiate the Cuds object in there.
 
     :param json_obj: The json object do deserialize.
@@ -110,13 +120,17 @@ def deserialize(json_obj, session, buffer_context):
     if isinstance(json_obj, (str, int, float)):
         return json_obj
     if isinstance(json_obj, list):
-        return [deserialize(x, session, buffer_context) for x in json_obj]
+        return [deserialize(x, session, buffer_context, list_of_file_cuds)
+                for x in json_obj]
     if isinstance(json_obj, dict) \
             and "oclass" in json_obj \
             and "uid" in json_obj \
             and "attributes" in json_obj \
             and "relationships" in json_obj:
-        return _to_cuds_object(json_obj, session, buffer_context)
+        cuds = _to_cuds_object(json_obj, session, buffer_context)
+        if cuds.is_a(CUBA.FILE):
+            list_of_file_cuds.append(cuds)
+        return cuds
     if isinstance(json_obj, dict) \
             and set(["UUID"]) == set(json_obj.keys()):
         return convert_to(json_obj["UUID"], "UUID")
@@ -124,12 +138,12 @@ def deserialize(json_obj, session, buffer_context):
             and set(["ENTITY"]) == set(json_obj.keys()):
         return get_entity(json_obj["ENTITY"])
     if isinstance(json_obj, dict):
-        return {k: deserialize(v, session, buffer_context)
+        return {k: deserialize(v, session, buffer_context, list_of_file_cuds)
                 for k, v in json_obj.items()}
     raise ValueError("Could not deserialize %s." % json_obj)
 
 
-def serializable(obj):
+def serializable(obj, list_of_file_cuds=[]):
     """Make a cuds_object, a list of cuds_objects,
     a uid or a list od uids json serializable.
 
@@ -149,11 +163,13 @@ def serializable(obj):
     if isinstance(obj, OntologyEntity):
         return {"ENTITY": str(obj)}
     if isinstance(obj, Cuds):
+        if obj.is_a(CUBA.FILE):
+            list_of_file_cuds.append(obj)
         return _serializable(obj)
     if isinstance(obj, dict):
-        return {k: serializable(v) for k, v in obj.items()}
+        return {k: serializable(v, list_of_file_cuds) for k, v in obj.items()}
     try:
-        return [serializable(x) for x in obj]
+        return [serializable(x, list_of_file_cuds) for x in obj]
     except TypeError as e:
         raise ValueError("Could not serialize %s." % obj) \
             from e

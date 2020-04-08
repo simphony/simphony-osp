@@ -61,7 +61,7 @@ class TransportSessionServer():
             self.session_objs[user].close()
             del self.session_objs[user]
 
-    def handle_request(self, command, data, user):
+    def handle_request(self, command, data, user, files_directory):
         """Handle requests from the client.
 
         :param command: Kind of request / The command to execute.
@@ -86,8 +86,8 @@ class TransportSessionServer():
                 return self._run_command(data, command, user)
         except Exception as e:
             logger.error(str(e), exc_info=1)
-            return "ERROR: %s: %s" % (type(e).__name__, e)
-        return "ERROR: Invalid command"
+            return ("ERROR: %s: %s" % (type(e).__name__, e), [])
+        return ("ERROR: Invalid command", [])
 
     def _run_command(self, data, command, user):
         """Run a method of the session.
