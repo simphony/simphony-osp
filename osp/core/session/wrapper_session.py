@@ -134,7 +134,11 @@ class WrapperSession(Session):
         ]
 
     def log_buffer_status(self, context):
-        """ TODO """
+        """Log the current status of the buffers
+
+        Args:
+            context (BufferContext): whether to print user or engine buffers
+        """
         added, updated, deleted = self._buffers[context]
         for x in added.values():
             logger.debug("%s has been added to %s", x, self)

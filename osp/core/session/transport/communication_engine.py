@@ -60,7 +60,7 @@ class CommunicationEngineServer():
                         data=data,
                         temp_directory=temp_dir,
                         user=websocket
-                    )   # TODO send files also
+                    )
                     logger.debug("Response: %s with %s files"
                                  % (response, len(files)))
                     response = len(files).to_bytes(length=1, byteorder="big") \
@@ -102,7 +102,7 @@ class CommunicationEngineServer():
             "Recieved data from %s.\n\t Protocol version: %s,\n\t "
             "Command %s,\n\t Number of files %s,\n\t Data: %s"
             % (hash(websocket), version, command, num_files, data))
-        await _decode_files(num_files, websocket, temp_dir)
+        await _receive_files(num_files, websocket, temp_dir)
         return command, data
 
 
@@ -162,16 +162,18 @@ class CommunicationEngineClient():
             uri = "ws://%s:%s" % (self.host, self.port)
             self.websocket = await websockets.connect(uri)
 
+        # send request to the server
         message = self._encode(command, data, files)
         for part in message:
             await self.websocket.send(part)
 
+        # load result
         with tempfile.TemporaryDirectory() as temp_dir:
             response = await self.websocket.recv()
             num_files = int.from_bytes(response[0:1], byteorder="big")
             data = response[1:].decode("utf-8")
             logger.debug("Response: %s with %s files" % (data, num_files))
-            await _decode_files(num_files, self.websocket, temp_dir)
+            await _receive_files(num_files, self.websocket, temp_dir)
             return self.handle_response(
                 data=data,
                 temp_directory=temp_dir
@@ -199,6 +201,15 @@ class CommunicationEngineClient():
 
 
 def _encode_files(files):
+    """Encode the files to be sent to over the networks.
+    Will send file in several blocks.
+
+    Args:
+        files (List[path]): A list of paths to send.
+
+    Yields:
+        bytes: The bytes of the file
+    """
     block_size = 4096
     logger.debug("Will send %s files" % len(files))
     for i, file in enumerate(files):
@@ -217,7 +228,14 @@ def _encode_files(files):
             logger.debug("Done")
 
 
-async def _decode_files(num_files, websocket, directory):
+async def _receive_files(num_files, websocket, directory):
+    """Will receive and store the files sent to the websocket.
+
+    Args:
+        num_files (int): The number of files to load
+        websocket (websocket): The websocket to load the files from
+        directory (path): The location to store the files
+    """
     for i in range(num_files):
         logger.debug("Load file %s of %s" % (i + 1, num_files))
         description = await websocket.recv()

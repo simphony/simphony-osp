@@ -22,8 +22,6 @@ logger = logging.getLogger(__name__)
 INITIALISE_COMMAND = "_init"
 LOAD_COMMAND = "_load"
 
-# TODO check all occurences of the methods defined here
-
 
 def serialize_buffers(session_obj, buffer_context,
                       additional_items=None, target_directory=None):
@@ -36,8 +34,12 @@ def serialize_buffers(session_obj, buffer_context,
     :param additional_items: Additional items to be added
         to the serialized json object, defaults to None
     :type additional_items: Dict[str, Any], optional
-    :return: The serialized buffers
-    :rtype: str
+    :param target_directory: Where to move the files of the files cuds to
+        serialize. If None, do not move them and return all the files
+        corresponding to file cuds in the buffers.
+    :type target_directory: path
+    :return: The serialized buffers and the list of corresponding files
+    :rtype: str, List[path]
     """
     result = dict()
     files = list()
@@ -77,6 +79,13 @@ def deserialize_buffers(session_obj, buffer_context, data,
     :type buffer_context: BufferContext
     :param data: Serialized buffers
     :type data: str
+    :param temp_directory: Where the files are stored of the to file cuds to
+        deserialize are stored. If None, file cuds are assumed to have the
+        full path.
+    :type temp_directory: path
+    :param target_directory: Where to move the files.
+        If None, do not move them.
+    :type target_directory:
     :return: Everything in data, that were not part of the buffers.
     :rtype: Dict[str, Any]
     """
@@ -111,13 +120,18 @@ def deserialize_buffers(session_obj, buffer_context, data,
 
 def move_files(file_cuds, temp_directory, target_directory):
     """Move the files associated with the given CUDS
-    from one directory to the other.
+    from one directory to the other. Return all moved CUDS.
 
     Args:
         file_cuds (List[Cuds]): Cuds whose oclass is CUBA.FILE
         temp_directory (path): The directory where the files are stored.
             If None, file cuds are expected to have the whole path.
         target_directory (path): The directory to move the files to.
+            If None, do not move anything and return all file paths
+
+    Returns:
+        List[path]: The list of files moved (if target_directory not None) or
+                    The list of all files (if target_directory None)
     """
     if target_directory is None:
         return [c.path for c in file_cuds]
