@@ -496,8 +496,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client = TransportSessionClient(TestWrapperSession, None, None)
         client._engine = MockEngine()
         w = CITY.CITY_WRAPPER(session=client)
-        self.assertRaises(RuntimeError, client._receive, "ERROR: Error!")
-        client._receive(SERIALIZED_BUFFERS2)
+        self.assertRaises(RuntimeError, client._receive, "ERROR: Error!", None)
+        client._receive(SERIALIZED_BUFFERS2, None)
         self.assertEqual(set(client._registry.keys()), {uuid.UUID(int=42),
                                                         w.uid})
         self.assertEqual(client._buffers[BufferContext.USER],

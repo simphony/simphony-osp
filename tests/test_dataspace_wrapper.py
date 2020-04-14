@@ -123,7 +123,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         """Test that parameterizing the dataspace as
         a client throws an error"""
         with TransportSessionClient(DbWrapperSession,
-                                    HOST, PORT, "test.db") as session:
+                                    HOST, PORT, path="test.db") as session:
             self.assertRaises(RuntimeError, CITY.CITY_WRAPPER, session=session)
 
 

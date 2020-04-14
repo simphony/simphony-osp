@@ -119,9 +119,9 @@ def move_files(file_cuds, temp_directory, target_directory):
             If None, file cuds are expected to have the whole path.
         target_directory (path): The directory to move the files to.
     """
-    result = list()
     if target_directory is None:
-        return result
+        return [c.path for c in file_cuds]
+    result = list()
     for cuds in file_cuds:
         path = cuds.path
         if temp_directory is not None:

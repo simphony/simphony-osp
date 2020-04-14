@@ -61,8 +61,13 @@ class CommunicationEngineServer():
                         temp_directory=temp_dir,
                         user=websocket
                     )   # TODO send files also
-                    logger.debug("Response: %s" % response)
+                    logger.debug("Response: %s with %s files"
+                                 % (response, len(files)))
+                    response = len(files).to_bytes(length=1, byteorder="big") \
+                        + response.encode("utf-8")
                     await websocket.send(response)
+                    for part in _encode_files(files):
+                        await websocket.send(part)
         except websockets.exceptions.ConnectionClosedOK:
             pass
         finally:
@@ -160,9 +165,17 @@ class CommunicationEngineClient():
         message = self._encode(command, data, files)
         for part in message:
             await self.websocket.send(part)
-        response = await self.websocket.recv()
-        logger.debug("Response: %s" % response)
-        return self.handle_response(response)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            response = await self.websocket.recv()
+            num_files = int.from_bytes(response[0:1], byteorder="big")
+            data = response[1:].decode("utf-8")
+            logger.debug("Response: %s with %s files" % (data, num_files))
+            await _decode_files(num_files, self.websocket, temp_dir)
+            return self.handle_response(
+                data=data,
+                temp_directory=temp_dir
+            )
 
     def _encode(self, command, data, files):
         """Encode the data to send to the server to bytes
@@ -188,11 +201,11 @@ class CommunicationEngineClient():
 def _encode_files(files):
     block_size = 4096
     logger.debug("Will send %s files" % len(files))
-    for file in files:
+    for i, file in enumerate(files):
         bytes_filename = file.encode("utf-8")
         num_blocks = int(math.ceil(os.path.getsize(file) / block_size))
-        logger.debug("Send file %s with %s block(s) of %s bytes"
-                     % (file, num_blocks, block_size))
+        logger.debug("Send file %s (%s of %s) with %s block(s) of %s bytes"
+                     % (file, i + 1, len(files), num_blocks, block_size))
         num_blocks_bytes = num_blocks.to_bytes(length=4, byteorder="big")
         yield num_blocks_bytes + bytes_filename
 

@@ -28,7 +28,8 @@ class TransportSessionClient(WrapperSession):
     client and a server. The client is a WrapperSession, that wraps another
     session that runs on the server. Each request will be sent to the server"""
 
-    def __init__(self, session_cls, host, port, *args, **kwargs):
+    def __init__(self, session_cls, host, port, file_destination=None,
+                 *args, **kwargs):
         """Construct the client of the transport session.
 
         :param session_cls: The session class to wrap.
@@ -41,8 +42,12 @@ class TransportSessionClient(WrapperSession):
         self.session_cls = session_cls
         self.args = args
         self.kwargs = kwargs
-        self.__local_temp_dir = tempfile.TemporaryDirectory()
-        self._local_temp_dir = self.__local_temp_dir.name
+        if file_destination is None:
+            self.__local_temp_dir = tempfile.TemporaryDirectory()
+            self._file_destination = self.__local_temp_dir.name
+        else:
+            self.__local_temp_dir = None
+            self._file_destination = file_destination
         super().__init__(
             engine=CommunicationEngineClient(
                 host=host,
@@ -71,16 +76,19 @@ class TransportSessionClient(WrapperSession):
 
     # OVERRIDE
     def close(self):
-        self.__local_temp_dir.cleanup()
+        if self.__local_temp_dir:
+            self.__local_temp_dir.cleanup()
         self._engine.close()
 
     # OVERRIDE
     def _load_from_backend(self, uids, expired=None):
         expired = expired or self._expired
-        data, files = serialize_buffers(self, buffer_context=None,
-                                        additional_items={"uids": uids,
-                                                          "expired": expired},
-                                        target_directory=self._local_temp_dir)
+        data, files = serialize_buffers(
+            self, buffer_context=None,
+            additional_items={"uids": uids,
+                              "expired": expired},
+            target_directory=self._file_destination
+        )
         yield from self._engine.send(LOAD_COMMAND, data, files)
 
     def _send(self, command, consume_buffers, *args, **kwargs):
@@ -99,12 +107,14 @@ class TransportSessionClient(WrapperSession):
         """
         arguments = {"args": args, "kwargs": kwargs}
         buffer_context = BufferContext.USER if consume_buffers else None
-        data, files = serialize_buffers(self, buffer_context=buffer_context,
-                                        additional_items=arguments,
-                                        target_directory=self._local_temp_dir)
+        data, files = serialize_buffers(
+            self, buffer_context=buffer_context,
+            additional_items=arguments,
+            target_directory=self._file_destination
+        )
         return self._engine.send(command, data, files)
 
-    def _receive(self, data):
+    def _receive(self, data, temp_directory):
         """Process the response of the server.
 
         :param data: Receive changes made by the server (serialized buffers).
@@ -113,9 +123,13 @@ class TransportSessionClient(WrapperSession):
         """
         if data.startswith("ERROR: "):
             raise RuntimeError("Error on Server side: %s" % data[7:])
-        remainder = deserialize_buffers(self,
-                                        buffer_context=BufferContext.ENGINE,
-                                        data=data)
+        remainder = deserialize_buffers(
+            self,
+            buffer_context=BufferContext.ENGINE,
+            data=data,
+            temp_directory=temp_directory,
+            target_directory=self._file_destination
+        )
         result = None
         if remainder and "expired" in remainder:
             self.expire(set(remainder["expired"]))
