@@ -12,5 +12,5 @@ from osp.core.session import DbWrapperSession
 class DataspaceSession(TransportSessionClient):
     """The dataspace wrapper connects osp-core to a dataspace"""
 
-    def __init__(self, host, port):
-        super().__init__(DbWrapperSession, host, port)
+    def __init__(self, host, port, file_destination=None):
+        super().__init__(DbWrapperSession, host, port, file_destination)
