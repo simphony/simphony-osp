@@ -130,7 +130,10 @@ def move_files(file_cuds, temp_directory, target_directory):
         target_path = os.path.join(
             target_directory, str(cuds.uid) + os.path.splitext(path)[1]
         )
-        if not os.path.samefile(path, target_path):
+        if not (
+            os.path.exists(target_path)
+            and os.path.samefile(path, target_path)
+        ):
             shutil.copyfile(path, target_path)
             assert cuds.uid not in cuds.session._expired
             cuds.path = target_path

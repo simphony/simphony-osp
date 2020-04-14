@@ -9,6 +9,7 @@ import asyncio
 import websockets
 import logging
 import os
+import math
 import tempfile
 
 logger = logging.getLogger(__name__)
@@ -51,28 +52,29 @@ class CommunicationEngineServer():
         :type _: str
         """
         try:
-            async for bytes_data in websocket:
-                with tempfile.TemporaryDirectory() as files_directory:
-                    command, data = self._decode(bytes_data, files_directory)
-                    logger.debug("Request %s: %s from %s",
-                                 command, data, hash(websocket))
+            while True:
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    command, data = await self._decode(websocket, temp_dir)
                     response, files = self._handle_request(
                         command=command,
                         data=data,
-                        temp_directory=files_directory,
+                        temp_directory=temp_dir,
                         user=websocket
                     )   # TODO send files also
                     logger.debug("Response: %s" % response)
                     await websocket.send(response)
+        except websockets.exceptions.ConnectionClosedOK:
+            pass
         finally:
             logger.debug("User %s disconnected!" % hash(websocket))
             self._handle_disconnect(websocket)
 
-    def _decode(self, bytes_data, files_directory):
-        """Decode the bytes data from the user.
+    async def _decode(self, websocket, temp_dir):
+        """Get data from the user.
 
         Args:
-            bytes_data (bytes): The bytes sent by the user
+            websocket (websocket): The websocket object
+            temp_dir (TemporaryDirectory): The place to store the files
 
         Raises:
             NotImplementedError: Not implemented the protocol version of
@@ -82,17 +84,20 @@ class CommunicationEngineServer():
             Tuple[str, str, bytes]: Tupole of command to execute,
                 data and binary data.
         """
+        bytes_data = await websocket.recv()
         version = int.from_bytes(bytes_data[0:1], byteorder="big")
         if version != 1:
             raise NotImplementedError("No decode implemented for "
                                       "version %s" % version)
         len_command = int.from_bytes(bytes_data[1:2], byteorder="big")
-        len_data = int.from_bytes(bytes_data[2:10], byteorder="big")
-        command = bytes_data[10: 10 + len_command].decode("utf-8")
-        data = bytes_data[10 + len_command: 10 + len_command + len_data] \
-            .decode("utf-8")
-        _decode_files(bytes_data[10 + len_command + len_data:],
-                      files_directory)
+        num_files = int.from_bytes(bytes_data[2:3], byteorder="big")
+        command = bytes_data[3: 3 + len_command].decode("utf-8")
+        data = bytes_data[3 + len_command:].decode("utf-8")
+        logger.debug(
+            "Recieved data from %s.\n\t Protocol version: %s,\n\t "
+            "Command %s,\n\t Number of files %s,\n\t Data: %s"
+            % (hash(websocket), version, command, num_files, data))
+        await _decode_files(num_files, websocket, temp_dir)
         return command, data
 
 
@@ -153,7 +158,8 @@ class CommunicationEngineClient():
             self.websocket = await websockets.connect(uri)
 
         message = self._encode(command, data, files)
-        await self.websocket.send(message)
+        for part in message:
+            await self.websocket.send(part)
         response = await self.websocket.recv()
         logger.debug("Response: %s" % response)
         return self.handle_response(response)
@@ -169,41 +175,47 @@ class CommunicationEngineClient():
         Returns:
             bytes: The resulting data encoded
         """
+        files = files or []
         data = data.encode("utf-8")
         command = command.encode("utf-8")
-        len_data = len(data).to_bytes(length=8, byteorder="big")
         len_command = len(command).to_bytes(length=1, byteorder="big")
+        num_files = len(files).to_bytes(length=1, byteorder="big")
         version = int(1).to_bytes(length=1, byteorder="big")
-        message = version + len_command + len_data + command + data
-        message += _encode_files(files or [])
-        return message
+        yield version + len_command + num_files + command + data
+        yield from _encode_files(files)
 
 
 def _encode_files(files):
+    block_size = 4096
     logger.debug("Will send %s files" % len(files))
-    result = bytes([])
     for file in files:
+        bytes_filename = file.encode("utf-8")
+        num_blocks = int(math.ceil(os.path.getsize(file) / block_size))
+        logger.debug("Send file %s with %s block(s) of %s bytes"
+                     % (file, num_blocks, block_size))
+        num_blocks_bytes = num_blocks.to_bytes(length=4, byteorder="big")
+        yield num_blocks_bytes + bytes_filename
+
+        # send the file contents
         with open(file, "rb") as f:
-            bytes_data = f.read()
-            bytes_filename = file.encode("utf-8")
-            len_data = len(bytes_data).to_bytes(length=8, byteorder="big")
-            len_name = len(bytes_filename).to_bytes(length=2, byteorder="big")
-            result += len_name + len_data + bytes_filename + bytes_data
-            logger.info("Will upload %s" % file)
-    logger.debug("Will send files of size %s bytes" % len(result))
-    return result
+            for i, block in enumerate(iter(lambda: f.read(block_size), b"")):
+                logger.debug("Send block %s of %s" % (i + 1, num_blocks))
+                yield block
+            logger.debug("Done")
 
 
-def _decode_files(bytes_data, directory):
-    logger.debug("Decode files of size %s bytes" % len(bytes_data))
-    while bytes_data:
-        len_name = int.from_bytes(bytes_data[0:2], byteorder="big")
-        len_data = int.from_bytes(bytes_data[2:10], byteorder="big")
-        name = bytes_data[10: 10 + len_name].decode("utf-8")
-        content = bytes_data[10 + len_name: 10 + len_name + len_data]
-        name = os.path.basename(name)
-        file_path = os.path.join(directory, name)
+async def _decode_files(num_files, websocket, directory):
+    for i in range(num_files):
+        logger.debug("Load file %s of %s" % (i + 1, num_files))
+        description = await websocket.recv()
+        num_blocks = int.from_bytes(description[0:4], byteorder="big")
+        filename = description[4:].decode("utf-8")
+        filename = os.path.basename(filename)
+        file_path = os.path.join(directory, filename)
+        logger.debug("Storing file %s with %s blocks."
+                     % (file_path, num_blocks))
         with open(file_path, "wb") as f:
-            f.write(content)
-        logger.debug("Uploaded file %s and stored at %s" % (name, file_path))
-        bytes_data = bytes_data[10 + len_name + len_data:]
+            for j in range(num_blocks):
+                logger.debug("Receive block %s of %s" % (j + 1, num_blocks))
+                f.write(await websocket.recv())
+            logger.debug("Done")
