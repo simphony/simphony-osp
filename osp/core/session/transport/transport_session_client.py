@@ -16,7 +16,7 @@ from osp.core.session.transport.communication_engine \
 from osp.core.session.buffers import BufferContext
 from osp.core.session.transport.transport_util import (
     INITIALISE_COMMAND, LOAD_COMMAND, deserialize_buffers,
-    serializable, serialize_buffers
+    serializable, serialize_buffers, get_hash_dir
 )
 
 
@@ -62,7 +62,8 @@ class TransportSessionClient(WrapperSession):
             data = {
                 "args": self.args,
                 "kwargs": self.kwargs,
-                "root": serializable(cuds_object)
+                "root": serializable(cuds_object),
+                "hashes": get_hash_dir(self._file_destination)
             }
             super()._store(cuds_object)
             self._engine.send(INITIALISE_COMMAND,

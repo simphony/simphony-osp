@@ -463,7 +463,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
             '"root": {"oclass": "CITY.CITY_WRAPPER", '
             '"uid": "00000000-0000-0000-0000-000000000001", '
             '"attributes": {}, '
-            '"relationships": {}}}'))
+            '"relationships": {}}, "hashes": {}}'))
         self.assertEqual(set(client._registry.keys()), {c1.uid})
 
         # second item
@@ -596,7 +596,8 @@ class TestCommunicationEngineServer(unittest.TestCase):
         data = json.dumps({
             "args": [],
             "kwargs": {},
-            "root": ROOT_DICT
+            "root": ROOT_DICT,
+            "hashes": {"test.py": "123"}
         })
         server._init_session(data, user="user1")
         self.assertEqual(server.session_objs["user1"].root, uuid.UUID(int=43))

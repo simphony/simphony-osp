@@ -10,6 +10,7 @@ import uuid
 import os
 import shutil
 import logging
+import hashlib
 from osp.core import get_entity, CUBA
 from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_from, convert_to
@@ -144,15 +145,21 @@ def move_files(file_cuds, temp_directory, target_directory):
         target_path = os.path.join(
             target_directory, str(cuds.uid) + os.path.splitext(path)[1]
         )
-        if not (
-            os.path.exists(target_path)
-            and os.path.samefile(path, target_path)
+        if (
+            os.path.exists(os.path.dirname(target_path))
+            and os.path.exists(path)
+            and not (
+                os.path.exists(target_path)
+                and os.path.samefile(path, target_path)
+            )
         ):
             shutil.copyfile(path, target_path)
             assert cuds.uid not in cuds.session._expired
             cuds.path = target_path
             logger.debug("Copy file %s to %s" % (path, target_path))
             result.append(target_path)
+        else:
+            logger.debug("Will not move %s to %s" % (path, target_path))
     return result
 
 
@@ -304,3 +311,57 @@ def _to_cuds_object(json_obj, session, buffer_context):
                 target_oclass = get_entity(target_name)
                 cuds_object._neighbours[rel][uid] = target_oclass
         return cuds_object
+
+
+def get_hash_dir(directory_path):
+    """Get the has sums of all files in the given path
+
+    Args:
+        directory_path (path): The path to the directory
+
+    Returns:
+        Dict[path, HASH]: The sha256 HASH object for each file in the directory
+    """
+    result = dict()
+    for file in os.listdir(directory_path):
+        file_path = os.path.join(directory_path, file)
+        if not os.path.isfile(file_path):
+            continue
+        result[file] = get_hash(file_path)
+    return result
+
+
+def check_hash(file_path, file_hashes):
+    """Check whether the hash of the given file is in the given dictionary of
+    hashes. If not, add it.
+
+    Args:
+        file_path (path): The path to the file to check
+        file_hashes (Dict[str, HASH]): Dictionary from file basename to hash
+    """
+    sha265hash = get_hash(file_path)
+    filename = os.path.basename(file_path)
+    if filename in file_hashes and file_hashes[filename] == sha265hash:
+        return True
+    file_hashes[filename] = sha265hash
+    return False
+
+
+def get_hash(file_path):
+    """Get the hash of the given file
+
+    Args:
+        file_path (path): A path to a file
+
+    Returns:
+        HASH: A sha256 HASH object
+    """
+    buf_size = 4096
+    result = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        while True:
+            data = f.read(buf_size)
+            if not data:
+                break
+            result.update(data)
+    return result.hexdigest()

@@ -11,6 +11,8 @@ import logging
 import os
 import math
 import tempfile
+import hashlib
+from osp.core.session.transport.transport_util import check_hash
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,7 @@ class CommunicationEngineServer():
         self.port = port
         self._handle_request = handle_request
         self._handle_disconnect = handle_disconnect
+        self._file_hashes = dict()
 
     def startListening(self):
         """Start the server on given host + port."""
@@ -61,6 +64,7 @@ class CommunicationEngineServer():
                         temp_directory=temp_dir,
                         user=websocket
                     )
+                    files = filter_files(files, self._file_hashes)
                     logger.debug("Response: %s with %s files"
                                  % (response, len(files)))
                     response = len(files).to_bytes(length=1, byteorder="big") \
@@ -72,6 +76,7 @@ class CommunicationEngineServer():
             pass
         finally:
             logger.debug("User %s disconnected!" % hash(websocket))
+            self._file_hashes = dict()
             self._handle_disconnect(websocket)
 
     async def _decode(self, websocket, temp_dir):
@@ -100,9 +105,9 @@ class CommunicationEngineServer():
         data = bytes_data[3 + len_command:].decode("utf-8")
         logger.debug(
             "Recieved data from %s.\n\t Protocol version: %s,\n\t "
-            "Command %s,\n\t Number of files %s,\n\t Data: %s"
+            "Command: %s,\n\t Number of files: %s,\n\t Data: %s"
             % (hash(websocket), version, command, num_files, data))
-        await _receive_files(num_files, websocket, temp_dir)
+        await _receive_files(num_files, websocket, temp_dir, self._file_hashes)
         return command, data
 
 
@@ -200,7 +205,29 @@ class CommunicationEngineClient():
         yield from _encode_files(files)
 
 
-def _encode_files(files):
+def filter_files(files, file_hashes):
+    """Remove the files the receiver already has
+
+    Args:
+        files (List[path]): A list of paths to send.
+
+    Yields:
+        List[str]: The files to send
+    """
+    result = list()
+    for file in files:
+        if not os.path.exists(file):
+            logger.warning("Cannot send %s, because it does not exist" % file)
+            continue
+        if check_hash(file, file_hashes):
+            logger.debug("Skip sending file %s, "
+                         "receiver already has a copy of it." % file)
+            continue
+        result.append(file)
+    return result
+
+
+def _encode_files(files, file_hashes=None):
     """Encode the files to be sent to over the networks.
     Will send file in several blocks.
 
@@ -228,7 +255,7 @@ def _encode_files(files):
             logger.debug("Done")
 
 
-async def _receive_files(num_files, websocket, directory):
+async def _receive_files(num_files, websocket, directory, file_hashes=None):
     """Will receive and store the files sent to the websocket.
 
     Args:
@@ -236,17 +263,22 @@ async def _receive_files(num_files, websocket, directory):
         websocket (websocket): The websocket to load the files from
         directory (path): The location to store the files
     """
+    if file_hashes is None:
+        file_hashes = dict()
     for i in range(num_files):
         logger.debug("Load file %s of %s" % (i + 1, num_files))
         description = await websocket.recv()
         num_blocks = int.from_bytes(description[0:4], byteorder="big")
         filename = description[4:].decode("utf-8")
         filename = os.path.basename(filename)
+        file_hashes[filename] = hashlib.sha256()
         file_path = os.path.join(directory, filename)
         logger.debug("Storing file %s with %s blocks."
                      % (file_path, num_blocks))
         with open(file_path, "wb") as f:
             for j in range(num_blocks):
                 logger.debug("Receive block %s of %s" % (j + 1, num_blocks))
-                f.write(await websocket.recv())
+                data = await websocket.recv()
+                file_hashes[filename].update(data)
+                f.write(data)
             logger.debug("Done")
