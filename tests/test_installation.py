@@ -66,9 +66,9 @@ class TestInstallation(unittest.TestCase):
                 num_lines += 1
             self.assertEqual(num_lines, 259)
         finally:
-            shutil.rmtree(oim.path)
             f1.close()
             f2.close()
+            shutil.rmtree(oim.path)
 
     def test_sort_for_installation(self):
         """Check if sort for installation works"""
