@@ -78,7 +78,7 @@ If pico is not available after you install OSP core, try to restart your shell.
 
 ## Visualization of ontologies
 
-We provide the tool `ontology2dot` to visualize your ontologies. You can visualize installed namespaces together with non-installed yaml files:
+We provide the tool `ontology2dot` to visualize your ontologies. You can visualize installed namespaces together with non-installed yaml files (requires Graphviz https://graphviz.gitlab.io/):
 
 ```sh
 ontology2dot <installed-namespace-1> ... <installed-namespace-n> <path/to/ontology-1.yml> ... <path/to/ontology-m.yml>
