@@ -31,14 +31,21 @@ The package requires python 3.6 or higher (tested for 3.7), installation is base
 setuptools:
 
 ```sh
-# build and install
+# build and install (recommended)
+pip install .
+
+# alternative
 python3 setup.py install
 ```
 
 or:
 
 ```sh
-# build for in-place development
+# build for in-place development (recommended)
+pip install -e .
+
+
+# alternative
 python3 setup.py develop
 ```
 
@@ -50,6 +57,9 @@ installs the example city ontology namespace:
 
 ```sh
 pico install city
+
+# If you have issues using pico directly, you can use
+python -m osp.core.pico install city
 ```
 
 You can also install your own ontologies:
@@ -72,6 +82,9 @@ We provide the tool `ontology2dot` to visualize your ontologies. You can visuali
 
 ```sh
 ontology2dot <installed-namespace-1> ... <installed-namespace-n> <path/to/ontology-1.yml> ... <path/to/ontology-m.yml>
+
+# Alternative
+python -m osp.core.tools.ontology2dot <installed-namespace-1> ... <installed-namespace-n> <path/to/ontology-1.yml> ... <path/to/ontology-m.yml>
 ```
 
 You can use parameter `-g` to group the namespaces. Use `-o` to change the filename of the resulting png file.
@@ -84,7 +97,7 @@ Testing is done using tox (`pip install tox`):
 # run tests automatically in different environments
 tox
 
-# run tests in your current environment
+# run tests in your current environment (you must manually install unittest2, responses for that)
 python -m unittest -v
 ```
 
@@ -97,6 +110,16 @@ If you want to build the documentation locally, refer to our [documentation repo
 ### Examples
 
 Further examples can be found in the /examples folder. There the usage of wrappers is explained.
+
+## Troubleshooting
+
+If installation fails, try to install the dependencies one by one before installing osp-core.
+The dependencies are listed at the top of this readme file.
+
+On Windows, unittests can fail when you use a virtual environment.
+For testing the transport layer, we start a transport layer server using pythons subprocess package.
+It can happen, that the started subprocess does not pick up the correct virtual environment, causing the server to crash and the corresponding tests to fail.
+From our experience, this will not happen if you use the virtual environements of conda.
 
 ### Directory structure
 
