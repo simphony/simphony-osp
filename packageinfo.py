@@ -1,2 +1,2 @@
 NAME = "osp-core"
-VERSION = "3.3.7"
+VERSION = "3.3.8"
