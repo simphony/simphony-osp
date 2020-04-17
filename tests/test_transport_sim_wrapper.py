@@ -38,14 +38,10 @@ class TestTransportSimWrapperCity(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        args = ["python3",
+        args = ["python",
                 "tests/test_transport_sim_wrapper.py",
                 "server"]
-        try:
-            p = subprocess.Popen(args)
-        except FileNotFoundError:
-            args[0] = "python"
-            p = subprocess.Popen(args)
+        p = subprocess.Popen(args)
 
         TestTransportSimWrapperCity.SERVER_STARTED = p
         time.sleep(1)

@@ -41,14 +41,10 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        args = ["python3",
+        args = ["python",
                 "tests/test_dataspace_wrapper.py",
                 "server"]
-        try:
-            p = subprocess.Popen(args)
-        except FileNotFoundError:
-            args[0] = "python"
-            p = subprocess.Popen(args)
+        p = subprocess.Popen(args)
 
         TestTransportSqliteCity.SERVER_STARTED = p
         time.sleep(1)
@@ -123,7 +119,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         """Test that parameterizing the dataspace as
         a client throws an error"""
         with TransportSessionClient(DbWrapperSession,
-                                    HOST, PORT, "test.db") as session:
+                                    HOST, PORT, "dataspace.db") as session:
             self.assertRaises(RuntimeError, CITY.CITY_WRAPPER, session=session)
 
 
