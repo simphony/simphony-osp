@@ -82,13 +82,13 @@ class TestUtils(unittest.TestCase):
             CITY.NEIGHBOURHOOD(name="Herdern"),
             CITY.NEIGHBOURHOOD(name="Vauban")
         )
-        self.assertEquals(x.name, "Freiburg")
-        self.assertEquals({"Herdern", "Vauban"},
-                          set(map(lambda x: x.name,
-                                  x.get(oclass=CITY.NEIGHBOURHOOD))))
-        self.assertEquals({"Peter", "Maria"},
-                          set(map(lambda x: x.name,
-                                  x.get(rel=CITY.HAS_INHABITANT))))
+        self.assertEqual(x.name, "Freiburg")
+        self.assertEqual({"Herdern", "Vauban"},
+                         set(map(lambda x: x.name,
+                                 x.get(oclass=CITY.NEIGHBOURHOOD))))
+        self.assertEqual({"Peter", "Maria"},
+                         set(map(lambda x: x.name,
+                                 x.get(rel=CITY.HAS_INHABITANT))))
 
     @responses.activate
     def test_post(self):
