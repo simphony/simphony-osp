@@ -17,7 +17,7 @@ except ImportError:
     from osp.core.ontology import Parser
     CITY = Parser().parse("city")
 
-DB = "test.db"
+DB = "test_sqlite.db"
 
 
 class TestSqliteCity(unittest.TestCase):
@@ -311,24 +311,24 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_multiple_users(self):
         """Test what happens if multiple users access the database."""
-        session1 = SqliteSession(DB)
-        wrapper1 = CITY.CityWrapper(session=session1)
-        city1 = CITY.City(name="Freiburg")
-        wrapper1.add(city1)
-        session1.commit()
+        with SqliteSession(DB) as session1:
+            wrapper1 = CITY.CityWrapper(session=session1)
+            city1 = CITY.City(name="Freiburg")
+            wrapper1.add(city1)
+            session1.commit()
 
-        session2 = SqliteSession(DB)
-        wrapper2 = CITY.CityWrapper(session=session2)
-        wrapper2.add(CITY.City(name="Offenburg"))
-        session2.commit()
+            with SqliteSession(DB) as session2:
+                wrapper2 = CITY.CityWrapper(session=session2)
+                wrapper2.add(CITY.City(name="Offenburg"))
+                session2.commit()
 
-        cw = wrapper1.add(CITY.City(name="Karlsruhe"))
-        self.assertEqual(session1._expired, set())
-        self.assertEqual(session1._buffers, [
-            [{cw.uid: cw}, {wrapper1.uid: wrapper1}, dict()],
-            [dict(), dict(), dict()]
-        ])
-        session1.commit()
+                cw = wrapper1.add(CITY.City(name="Karlsruhe"))
+                self.assertEqual(session1._expired, set())
+                self.assertEqual(session1._buffers, [
+                    [{cw.uid: cw}, {wrapper1.uid: wrapper1}, dict()],
+                    [dict(), dict(), dict()]
+                ])
+                session1.commit()
 
 
 def check_state(test_case, c, p1, p2, db=DB):
