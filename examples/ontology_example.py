@@ -103,7 +103,7 @@ print(city.Age.datatype)
 
 print("\nYou can use the attribute to convert values "
       "to the datatype of the attribute")
-print(city.Age("10"))
+print(city.Age.convert_to_datatype("10"))
 
 # CUDS
 print("\nYou can instantiate CUDS objects using ontology classes")
