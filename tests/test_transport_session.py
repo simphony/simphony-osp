@@ -298,7 +298,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                 [dict(), dict(), dict()],
                 [dict(), dict(), dict()]])
 
-    def test_serialize(self):
+    def test_serialize_buffers(self):
         """ Test if serialization of buffers work """
         # no expiration
         with TestWrapperSession() as s1:
