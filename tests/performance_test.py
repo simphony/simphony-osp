@@ -6,8 +6,10 @@
 # No redistribution is allowed without explicit written permission.
 
 # pip install pympler
+import gc
 from pympler import asizeof
 import time
+import uuid
 import unittest2 as unittest
 
 try:
@@ -24,8 +26,23 @@ class TestPerformance(unittest.TestCase):
     def setUp(self):
         if not RUN_PERFORMANCE_TEST:
             return
-        self.iterations = 500000
+        self.iterations = 100000
         self.c = CITY.CITY(name="A big city")
+        for i in range(10):
+            j = i * 9
+            self.c.add(CITY.CITIZEN(uid=j + 0), rel=CITY.HAS_INHABITANT)
+            self.c.add(CITY.CITIZEN(uid=j + 1), rel=CITY.ENCLOSES)
+            self.c.add(CITY.CITIZEN(uid=j + 2), rel=CITY.HAS_PART)
+            self.c.add(CITY.NEIGHBOURHOOD(name="", uid=j + 3),
+                       rel=CITY.HAS_INHABITANT)
+            self.c.add(CITY.NEIGHBOURHOOD(name="", uid=j + 4),
+                       rel=CITY.ENCLOSES)
+            self.c.add(CITY.NEIGHBOURHOOD(name="", uid=j + 5),
+                       rel=CITY.HAS_PART)
+            self.c.add(CITY.STREET(name="", uid=j + 6),
+                       rel=CITY.HAS_INHABITANT)
+            self.c.add(CITY.STREET(name="", uid=j + 7), rel=CITY.ENCLOSES)
+            self.c.add(CITY.STREET(name="", uid=j + 8), rel=CITY.HAS_PART)
         self.start = time.time()
 
     def tearDown(self):
@@ -40,6 +57,8 @@ class TestPerformance(unittest.TestCase):
             print('Total time: ' + str(total / 60) + ' minutes.')
         else:
             print('Total time: ' + str(total) + ' seconds.')
+        self.c._session = None
+        gc.collect()
 
     def test_creation(self):
         """
@@ -47,6 +66,7 @@ class TestPerformance(unittest.TestCase):
         """
         if not RUN_PERFORMANCE_TEST:
             return
+        print("Test cuds object creation")
         for i in range(self.iterations):
             CITY.CITIZEN(name='citizen ' + str(i))
 
@@ -56,6 +76,7 @@ class TestPerformance(unittest.TestCase):
         """
         if not RUN_PERFORMANCE_TEST:
             return
+        print("Test adding with the default relationship")
         for i in range(self.iterations):
             self.c.add(CITY.NEIGHBOURHOOD(
                 name='neighbourhood ' + str(i)))
@@ -66,9 +87,32 @@ class TestPerformance(unittest.TestCase):
         """
         if not RUN_PERFORMANCE_TEST:
             return
+        print("Test adding with a general relationship")
         for i in range(self.iterations):
             self.c.add(CITY.CITIZEN(name='citizen ' + str(i)),
                        rel=CITY.HAS_INHABITANT)
+
+    def test_get_by_oclass(self):
+        if not RUN_PERFORMANCE_TEST:
+            return
+        print("Test get by oclass")
+        for i in range(self.iterations):
+            self.c.get(oclass=CITY.STREET)
+
+    def test_get_by_uid(self):
+        if not RUN_PERFORMANCE_TEST:
+            return
+        print("Test get by uid")
+        uids = list(map(lambda x: uuid.UUID(int=x), range(10)))
+        for i in range(self.iterations):
+            self.c.get(*uids)
+
+    def test_get_by_rel(self):
+        if not RUN_PERFORMANCE_TEST:
+            return
+        print("Test get by relationship")
+        for i in range(self.iterations):
+            self.c.get(rel=CITY.HAS_INHABITANT)
 
 
 if __name__ == '__main__':
