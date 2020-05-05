@@ -227,7 +227,7 @@ def filter_files(files, file_hashes):
     return result
 
 
-def _encode_files(files, file_hashes=None):
+def _encode_files(files):
     """Encode the files to be sent to over the networks.
     Will send file in several blocks.
 

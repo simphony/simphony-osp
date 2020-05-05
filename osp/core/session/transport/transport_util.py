@@ -248,6 +248,8 @@ def get_file_cuds(obj):
     if isinstance(obj, (Cuds, str, float, int, uuid.UUID, OntologyEntity)) \
             or obj is None:
         return []
+    if isinstance(obj, dict):
+        obj = obj.values()
     return [y for x in obj for y in get_file_cuds(x)]
 
 
