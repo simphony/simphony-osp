@@ -1,4 +1,3 @@
 # DO NOT MODIFY
 NAME = "osp-core"
-VERSION = "3.3.7"
-# DO NOT MODIFY
+VERSION = "3.3.8"
