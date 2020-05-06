@@ -17,6 +17,9 @@ from osp.core.session.transport.transport_util import check_hash
 logger = logging.getLogger(__name__)
 
 
+BLOCK_SIZE = 4096
+
+
 class CommunicationEngineServer():
     """The communication engine manages the connection between the remote and
     local side of the transport layer. The server will be executed on the
@@ -54,17 +57,23 @@ class CommunicationEngineServer():
         :param _: The path of the URI (will be ignored).
         :type _: str
         """
+        file_hashes = self._file_hashes.get(websocket, dict())
+        self._file_hashes[websocket] = file_hashes
         try:
             while True:
                 with tempfile.TemporaryDirectory() as temp_dir:
-                    command, data = await self._decode(websocket, temp_dir)
+                    command, data = await self._decode(websocket, temp_dir,
+                                                       file_hashes)
+                    # let session handle the request
                     response, files = self._handle_request(
                         command=command,
                         data=data,
                         temp_directory=temp_dir,
                         user=websocket
                     )
-                    files = filter_files(files, self._file_hashes)
+
+                    # send the response
+                    files = _filter_files(files, file_hashes)
                     logger.debug("Response: %s with %s files"
                                  % (response, len(files)))
                     response = len(files).to_bytes(length=1, byteorder="big") \
@@ -76,10 +85,10 @@ class CommunicationEngineServer():
             pass
         finally:
             logger.debug("User %s disconnected!" % hash(websocket))
-            self._file_hashes = dict()
+            del self._file_hashes[websocket]
             self._handle_disconnect(websocket)
 
-    async def _decode(self, websocket, temp_dir):
+    async def _decode(self, websocket, temp_dir, file_hashes):
         """Get data from the user.
 
         Args:
@@ -107,7 +116,7 @@ class CommunicationEngineServer():
             "Recieved data from %s.\n\t Protocol version: %s,\n\t "
             "Command: %s,\n\t Number of files: %s,\n\t Data: %s"
             % (hash(websocket), version, command, num_files, data))
-        await _receive_files(num_files, websocket, temp_dir, self._file_hashes)
+        await _receive_files(num_files, websocket, temp_dir, file_hashes)
         return command, data
 
 
@@ -205,7 +214,7 @@ class CommunicationEngineClient():
         yield from _encode_files(files)
 
 
-def filter_files(files, file_hashes):
+def _filter_files(files, file_hashes):
     """Remove the files the receiver already has
 
     Args:
@@ -237,19 +246,18 @@ def _encode_files(files):
     Yields:
         bytes: The bytes of the file
     """
-    block_size = 4096
     logger.debug("Will send %s files" % len(files))
     for i, file in enumerate(files):
-        bytes_filename = file.encode("utf-8")
-        num_blocks = int(math.ceil(os.path.getsize(file) / block_size))
+        bytes_filename = os.path.basename(file).encode("utf-8")
+        num_blocks = int(math.ceil(os.path.getsize(file) / BLOCK_SIZE))
         logger.debug("Send file %s (%s of %s) with %s block(s) of %s bytes"
-                     % (file, i + 1, len(files), num_blocks, block_size))
+                     % (file, i + 1, len(files), num_blocks, BLOCK_SIZE))
         num_blocks_bytes = num_blocks.to_bytes(length=4, byteorder="big")
         yield num_blocks_bytes + bytes_filename
 
         # send the file contents
         with open(file, "rb") as f:
-            for i, block in enumerate(iter(lambda: f.read(block_size), b"")):
+            for i, block in enumerate(iter(lambda: f.read(BLOCK_SIZE), b"")):
                 logger.debug("Send block %s of %s" % (i + 1, num_blocks))
                 yield block
             logger.debug("Done")
@@ -282,3 +290,4 @@ async def _receive_files(num_files, websocket, directory, file_hashes=None):
                 file_hashes[filename].update(data)
                 f.write(data)
             logger.debug("Done")
+        file_hashes[filename] = file_hashes[filename].hexdigest()

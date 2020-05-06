@@ -343,8 +343,14 @@ def check_hash(file_path, file_hashes):
     """
     sha265hash = get_hash(file_path)
     filename = os.path.basename(file_path)
-    if filename in file_hashes and file_hashes[filename] == sha265hash:
-        return True
+    if filename in file_hashes:
+        if file_hashes[filename] == sha265hash:
+            return True
+        else:
+            logger.debug(
+                "Hash mismatch for file %s. File on disk has hash %s,"
+                " and last registered version has hash %s."
+                % (filename, sha265hash, file_hashes[filename]))
     file_hashes[filename] = sha265hash
     return False
 

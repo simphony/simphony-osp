@@ -161,7 +161,7 @@ class TransportSessionServer():
         else:
             session = self.session_cls(*data["args"],
                                        **data["kwargs"])
-        self.com_facility._file_hashes.update(data["hashes"])
+        self.com_facility._file_hashes[user].update(data["hashes"])
         self.session_objs[user] = session
         deserialize(data["root"], session=session,
                     buffer_context=BufferContext.USER)

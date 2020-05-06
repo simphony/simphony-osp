@@ -599,6 +599,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
             "root": ROOT_DICT,
             "hashes": {"test.py": "123"}
         })
+        server.com_facility._file_hashes = {"user1": {}}
         server._init_session(data, user="user1")
         self.assertEqual(server.session_objs["user1"].root, uuid.UUID(int=43))
         self.assertEqual(len(server.session_objs.keys()), 1)
