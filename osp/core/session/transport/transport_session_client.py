@@ -5,6 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+import os
 import json
 import logging
 import tempfile
@@ -48,6 +49,8 @@ class TransportSessionClient(WrapperSession):
         else:
             self.__local_temp_dir = None
             self._file_destination = file_destination
+            if not os.path.exists(self._file_destination):
+                os.mkdir(self._file_destination)
         super().__init__(
             engine=CommunicationEngineClient(
                 host=host,

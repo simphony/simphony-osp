@@ -5,6 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+import os
 import json
 import logging
 from osp.core.session.buffers import BufferContext
@@ -50,6 +51,8 @@ class TransportSessionServer():
         self.session_objs = dict()
         self._session_kwargs = session_kwargs
         self._file_destination = file_destination
+        if not os.path.exists(self._file_destination):
+            os.mkdir(self._file_destination)
 
     def startListening(self):
         """Start the server"""
