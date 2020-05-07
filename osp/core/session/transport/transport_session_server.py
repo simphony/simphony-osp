@@ -51,7 +51,10 @@ class TransportSessionServer():
         self.session_objs = dict()
         self._session_kwargs = session_kwargs
         self._file_destination = file_destination
-        if not os.path.exists(self._file_destination):
+        if not (
+            self._file_destination is None
+            or os.path.exists(self._file_destination)
+        ):
             os.mkdir(self._file_destination)
 
     def startListening(self):
