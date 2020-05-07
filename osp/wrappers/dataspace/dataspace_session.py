@@ -10,7 +10,12 @@ from osp.core.session import DbWrapperSession
 
 
 class DataspaceSession(TransportSessionClient):
-    """The dataspace wrapper connects osp-core to a dataspace"""
+    """The dataspace wrapper connects OSP-core to a dataspace."""
 
-    def __init__(self, host, port):
-        super().__init__(DbWrapperSession, host, port)
+    def __init__(self, uri):
+        """Constructs the dataspace session.
+
+        Args:
+            uri (str): WebSocket URI.
+        """        
+        super().__init__(DbWrapperSession, uri)
