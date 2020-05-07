@@ -17,5 +17,5 @@ class DataspaceSession(TransportSessionClient):
 
         Args:
             uri (str): WebSocket URI.
-        """        
+        """
         super().__init__(DbWrapperSession, uri)

@@ -27,7 +27,7 @@ class CommunicationEngineServer():
             Handles the requests of the user.
             handle_disconnect (Callable[Hashable(user)]): Gets called when a
                 user disconnects.
-        """        
+        """
         self.host = host
         self.port = port
         self._handle_request = handle_request
@@ -73,7 +73,7 @@ class CommunicationEngineClient():
             uri (str): WebSocket URI.
             handle_response (Callable[str(response)]): Handles the responses of
                 the server.
-        """ 
+        """
         self.uri = uri
         self.handle_response = handle_response
         self.websocket = None
@@ -111,7 +111,7 @@ class CommunicationEngineClient():
 
         Returns:
             str: The response for the client.
-        """        
+        """
         logger.debug("Request %s: %s" % (command, data))
         if self.websocket is None:
             logger.debug("uri: %s" % (self.uri))

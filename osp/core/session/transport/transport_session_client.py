@@ -28,7 +28,7 @@ class TransportSessionClient(WrapperSession):
         Args:
             session_cls (Session): The session class to wrap.
             uri (str): WebSocket URI.
-        """        
+        """
         super().__init__(
             engine=CommunicationEngineClient(
                 uri=uri,
