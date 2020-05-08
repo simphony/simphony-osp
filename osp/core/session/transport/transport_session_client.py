@@ -29,16 +29,13 @@ class TransportSessionClient(WrapperSession):
     client and a server. The client is a WrapperSession, that wraps another
     session that runs on the server. Each request will be sent to the server"""
 
-    def __init__(self, session_cls, host, port, file_destination=None,
+    def __init__(self, session_cls, uri, file_destination=None,
                  *args, **kwargs):
-        """Construct the client of the transport session.
+        """Constructs the client of the transport session.
 
-        :param session_cls: The session class to wrap.
-        :type session_cls: Type[Session]
-        :param host: The hostname.
-        :type host: str
-        :param port: The port.
-        :type port: int
+        Args:
+            session_cls (Session): The session class to wrap.
+            uri (str): WebSocket URI.
         """
         self.session_cls = session_cls
         self.args = args
@@ -53,8 +50,7 @@ class TransportSessionClient(WrapperSession):
                 os.mkdir(self._file_destination)
         super().__init__(
             engine=CommunicationEngineClient(
-                host=host,
-                port=port,
+                uri=uri,
                 handle_response=self._receive)
         )
 
@@ -157,6 +153,6 @@ class TransportSessionClient(WrapperSession):
 
     # OVERRIDE
     def __str__(self):
-        return "TransportSessionClient connected to %s on %s:%s" % (
-            self.session_cls, self._engine.host, self._engine.port
+        return "TransportSessionClient connected to %s on %s" % (
+            self.session_cls, self._engine.uri
         )

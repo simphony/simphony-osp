@@ -27,6 +27,7 @@ except ImportError:
 
 HOST = "127.0.0.1"
 PORT = 8689
+URI = f"ws://{HOST}:{PORT}"
 TABLE = "transport.db"
 
 SERVER_STARTED = False
@@ -54,7 +55,7 @@ class TestTransportSimWrapperCity(unittest.TestCase):
         """Create a dummy simulation syntactic layer + test
         if working with this layer works as expected.
         """
-        with TransportSessionClient(SimDummySession, HOST, PORT) \
+        with TransportSessionClient(SimDummySession, URI) \
                 as session:
             wrapper = CITY.CITY_SIM_WRAPPER(num_steps=1, session=session)
             c = CITY.CITY(name="Freiburg")

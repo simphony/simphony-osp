@@ -33,6 +33,7 @@ except ImportError:
 
 HOST = "127.0.0.1"
 PORT = 8681
+URI = f"ws://{HOST}:{PORT}"
 DB = "dataspace.db"
 
 
@@ -71,7 +72,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p2 = CITY.CITIZEN(name="Georg")
         c.add(p1, p2, rel=CITY.HAS_INHABITANT)
 
-        with DataspaceSession(HOST, PORT) as session:
+        with DataspaceSession(URI) as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             wrapper.add(c)
             session.commit()
@@ -84,7 +85,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1 = CITY.CITIZEN(name="Peter")
         c.add(p1, rel=CITY.HAS_INHABITANT)
 
-        with DataspaceSession(HOST, PORT) as session:
+        with DataspaceSession(URI) as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             cw = wrapper.add(c)
             session.commit()
@@ -104,7 +105,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p3 = CITY.CITIZEN(name="Hans")
         c.add(p1, p2, p3, rel=CITY.HAS_INHABITANT)
 
-        with DataspaceSession(HOST, PORT) as session:
+        with DataspaceSession(URI) as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             cw = wrapper.add(c)
             session.commit()
@@ -120,7 +121,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         a client throws an error"""
         with TransportSessionClient(
             DbWrapperSession,
-            HOST, PORT, path="dataspace.db"
+            URI, path="dataspace.db"
         ) as session:
             self.assertRaises(RuntimeError, CITY.CITY_WRAPPER, session=session)
 

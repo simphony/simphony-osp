@@ -42,6 +42,7 @@ except ImportError:
 
 HOST = "127.0.0.1"
 PORT = 8645
+URI = f"ws://{HOST}:{PORT}"
 DB = "filetransfer.db"
 
 FILES_DIR = os.path.join(os.path.dirname(__file__), "filetransfer_files")
@@ -135,7 +136,7 @@ class TestFiletransfer(unittest.TestCase):
 
     def test_move_files(self):
         """Test moving the files"""
-        with TransportSessionClient(SqliteSession, HOST, PORT) as session:
+        with TransportSessionClient(SqliteSession, URI) as session:
             # Image path is full path
             wrapper = CITY.CITY_WRAPPER(session=session)
             images = wrapper.add(
@@ -222,7 +223,7 @@ class TestFiletransfer(unittest.TestCase):
     def test_serialize_buffers(self):
         """Test correct handling of files when serializing the buffers"""
         # without providing target path
-        with TransportSessionClient(SqliteSession, HOST, PORT) as session:
+        with TransportSessionClient(SqliteSession, URI) as session:
             self.setup_buffers1(session)
             _, result = serialize_buffers(
                 session, buffer_context=BufferContext.USER,
@@ -233,7 +234,7 @@ class TestFiletransfer(unittest.TestCase):
             )
 
         # provide target path --> move files
-        with TransportSessionClient(SqliteSession, HOST, PORT) as session:
+        with TransportSessionClient(SqliteSession, URI) as session:
             images = self.setup_buffers1(session)
             _, result = serialize_buffers(
                 session, buffer_context=BufferContext.USER,
@@ -259,7 +260,7 @@ class TestFiletransfer(unittest.TestCase):
 
     def test_deserialize_buffers(self):
         """Test correct file handling when deserializing buffers"""
-        with TransportSessionClient(SqliteSession, HOST, PORT) as session:
+        with TransportSessionClient(SqliteSession, URI) as session:
             images = self.setup_buffers2(session)
             deserialize_buffers(session, buffer_context=BufferContext.USER,
                                 data=SERIALIZED_BUFFERS, temp_directory=None,
@@ -336,7 +337,7 @@ class TestFiletransfer(unittest.TestCase):
     def test_upload(self):
         """Test full upload routine"""
         # with given file destination on client
-        with TransportSessionClient(SqliteSession, HOST, PORT,
+        with TransportSessionClient(SqliteSession, URI,
                                     file_destination=CLIENT_DIR) as session:
             images = self.setup_buffers1(session)
             session.commit()
@@ -352,7 +353,7 @@ class TestFiletransfer(unittest.TestCase):
         self.setUp()
 
         # With no given file destination on client
-        with TransportSessionClient(SqliteSession, HOST, PORT,
+        with TransportSessionClient(SqliteSession, URI,
                                     file_destination=None) as session:
             images = self.setup_buffers1(session)
             session.commit()
@@ -365,12 +366,12 @@ class TestFiletransfer(unittest.TestCase):
 
     def test_download(self):
         """Test full download routine"""
-        with TransportSessionClient(SqliteSession, HOST, PORT,
+        with TransportSessionClient(SqliteSession, URI,
                                     file_destination=None) as session:
             images = self.setup_buffers1(session)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, HOST, PORT,
+        with TransportSessionClient(SqliteSession, URI,
                                     file_destination=CLIENT_DIR) as session:
             CITY.CITY_WRAPPER(session=session)
             session.load(images[0].uid)
