@@ -69,7 +69,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p2 = CITY.CITIZEN(name="Georg")
         c.add(p1, p2, rel=CITY.HAS_INHABITANT)
 
-        with TransportSessionClient(SqliteSession, URI, DB) \
+        with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             wrapper.add(c)
@@ -83,7 +83,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1 = CITY.CITIZEN(name="Peter")
         c.add(p1, rel=CITY.HAS_INHABITANT)
 
-        with TransportSessionClient(SqliteSession, URI, DB) \
+        with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             cw = wrapper.add(c)
@@ -104,7 +104,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p3 = CITY.CITIZEN(name="Hans")
         c.add(p1, p2, p3, rel=CITY.HAS_INHABITANT)
 
-        with TransportSessionClient(SqliteSession, URI, DB) \
+        with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             cw = wrapper.add(c)
@@ -131,7 +131,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             wrapper.add(c)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, URI, DB) \
+        with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             self.assertEqual(set(session._registry.keys()),
@@ -160,7 +160,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             wrapper.add(c)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, URI, DB) \
+        with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             self.assertEqual(set(session._registry.keys()),
@@ -198,7 +198,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1.add(p3, rel=CITY.HAS_CHILD)
         p2.add(p3, rel=CITY.HAS_CHILD)
 
-        with TransportSessionClient(SqliteSession, URI, DB)\
+        with TransportSessionClient(SqliteSession, URI, path=DB)\
                 as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             cw = wrapper.add(c)
@@ -249,14 +249,12 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1.add(p3, rel=CITY.HAS_CHILD)
         p2.add(p3, rel=CITY.HAS_CHILD)
 
-        with TransportSessionClient(SqliteSession, URI, DB) \
-                as session:
+        with TransportSessionClient(SqliteSession, URI, path=DB) as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             wrapper.add(c)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, URI, DB) \
-                as session:
+        with TransportSessionClient(SqliteSession, URI, path=DB) as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             cs = wrapper.get(c.uid)
             r = session.load_by_oclass(CITY.CITY)
@@ -275,7 +273,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1.add(p3, rel=CITY.HAS_CHILD)
         p2.add(p3, rel=CITY.HAS_CHILD)
 
-        with TransportSessionClient(SqliteSession, URI, DB) \
+        with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             cw = wrapper.add(c)

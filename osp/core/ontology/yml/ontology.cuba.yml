@@ -46,3 +46,16 @@ ontology:
     description: The root of all attributes.
     subclass_of:
     - CUBA.ENTITY
+
+  FILE:
+    description: An entity associated to a binary file
+    subclass_of:
+      - CUBA.ENTITY
+    attributes:
+      CUBA.PATH: ~
+
+  PATH:
+    description: The path to a local file.
+    subclass_of:
+      - CUBA.ATTRIBUTE
+    datatype: STRING

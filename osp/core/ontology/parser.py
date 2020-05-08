@@ -120,7 +120,7 @@ class Parser:
             a, b = name.split(".")
             return a, b
         except ValueError as e:
-            raise ValueError("Reference to entity %s without namespace"
+            raise ValueError("Reference to entity '%s' without namespace"
                              % name) from e
 
     def _load_entity(self, entity_name):
