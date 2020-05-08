@@ -55,6 +55,8 @@ class Cuds():
         self._neighbours = NeighbourDictRel({}, self)
 
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
+        if self.__uid.int == 0:
+            raise ValueError("Invalid UUID")
         self._session = session or Cuds._session
         self._onto_attributes = {k.argname: k for k in attributes}
         self._oclass = oclass

@@ -257,3 +257,7 @@ ontology:
   AGE:
     subclass_of:
     - CITY.NUMBER
+
+  IMAGE:
+    subclass_of:
+    - CUBA.FILE

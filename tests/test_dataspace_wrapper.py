@@ -119,8 +119,10 @@ class TestTransportSqliteCity(unittest.TestCase):
     def test_user_parameterize(self):
         """Test that parameterizing the dataspace as
         a client throws an error"""
-        with TransportSessionClient(DbWrapperSession,
-                                    URI, "dataspace.db") as session:
+        with TransportSessionClient(
+            DbWrapperSession,
+            URI, path="dataspace.db"
+        ) as session:
             self.assertRaises(RuntimeError, CITY.CITY_WRAPPER, session=session)
 
 
