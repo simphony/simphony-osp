@@ -73,7 +73,7 @@ class TestCommunicationEngine(unittest.TestCase):
         responses = []
         requests = []
         client = CommunicationEngineClient(
-            host=None, port=None,
+            uri=None,
             handle_response=lambda x: responses.append(x)
         )
         client.websocket = MockWebsocket(

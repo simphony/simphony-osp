@@ -16,17 +16,17 @@ class CommunicationEngineServer():
     """The communication engine manages the connection between the remote and
     local side of the transport layer. The server will be executed on the
     remote side."""
+
     def __init__(self, host, port, handle_request, handle_disconnect):
         """Construct the communication engine's server.
 
-        :param host: The hostname
-        :type host: str
-        :param port: The port
-        :type port: int
-        :param handle_request: Handles the requests of the user.
-        :type handle_request: Callable[str(command), str(data), Hashable(user)]
-        :param handle_disconnect: Gets called when a user disconnects.
-        :type handle_disconnect: Callable[Hashable(user)]
+        Args:
+            host (str): The hostname.
+            port (int): The port.
+            handle_request (Callable[str(command), str(data), Hashable(user)]):
+            Handles the requests of the user.
+            handle_disconnect (Callable[Hashable(user)]): Gets called when a
+                user disconnects.
         """
         self.host = host
         self.port = port
@@ -41,12 +41,11 @@ class CommunicationEngineServer():
         event_loop.run_forever()
 
     async def _serve(self, websocket, _):
-        """Wait for requests, compute responses and serve them to the user.
+        """Waits for requests, compute responses and serve them to the user.
 
-        :param websocket: The websockets object.
-        :type websocket: Websocket
-        :param _: The path of the URI (will be ignored).
-        :type _: str
+        Args:
+            websocket (Websocket): The websockets object.
+            _ (str): The path of the URI (will be ignored).
         """
         try:
             async for data in websocket:
@@ -67,28 +66,27 @@ class CommunicationEngineClient():
     local side of the transport layer. The client will be executed on the
     local side."""
 
-    def __init__(self, host, port, handle_response):
-        """Construct the communication engine's client.
+    def __init__(self, uri, handle_response):
+        """Constructs the communication engine's client.
 
-        :param host: The hostname.
-        :type host: str
-        :param port: The port.
-        :type port: int
-        :param handle_response: Handles the responses of the server.
-        :type handle_response: Callable[str(response)]
+        Args:
+            uri (str): WebSocket URI.
+            handle_response (Callable[str(response)]): Handles the responses of
+                the server.
         """
-        self.host = host
-        self.port = port
+        self.uri = uri
         self.handle_response = handle_response
         self.websocket = None
 
     def send(self, command, data):
-        """Send a request to the server
+        """Sends a request to the server.
 
-        :param command: The command to execute on the server
-        :type command: str
-        :param data: The data to send to the server
-        :type data: str
+        Args:
+            command (str): The command to execute on the server.
+            data (str): The data to send to the server.
+
+        Returns:
+            Future: The Future’s result or raise its exception.
         """
         event_loop = asyncio.get_event_loop()
         return event_loop.run_until_complete(self._request(command, data))
@@ -107,15 +105,17 @@ class CommunicationEngineClient():
     async def _request(self, command, data):
         """Send a request to the server.
 
-        :param command: The command to execute on the server.
-        :type command: str
-        :param data: The data to send to the server.
-        :type data: str
+        Args:
+            command (str): The command to execute on the server.
+            data (str): The data to send to the server.
+
+        Returns:
+            str: The response for the client.
         """
         logger.debug("Request %s: %s" % (command, data))
         if self.websocket is None:
-            uri = "ws://%s:%s" % (self.host, self.port)
-            self.websocket = await websockets.connect(uri)
+            logger.debug("uri: %s" % (self.uri))
+            self.websocket = await websockets.connect(self.uri)
         await self.websocket.send(command + ":" + data)
         response = await self.websocket.recv()
         logger.debug("Response: %s" % response)

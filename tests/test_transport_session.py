@@ -397,7 +397,7 @@ class MockEngine():
 class TestCommunicationEngineClient(unittest.TestCase):
     def test_load(self):
         """ Test loading from server"""
-        client = TransportSessionClient(TestWrapperSession, None, None)
+        client = TransportSessionClient(TestWrapperSession, None)
         client.root = 1
         c1 = create_recycle(
             oclass=CITY.CITY,
@@ -441,7 +441,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
 
     def test_store(self):
         """ Test storing of cuds_object. """
-        client = TransportSessionClient(TestWrapperSession, None, None)
+        client = TransportSessionClient(TestWrapperSession, None)
         client._engine = MockEngine()
 
         # first item
@@ -475,7 +475,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
 
     def test_send(self):
         """ Test sending data to the server """
-        client = TransportSessionClient(TestWrapperSession, None, None)
+        client = TransportSessionClient(TestWrapperSession, None)
         client._engine = MockEngine()
         client._send("command", True, "hello", bye="bye")
         self.assertEqual(client._engine._sent_command, "command")
@@ -484,7 +484,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
             '"args": ["hello"], "kwargs": {"bye": "bye"}}'))
 
     def test_receive(self):
-        client = TransportSessionClient(TestWrapperSession, None, None)
+        client = TransportSessionClient(TestWrapperSession, None)
         client._engine = MockEngine()
         w = CITY.CITY_WRAPPER(session=client)
         self.assertRaises(RuntimeError, client._receive, "ERROR: Error!")
@@ -503,7 +503,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
             pass
         TestWrapperSession.command = consumes_buffers(command)
 
-        client = TransportSessionClient(TestWrapperSession, None, None)
+        client = TransportSessionClient(TestWrapperSession, None)
         client._engine = MockEngine()
         client.command("arg1", "arg2", kwarg="kwarg")
         self.assertEqual(client._engine._sent_command, "command")
