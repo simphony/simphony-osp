@@ -36,7 +36,7 @@ except ImportError:
 
 CUDS_DICT = {
     "oclass": "CITY.CITIZEN",
-    "uid": str(uuid.UUID(int=0)),
+    "uid": str(uuid.UUID(int=1)),
     "attributes": {
         "name": "Peter",
         "age": 23

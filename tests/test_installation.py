@@ -64,7 +64,7 @@ class TestInstallation(unittest.TestCase):
             for l1, l2 in zip(f1, f2):
                 self.assertEqual(l1, l2)
                 num_lines += 1
-            self.assertEqual(num_lines, 259)
+            self.assertEqual(num_lines, 263)
         finally:
             f1.close()
             f2.close()
