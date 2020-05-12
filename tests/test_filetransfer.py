@@ -30,7 +30,7 @@ from osp.core.session.transport.transport_utils import (
     get_hash, get_hash_dir, check_hash)
 from osp.core.session.transport.communication_engine import LEN_HEADER
 from osp.core.session.transport.communication_utils import (
-    encode_header, decode_header, split_message, join_message, LEN_FILES_HEADER
+    encode_header, decode_header, split_message, LEN_FILES_HEADER
 )
 
 try:
