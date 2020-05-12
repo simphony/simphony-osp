@@ -75,9 +75,15 @@ class CommunicationEngineServer():
                     files = _filter_files(files, file_hashes)
                     logger.debug("Response: %s with %s files"
                                  % (response, len(files)))
-                    response = len(files).to_bytes(length=1, byteorder="big") \
-                        + response.encode("utf-8")
-                    await websocket.send(response)
+                    response = response.encode("utf-8")
+                    num_blocks = int(math.ceil(len(response) / BLOCK_SIZE))
+                    await websocket.send(
+                        num_blocks.to_bytes(length=4, byteorder="big")
+                        + len(files).to_bytes(length=1, byteorder="big")
+                    )
+                    for i in range(num_blocks):
+                        await websocket.send(
+                            response[i * BLOCK_SIZE: (i + 1) * BLOCK_SIZE])
                     for part in _encode_files(files):
                         await websocket.send(part)
         except websockets.exceptions.ConnectionClosedOK:
@@ -107,10 +113,13 @@ class CommunicationEngineServer():
         if version != 1:
             raise NotImplementedError("No decode implemented for "
                                       "version %s" % version)
-        len_command = int.from_bytes(bytes_data[1:2], byteorder="big")
-        num_files = int.from_bytes(bytes_data[2:3], byteorder="big")
-        command = bytes_data[3: 3 + len_command].decode("utf-8")
-        data = bytes_data[3 + len_command:].decode("utf-8")
+        num_blocks = int.from_bytes(bytes_data[1:5], byteorder="big")
+        num_files = int.from_bytes(bytes_data[5:6], byteorder="big")
+        command = bytes_data[6:].decode("utf-8")
+        data = b""
+        for i in range(num_blocks):
+            data += await websocket.recv()
+        data = data.decode("utf-8")
         logger.debug(
             "Recieved data from %s.\n\t Protocol version: %s,\n\t "
             "Command: %s,\n\t Number of files: %s,\n\t Data: %s"
@@ -184,8 +193,12 @@ class CommunicationEngineClient():
         # load result
         with tempfile.TemporaryDirectory() as temp_dir:
             response = await self.websocket.recv()
-            num_files = int.from_bytes(response[0:1], byteorder="big")
-            data = response[1:].decode("utf-8")
+            num_blocks = int.from_bytes(response[0:4], byteorder="big")
+            num_files = int.from_bytes(response[4:5], byteorder="big")
+            data = b""
+            for i in range(num_blocks):
+                data += await self.websocket.recv()
+            data = data.decode("utf-8")
             logger.debug("Response: %s with %s files" % (data, num_files))
             await _receive_files(num_files, self.websocket, temp_dir)
             return self.handle_response(
@@ -207,10 +220,13 @@ class CommunicationEngineClient():
         files = files or []
         data = data.encode("utf-8")
         command = command.encode("utf-8")
-        len_command = len(command).to_bytes(length=1, byteorder="big")
         num_files = len(files).to_bytes(length=1, byteorder="big")
+        num_blocks = int(math.ceil(len(data) / BLOCK_SIZE))
+        num_blocks_bytes = num_blocks.to_bytes(length=4, byteorder="big")
         version = int(1).to_bytes(length=1, byteorder="big")
-        yield version + len_command + num_files + command + data
+        yield version + num_blocks_bytes + num_files + command
+        yield from (data[i * BLOCK_SIZE: (i + 1) * BLOCK_SIZE]
+                    for i in range(num_blocks))
         yield from _encode_files(files)
 
 
