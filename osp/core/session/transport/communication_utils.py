@@ -2,7 +2,7 @@ import os
 import math
 import hashlib
 import logging
-from osp.core.session.transport.transport_util import check_hash
+from osp.core.session.transport.transport_utils import check_hash
 
 logger = logging.getLogger(__name__)
 BLOCK_SIZE = 4096
@@ -23,6 +23,8 @@ def decode_header(bytestring, lengths):
     """
     i = 0
     for l in lengths:
+        if i + l > len(bytestring):
+            raise IndexError("Length mismatch in header")
         yield int.from_bytes(bytestring[i: i + l], byteorder="big")
         i += l
     if len(bytestring) > i:
@@ -69,6 +71,7 @@ def split_message(msg, block_size=BLOCK_SIZE):
     Returns:
         int, Generator: Number of blocks, Generator over blocks.
     """
+    msg = msg.encode("utf-8")
     num_blocks = int(math.ceil(len(msg) / block_size))
 
     def gen(msg, num_blocks, block_size):

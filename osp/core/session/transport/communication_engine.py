@@ -77,7 +77,6 @@ class CommunicationEngineServer():
                     files = filter_files(files, file_hashes)
                     logger.debug("Response: %s with %s files"
                                  % (response[:DEBUG_MAX], len(files)))
-                    response = response.encode("utf-8")
                     num_blocks, response = split_message(response)
                     await websocket.send(
                         encode_header([VERSION, num_blocks, len(files)],
@@ -215,7 +214,6 @@ class CommunicationEngineClient():
             bytes: The resulting data encoded
         """
         files = files or []
-        data = data.encode("utf-8")
         num_blocks, data = split_message(data)
         version = 1
         yield encode_header([version, num_blocks, len(files), command],

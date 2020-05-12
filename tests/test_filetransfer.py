@@ -13,11 +13,12 @@ import subprocess
 import unittest2 as unittest
 import sqlite3
 import shutil
-from osp.core.session.transport.transport_util import (
+from osp.core.session.transport.transport_utils import (
     move_files, serialize_buffers, deserialize_buffers, get_file_cuds)
-from osp.core.session.transport.communication_engine import (
-    _encode_files, _receive_files, _filter_files, BLOCK_SIZE,
+from osp.core.session.transport.communication_engine import \
     CommunicationEngineServer
+from osp.core.session.transport.communication_utils import (
+    encode_files, receive_files, filter_files, BLOCK_SIZE
 )
 from osp.core.session.buffers import BufferContext
 from osp.wrappers.sqlite import SqliteSession
@@ -25,7 +26,7 @@ from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
-from osp.core.session.transport.transport_util import (
+from osp.core.session.transport.transport_utils import (
     get_hash, get_hash_dir, check_hash)
 
 try:
@@ -296,7 +297,7 @@ class TestFiletransfer(unittest.TestCase):
 
     def test_encode_files(self):
         """Test encoding of files"""
-        result = _encode_files(FILE_PATHS)
+        result = encode_files(FILE_PATHS)
         self.maxDiff = None
         r = next(result)
         self.assertEqual(r[0:4], bytes([0, 0, 0, 2]))
@@ -328,7 +329,7 @@ class TestFiletransfer(unittest.TestCase):
             ("1" * BLOCK_SIZE).encode("utf-8"),
             bytes([0, 0, 0, 0]) + FILES[2].encode("utf-8")], sent_data=[])
         file_hashes = dict()
-        await _receive_files(3, ws, SERVER_DIR, file_hashes)
+        await receive_files(3, ws, SERVER_DIR, file_hashes)
         self.assertEqual({k: x for k, x in file_hashes.items()},
                          HASHES)
         self.assertEqual(sorted(os.listdir(SERVER_DIR)), sorted(FILES))
@@ -398,9 +399,9 @@ class TestFiletransfer(unittest.TestCase):
 
     def test_filter_files(self):
         """Test filtering files based on hashes"""
-        self.assertEqual(_filter_files(FILE_PATHS, HASHES), [])
-        self.assertEqual(_filter_files(FILE_PATHS, {}), FILE_PATHS)
-        self.assertEqual(_filter_files(FILE_PATHS + [__file__, "x"],
+        self.assertEqual(filter_files(FILE_PATHS, HASHES), [])
+        self.assertEqual(filter_files(FILE_PATHS, {}), FILE_PATHS)
+        self.assertEqual(filter_files(FILE_PATHS + [__file__, "x"],
                          dict(HASHES)), [__file__])
 
     @async_test

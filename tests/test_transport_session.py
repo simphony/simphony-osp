@@ -18,7 +18,7 @@ from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
-from osp.core.session.transport.transport_util import (
+from osp.core.session.transport.transport_utils import (
     deserialize, serializable, deserialize_buffers,
     serialize_buffers, LOAD_COMMAND, INITIALISE_COMMAND
 )

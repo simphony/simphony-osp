@@ -69,7 +69,7 @@ def post(url, cuds_object, max_depth=float("inf")):
         [type]: [description]
     """
     from osp.core.utils import find_cuds_object
-    from osp.core.session.transport.transport_util import serializable
+    from osp.core.session.transport.transport_utils import serializable
     cuds_objects = find_cuds_object(criterion=lambda x: True,
                                     root=cuds_object,
                                     rel=CUBA.ACTIVE_RELATIONSHIP,
@@ -96,7 +96,7 @@ def deserialize(json_doc, session=None):
     """
     from osp.core.cuds import Cuds
     from osp.core.session.buffers import BufferContext
-    from osp.core.session.transport.transport_util import deserialize as x
+    from osp.core.session.transport.transport_utils import deserialize as x
 
     if isinstance(json_doc, str):
         json_doc = json.loads(json_doc)

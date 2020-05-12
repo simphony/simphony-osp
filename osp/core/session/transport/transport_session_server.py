@@ -12,7 +12,7 @@ from osp.core.session.buffers import BufferContext
 from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.transport.communication_engine \
     import CommunicationEngineServer
-from osp.core.session.transport.transport_util import (
+from osp.core.session.transport.transport_utils import (
     INITIALISE_COMMAND, LOAD_COMMAND, deserialize, deserialize_buffers,
     serializable, serialize_buffers
 )
