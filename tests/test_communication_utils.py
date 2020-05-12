@@ -8,7 +8,7 @@
 import unittest2 as unittest
 from osp.core.session.transport.communication_utils import (
     decode_header, encode_header, split_message, join_message)
-from test_communication_engine import async_test, MockWebsocket
+from .test_communication_engine import async_test, MockWebsocket
 
 
 class TestFiletransfer(unittest.TestCase):
