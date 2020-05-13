@@ -71,7 +71,7 @@ class TestAPICity(unittest.TestCase):
 
     def test_add(self):
         """
-        Tests the standard, normal behaviour of the add() method
+        Tests the standard, normal behavior of the add() method
         """
         c = CITY.CITY(name="a city")
         n = CITY.NEIGHBORHOOD(name="a neighborhood")
@@ -89,7 +89,7 @@ class TestAPICity(unittest.TestCase):
 
     def test_add_throws_exception(self):
         """
-        Tests the add() method for unusual behaviours.
+        Tests the add() method for unusual behaviors.
 
          - Adding an object that is already there
          - Adding an unsupported object
@@ -241,7 +241,7 @@ class TestAPICity(unittest.TestCase):
 
     def test_get(self):
         """
-        Tests the standard, normal behaviour of the get() method.
+        Tests the standard, normal behavior of the get() method.
 
          - get()
          - get(*uids)
@@ -315,7 +315,7 @@ class TestAPICity(unittest.TestCase):
 
     def test_get_throws_exception(self):
         """
-        Tests the get() method for unusual behaviours.
+        Tests the get() method for unusual behaviors.
 
          - Getting with a wrong type
          - Getting with a not allowed combination of arguments
@@ -333,7 +333,7 @@ class TestAPICity(unittest.TestCase):
 
     def test_update(self):
         """
-        Tests the standard, normal behaviour of the update() method.
+        Tests the standard, normal behavior of the update() method.
         """
         c = CITY.CITY(name="a city")
         n = CITY.NEIGHBORHOOD(name="a neighborhood")
@@ -359,7 +359,7 @@ class TestAPICity(unittest.TestCase):
 
     def test_remove(self):
         """
-        Tests the standard, normal behaviour of the remove() method.
+        Tests the standard, normal behavior of the remove() method.
 
          - remove()
          - remove(*uids/DataContainers)
@@ -434,7 +434,7 @@ class TestAPICity(unittest.TestCase):
 
     def test_remove_throws_exception(self):
         """
-        Tests the remove() method for unusual behaviours.
+        Tests the remove() method for unusual behaviors.
 
          - Removing with a wrong key
          - Removing something non-existent
@@ -460,7 +460,7 @@ class TestAPICity(unittest.TestCase):
 
     def test_update_throws_exception(self):
         """
-        Tests the update() method for unusual behaviours.
+        Tests the update() method for unusual behaviors.
 
          - Update an element that wasn't added before
         """

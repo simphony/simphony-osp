@@ -44,11 +44,23 @@ class Cuds():
         uid: uuid.UUID = None
     ):
         """
-        Initialisation follows the behaviour of the python dict class.
+        This method should not be called by the user directly.
+        Instead use the __call__ magic method of OntologyClass.
+        Construct the CUDS object. This will also register the CUDS objects in
+        the corresponding session.
 
-        :param uid: Specify a unique identifier. If None given, a random
-            uid will be created.
-        :type uid: UUID
+        Args:
+            attributes (Dict[OntologyAttribute, Any]): Mapping from ontology
+                attribute to specified value.
+            oclass (OntologyEntity): The ontology class of the CUDS object.
+            session (Session, optional): The session associated with the CUDS,
+                if None is given it will be associated with the CoreSession.
+                Defaults to None.
+            uid (uuid.UUID, optional): A unique identifier. If None given, a
+                random uid will be created. Defaults to None.
+
+        Raises:
+            ValueError: Uid of zero is not allowed.
         """
         self._attr_values = {k.argname: k.convert_to_datatype(v)
                              for k, v in attributes.items()}
@@ -103,12 +115,15 @@ class Cuds():
         return result
 
     def is_a(self, oclass):
-        """Check if self is an instance of the given oclass.
+        """
+        Check if the CUDS object is an instance of the given oclass.
 
-        :param oclass: Check if self is an instance of this oclass.
-        :type oclass: OntologyClass
-        :return: Whether self is an instance of the given oclass.
-        :rtype: bool
+        Args:
+            oclass (OntologyClass): Check if the CUDS object is an instance of
+                this oclass.
+
+        Returns:
+            bool: Whether the CUDS object is an instance of the given oclass.
         """
         return self.oclass in oclass.subclasses
 
@@ -116,16 +131,25 @@ class Cuds():
             *args: "Cuds",
             rel: OntologyRelationship = None) -> Union["Cuds", List["Cuds"]]:
         """
-        Adds (a) cuds(s) to their respective relationship.
+        Adds CUDS objects to their respective relationship.
+        If the added objects are associated with the same session,
+        only a link is created. Otherwise, the a deepcopy is made and added
+        to the session of this Cuds object.
         Before adding, check for invalid keys to avoid inconsistencies later.
 
-        :param args: object(s) to add
-        :type args: Cuds
-        :param rel: class of the relationship between the objects
-        :type rel: OntologyRelationship
-        :return: The added object(s)
-        :rtype: Union[Cuds, List[Cuds]]
-        :raises ValueError: adding an element already there
+        Args:
+            args (Cuds): The objects to be added
+            rel (OntologyRelationship): The relationship between the objects.
+
+        Raises:
+            TypeError: Ne relationship given and no default specified.
+            ValueError: Added a CUDS object that is already in the container.
+
+        Returns:
+            Union[Cuds, List[Cuds]]: The CUDS objects that have been added,
+                associated with the session of the current CUDS object.
+                Result type is a list, if more than one CUDS object is
+                returned.
         """
         check_arguments(Cuds, *args)
         rel = rel or self.oclass.namespace.default_rel
@@ -159,25 +183,29 @@ class Cuds():
         Returns the contained elements of a certain type, uid or relationship.
         Expected calls are get(), get(*uids), get(rel), get(oclass),
         get(*uids, rel), get(rel, oclass).
-        If uids are specified, the position of each element in the result
-        is determined by to the position of the corresponding uid in the given
-        list of uids.
-        In this case, the result can contain None values if a given uid is not
-        a child of this cuds_object.
-        If no uids are specified, the resulting elements are ordered randomly.
+        If uids are specified:
+            The position of each element in the result is determined by to the
+            position of the corresponding uid in the given list of uids.
+            In this case, the result can contain None values if a given uid
+            is not a child of this cuds_object.
+            If only a single uid is given, only this one element is returned
+            (i.e. no list).
+        If no uids are specified:
+            The result is a collection, where the elements are ordered
+            randomly.
 
-        :param uids: UIDs of the elements
-        :param rel: Only return cuds_object which are connected by subclass of
-            given relationship.
-        :type rel: OntologyRelationship
-        :param oclass: Only return elements which are a subclass of the given
-            ontology class.
-        :type oclass: OntologyClass
-        :param return_rel: Whether to return the connecting relationship,
-            defaults to False
-        :type return_rel: bool
-        :return: the queried objects, or None, if not found
-        :rtype: Union[Cuds, List[Cuds]]
+        Args:
+            uids (uuid.UUID): UUIDs of the elements.
+            rel (OntologyRelationship, optional): Only return cuds_object
+                which are connected by subclass of given relationship.
+                Defaults to CUBA.ACTIVE_RELATIONSHIP.
+            oclass (OntologyClass, optional): Only return elements which are a
+                subclass of the given ontology class. Defaults to None.
+            return_rel (bool, optional): Whether to return the connecting
+                relationship. Defaults to False.
+
+        Returns:
+            Union[Cuds, List[Cuds]]: The queried objects.
         """
         result = list(
             self.iter(*uids, rel=rel, oclass=oclass, return_rel=return_rel)
@@ -188,12 +216,26 @@ class Cuds():
 
     def update(self, *args: "Cuds") -> List["Cuds"]:
         """
-        Updates the object with the other versions.
+        Updates the object by providing updated versions of CUDS objects
+        that are directly in the container of this CUDS object.
+        The updated versions must be associated with a different session.
 
-        :param args: updated cuds objects
-        :type args: Cuds
-        :return: The updated cuds_object.
-        :rtype: Union[Cuds, List[Cuds]]
+        Args:
+            args (Cuds): The updated versions to use to update the current
+                object.
+
+        Raises:
+            ValueError: Provided a CUDS objects is not in the container of the
+                current CUDS
+            ValueError: Provided CUDS object is associated with the same
+                session as the current CUDS object. Therefore it is not an
+                updated version.
+
+        Returns:
+            Union[Cuds, List[Cuds]]: The CUDS objects that have been updated,
+                associated with the session of the current CUDS object.
+                Result type is a list, if more than one CUDS object is
+                returned.
         """
         check_arguments(Cuds, *args)
         old_objects = self.get(*[arg.uid for arg in args])
@@ -220,19 +262,24 @@ class Cuds():
                rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
                oclass: OntologyClass = None):
         """
-        Removes elements from the Cuds.
+        Removes elements from the CUDS object.
         Expected calls are remove(), remove(*uids/Cuds),
         remove(rel), remove(oclass), remove(*uids/Cuds, rel),
         remove(rel, oclass)
 
-        :param args: UIDs of the elements or the elements themselves
-        :type args: Union[Cuds, UUID]
-        :param rel: Only remove cuds_object which are connected by subclass of
-            given relationship.
-        :type rel: OntologyRelationship
-        :param oclass: Only remove elements which are a subclass of the given
-            ontology class.
-        :type oclass: OntologyClass
+        Args:
+            args (Union[Cuds, UUID]): UUIDs of the elements to remove or the
+                elements themselves.
+            rel (OntologyRelationship, optional): Only remove cuds_object
+                which are connected by subclass of given relationship.
+                Defaults to CUBA.ACTIVE_RELATIONSHIP.
+            oclass (OntologyClass, optional): Only remove elements which are a
+                subclass of the given ontology class. Defaults to None.
+
+        Raises:
+            RuntimeError: No CUDS object removed, because specified CUDS
+                objects are not in the container of the current CUDS object
+                directly.
         """
         uids = [arg.uid if isinstance(arg, Cuds) else arg for arg in args]
 
@@ -261,25 +308,26 @@ class Cuds():
         Iterates over the contained elements of a certain type, uid or
         relationship. Expected calls are iter(), iter(*uids), iter(rel),
         iter(oclass), iter(*uids, rel), iter(rel, oclass).
-        If uids are specified, the each element will be yielded in the order
-        given by list of uids.
-        In this case, elements can be None values if a given uid is not
-        a child of this cuds_object.
-        If no uids are specified, the resulting elements are ordered randomly.
+        If uids are specified:
+            The position of each element in the result is determined by to the
+            position of the corresponding uid in the given list of uids.
+            In this case, the result can contain None values if a given uid
+            is not a child of this cuds_object.
+        If no uids are specified:
+            The result is ordered randomly.
 
-        :param uids: UIDs of the elements.
-        :type uids: UUID
-        :param rel: Only return cuds_object which are connected by subclass of
-            given relationship.
-        :type rel: OntologyRelationship
-        :param oclass: Only return elements which are a subclass of the given
-            ontology class.
-        :type oclass: OntologyClass
-        :param return_rel: Whether to return the connecting relationship,
-            defaults to False
-        :type return_rel: bool
-        :return: Iterator over of queried objects, or None, if not found.
-        :rtype: Iterator[Cuds]
+        Args:
+            uids (uuid.UUID): UUIDs of the elements.
+            rel (OntologyRelationship, optional): Only return cuds_object
+                which are connected by subclass of given relationship.
+                Defaults to CUBA.ACTIVE_RELATIONSHIP.
+            oclass (OntologyClass, optional): Only return elements which are a
+                subclass of the given ontology class. Defaults to None.
+            return_rel (bool, optional): Whether to return the connecting
+                relationship. Defaults to False.
+
+        Returns:
+            Iterator[Cuds]: The queried objects.
         """
         if return_rel:
             collected_uids, mapping = self._get(*uids, rel=rel, oclass=oclass,

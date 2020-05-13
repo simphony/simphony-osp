@@ -152,7 +152,7 @@ class TransportSessionServer():
         :type data: str
         :param user: The user who requests to start a new session
         :type user: Hashable
-        :return: The buffers after the initialisation, serialized.
+        :return: The buffers after the initialization, serialized.
         :rtype: str
         """
         data = json.loads(data)

@@ -590,7 +590,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
             self.assertEqual(result, (SERIALIZED_BUFFERS3, []))
 
     def test_init_session(self):
-        """Test the initialisation of the session on the remote side"""
+        """Test the initialization of the session on the remote side"""
         server = TransportSessionServer(TestWrapperSession, None, None)
         data = json.dumps({
             "args": [],
