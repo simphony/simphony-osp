@@ -204,9 +204,9 @@ class TestAPICity(unittest.TestCase):
 
         missing = dict()
         Cuds._fix_neighbors(new_cuds_object=p1w1,
-                             old_cuds_object=p1w2,
-                             session=p1w2.session,
-                             missing=missing)
+                            old_cuds_object=p1w2,
+                            session=p1w2.session,
+                            missing=missing)
 
         # check if connections cuds_objects that are no
         # longer parents are in the missing dict
@@ -626,9 +626,9 @@ class TestAPICity(unittest.TestCase):
             old_neighbor_diff = get_neighbor_diff(cw, c)
             old_neighbors = session.load(*[x[0] for x in old_neighbor_diff])
             Cuds._fix_old_neighbors(new_cuds_object=c,
-                                     old_cuds_object=cw,
-                                     old_neighbors=old_neighbors,
-                                     old_neighbor_diff=old_neighbor_diff)
+                                    old_cuds_object=cw,
+                                    old_neighbors=old_neighbors,
+                                    old_neighbor_diff=old_neighbor_diff)
         self.assertEqual(c.get(rel=CITY.IS_PART_OF), [wrapper])
         self.assertEqual(c.get(rel=CITY.HAS_PART), [])
         self.assertEqual(nw.get(rel=CITY.IS_PART_OF), [])
