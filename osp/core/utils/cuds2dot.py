@@ -1,5 +1,8 @@
 import graphviz
+import logging
 from osp.core import CUBA
+
+logger = logging.getLogger(__name__)
 
 
 class Cuds2dot():
@@ -30,12 +33,14 @@ class Cuds2dot():
         # graph.node_attr['shape'] = 'circle'
         return graph
 
-    def render(self):
+    def render(self, filename=None, **kwargs):
         """Create the graph and save it to a dot and png file."""
+        filename = filename or (self._graph.name + "gv")
+        logger.info("Writing file %s" % filename)
         self._add_node(self._root, self._root_uid)
         self._visited.add(self._root.uid)
         self._add_directly_related(self._root)
-        self._graph.render()
+        self._graph.render(filename=filename, **kwargs)
 
     def _add_directly_related(self, current):
         """Recursively add the directly related entities to a current root.

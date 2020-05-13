@@ -65,6 +65,7 @@ class Ontology2Dot():
             self._add_namespace(namespace)
         for subgraph in self._subgraphs.values():
             self._graph.subgraph(subgraph)
+        logger.info("Writing file %s" % self._output_filename)
         self._graph.render(filename=self._output_filename)
 
     def _add_namespace(self, namespace):
