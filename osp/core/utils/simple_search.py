@@ -1,4 +1,3 @@
-
 def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
                      current_depth=0, visited=None):
     """
