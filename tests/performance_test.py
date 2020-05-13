@@ -57,8 +57,8 @@ class TestPerformance(unittest.TestCase):
         if not RUN_PERFORMANCE_TEST:
             return
         for i in range(self.iterations):
-            self.c.add(CITY.NEIGHBOURHOOD(
-                name='neighbourhood ' + str(i)))
+            self.c.add(CITY.NEIGHBORHOOD(
+                name='neighborhood ' + str(i)))
 
     def test_add_rel(self):
         """

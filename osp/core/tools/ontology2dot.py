@@ -28,7 +28,7 @@ class Ontology2Dot():
 
     def __init__(self, namespaces, output_filename, group=False):
         """Constructor.
-        Initialises the graph.
+        Initializes the graph.
 
         :param namespaces: The namespaces to print.
         :type namespaces: List[str]
@@ -44,10 +44,10 @@ class Ontology2Dot():
         self._visited = set()
         self._subgraphs = dict()
         self._group = group
-        self._graph = self._initialise_graph()
+        self._graph = self._initialize_graph()
 
-    def _initialise_graph(self):
-        """Initialises a directed graph with some default settings"""
+    def _initialize_graph(self):
+        """Initializes a directed graph with some default settings"""
         graph = graphviz.Digraph(format="png", name="ONTOLOGY")
         graph.node_attr['shape'] = 'rectangle'
         return graph

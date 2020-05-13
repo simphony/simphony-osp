@@ -13,13 +13,13 @@ emmo_town.add(CITY.CITIZEN(name='Jesper Friis'),
               CITY.CITIZEN(name='Anne de Baas'),
               rel=CITY.HAS_INHABITANT)
 
-emmo_town.add(CITY.NEIGHBOURHOOD(name="Ontology"))
-emmo_town.add(CITY.NEIGHBOURHOOD(name="User cases"))
+emmo_town.add(CITY.NEIGHBORHOOD(name="Ontology"))
+emmo_town.add(CITY.NEIGHBORHOOD(name="User cases"))
 
 ontology_uid = None
-for neighbourhood in emmo_town.get(oclass=CITY.NEIGHBOURHOOD):
-    if neighbourhood.name == "Ontology":
-        ontology_uid = neighbourhood.uid
-        neighbourhood.add(CITY.STREET(name="Relationships"), rel=CITY.HAS_PART)
-        neighbourhood.add(CITY.STREET(name="Entities"), rel=CITY.HAS_PART)
+for neighborhood in emmo_town.get(oclass=CITY.NEIGHBORHOOD):
+    if neighborhood.name == "Ontology":
+        ontology_uid = neighborhood.uid
+        neighborhood.add(CITY.STREET(name="Relationships"), rel=CITY.HAS_PART)
+        neighborhood.add(CITY.STREET(name="Entities"), rel=CITY.HAS_PART)
 pretty_print(emmo_town)

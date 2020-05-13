@@ -57,7 +57,7 @@ class TestSessionCity(unittest.TestCase):
             cw = w.add(c)
             cities.append(cw)
             for j in range(2):
-                n = CITY.NEIGHBOURHOOD(name="neighbourhood %s %s" % (i, j))
+                n = CITY.NEIGHBORHOOD(name="neighborhood %s %s" % (i, j))
                 cw.add(n)
                 nw = cw.get(n.uid)
                 for k in range(2):
@@ -68,15 +68,15 @@ class TestSessionCity(unittest.TestCase):
         self.assertEqual(
             set(["wrapper" if k.is_a(CUBA.WRAPPER) else k.name
                  for k in session._registry.values()]),
-            set(["city 0", "neighbourhood 0 0", "neighbourhood 0 1",
+            set(["city 0", "neighborhood 0 0", "neighborhood 0 1",
                  "street 0 0 0", "street 0 0 1", "street 0 1 0",
                  "street 0 1 1", "wrapper"]))
         self.assertEqual(
             set([d.name for d in deleted]),
-            set(["city 2", "neighbourhood 2 0", "neighbourhood 2 1",
+            set(["city 2", "neighborhood 2 0", "neighborhood 2 1",
                  "street 2 0 0", "street 2 0 1", "street 2 1 0",
-                 "street 2 1 1", "city 1", "neighbourhood 1 0",
-                 "neighbourhood 1 1", "street 1 0 0", "street 1 0 1",
+                 "street 2 1 1", "city 1", "neighborhood 1 0",
+                 "neighborhood 1 1", "street 1 0 0", "street 1 0 1",
                  "street 1 1 0", "street 1 1 1"])
         )
 
@@ -90,7 +90,7 @@ class TestSessionCity(unittest.TestCase):
 
         w = CITY.CITY_WRAPPER(session=session)
         c = CITY.CITY(name="city 1")
-        n = CITY.NEIGHBOURHOOD(name="neighbourhood")
+        n = CITY.NEIGHBORHOOD(name="neighborhood")
         cw = w.add(c)
         cw.add(n)
         cw.remove(n.uid)
@@ -138,14 +138,14 @@ class TestSessionCity(unittest.TestCase):
     # def test_get_ontology_cardinalities(self):
     #     c = CITY.CITY(name="a city")
     #     p = cuds.classes.Citizen(name="a person")
-    #     n = CITY.NEIGHBOURHOOD(name="a neighbourhood")
+    #     n = CITY.NEIGHBORHOOD(name="a neighborhood")
     #     c.add(p, rel=cuds.classes.HasInhabitant)
     #     c.add(n)
     #     cardinalities, rels = WrapperSession._get_ontology_cardinalities(c)
     #     self.assertEqual(rels,
     #                      {cuds.classes.HasInhabitant, cuds.classes.HasPart})
     #     self.assertEqual(cardinalities, {
-    #         (cuds.classes.HasPart, CITY.NEIGHBOURHOOD):
+    #         (cuds.classes.HasPart, CITY.NEIGHBORHOOD):
     #             (0, float("inf")),
     #         (cuds.classes.IsPartOf, CITY.CITY_WRAPPER):
     #             (0, 1),

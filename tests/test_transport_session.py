@@ -20,7 +20,7 @@ from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
 from osp.core.session.transport.transport_utils import (
     deserialize, serializable, deserialize_buffers,
-    serialize_buffers, LOAD_COMMAND, INITIALISE_COMMAND
+    serialize_buffers, LOAD_COMMAND, INITIALIZE_COMMAND
 )
 from osp.core.utils import create_from_cuds_object
 
@@ -155,12 +155,12 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(cuds_object.name, "Peter")
             self.assertEqual(cuds_object.age, 23)
             self.assertEqual(cuds_object.oclass, CITY.CITIZEN)
-            self.assertEqual(set(cuds_object._neighbours.keys()),
+            self.assertEqual(set(cuds_object._neighbors.keys()),
                              {CITY.IS_INHABITANT_OF,
                              CITY.HAS_CHILD})
-            self.assertEqual(cuds_object._neighbours[CITY.IS_INHABITANT_OF],
+            self.assertEqual(cuds_object._neighbors[CITY.IS_INHABITANT_OF],
                              {uuid.UUID(int=1): CITY.CITY})
-            self.assertEqual(cuds_object._neighbours[CITY.HAS_CHILD],
+            self.assertEqual(cuds_object._neighbors[CITY.HAS_CHILD],
                              {uuid.UUID(int=2): CITY.PERSON,
                              uuid.UUID(int=3): CITY.PERSON})
 
@@ -251,12 +251,12 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                               uuid.UUID(int=3), uuid.UUID(int=4)})
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
-            self.assertEqual(ws1._neighbours[CITY.HAS_PART],
+            self.assertEqual(ws1._neighbors[CITY.HAS_PART],
                              {cn.uid: CITY.CITY})
-            self.assertEqual(set(ws1._neighbours.keys()), {CITY.HAS_PART})
-            self.assertEqual(cn._neighbours[CITY.IS_PART_OF],
+            self.assertEqual(set(ws1._neighbors.keys()), {CITY.HAS_PART})
+            self.assertEqual(cn._neighbors[CITY.IS_PART_OF],
                              {ws1.uid: CITY.CITY_WRAPPER})
-            self.assertEqual(set(cn._neighbours.keys()), {CITY.IS_PART_OF})
+            self.assertEqual(set(cn._neighbors.keys()), {CITY.IS_PART_OF})
             self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
             self.assertEqual(s1._buffers, [
                 [{cn.uid: cn}, {ws1.uid: ws1}, {c.uid: c}],
@@ -287,12 +287,12 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                               uuid.UUID(int=3), uuid.UUID(int=4)})
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
-            self.assertEqual(ws1._neighbours[CITY.HAS_PART],
+            self.assertEqual(ws1._neighbors[CITY.HAS_PART],
                              {cn.uid: CITY.CITY})
-            self.assertEqual(set(ws1._neighbours.keys()), {CITY.HAS_PART})
-            self.assertEqual(cn._neighbours[CITY.IS_PART_OF],
+            self.assertEqual(set(ws1._neighbors.keys()), {CITY.HAS_PART})
+            self.assertEqual(cn._neighbors[CITY.IS_PART_OF],
                              {ws1.uid: CITY.CITY_WRAPPER})
-            self.assertEqual(set(cn._neighbours.keys()), {CITY.IS_PART_OF})
+            self.assertEqual(set(cn._neighbors.keys()), {CITY.IS_PART_OF})
             self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
             self.assertEqual(s1._buffers, [
                 [dict(), dict(), dict()],
@@ -409,7 +409,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
             kwargs={"name": "Freiburg"},
             uid=1,
             session=client,
-            fix_neighbours=False
+            fix_neighbors=False
         )
         c2 = CITY.CITY(name="London", uid=2)
         c3 = create_recycle(
@@ -417,7 +417,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
             kwargs={"name": "Paris"},
             uid=3,
             session=client,
-            fix_neighbours=False
+            fix_neighbors=False
         )
         client._reset_buffers(BufferContext.USER)
         client.expire(c3.uid)
@@ -455,8 +455,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
                             kwargs={},
                             uid=1,
                             session=client,
-                            fix_neighbours=False)  # store will be called here
-        self.assertEqual(client._engine._sent_command, INITIALISE_COMMAND)
+                            fix_neighbors=False)  # store will be called here
+        self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
         self.assertEqual(client._engine._sent_data, (
             '{"args": [], "kwargs": {}, '
             '"root": {"oclass": "CITY.CITY_WRAPPER", '
@@ -473,7 +473,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
             kwargs={"name": "Freiburg"},
             uid=2,
             session=client,
-            fix_neighbours=False
+            fix_neighbors=False
         )
         self.assertEqual(client._engine._sent_command, None)
         self.assertEqual(client._engine._sent_data, None)
@@ -559,7 +559,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
         server = TransportSessionServer(TestWrapperSession, None, None)
         with TestWrapperSession() as s1:
 
-            # initialise buffers
+            # initialize buffers
             ws1 = CITY.CITY_WRAPPER(session=s1, uid=123)
             c = CITY.CITY(name="Freiburg", uid=1)
             ws1.add(c)
@@ -617,7 +617,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
         TestWrapperSession.command = command
         server = TransportSessionServer(TestWrapperSession, None, None)
         with TestWrapperSession() as s1:
-            # initialise buffers
+            # initialize buffers
             ws1 = CITY.CITY_WRAPPER(session=s1, uid=123)
             c = CITY.CITY(name="Freiburg", uid=1)
             ws1.add(c)

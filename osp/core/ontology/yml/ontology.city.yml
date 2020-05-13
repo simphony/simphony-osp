@@ -170,7 +170,7 @@ ontology:
     subclass_of:
     - CITY.POPULATED_PLACE
     - CITY.HAS_PART:
-        range: CITY.NEIGHBOURHOOD
+        range: CITY.NEIGHBORHOOD
         cardinality: many
         exclusive: true
     - CITY.IS_PART_OF:
@@ -182,7 +182,7 @@ ontology:
         cardinality: 0-1
         exclusive: true
 
-  NEIGHBOURHOOD:
+  NEIGHBORHOOD:
     subclass_of:
     - CITY.POPULATED_PLACE
     - CITY.IS_PART_OF:
@@ -202,7 +202,7 @@ ontology:
         cardinality: many
         exclusive: true
     - CITY.IS_PART_OF:
-        range: CITY.NEIGHBOURHOOD
+        range: CITY.NEIGHBORHOOD
         cardinality: 1
         exclusive: true
 

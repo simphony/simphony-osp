@@ -13,7 +13,7 @@ from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.transport.communication_engine \
     import CommunicationEngineServer
 from osp.core.session.transport.transport_utils import (
-    INITIALISE_COMMAND, LOAD_COMMAND, deserialize, deserialize_buffers,
+    INITIALIZE_COMMAND, LOAD_COMMAND, deserialize, deserialize_buffers,
     serializable, serialize_buffers
 )
 
@@ -82,7 +82,7 @@ class TransportSessionServer():
         :rtype: str
         """
         try:
-            if command == INITIALISE_COMMAND:
+            if command == INITIALIZE_COMMAND:
                 return self._init_session(data, user)
             elif command == LOAD_COMMAND:
                 return self._load_from_session(data, user, temp_directory)

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class OntologyEntity(ABC):
     @abstractmethod
     def __init__(self, namespace, name, superclasses, description):
-        """Initialise the ontology entity
+        """Initialize the ontology entity
 
         :param namespace: The namespace of the entity
         :type namespace: OntologyNamespace

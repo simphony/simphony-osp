@@ -169,12 +169,12 @@ class Registry(dict):
         """
         if consider_subrelationships:
             def criterion(cuds_object):
-                for rel in cuds_object._neighbours.keys():
+                for rel in cuds_object._neighbors.keys():
                     if relationship.is_superclass_of(rel):
                         return True
                 return False
         else:
             def criterion(cuds_object):
-                return relationship in cuds_object._neighbours
+                return relationship in cuds_object._neighbors
 
         return self.filter(criterion)

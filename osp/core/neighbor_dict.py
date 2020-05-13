@@ -10,7 +10,7 @@ from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.oclass import OntologyClass
 
 
-class NeighbourDict(dict):
+class NeighborDict(dict):
     """A dictionary that notifies the session if
     any update occurs. Used to map uids to ontology classes
     for each relationship.
@@ -70,16 +70,16 @@ class NeighbourDict(dict):
         self.cuds_object.session._notify_update(self.cuds_object)
 
 
-class NeighbourDictRel(NeighbourDict):
+class NeighborDictRel(NeighborDict):
     def __init__(self, dictionary, cuds_object):
         super().__init__(
             dictionary, cuds_object,
             key_check=lambda k: isinstance(k, OntologyRelationship),
-            value_check=lambda v: isinstance(v, NeighbourDictTarget)
+            value_check=lambda v: isinstance(v, NeighborDictTarget)
         )
 
 
-class NeighbourDictTarget(NeighbourDict):
+class NeighborDictTarget(NeighborDict):
     def __init__(self, dictionary, cuds_object, rel):
         self.rel = rel
         for uid, oclass in dictionary.items():

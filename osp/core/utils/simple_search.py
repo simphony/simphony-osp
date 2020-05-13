@@ -133,13 +133,13 @@ def find_relationships(find_rel, root, consider_rel, find_sub_rels=False):
     """
     if find_sub_rels:
         def criterion(cuds_object):
-            for rel in cuds_object._neighbours.keys():
+            for rel in cuds_object._neighbors.keys():
                 if find_rel.is_superclass_of(rel):
                     return True
             return False
     else:
         def criterion(cuds_object):
-            return find_rel in cuds_object._neighbours
+            return find_rel in cuds_object._neighbors
 
     return find_cuds_object(
         criterion=criterion,

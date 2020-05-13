@@ -22,7 +22,7 @@ class SimWrapperSession(WrapperSession):
         root_obj = self._registry.get(self.root)
         added, updated, deleted = self._buffers[BufferContext.USER]
         if not self._ran:
-            self._initialise(root_obj)
+            self._initialize(root_obj)
         self._apply_added(root_obj, added)
         self._apply_updated(root_obj, updated)
         self._apply_deleted(root_obj, deleted)
@@ -66,8 +66,8 @@ class SimWrapperSession(WrapperSession):
             buffer (Dict[UUID, Cuds]): All Cuds objects that have been deleted
         """
 
-    def _initialise(self, root_obj):
-        """Initialise the session.
+    def _initialize(self, root_obj):
+        """Initialize the session.
         This method is executed before the first run.
 
         Args:

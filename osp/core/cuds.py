@@ -19,9 +19,9 @@ from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.datatypes import convert_to
 from osp.core.session.core_session import CoreSession
 from osp.core.session.session import Session
-from osp.core.neighbour_dict import NeighbourDictRel, NeighbourDictTarget
+from osp.core.neighbor_dict import NeighborDictRel, NeighborDictTarget
 from osp.core.utils import check_arguments, clone_cuds_object, \
-    create_from_cuds_object, get_neighbour_diff
+    create_from_cuds_object, get_neighbor_diff
 from osp.core import CUBA
 
 logger = logging.getLogger("osp.core")
@@ -52,7 +52,7 @@ class Cuds():
         """
         self._attr_values = {k.argname: k.convert_to_datatype(v)
                              for k, v in attributes.items()}
-        self._neighbours = NeighbourDictRel({}, self)
+        self._neighbors = NeighborDictRel({}, self)
 
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         if self.__uid.int == 0:
@@ -139,7 +139,7 @@ class Cuds():
             *[arg.uid for arg in args if arg.session != self.session])
         for arg in args:
             # Recursively add the children to the registry
-            if rel in self._neighbours and arg.uid in self._neighbours[rel]:
+            if rel in self._neighbors and arg.uid in self._neighbors[rel]:
                 message = '{!r} is already in the container'
                 raise ValueError(message.format(arg))
             if self.session != arg.session:
@@ -244,13 +244,13 @@ class Cuds():
                                + "because none matched your filter.")
         uid_relationships = list(relationship_mapping.items())
 
-        # load all the neighbours to delete and remove inverse relationship
-        neighbours = self.session.load(*[uid for uid, _ in uid_relationships])
-        for uid_relationship, neighbour in zip(uid_relationships, neighbours):
+        # load all the neighbors to delete and remove inverse relationship
+        neighbors = self.session.load(*[uid for uid, _ in uid_relationships])
+        for uid_relationship, neighbor in zip(uid_relationships, neighbors):
             uid, relationships = uid_relationship
             for relationship in relationships:
                 self._remove_direct(relationship, uid)
-                neighbour._remove_inverse(relationship, self.uid)
+                neighbor._remove_inverse(relationship, self.uid)
 
     def iter(self,
              *uids: uuid.UUID,
@@ -332,19 +332,19 @@ class Cuds():
             new_child_getter = new_cuds_object
             new_cuds_object = create_from_cuds_object(new_cuds_object,
                                                       add_to.session)
-            # fix the connections to the neighbours
-            add_to._fix_neighbours(new_cuds_object, old_cuds_object,
+            # fix the connections to the neighbors
+            add_to._fix_neighbors(new_cuds_object, old_cuds_object,
                                    add_to.session, missing)
             result = result or new_cuds_object
 
-            for outgoing_rel in new_cuds_object._neighbours:
+            for outgoing_rel in new_cuds_object._neighbors:
 
                 # do not recursively add parents
                 if not outgoing_rel.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP):
                     continue
 
                 # add children not already added
-                for child_uid in new_cuds_object._neighbours[outgoing_rel]:
+                for child_uid in new_cuds_object._neighbors[outgoing_rel]:
                     if child_uid not in uids_stored:
                         new_child = new_child_getter.get(
                             child_uid, rel=outgoing_rel)
@@ -357,17 +357,17 @@ class Cuds():
         # perform the deletion
         for uid in missing:
             for cuds_object, rel in missing[uid]:
-                del cuds_object._neighbours[rel][uid]
-                if not cuds_object._neighbours[rel]:
-                    del cuds_object._neighbours[rel]
+                del cuds_object._neighbors[rel][uid]
+                if not cuds_object._neighbors[rel]:
+                    del cuds_object._neighbors[rel]
         return result
 
     @staticmethod
-    def _fix_neighbours(new_cuds_object, old_cuds_object, session, missing):
-        """Fix all the connections of the neighbours of a Cuds objects
+    def _fix_neighbors(new_cuds_object, old_cuds_object, session, missing):
+        """Fix all the connections of the neighbors of a Cuds objects
         that is going to be replaced.
 
-        Behavior when neighbours change:
+        Behavior when neighbors change:
 
         - new_cuds_object has parents, that weren't parents of old_cuds_object.
             - the parents are already stored in the session of old_cuds_object.
@@ -400,26 +400,26 @@ class Cuds():
         old_cuds_object = old_cuds_object or None
 
         # get the parents that got parents after adding the new Cuds
-        new_parent_diff = get_neighbour_diff(
+        new_parent_diff = get_neighbor_diff(
             new_cuds_object, old_cuds_object, mode="non-active")
-        # get the neighbours that were neighbours
+        # get the neighbors that were neighbors
         # before adding the new cuds_object
-        old_neighbour_diff = get_neighbour_diff(old_cuds_object,
+        old_neighbor_diff = get_neighbor_diff(old_cuds_object,
                                                 new_cuds_object)
 
         # Load all the cuds_objects of the session
         cuds_objects = iter(session.load(
-            *[uid for uid, _ in new_parent_diff + old_neighbour_diff]))
+            *[uid for uid, _ in new_parent_diff + old_neighbor_diff]))
 
         # Perform the fixes
         Cuds._fix_new_parents(new_cuds_object=new_cuds_object,
                               new_parents=cuds_objects,
                               new_parent_diff=new_parent_diff,
                               missing=missing)
-        Cuds._fix_old_neighbours(new_cuds_object=new_cuds_object,
+        Cuds._fix_old_neighbors(new_cuds_object=new_cuds_object,
                                  old_cuds_object=old_cuds_object,
-                                 old_neighbours=cuds_objects,
-                                 old_neighbour_diff=old_neighbour_diff)
+                                 old_neighbors=cuds_objects,
+                                 old_neighbor_diff=old_neighbor_diff)
 
     @staticmethod
     def _fix_new_parents(new_cuds_object, new_parents,
@@ -453,50 +453,50 @@ class Cuds():
                 continue
 
             # Add the inverse to the parent
-            if inverse not in parent._neighbours:
-                parent._neighbours[inverse] = NeighbourDictTarget({}, parent,
+            if inverse not in parent._neighbors:
+                parent._neighbors[inverse] = NeighborDictTarget({}, parent,
                                                                   inverse)
 
-            parent._neighbours[inverse][new_cuds_object.uid] = \
+            parent._neighbors[inverse][new_cuds_object.uid] = \
                 new_cuds_object.oclass
 
     @staticmethod
-    def _fix_old_neighbours(new_cuds_object, old_cuds_object, old_neighbours,
-                            old_neighbour_diff):
+    def _fix_old_neighbors(new_cuds_object, old_cuds_object, old_neighbors,
+                            old_neighbor_diff):
         """Fix the relationships beetween the added Cuds objects and
-        the Cuds object that were previously neighbours.
+        the Cuds object that were previously neighbors.
 
         :param new_cuds_object: The added Cuds object
         :type new_cuds_object: Cuds
         :param old_cuds_object: The Cuds object that is going to be replaced
         :type old_cuds_object: Union[Cuds, None]
-        :param old_neighbours: The Cuds object that were neighbours before the
+        :param old_neighbors: The Cuds object that were neighbors before the
             replacement.
-        :type old_neighbours: Iterator[Cuds]
-        :param old_neighbour_diff: The uids of the old neigbors and the
+        :type old_neighbors: Iterator[Cuds]
+        :param old_neighbor_diff: The uids of the old neigbors and the
             relations they are connected with
-        :type old_neighbour_diff: List[Tuple[UID, Relationship]]
+        :type old_neighbor_diff: List[Tuple[UID, Relationship]]
         """
-        # iterate over all old neighbours.
-        for (neighbour_uid, relationship), neighbour in zip(old_neighbour_diff,
-                                                            old_neighbours):
+        # iterate over all old neighbors.
+        for (neighbor_uid, relationship), neighbor in zip(old_neighbor_diff,
+                                                            old_neighbors):
             inverse = relationship.inverse
 
-            # delete the inverse if neighbours are children
+            # delete the inverse if neighbors are children
             if relationship.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP):
-                if inverse in neighbour._neighbours:
-                    neighbour._remove_direct(inverse, new_cuds_object.uid)
+                if inverse in neighbor._neighbors:
+                    neighbor._remove_direct(inverse, new_cuds_object.uid)
 
-            # if neighbour is parent, add missing relationships
+            # if neighbor is parent, add missing relationships
             else:
-                if relationship not in new_cuds_object._neighbours:
-                    new_cuds_object._neighbours[relationship] = \
-                        NeighbourDictTarget({}, new_cuds_object, relationship)
+                if relationship not in new_cuds_object._neighbors:
+                    new_cuds_object._neighbors[relationship] = \
+                        NeighborDictTarget({}, new_cuds_object, relationship)
                 for (uid, oclass), parent in \
-                        zip(old_cuds_object._neighbours[relationship].items(),
-                            neighbour._neighbours):
+                        zip(old_cuds_object._neighbors[relationship].items(),
+                            neighbor._neighbors):
                     if parent is not None:
-                        new_cuds_object._neighbours[relationship][uid] = oclass
+                        new_cuds_object._neighbors[relationship][uid] = oclass
 
     def _add_direct(self, cuds_object, rel):
         """
@@ -508,14 +508,14 @@ class Cuds():
         :type rel: Type[Relationships]
         """
         # First element, create set
-        if rel not in self._neighbours.keys():
-            self._neighbours[rel] = NeighbourDictTarget(
+        if rel not in self._neighbors.keys():
+            self._neighbors[rel] = NeighborDictTarget(
                 {cuds_object.uid: cuds_object.oclass},
                 self, rel
             )
         # Element not already there
-        elif cuds_object.uid not in self._neighbours[rel]:
-            self._neighbours[rel][cuds_object.uid] = cuds_object.oclass
+        elif cuds_object.uid not in self._neighbors[rel]:
+            self._neighbors[rel][cuds_object.uid] = cuds_object.oclass
 
     def _add_inverse(self, cuds_object, rel):
         """
@@ -566,7 +566,7 @@ class Cuds():
         self.session._notify_read(self)
         # consider either given relationship and subclasses
         # or all relationships.
-        consider_relationships = set(self._neighbours.keys())
+        consider_relationships = set(self._neighbors.keys())
         if rel:
             consider_relationships &= set(rel.subclasses)
         consider_relationships = list(consider_relationships)
@@ -614,7 +614,7 @@ class Cuds():
             iterator = enumerate(uids) if relationship_mapping \
                 else not_found_uids.items()
             for i, uid in iterator:
-                if uid in self._neighbours[relationship]:
+                if uid in self._neighbors[relationship]:
                     found_uid_indexes.add(i)
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
@@ -652,7 +652,7 @@ class Cuds():
 
             # Collect all uids who are object of the current relationship.
             # Possibly filter by OntologyClass.
-            for uid, target_class in self._neighbours[relationship].items():
+            for uid, target_class in self._neighbors[relationship].items():
                 if oclass is None or target_class.is_subclass_of(oclass):
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
@@ -693,9 +693,9 @@ class Cuds():
         :param uid: The uid to remove.
         :type uid: UUID
         """
-        del self._neighbours[relationship][uid]
-        if not self._neighbours[relationship]:
-            del self._neighbours[relationship]
+        del self._neighbors[relationship][uid]
+        if not self._neighbors[relationship]:
+            del self._neighbors[relationship]
 
     def _remove_inverse(self, relationship, uid):
         """Remove the inverse of the given relationship.
@@ -816,12 +816,12 @@ class Cuds():
         state = {k: v for k, v in self.__dict__.items()
                  if k not in {"_session", "_oclass", "_values"}}
         state["_oclass"] = (self.oclass.namespace.name, self._oclass.name)
-        state["_neighbours"] = [
+        state["_neighbors"] = [
             (k.namespace.name, k.name, [
                 (uid, vv.namespace.name, vv.name)
                 for uid, vv in v.items()
             ])
-            for k, v in self._neighbours.items()
+            for k, v in self._neighbors.items()
         ]
         state["_values"] = [(k, v.namespace.name, v.name)
                             for k, v in self._onto_attributes.items()]
@@ -838,13 +838,13 @@ class Cuds():
         oclass = ONTOLOGY_INSTALLER.namespace_registry[namespace][oclass]
         state["_oclass"] = oclass
         state["_session"] = None
-        state["_neighbours"] = NeighbourDictRel({
+        state["_neighbors"] = NeighborDictRel({
             ONTOLOGY_INSTALLER.namespace_registry[ns][cl]:
-                NeighbourDictTarget({
+                NeighborDictTarget({
                     uid: ONTOLOGY_INSTALLER.namespace_registry[ns2][cl2]
                     for uid, ns2, cl2 in v
                 }, self, ONTOLOGY_INSTALLER.namespace_registry[ns][cl])
-            for ns, cl, v in state["_neighbours"]
+            for ns, cl, v in state["_neighbors"]
         }, self)
         state["_values"] = {k: ONTOLOGY_INSTALLER.namespace_registry[ns][cl]
                             for k, ns, cl in state["_values"]}
