@@ -11,7 +11,7 @@ import responses
 import uuid
 import osp.core
 from osp.core import CUBA
-from osp.core.session.transport.transport_util import serializable
+from osp.core.session.transport.transport_utils import serializable
 from osp.core.session.core_session import CoreSession
 from .test_session_city import TestWrapperSession
 from osp.core.session.buffers import EngineContext

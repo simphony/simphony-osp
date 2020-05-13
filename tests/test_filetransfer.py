@@ -13,11 +13,12 @@ import subprocess
 import unittest2 as unittest
 import sqlite3
 import shutil
-from osp.core.session.transport.transport_util import (
+from osp.core.session.transport.transport_utils import (
     move_files, serialize_buffers, deserialize_buffers, get_file_cuds)
-from osp.core.session.transport.communication_engine import (
-    _encode_files, _receive_files, _filter_files, BLOCK_SIZE,
+from osp.core.session.transport.communication_engine import \
     CommunicationEngineServer
+from osp.core.session.transport.communication_utils import (
+    encode_files, receive_files, filter_files, BLOCK_SIZE
 )
 from osp.core.session.buffers import BufferContext
 from osp.wrappers.sqlite import SqliteSession
@@ -25,8 +26,12 @@ from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
-from osp.core.session.transport.transport_util import (
+from osp.core.session.transport.transport_utils import (
     get_hash, get_hash_dir, check_hash)
+from osp.core.session.transport.communication_engine import LEN_HEADER
+from osp.core.session.transport.communication_utils import (
+    encode_header, decode_header, split_message, LEN_FILES_HEADER
+)
 
 try:
     from .test_communication_engine import async_test, MockWebsocket
@@ -296,39 +301,42 @@ class TestFiletransfer(unittest.TestCase):
 
     def test_encode_files(self):
         """Test encoding of files"""
-        result = _encode_files(FILE_PATHS)
+        result = encode_files(FILE_PATHS)
         self.maxDiff = None
         r = next(result)
-        self.assertEqual(r[0:4], bytes([0, 0, 0, 2]))
-        self.assertEqual(r[4:].decode("utf-8"), FILES[0])
+        num_blocks, filename = decode_header(r, LEN_FILES_HEADER)
+        self.assertEqual(num_blocks, 2)
+        self.assertEqual(filename, FILES[0])
         r = next(result)
         self.assertEqual(r, ("0" * BLOCK_SIZE).encode("utf-8"))
         r = next(result)
         self.assertEqual(r, "0".encode("utf-8"))
         r = next(result)
-        self.assertEqual(r[0:4], bytes([0, 0, 0, 2]))
-        self.assertEqual(r[4:].decode("utf-8"), FILES[1])
+        num_blocks, filename = decode_header(r, LEN_FILES_HEADER)
+        self.assertEqual(num_blocks, 2)
+        self.assertEqual(filename, FILES[1])
         r = next(result)
         self.assertEqual(r, ("1" * BLOCK_SIZE).encode("utf-8"))
         r = next(result)
         self.assertEqual(r, ("1" * BLOCK_SIZE).encode("utf-8"))
         r = next(result)
-        self.assertEqual(r[0:4], bytes([0, 0, 0, 0]))
-        self.assertEqual(r[4:].decode("utf-8"), FILES[2])
+        num_blocks, filename = decode_header(r, LEN_FILES_HEADER)
+        self.assertEqual(num_blocks, 0)
+        self.assertEqual(filename, FILES[2])
         self.assertRaises(StopIteration, next, result)
 
     @async_test
     async def test_receive_files(self):
         ws = MockWebsocket(id=0, to_recv=[
-            bytes([0, 0, 0, 2]) + FILES[0].encode("utf-8"),
+            encode_header([2, FILES[0]], LEN_FILES_HEADER),
             ("0" * BLOCK_SIZE).encode("utf-8"),
             "0".encode("utf-8"),
-            bytes([0, 0, 0, 2]) + FILES[1].encode("utf-8"),
+            encode_header([2, FILES[1]], LEN_FILES_HEADER),
             ("1" * BLOCK_SIZE).encode("utf-8"),
             ("1" * BLOCK_SIZE).encode("utf-8"),
-            bytes([0, 0, 0, 0]) + FILES[2].encode("utf-8")], sent_data=[])
+            encode_header([0, FILES[2]], LEN_FILES_HEADER)], sent_data=[])
         file_hashes = dict()
-        await _receive_files(3, ws, SERVER_DIR, file_hashes)
+        await receive_files(3, ws, SERVER_DIR, file_hashes)
         self.assertEqual({k: x for k, x in file_hashes.items()},
                          HASHES)
         self.assertEqual(sorted(os.listdir(SERVER_DIR)), sorted(FILES))
@@ -398,9 +406,9 @@ class TestFiletransfer(unittest.TestCase):
 
     def test_filter_files(self):
         """Test filtering files based on hashes"""
-        self.assertEqual(_filter_files(FILE_PATHS, HASHES), [])
-        self.assertEqual(_filter_files(FILE_PATHS, {}), FILE_PATHS)
-        self.assertEqual(_filter_files(FILE_PATHS + [__file__, "x"],
+        self.assertEqual(filter_files(FILE_PATHS, HASHES), [])
+        self.assertEqual(filter_files(FILE_PATHS, {}), FILE_PATHS)
+        self.assertEqual(filter_files(FILE_PATHS + [__file__, "x"],
                          dict(HASHES)), [__file__])
 
     @async_test
@@ -419,19 +427,26 @@ class TestFiletransfer(unittest.TestCase):
                                       handle_request=handle_request,
                                       handle_disconnect=lambda u: None)
         ws = MockWebsocket(id=0, to_recv=[
-            bytes([1, 4, 2]) + b"testdata",
-            bytes([0, 0, 0, 2]) + FILES[0].encode("utf-8"),
+            encode_header([1, 4, 2, "test"], LEN_HEADER),
+            *split_message("data", block_size=1)[1],
+            encode_header([2, FILES[0]], LEN_FILES_HEADER),
             ("0" * BLOCK_SIZE).encode("utf-8"),
             "0".encode("utf-8"),
-            bytes([0, 0, 0, 2]) + FILES[1].encode("utf-8"),
+            encode_header([2, FILES[1]], LEN_FILES_HEADER),
             ("1" * BLOCK_SIZE).encode("utf-8"),
             ("1" * BLOCK_SIZE).encode("utf-8")],
             sent_data=response)
         await s._serve(ws, None)
         self.assertEqual(list(s._file_hashes.keys()), [])
         self.assertEqual(list(s._file_hashes.values()), [])
-        self.assertEqual(
-            response, [b'\x01response', b'\x00\x00\x00\x00f2.tar.gz'])
+        version, num_blocks, num_files = decode_header(response[0], LEN_HEADER)
+        self.assertEqual(version, 1)
+        self.assertEqual(num_blocks, 1)
+        self.assertEqual(num_files, 1)
+        self.assertEqual(response[1], b'response')
+        num_blocks, filename = decode_header(response[2], LEN_FILES_HEADER)
+        self.assertEqual(num_blocks, 0)
+        self.assertEqual(filename, FILES[2])
         self.assertEqual(request[0], "test")
         self.assertEqual(request[1], "data")
         self.assertTrue(request[2].startswith("/tmp/tmp"))
