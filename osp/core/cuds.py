@@ -170,7 +170,8 @@ class Cuds():
         :param rel: Only return cuds_object which are connected by subclass of
             given relationship.
         :type rel: OntologyRelationship
-        :param oclass: Type (Ontology class) of the subelements
+        :param oclass: Only return elements which are a subclass of the given
+            ontology class.
         :type oclass: OntologyClass
         :param return_rel: Whether to return the connecting relationship,
             defaults to False
@@ -227,9 +228,10 @@ class Cuds():
         :param args: UIDs of the elements or the elements themselves
         :type args: Union[Cuds, UUID]
         :param rel: Only remove cuds_object which are connected by subclass of
-            given relationship
+            given relationship.
         :type rel: OntologyRelationship
-        :param oclass: Type (Ontology Class) of the subelements
+        :param oclass: Only remove elements which are a subclass of the given
+            ontology class.
         :type oclass: OntologyClass
         """
         uids = [arg.uid if isinstance(arg, Cuds) else arg for arg in args]
@@ -267,9 +269,11 @@ class Cuds():
 
         :param uids: UIDs of the elements.
         :type uids: UUID
-        :param rel: class of the relationship.
+        :param rel: Only return cuds_object which are connected by subclass of
+            given relationship.
         :type rel: OntologyRelationship
-        :param oclass: Type of the subelements.
+        :param oclass: Only return elements which are a subclass of the given
+            ontology class.
         :type oclass: OntologyClass
         :param return_rel: Whether to return the connecting relationship,
             defaults to False
