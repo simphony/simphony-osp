@@ -42,7 +42,7 @@ class TestInstallation(unittest.TestCase):
         city_path = os.path.join(
             os.path.dirname(__file__),
             "..", "osp", "core", "ontology", "yml",
-            "ontology.city.yml"
+            "city.ontology.yml"
         )
         oim._create_directories()
         oim.tmp_open(city_path)
@@ -50,9 +50,9 @@ class TestInstallation(unittest.TestCase):
             f1 = open(city_path, "r")
             self.assertEqual(  # check if file has been moved
                 os.listdir(oim.tmp_path),
-                ["ontology.city.yml"]
+                ["city.ontology.yml"]
             )  # check contents of the file
-            f2 = open(os.path.join(oim.tmp_path, "ontology.city.yml"), "r")
+            f2 = open(os.path.join(oim.tmp_path, "city.ontology.yml"), "r")
             num_lines = 0
             for l1, l2 in zip(f1, f2):
                 self.assertEqual(l1, l2)

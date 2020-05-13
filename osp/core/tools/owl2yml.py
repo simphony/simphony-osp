@@ -443,7 +443,7 @@ def run_from_terminal():
     )
     converter.convert()
     output_filename = args.output_file or os.path.abspath(
-        "ontology.%s.yml" % os.path.basename(args.input_file)[:-4]
+        "%s.ontology.yml" % os.path.basename(args.input_file)[:-4]
     )
     converter.write(file=output_filename)
 

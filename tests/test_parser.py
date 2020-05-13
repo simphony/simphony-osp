@@ -12,7 +12,7 @@ try:
     from osp.core import PARSER_TEST as ONTO
 except ImportError:
     ONTO = ONTOLOGY_INSTALLER.parser.parse(
-        "osp/core/ontology/yml/ontology.parser_test.yml"
+        "osp/core/ontology/yml/parser_test.ontology.yml"
     )
 
 

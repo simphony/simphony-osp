@@ -39,7 +39,7 @@ class OntologyInstallationManager():
         namespace = self._get_namespace(file_path)
 
         # copy the file
-        filename = "ontology.%s.yml" % namespace
+        filename = "%s.ontology.yml" % namespace
         if not os.path.exists(os.path.join(self.installed_path, filename)):
             dest = os.path.join(self.tmp_path, filename)
             logger.debug("Copy file %s to %s" % (file_path, dest))
@@ -123,7 +123,7 @@ class OntologyInstallationManager():
                                 % (file))
                 logger.info("Uninstalling namespace %s." % namespace)
                 namespace = namespace.lower()
-                filename = "ontology.%s.yml" % namespace
+                filename = "%s.ontology.yml" % namespace
                 path = os.path.join(self.installed_path, filename)
                 if os.path.exists(path):
                     os.remove(path)

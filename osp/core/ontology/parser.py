@@ -43,7 +43,7 @@ class Parser:
         if not filename.endswith(".yml"):
             filename = os.path.join(
                 os.path.dirname(os.path.abspath(__file__)),
-                "yml", "ontology.%s.yml" % filename
+                "yml", "%s.ontology.yml" % filename
             )
         return filename
 

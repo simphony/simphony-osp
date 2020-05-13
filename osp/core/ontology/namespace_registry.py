@@ -2,7 +2,7 @@ import os
 
 MAIN_ONTOLOGY_NAMESPACE = "CUBA".lower()
 MAIN_ONTOLOGY_PATH = os.path.join(os.path.dirname(__file__),
-                                  "yml", "ontology.cuba.yml")
+                                  "yml", "cuba.ontology.yml")
 
 
 class NamespaceRegistry():
