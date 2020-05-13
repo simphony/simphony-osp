@@ -15,7 +15,7 @@ from osp.core.session.wrapper_session import check_consumes_buffers, \
 from osp.core.session.transport.communication_engine \
     import CommunicationEngineClient
 from osp.core.session.buffers import BufferContext
-from osp.core.session.transport.transport_util import (
+from osp.core.session.transport.transport_utils import (
     INITIALISE_COMMAND, LOAD_COMMAND, deserialize_buffers,
     serializable, serialize_buffers, get_hash_dir
 )
