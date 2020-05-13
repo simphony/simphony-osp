@@ -1,10 +1,3 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM and Didrik Pinte, ENTHOUGHT Inc.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import os
 import json
 import logging
@@ -16,7 +9,7 @@ from osp.core.session.transport.communication_engine \
     import CommunicationEngineClient
 from osp.core.session.buffers import BufferContext
 from osp.core.session.transport.transport_utils import (
-    INITIALISE_COMMAND, LOAD_COMMAND, deserialize_buffers,
+    INITIALIZE_COMMAND, LOAD_COMMAND, deserialize_buffers,
     serializable, serialize_buffers, get_hash_dir
 )
 
@@ -56,7 +49,7 @@ class TransportSessionClient(WrapperSession):
 
     # OVERRIDE
     def _store(self, cuds_object):
-        # Initialise the server, when the first cuds_object is stored.
+        # Initialize the server, when the first cuds_object is stored.
         if self.root is None:
             data = {
                 "args": self.args,
@@ -65,7 +58,7 @@ class TransportSessionClient(WrapperSession):
                 "hashes": get_hash_dir(self._file_destination)
             }
             super()._store(cuds_object)
-            self._engine.send(INITIALISE_COMMAND,
+            self._engine.send(INITIALIZE_COMMAND,
                               json.dumps(data))
             logger.debug("Remove %s from added buffer in context %s of session"
                          " %s" % (cuds_object, self._current_context, self))

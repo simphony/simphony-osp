@@ -54,7 +54,7 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
     pp_sub = ""
     filtered_relationships = filter(
         lambda x: x.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP),
-        cuds_object._neighbours.keys())
+        cuds_object._neighbors.keys())
     sorted_relationships = sorted(filtered_relationships, key=str)
     visited = visited or set()
     visited.add(cuds_object.uid)

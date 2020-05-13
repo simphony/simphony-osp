@@ -1,10 +1,3 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 from abc import ABC, abstractmethod
 import rdflib
 import logging
@@ -15,7 +8,7 @@ logger = logging.getLogger(__name__)
 class OntologyEntity(ABC):
     @abstractmethod
     def __init__(self, namespace, name, superclasses, description):
-        """Initialise the ontology entity
+        """Initialize the ontology entity
 
         :param namespace: The namespace of the entity
         :type namespace: OntologyNamespace

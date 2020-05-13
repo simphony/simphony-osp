@@ -1,17 +1,10 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import uuid
 import logging
 from abc import abstractmethod
 from osp.core.session.session import Session
 from osp.core.session.result import returns_query_result
 from osp.core.utils import destroy_cuds_object, clone_cuds_object, \
-    get_neighbour_diff
+    get_neighbor_diff
 from osp.core.session.buffers import BufferType, BufferContext, \
     EngineContext
 
@@ -55,7 +48,7 @@ class WrapperSession(Session):
     @returns_query_result
     def load(self, *uids):
         if self.root is None:
-            raise RuntimeError("This Session is not yet initialised. "
+            raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")
 
         # refresh expired
@@ -318,9 +311,9 @@ class WrapperSession(Session):
         :type uids: List[UUID]
         """
         if old_cuds_object:
-            diff1 = get_neighbour_diff(new_cuds_object, old_cuds_object)
+            diff1 = get_neighbor_diff(new_cuds_object, old_cuds_object)
             diff1 = set([x[0] for x in diff1])
-            diff2 = get_neighbour_diff(old_cuds_object, new_cuds_object)
+            diff2 = get_neighbor_diff(old_cuds_object, new_cuds_object)
             diff2 = set([x[0] for x in diff2])
             diff = (diff1 | diff2) - set(uids)
             self._expire(diff)

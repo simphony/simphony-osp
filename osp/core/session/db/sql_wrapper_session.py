@@ -1,10 +1,3 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import uuid
 from operator import mul
 from functools import reduce
@@ -14,7 +7,7 @@ from osp.core.ontology.datatypes import convert_to, convert_from, \
     parse_vector_args
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from osp.core.session.db.conditions import EqualsCondition, AndCondition
-from osp.core.neighbour_dict import NeighbourDictTarget
+from osp.core.neighbor_dict import NeighborDictTarget
 from osp.core import get_entity
 from osp.core.session.buffers import BufferContext
 
@@ -324,7 +317,7 @@ class SqlWrapperSession(DbWrapperSession):
                 self._do_db_delete(table_name, None)
             self._do_db_delete(self.RELATIONSHIP_TABLE, None)
             self._do_db_delete(self.MASTER_TABLE, None)
-            self._initialise()
+            self._initialize()
             self._commit()
         except Exception as e:
             self._rollback_transaction()
@@ -362,7 +355,7 @@ class SqlWrapperSession(DbWrapperSession):
 
             # Add to master
             is_first_level = any(self.root in uids
-                                 for uids in added._neighbours.values())
+                                 for uids in added._neighbors.values())
             self._do_db_insert(
                 table_name=self.MASTER_TABLE,
                 columns=["uid", "oclass", "first_level"],
@@ -385,8 +378,8 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # Insert the relationships
-            for rel, neighbour_dict in added._neighbours.items():
-                for uid, target_oclass in neighbour_dict.items():
+            for rel, neighbor_dict in added._neighbors.items():
+                for uid, target_oclass in neighbor_dict.items():
                     target_uid = uid if uid != self.root else uuid.UUID(int=0)
                     self._do_db_insert(
                         self.RELATIONSHIP_TABLE,
@@ -432,8 +425,8 @@ class SqlWrapperSession(DbWrapperSession):
                     datatype="UUID"
                 )
             )
-            for rel, neighbour_dict in updated._neighbours.items():
-                for uid, target_oclass in neighbour_dict.items():
+            for rel, neighbor_dict in updated._neighbors.items():
+                for uid, target_oclass in neighbor_dict.items():
                     first_level = first_level or uid == self.root
                     target_uuid = uid if uid != self.root else uuid.UUID(int=0)
                     self._do_db_insert(
@@ -514,7 +507,7 @@ class SqlWrapperSession(DbWrapperSession):
             yield loaded[0] if loaded else None
 
     # OVERRIDE
-    def _initialise(self):
+    def _initialize(self):
         self._do_db_create(
             table_name=self.MASTER_TABLE,
             columns=self.COLUMNS[self.MASTER_TABLE],
@@ -621,7 +614,7 @@ class SqlWrapperSession(DbWrapperSession):
                                          kwargs=kwargs,
                                          session=self,
                                          uid=uid,
-                                         fix_neighbours=False)
+                                         fix_neighbors=False)
             self._load_relationships(cuds_object)
             yield cuds_object
 
@@ -649,25 +642,25 @@ class SqlWrapperSession(DbWrapperSession):
             target_oclass = get_entity(target_oclass)
             rel = get_entity(name)
 
-            if rel not in cuds_object._neighbours:
-                cuds_object._neighbours[rel] = NeighbourDictTarget(
+            if rel not in cuds_object._neighbors:
+                cuds_object._neighbors[rel] = NeighborDictTarget(
                     {}, cuds_object, rel
                 )
 
             # Special case: target is root --> Add inverse to root
             if target == uuid.UUID(int=0):
                 root_obj = self._registry.get(self.root)
-                cuds_object._neighbours[rel][self.root] = root_obj.oclass
-                if rel.inverse not in root_obj._neighbours:
-                    root_obj._neighbours[rel.inverse] = NeighbourDictTarget(
+                cuds_object._neighbors[rel][self.root] = root_obj.oclass
+                if rel.inverse not in root_obj._neighbors:
+                    root_obj._neighbors[rel.inverse] = NeighborDictTarget(
                         {}, root_obj, rel.inverse
                     )
-                root_obj._neighbours[rel.inverse][cuds_object.uid] = \
+                root_obj._neighbors[rel.inverse][cuds_object.uid] = \
                     cuds_object.oclass
 
             # Target is not root. Simply add the relationship
             elif target != uuid.UUID(int=0):
-                cuds_object._neighbours[rel][target] = target_oclass
+                cuds_object._neighbors[rel][target] = target_oclass
 
     def _get_oclass(self, uid):
         """Get the ontology class of the given uid from the database.

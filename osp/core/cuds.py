@@ -1,10 +1,3 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM and Didrik Pinte, ENTHOUGHT Inc.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 # from __future__ import annotations
 import uuid
 import rdflib
@@ -19,9 +12,9 @@ from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.datatypes import convert_to
 from osp.core.session.core_session import CoreSession
 from osp.core.session.session import Session
-from osp.core.neighbour_dict import NeighbourDictRel, NeighbourDictTarget
+from osp.core.neighbor_dict import NeighborDictRel, NeighborDictTarget
 from osp.core.utils import check_arguments, clone_cuds_object, \
-    create_from_cuds_object, get_neighbour_diff
+    create_from_cuds_object, get_neighbor_diff
 from osp.core import CUBA
 
 logger = logging.getLogger("osp.core")
@@ -44,15 +37,27 @@ class Cuds():
         uid: uuid.UUID = None
     ):
         """
-        Initialisation follows the behaviour of the python dict class.
+        This method should not be called by the user directly.
+        Instead use the __call__ magic method of OntologyClass.
+        Construct the CUDS object. This will also register the CUDS objects in
+        the corresponding session.
 
-        :param uid: Specify a unique identifier. If None given, a random
-            uid will be created.
-        :type uid: UUID
+        Args:
+            attributes (Dict[OntologyAttribute, Any]): Mapping from ontology
+                attribute to specified value.
+            oclass (OntologyEntity): The ontology class of the CUDS object.
+            session (Session, optional): The session associated with the CUDS,
+                if None is given it will be associated with the CoreSession.
+                Defaults to None.
+            uid (uuid.UUID, optional): A unique identifier. If None given, a
+                random uid will be created. Defaults to None.
+
+        Raises:
+            ValueError: Uid of zero is not allowed.
         """
         self._attr_values = {k.argname: k.convert_to_datatype(v)
                              for k, v in attributes.items()}
-        self._neighbours = NeighbourDictRel({}, self)
+        self._neighbors = NeighborDictRel({}, self)
 
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         if self.__uid.int == 0:
@@ -103,12 +108,15 @@ class Cuds():
         return result
 
     def is_a(self, oclass):
-        """Check if self is an instance of the given oclass.
+        """
+        Check if the CUDS object is an instance of the given oclass.
 
-        :param oclass: Check if self is an instance of this oclass.
-        :type oclass: OntologyClass
-        :return: Whether self is an instance of the given oclass.
-        :rtype: bool
+        Args:
+            oclass (OntologyClass): Check if the CUDS object is an instance of
+                this oclass.
+
+        Returns:
+            bool: Whether the CUDS object is an instance of the given oclass.
         """
         return self.oclass in oclass.subclasses
 
@@ -116,16 +124,25 @@ class Cuds():
             *args: "Cuds",
             rel: OntologyRelationship = None) -> Union["Cuds", List["Cuds"]]:
         """
-        Adds (a) cuds(s) to their respective relationship.
+        Adds CUDS objects to their respective relationship.
+        If the added objects are associated with the same session,
+        only a link is created. Otherwise, the a deepcopy is made and added
+        to the session of this Cuds object.
         Before adding, check for invalid keys to avoid inconsistencies later.
 
-        :param args: object(s) to add
-        :type args: Cuds
-        :param rel: class of the relationship between the objects
-        :type rel: OntologyRelationship
-        :return: The added object(s)
-        :rtype: Union[Cuds, List[Cuds]]
-        :raises ValueError: adding an element already there
+        Args:
+            args (Cuds): The objects to be added
+            rel (OntologyRelationship): The relationship between the objects.
+
+        Raises:
+            TypeError: Ne relationship given and no default specified.
+            ValueError: Added a CUDS object that is already in the container.
+
+        Returns:
+            Union[Cuds, List[Cuds]]: The CUDS objects that have been added,
+                associated with the session of the current CUDS object.
+                Result type is a list, if more than one CUDS object is
+                returned.
         """
         check_arguments(Cuds, *args)
         rel = rel or self.oclass.namespace.default_rel
@@ -139,7 +156,7 @@ class Cuds():
             *[arg.uid for arg in args if arg.session != self.session])
         for arg in args:
             # Recursively add the children to the registry
-            if rel in self._neighbours and arg.uid in self._neighbours[rel]:
+            if rel in self._neighbors and arg.uid in self._neighbors[rel]:
                 message = '{!r} is already in the container'
                 raise ValueError(message.format(arg))
             if self.session != arg.session:
@@ -159,25 +176,29 @@ class Cuds():
         Returns the contained elements of a certain type, uid or relationship.
         Expected calls are get(), get(*uids), get(rel), get(oclass),
         get(*uids, rel), get(rel, oclass).
-        If uids are specified, the position of each element in the result
-        is determined by to the position of the corresponding uid in the given
-        list of uids.
-        In this case, the result can contain None values if a given uid is not
-        a child of this cuds_object.
-        If no uids are specified, the resulting elements are ordered randomly.
+        If uids are specified:
+            The position of each element in the result is determined by to the
+            position of the corresponding uid in the given list of uids.
+            In this case, the result can contain None values if a given uid
+            is not a child of this cuds_object.
+            If only a single uid is given, only this one element is returned
+            (i.e. no list).
+        If no uids are specified:
+            The result is a collection, where the elements are ordered
+            randomly.
 
-        :param uids: UIDs of the elements
-        :param rel: Only return cuds_object which are connected by subclass of
-            given relationship.
-        :type rel: OntologyRelationship
-        :param oclass: Only return elements which are a subclass of the given
-            ontology class.
-        :type oclass: OntologyClass
-        :param return_rel: Whether to return the connecting relationship,
-            defaults to False
-        :type return_rel: bool
-        :return: the queried objects, or None, if not found
-        :rtype: Union[Cuds, List[Cuds]]
+        Args:
+            uids (uuid.UUID): UUIDs of the elements.
+            rel (OntologyRelationship, optional): Only return cuds_object
+                which are connected by subclass of given relationship.
+                Defaults to CUBA.ACTIVE_RELATIONSHIP.
+            oclass (OntologyClass, optional): Only return elements which are a
+                subclass of the given ontology class. Defaults to None.
+            return_rel (bool, optional): Whether to return the connecting
+                relationship. Defaults to False.
+
+        Returns:
+            Union[Cuds, List[Cuds]]: The queried objects.
         """
         result = list(
             self.iter(*uids, rel=rel, oclass=oclass, return_rel=return_rel)
@@ -188,12 +209,26 @@ class Cuds():
 
     def update(self, *args: "Cuds") -> List["Cuds"]:
         """
-        Updates the object with the other versions.
+        Updates the object by providing updated versions of CUDS objects
+        that are directly in the container of this CUDS object.
+        The updated versions must be associated with a different session.
 
-        :param args: updated cuds objects
-        :type args: Cuds
-        :return: The updated cuds_object.
-        :rtype: Union[Cuds, List[Cuds]]
+        Args:
+            args (Cuds): The updated versions to use to update the current
+                object.
+
+        Raises:
+            ValueError: Provided a CUDS objects is not in the container of the
+                current CUDS
+            ValueError: Provided CUDS object is associated with the same
+                session as the current CUDS object. Therefore it is not an
+                updated version.
+
+        Returns:
+            Union[Cuds, List[Cuds]]: The CUDS objects that have been updated,
+                associated with the session of the current CUDS object.
+                Result type is a list, if more than one CUDS object is
+                returned.
         """
         check_arguments(Cuds, *args)
         old_objects = self.get(*[arg.uid for arg in args])
@@ -220,19 +255,24 @@ class Cuds():
                rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
                oclass: OntologyClass = None):
         """
-        Removes elements from the Cuds.
+        Removes elements from the CUDS object.
         Expected calls are remove(), remove(*uids/Cuds),
         remove(rel), remove(oclass), remove(*uids/Cuds, rel),
         remove(rel, oclass)
 
-        :param args: UIDs of the elements or the elements themselves
-        :type args: Union[Cuds, UUID]
-        :param rel: Only remove cuds_object which are connected by subclass of
-            given relationship.
-        :type rel: OntologyRelationship
-        :param oclass: Only remove elements which are a subclass of the given
-            ontology class.
-        :type oclass: OntologyClass
+        Args:
+            args (Union[Cuds, UUID]): UUIDs of the elements to remove or the
+                elements themselves.
+            rel (OntologyRelationship, optional): Only remove cuds_object
+                which are connected by subclass of given relationship.
+                Defaults to CUBA.ACTIVE_RELATIONSHIP.
+            oclass (OntologyClass, optional): Only remove elements which are a
+                subclass of the given ontology class. Defaults to None.
+
+        Raises:
+            RuntimeError: No CUDS object removed, because specified CUDS
+                objects are not in the container of the current CUDS object
+                directly.
         """
         uids = [arg.uid if isinstance(arg, Cuds) else arg for arg in args]
 
@@ -244,13 +284,13 @@ class Cuds():
                                + "because none matched your filter.")
         uid_relationships = list(relationship_mapping.items())
 
-        # load all the neighbours to delete and remove inverse relationship
-        neighbours = self.session.load(*[uid for uid, _ in uid_relationships])
-        for uid_relationship, neighbour in zip(uid_relationships, neighbours):
+        # load all the neighbors to delete and remove inverse relationship
+        neighbors = self.session.load(*[uid for uid, _ in uid_relationships])
+        for uid_relationship, neighbor in zip(uid_relationships, neighbors):
             uid, relationships = uid_relationship
             for relationship in relationships:
                 self._remove_direct(relationship, uid)
-                neighbour._remove_inverse(relationship, self.uid)
+                neighbor._remove_inverse(relationship, self.uid)
 
     def iter(self,
              *uids: uuid.UUID,
@@ -261,25 +301,26 @@ class Cuds():
         Iterates over the contained elements of a certain type, uid or
         relationship. Expected calls are iter(), iter(*uids), iter(rel),
         iter(oclass), iter(*uids, rel), iter(rel, oclass).
-        If uids are specified, the each element will be yielded in the order
-        given by list of uids.
-        In this case, elements can be None values if a given uid is not
-        a child of this cuds_object.
-        If no uids are specified, the resulting elements are ordered randomly.
+        If uids are specified:
+            The position of each element in the result is determined by to the
+            position of the corresponding uid in the given list of uids.
+            In this case, the result can contain None values if a given uid
+            is not a child of this cuds_object.
+        If no uids are specified:
+            The result is ordered randomly.
 
-        :param uids: UIDs of the elements.
-        :type uids: UUID
-        :param rel: Only return cuds_object which are connected by subclass of
-            given relationship.
-        :type rel: OntologyRelationship
-        :param oclass: Only return elements which are a subclass of the given
-            ontology class.
-        :type oclass: OntologyClass
-        :param return_rel: Whether to return the connecting relationship,
-            defaults to False
-        :type return_rel: bool
-        :return: Iterator over of queried objects, or None, if not found.
-        :rtype: Iterator[Cuds]
+        Args:
+            uids (uuid.UUID): UUIDs of the elements.
+            rel (OntologyRelationship, optional): Only return cuds_object
+                which are connected by subclass of given relationship.
+                Defaults to CUBA.ACTIVE_RELATIONSHIP.
+            oclass (OntologyClass, optional): Only return elements which are a
+                subclass of the given ontology class. Defaults to None.
+            return_rel (bool, optional): Whether to return the connecting
+                relationship. Defaults to False.
+
+        Returns:
+            Iterator[Cuds]: The queried objects.
         """
         if return_rel:
             collected_uids, mapping = self._get(*uids, rel=rel, oclass=oclass,
@@ -294,29 +335,20 @@ class Cuds():
             else:
                 yield from ((r, m) for m in mapping[r.uid])
 
-    def _str_attributes(self):
-        """
-        Serializes the relevant attributes from the instance.
-
-        :return: list with the attributes in a key-value form string
-        """
-        attributes = []
-        for attribute in sorted(self.get_values(skip=["session"])):
-            attributes.append(attribute + ": " + str(getattr(self, attribute)))
-
-        return attributes
-
     def _recursive_store(self, new_cuds_object, old_cuds_object=None):
-        """Recursively store cuds_object and all its children.
+        """
+        Recursively store cuds_object and all its children.
         One-way relationships and dangling references are fixed.
 
-        :param new_cuds_object: The Cuds object to store recursively.
-        :type new_cuds_object: Cuds
-        :param old_cuds_object: The old version of the cuds_object,
-            defaults to None
-        :type old_cuds_object: Cuds, optional
-        :rtype: Set[UUID]
+        Args:
+            new_cuds_object (Cuds): The Cuds object to store recursively.
+            old_cuds_object (Cuds, optional): The old version of the
+                CUDS object. Defaults to None.
+
+        Returns:
+            Cuds: The added CUDS object.
         """
+
         # add new_cuds_object to self and replace old_cuds_object
         queue = [(self, new_cuds_object, old_cuds_object)]
         uids_stored = {new_cuds_object.uid, self.uid}
@@ -332,19 +364,19 @@ class Cuds():
             new_child_getter = new_cuds_object
             new_cuds_object = create_from_cuds_object(new_cuds_object,
                                                       add_to.session)
-            # fix the connections to the neighbours
-            add_to._fix_neighbours(new_cuds_object, old_cuds_object,
-                                   add_to.session, missing)
+            # fix the connections to the neighbors
+            add_to._fix_neighbors(new_cuds_object, old_cuds_object,
+                                  add_to.session, missing)
             result = result or new_cuds_object
 
-            for outgoing_rel in new_cuds_object._neighbours:
+            for outgoing_rel in new_cuds_object._neighbors:
 
                 # do not recursively add parents
                 if not outgoing_rel.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP):
                     continue
 
                 # add children not already added
-                for child_uid in new_cuds_object._neighbours[outgoing_rel]:
+                for child_uid in new_cuds_object._neighbors[outgoing_rel]:
                     if child_uid not in uids_stored:
                         new_child = new_child_getter.get(
                             child_uid, rel=outgoing_rel)
@@ -357,17 +389,18 @@ class Cuds():
         # perform the deletion
         for uid in missing:
             for cuds_object, rel in missing[uid]:
-                del cuds_object._neighbours[rel][uid]
-                if not cuds_object._neighbours[rel]:
-                    del cuds_object._neighbours[rel]
+                del cuds_object._neighbors[rel][uid]
+                if not cuds_object._neighbors[rel]:
+                    del cuds_object._neighbors[rel]
         return result
 
     @staticmethod
-    def _fix_neighbours(new_cuds_object, old_cuds_object, session, missing):
-        """Fix all the connections of the neighbours of a Cuds objects
+    def _fix_neighbors(new_cuds_object, old_cuds_object, session, missing):
+        """
+        Fix all the connections of the neighbors of a Cuds objects
         that is going to be replaced.
 
-        Behavior when neighbours change:
+        Behavior when neighbors change:
 
         - new_cuds_object has parents, that weren't parents of old_cuds_object.
             - the parents are already stored in the session of old_cuds_object.
@@ -385,59 +418,57 @@ class Cuds():
         - A child of old_cuds_object is no longer a child of new_cuds_object.
         --> Remove the relationship between child and new_cuds_object.
 
-        :param new_cuds_object: Cuds object that will replace the old one
-        :type new_cuds_object: Cuds
-        :param old_cuds_object: Cuds object that will be replaced by a new one.
-            Can be None if the new Cuds object does not replace any object.
-        :type old_cuds_object: Cuds
-        :param session: The session where the adjustments should take place.
-        :type session: Session
-        :param missing: dictionary that will be populated with connections
-            to objects, that are currently not available in the new session.
-            The recursive add might add it later.
-        :type missing: dict
+        Args:
+            new_cuds_object (Cuds): Cuds object that will replace the old one.
+            old_cuds_object (Cuds, optional): Cuds object that will be
+                replaced by a new one. Can be None if the new Cuds object does
+                not replace any object.
+            session (Session): The session where the adjustments should take
+                place.
+            missing (Dict): dictionary that will be populated with connections
+              to objects, that are currently not available in the new session.
+              The recursive add might add it later.
         """
         old_cuds_object = old_cuds_object or None
 
         # get the parents that got parents after adding the new Cuds
-        new_parent_diff = get_neighbour_diff(
+        new_parent_diff = get_neighbor_diff(
             new_cuds_object, old_cuds_object, mode="non-active")
-        # get the neighbours that were neighbours
+        # get the neighbors that were neighbors
         # before adding the new cuds_object
-        old_neighbour_diff = get_neighbour_diff(old_cuds_object,
-                                                new_cuds_object)
+        old_neighbor_diff = get_neighbor_diff(old_cuds_object,
+                                              new_cuds_object)
 
         # Load all the cuds_objects of the session
         cuds_objects = iter(session.load(
-            *[uid for uid, _ in new_parent_diff + old_neighbour_diff]))
+            *[uid for uid, _ in new_parent_diff + old_neighbor_diff]))
 
         # Perform the fixes
         Cuds._fix_new_parents(new_cuds_object=new_cuds_object,
                               new_parents=cuds_objects,
                               new_parent_diff=new_parent_diff,
                               missing=missing)
-        Cuds._fix_old_neighbours(new_cuds_object=new_cuds_object,
-                                 old_cuds_object=old_cuds_object,
-                                 old_neighbours=cuds_objects,
-                                 old_neighbour_diff=old_neighbour_diff)
+        Cuds._fix_old_neighbors(new_cuds_object=new_cuds_object,
+                                old_cuds_object=old_cuds_object,
+                                old_neighbors=cuds_objects,
+                                old_neighbor_diff=old_neighbor_diff)
 
     @staticmethod
     def _fix_new_parents(new_cuds_object, new_parents,
                          new_parent_diff, missing):
-        """Fix the relationships beetween the added Cuds objects and
+        """
+        Fix the relationships beetween the added Cuds objects and
         the parents of the added Cuds object.
 
-        :param new_cuds_object: The added Cuds object
-        :type new_cuds_object: Cuds
-        :param new_parents: The new parents of the added Cuds object
-        :type new_parents: Iterator[Cuds]
-        :param new_parent_diff: The uids of the new parents and the relations
-            they are connected with
-        :type new_parent_diff: List[Tuple[UID, Relationship]]
-        :param missing: dictionary that will be populated with connections
-            to objects, that are currently not available in the new session.
-            The recursive add might add it later.
-        :type missing: dict
+        Args:
+            new_cuds_object (Cuds): The added Cuds object
+            new_parents (Iterator[Cuds]): The new parents of the added CUDS
+                object
+            new_parent_diff (List[Tuple[UID, Relationship]]): The uids of the
+                new parents and the relations they are connected with.
+            missing (dict): dictionary that will be populated with connections
+                to objects, that are currently not available in the new
+                session. The recursive_add might add it later.
         """
         # Iterate over the new parents
         for (parent_uid, relationship), parent in zip(new_parent_diff,
@@ -453,77 +484,79 @@ class Cuds():
                 continue
 
             # Add the inverse to the parent
-            if inverse not in parent._neighbours:
-                parent._neighbours[inverse] = NeighbourDictTarget({}, parent,
-                                                                  inverse)
+            if inverse not in parent._neighbors:
+                parent._neighbors[inverse] = NeighborDictTarget({}, parent,
+                                                                inverse)
 
-            parent._neighbours[inverse][new_cuds_object.uid] = \
+            parent._neighbors[inverse][new_cuds_object.uid] = \
                 new_cuds_object.oclass
 
     @staticmethod
-    def _fix_old_neighbours(new_cuds_object, old_cuds_object, old_neighbours,
-                            old_neighbour_diff):
-        """Fix the relationships beetween the added Cuds objects and
-        the Cuds object that were previously neighbours.
-
-        :param new_cuds_object: The added Cuds object
-        :type new_cuds_object: Cuds
-        :param old_cuds_object: The Cuds object that is going to be replaced
-        :type old_cuds_object: Union[Cuds, None]
-        :param old_neighbours: The Cuds object that were neighbours before the
-            replacement.
-        :type old_neighbours: Iterator[Cuds]
-        :param old_neighbour_diff: The uids of the old neigbors and the
-            relations they are connected with
-        :type old_neighbour_diff: List[Tuple[UID, Relationship]]
+    def _fix_old_neighbors(new_cuds_object, old_cuds_object, old_neighbors,
+                           old_neighbor_diff):
         """
-        # iterate over all old neighbours.
-        for (neighbour_uid, relationship), neighbour in zip(old_neighbour_diff,
-                                                            old_neighbours):
+        Fix the relationships beetween the added Cuds objects and
+        the Cuds object that were previously neighbors.
+
+        Args:
+            new_cuds_object (Cuds): The added Cuds object
+            old_cuds_object (Cuds, optional): The Cuds object that is going
+                to be replaced
+            old_neighbors (Iterator[Cuds]): The Cuds object that were neighbors
+                before the replacement.
+            old_neighbor_diff (List[Tuple[UID, Relationship]]): The uids of
+                the old neighbors and the relations they are connected with.
+        """
+        # iterate over all old neighbors.
+        for (neighbor_uid, relationship), neighbor in zip(old_neighbor_diff,
+                                                          old_neighbors):
             inverse = relationship.inverse
 
-            # delete the inverse if neighbours are children
+            # delete the inverse if neighbors are children
             if relationship.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP):
-                if inverse in neighbour._neighbours:
-                    neighbour._remove_direct(inverse, new_cuds_object.uid)
+                if inverse in neighbor._neighbors:
+                    neighbor._remove_direct(inverse, new_cuds_object.uid)
 
-            # if neighbour is parent, add missing relationships
+            # if neighbor is parent, add missing relationships
             else:
-                if relationship not in new_cuds_object._neighbours:
-                    new_cuds_object._neighbours[relationship] = \
-                        NeighbourDictTarget({}, new_cuds_object, relationship)
+                if relationship not in new_cuds_object._neighbors:
+                    new_cuds_object._neighbors[relationship] = \
+                        NeighborDictTarget({}, new_cuds_object, relationship)
                 for (uid, oclass), parent in \
-                        zip(old_cuds_object._neighbours[relationship].items(),
-                            neighbour._neighbours):
+                        zip(old_cuds_object._neighbors[relationship].items(),
+                            neighbor._neighbors):
                     if parent is not None:
-                        new_cuds_object._neighbours[relationship][uid] = oclass
+                        new_cuds_object._neighbors[relationship][uid] = oclass
 
     def _add_direct(self, cuds_object, rel):
         """
         Adds an cuds_object to the current instance
-            with a specific relationship
-        :param cuds_object: object to be added
-        :type cuds_object: Cuds
-        :param rel: relationship with the cuds_object to add
-        :type rel: Type[Relationships]
+        with a specific relationship
+
+        Args:
+            cuds_object (Cuds): CUDS object to be added
+            rel (OntologyRelationship): relationship with the cuds_object to
+                add.
         """
         # First element, create set
-        if rel not in self._neighbours.keys():
-            self._neighbours[rel] = NeighbourDictTarget(
+        if rel not in self._neighbors.keys():
+            self._neighbors[rel] = NeighborDictTarget(
                 {cuds_object.uid: cuds_object.oclass},
                 self, rel
             )
         # Element not already there
-        elif cuds_object.uid not in self._neighbours[rel]:
-            self._neighbours[rel][cuds_object.uid] = cuds_object.oclass
+        elif cuds_object.uid not in self._neighbors[rel]:
+            self._neighbors[rel][cuds_object.uid] = cuds_object.oclass
 
     def _add_inverse(self, cuds_object, rel):
         """
         Adds the inverse relationship from self to cuds_object.
 
-        :param cuds_object: container of the normal relationship
-        :param rel: direct relationship instance
+        Args:
+            cuds_object (Cuds): CUDS object to connect with.
+            rel (OntologyRelationship): direct relationship
         """
+
         inverse_rel = rel.inverse
         self._add_direct(cuds_object, inverse_rel)
 
@@ -536,20 +569,26 @@ class Cuds():
         If uids are specified, the result is the input, but
         non-available uids are replaced by None.
 
-        :param uids: UIDs of the elements
-        :type uids
-        :param rel: class of the relationship, optional
-        :type rel: OntologyRelationship
-        :param oclass: Type subelements, optional
-        :type oclass: OntologyClass
-        :param return_mapping: whether to return a mapping from
-            uids to relationships, that connect self with the uid.
-        :type return_mapping: bool
-        :return: list of uids, or None, if not found.
-            (+ Mapping from UUIDs to relationships, which connect self to the
-            respective Cuds object.)
-        :rtype: List[UUID] (+ Dict[UUID, Set[Relationship]])
+        Args:
+            uids (UUID): UUIDs of the elements to get.
+            rel (OntologyRelationship, optional): Only return CUDS objects
+                connected with a subclass of relationship. Defaults to None.
+            oclass (OntologyClass, optional): Only return CUDS objects of a
+                subclass of this ontology class. Defaults to None.
+            return_mapping (bool, optional): Whether to return a mapping from
+                uids to relationships, that connect self with the uid.
+                Defaults to False.
+
+        Raises:
+            TypeError: Specified both uids and oclass.
+            ValueError: Wrong type of argument.
+
+        Returns:
+            List[UUID] (+ Dict[UUID, Set[Relationship]]): list of uids, or
+                None, if not found. (+ Mapping from UUIDs to relationships,
+                which connect self to the respective Cuds object.)
         """
+
         if uids and oclass is not None:
             raise TypeError("Do not specify both uids and oclass")
         if rel is not None and not isinstance(rel, OntologyRelationship):
@@ -566,7 +605,7 @@ class Cuds():
         self.session._notify_read(self)
         # consider either given relationship and subclasses
         # or all relationships.
-        consider_relationships = set(self._neighbours.keys())
+        consider_relationships = set(self._neighbors.keys())
         if rel:
             consider_relationships &= set(rel.subclasses)
         consider_relationships = list(consider_relationships)
@@ -584,23 +623,25 @@ class Cuds():
                                    return_mapping=return_mapping)
 
     def _get_by_uids(self, uids, relationships, return_mapping):
-        """Check for each given uid if it is connected to self by a relationship.
+        """
+        Check for each given uid if it is connected to self by a relationship.
         If not, replace it with None.
         Optionally return a mapping from uids to the set of relationships,
         which connect self and the cuds_object with the uid.
 
-        :param uids: The uids to check.
-        :type uids: List[UUID]
-        :param relationships: Only consider these relationships
-        :type relationships: List[Relationship]
-        :param return_mapping: whether to return a mapping from
-            uids to relationships, that connect self with the uid.
-        :type return_mapping: bool
-        :return: list of found uids, None for not found UUIDs
-            (+ Mapping from UUIDs to relationships, which connect self to the
-            respective Cuds object.)
-        :rtype: List[UUID] (+ Dict[UUID, Set[Relationship]])
+        Args:
+            uids (List[UUID]): The uids to check.
+            relationships (List[Relationship]): Only consider these
+                relationships.
+            return_mapping (bool): Wether to return a mapping from
+                uids to relationships, that connect self with the uid.
+        Returns:
+            List[UUID] (+ Dict[UUID, Set[Relationship]]): list of found uids,
+                None for not found UUIDs (+ Mapping from UUIDs to
+                relationships, which connect self to the respective Cuds
+                object.)
         """
+
         not_found_uids = dict(enumerate(uids)) if uids else None
         relationship_mapping = dict()
         for relationship in relationships:
@@ -614,7 +655,7 @@ class Cuds():
             iterator = enumerate(uids) if relationship_mapping \
                 else not_found_uids.items()
             for i, uid in iterator:
-                if uid in self._neighbours[relationship]:
+                if uid in self._neighbors[relationship]:
                     found_uid_indexes.add(i)
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
@@ -630,29 +671,31 @@ class Cuds():
         return collected_uids
 
     def _get_by_oclass(self, oclass, relationships, return_mapping):
-        """Get the cuds_objects with given oclass that are connected to self
+        """
+        Get the cuds_objects with given oclass that are connected to self
         with any of the given relationships. Optionally return a mapping
         from uids to the set of relationships, which connect self and
         the cuds_objects with the uid.
 
-        :param oclass: Filter by the given OntologyClass. None means no filter.
-        :type oclass: OntologyClass
-        :param relationships: Filter by list of relationships
-        :type relationships: List[Relationship]
-        :param return_mapping: whether to return a mapping from
-            uids to relationships, that connect self with the uid.
-        :type return_mapping: bool
-        :return: The uids of the found Cuds
-            (+ Mapping from uuid to set of
-            relationsships that connect self with the respective cuds_object.)
-        :rtype: List[UUID] (+ Dict[UUID, Set[Relationship]])
+        Args:
+            oclass (OntologyClass, optional): Filter by the given
+                OntologyClass. None means no filter.
+            relationships (List[Relationship]): Filter by list of
+                relationships.
+            return_mapping (bool): whether to return a mapping from
+                uids to relationships, that connect self with the uid.
+
+        Returns:
+            List[UUID] (+ Dict[UUID, Set[Relationship]]): The uids of the found
+                CUDS objects (+ Mapping from uuid to set of relationsships that
+                connect self with the respective cuds_object.)
         """
         relationship_mapping = dict()
         for relationship in relationships:
 
             # Collect all uids who are object of the current relationship.
             # Possibly filter by OntologyClass.
-            for uid, target_class in self._neighbours[relationship].items():
+            for uid, target_class in self._neighbors[relationship].items():
                 if oclass is None or target_class.is_subclass_of(oclass):
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
@@ -662,16 +705,18 @@ class Cuds():
         return list(relationship_mapping.keys())
 
     def _load_cuds_objects(self, uids):
-        """Load the cuds_objects of the given uids from the session.
+        """
+        Load the cuds_objects of the given uids from the session.
         Each in cuds_object is at the same position in the result as
         the corresponding uid in the given uid list.
         If the given uids contain None values, there will be
         None values at the same postion in the result.
 
-        :param uids: The uids to fetch from the session.
-        :type uids: List[UUID]
-        :return: The loaded cuds_objects
-        :rtype: Iterator[Cuds]
+        Args:
+            uids (List[UUID]): The uids to fetch from the session.
+
+        Yields:
+            Cuds: The loaded cuds_objects
         """
         without_none = [uid for uid in uids if uid is not None]
         cuds_objects = self.session.load(*without_none)
@@ -685,25 +730,24 @@ class Cuds():
                     return None
 
     def _remove_direct(self, relationship, uid):
-        """Remove the direct relationship between self and
+        """
+        Remove the direct relationship between self and
         the object with the given uid.
 
-        :param relationship: The relationship to remove.
-        :type relationship: OntologyRelationship
-        :param uid: The uid to remove.
-        :type uid: UUID
+        Args:
+            relationship (OntologyRelationship): The relationship to remove.
+            uid (UUID): The uid to remove.
         """
-        del self._neighbours[relationship][uid]
-        if not self._neighbours[relationship]:
-            del self._neighbours[relationship]
+        del self._neighbors[relationship][uid]
+        if not self._neighbors[relationship]:
+            del self._neighbors[relationship]
 
     def _remove_inverse(self, relationship, uid):
         """Remove the inverse of the given relationship.
 
-        :param relationship: The relationship to remove.
-        :type relationship: OntologyRelationship
-        :param uid: The uid to remove.
-        :type uid: UUID
+        Args:
+            relationship (OntologyRelationship): The relationship to remove.
+            uid (UUID): The uid to remove.
         """
         inverse = relationship.inverse
         self._remove_direct(inverse, uid)
@@ -712,26 +756,37 @@ class Cuds():
         return True  # TODO
 
     def _iri_from_uid(self, uid):
-        """Transform uid to iri"""
+        """Transform a UUID to an IRI.
+
+        Args:
+            uid (UUID): The UUID to trasnform.
+
+        Returns:
+            URIRef: The IRI of the CUDS object with the given UUID.
+        """
         from osp.core import IRI_DOMAIN
         return rdflib.URIRef(IRI_DOMAIN + "/#%s" % uid)
 
     def __str__(self) -> str:
         """
-        Redefines the str() for Cuds.
+        Get a human readable string.
 
-        :return: string with the Ontology class and uid.
+        Returns:
+            str: string with the Ontology class and uid.
         """
         return "%s: %s" % (self.oclass, self.uid)
 
     def __getattr__(self, name):
         """Set the attributes corresponding to ontology values
 
-        :param name: The name of the attribute
-        :type name: str
-        :raises AttributeError: Unknown attribute name
-        :return: The value of the attribute
-        :rtype: Any
+        Args:
+            name (str): The name of the attribute
+
+        Raises:
+            AttributeError: Unknown attribute name
+
+        Returns:
+            The value of the attribute: Any
         """
         if name not in self._attr_values:
             if (  # check if user calls session's methods on wrapper
@@ -754,15 +809,18 @@ class Cuds():
         return self._attr_values[name]
 
     def __setattr__(self, name, new_value):
-        """Set an attribute.
-            Will notify the session of it corresponds to an ontology value.
-
-        :param name: The name of the attribute.
-        :type name: str
-        :param new_value: The new value
-        :type new_value: Any
-        :raises AttributeError: Unknown attribute name
         """
+        Set an attribute.
+        Will notify the session of it corresponds to an ontology value.
+
+        Args:
+            name (str): The name of the attribute.
+            new_value (Any): The new value.
+
+        Raises:
+            AttributeError: Unknown attribute name
+        """
+
         if name.startswith("_"):
             super().__setattr__(name, new_value)
             return
@@ -779,10 +837,12 @@ class Cuds():
 
     def __repr__(self) -> str:
         """
-        Redefines the repr() for Cuds.
+        Return a machine readable string that represents the cuds object.
 
-        :return: string with the official string representation for Cuds.
+        Returns:
+            str: Machine readable string representation for Cuds.
         """
+
         return "<%s: %s,  %s: @%s>" % (self.oclass, self.uid,
                                        type(self.session).__name__,
                                        hex(id(self.session)))
@@ -792,59 +852,69 @@ class Cuds():
         Makes Cuds objects hashable.
         Use the hash of the uid of the object
 
-        :return: unique hash
+        Returns:
+            int: unique hash
         """
+
         return hash(self.uid)
 
     def __eq__(self, other):
         """
-        Defines the equals.
-        Two instances are the same if they share the uid and the class
+        Define which CUDS objects are treated as equal:
+        Same Ontology class and same UUID.
 
-        :param other: Instance to check
-        :return: True if they share the uid and class, false otherwise
+        Args:
+            other (Cuds): Instance to check.
+
+        Returns:
+            bool: True if they share the uid and class, False otherwise
         """
+
         return other.oclass == self.oclass and self.uid == other.uid
 
     def __getstate__(self):
-        """Get the state for pickling or copying
-
-        :return: The state of the object. Does not contain session.
-            Contains the string of the OntologyClass.
-        :rtype: Dict[str, Any]
         """
+        Get the state for pickling or copying
+
+        Returns:
+            Dict[str, Any]: The state of the object. Does not contain session.
+                Contains the string of the OntologyClass.
+        """
+
         state = {k: v for k, v in self.__dict__.items()
                  if k not in {"_session", "_oclass", "_values"}}
         state["_oclass"] = (self.oclass.namespace.name, self._oclass.name)
-        state["_neighbours"] = [
+        state["_neighbors"] = [
             (k.namespace.name, k.name, [
                 (uid, vv.namespace.name, vv.name)
                 for uid, vv in v.items()
             ])
-            for k, v in self._neighbours.items()
+            for k, v in self._neighbors.items()
         ]
         state["_values"] = [(k, v.namespace.name, v.name)
                             for k, v in self._onto_attributes.items()]
         return state
 
     def __setstate__(self, state):
-        """Set the state for pickling or copying
-
-        :param state: The state of the object. Does not contain session.
-            Contains the string of the OntologyClass.
-        :type state: Dict[str, Any]
         """
+        Set the state for pickling or copying.
+
+        Args:
+            state (Dict[str, Any]): The state of the object. Does not contain
+                session. Contains the string of the OntologyClass.
+        """
+
         namespace, oclass = state["_oclass"]
         oclass = ONTOLOGY_INSTALLER.namespace_registry[namespace][oclass]
         state["_oclass"] = oclass
         state["_session"] = None
-        state["_neighbours"] = NeighbourDictRel({
+        state["_neighbors"] = NeighborDictRel({
             ONTOLOGY_INSTALLER.namespace_registry[ns][cl]:
-                NeighbourDictTarget({
+                NeighborDictTarget({
                     uid: ONTOLOGY_INSTALLER.namespace_registry[ns2][cl2]
                     for uid, ns2, cl2 in v
                 }, self, ONTOLOGY_INSTALLER.namespace_registry[ns][cl])
-            for ns, cl, v in state["_neighbours"]
+            for ns, cl, v in state["_neighbors"]
         }, self)
         state["_values"] = {k: ONTOLOGY_INSTALLER.namespace_registry[ns][cl]
                             for k, ns, cl in state["_values"]}
