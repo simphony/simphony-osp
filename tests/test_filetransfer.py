@@ -328,13 +328,13 @@ class TestFiletransfer(unittest.TestCase):
     @async_test
     async def test_receive_files(self):
         ws = MockWebsocket(id=0, to_recv=[
-            bytes([0, 0, 0, 2]) + FILES[0].encode("utf-8"),
+            encode_header([2, FILES[0]], LEN_FILES_HEADER),
             ("0" * BLOCK_SIZE).encode("utf-8"),
             "0".encode("utf-8"),
-            bytes([0, 0, 0, 2]) + FILES[1].encode("utf-8"),
+            encode_header([2, FILES[1]], LEN_FILES_HEADER),
             ("1" * BLOCK_SIZE).encode("utf-8"),
             ("1" * BLOCK_SIZE).encode("utf-8"),
-            bytes([0, 0, 0, 0]) + FILES[2].encode("utf-8")], sent_data=[])
+            encode_header([0, FILES[2]], LEN_FILES_HEADER)], sent_data=[])
         file_hashes = dict()
         await receive_files(3, ws, SERVER_DIR, file_hashes)
         self.assertEqual({k: x for k, x in file_hashes.items()},

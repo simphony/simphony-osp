@@ -10,6 +10,10 @@ import asyncio
 import websockets
 from osp.core.session.transport.communication_engine import \
     CommunicationEngineClient, CommunicationEngineServer
+from osp.core.session.transport.communication_engine import LEN_HEADER
+from osp.core.session.transport.communication_utils import (
+    encode_header, decode_header, split_message, LEN_FILES_HEADER
+)
 
 
 def async_test(test):
@@ -56,7 +60,7 @@ class TestCommunicationEngine(unittest.TestCase):
     @async_test
     async def test_serve(self):
         """Test the serve method of the server"""
-        responses = []
+        response = []
         disconnects = []
         server = CommunicationEngineServer(
             host=None, port=None,
@@ -67,13 +71,25 @@ class TestCommunicationEngine(unittest.TestCase):
         )
         websocket = MockWebsocket(
             id=12,
-            to_recv=[bytes([1, 5, 0]) + b"greetHello",
-                     bytes([1, 11, 0]) + b"say_goodbyeBye"],
-            sent_data=responses
+            to_recv=[
+                encode_header([1, 3, 0, "greet"], LEN_HEADER),
+                *split_message("Hello", block_size=2)[1],
+                encode_header([1, 2, 0, "say_goodbye"], LEN_HEADER),
+                *split_message("Bye", block_size=2)[1]
+            ],
+            sent_data=response
         )
         await server._serve(websocket, None)
-        self.assertEqual(responses, [bytes([0]) + b"greet-Hello!",
-                                     bytes([0]) + b"say_goodbye-Bye!"])
+        version, num_blocks, num_files = decode_header(response[0], LEN_HEADER)
+        self.assertEqual(version, 1)
+        self.assertEqual(num_blocks, 1)
+        self.assertEqual(num_files, 0)
+        self.assertEqual(response[1], b"greet-Hello!")
+        version, num_blocks, num_files = decode_header(response[2], LEN_HEADER)
+        self.assertEqual(version, 1)
+        self.assertEqual(num_blocks, 1)
+        self.assertEqual(num_files, 0)
+        self.assertEqual(response[3], b"say_goodbye-Bye!")
         self.assertEqual(disconnects, [websocket])
 
     @async_test
@@ -87,16 +103,32 @@ class TestCommunicationEngine(unittest.TestCase):
         )
         client.websocket = MockWebsocket(
             id=7,
-            to_recv=[bytes([0]) + b"hello", bytes([0]) + b"bye"],
+            to_recv=[
+                encode_header([1, 3, 0], LEN_HEADER),
+                *split_message("hello", block_size=2)[1],
+                encode_header([1, 2, 0], LEN_HEADER),
+                *split_message("bye", block_size=2)[1],
+            ],
             sent_data=requests
         )
         await client._request("greet", "Hello")
-        self.assertEqual(requests, [bytes([1, 5, 0]) + b"greetHello"])
+        version, num_blocks, num_files, command = decode_header(requests[0],
+                                                                LEN_HEADER)
+        self.assertEqual(version, 1)
+        self.assertEqual(num_blocks, 1)
+        self.assertEqual(num_files, 0)
+        self.assertEqual(command, "greet")
+        self.assertEqual(requests[1], b"Hello")
         self.assertEqual(responses, ["hello"])
 
         await client._request("say_goodbye", "Bye")
-        self.assertEqual(requests, [bytes([1, 5, 0]) + b"greetHello",
-                                    bytes([1, 11, 0]) + b"say_goodbyeBye"])
+        version, num_blocks, num_files, command = decode_header(requests[2],
+                                                                LEN_HEADER)
+        self.assertEqual(version, 1)
+        self.assertEqual(num_blocks, 1)
+        self.assertEqual(num_files, 0)
+        self.assertEqual(command, "say_goodbye")
+        self.assertEqual(requests[3], b"Bye")
         self.assertEqual(responses, ["hello", "bye"])
 
 
