@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import tempfile
+import urllib.parse
 from osp.core.session.buffers import BufferType
 from osp.core.session.wrapper_session import check_consumes_buffers, \
     WrapperSession
@@ -9,7 +10,7 @@ from osp.core.session.transport.communication_engine \
     import CommunicationEngineClient
 from osp.core.session.buffers import BufferContext
 from osp.core.session.transport.transport_utils import (
-    INITIALIZE_COMMAND, LOAD_COMMAND, deserialize_buffers,
+    INITIALIZE_COMMAND, LOAD_COMMAND, HANDSHAKE_COMMAND, deserialize_buffers,
     serializable, serialize_buffers, get_hash_dir
 )
 
@@ -37,6 +38,7 @@ class TransportSessionClient(WrapperSession):
         self.session_cls = session_cls
         self.args = args
         self.kwargs = kwargs
+        uri, username, password = self._parse_uri(uri)
         if file_destination is None:
             self.__local_temp_dir = tempfile.TemporaryDirectory()
             self._file_destination = self.__local_temp_dir.name
@@ -51,6 +53,11 @@ class TransportSessionClient(WrapperSession):
                 handle_response=self._receive,
                 **(connect_kwargs or dict()))
         )
+        self.auth = None
+        if uri is not None:
+            handshake = self._engine.send(HANDSHAKE_COMMAND, username or "")
+            self.auth = self.session_cls.compute_auth(username, password,
+                                                      handshake)
 
     # OVERRIDE
     def _store(self, cuds_object):
@@ -60,7 +67,8 @@ class TransportSessionClient(WrapperSession):
                 "args": self.args,
                 "kwargs": self.kwargs,
                 "root": serializable(cuds_object),
-                "hashes": get_hash_dir(self._file_destination)
+                "hashes": get_hash_dir(self._file_destination),
+                "auth": self.auth
             }
             super()._store(cuds_object)
             self._engine.send(INITIALIZE_COMMAND,
@@ -134,6 +142,23 @@ class TransportSessionClient(WrapperSession):
         if remainder and "result" in remainder:
             result = remainder["result"]
         return result
+
+    def _parse_uri(self, uri):
+        """Parse the given uri and return uri, username, password
+
+        Args:
+            uri (str): The URI to parse
+        """
+        if uri is None:
+            return None, None, None
+        parsed = urllib.parse.urlparse(uri)
+        username = parsed.username
+        password = parsed.password
+        parsed = list(parsed)
+        if username or password:
+            parsed[1] = parsed[1].split("@")[1]
+        uri = urllib.parse.urlunparse(parsed)
+        return uri, username, password
 
     # OVERRIDE
     def __getattr__(self, attr):

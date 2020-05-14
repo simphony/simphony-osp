@@ -408,9 +408,9 @@ class TestFiletransfer(unittest.TestCase):
         request = None
         response = []
 
-        def handle_request(command, data, temp_directory, user):
+        def handle_request(command, data, temp_directory, connection_id):
             nonlocal request
-            request = (command, data, temp_directory, user)
+            request = (command, data, temp_directory, connection_id)
             return "response", FILE_PATHS
 
         s = CommunicationEngineServer(host=None,

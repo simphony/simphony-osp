@@ -331,6 +331,14 @@ class WrapperSession(Session):
             old_cuds = clone_cuds_object(self._registry.get(uid))
         return old_cuds
 
+    @staticmethod
+    def handshake(username, connection_id):
+        pass
+
+    @staticmethod
+    def compute_auth(username, password, handshake):
+        pass
+
     def _check_cardinalities(self):
         """Check if the cardinalities specified in the ontology
         are satisfied for the added and updated cuds_object."""

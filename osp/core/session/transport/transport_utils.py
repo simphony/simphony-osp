@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 INITIALIZE_COMMAND = "_init"
 LOAD_COMMAND = "_load"
+HANDSHAKE_COMMAND = "_handshake"
 
 
 def serialize_buffers(session_obj, buffer_context,
@@ -85,6 +86,8 @@ def deserialize_buffers(session_obj, buffer_context, data,
     """
     with get_buffer_context_mngr(session_obj, buffer_context):
         data = json.loads(data)
+        if data is None:
+            return dict()
 
         if "expired" in data:
             session_obj.expire(

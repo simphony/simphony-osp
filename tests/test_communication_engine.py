@@ -59,11 +59,11 @@ class TestCommunicationEngine(unittest.TestCase):
         """Test the serve method of the server"""
         response = []
         disconnects = []
-        users = []
+        connection_ids = []
 
-        def handle_request(command, data, temp_directory, user):
-            nonlocal users
-            users.append(user)
+        def handle_request(command, data, temp_directory, connection_id):
+            nonlocal connection_ids
+            connection_ids.append(connection_id)
             return command + "-" + data + "!", []
 
         server = CommunicationEngineServer(
@@ -94,14 +94,14 @@ class TestCommunicationEngine(unittest.TestCase):
         self.assertEqual(num_blocks, 1)
         self.assertEqual(num_files, 0)
         self.assertEqual(response[3], b"say_goodbye-Bye!")
-        self.assertEqual(disconnects, [users[0]])
+        self.assertEqual(disconnects, [connection_ids[0]])
 
         websocket.reset()
         await server._serve(websocket, None)
-        self.assertEqual(len(users), 4)
-        self.assertEqual(users[0], users[1])
-        self.assertNotEqual(users[1], users[2])
-        self.assertEqual(users[2], users[3])
+        self.assertEqual(len(connection_ids), 4)
+        self.assertEqual(connection_ids[0], connection_ids[1])
+        self.assertNotEqual(connection_ids[1], connection_ids[2])
+        self.assertEqual(connection_ids[2], connection_ids[3])
 
     @async_test
     async def test_request(self):

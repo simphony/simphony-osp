@@ -42,7 +42,7 @@ class CommunicationEngineServer():
         self._handle_request = handle_request
         self._handle_disconnect = handle_disconnect
         self._file_hashes = dict()
-        self._user_ids = dict()
+        self._connection_ids = dict()
 
     def startListening(self):
         """Start the server on given host + port."""
@@ -59,21 +59,22 @@ class CommunicationEngineServer():
             websocket (Websocket): The websockets object.
             _ (str): The path of the URI (will be ignored).
         """
-        user_id = self._user_ids.get(websocket, uuid.uuid4())
-        self._user_ids[websocket] = user_id
-        file_hashes = self._file_hashes.get(user_id, dict())
-        self._file_hashes[user_id] = file_hashes
+        connection_id = self._connection_ids.get(websocket, uuid.uuid4())
+        self._connection_ids[websocket] = connection_id
+        file_hashes = self._file_hashes.get(connection_id, dict())
+        self._file_hashes[connection_id] = file_hashes
         try:
             while True:
                 with tempfile.TemporaryDirectory() as temp_dir:
                     command, data = await self._decode(websocket, temp_dir,
-                                                       file_hashes, user_id)
+                                                       file_hashes,
+                                                       connection_id)
                     # let session handle the request
                     response, files = self._handle_request(
                         command=command,
                         data=data,
                         temp_directory=temp_dir,
-                        user=user_id
+                        connection_id=connection_id
                     )
 
                     # send the response
@@ -92,12 +93,12 @@ class CommunicationEngineServer():
         except websockets.exceptions.ConnectionClosedOK:
             pass
         finally:
-            logger.debug("User %s disconnected!" % user_id)
-            del self._file_hashes[user_id]
-            del self._user_ids[websocket]
-            self._handle_disconnect(user_id)
+            logger.debug("Connection %s closed!" % connection_id)
+            del self._file_hashes[connection_id]
+            del self._connection_ids[websocket]
+            self._handle_disconnect(connection_id)
 
-    async def _decode(self, websocket, temp_dir, file_hashes, user_id):
+    async def _decode(self, websocket, temp_dir, file_hashes, connection_id):
         """Get data from the user.
 
         Args:
@@ -121,7 +122,7 @@ class CommunicationEngineServer():
         logger.debug(
             "Received data from %s.\n\t Protocol version: %s,\n\t "
             "Command: %s,\n\t Number of files: %s."
-            % (user_id, version, command, num_files))
+            % (connection_id, version, command, num_files))
         data = await join_message(websocket, num_blocks)
         logger.debug("Received data: %s" % data[:DEBUG_MAX])
         await receive_files(num_files, websocket, temp_dir, file_hashes)
