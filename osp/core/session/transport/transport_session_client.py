@@ -23,12 +23,16 @@ class TransportSessionClient(WrapperSession):
     session that runs on the server. Each request will be sent to the server"""
 
     def __init__(self, session_cls, uri, file_destination=None,
-                 *args, **kwargs):
+                 connect_kwargs=None, *args, **kwargs):
         """Constructs the client of the transport session.
 
         Args:
             session_cls (Session): The session class to wrap.
             uri (str): WebSocket URI.
+            file_destination (path): Where to put the uploaded files.
+            connect_kwargs (dict[str, Any]): Will be passed to
+                websockets.connect. E.g. it is possible to pass an SSL context
+                with the ssl keyword.
         """
         self.session_cls = session_cls
         self.args = args
@@ -44,7 +48,8 @@ class TransportSessionClient(WrapperSession):
         super().__init__(
             engine=CommunicationEngineClient(
                 uri=uri,
-                handle_response=self._receive)
+                handle_response=self._receive,
+                **(connect_kwargs or dict()))
         )
 
     # OVERRIDE

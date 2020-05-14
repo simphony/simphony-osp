@@ -21,19 +21,24 @@ class CommunicationEngineServer():
     local side of the transport layer. The server will be executed on the
     remote side."""
 
-    def __init__(self, host, port, handle_request, handle_disconnect):
+    def __init__(self, host, port, handle_request, handle_disconnect,
+                 **kwargs):
         """Construct the communication engine's server.
 
         Args:
             host (str): The hostname.
             port (int): The port.
-            handle_request (Callable[str(command), str(data), Hashable(user)]):
+            handle_request (Callable[str(command), str(data), UUID(user)]):
             Handles the requests of the user.
-            handle_disconnect (Callable[Hashable(user)]): Gets called when a
+            handle_disconnect (Callable[UUID(user)]): Gets called when a
                 user disconnects.
+            kwargs (dict[str, Any]): Will be passed to websockets.connect.
+                E.g. it is possible to pass an SSL context with the ssl
+                keyword.
         """
         self.host = host
         self.port = port
+        self.kwargs = kwargs
         self._handle_request = handle_request
         self._handle_disconnect = handle_disconnect
         self._file_hashes = dict()
@@ -42,7 +47,8 @@ class CommunicationEngineServer():
     def startListening(self):
         """Start the server on given host + port."""
         event_loop = asyncio.get_event_loop()
-        start_server = websockets.serve(self._serve, self.host, self.port)
+        start_server = websockets.serve(self._serve, self.host, self.port,
+                                        **self.kwargs)
         event_loop.run_until_complete(start_server)
         event_loop.run_forever()
 
@@ -127,15 +133,19 @@ class CommunicationEngineClient():
     local side of the transport layer. The client will be executed on the
     local side."""
 
-    def __init__(self, uri, handle_response):
+    def __init__(self, uri, handle_response, **kwargs):
         """Constructs the communication engine's client.
 
         Args:
             uri (str): WebSocket URI.
             handle_response (Callable[str(response)]): Handles the responses of
                 the server.
+            kwargs (dict[str, Any]): Will be passed to websockets.connect.
+                E.g. it is possible to pass an SSL context with the ssl
+                keyword.
         """
         self.uri = uri
+        self.kwargs = kwargs
         self.handle_response = handle_response
         self.websocket = None
 
@@ -177,7 +187,7 @@ class CommunicationEngineClient():
         logger.debug("Request %s: %s" % (command, data[:DEBUG_MAX]))
         if self.websocket is None:
             logger.debug("uri: %s" % (self.uri))
-            self.websocket = await websockets.connect(self.uri)
+            self.websocket = await websockets.connect(self.uri, **self.kwargs)
 
         # send request to the server
         message = self._encode(command, data, files)

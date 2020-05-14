@@ -20,7 +20,8 @@ class TransportSessionServer():
     request to the session it wraps."""
 
     def __init__(self, session_cls, host, port,
-                 session_kwargs=None, file_destination=None):
+                 session_kwargs=None, file_destination=None,
+                 server_kwargs=None):
         """Construct the server.
 
         :param session_cls: The Session class to manage.
@@ -34,12 +35,16 @@ class TransportSessionServer():
         :type session_kwargs: Dict[str, Any]
         :param file_destination: Destination of the uploaded files.
         :type session_kwargs: str
+        :param server_kwargs: Will be passed to websockets.connect. E.g. it is
+            possible to pass an SSL context with the ssl keyword.
+        :type server_kwargs: Dict[tr, Any]
         """
         self.com_facility = CommunicationEngineServer(
             host=host,
             port=port,
             handle_request=self.handle_request,
-            handle_disconnect=self.handle_disconnect
+            handle_disconnect=self.handle_disconnect,
+            **(server_kwargs or dict())
         )
         self.session_cls = session_cls
         self.session_objs = dict()
