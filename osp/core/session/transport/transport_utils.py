@@ -1,10 +1,3 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM and Didrik Pinte, ENTHOUGHT Inc.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import json
 import uuid
 import os
@@ -15,12 +8,12 @@ from osp.core import get_entity, CUBA
 from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
-from osp.core.neighbour_dict import NeighbourDictTarget
+from osp.core.neighbor_dict import NeighborDictTarget
 from osp.core.session.buffers import get_buffer_context_mngr
 
 logger = logging.getLogger(__name__)
 
-INITIALISE_COMMAND = "_init"
+INITIALIZE_COMMAND = "_init"
 LOAD_COMMAND = "_load"
 
 
@@ -269,10 +262,10 @@ def _serializable(cuds_object):
             getattr(cuds_object, attribute.argname),
             attribute.datatype
         )
-    for rel in cuds_object._neighbours:
+    for rel in cuds_object._neighbors:
         result["relationships"][str(rel)] = {
             convert_from(uid, "UUID"): str(oclass)
-            for uid, oclass in cuds_object._neighbours[rel].items()
+            for uid, oclass in cuds_object._neighbors[rel].items()
         }
     return result
 
@@ -301,17 +294,17 @@ def _to_cuds_object(json_obj, session, buffer_context):
                                      kwargs=attributes,
                                      session=session,
                                      uid=json_obj["uid"],
-                                     fix_neighbours=False)
+                                     fix_neighbors=False)
 
         for rel_name, obj_dict in relationships.items():
             rel = get_entity(rel_name)
-            cuds_object._neighbours[rel] = NeighbourDictTarget(
+            cuds_object._neighbors[rel] = NeighborDictTarget(
                 dictionary={}, cuds_object=cuds_object, rel=rel
             )
             for uid, target_name in obj_dict.items():
                 uid = convert_to(uid, "UUID")
                 target_oclass = get_entity(target_name)
-                cuds_object._neighbours[rel][uid] = target_oclass
+                cuds_object._neighbors[rel][uid] = target_oclass
         return cuds_object
 
 

@@ -1,11 +1,3 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
-
 def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
                      current_depth=0, visited=None):
     """
@@ -133,13 +125,13 @@ def find_relationships(find_rel, root, consider_rel, find_sub_rels=False):
     """
     if find_sub_rels:
         def criterion(cuds_object):
-            for rel in cuds_object._neighbours.keys():
+            for rel in cuds_object._neighbors.keys():
                 if find_rel.is_superclass_of(rel):
                     return True
             return False
     else:
         def criterion(cuds_object):
-            return find_rel in cuds_object._neighbours
+            return find_rel in cuds_object._neighbors
 
     return find_cuds_object(
         criterion=criterion,
