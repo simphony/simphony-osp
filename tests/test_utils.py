@@ -83,7 +83,7 @@ class TestUtils(unittest.TestCase):
             self.assertTrue('NEIGHBORHOOD' in str(context.exception))
             self.assertTrue('STREET' in str(context.exception))
 
-        c.get(oclass=CITY.NEIGHBORHOOD).add(CITY.STREET(name='abc street'))
+        c.get(oclass=CITY.NEIGHBORHOOD)[0].add(CITY.STREET(name='abc street'))
         c.remove(oclass=CITY.CITIZEN)
         with self.assertRaises(Exception) as context:
             # citizen violated
