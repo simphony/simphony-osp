@@ -2,6 +2,7 @@ import asyncio
 import websockets
 import logging
 import tempfile
+import uuid
 from osp.core.session.transport.communication_utils import (
     decode_header, encode_header, split_message, join_message, filter_files,
     encode_files, receive_files
@@ -36,6 +37,7 @@ class CommunicationEngineServer():
         self._handle_request = handle_request
         self._handle_disconnect = handle_disconnect
         self._file_hashes = dict()
+        self._user_ids = dict()
 
     def startListening(self):
         """Start the server on given host + port."""
@@ -51,8 +53,10 @@ class CommunicationEngineServer():
             websocket (Websocket): The websockets object.
             _ (str): The path of the URI (will be ignored).
         """
-        file_hashes = self._file_hashes.get(websocket, dict())
-        self._file_hashes[websocket] = file_hashes
+        user_id = self._user_ids.get(websocket, uuid.uuid4())
+        self._user_ids[websocket] = user_id
+        file_hashes = self._file_hashes.get(user_id, dict())
+        self._file_hashes[user_id] = file_hashes
         try:
             while True:
                 with tempfile.TemporaryDirectory() as temp_dir:
@@ -63,7 +67,7 @@ class CommunicationEngineServer():
                         command=command,
                         data=data,
                         temp_directory=temp_dir,
-                        user=websocket
+                        user=user_id
                     )
 
                     # send the response
@@ -83,7 +87,8 @@ class CommunicationEngineServer():
             pass
         finally:
             logger.debug("User %s disconnected!" % hash(websocket))
-            del self._file_hashes[websocket]
+            del self._file_hashes[user_id]
+            del self._user_ids[websocket]
             self._handle_disconnect(websocket)
 
     async def _decode(self, websocket, temp_dir, file_hashes):

@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import inspect
 from osp.core.session.buffers import BufferContext
 from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.transport.communication_engine \
@@ -151,15 +152,20 @@ class TransportSessionServer():
         data = json.loads(data)
         if user in self.session_objs:
             self.session_objs[user].close()
+        user_id_kwargs = dict()
+        if "user_id" in inspect.getfullargspec(self.session_cls.__init__)[0]:
+            user_id_kwargs = {"user_id": user}
         if self._session_kwargs and (data["args"] or data["kwargs"]):
             raise ValueError("This remote session cannot be parameterized by "
                              "the user. Only provide host and port and no "
                              "further arguments.")
         elif self._session_kwargs:
-            session = self.session_cls(**self._session_kwargs)
+            session = self.session_cls(**self._session_kwargs,
+                                       **user_id_kwargs)
         else:
             session = self.session_cls(*data["args"],
-                                       **data["kwargs"])
+                                       **data["kwargs"],
+                                       **user_id_kwargs)
         self.com_facility._file_hashes[user].update(data["hashes"])
         self.session_objs[user] = session
         deserialize(data["root"], session=session,
