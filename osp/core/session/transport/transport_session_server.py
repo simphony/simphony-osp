@@ -168,11 +168,12 @@ class TransportSessionServer():
         if connection_id in self.session_objs:
             self.session_objs[connection_id].close()
         user_kwargs = dict()
-        if "connection_id" in inspect.getfullargspec(
-                self.session_cls.__init__)[0]:
-            user_kwargs = {"connection_id": connection_id}
-        if "auth" in inspect.getfullargspec(self.session_cls.__init__)[0]:
-            user_kwargs = {"auth": data["auth"]}
+        argspec = inspect.getfullargspec(self.session_cls.__init__)
+        args = argspec.kwonlyargs + argspec.args
+        if "connection_id" in args:
+            user_kwargs["connection_id"] = connection_id
+        if "auth" in args:
+            user_kwargs["auth"] = data["auth"]
         if self._session_kwargs and (data["args"] or data["kwargs"]):
             raise ValueError("This remote session cannot be parameterized by "
                              "the user. Only provide host and port and no "
@@ -191,7 +192,7 @@ class TransportSessionServer():
         return serialize_buffers(session, buffer_context=BufferContext.ENGINE)
 
     def _handshake(self, username, connection_id):
-        return json.dumps(
-            self.session_cls.handshake(username=username,
-                                       connection_id=connection_id)
-        ), []
+        return json.dumps({
+            "result": self.session_cls.handshake(
+                username=username, connection_id=connection_id)
+        }), []
