@@ -61,7 +61,7 @@ class CommunicationEngineServer():
             while True:
                 with tempfile.TemporaryDirectory() as temp_dir:
                     command, data = await self._decode(websocket, temp_dir,
-                                                       file_hashes)
+                                                       file_hashes, user_id)
                     # let session handle the request
                     response, files = self._handle_request(
                         command=command,
@@ -86,12 +86,12 @@ class CommunicationEngineServer():
         except websockets.exceptions.ConnectionClosedOK:
             pass
         finally:
-            logger.debug("User %s disconnected!" % hash(websocket))
+            logger.debug("User %s disconnected!" % user_id)
             del self._file_hashes[user_id]
             del self._user_ids[websocket]
-            self._handle_disconnect(websocket)
+            self._handle_disconnect(user_id)
 
-    async def _decode(self, websocket, temp_dir, file_hashes):
+    async def _decode(self, websocket, temp_dir, file_hashes, user_id):
         """Get data from the user.
 
         Args:
@@ -115,7 +115,7 @@ class CommunicationEngineServer():
         logger.debug(
             "Received data from %s.\n\t Protocol version: %s,\n\t "
             "Command: %s,\n\t Number of files: %s."
-            % (hash(websocket), version, command, num_files))
+            % (user_id, version, command, num_files))
         data = await join_message(websocket, num_blocks)
         logger.debug("Received data: %s" % data[:DEBUG_MAX])
         await receive_files(num_files, websocket, temp_dir, file_hashes)

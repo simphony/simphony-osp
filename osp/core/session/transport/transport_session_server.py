@@ -64,6 +64,9 @@ class TransportSessionServer():
         if user in self.session_objs:
             self.session_objs[user].close()
             del self.session_objs[user]
+        else:
+            logger.warning("User %s disconnected that was not associated with "
+                           "a session" % user)
 
     def handle_request(self, command, data, user, temp_directory=None):
         """Handle requests from the client.
