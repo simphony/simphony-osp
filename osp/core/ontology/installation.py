@@ -39,7 +39,7 @@ class OntologyInstallationManager():
         namespace = self._get_namespace(file_path)
 
         # copy the file
-        filename = "ontology.%s.yml" % namespace
+        filename = "%s.ontology.yml" % namespace
         if not os.path.exists(os.path.join(self.installed_path, filename)):
             dest = os.path.join(self.tmp_path, filename)
             logger.debug("Copy file %s to %s" % (file_path, dest))
@@ -123,7 +123,7 @@ class OntologyInstallationManager():
                                 % (file))
                 logger.info("Uninstalling namespace %s." % namespace)
                 namespace = namespace.lower()
-                filename = "ontology.%s.yml" % namespace
+                filename = "%s.ontology.yml" % namespace
                 path = os.path.join(self.installed_path, filename)
                 if os.path.exists(path):
                     os.remove(path)
@@ -145,7 +145,7 @@ class OntologyInstallationManager():
 
             try:
                 # reinstall remaining namespaces
-                self.initialise_installed_ontologies()
+                self.initialize_installed_ontologies()
                 self.install(use_pickle=pkl_exists, success_msg=False)
                 if success_msg:
                     logger.info("Uninstallation successful!")
@@ -181,7 +181,7 @@ class OntologyInstallationManager():
         finally:
             self._dismiss_rollback_snapshot()
 
-    def initialise_installed_ontologies(self, osp_module=None,
+    def initialize_installed_ontologies(self, osp_module=None,
                                         use_pickle=True):
         """Load the installed ontologies.
 
@@ -252,7 +252,7 @@ class OntologyInstallationManager():
         logger.debug("Copy directory %s to %s" % (self.rollback_path,
                                                   self.installed_path))
         copytree(self.rollback_path, self.installed_path)
-        self.initialise_installed_ontologies()
+        self.initialize_installed_ontologies()
         self.install(use_pickle=use_pickle, success_msg=False)
 
     def _sort_for_installation(self, files):

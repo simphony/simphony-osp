@@ -18,11 +18,11 @@ p2 = CITY.CITIZEN(name="Anne")
 
 print("\nAdding p1 to c...")
 c.add(p1, rel=CITY.HAS_INHABITANT)
-print("internal dict of c:", c._neighbours, "\n")
+print("internal dict of c:", c._neighbors, "\n")
 
 print("Adding p2 to c...")
 c.add(p2, rel=CITY.HAS_INHABITANT)
-print("internal dict of c:", c._neighbours, "\n")
+print("internal dict of c:", c._neighbors, "\n")
 
 print("\nElements in c:")
 for el in c.iter():
@@ -36,11 +36,11 @@ print(c.get(oclass=CITY.CITIZEN))
 
 print("\n Remove p1:")
 c.remove(p1.uid)
-print("internal dict of c:", c._neighbours, "\n")
+print("internal dict of c:", c._neighbors, "\n")
 
-print("\nAdding neighbourhoods to Cuds object in a loop:")
+print("\nAdding neighborhoods to Cuds object in a loop:")
 for i in range(6):
-    print("Added neighbourhood %s" % i)
-    c.add(CITY.NEIGHBOURHOOD(
-        name="neighbourhood %s" % i))
-print("internal dict of c:", c._neighbours, "\n")
+    print("Added neighborhood %s" % i)
+    c.add(CITY.NEIGHBORHOOD(
+        name="neighborhood %s" % i))
+print("internal dict of c:", c._neighbors, "\n")

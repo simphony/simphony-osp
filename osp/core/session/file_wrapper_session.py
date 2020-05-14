@@ -1,10 +1,3 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 from abc import abstractmethod
 from osp.core.session.wrapper_session import consumes_buffers
 from osp.core.session.wrapper_session import WrapperSession
@@ -45,19 +38,19 @@ class FileWrapperSession(WrapperSession):
         :rtype: Iterator[Cuds]
         """
         if self.root is None:
-            raise RuntimeError("This Session is not yet initialised. "
+            raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")
         for subclass in oclass.subclasses:
             yield from self._load_by_oclass(subclass,
                                             update_registry=update_registry)
 
     def _store(self, cuds_object):
-        initialise = self.root is None
+        initialize = self.root is None
         super()._store(cuds_object)
 
-        if initialise:
+        if initialize:
             with EngineContext(self):
-                self._initialise()
+                self._initialize()
                 self._load_first_level()
 
     @abstractmethod
@@ -85,8 +78,8 @@ class FileWrapperSession(WrapperSession):
         """Save changes to the file."""
 
     @abstractmethod
-    def _initialise(self):
-        """Initialise the file. Creates the necessary structures."""
+    def _initialize(self):
+        """Initialize the file. Creates the necessary structures."""
 
     @abstractmethod
     def _load_first_level(self):

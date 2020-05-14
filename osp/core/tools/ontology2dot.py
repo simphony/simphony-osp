@@ -1,10 +1,3 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import os
 import graphviz
 import argparse
@@ -28,7 +21,7 @@ class Ontology2Dot():
 
     def __init__(self, namespaces, output_filename, group=False):
         """Constructor.
-        Initialises the graph.
+        Initializes the graph.
 
         :param namespaces: The namespaces to print.
         :type namespaces: List[str]
@@ -44,10 +37,10 @@ class Ontology2Dot():
         self._visited = set()
         self._subgraphs = dict()
         self._group = group
-        self._graph = self._initialise_graph()
+        self._graph = self._initialize_graph()
 
-    def _initialise_graph(self):
-        """Initialises a directed graph with some default settings"""
+    def _initialize_graph(self):
+        """Initializes a directed graph with some default settings"""
         graph = graphviz.Digraph(format="png", name="ONTOLOGY")
         graph.node_attr['shape'] = 'rectangle'
         return graph
@@ -72,6 +65,7 @@ class Ontology2Dot():
             self._add_namespace(namespace)
         for subgraph in self._subgraphs.values():
             self._graph.subgraph(subgraph)
+        logger.info("Writing file %s" % self._output_filename)
         self._graph.render(filename=self._output_filename)
 
     def _add_namespace(self, namespace):

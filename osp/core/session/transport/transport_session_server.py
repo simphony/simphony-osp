@@ -1,10 +1,3 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM and Didrik Pinte, ENTHOUGHT Inc.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import os
 import json
 import logging
@@ -13,7 +6,7 @@ from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.transport.communication_engine \
     import CommunicationEngineServer
 from osp.core.session.transport.transport_utils import (
-    INITIALISE_COMMAND, LOAD_COMMAND, deserialize, deserialize_buffers,
+    INITIALIZE_COMMAND, LOAD_COMMAND, deserialize, deserialize_buffers,
     serializable, serialize_buffers
 )
 
@@ -82,7 +75,7 @@ class TransportSessionServer():
         :rtype: str
         """
         try:
-            if command == INITIALISE_COMMAND:
+            if command == INITIALIZE_COMMAND:
                 return self._init_session(data, user)
             elif command == LOAD_COMMAND:
                 return self._load_from_session(data, user, temp_directory)
@@ -152,7 +145,7 @@ class TransportSessionServer():
         :type data: str
         :param user: The user who requests to start a new session
         :type user: Hashable
-        :return: The buffers after the initialisation, serialized.
+        :return: The buffers after the initialization, serialized.
         :rtype: str
         """
         data = json.loads(data)

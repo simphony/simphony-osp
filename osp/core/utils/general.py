@@ -1,10 +1,3 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import requests
 import json
 import rdflib
@@ -111,7 +104,7 @@ def deserialize(json_doc, session=None):
 def remove_cuds_object(cuds_object):
     """
     Remove a cuds_object from the datastructure.
-    Removes the relationships to all neighbours.
+    Removes the relationships to all neighbors.
     To delete it from the registry you must call the
     sessions prune method afterwards.
 
@@ -133,7 +126,7 @@ def get_relationships_between(subj, obj):
     :rtype: Set[Type[Relationship]]
     """
     result = set()
-    for rel, obj_uids in subj._neighbours.items():
+    for rel, obj_uids in subj._neighbors.items():
         if obj.uid in obj_uids:
             result.add(rel)
     return result

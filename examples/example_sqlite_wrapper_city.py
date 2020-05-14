@@ -10,7 +10,7 @@ try:
     p1 = CITY.CITIZEN(name="Peter")
     p2 = CITY.CITIZEN(name="Hans")
     p3 = CITY.CITIZEN(name="Michel")
-    n = CITY.NEIGHBOURHOOD(name="Zähringen")
+    n = CITY.NEIGHBORHOOD(name="Zähringen")
     s = CITY.STREET(name="Le street")
     b = CITY.BUILDING(name="Theater")
     a = CITY.ADDRESS(postal_code=79123, name='Le street', number=12)

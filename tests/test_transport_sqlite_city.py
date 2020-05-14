@@ -1,10 +1,3 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import os
 import sys
 import time
@@ -138,11 +131,11 @@ class TestTransportSqliteCity(unittest.TestCase):
                              {c.uid, wrapper.uid})
             self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(
-                session._registry.get(c.uid)._neighbours[CITY.HAS_INHABITANT],
+                session._registry.get(c.uid)._neighbors[CITY.HAS_INHABITANT],
                 {p1.uid: p1.oclass, p2.uid: p2.oclass,
                  p3.uid: p3.oclass})
             self.assertEqual(
-                session._registry.get(c.uid)._neighbours[CITY.IS_PART_OF],
+                session._registry.get(c.uid)._neighbors[CITY.IS_PART_OF],
                 {wrapper.uid: wrapper.oclass})
 
     def test_load_missing(self):
@@ -176,15 +169,15 @@ class TestTransportSqliteCity(unittest.TestCase):
             self.assertEqual(p2w.name, "Anna")
             self.assertEqual(p3w.name, "Julia")
             self.assertEqual(
-                p3w._neighbours[CITY.IS_CHILD_OF],
+                p3w._neighbors[CITY.IS_CHILD_OF],
                 {p1.uid: p1.oclass, p2.uid: p2.oclass}
             )
             self.assertEqual(
-                p2w._neighbours[CITY.HAS_CHILD],
+                p2w._neighbors[CITY.HAS_CHILD],
                 {p3.uid: p3.oclass}
             )
             self.assertEqual(
-                p2w._neighbours[CITY.IS_INHABITANT_OF],
+                p2w._neighbors[CITY.IS_INHABITANT_OF],
                 {c.uid: c.oclass}
             )
 
