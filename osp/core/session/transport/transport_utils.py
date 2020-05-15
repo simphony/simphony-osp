@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 INITIALIZE_COMMAND = "_init"
 LOAD_COMMAND = "_load"
+HANDSHAKE_COMMAND = "_handshake"
 
 
 def serialize_buffers(session_obj, buffer_context,
@@ -131,13 +132,17 @@ def move_files(file_cuds, temp_directory, target_directory):
         return [c.path for c in file_cuds]
     result = list()
     for cuds in file_cuds:
+        # get current location
         path = cuds.path
         if temp_directory is not None:
             path = os.path.join(temp_directory,
                                 os.path.basename(cuds.path))
-        target_path = os.path.join(
-            target_directory, str(cuds.uid) + os.path.splitext(path)[1]
-        )
+        # get target location
+        target_basename = os.path.basename(path)
+        if not target_basename.startswith(cuds.uid.hex):
+            target_basename = cuds.uid.hex + "-" + os.path.basename(path)
+        target_path = os.path.join(target_directory, target_basename)
+        # copy
         if (
             os.path.exists(os.path.dirname(target_path))
             and os.path.exists(path)
