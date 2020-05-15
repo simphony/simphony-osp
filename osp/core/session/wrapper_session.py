@@ -333,10 +333,38 @@ class WrapperSession(Session):
 
     @staticmethod
     def handshake(username, connection_id):
+        """Will be called on the server, before anything else.
+        Result of this method will be fed into compute_auth() below,
+        that will be executed by the client.
+
+        Args:
+            username (str): The username of the user, as encoded in the URL.
+            connection_id (UUID): A UUID for the connection.
+
+        Returns:
+            Any: Any JSON serializable object that should be fed into
+                compute_auth().
+        """
         pass
 
     @staticmethod
     def compute_auth(username, password, handshake):
+        """Will be called on the client, after the handshake.
+        This method should produce an object that is able to authenticate
+        the user.
+        The __init__() method of the session should have a keyword "auth",
+        that will have the output of this function as a value.
+        --> The user can be authenticated on __init__()
+
+        Args:
+            username (str): The username as encoded in the URI.
+            password (str): The password as encoded in the URI.
+            handshake (Any): The result of the hanshake method.
+
+        Returns:
+            Any: Any JSON serializable object that is able to authenticate
+            the user.
+        """
         pass
 
     def _check_cardinalities(self):

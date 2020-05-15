@@ -17,9 +17,12 @@ except ImportError:
     CITY = Parser().parse("city")
 
 HOST = "127.0.0.1"
-PORT = 8456
-URI_CORRECT = f"ws://username:correct@{HOST}:{PORT}"
-URI_WRONG = f"ws://username:wrong@{HOST}:{PORT}"
+PORT1 = 8469
+URI_CORRECT1 = f"ws://username:correct@{HOST}:{PORT1}"
+URI_WRONG1 = f"ws://username:wrong@{HOST}:{PORT1}"
+PORT2 = 8470
+URI_CORRECT2 = f"ws://username:correct@{HOST}:{PORT2}"
+URI_WRONG2 = f"ws://username:wrong@{HOST}:{PORT2}"
 DB = "transport.db"
 
 
@@ -57,41 +60,75 @@ class AuthSession(SqliteSession):
         return [username, hashlib.sha256(auth).hexdigest()]
 
 
-class TestTransportSqliteCity(unittest.TestCase):
-    SERVER_STARTED = False
+class SimpleAuthSession(SqliteSession):
+    DB_USERNAME = "username"
+    DB_PASSWORD = "correct"
+
+    def __init__(self, *args, connection_id, auth, **kwargs):
+        username, password = auth
+        if username != SimpleAuthSession.DB_USERNAME \
+                or SimpleAuthSession.DB_PASSWORD != password:
+            raise PermissionError("Login failed: %s" % auth)
+        super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def compute_auth(username, password, handshake):
+        return [username, password]
+
+
+class TestTransportAuth(unittest.TestCase):
+    SERVER_STARTED = []
     OUTPUT_FILE = None
 
     @classmethod
     def setUpClass(cls):
         args = ["python",
                 "tests/test_transport_auth.py",
-                "server"]
-        TestTransportSqliteCity.OUTPUT_FILE = open("output_test_auth", "w")
-        p = subprocess.Popen(args, stderr=TestTransportSqliteCity.OUTPUT_FILE)
+                "server1"]
+        TestTransportAuth.OUTPUT_FILE = open("output_test_auth", "w")
+        p = subprocess.Popen(args, stderr=TestTransportAuth.OUTPUT_FILE)
+        TestTransportAuth.SERVER_STARTED.append(p)
+        time.sleep(1)
 
-        TestTransportSqliteCity.SERVER_STARTED = p
+        args[-1] = "server2"
+        p = subprocess.Popen(args, stderr=TestTransportAuth.OUTPUT_FILE)
+        TestTransportAuth.SERVER_STARTED.append(p)
         time.sleep(1)
 
     @classmethod
     def tearDownClass(cls):
-        TestTransportSqliteCity.OUTPUT_FILE.close()
+        for p in TestTransportAuth.SERVER_STARTED:
+            p.terminate()
+        TestTransportAuth.OUTPUT_FILE.close()
         os.remove("output_test_auth")
 
     def test_auth(self):
         """Test authentication."""
-        with TransportSessionClient(AuthSession, URI_CORRECT, path=DB) \
+        with TransportSessionClient(AuthSession, URI_CORRECT1, path=DB) \
                 as session:
             CITY.CITY_WRAPPER(session=session)
 
-        with TransportSessionClient(AuthSession, URI_WRONG, path=DB) \
+        with TransportSessionClient(AuthSession, URI_WRONG1, path=DB) \
+                as session:
+            self.assertRaises(RuntimeError, CITY.CITY_WRAPPER,
+                              session=session)
+
+        with TransportSessionClient(SimpleAuthSession, URI_CORRECT2, path=DB) \
+                as session:
+            CITY.CITY_WRAPPER(session=session)
+
+        with TransportSessionClient(SimpleAuthSession, URI_WRONG2, path=DB) \
                 as session:
             self.assertRaises(RuntimeError, CITY.CITY_WRAPPER,
                               session=session)
 
 
 if __name__ == "__main__":
-    if sys.argv[-1] == "server":
-        server = TransportSessionServer(AuthSession, HOST, PORT)
+    if sys.argv[-1] == "server1":
+        server = TransportSessionServer(AuthSession, HOST, PORT1)
+        server.startListening()
+    elif sys.argv[-1] == "server2":
+        server = TransportSessionServer(SimpleAuthSession, HOST, PORT2)
         server.startListening()
     else:
         unittest.main()

@@ -9,7 +9,7 @@ logging.getLogger("osp.core.session.transport").setLevel(logging.DEBUG)
 
 if sys.argv[-1] == "client":
     print("Please specify where you want to cache the files on the client:")
-    with DataspaceSession("127.0.0.1", 4587,
+    with DataspaceSession("ws://127.0.0.1:4587",
                           input("file destination: > ")) as session:
         wrapper = cuba.wrapper(session=session)
         file = cuba.file(path=input("file to upload: > "))
