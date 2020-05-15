@@ -46,10 +46,8 @@ DB = "filetransfer.db"
 FILES_DIR = os.path.join(os.path.dirname(__file__), "filetransfer_files")
 CLIENT_DIR = os.path.join(os.path.dirname(__file__), "filetransfer_client")
 SERVER_DIR = os.path.join(os.path.dirname(__file__), "filetransfer_server")
-ENDINGS = ["", ".jpg", ".gz"]
-FILES = ["f%s%s" % (i, ending) for i, ending in enumerate(ENDINGS)]
-FILES[2] = "f2.tar.gz"
-FILE_PATHS = [os.path.join(FILES_DIR, FILES[i]) for i in range(len(ENDINGS))]
+FILES = ["f0", "f1.jpg", "f2.tar.gz"]
+FILE_PATHS = [os.path.join(FILES_DIR, file) for file in FILES]
 HASHES = {
     FILES[0]:
     '9722fa4a83e528278c7f5009da2486e7255af8756a888733a4ceaee449e0f102',
@@ -143,8 +141,8 @@ class TestFiletransfer(unittest.TestCase):
                 CITY.IMAGE(path=FILE_PATHS[2])
             )
             result = move_files(images, None, CLIENT_DIR)
-            target = ["%s%s" % (image.uid, ending)
-                      for image, ending in zip(images, ENDINGS)]
+            target = ["%s-%s" % (image.uid.hex, file)
+                      for image, file in zip(images, FILES)]
             target_full_path = [os.path.join(CLIENT_DIR, t) for t in target]
 
             self.assertEqual(set(os.listdir(FILES_DIR)), set(FILES))
@@ -164,8 +162,8 @@ class TestFiletransfer(unittest.TestCase):
                 CITY.IMAGE(path=paths[2])
             )
             result = move_files(images, FILES_DIR, CLIENT_DIR)
-            target = ["%s%s" % (image.uid, ending)
-                      for image, ending in zip(images, ENDINGS)]
+            target = ["%s-%s" % (image.uid.hex, file)
+                      for image, file in zip(images, FILES)]
             target_full_path = [os.path.join(CLIENT_DIR, t) for t in target]
             self.assertEqual(set(os.listdir(CLIENT_DIR)), set(target))
             self.assertEqual(result, target_full_path)
@@ -237,8 +235,8 @@ class TestFiletransfer(unittest.TestCase):
             _, result = serialize_buffers(
                 session, buffer_context=BufferContext.USER,
                 target_directory=CLIENT_DIR)
-            target = ["%s%s" % (image.uid, ending)
-                      for image, ending in zip(images, ENDINGS)]
+            target = ["%s-%s" % (image.uid.hex, file)
+                      for image, file in zip(images, FILES)]
             target_full_path = [os.path.join(CLIENT_DIR, t) for t in target]
             self.assertEqual(
                 sorted([target_full_path[0], target_full_path[2]]),
@@ -268,8 +266,8 @@ class TestFiletransfer(unittest.TestCase):
             self.assertEqual(len(updated), 2)
             self.assertEqual(len(deleted), 1)
             images = images + [added[uuid.UUID(int=3)]]
-            target = ["%s%s" % (image.uid, ending)
-                      for image, ending in zip(images, ENDINGS)]
+            target = ["%s-%s" % (image.uid.hex, file)
+                      for image, file in zip(images, FILES)]
             target_full_path = [os.path.join(CLIENT_DIR, t) for t in target]
             self.assertEqual(added[uuid.UUID(int=3)].path,
                              target_full_path[2])
@@ -342,8 +340,8 @@ class TestFiletransfer(unittest.TestCase):
                                     file_destination=CLIENT_DIR) as session:
             images = self.setup_buffers1(session)
             session.commit()
-            target = ["%s%s" % (image.uid, ending)
-                      for image, ending in zip(images, ENDINGS)]
+            target = ["%s-%s" % (image.uid.hex, file)
+                      for image, file in zip(images, FILES)]
             self.assertEqual(set(os.listdir(SERVER_DIR)),
                              {target[0], target[2]})
             self.assertEqual(set(os.listdir(CLIENT_DIR)),
@@ -358,8 +356,8 @@ class TestFiletransfer(unittest.TestCase):
                                     file_destination=None) as session:
             images = self.setup_buffers1(session)
             session.commit()
-            target = ["%s%s" % (image.uid, ending)
-                      for image, ending in zip(images, ENDINGS)]
+            target = ["%s-%s" % (image.uid.hex, file)
+                      for image, file in zip(images, FILES)]
             self.assertEqual(set(os.listdir(SERVER_DIR)),
                              {target[0], target[2]})
             self.assertEqual(set(os.listdir(CLIENT_DIR)), set())
@@ -378,8 +376,8 @@ class TestFiletransfer(unittest.TestCase):
             session.load(images[0].uid)
             session.load(images[1].uid)
             session.load(images[2].uid)
-            target = ["%s%s" % (image.uid, ending)
-                      for image, ending in zip(images, ENDINGS)]
+            target = ["%s-%s" % (image.uid.hex, file)
+                      for image, file in zip(images, FILES)]
             self.assertEqual(set(os.listdir(CLIENT_DIR)),
                              {target[0], target[2]})
 
@@ -410,9 +408,9 @@ class TestFiletransfer(unittest.TestCase):
         request = None
         response = []
 
-        def handle_request(command, data, temp_directory, user):
+        def handle_request(command, data, temp_directory, connection_id):
             nonlocal request
-            request = (command, data, temp_directory, user)
+            request = (command, data, temp_directory, connection_id)
             return "response", FILE_PATHS
 
         s = CommunicationEngineServer(host=None,
@@ -443,7 +441,7 @@ class TestFiletransfer(unittest.TestCase):
         self.assertEqual(request[0], "test")
         self.assertEqual(request[1], "data")
         self.assertTrue(request[2].startswith("/tmp/tmp"))
-        self.assertEqual(request[3], ws)
+        self.assertTrue(isinstance(request[3], uuid.UUID))
 
 
 if __name__ == "__main__":

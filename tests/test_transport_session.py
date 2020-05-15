@@ -455,7 +455,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
             '"root": {"oclass": "CITY.CITY_WRAPPER", '
             '"uid": "00000000-0000-0000-0000-000000000001", '
             '"attributes": {}, '
-            '"relationships": {}}, "hashes": {}}'))
+            '"relationships": {}}, "hashes": {}, "auth": null}'))
         self.assertEqual(set(client._registry.keys()), {c1.uid})
 
         # second item
@@ -592,7 +592,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
             "hashes": {"test.py": "123"}
         })
         server.com_facility._file_hashes = {"user1": {}}
-        server._init_session(data, user="user1")
+        server._init_session(data, connection_id="user1")
         self.assertEqual(server.session_objs["user1"].root, uuid.UUID(int=43))
         self.assertEqual(len(server.session_objs.keys()), 1)
 
@@ -601,7 +601,8 @@ class TestCommunicationEngineServer(unittest.TestCase):
             "kwargs": {},
             "root": CUDS_DICT
         })
-        self.assertRaises(TypeError, server._init_session, data, user="user1")
+        self.assertRaises(TypeError, server._init_session, data,
+                          connection_id="user1")
 
     def test_handle_request(self):
         """Test if error message is returned when invalid command is given"""
@@ -619,10 +620,11 @@ class TestCommunicationEngineServer(unittest.TestCase):
             # test
             server.session_objs["user1"] = s1
             self.assertEqual(server.handle_request(
-                command="run", data=SERIALIZED_BUFFERS, user="user1",
+                command="run", data=SERIALIZED_BUFFERS, connection_id="user1",
                 temp_directory=None), ("ERROR: Invalid command", []))
             self.assertEqual(server.handle_request(
-                command="command", data=SERIALIZED_BUFFERS, user="user1",
+                command="command", data=SERIALIZED_BUFFERS,
+                connection_id="user1",
                 temp_directory=None),
                 ("ERROR: RuntimeError: Something went wrong: 42, London", []))
 

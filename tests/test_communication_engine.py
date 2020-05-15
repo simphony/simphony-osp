@@ -18,9 +18,13 @@ def async_test(test):
 
 class MockWebsocket():
     def __init__(self, id, to_recv, sent_data):
+        self.to_recv = to_recv
         self.iter = iter(to_recv)
         self.id = id
         self.sent_data = sent_data
+
+    def reset(self):
+        self.iter = iter(self.to_recv)
 
     def __hash__(self):
         return self.id
@@ -55,13 +59,19 @@ class TestCommunicationEngine(unittest.TestCase):
         """Test the serve method of the server"""
         response = []
         disconnects = []
+        connection_ids = []
+
+        def handle_request(command, data, temp_directory, connection_id):
+            nonlocal connection_ids
+            connection_ids.append(connection_id)
+            return command + "-" + data + "!", []
+
         server = CommunicationEngineServer(
             host=None, port=None,
-            handle_request=(
-                lambda command, data, temp_directory, user:
-                    (command + "-" + data + "!", [])),
+            handle_request=handle_request,
             handle_disconnect=lambda u: disconnects.append(u)
         )
+
         websocket = MockWebsocket(
             id=12,
             to_recv=[
@@ -72,6 +82,7 @@ class TestCommunicationEngine(unittest.TestCase):
             ],
             sent_data=response
         )
+
         await server._serve(websocket, None)
         version, num_blocks, num_files = decode_header(response[0], LEN_HEADER)
         self.assertEqual(version, 1)
@@ -83,7 +94,14 @@ class TestCommunicationEngine(unittest.TestCase):
         self.assertEqual(num_blocks, 1)
         self.assertEqual(num_files, 0)
         self.assertEqual(response[3], b"say_goodbye-Bye!")
-        self.assertEqual(disconnects, [websocket])
+        self.assertEqual(disconnects, [connection_ids[0]])
+
+        websocket.reset()
+        await server._serve(websocket, None)
+        self.assertEqual(len(connection_ids), 4)
+        self.assertEqual(connection_ids[0], connection_ids[1])
+        self.assertNotEqual(connection_ids[1], connection_ids[2])
+        self.assertEqual(connection_ids[2], connection_ids[3])
 
     @async_test
     async def test_request(self):
