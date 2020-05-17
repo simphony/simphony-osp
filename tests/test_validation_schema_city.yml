@@ -1,0 +1,18 @@
+version: "1.0.0"
+
+oclass: CITY.CITY
+
+model:
+    CITY.CITY:
+        CITY.HAS_CITIZEN:
+            CITY.CITIZEN:
+                cardinality: 1-2
+        CITY.HAS_PART:
+            CITY.NEIGHBORHOOD:
+                cardinality: 1
+    
+    CITY.NEIGHBORHOOD:
+        CITY.HAS_PART:
+            CITY.STREET: 1+
+
+display_value: CITY.CITY.NAME
