@@ -17,7 +17,7 @@ from osp.core.utils import (
     find_cuds_objects_by_oclass, find_relationships,
     find_cuds_objects_by_attribute, post,
     get_relationships_between,
-    get_neighbor_diff, change_oclass, branch
+    get_neighbor_diff, change_oclass, branch, validate_tree_against_schema
 )
 from osp.core.cuds import Cuds
 
@@ -63,6 +63,33 @@ def get_test_city():
 
 
 class TestUtils(unittest.TestCase):
+
+    def test_validate_tree_against_schema(self):
+        """Test validation of CUDS tree against schema.yml"""
+        schema_file = 'test_validation_schema_city.yml'
+        c = CITY.CITY(name='freiburg')
+        with self.assertRaises(Exception) as context:
+            # empty city does not fulfil any constraint
+            validate_tree_against_schema(c, schema_file)
+            self.assertTrue(str(c.uid) in str(context.exception))
+            self.assertTrue('invalid cardinality' in str(context.exception))
+
+        c.add(CITY.NEIGHBORHOOD(name='some hood'))
+        c.add(CITY.CITIZEN(name='peter'))
+        c.add(CITY.CITIZEN(name='peter'))
+        with self.assertRaises(Exception) as context:
+            # street violated
+            validate_tree_against_schema(c, schema_file)
+            self.assertTrue('NEIGHBORHOOD' in str(context.exception))
+            self.assertTrue('STREET' in str(context.exception))
+
+        c.get(oclass=CITY.NEIGHBORHOOD)[0].add(CITY.STREET(name='abc street'))
+        c.remove(oclass=CITY.CITIZEN)
+        with self.assertRaises(Exception) as context:
+            # citizen violated
+            validate_tree_against_schema(c, schema_file)
+            self.assertTrue('CITIZEN' in str(context.exception))
+            self.assertTrue('CITY' in str(context.exception))
 
     def test_branch(self):
         x = branch(
