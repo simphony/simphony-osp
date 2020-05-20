@@ -5,11 +5,14 @@ from osp.core.session import DbWrapperSession
 class DataspaceSession(TransportSessionClient):
     """The dataspace wrapper connects OSP-core to a dataspace."""
 
-    def __init__(self, uri, file_destination=None):
+    def __init__(self, uri, file_destination=None, connect_kwargs=None):
         """Constructs the dataspace session.
 
         Args:
             uri (str): WebSocket URI.
             file_destination(str): Location to store the downloaded files.
         """
-        super().__init__(DbWrapperSession, uri, file_destination)
+        super().__init__(
+            DbWrapperSession, uri, file_destination,
+            connect_kwargs=connect_kwargs
+        )
