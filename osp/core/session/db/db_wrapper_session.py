@@ -109,3 +109,23 @@ class DbWrapperSession(WrapperSession):
         :return: The loaded cuds_object.
         :rtype: Cuds
         """
+
+    @staticmethod
+    def compute_auth(username, password, handshake):
+        """Will be called on the client, after the handshake.
+        This method should produce an object that is able to authenticate
+        the user.
+        The __init__() method of the session should have a keyword "auth",
+        that will have the output of this function as a value.
+        --> The user can be authenticated on __init__()
+
+        Args:
+            username (str): The username as encoded in the URI.
+            password (str): The password as encoded in the URI.
+            handshake (Any): The result of the hanshake method.
+
+        Returns:
+            Any: Any JSON serializable object that is able to authenticate
+            the user.
+        """
+        return username, password
