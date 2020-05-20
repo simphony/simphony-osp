@@ -12,4 +12,7 @@ class DataspaceSession(TransportSessionClient):
             uri (str): WebSocket URI.
             file_destination(str): Location to store the downloaded files.
         """
-        super().__init__(DbWrapperSession, uri, file_destination, connect_kwargs=connect_kwargs)
+        super().__init__(
+            DbWrapperSession, uri, file_destination,
+            connect_kwargs=connect_kwargs
+        )
