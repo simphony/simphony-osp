@@ -43,7 +43,7 @@ def validate_tree_against_schema(root_obj, schema_file):
 
 def _load_data_model_from_yaml(data_model_file):
     with open(data_model_file) as f:
-        data_model_dict = yaml.safe_load(f, Loader=yaml.FullLoader)
+        data_model_dict = yaml.safe_load(f)
     return data_model_dict
 
 
