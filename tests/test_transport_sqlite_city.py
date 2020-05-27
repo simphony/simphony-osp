@@ -1,10 +1,3 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import os
 import sys
 import time
@@ -30,6 +23,7 @@ except ImportError:
 
 HOST = "127.0.0.1"
 PORT = 8687
+URI = f"ws://{HOST}:{PORT}"
 DB = "transport.db"
 
 
@@ -38,14 +32,10 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        args = ["python3",
+        args = ["python",
                 "tests/test_transport_sqlite_city.py",
                 "server"]
-        try:
-            p = subprocess.Popen(args)
-        except FileNotFoundError:
-            args[0] = "python"
-            p = subprocess.Popen(args)
+        p = subprocess.Popen(args)
 
         TestTransportSqliteCity.SERVER_STARTED = p
         time.sleep(1)
@@ -72,7 +62,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p2 = CITY.CITIZEN(name="Georg")
         c.add(p1, p2, rel=CITY.HAS_INHABITANT)
 
-        with TransportSessionClient(SqliteSession, HOST, PORT, DB) \
+        with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             wrapper.add(c)
@@ -86,7 +76,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1 = CITY.CITIZEN(name="Peter")
         c.add(p1, rel=CITY.HAS_INHABITANT)
 
-        with TransportSessionClient(SqliteSession, HOST, PORT, DB) \
+        with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             cw = wrapper.add(c)
@@ -107,7 +97,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p3 = CITY.CITIZEN(name="Hans")
         c.add(p1, p2, p3, rel=CITY.HAS_INHABITANT)
 
-        with TransportSessionClient(SqliteSession, HOST, PORT, DB) \
+        with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             cw = wrapper.add(c)
@@ -134,18 +124,18 @@ class TestTransportSqliteCity(unittest.TestCase):
             wrapper.add(c)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, HOST, PORT, DB) \
+        with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             self.assertEqual(set(session._registry.keys()),
                              {c.uid, wrapper.uid})
             self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(
-                session._registry.get(c.uid)._neighbours[CITY.HAS_INHABITANT],
+                session._registry.get(c.uid)._neighbors[CITY.HAS_INHABITANT],
                 {p1.uid: p1.oclass, p2.uid: p2.oclass,
                  p3.uid: p3.oclass})
             self.assertEqual(
-                session._registry.get(c.uid)._neighbours[CITY.IS_PART_OF],
+                session._registry.get(c.uid)._neighbors[CITY.IS_PART_OF],
                 {wrapper.uid: wrapper.oclass})
 
     def test_load_missing(self):
@@ -163,7 +153,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             wrapper.add(c)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, HOST, PORT, DB) \
+        with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             self.assertEqual(set(session._registry.keys()),
@@ -179,15 +169,15 @@ class TestTransportSqliteCity(unittest.TestCase):
             self.assertEqual(p2w.name, "Anna")
             self.assertEqual(p3w.name, "Julia")
             self.assertEqual(
-                p3w._neighbours[CITY.IS_CHILD_OF],
+                p3w._neighbors[CITY.IS_CHILD_OF],
                 {p1.uid: p1.oclass, p2.uid: p2.oclass}
             )
             self.assertEqual(
-                p2w._neighbours[CITY.HAS_CHILD],
+                p2w._neighbors[CITY.HAS_CHILD],
                 {p3.uid: p3.oclass}
             )
             self.assertEqual(
-                p2w._neighbours[CITY.IS_INHABITANT_OF],
+                p2w._neighbors[CITY.IS_INHABITANT_OF],
                 {c.uid: c.oclass}
             )
 
@@ -201,7 +191,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1.add(p3, rel=CITY.HAS_CHILD)
         p2.add(p3, rel=CITY.HAS_CHILD)
 
-        with TransportSessionClient(SqliteSession, HOST, PORT, DB)\
+        with TransportSessionClient(SqliteSession, URI, path=DB)\
                 as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             cw = wrapper.add(c)
@@ -252,14 +242,12 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1.add(p3, rel=CITY.HAS_CHILD)
         p2.add(p3, rel=CITY.HAS_CHILD)
 
-        with TransportSessionClient(SqliteSession, HOST, PORT, DB) \
-                as session:
+        with TransportSessionClient(SqliteSession, URI, path=DB) as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             wrapper.add(c)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, HOST, PORT, DB) \
-                as session:
+        with TransportSessionClient(SqliteSession, URI, path=DB) as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             cs = wrapper.get(c.uid)
             r = session.load_by_oclass(CITY.CITY)
@@ -278,7 +266,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1.add(p3, rel=CITY.HAS_CHILD)
         p2.add(p3, rel=CITY.HAS_CHILD)
 
-        with TransportSessionClient(SqliteSession, HOST, PORT, DB) \
+        with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             cw = wrapper.add(c)

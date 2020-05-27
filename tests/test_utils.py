@@ -1,16 +1,10 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import io
 import unittest
 import responses
+import uuid
 import osp.core
 from osp.core import CUBA
-from osp.core.session.transport.transport_util import serializable
+from osp.core.session.transport.transport_utils import serializable
 from osp.core.session.core_session import CoreSession
 from .test_session_city import TestWrapperSession
 from osp.core.session.buffers import EngineContext
@@ -19,11 +13,11 @@ from osp.core.utils import (
     create_recycle, create_from_cuds_object,
     check_arguments, format_class_name, find_cuds_object,
     find_cuds_object_by_uid, remove_cuds_object,
-    pretty_print,
+    pretty_print, deserialize,
     find_cuds_objects_by_oclass, find_relationships,
     find_cuds_objects_by_attribute, post,
     get_relationships_between,
-    get_neighbour_diff, change_oclass
+    get_neighbor_diff, change_oclass, branch, validate_tree_against_schema
 )
 from osp.core.cuds import Cuds
 
@@ -33,6 +27,20 @@ except ImportError:
     from osp.core.ontology import Parser
     CITY = Parser().parse("city")
 
+CUDS_DICT = {
+    "oclass": "CITY.CITIZEN",
+    "uid": str(uuid.UUID(int=1)),
+    "attributes": {
+        "name": "Peter",
+        "age": 23
+    },
+    "relationships": {
+        "CITY.IS_INHABITANT_OF": {str(uuid.UUID(int=1)): "CITY.CITY"},
+        "CITY.HAS_CHILD": {str(uuid.UUID(int=2)): "CITY.PERSON",
+                           str(uuid.UUID(int=3)): "CITY.PERSON"}
+    }
+}
+
 
 def get_test_city():
     """helper function"""
@@ -40,8 +48,8 @@ def get_test_city():
     p1 = CITY.CITIZEN(name="Rainer")
     p2 = CITY.CITIZEN(name="Carlos")
     p3 = CITY.CITIZEN(name="Maria")
-    n1 = CITY.NEIGHBOURHOOD(name="Zähringen", coordinates=[2, 3])
-    n2 = CITY.NEIGHBOURHOOD(name="St. Georgen", coordinates=[3, 4])
+    n1 = CITY.NEIGHBORHOOD(name="Zähringen", coordinates=[2, 3])
+    n2 = CITY.NEIGHBORHOOD(name="St. Georgen", coordinates=[3, 4])
     s1 = CITY.STREET(name="Lange Straße", coordinates=[4, 5])
 
     c.add(p1, p2, p3, rel=CITY.HAS_INHABITANT)
@@ -55,6 +63,52 @@ def get_test_city():
 
 
 class TestUtils(unittest.TestCase):
+
+    def test_validate_tree_against_schema(self):
+        """Test validation of CUDS tree against schema.yml"""
+        schema_file = 'test_validation_schema_city.yml'
+        c = CITY.CITY(name='freiburg')
+        with self.assertRaises(Exception) as context:
+            # empty city does not fulfil any constraint
+            validate_tree_against_schema(c, schema_file)
+            self.assertTrue(str(c.uid) in str(context.exception))
+            self.assertTrue('invalid cardinality' in str(context.exception))
+
+        c.add(CITY.NEIGHBORHOOD(name='some hood'))
+        c.add(CITY.CITIZEN(name='peter'))
+        c.add(CITY.CITIZEN(name='peter'))
+        with self.assertRaises(Exception) as context:
+            # street violated
+            validate_tree_against_schema(c, schema_file)
+            self.assertTrue('NEIGHBORHOOD' in str(context.exception))
+            self.assertTrue('STREET' in str(context.exception))
+
+        c.get(oclass=CITY.NEIGHBORHOOD)[0].add(CITY.STREET(name='abc street'))
+        c.remove(oclass=CITY.CITIZEN)
+        with self.assertRaises(Exception) as context:
+            # citizen violated
+            validate_tree_against_schema(c, schema_file)
+            self.assertTrue('CITIZEN' in str(context.exception))
+            self.assertTrue('CITY' in str(context.exception))
+
+    def test_branch(self):
+        x = branch(
+            branch(
+                CITY.CITY(name="Freiburg"),
+                CITY.CITIZEN(name="Peter"),
+                CITY.CITIZEN(name="Maria"),
+                rel=CITY.HAS_INHABITANT
+            ),
+            CITY.NEIGHBORHOOD(name="Herdern"),
+            CITY.NEIGHBORHOOD(name="Vauban")
+        )
+        self.assertEqual(x.name, "Freiburg")
+        self.assertEqual({"Herdern", "Vauban"},
+                         set(map(lambda x: x.name,
+                                 x.get(oclass=CITY.NEIGHBORHOOD))))
+        self.assertEqual({"Peter", "Maria"},
+                         set(map(lambda x: x.name,
+                                 x.get(rel=CITY.HAS_INHABITANT))))
 
     @responses.activate
     def test_post(self):
@@ -84,6 +138,12 @@ class TestUtils(unittest.TestCase):
             i = serialized.index(x)
             del serialized[i]
         self.assertEqual(serialized, list())
+
+    def test_deserialize(self):
+        result = deserialize(CUDS_DICT)
+        self.assertTrue(result.is_a(CITY.CITIZEN))
+        self.assertEqual(result.name, "Peter")
+        self.assertEqual(result.age, 23)
 
     def test_destroy_cuds_object(self):
         """Test destroying of cuds"""
@@ -132,7 +192,7 @@ class TestUtils(unittest.TestCase):
                     kwargs={"name": "Offenburg"},
                     uid=a.uid,
                     session=session,
-                    fix_neighbours=False)
+                    fix_neighbors=False)
             self.assertEqual(b.name, "Offenburg")
             self.assertEqual(b.uid, a.uid)
             self.assertEqual(set(default_session._registry.keys()), {a.uid})
@@ -150,7 +210,7 @@ class TestUtils(unittest.TestCase):
             c = create_recycle(oclass=CITY.CITY,
                                kwargs={"name": "Emmendingen"},
                                session=session, uid=a.uid,
-                               fix_neighbours=False)
+                               fix_neighbors=False)
             self.assertIs(b, c)
             self.assertEqual(c.name, "Emmendingen")
             self.assertEqual(c.get(rel=CUBA.RELATIONSHIP), [])
@@ -169,7 +229,7 @@ class TestUtils(unittest.TestCase):
             c = create_recycle(oclass=CITY.CITY,
                                kwargs={"name": "Karlsruhe"},
                                session=session, uid=a.uid,
-                               fix_neighbours=True)
+                               fix_neighbors=True)
             self.assertEqual(x.get(rel=CUBA.RELATIONSHIP), [])
 
     def test_create_from_cuds_object(self):
@@ -202,7 +262,7 @@ class TestUtils(unittest.TestCase):
             self.assertIs(b, c)
             self.assertEqual(c.name, "Freiburg")
             self.assertEqual(len(c.get(rel=CUBA.RELATIONSHIP)), 1)
-            self.assertEqual(c._neighbours[CITY.HAS_INHABITANT],
+            self.assertEqual(c._neighbors[CITY.HAS_INHABITANT],
                              {y.uid: CITY.CITIZEN})
             self.assertEqual(set(default_session._registry.keys()),
                              {a.uid, x.uid, y.uid})
@@ -221,9 +281,9 @@ class TestUtils(unittest.TestCase):
             "name": "Umkirch"
         })
         self.assertIs(c.oclass, CITY.POPULATED_PLACE)
-        self.assertEqual(p1._neighbours[CITY.IS_INHABITANT_OF],
+        self.assertEqual(p1._neighbors[CITY.IS_INHABITANT_OF],
                          {c.uid: CITY.POPULATED_PLACE})
-        self.assertEqual(p2._neighbours[CITY.IS_INHABITANT_OF],
+        self.assertEqual(p2._neighbors[CITY.IS_INHABITANT_OF],
                          {c.uid: CITY.POPULATED_PLACE})
 
     def test_check_arguments(self):
@@ -333,7 +393,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(len(found), 3)
         self.assertEqual(set(found), {p1, p2, p3})
         found = find_cuds_objects_by_oclass(
-            CITY.NEIGHBOURHOOD, c,
+            CITY.NEIGHBORHOOD, c,
             CUBA.ACTIVE_RELATIONSHIP)
         self.assertEqual(set(found), {n1, n2})
         self.assertEqual(len(found), 2)
@@ -405,15 +465,15 @@ class TestUtils(unittest.TestCase):
                          {CITY.IS_INHABITANT_OF,
                           CITY.WORKS_IN})
 
-    def test_get_neighbour_diff(self):
-        """Check if get_neighbour_diff can compute the difference
-        of neighbours between to objects.
+    def test_get_neighbor_diff(self):
+        """Check if get_neighbor_diff can compute the difference
+        of neighbors between to objects.
         """
         c1 = CITY.CITY(name="Paris")
         c2 = CITY.CITY(name="Berlin")
         c3 = CITY.CITY(name="London")
-        n1 = CITY.NEIGHBOURHOOD(name="Zähringen")
-        n2 = CITY.NEIGHBOURHOOD(name="Herdern")
+        n1 = CITY.NEIGHBORHOOD(name="Zähringen")
+        n2 = CITY.NEIGHBORHOOD(name="Herdern")
         s1 = CITY.STREET(name="Waldkircher Straße")
         s2 = CITY.STREET(name="Habsburger Straße")
         s3 = CITY.STREET(name="Lange Straße")
@@ -424,23 +484,23 @@ class TestUtils(unittest.TestCase):
         n2.add(s2, s3)
 
         self.assertEqual(
-            set(get_neighbour_diff(n1, n2)),
+            set(get_neighbor_diff(n1, n2)),
             {(c1.uid, CITY.IS_PART_OF), (s1.uid, CITY.HAS_PART)}
         )
 
         self.assertEqual(
-            set(get_neighbour_diff(n2, n1)),
+            set(get_neighbor_diff(n2, n1)),
             {(c3.uid, CITY.IS_PART_OF), (s3.uid, CITY.HAS_PART)}
         )
 
         self.assertEqual(
-            set(get_neighbour_diff(n1, None)),
+            set(get_neighbor_diff(n1, None)),
             {(c1.uid, CITY.IS_PART_OF), (s1.uid, CITY.HAS_PART),
              (c2.uid, CITY.IS_PART_OF), (s2.uid, CITY.HAS_PART)}
         )
 
         self.assertEqual(
-            set(get_neighbour_diff(None, n2)),
+            set(get_neighbor_diff(None, n2)),
             set()
         )
 
@@ -485,7 +545,7 @@ class TestUtils(unittest.TestCase):
             "   |    uuid: %s" % p3.uid,
             "   |    (already printed)",
             "   |_Relationship CITY.HAS_PART:",
-            "     -  CITY.NEIGHBOURHOOD cuds object named <Zähringen>:",
+            "     -  CITY.NEIGHBORHOOD cuds object named <Zähringen>:",
             "     .  uuid: %s" % n1.uid,
             "     .  coordinates: [2 3]",
             "     .   |_Relationship CITY.HAS_PART:",
@@ -499,7 +559,7 @@ class TestUtils(unittest.TestCase):
             "     .           -  CITY.CITIZEN cuds object named <Maria>:",
             "     .              uuid: %s" % p3.uid,
             "     .              (already printed)",
-            "     -  CITY.NEIGHBOURHOOD cuds object named <St. Georgen>:",
+            "     -  CITY.NEIGHBORHOOD cuds object named <St. Georgen>:",
             "        uuid: %s" % n2.uid,
             "        coordinates: [3 4]",
             "         |_Relationship CITY.HAS_PART:",

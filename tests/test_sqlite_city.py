@@ -1,10 +1,3 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import os
 import uuid
 import unittest2 as unittest
@@ -17,7 +10,7 @@ except ImportError:
     from osp.core.ontology import Parser
     CITY = Parser().parse("city")
 
-DB = "test.db"
+DB = "test_sqlite.db"
 
 
 class TestSqliteCity(unittest.TestCase):
@@ -101,11 +94,11 @@ class TestSqliteCity(unittest.TestCase):
                              {c.uid, wrapper.uid})
             self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(
-                session._registry.get(c.uid)._neighbours[CITY.HAS_INHABITANT],
+                session._registry.get(c.uid)._neighbors[CITY.HAS_INHABITANT],
                 {p1.uid: p1.oclass, p2.uid: p2.oclass,
                  p3.uid: p3.oclass})
             self.assertEqual(
-                session._registry.get(c.uid)._neighbours[CITY.IS_PART_OF],
+                session._registry.get(c.uid)._neighbors[CITY.IS_PART_OF],
                 {wrapper.uid: wrapper.oclass})
 
     def test_load_missing(self):
@@ -138,15 +131,15 @@ class TestSqliteCity(unittest.TestCase):
             self.assertEqual(p2w.name, "Anna")
             self.assertEqual(p3w.name, "Julia")
             self.assertEqual(
-                p3w._neighbours[CITY.IS_CHILD_OF],
+                p3w._neighbors[CITY.IS_CHILD_OF],
                 {p1.uid: p1.oclass, p2.uid: p2.oclass}
             )
             self.assertEqual(
-                p2w._neighbours[CITY.HAS_CHILD],
+                p2w._neighbors[CITY.HAS_CHILD],
                 {p3.uid: p3.oclass}
             )
             self.assertEqual(
-                p2w._neighbours[CITY.IS_INHABITANT_OF],
+                p2w._neighbors[CITY.IS_INHABITANT_OF],
                 {c.uid: c.oclass}
             )
 
@@ -311,24 +304,24 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_multiple_users(self):
         """Test what happens if multiple users access the database."""
-        session1 = SqliteSession(DB)
-        wrapper1 = CITY.CityWrapper(session=session1)
-        city1 = CITY.City(name="Freiburg")
-        wrapper1.add(city1)
-        session1.commit()
+        with SqliteSession(DB) as session1:
+            wrapper1 = CITY.CityWrapper(session=session1)
+            city1 = CITY.City(name="Freiburg")
+            wrapper1.add(city1)
+            session1.commit()
 
-        session2 = SqliteSession(DB)
-        wrapper2 = CITY.CityWrapper(session=session2)
-        wrapper2.add(CITY.City(name="Offenburg"))
-        session2.commit()
+            with SqliteSession(DB) as session2:
+                wrapper2 = CITY.CityWrapper(session=session2)
+                wrapper2.add(CITY.City(name="Offenburg"))
+                session2.commit()
 
-        cw = wrapper1.add(CITY.City(name="Karlsruhe"))
-        self.assertEqual(session1._expired, set())
-        self.assertEqual(session1._buffers, [
-            [{cw.uid: cw}, {wrapper1.uid: wrapper1}, dict()],
-            [dict(), dict(), dict()]
-        ])
-        session1.commit()
+                cw = wrapper1.add(CITY.City(name="Karlsruhe"))
+                self.assertEqual(session1._expired, set())
+                self.assertEqual(session1._buffers, [
+                    [{cw.uid: cw}, {wrapper1.uid: wrapper1}, dict()],
+                    [dict(), dict(), dict()]
+                ])
+                session1.commit()
 
 
 def check_state(test_case, c, p1, p2, db=DB):

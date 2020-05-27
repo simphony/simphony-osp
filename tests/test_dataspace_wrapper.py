@@ -1,10 +1,3 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import os
 import sys
 import time
@@ -33,6 +26,7 @@ except ImportError:
 
 HOST = "127.0.0.1"
 PORT = 8681
+URI = f"ws://{HOST}:{PORT}"
 DB = "dataspace.db"
 
 
@@ -41,14 +35,10 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        args = ["python3",
+        args = ["python",
                 "tests/test_dataspace_wrapper.py",
                 "server"]
-        try:
-            p = subprocess.Popen(args)
-        except FileNotFoundError:
-            args[0] = "python"
-            p = subprocess.Popen(args)
+        p = subprocess.Popen(args)
 
         TestTransportSqliteCity.SERVER_STARTED = p
         time.sleep(1)
@@ -75,7 +65,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p2 = CITY.CITIZEN(name="Georg")
         c.add(p1, p2, rel=CITY.HAS_INHABITANT)
 
-        with DataspaceSession(HOST, PORT) as session:
+        with DataspaceSession(URI) as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             wrapper.add(c)
             session.commit()
@@ -88,7 +78,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1 = CITY.CITIZEN(name="Peter")
         c.add(p1, rel=CITY.HAS_INHABITANT)
 
-        with DataspaceSession(HOST, PORT) as session:
+        with DataspaceSession(URI) as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             cw = wrapper.add(c)
             session.commit()
@@ -108,7 +98,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p3 = CITY.CITIZEN(name="Hans")
         c.add(p1, p2, p3, rel=CITY.HAS_INHABITANT)
 
-        with DataspaceSession(HOST, PORT) as session:
+        with DataspaceSession(URI) as session:
             wrapper = CITY.CITY_WRAPPER(session=session)
             cw = wrapper.add(c)
             session.commit()
@@ -122,8 +112,10 @@ class TestTransportSqliteCity(unittest.TestCase):
     def test_user_parameterize(self):
         """Test that parameterizing the dataspace as
         a client throws an error"""
-        with TransportSessionClient(DbWrapperSession,
-                                    HOST, PORT, "test.db") as session:
+        with TransportSessionClient(
+            DbWrapperSession,
+            URI, path="dataspace.db"
+        ) as session:
             self.assertRaises(RuntimeError, CITY.CITY_WRAPPER, session=session)
 
 

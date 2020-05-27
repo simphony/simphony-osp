@@ -16,4 +16,5 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 logging.getLogger("osp.wrappers").addHandler(ch)
 
+
 # TODO replacement for get_entity(), install_current_ontology()

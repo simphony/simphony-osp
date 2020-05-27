@@ -1,12 +1,8 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import graphviz
+import logging
 from osp.core import CUBA
+
+logger = logging.getLogger(__name__)
 
 
 class Cuds2dot():
@@ -21,7 +17,7 @@ class Cuds2dot():
 
     def __init__(self, root):
         """Constructor.
-        Initialises the graph.
+        Initializes the graph.
 
         :param root: root cuds_object to represent
         :type root: Cuds
@@ -29,20 +25,22 @@ class Cuds2dot():
         self._root = root
         self._visited = set()
         self._root_uid = self.shorten_uid(root.uid)
-        self._graph = self._initialise_graph()
+        self._graph = self._initialize_graph()
 
-    def _initialise_graph(self):
-        """Initialises a directed graph with some default settings"""
+    def _initialize_graph(self):
+        """Initializes a directed graph with some default settings"""
         graph = graphviz.Digraph(format='png', name=str(self._root.uid))
         # graph.node_attr['shape'] = 'circle'
         return graph
 
-    def render(self):
+    def render(self, filename=None, **kwargs):
         """Create the graph and save it to a dot and png file."""
+        filename = filename or (self._graph.name + "gv")
+        logger.info("Writing file %s" % filename)
         self._add_node(self._root, self._root_uid)
         self._visited.add(self._root.uid)
         self._add_directly_related(self._root)
-        self._graph.render()
+        self._graph.render(filename=filename, **kwargs)
 
     def _add_directly_related(self, current):
         """Recursively add the directly related entities to a current root.

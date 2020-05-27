@@ -1,10 +1,3 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import sys
 import time
 import subprocess
@@ -27,6 +20,7 @@ except ImportError:
 
 HOST = "127.0.0.1"
 PORT = 8689
+URI = f"ws://{HOST}:{PORT}"
 TABLE = "transport.db"
 
 SERVER_STARTED = False
@@ -38,14 +32,10 @@ class TestTransportSimWrapperCity(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        args = ["python3",
+        args = ["python",
                 "tests/test_transport_sim_wrapper.py",
                 "server"]
-        try:
-            p = subprocess.Popen(args)
-        except FileNotFoundError:
-            args[0] = "python"
-            p = subprocess.Popen(args)
+        p = subprocess.Popen(args)
 
         TestTransportSimWrapperCity.SERVER_STARTED = p
         time.sleep(1)
@@ -58,7 +48,7 @@ class TestTransportSimWrapperCity(unittest.TestCase):
         """Create a dummy simulation syntactic layer + test
         if working with this layer works as expected.
         """
-        with TransportSessionClient(SimDummySession, HOST, PORT) \
+        with TransportSessionClient(SimDummySession, URI) \
                 as session:
             wrapper = CITY.CITY_SIM_WRAPPER(num_steps=1, session=session)
             c = CITY.CITY(name="Freiburg")

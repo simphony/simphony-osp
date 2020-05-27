@@ -1,10 +1,3 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.datatypes import (
     ONTOLOGY_DATATYPES, convert_from, convert_to
@@ -42,6 +35,11 @@ class OntologyAttribute(OntologyEntity):
 
     # OVERRIDE
     def get_triples(self):
+        """Get the RDF triples for the attribute.
+
+        Returns:
+            List[rdflib triple]: The triples for the attribute.
+        """
         from osp.core.ontology.datatypes import ONTOLOGY_DATATYPES
         datatype_triple = []
         yml_datatype = self.datatype.split(":")[0]
@@ -63,8 +61,8 @@ class OntologyAttribute(OntologyEntity):
     def _get_datatype_recursively(self):
         """Get the datatype of the value
 
-        :return: The datatype of the ontology value
-        :rtype: str
+        Returns:
+            str: The datatype of the ontology value
         """
         if self._datatype is not None:
             return self._datatype  # datatype is defined
@@ -87,28 +85,33 @@ class OntologyAttribute(OntologyEntity):
     def convert_to_datatype(self, value):
         """Convert to the datatype of the value
 
-        :param value: The value to convert
-        :type value: Any
-        :return: The converted value
-        :rtype: Any
+        Args:
+            value (Any): The value to convert.
+
+        Returns:
+            Any: The converted value
         """
         return convert_to(value, self.datatype)
 
     def convert_to_basic_type(self, value):
         """Convert from the datatype of the value to a python basic type
 
-        :param value: The value to convert
-        :type value: Any
-                :return: The converted value
-        :rtype: Any
+        Args:
+            value (Any): The value to convert
+
+        Returns:
+            Any: The converted value
         """
         return convert_from(value, self.datatype)
 
     def _set_datatype(self, datatype):
-        """Set the datatype of the value
+        """Set the datatype of the attribute
 
-        :param datatype: The datatype of the value
-        :type datatype: str
+        Args:
+            datatype (str): The datatype of the attribute
+
+        Raises:
+            ValueError: Invalid datatype specified
         """
         if datatype.split(":")[0] not in ONTOLOGY_DATATYPES:
             raise ValueError("Invalid datatype %s specified for %s"

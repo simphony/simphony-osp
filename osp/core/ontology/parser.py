@@ -1,10 +1,3 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import os
 import yaml
 import logging
@@ -50,7 +43,7 @@ class Parser:
         if not filename.endswith(".yml"):
             filename = os.path.join(
                 os.path.dirname(os.path.abspath(__file__)),
-                "yml", "ontology.%s.yml" % filename
+                "yml", "%s.ontology.yml" % filename
             )
         return filename
 
@@ -120,7 +113,7 @@ class Parser:
             a, b = name.split(".")
             return a, b
         except ValueError as e:
-            raise ValueError("Reference to entity %s without namespace"
+            raise ValueError("Reference to entity '%s' without namespace"
                              % name) from e
 
     def _load_entity(self, entity_name):

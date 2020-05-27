@@ -23,7 +23,7 @@ class OwlToYmlConverter():
 
     def __init__(self, owl_ontology_file, conversion_options_file,
                  namespace, version):
-        """Initialise the converter
+        """Initialize the converter
 
         :param owl_ontology_file: The owl file to convert
         :type owl_ontology_file: str
@@ -218,7 +218,7 @@ class OwlToYmlConverter():
         d = {'comment': entity.comment}
         for a in self.owl_onto.annotation_properties():
             d[a.label.first()] = [
-                o.strip('"') for s, p, o in
+                str(o).strip('"') for s, p, o in
                 self.owl_onto.get_triples(entity.storid, a.storid, None)]
         return d
 
@@ -443,7 +443,7 @@ def run_from_terminal():
     )
     converter.convert()
     output_filename = args.output_file or os.path.abspath(
-        "ontology.%s.yml" % os.path.basename(args.input_file)[:-4]
+        "%s.ontology.yml" % os.path.basename(args.input_file)[:-4]
     )
     converter.write(file=output_filename)
 
