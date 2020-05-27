@@ -8,16 +8,13 @@ logger = logging.getLogger(__name__)
 class OntologyEntity(ABC):
     @abstractmethod
     def __init__(self, namespace, name, superclasses, description):
-        """Initialize the ontology entity
+        """Initialize the ontology entity.
 
-        :param namespace: The namespace of the entity
-        :type namespace: OntologyNamespace
-        :param name: The name of the entity
-        :type name: str
-        :param superclasses: The superclasses of the entity
-        :type superclasses: List[OntologyEntity]
-        :param description: The defintion of the entity
-        :type description: str
+        Args:
+            namespace (OntologyNamespace): The namespace of the entity
+            name (str): The name of the entity
+            superclasses (List[OntologyEntity]): The superclasses of the entity
+            description (str): The defintion of the entity
         """
         self._name = name
         self._namespace = namespace
@@ -66,10 +63,10 @@ class OntologyEntity(ABC):
 
     @property
     def direct_superclasses(self):
-        """Get the direct superclass of the entity
+        """Get the direct superclass of the entity.
 
-        :return: The direct superclasses of the entity
-        :rtype: List[OntologyEntity]
+        Returns:
+            List[OntologyEntity]: The direct superclasses of the entity
         """
         return self._superclasses
 
@@ -77,8 +74,8 @@ class OntologyEntity(ABC):
     def direct_subclasses(self):
         """Get the direct subclasses of the entity
 
-        :return: The direct subclasses of the entity
-        :rtype: Set[OntologyEntity]
+        Returns:
+            Set[OntologyEntity]: The direct subclasses of the entity
         """
         return self._subclasses
 
@@ -86,8 +83,8 @@ class OntologyEntity(ABC):
     def subclasses(self):
         """Get the subclasses of the entity
 
-        :return: The direct subclasses of the entity
-        :rtype: Set[OntologyEntity]
+        Returns:
+            Set[OntologyEntity]: The direct subclasses of the entity
         """
         subclasses = [self]
         for p in self._subclasses:
@@ -102,9 +99,10 @@ class OntologyEntity(ABC):
     def superclasses(self):
         """Get the superclass of the entity
 
-        :return: The direct superclasses of the entity
-        :rtype: Set[OntologyEntity]
+        Returns:
+            Set[OntologyEntity]: The direct superclasses of the entity
         """
+
         superclasses = [self]
         for p in self._superclasses:
             superclasses.extend(p.superclasses)
@@ -118,8 +116,8 @@ class OntologyEntity(ABC):
     def description(self):
         """Get the description of the entity
 
-        :return: The description of the entity
-        :rtype: str
+        Returns:
+            str: The description of the entity
         """
         if self._description:
             return self._description
@@ -128,20 +126,23 @@ class OntologyEntity(ABC):
     def is_subclass_of(self, other):
         """Subclass check.
 
-        :param other: Check if self is a subclass of this entity.
-        :type other: OntologyEntity
-        :return: Whether self is a subclass of other.
-        :rtype: bool
+        Args:
+            other (OntologyEntity): Check if self is a subclass of this entity.
+
+        Returns:
+            bool: Whether self is a subclass of other.
         """
         return self in other.subclasses
 
     def is_superclass_of(self, other):
         """Superclass check.
 
-        :param other: Check if self is a superclass of this entity.
-        :type other: OntologyEntity
-        :return: Whether self is a superclass of other.
-        :rtype: bool
+        Args:
+            other (OntologyEntity): Check if self is a superclass of this
+                entity.
+
+        Returns:
+            bool: Whether self is a superclass of other.
         """
         return self in other.superclasses
 
@@ -155,8 +156,8 @@ class OntologyEntity(ABC):
     def _add_subclass(self, subclass):
         """Add a subclass to the entity
 
-        :param subclass: The subclass to add
-        :type subclass: OntologyEntity
+        Args:
+            subclass (OntologyEntity): The subclass to add
         """
         logger.debug("Add subclass %s to %s" % (subclass, self))
         if subclass not in self._subclasses:
@@ -165,14 +166,24 @@ class OntologyEntity(ABC):
     def _add_superclass(self, superclass):
         """Add a superclass to the entity
 
-        :param superclass: The superclass to add
-        :type superclass: OntologyEntity
+        Args:
+            superclass (OntologyEntity): The superclass to add
         """
         logger.debug("Add superclass %s to %s" % (superclass, self))
         if superclass not in self._superclasses:
             self._superclasses.append(superclass)
 
     def _add_class_expression(self, keyword, class_expression):
+        """Add a class expression to the entity.
+
+        Args:
+            keyword (str): The keyword for the class expression
+                (e.g. subclass_of).
+            class_expression (ClassExpression): The class expression to add.
+
+        Raises:
+            ValueError: Invalid class expression.
+        """
         from osp.core.ontology.class_expression import ClassExpression
         if not isinstance(class_expression, ClassExpression):
             raise ValueError("Tried to add %s as class expression to %s"
@@ -184,6 +195,16 @@ class OntologyEntity(ABC):
         self._class_expressions[keyword].append(class_expression)
 
     def _collect_class_expressions(self, keyword):
+        """Get all the class expressions for a given keyword for this entity
+        and its superclasses.
+
+        Args:
+            keyword (str): The keyword for the class expressions.
+                (e.g. subclass_of)
+
+        Returns:
+            List[ClassExpression]: All class expressions for the keyword.
+        """
         result = list()
         for superclass in self.superclasses:
             if keyword in superclass._class_expressions:
