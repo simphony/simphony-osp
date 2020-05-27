@@ -95,7 +95,6 @@ class TestPerformance(unittest.TestCase):
             self.session.commit()
 
 
-
 if __name__ == '__main__':
     RUN_PERFORMANCE_TEST = True
     unittest.main()
