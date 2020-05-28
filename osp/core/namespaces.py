@@ -11,7 +11,7 @@ _logger = _logging.getLogger(__name__)
 # load installed ontologies
 _thismodule = _sys.modules[__name__]
 _namespace_registry = _NamespaceRegistry()
-# _owl_initializer = _OntologyInitializer(_namespace_registry)
+_owl_initializer = _OntologyInitializer(_namespace_registry)
 
 # try:
 #     _owl_initializer.initialize_installed_ontologies(_thismodule)

@@ -13,6 +13,7 @@ class OntologyInitializer():
             path or os.path.expanduser("~"),
             ".osp_ontologies")
         self.installed_path = os.path.join(self.path, "installed")
+        os.makedirs(self.installed_path, exist_ok=True)
 
     def initialize_installed_ontologies(self, namespace_module):
         """Load the installed ontologies.

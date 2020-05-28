@@ -5,6 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+import os
 import logging
 import rdflib
 from osp.core.owl_ontology.owl_namespace import OntologyNamespace
@@ -71,3 +72,7 @@ class NamespaceRegistry():
                     namespace_registry=self,
                     iri=ns_iri
                 ).get(iri[len(ns_iri):])
+
+    def store(self, path):
+        path = os.path.join(path, "graph.xml")
+        self._graph.serialize(destination=path, format="xml")

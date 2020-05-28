@@ -31,10 +31,11 @@ class OntologyInstallationManager():
         :type success_msg: bool
         """
         # parse the files
-        parser = Parser(self.namespace_registry.graph)
+        parser = Parser(self.namespace_registry._graph)
         parser.parse(*files)
         self.namespace_registry.update_namespaces()
         # serialize the result
+        parser.store(self.installed_path)
         self.namespace_registry.store(self.installed_path)
         if success_msg:
             logger.info("Installation successful!")

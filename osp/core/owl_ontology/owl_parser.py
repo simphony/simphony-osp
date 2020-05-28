@@ -1,4 +1,5 @@
 import os
+import shutil
 import rdflib
 import logging
 import yaml
@@ -22,6 +23,7 @@ DEFAULT_REL_IRI = rdflib.URIRef("http://osp-core.com/cuba/ActiveRelationship")
 class Parser():
     def __init__(self, graph):
         self.graph = graph
+        self._yaml_docs = list()
 
     def parse(self, *file_paths):
         """Parse the given YAML files
@@ -36,6 +38,20 @@ class Parser():
                     self._parse_rdf(**self._parse_yml(yaml_doc, file_path))
         logger.info("Loaded ontology with %s triples" % len(self.graph))
 
+    def store(self, destination):
+        for yaml_doc in self._yaml_docs:
+            rdf_files = list()
+            for i, x in enumerate(yaml_doc[RDF_FILES_KEY]):
+                rdf_files.append("%s-%s%s" % (yaml_doc[IDENTIFIER_KEY], i,
+                                               os.path.splitext(x)[1]))
+                shutil.copyfile(x, os.path.join(destination, rdf_files[-1]))
+            yaml_doc[RDF_FILES_KEY] = rdf_files
+
+            file_path = os.path.join(destination, "%s.yml"
+                                     % yaml_doc[IDENTIFIER_KEY])
+            with open(file_path, "w") as f:
+                yaml.safe_dump(yaml_doc, f)
+
     def _parse_yml(self, yaml_doc, file_path):
         """Parse the owl files specified in the given YAML docs
 
@@ -48,6 +64,7 @@ class Parser():
             os.path.join(os.path.dirname(file_path), x)
             for x in yaml_doc[RDF_FILES_KEY]
         ]
+        self._yaml_docs.append(yaml_doc)
         return yaml_doc
 
     def _parse_rdf(self, **kwargs):
