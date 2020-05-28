@@ -18,16 +18,16 @@ def validate_tree_against_schema(root_obj, schema_file):
     against schema file {} ...""".format(root_obj.uid, schema_file))
 
     data_model_dict = _load_data_model_from_yaml(schema_file)
-    # check that the data model class matches the class of the root object
-    # if str(data_model_dict.get('oclass')) != str(root_obj.oclass)
-    #     print(type(data_model_dict.get('oclass')))
-    #     print(type(root_obj.oclass))
-    #     raise Exception('data_model is baaad')
     oclass_groups = _traverse_tree_and_group_all_objects_by_oclass(root_obj)
 
     for entity, relationships in data_model_dict['model'].items():
         # get all objects that are an instance of the entity we want to check
-        entity_instances_to_check = oclass_groups[entity]
+        try:
+            entity_instances_to_check = oclass_groups[entity]
+        except KeyError:
+            raise Exception(f"Instance of entity {entity} is expected to be \
+                            present in the CUDS tree, but none was found.")
+
         for cuds_obj in entity_instances_to_check:
             for relationship, connected_entities in relationships.items():
                 for connected_entity, constraints in connected_entities.items(
