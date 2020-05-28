@@ -67,6 +67,9 @@ class TestUtils(unittest.TestCase):
     def test_validate_tree_against_schema(self):
         """Test validation of CUDS tree against schema.yml"""
         schema_file = 'test_validation_schema_city.yml'
+        schema_file_with_missing_entity = \
+            'test_validation_schema_city_with_missing_entity.yml'
+
         c = CITY.CITY(name='freiburg')
         with self.assertRaises(Exception) as context:
             # empty city does not fulfil any constraint
@@ -85,11 +88,12 @@ class TestUtils(unittest.TestCase):
 
         c.get(oclass=CITY.NEIGHBORHOOD)[0].add(CITY.STREET(name='abc street'))
         c.remove(oclass=CITY.CITIZEN)
+
         with self.assertRaises(Exception) as context:
-            # citizen violated
-            validate_tree_against_schema(c, schema_file)
-            self.assertTrue('CITIZEN' in str(context.exception))
-            self.assertTrue('CITY' in str(context.exception))
+            # entity is missing completely in cuds tree
+            validate_tree_against_schema(c, schema_file_with_missing_entity)
+            self.assertTrue('Instance of entity' in str(context.exception))
+            self.assertTrue('CITY.GEOGRAPHICAL_PLACE' in str(context.exception))
 
     def test_branch(self):
         x = branch(
