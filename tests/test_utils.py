@@ -93,7 +93,8 @@ class TestUtils(unittest.TestCase):
             # entity is missing completely in cuds tree
             validate_tree_against_schema(c, schema_file_with_missing_entity)
             self.assertTrue('Instance of entity' in str(context.exception))
-            self.assertTrue('CITY.GEOGRAPHICAL_PLACE' in str(context.exception))
+            self.assertTrue('CITY.GEOGRAPHICAL_PLACE' in
+                            str(context.exception))
 
     def test_branch(self):
         x = branch(
