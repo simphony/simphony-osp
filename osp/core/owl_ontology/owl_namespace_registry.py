@@ -5,18 +5,16 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-import os
 import logging
+import rdflib
+from osp.core.owl_ontology.owl_namespace import OntologyNamespace
 
 logger = logging.getLogger(__name__)
-
-MAIN_ONTOLOGY_NAMESPACE = "CUBA".lower()
-MAIN_ONTOLOGY_PATH = os.path.join(os.path.dirname(__file__),
-                                  "yml", "ontology.cuba.yml")
 
 
 class NamespaceRegistry():
     def __init__(self):
+        self._graph = rdflib.Graph()
         self._namespaces = dict()
 
     def __iter__(self):
@@ -25,7 +23,8 @@ class NamespaceRegistry():
         :return: An iterator over the namespaces.
         :rtype: Iterator[OntologyNamespace]
         """
-        return iter(self._namespaces.values())
+        for namespace_name in self._namespaces:
+            yield self._get(namespace_name)
 
     def __getattr__(self, name):
         try:
@@ -54,57 +53,21 @@ class NamespaceRegistry():
             return fallback
 
     def _get(self, name):
-        try:
-            return self._namespaces[name.lower()]
-        except KeyError as e:
-            raise KeyError("namespace %s not installed" % name) from e
+        if name in self._namespaces:
+            return OntologyNamespace(name=name,
+                                     namespace_registry=self,
+                                     iri=self._namespaces[name])
+        raise KeyError("Namespace %s not installed." % name)
 
-    @property
-    def default_rel(self):
-        """Get the default relationship.
+    def update_namespaces(self):
+        for name, iri in self._graph.namespace_manager.namespaces():
+            self._namespaces[name] = iri
 
-        :return: The default relationship.
-        :rtype: OntologyRelationship
-        """
-        logger.warning("namespace_registry.default_rel() is deprecated!")
-        rels = list()
-        for namespace in self._namespaces.values():
-            if namespace.default_rel is not None:
-                rels.append(namespace.default_rel)
-        if len(rels) == 1:
-            return rels[0]
-
-    def set_namespaces(self, namespaces, namespace_module=None):
-        """Add a namespace to the registry
-
-        :param namespace: The namespace to add
-        :type namespace: OntologyNamespace
-        :raises ValueError: The namespaces added first must have name CUBA
-        """
-        # TODO handle CUBA
-        # from osp.core.ontology.namespace import OntologyNamespace
-        # assert isinstance(namespace, OntologyNamespace)
-        # assert (
-        #     bool(namespace.name.lower() == MAIN_ONTOLOGY_NAMESPACE)
-        #     != bool(self._namespaces)
-        # ), ("CUBA namespace must be installed first. "
-        #     "Installing %s. Already installed: %s"
-        #     % (namespace.name, self._namespaces.keys()))
-        self._namespaces = dict()
-        for namespace in namespaces:
-            if namespace.name.lower() in self._namespaces:
-                raise ValueError("Namespace %s already added to namespace "
-                                 "registry!" % namespace.name)
-            self._namespaces[namespace.name.lower()] = namespace
-            if namespace_module is None:
-                import osp.core.namespaces as namespace_module
-            setattr(namespace_module, namespace.name.upper(), namespace)
-            setattr(namespace_module, namespace.name.lower(), namespace)
-
-    # def get_main_namespace(self):
-    #     """Get the main namespace (CUBA)
-
-    #     :return: The main namespace
-    #     :rtype: OntologyNamespace
-    #     """
-    #     return self._namespaces[MAIN_ONTOLOGY_NAMESPACE]
+    def from_iri(self, iri):
+        for name, ns_iri in self._graph.namespace_manager.namespaces():
+            if str(iri).startswith(str(ns_iri)):
+                return OntologyNamespace(
+                    name=name,
+                    namespace_registry=self,
+                    iri=ns_iri
+                ).get(iri[len(ns_iri):])

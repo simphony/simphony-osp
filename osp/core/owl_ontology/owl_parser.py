@@ -2,132 +2,100 @@ import os
 import rdflib
 import logging
 import yaml
-from osp.core.owl_ontology.owl_namespace import OntologyNamespace
-from osp.core.owl_ontology.owl_owlapi import OwlApi
 
 logger = logging.getLogger(__name__)
 
-OWL_FILES_KEY = "ontology_files"
+IDENTIFIER_KEY = "identifier"
+RDF_FILES_KEY = "ontology_files"
 NAMESPACES_KEY = "namespaces"
+ACTIVE_REL_KEY = "active_relationships"
+DEFAULT_REL_KEY = "default_rel"
+ALL_KEYS = set([
+    RDF_FILES_KEY, NAMESPACES_KEY, ACTIVE_REL_KEY, DEFAULT_REL_KEY,
+    IDENTIFIER_KEY
+])
+
+ACTIVE_REL_IRI = rdflib.URIRef("http://osp-core.com/default_rel")  # TODO move
+DEFAULT_REL_IRI = rdflib.URIRef("http://osp-core.com/cuba/ActiveRelationship")
 
 
 class Parser():
-    def __init__(self):
-        self.graph = None
-        self.iri_namespaces = dict()  # mapping from IRI to namespace name
-        self.namespaces = dict()
+    def __init__(self, graph):
+        self.graph = graph
 
-    def parse(self, *paths):
+    def parse(self, *file_paths):
         """Parse the given YAML files
 
         Args:
-            file_paths (str): path to the YAML files to parse
+            file_paths (str): path to the YAML file
         """
-        print(paths)
-        # yaml_docs = dict()
-        # for file_path in list(file_paths):
-        #     with open(file_path, 'r') as f:
-        #         yaml_doc = yaml.safe_load(f)
-        #         if OWL_FILES_KEY in yaml_doc:
-        #             yaml_docs[file_path] = yaml_doc
-        #             file_paths.remove(file_path)
-        # owl_files = self._parse_yml(yaml_docs)
-        # reasoner = Reasoner()
-        # self.graph = reasoner.reason(owl_files)
-        # logger.info("Loaded ontology with %s triples" % len(self.graph))
-        # self._build_namespaces()
-        # return self.namespaces
+        for file_path in file_paths:
+            with open(file_path, 'r') as f:
+                yaml_doc = yaml.safe_load(f)
+                if RDF_FILES_KEY in yaml_doc:
+                    self._parse_rdf(**self._parse_yml(yaml_doc, file_path))
+        logger.info("Loaded ontology with %s triples" % len(self.graph))
 
-    def store(self, dir):
-        print(dir)
-
-    def parse_reasoned_files(self, yaml_file, rdf_file_paths):
-        """Parse the already reasoned RDF files
-
-        Args:
-            file_paths (str): path to the RDF files to parse"""
-        with open(yaml_file, 'r') as f:
-            yaml_doc = yaml.safe_load(f)
-            self._parse_yml([yaml_doc])
-        self._build_namespaces()
-        return self.namespaces
-
-    def _create_settings(self, yaml_docs):
-        pass
-
-    def _parse_yml(self, yaml_docs):
+    def _parse_yml(self, yaml_doc, file_path):
         """Parse the owl files specified in the given YAML docs
 
         Args:
-            yaml_docs (dict): Parsed YAML docs that specify
+            yaml_doc (dict): Parsed YAML doc that specify
                 the ontologies to install
+            file_path (str): Location of the corresponding YAML file
         """
-        owl_files = [os.path.join(os.path.dirname(file_path), x)
-                     for file_path, yaml_doc in yaml_docs.items()
-                     for x in yaml_doc[OWL_FILES_KEY]]
-        self.iri_namespaces = {
-            (y
-             if y.endswith("#") or y.endswith("/")
-             else (y + "#")): x
-            for yaml_doc in yaml_docs.values()
-            for x, y in yaml_doc[NAMESPACES_KEY].items()
-        }
-        return owl_files
+        yaml_doc[RDF_FILES_KEY] = [
+            os.path.join(os.path.dirname(file_path), x)
+            for x in yaml_doc[RDF_FILES_KEY]
+        ]
+        return yaml_doc
 
-    def _build_namespaces(self):
-        """Build the namespace objects"""
-        for (s, p, o) in self.graph.triples(
-            (None, rdflib.RDF.type, rdflib.OWL.Class)
-        ):
-            if isinstance(s, rdflib.term.URIRef):
-                self._add_entity(s, rdflib.OWL.Class)
-        for (s, p, o) in self.graph.triples(
-            (None, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
-        ):
-            if isinstance(s, rdflib.term.URIRef):
-                self._add_entity(s, rdflib.OWL.ObjectProperty)
-        for (s, p, o) in self.graph.triples(
-            (None, rdflib.RDF.type, rdflib.OWL.DataProperty)
-        ):
-            if isinstance(s, rdflib.term.URIRef):
-                self._add_entity(s, rdflib.OWL.DataProperty)
-
-    def _add_entity(self, iri, rdf_type):
-        """Create the namespace object of the entity, if it doesn't already exist.
+    def _parse_rdf(self, **kwargs):
+        """Parse the RDF files specified in the kwargs.
 
         Args:
-            iri (rdflib.URIRef): The IRI if the entity
-            rdf_type (Type): The type of the entity
+            kwargs (dict[str, Any]): The keyword arguments usually specified
+                in a yaml file.
         """
-        iri_namespace, identifier = self._split_iri(iri)
-        if str(iri_namespace) in self.iri_namespaces:
-            namespace_name = self.iri_namespaces[str(iri_namespace)]
-        else:
-            logger.warning("The YAML file you provided is incomplete. "
-                           "It does not provide a namespace name for %s"
-                           % iri_namespace)
-            return
+        # parse input kwargs
+        rdf_files = kwargs[RDF_FILES_KEY]
+        namespaces = kwargs[NAMESPACES_KEY]
+        active_rels = kwargs.get(ACTIVE_REL_KEY, [])
+        default_rel = kwargs.get(DEFAULT_REL_KEY, None)
+        other_keys = set(kwargs.keys()) - ALL_KEYS
+        if other_keys:
+            raise TypeError("Specified unknown keys in YAML file: %s"
+                            % other_keys)
 
-        if not identifier.isidentifier():
-            logger.warning("The IRI suffix %s of entity %s is not a valid "
-                           "python identifier" % (identifier, iri))
-        else:
-            logger.debug("Use 'from osp.core.namespaces.%s import %s' to "
-                         "import entity %s"
-                         % (namespace_name, identifier, iri))
-        if namespace_name not in self.namespaces:
-            self.graph.bind(namespace_name, iri_namespace)
-            # graph = rdflib.Graph(self.graph.store, TODO
-            #                      rdflib.URIRef(iri_namespace),
-            #                      self.graph.namespace_manager)
-            self.namespaces[namespace_name] = OntologyNamespace(
-                namespace_name, self.graph, iri_namespace)
-            logger.info("Created namespace %s" %
-                        self.namespaces[namespace_name])
+        # parse the files
+        for file in rdf_files:
+            self.graph.parse(file)
+        default_rels = dict()
+        for namespace, iri in namespaces.items():
+            if not (
+                iri.endswith("#") or iri.endswith("/")
+            ):
+                iri += "#"
+            logger.debug("Create namespace %s" % namespace)
+            self.graph.bind(namespace, rdflib.URIRef(iri))
+            default_rels[iri] = default_rel
 
-    @staticmethod
-    def _split_iri(iri):
-        split_char = "#" if "#" in str(iri) else "/"
-        split = str(iri).split(split_char)
-        namespace = split_char.join(split[:-1]) + split_char
-        return rdflib.URIRef(namespace), split[-1]
+        self._add_cuba_triples(active_rels)
+        self._add_default_rel_triples(default_rels)
+
+    def _add_default_rel_triples(self, default_rels):
+        for namespace, default_rel in default_rels.items():
+            if default_rel is None:
+                continue
+            self.graph.add((
+                rdflib.URIRef(namespace),
+                DEFAULT_REL_IRI,
+                rdflib.URIRef(default_rel)
+            ))
+
+    def _add_cuba_triples(self, active_rels):
+        for rel in active_rels:
+            self.graph.add(
+                (rdflib.URIRef(rel), rdflib.OWL.subObjectPropertyOf,
+                 ACTIVE_REL_IRI)
+            )

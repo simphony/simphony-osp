@@ -1,5 +1,4 @@
 import os
-import shutil
 import argparse
 import logging
 import osp.core.namespaces as namespaces
@@ -12,12 +11,11 @@ class OntologyInstallationManager():
     def __init__(self, namespace_registry=None, path=None):
         self.namespace_registry = namespace_registry
         if self.namespace_registry is None:
-            from osp.core.namespaces import _namespace_registry
-            self.namespace_registry = _namespace_registry
+            self.namespace_registry = namespaces._namespace_registry
 
         if path is None:
-            self.main_path = namespaces._main_path
-            self.installed_path = namespaces._installed_path
+            self.main_path = namespaces._owl_initializer.path
+            self.installed_path = namespaces._owl_initializer.installed_path
         else:
             self.main_path = path
             self.installed_path = os.path.join(self.main_path, "installed")
@@ -33,13 +31,11 @@ class OntologyInstallationManager():
         :type success_msg: bool
         """
         # parse the files
-        parser = Parser()
-        parser.parse(*files, self.installed_path)
-        self.namespace_registry.set_namespaces(
-            namespaces=parser.namespaces
-        )
+        parser = Parser(self.namespace_registry.graph)
+        parser.parse(*files)
+        self.namespace_registry.update_namespaces()
         # serialize the result
-        parser.store(self.installed_path)
+        self.namespace_registry.store(self.installed_path)
         if success_msg:
             logger.info("Installation successful!")
 

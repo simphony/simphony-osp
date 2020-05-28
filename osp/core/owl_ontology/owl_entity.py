@@ -35,6 +35,9 @@ class OntologyEntity(ABC):
             self._name
         )
 
+    def __eq__(self, other):
+        return self.iri == other.iri and self._namespace is other._namespace
+
     @property
     def name(self):
         """Get the name of the entity"""
@@ -144,23 +147,6 @@ class OntologyEntity(ABC):
     def get_triples(self):
         """ Get the triples of the entity """
         return self.namespace.graph.triples((self.iri, None, None))
-
-    def _create_entity(self, iri):
-        from osp.core.owl_ontology.owl_parser import Parser
-        from osp.core import OWL_ONTOLOGY_NAMESPACE_REGISTRY
-        namespace, name = Parser.split_iri(iri)
-        namespace = OWL_ONTOLOGY_NAMESPACE_REGISTRY[namespace]
-        if (iri, rdflib.RDF.type, rdflib.OWL.Class) in self.namespace.graph:
-            from osp.core.owl_ontology.owl_oclass import OntologyClass
-            return OntologyClass(namespace, name)
-        if (iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty) in self.namespace.graph:
-            from osp.core.owl_ontology.owl_object_property import \
-                OntologyObjectProperty
-            return OntologyObjectProperty(namespace, name)
-        if (iri, rdflib.RDF.type, rdflib.OWL.DataProperty) in self.namespace.graph:
-            from osp.core.owl_ontology.owl_data_property import \
-                OntologyDataProperty
-            return OntologyDataProperty(namespace, name)
 
     # def _add_subclass(self, subclass):  TODO for yaml
     #     """Add a subclass to the entity

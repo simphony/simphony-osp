@@ -16,15 +16,15 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyNamespace():
-    def __init__(self, name, graph, iri):
+    def __init__(self, name, namespace_registry, iri):
         self._name = name
-        self._graph = graph
-        self._default_rel = None
-        self._iri = iri
-        # TODO use graph IRI, different graph for each namespace
+        self._namespace_registry = namespace_registry
+        self._iri = rdflib.URIRef(str(iri))
+        self._label_cache = dict()
+        self._default_rel = -1
 
     def __str__(self):
-        return "%s: %s" % (self.name, self.iri)
+        return "%s (%s)" % (self.name, self.iri)
 
     def __repr__(self):
         return "<%s: %s>" % (self.name, self.iri)
@@ -35,19 +35,24 @@ class OntologyNamespace():
         return self._name
 
     @property
+    def _graph(self):
+        return self._namespace_registry._graph
+
+    @property
     def default_rel(self):
         """Get the default relationship of the namespace"""
+        if self._default_rel == -1:
+            from osp.core.owl_ontology.owl_parser import DEFAULT_REL_IRI
+            for s, p, o in self._graph.triples((self._iri,
+                                                DEFAULT_REL_IRI,
+                                                None)):
+                self._default_rel = self._namespace_registry.from_iri(o)
         return self._default_rel
 
     @property
     def iri(self):
         """Get the IRI of the namespace"""
         return self._iri
-
-    @property
-    def graph(self):
-        """Get the RDF graph of the namespace"""
-        return self._graph
 
     def __getattr__(self, name):
         """Get an ontology entity from the registry by name.
@@ -62,15 +67,27 @@ class OntologyNamespace():
         except KeyError as e:
             raise AttributeError(str(e)) from e
 
-    def __getitem__(self, name):
+    def __getitem__(self, label):
         """Get an ontology entity from the registry by name.
 
-        :param name: The name of the ontology entity
-        :type name: str
+        :param label: The label of the ontology entity
+        :type label: str
         :return: The ontology entity
         :rtype: OntologyEntity
         """
-        return self._get(name)
+        if isinstance(label, str):
+            label = rdflib.term.Literal(label, lang="en")
+        if isinstance(label, tuple):
+            label = rdflib.term.Literal(label[0], lang=label[1])
+        if label in self._label_cache:
+            return self._label_cache[label]
+        for s, p, o in self._graph.triples((None, rdflib.RDFS.label, label)):
+            if str(s).startswith(self._iri):  # TODO more efficient
+                name = str(s)[len(self._iri):]
+                self._label_cache[label] = self.get(name)
+                return self._label_cache[label]
+        raise KeyError("No element with label %s in namespace %s"
+                       % (label, self))
 
     def __getstate__(self):
         return self.__dict__
@@ -102,13 +119,14 @@ class OntologyNamespace():
         :rtype: OntologyEntity
         """
         iri = rdflib.URIRef(str(self.iri) + name)
-        for s, p, o in self.graph.triples((iri, rdflib.RDF.type, None)):
+        for s, p, o in self._graph.triples((iri, rdflib.RDF.type, None)):
             if o == rdflib.OWL.DataProperty:
                 return OntologyDataProperty(self, name)
             if o == rdflib.OWL.ObjectProperty:
                 return OntologyObjectProperty(self, name)
             if o == rdflib.OWL.Class:
                 return OntologyClass(self, name)
+        raise KeyError("Unknown entity %s in namespace %s" % (name, self))
 
         # if (  # TODO case insensitivity
         #     any(x.islower() for x in name)
