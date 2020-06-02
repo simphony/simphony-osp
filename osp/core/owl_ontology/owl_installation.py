@@ -14,12 +14,19 @@ class OntologyInstallationManager():
             self.namespace_registry = namespaces._namespace_registry
 
         if path is None:
-            self.main_path = namespaces._owl_initializer.path
-            self.installed_path = namespaces._owl_initializer.installed_path
+            self.main_path = namespaces._path
+            self.installed_path = namespaces._installed_path
         else:
             self.main_path = path
             self.installed_path = os.path.join(self.main_path, "installed")
         self.rollback_path = os.path.join(self.main_path, "rollback")
+
+    def get_installed_packages(self):
+        result = list()
+        for item in os.listdir(self.installed_path):
+            if item.endswith(".yml"):
+                result.append(item.split(".")[0])
+        return result
 
     def install(self, *files, success_msg=True):
         """Install the given files with the current namespace registry.
@@ -32,7 +39,7 @@ class OntologyInstallationManager():
         """
         # parse the files
         parser = Parser(self.namespace_registry._graph)
-        parser.parse(*files)
+        parser.parse(*files, skip_identifiers=self.get_installed_packages())
         self.namespace_registry.update_namespaces()
         # serialize the result
         parser.store(self.installed_path)
