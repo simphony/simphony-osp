@@ -73,6 +73,10 @@ class NamespaceRegistry():
                     iri=ns_iri
                 ).get(iri[len(ns_iri):])
 
+    def clear(self):
+        self._graph = rdflib.Graph()
+        return self._graph
+
     def store(self, path):
         path_graph = os.path.join(path, "graph.xml")
         path_ns = os.path.join(path, "namespaces.txt")

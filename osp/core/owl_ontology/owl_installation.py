@@ -1,8 +1,9 @@
 import os
-import argparse
 import logging
 import osp.core.namespaces as namespaces
-from osp.core.owl_ontology.owl_parser import Parser
+import yaml
+import shutil
+from osp.core.owl_ontology.owl_parser import Parser, IDENTIFIER_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,19 @@ class OntologyInstallationManager():
                 result.append(item.split(".")[0])
         return result
 
+    def get_remaining_packages(self, remove_packages):
+        remove_pkgs = set()
+        for pkg in remove_packages:
+            if not pkg.endswith(".yml"):
+                remove_pkgs.add(pkg)
+            elif os.path.exists(pkg):
+                with open(pkg, "r") as f:
+                    remove_pkgs.add(yaml.safe_load(f)[IDENTIFIER_KEY])
+            else:
+                raise ValueError("Could not uninstall %s. No file nor "
+                                 "installed ontology package." % pkg)
+        return set(self.get_installed_packages()) - remove_pkgs
+
     def install(self, *files, success_msg=True):
         """Install the given files with the current namespace registry.
 
@@ -47,69 +61,33 @@ class OntologyInstallationManager():
         if success_msg:
             logger.info("Installation successful!")
 
+    def uninstall(self, *packages, success_msg=True, _force=False):
+        """Uninstall the given namespaces
 
-    # def uninstall(self, *namespaces, success_msg=True, _force=False):
-    #     """Uninstall the given namespaces
+        :param packages: The packages to uninstall
+        :type packages: List[str]
+        :raises ValueError: The namespace to uninstall is not installed
+        :param success_msg: Whether a logging message should be printed
+            if uninstallation succeeds.
+        :type success_msg: bool
+        :param _force: Whether to uninstall even if resulting
+            state will be broken.
+            WARNING: Can result in broken state of osp-core.
+        :type _force: bool
+        """
+        graph = self.namespace_registry.clear()
+        remaining_packages = self.get_remaining_packages(packages)
+        parser = Parser(graph)
+        parser.parse(*remaining_packages)
+        self.namespace_registry.update_namespaces()
+        # serialize the result
+        shutil.rmtree(self.installed_path)
+        os.makedirs(self.installed_path)
+        parser.store(self.installed_path)
+        self.namespace_registry.store(self.installed_path)
+        if success_msg:
+            logger.info("Uninstallation successful!")
 
-    #     :param namespaces: The namespaces to uninstall
-    #     :type namespaces: List[str]
-    #     :raises ValueError: The namespace to uninstall is not installed
-    #     :param success_msg: Whether a logging message should be printed
-    #         if uninstallation succeeds.
-    #     :type success_msg: bool
-    #     :param _force: Whether to uninstall even if resulting
-    #         state will be broken.
-    #         WARNING: Can result in broken state of osp-core.
-    #     :type _force: bool
-    #     """
-    #     try:
-    #         if not _force:
-    #             self._create_rollback_snapshot()
-    #         for namespace in namespaces:
-    #             if namespace.endswith("yml") and os.path.exists(namespace):
-    #                 file = namespace
-    #                 namespace = self._get_onto_metadata(file)[NAMESPACE_KEY]
-    #                 logger.info("File %s provided for uninstallation. "
-    #                             % (file))
-    #             logger.info("Uninstalling namespace %s." % namespace)
-    #             namespace = namespace.lower()
-    #             filename = "ontology.%s.yml" % namespace
-    #             path = os.path.join(self.installed_path, filename)
-    #             if os.path.exists(path):
-    #                 os.remove(path)
-
-    #                 # Remove the attributes of the osp.core package
-    #                 if hasattr(osp.core, namespace.upper()):
-    #                     delattr(osp.core, namespace.upper())
-    #                 if hasattr(osp.core, namespace.lower()):
-    #                     delattr(osp.core, namespace.lower())
-    #             elif _force:
-    #                 continue
-    #             else:
-    #                 raise ValueError("Namespace %s not installed" % namespace)
-
-    #         # remove the pickle file
-    #         pkl_exists = os.path.exists(self.pkl_path)
-    #         if pkl_exists:
-    #             os.remove(self.pkl_path)
-
-    #         try:
-    #             # reinstall remaining namespaces
-    #             self.initialise_installed_ontologies()
-    #             self.install(use_pickle=pkl_exists, success_msg=False)
-    #             if success_msg:
-    #                 logger.info("Uninstallation successful!")
-    #         except RuntimeError:  # unsatisfied requirements
-    #             if _force:
-    #                 logger.debug("Temporarily broken state.", exc_info=True)
-    #                 return
-    #             self._rollback(pkl_exists)
-    #             logger.error("Unsatisfied requirements after uninstallation.",
-    #                          exc_info=1)
-    #             logger.error("Uninstallation failed. Rolled back!")
-    #     finally:
-    #         if not _force:
-    #             self._dismiss_rollback_snapshot()
 
     # def install_overwrite(self, *files, use_pickle=True):
     #     """Install the given files. Overwrite them if they have been installed already.
@@ -223,72 +201,3 @@ class OntologyInstallationManager():
     #     for name, namespace in self.namespace_registry._namespaces.items():
     #         setattr(module, name.upper(), namespace)
     #         setattr(module, name.lower(), namespace)
-
-
-def install_from_terminal():
-    # Parse the user arguments
-    parser = argparse.ArgumentParser(
-        description="Install and uninstall your ontologies."
-    )
-    parser.add_argument("--log-level", default="INFO", type=str.upper,
-                        help="Set the logging level")
-    subparsers = parser.add_subparsers(
-        title="command", dest="command"
-    )
-
-    # install parser
-    install_parser = subparsers.add_parser(
-        "install",
-        help="Install ontology namespaces."
-    )
-    install_parser.add_argument(
-        "files", nargs="+", type=str, help="List of yaml files to install"
-    )
-    install_parser.add_argument(
-        "--overwrite", action="store_true",
-        help="Overwrite the existing namespaces, if they are already installed"
-    )
-
-    # uninstall parser
-    uninstall_parser = subparsers.add_parser(
-        "uninstall",
-        help="Uninstall ontology namespaces."
-    )
-    uninstall_parser.add_argument(
-        "namespaces", nargs="+", type=str,
-        help="List of namespaces to uninstall"
-    )
-
-    # list parser
-    subparsers.add_parser(
-        "list",
-        help="List all installed ontologies."
-    )
-
-    args = parser.parse_args()
-    logging.getLogger("osp.core").setLevel(getattr(logging, args.log_level))
-
-    ontology_installer = OntologyInstallationManager()
-
-    try:
-        all_namespaces = map(lambda x: x.name,
-                             ontology_installer.namespace_registry)
-        if args.command == "install" and args.overwrite:
-            ontology_installer.install_overwrite(*args.files)
-        elif args.command == "install":
-            ontology_installer.install(*args.files)
-        elif args.command == "uninstall":
-            if args.namespaces == ["*"]:
-                args.namespaces = all_namespaces
-            ontology_installer.uninstall(*args.namespaces)
-        elif args.command == "list":
-            print("\n".join(all_namespaces))
-    except Exception:
-        logger.error("An Exception occurred during installation.", exc_info=1)
-        if args.log_level != "DEBUG":
-            logger.error("Consider running 'pico --log-level debug %s ...'"
-                         % args.command)
-
-
-if __name__ == "__main__":
-    install_from_terminal()
