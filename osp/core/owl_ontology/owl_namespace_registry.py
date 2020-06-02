@@ -74,5 +74,21 @@ class NamespaceRegistry():
                 ).get(iri[len(ns_iri):])
 
     def store(self, path):
-        path = os.path.join(path, "graph.xml")
-        self._graph.serialize(destination=path, format="xml")
+        path_graph = os.path.join(path, "graph.xml")
+        path_ns = os.path.join(path, "namespaces.txt")
+        self._graph.serialize(destination=path_graph, format="xml")
+        with open(path_ns, "w") as f:
+            for name, iri in self._graph.namespace_manager.namespaces():
+                print("%s\t%s" % (name, iri), file=f)
+
+    def load(self, path):
+        path_graph = os.path.join(path, "graph.xml")
+        path_ns = os.path.join(path, "namespaces.txt")
+        if os.path.exists(path_graph):
+            self._graph.parse(path_graph)
+        if os.path.exists(path_ns):
+            with open(path_ns, "r") as f:
+                for line in f:
+                    name, iri = line.strip("\n").split("\t")
+                    self._graph.bind(name, rdflib.URIRef(iri))
+            self.update_namespaces()

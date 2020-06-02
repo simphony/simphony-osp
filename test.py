@@ -15,3 +15,5 @@ print(material.default_rel)
 
 installer = OntologyInstallationManager()
 installer.install("emmo.yml")
+
+from osp.core.namespaces import models
