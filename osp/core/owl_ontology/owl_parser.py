@@ -24,8 +24,9 @@ class Parser():
     def __init__(self, graph):
         self.graph = graph
         self._yaml_docs = list()
+        self._graphs = dict()
 
-    def parse(self, *file_paths, skip_identifiers=()):
+    def parse(self, *file_paths):
         """Parse the given YAML files
 
         Args:
@@ -35,17 +36,17 @@ class Parser():
             with open(file_path, 'r') as f:
                 yaml_doc = yaml.safe_load(f)
                 if RDF_FILES_KEY in yaml_doc:
-                    self._parse_rdf(**self._parse_yml(yaml_doc, file_path,
-                                                      skip_identifiers))
+                    self._parse_rdf(**self._parse_yml(yaml_doc, file_path))
         logger.info("Loaded ontology with %s triples" % len(self.graph))
 
     def store(self, destination):
         for yaml_doc in self._yaml_docs:
             rdf_files = list()
-            for i, x in enumerate(yaml_doc[RDF_FILES_KEY]):
-                rdf_files.append("%s-%s%s" % (yaml_doc[IDENTIFIER_KEY], i,
-                                              os.path.splitext(x)[1]))
-                shutil.copyfile(x, os.path.join(destination, rdf_files[-1]))
+            identifier = yaml_doc[IDENTIFIER_KEY]
+            for i, g in enumerate(self._graphs[identifier]):
+                rdf_files.append("%s-%s.owl" % (identifier, i))
+                g.serialize(os.path.join(destination, rdf_files[-1]),
+                            format="xml")
             yaml_doc[RDF_FILES_KEY] = rdf_files
 
             file_path = os.path.join(destination, "%s.yml"
@@ -53,7 +54,7 @@ class Parser():
             with open(file_path, "w") as f:
                 yaml.safe_dump(yaml_doc, f)
 
-    def _parse_yml(self, yaml_doc, file_path, skip_identifiers):
+    def _parse_yml(self, yaml_doc, file_path):
         """Parse the owl files specified in the given YAML docs
 
         Args:
@@ -61,12 +62,11 @@ class Parser():
                 the ontologies to install
             file_path (str): Location of the corresponding YAML file
         """
+        logger.info("Parsing %s" % file_path)
         if "." in yaml_doc[IDENTIFIER_KEY]:
             raise ValueError("No dot allowed in package identifier. "
                              "Identifier given: %s"
                              % yaml_doc[IDENTIFIER_KEY])
-        if yaml_doc[IDENTIFIER_KEY] in skip_identifiers:
-            return dict()
         yaml_doc[RDF_FILES_KEY] = [
             os.path.join(os.path.dirname(file_path), x)
             for x in yaml_doc[RDF_FILES_KEY]
@@ -81,13 +81,12 @@ class Parser():
             kwargs (dict[str, Any]): The keyword arguments usually specified
                 in a yaml file.
         """
-        if not kwargs:
-            return
         # parse input kwargs
         rdf_files = kwargs[RDF_FILES_KEY]
         namespaces = kwargs[NAMESPACES_KEY]
         active_rels = kwargs.get(ACTIVE_REL_KEY, [])
         default_rel = kwargs.get(DEFAULT_REL_KEY, None)
+        identifier = kwargs.get(IDENTIFIER_KEY)
         other_keys = set(kwargs.keys()) - ALL_KEYS
         if other_keys:
             raise TypeError("Specified unknown keys in YAML file: %s"
@@ -95,6 +94,10 @@ class Parser():
 
         # parse the files
         for file in rdf_files:
+            logger.info("Parsing %s" % file)
+            self._graphs[identifier] = self._graphs.get(identifier, list())
+            self._graphs[identifier].append(rdflib.Graph())
+            self._graphs[identifier][-1].parse(file)
             self.graph.parse(file)
         default_rels = dict()
         for namespace, iri in namespaces.items():

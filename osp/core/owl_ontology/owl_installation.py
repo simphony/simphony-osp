@@ -22,14 +22,28 @@ class OntologyInstallationManager():
             self.installed_path = os.path.join(self.main_path, "installed")
         self.rollback_path = os.path.join(self.main_path, "rollback")
 
-    def get_installed_packages(self):
+    def install(self, *files):
+        self._install(files, self._get_new_packages, False)
+        logger.info("Installation successful")
+
+    def uninstall(self, *files_or_namespaces):
+        self._install(files_or_namespaces, self._get_remaining_packages, True)
+        logger.info("Installation successful")
+
+    def install_overwrite(self, *files):
+        self._install(files, self._get_replaced_packages, True)
+        logger.info("Installation successful")
+
+    def get_installed_packages(self, return_path=False):
         result = list()
         for item in os.listdir(self.installed_path):
             if item.endswith(".yml"):
                 result.append(item.split(".")[0])
+                if return_path:
+                    result[-1] = (result[-1], item)
         return result
 
-    def get_remaining_packages(self, remove_packages):
+    def _get_remaining_packages(self, remove_packages):
         remove_pkgs = set()
         for pkg in remove_packages:
             if not pkg.endswith(".yml"):
@@ -40,164 +54,40 @@ class OntologyInstallationManager():
             else:
                 raise ValueError("Could not uninstall %s. No file nor "
                                  "installed ontology package." % pkg)
-        return set(self.get_installed_packages()) - remove_pkgs
+        installed_pkgs = self.get_installed_packages(return_path=True)
+        return [v for k, v in installed_pkgs if k not in remove_pkgs]
 
-    def install(self, *files, success_msg=True):
-        """Install the given files with the current namespace registry.
+    def _get_replaced_packages(self, new_packages):
+        installed = dict(self.get_installed_packages(return_path=True))
+        for pkg in new_packages:
+            with open(pkg, "r") as f:
+                installed[yaml.safe_load(f)[IDENTIFIER_KEY]] = pkg
+        return installed.values()
 
-        :param files: The files to install, defaults to None
-        :type files: str, optional
-        :param success_msg: Whether a logging message should be printed
-            if installation succeeds.
-        :type success_msg: bool
-        """
-        # parse the files
-        parser = Parser(self.namespace_registry._graph)
-        parser.parse(*files, skip_identifiers=self.get_installed_packages())
-        self.namespace_registry.update_namespaces()
-        # serialize the result
-        parser.store(self.installed_path)
-        self.namespace_registry.store(self.installed_path)
-        if success_msg:
-            logger.info("Installation successful!")
+    def _get_new_packages(self, packages):
+        result = set(packages)
+        installed = set(self.get_installed_packages())
+        for pkg in packages:
+            with open(pkg, "r") as f:
+                identifier = yaml.safe_load(f)[IDENTIFIER_KEY]
+                if identifier in installed:
+                    logger.info("Skipping package %s with identifier %s, "
+                                "because it is already installed."
+                                % (pkg, identifier))
+                    result.remove(pkg)
+        return result
 
-    def uninstall(self, *packages, success_msg=True, _force=False):
-        """Uninstall the given namespaces
-
-        :param packages: The packages to uninstall
-        :type packages: List[str]
-        :raises ValueError: The namespace to uninstall is not installed
-        :param success_msg: Whether a logging message should be printed
-            if uninstallation succeeds.
-        :type success_msg: bool
-        :param _force: Whether to uninstall even if resulting
-            state will be broken.
-            WARNING: Can result in broken state of osp-core.
-        :type _force: bool
-        """
-        graph = self.namespace_registry.clear()
-        remaining_packages = self.get_remaining_packages(packages)
+    def _install(self, files, filter_func, clear):
+        graph = self.namespace_registry._graph
+        if clear:
+            graph = self.namespace_registry.clear()
+        files = filter_func(files)
         parser = Parser(graph)
-        parser.parse(*remaining_packages)
+        parser.parse(*files)
         self.namespace_registry.update_namespaces()
         # serialize the result
-        shutil.rmtree(self.installed_path)
-        os.makedirs(self.installed_path)
+        if clear:
+            shutil.rmtree(self.installed_path)
+            os.makedirs(self.installed_path)
         parser.store(self.installed_path)
         self.namespace_registry.store(self.installed_path)
-        if success_msg:
-            logger.info("Uninstallation successful!")
-
-
-    # def install_overwrite(self, *files, use_pickle=True):
-    #     """Install the given files. Overwrite them if they have been installed already.
-
-    #     :param use_pickle: Whether to pickle for installing, defaults to True
-    #     :type use_pickle: bool, optional
-    #     """
-    #     try:
-    #         self._create_rollback_snapshot()
-    #         self.uninstall(*map(self._get_namespace, files),
-    #                        success_msg=False, _force=True)
-    #         try:
-    #             self.install(*files, use_pickle=use_pickle)
-    #         except Exception:  # unsatisfied requirements
-    #             self._rollback(use_pickle)
-    #             logger.error("Error during installation.",
-    #                          exc_info=1)
-    #             logger.error("Installation failed. Rolled back!")
-    #     finally:
-    #         self._dismiss_rollback_snapshot()
-
-    # def _create_rollback_snapshot(self):
-    #     """Create a snapshot of the installed ontologies:
-    #     Move the YAML file of all installed ontologies to a temporary directory
-    #     """
-    #     self._dismiss_rollback_snapshot()
-    #     logger.debug("Create snapshot of installed ontologies: %s"
-    #                  % os.listdir(self.installed_path))
-    #     logger.debug("Copy directory %s to %s"
-    #                  % (self.installed_path, self.rollback_path))
-    #     copytree(self.installed_path, self.rollback_path)
-
-    # def _dismiss_rollback_snapshot(self):
-    #     """Remove the temporary snapshot directory"""
-    #     if os.path.exists(self.rollback_path):
-    #         rmtree(self.rollback_path)
-    #     logger.debug("Dismiss snapshot of installed ontologies!")
-
-    # def _rollback(self, use_pickle=True):
-    #     """Dismiss the currently installed ontologies and go
-    #     back to the last snapshot.
-
-    #     :param use_pickle: Whether to use pickle for installation,
-    #         defaults to True
-    #     :type use_pickle: bool, optional
-    #     """
-    #     if os.path.exists(self.pkl_path):
-    #         os.remove(self.pkl_path)
-    #     rmtree(self.installed_path)
-    #     rmtree(self.tmp_path)
-    #     logger.debug("Rollback installed ontologies to last snapshot: %s"
-    #                  % os.listdir(self.rollback_path))
-    #     logger.debug("Copy directory %s to %s" % (self.rollback_path,
-    #                                               self.installed_path))
-    #     copytree(self.rollback_path, self.installed_path)
-    #     self.initialise_installed_ontologies()
-    #     self.install(use_pickle=use_pickle, success_msg=False)
-
-    # @staticmethod
-    # def _get_onto_metadata(file_path):
-    #     """Get the metadata of the ontology
-
-    #     :param file_path: The path to the yaml ontology file
-    #     :type file_path: str
-    #     :raises RuntimeError: There is no namespace defined
-    #     """
-
-    #     # Get the namespace
-    #     file_path = Parser.get_filepath(file_path)
-    #     lines = ""
-    #     with open(file_path, "r") as f:
-    #         for line in f:
-    #             lines += line
-    #             line = line.strip().lower()
-    #             if line.startswith(ONTOLOGY_KEY):
-    #                 break
-    #     return yaml.safe_load(lines)
-
-    # @staticmethod
-    # def _get_namespace(file_path):
-    #     """Get the namespace of the ontology
-
-    #     :param file_path: The path to the yaml ontology file
-    #     :type file_path: str
-    #     :raises RuntimeError: There is no namespace defined
-    #     """
-    #     yaml_doc = OntologyInstallationManager._get_onto_metadata(file_path)
-    #     return yaml_doc[NAMESPACE_KEY].lower()
-
-    # @staticmethod
-    # def get_requirements(file_path):
-    #     """Get the requirements of a yml file
-
-    #     :param file_path: The path to the yaml ontology file
-    #     :type file_path: str
-    #     """
-    #     yaml_doc = OntologyInstallationManager._get_onto_metadata(file_path)
-    #     try:
-    #         req = set(map(str.lower, yaml_doc[REQUIREMENTS_KEY])) | {"cuba"}
-    #         logger.debug("%s has the following requirements: %s"
-    #                      % (file_path, req))
-    #         return req
-    #     except KeyError:
-    #         return set(["cuba"])
-
-    # def set_module_attr(self, module=None):
-    #     if module is None:
-    #         import osp.core as module
-    #     setattr(module, "ONTOLOGY_NAMESPACE_REGISTRY",
-    #             self.namespace_registry)
-    #     for name, namespace in self.namespace_registry._namespaces.items():
-    #         setattr(module, name.upper(), namespace)
-    #         setattr(module, name.lower(), namespace)
