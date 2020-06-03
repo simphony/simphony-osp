@@ -9,7 +9,7 @@ from osp.core.session.core_session import CoreSession
 from .test_session_city import TestWrapperSession
 from osp.core.session.buffers import EngineContext
 from osp.core.utils import (
-    destroy_cuds_object, clone_cuds_object,
+    clone_cuds_object,
     create_recycle, create_from_cuds_object,
     check_arguments, format_class_name, find_cuds_object,
     find_cuds_object_by_uid, remove_cuds_object,
@@ -149,26 +149,6 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(result.is_a(CITY.CITIZEN))
         self.assertEqual(result.name, "Peter")
         self.assertEqual(result.age, 23)
-
-    def test_destroy_cuds_object(self):
-        """Test destroying of cuds"""
-        a = CITY.CITY(name="Freiburg")
-        b = CITY.CITIZEN(age=12, name="Horst")
-        with CoreSession() as session:
-            w = CITY.CITY_WRAPPER(session=session)
-            aw = w.add(a)
-            bw = aw.add(b, rel=CITY.HAS_INHABITANT)
-            session._expired = {bw.uid}
-            destroy_cuds_object(aw)
-
-            self.assertEqual(a.name, "Freiburg")
-            self.assertEqual(bw.name, "Horst")
-            self.assertFalse(hasattr(aw, "name"))
-            self.assertEqual(aw.get(), [])
-
-            destroy_cuds_object(bw)
-            self.assertFalse(hasattr(bw, "name"))
-            self.assertEqual(session._expired, set())
 
     def test_clone_cuds_object(self):
         """Test cloning of cuds"""

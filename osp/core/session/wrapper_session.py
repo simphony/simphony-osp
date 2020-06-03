@@ -3,7 +3,7 @@ import logging
 from abc import abstractmethod
 from osp.core.session.session import Session
 from osp.core.session.result import returns_query_result
-from osp.core.utils import destroy_cuds_object, clone_cuds_object, \
+from osp.core.utils import clone_cuds_object, \
     get_neighbor_diff
 from osp.core.session.buffers import BufferType, BufferContext, \
     EngineContext
@@ -70,8 +70,9 @@ class WrapperSession(Session):
             old_cuds_object = self._get_old_cuds_object_clone(uid)
             new_cuds_object = self._get_next_missing(missing)
             self._expire_neighour_diff(old_cuds_object, new_cuds_object, uids)
-            if old_cuds_object is not None and new_cuds_object is None:
-                destroy_cuds_object(self._registry.get(uid))
+            if old_cuds_object is not None and new_cuds_object is None \
+                    and uid in self._registry:
+                del self._registry[uid]
             yield new_cuds_object
 
     def expire(self, *cuds_or_uids):
@@ -229,6 +230,10 @@ class WrapperSession(Session):
         logger.debug("Called notify_read on %s in %s" % (cuds_object, self))
         if cuds_object.uid in self._expired:
             self.refresh(cuds_object)
+        if cuds_object.uid not in self._registry and cuds_object._stored:
+            cuds_object._neighbors = dict()
+            cuds_object._attr_values = dict()
+            cuds_object._onto_attributes = dict()
 
     def _expire(self, uids):
         """Expire the given uids
@@ -326,10 +331,10 @@ class WrapperSession(Session):
         :return: A clone of the old cuds object
         :rtype: Optional[Cuds]
         """
-        old_cuds = None
+        clone = None
         if uid in self._registry:
-            old_cuds = clone_cuds_object(self._registry.get(uid))
-        return old_cuds
+            clone = clone_cuds_object(self._registry.get(uid))
+        return clone
 
     @staticmethod
     def handshake(username, connection_id):
