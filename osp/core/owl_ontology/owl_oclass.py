@@ -8,7 +8,6 @@
 
 from osp.core.owl_ontology.owl_entity import OntologyEntity
 import logging
-import rdflib
 
 logger = logging.getLogger(__name__)
 
