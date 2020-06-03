@@ -95,7 +95,8 @@ def clone_cuds_object(cuds_object):
     return clone
 
 
-def create_recycle(oclass, kwargs, session, uid, fix_neighbors=True):
+def create_recycle(oclass, kwargs, session, uid,
+                   fix_neighbors=True, _force=False):
     """Instantiate a cuds_object with a given session.
     If cuds_object with same uid is already in the session,
     this object will be reused.
@@ -128,7 +129,7 @@ def create_recycle(oclass, kwargs, session, uid, fix_neighbors=True):
                 cuds_object.remove(rel=rel)
         change_oclass(cuds_object, oclass, kwargs)
     else:  # create new
-        cuds_object = oclass(uid=uid, session=session, **kwargs, _force=True)
+        cuds_object = oclass(uid=uid, session=session, **kwargs, _force=_force)
     return cuds_object
 
 
