@@ -26,7 +26,7 @@ setup(
     long_description=README_TEXT,
     packages=find_packages(exclude=("examples", "tests")),
     package_data={
-        "osp.core.ontology.yml": ["*.yml"],
+        "osp.core.ontology.files": ["*.yml", "*.owl"],
         "osp.core.java.lib.so": ["*"],
         "osp.core.java.lib.jars": ["*.jar"]
     },
