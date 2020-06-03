@@ -80,27 +80,6 @@ def get_neighbor_diff(cuds1, cuds2, mode="all"):
     return result
 
 
-def destroy_cuds_object(cuds_object):
-    """Reset all attributes and relationships.
-    Use this for example if a cuds object has been deleted on the backend.
-
-    :param cuds_object: The cuds object to destroy
-    :type cuds_object: Cuds
-    """
-    session = cuds_object.session
-    if hasattr(session, "_expired") and cuds_object.uid in session._expired:
-        session._expired.remove(cuds_object.uid)
-    for rel in set(cuds_object._neighbors.keys()):
-        del cuds_object._neighbors[rel]
-    for attr in cuds_object.oclass.attributes:
-        del cuds_object._attr_values[attr.argname]
-        del cuds_object._onto_attributes[attr.argname]
-    if cuds_object.uid in cuds_object._session._registry:
-        del cuds_object._session._registry[cuds_object.uid]
-    session._notify_delete(cuds_object)
-    cuds_object._oclass = None
-
-
 def clone_cuds_object(cuds_object):
     """Avoid that the session gets copied.
 
@@ -112,6 +91,7 @@ def clone_cuds_object(cuds_object):
     session = cuds_object._session
     clone = deepcopy(cuds_object)
     clone._session = session
+    clone._stored = False
     return clone
 
 
@@ -148,7 +128,7 @@ def create_recycle(oclass, kwargs, session, uid, fix_neighbors=True):
                 cuds_object.remove(rel=rel)
         change_oclass(cuds_object, oclass, kwargs)
     else:  # create new
-        cuds_object = oclass(uid=uid, session=session, **kwargs)
+        cuds_object = oclass(uid=uid, session=session, **kwargs, _force=True)
     return cuds_object
 
 
@@ -204,7 +184,7 @@ def change_oclass(cuds_object, new_oclass, kwargs):
                     new_oclass
 
     # update attributes
-    attributes = new_oclass._get_attributes_values(kwargs)
+    attributes = new_oclass._get_attributes_values(kwargs, False)
     cuds_object._attr_values = {k.argname: k.convert_to_datatype(v)
                                 for k, v in attributes.items()}
     cuds_object._onto_attributes = {k.argname: k for k in attributes}

@@ -8,7 +8,7 @@ from osp.core.session.transport.communication_engine \
     import CommunicationEngineServer
 from osp.core.session.transport.transport_utils import (
     INITIALIZE_COMMAND, LOAD_COMMAND, HANDSHAKE_COMMAND, deserialize,
-    deserialize_buffers, serializable, serialize_buffers
+    deserialize_buffers, serialize_buffers
 )
 
 logger = logging.getLogger(__name__)
@@ -147,8 +147,8 @@ class TransportSessionServer():
             temp_directory=temp_directory,
             target_directory=self._file_destination
         )["uids"]
-        cuds_objects = session.load(*uids)
-        additional = {"result": [serializable(x) for x in cuds_objects]}
+        cuds_objects = list(session.load(*uids))
+        additional = {"result": cuds_objects}
         return serialize_buffers(session, buffer_context=BufferContext.ENGINE,
                                  additional_items=additional)
 

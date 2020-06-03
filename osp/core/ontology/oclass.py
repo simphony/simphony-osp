@@ -101,7 +101,7 @@ class OntologyClass(OntologyEntity, ClassExpression):
         logger.debug("Add attribute %s to %s" % (attribute, self))
         self._attributes[attribute] = default
 
-    def _get_attributes_values(self, kwargs):
+    def _get_attributes_values(self, kwargs, _force):
         """Get the cuds object's attributes from the given kwargs.
         Combine defaults and given attribute attributes
 
@@ -122,14 +122,16 @@ class OntologyClass(OntologyEntity, ClassExpression):
                 attributes[attribute] = default
 
         # Check validity of arguments
-        if kwargs:
-            raise TypeError("Unexpected keyword arguments: %s" % kwargs.keys())
-        missing = [k.argname for k, v in attributes.items() if v is None]
-        if missing:
-            raise TypeError("Missing keyword arguments: %s" % missing)
+        if not _force:
+            if kwargs:
+                raise TypeError("Unexpected keyword arguments: %s"
+                                % kwargs.keys())
+            missing = [k.argname for k, v in attributes.items() if v is None]
+            if missing:
+                raise TypeError("Missing keyword arguments: %s" % missing)
         return attributes
 
-    def __call__(self, uid=None, session=None, **kwargs):
+    def __call__(self, uid=None, session=None, _force=False, **kwargs):
         """Create a Cuds object from this ontology class.
 
         :param uid: The uid of the Cuds object. Should be set to None in most
@@ -154,7 +156,8 @@ class OntologyClass(OntologyEntity, ClassExpression):
 
         # build attributes dictionary by combining
         # kwargs and defaults
-        return Cuds(attributes=self._get_attributes_values(kwargs),
+        return Cuds(attributes=self._get_attributes_values(kwargs,
+                                                           _force=_force),
                     oclass=self,
                     session=session,
                     uid=uid)
