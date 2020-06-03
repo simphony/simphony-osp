@@ -158,6 +158,14 @@ def move_files(file_cuds, temp_directory, target_directory):
             result.append(target_path)
         else:
             logger.debug("Will not move %s to %s" % (path, target_path))
+            if not os.path.exists(os.path.dirname(target_path)):
+                logger.debug("Reason: Target path does not exist")
+            if not os.path.exists(path):
+                logger.debug("Reason: File to move does not exist")
+            if os.path.exists(target_path) and os.path.samefile(path,
+                                                                target_path):
+                logger.debug("Reason: The exact same file is already present "
+                             "at the destination")
     return result
 
 

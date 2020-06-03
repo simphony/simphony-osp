@@ -15,8 +15,8 @@ ALL_KEYS = set([
     IDENTIFIER_KEY
 ])
 
-ACTIVE_REL_IRI = rdflib.URIRef("http://osp-core.com/default_rel")  # TODO move
-DEFAULT_REL_IRI = rdflib.URIRef("http://osp-core.com/cuba/ActiveRelationship")
+DEFAULT_REL_IRI = rdflib.URIRef("http://osp-core.com/default_rel")  # TODO move
+ACTIVE_REL_IRI = rdflib.URIRef("http://osp-core.com/cuba/ActiveRelationship")
 
 
 class Parser():

@@ -1,0 +1,81 @@
+---
+version: "0.0.1"
+
+namespace: "PARSER_TEST"
+
+requirements:
+- CITY
+
+ontology:
+
+  ENTITY_A:
+    attributes:
+      PARSER_TEST.ATTRIBUTE_A: DEFAULT_A
+    subclass_of: 
+    - CUBA.ENTITY
+  
+  ENTITY_B:
+    attributes:
+      PARSER_TEST.ATTRIBUTE_A: DEFAULT_B
+    subclass_of:
+    - CUBA.ENTITY
+
+  ENTITY_C:
+    subclass_of:
+    - PARSER_TEST.ENTITY_A
+    - PARSER_TEST.ENTITY_B
+
+  ENTITY_D:
+    attributes:
+      PARSER_TEST.ATTRIBUTE_A: DEFAULT_D
+    subclass_of:
+    - PARSER_TEST.ENTITY_A
+    - PARSER_TEST.ENTITY_B
+
+  ATTRIBUTE_A:
+    datatype: STRING
+    subclass_of:
+    - CUBA.ATTRIBUTE
+
+  ATTRIBUTE_B:
+    datatype: INT
+    subclass_of:
+    - CUBA.ATTRIBUTE
+
+  ATTRIBUTE_C:
+    subclass_of:
+    - PARSER_TEST.ATTRIBUTE_A
+    - PARSER_TEST.ATTRIBUTE_B
+
+  ATTRIBUTE_D:
+    datatype: FLOAT
+    subclass_of:
+    - PARSER_TEST.ATTRIBUTE_A
+    - PARSER_TEST.ATTRIBUTE_B
+
+  RELATIONSHIP_A:
+    subclass_of:
+    - CUBA.ACTIVE_RELATIONSHIP
+    domain:
+      or:
+      - PARSER_TEST.ENTITY_A
+      - PARSER_TEST.ENTITY_B
+    range:
+      PARSER_TEST.RELATIONSHIP_A:
+        range: PARSER_TEST.ENTITY_A
+        cardinality: some
+        exclusive: true
+  
+  RELATIONSHIP_B:
+    subclass_of:
+    - PARSER_TEST.RELATIONSHIP_A
+    - CUBA.ACTIVE_RELATIONSHIP
+    domain:
+      and:
+      - PARSER_TEST.ENTITY_C
+      - not: PARSER_TEST.ENTITY_D
+  
+  RELATIONSHIP_C:
+    subclass_of:
+    - CUBA.RELATIONSHIP
+    inverse: PARSER_TEST.RELATIONSHIP_A

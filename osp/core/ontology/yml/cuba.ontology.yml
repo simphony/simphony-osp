@@ -1,0 +1,63 @@
+---
+version: "0.0.1"
+
+namespace: CUBA
+
+iri: http://osp-core.com/cuba/
+
+ontology:
+
+  ENTITY:
+    description: The root of the ontology.
+    subclass_of: []
+  
+  NOTHING:
+    description: A class without any individuals.
+    subclass_of:
+    - CUBA.ENTITY
+
+ ################
+
+  RELATIONSHIP:
+    description: The root of all relationships.
+    subclass_of:
+    - CUBA.ENTITY
+    inverse: CUBA.RELATIONSHIP
+
+  ACTIVE_RELATIONSHIP:
+    description: The root of all active relationships. Active relationships express that one cuds object is in the container of another.
+    subclass_of:
+    - CUBA.RELATIONSHIP
+    inverse: CUBA.PASSIVE_RELATIONSHIP
+
+  PASSIVE_RELATIONSHIP:
+    description: The inverse of ACTIVE_RELATIONSHIP.
+    subclass_of:
+    - CUBA.RELATIONSHIP
+    inverse: CUBA.ACTIVE_RELATIONSHIP 
+    
+
+  ################
+
+  WRAPPER:
+    description: The root of all wrappers. These are the bridge to simulation engines and databases.
+    subclass_of:
+    - CUBA.ENTITY
+
+  ATTRIBUTE:
+    description: The root of all attributes.
+    subclass_of:
+    - CUBA.ENTITY
+
+  FILE:
+    description: An entity associated to a binary file
+    subclass_of:
+      - CUBA.ENTITY
+    attributes:
+      CUBA.PATH: ~
+
+  PATH:
+    description: The path to a local file.
+    subclass_of:
+      - CUBA.ATTRIBUTE
+    datatype: STRING
