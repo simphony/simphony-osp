@@ -1,12 +1,21 @@
-import os
+# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
+# Fraunhofer IWM.
+# All rights reserved.
+# Redistribution and use are limited to the scope agreed with the end user.
+# No parts of this software may be used outside of this context.
+# No redistribution is allowed without explicit written permission.
 
-MAIN_ONTOLOGY_NAMESPACE = "CUBA".lower()
-MAIN_ONTOLOGY_PATH = os.path.join(os.path.dirname(__file__),
-                                  "yml", "cuba.ontology.yml")
+import os
+import logging
+import rdflib
+from osp.core.ontology.namespace import OntologyNamespace
+
+logger = logging.getLogger(__name__)
 
 
 class NamespaceRegistry():
     def __init__(self):
+        self._graph = rdflib.Graph()
         self._namespaces = dict()
 
     def __iter__(self):
@@ -15,7 +24,8 @@ class NamespaceRegistry():
         :return: An iterator over the namespaces.
         :rtype: Iterator[OntologyNamespace]
         """
-        return iter(self._namespaces.values())
+        for namespace_name in self._namespaces:
+            yield self._get(namespace_name)
 
     def __getattr__(self, name):
         try:
@@ -44,49 +54,45 @@ class NamespaceRegistry():
             return fallback
 
     def _get(self, name):
-        try:
-            return self._namespaces[name.lower()]
-        except KeyError as e:
-            raise KeyError("namespace %s not installed" % name) from e
+        if name in self._namespaces:
+            return OntologyNamespace(name=name,
+                                     namespace_registry=self,
+                                     iri=self._namespaces[name])
+        raise KeyError("Namespace %s not installed." % name)
 
-    @property
-    def default_rel(self):
-        """Get the default relationship.
+    def update_namespaces(self):
+        for name, iri in self._graph.namespace_manager.namespaces():
+            self._namespaces[name] = iri
 
-        :return: The default relationship.
-        :rtype: OntologyRelationship
-        """
-        rels = list()
-        for namespace in self._namespaces.values():
-            if namespace.default_rel is not None:
-                rels.append(namespace.default_rel)
-        if len(rels) == 1:
-            return rels[0]
+    def from_iri(self, iri):
+        for name, ns_iri in self._graph.namespace_manager.namespaces():
+            if str(iri).startswith(str(ns_iri)):
+                return OntologyNamespace(
+                    name=name,
+                    namespace_registry=self,
+                    iri=ns_iri
+                ).get(iri[len(ns_iri):])
 
-    def _add_namespace(self, namespace):
-        """Add a namespace to the registry
+    def clear(self):
+        self._graph = rdflib.Graph()
+        return self._graph
 
-        :param namespace: The namespace to add
-        :type namespace: OntologyNamespace
-        :raises ValueError: The namespaces added first must have name CUBA
-        """
-        from osp.core.ontology.namespace import OntologyNamespace
-        assert isinstance(namespace, OntologyNamespace)
-        assert (
-            bool(namespace.name.lower() == MAIN_ONTOLOGY_NAMESPACE)
-            != bool(self._namespaces)
-        ), ("CUBA namespace must be installed first. "
-            "Installing %s. Already installed: %s"
-            % (namespace.name, self._namespaces.keys()))
-        if namespace.name.lower() in self._namespaces:
-            raise ValueError("Namespace %s already added to namespace "
-                             "registry!" % namespace.name)
-        self._namespaces[namespace.name.lower()] = namespace
+    def store(self, path):
+        path_graph = os.path.join(path, "graph.xml")
+        path_ns = os.path.join(path, "namespaces.txt")
+        self._graph.serialize(destination=path_graph, format="xml")
+        with open(path_ns, "w") as f:
+            for name, iri in self._graph.namespace_manager.namespaces():
+                print("%s\t%s" % (name, iri), file=f)
 
-    def get_main_namespace(self):
-        """Get the main namespace (CUBA)
-
-        :return: The main namespace
-        :rtype: OntologyNamespace
-        """
-        return self._namespaces[MAIN_ONTOLOGY_NAMESPACE]
+    def load(self, path):
+        path_graph = os.path.join(path, "graph.xml")
+        path_ns = os.path.join(path, "namespaces.txt")
+        if os.path.exists(path_graph):
+            self._graph.parse(path_graph)
+        if os.path.exists(path_ns):
+            with open(path_ns, "r") as f:
+                for line in f:
+                    name, iri = line.strip("\n").split("\t")
+                    self._graph.bind(name, rdflib.URIRef(iri))
+            self.update_namespaces()

@@ -1,6 +1,6 @@
 import os as _os
 import logging as _logging
-from osp.core.owl_ontology.owl_namespace_registry import NamespaceRegistry \
+from osp.core.ontology.namespace_registry import NamespaceRegistry \
     as _NamespaceRegistry
 
 _logger = _logging.getLogger(__name__)

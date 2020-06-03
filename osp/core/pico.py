@@ -1,6 +1,6 @@
 import argparse
 import logging
-from osp.core.owl_ontology.owl_installation import OntologyInstallationManager
+from osp.core.ontology.installation import OntologyInstallationManager
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
-from osp.core.owl_ontology.owl_entity import OntologyEntity
+from osp.core.ontology.entity import OntologyEntity
 import logging
 
 logger = logging.getLogger(__name__)
