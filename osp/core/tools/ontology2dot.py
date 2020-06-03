@@ -106,7 +106,7 @@ class Ontology2Dot():
         :type oclass: OntologyClass
         """
         attr = ""
-        for key, value in oclass.attributes.items():
+        for key, value in oclass.get_attributes().items():
             attr += self.attribute.format(key.argname, value)
         label = self.label.format(str(oclass), attr)
         if oclass.namespace in self._namespaces:

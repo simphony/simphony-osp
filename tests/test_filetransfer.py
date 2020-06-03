@@ -273,8 +273,8 @@ class TestFiletransfer(unittest.TestCase):
                              target_full_path[2])
             self.assertEqual(updated[uuid.UUID(int=1)].path,
                              target_full_path[0])
-            self.assertEqual(deleted[uuid.UUID(int=2)].path,
-                             target_full_path[1])
+            self.assertRaises(AttributeError, getattr,
+                              deleted[uuid.UUID(int=2)], "path")
 
     def test_get_file_cuds(self):
         """Test extracting the file cuds from a datatstructure"""

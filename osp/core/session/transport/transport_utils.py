@@ -158,6 +158,14 @@ def move_files(file_cuds, temp_directory, target_directory):
             result.append(target_path)
         else:
             logger.debug("Will not move %s to %s" % (path, target_path))
+            if not os.path.exists(os.path.dirname(target_path)):
+                logger.debug("Reason: Target path does not exist")
+            if not os.path.exists(path):
+                logger.debug("Reason: File to move does not exist")
+            if os.path.exists(target_path) and os.path.samefile(path,
+                                                                target_path):
+                logger.debug("Reason: The exact same file is already present "
+                             "at the destination")
     return result
 
 
@@ -261,11 +269,9 @@ def _serializable(cuds_object):
               "uid": convert_from(cuds_object.uid, "UUID"),
               "attributes": dict(),
               "relationships": dict()}
-    attributes = cuds_object.oclass.attributes
-    for attribute in attributes:
+    for attribute, value in cuds_object.get_attributes().items():
         result["attributes"][attribute.argname] = convert_from(
-            getattr(cuds_object, attribute.argname),
-            attribute.datatype
+            value, attribute.datatype
         )
     for rel in cuds_object._neighbors:
         result["relationships"][str(rel)] = {
