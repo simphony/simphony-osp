@@ -11,16 +11,9 @@ logger = logging.getLogger(__name__)
 class OntologyInstallationManager():
     def __init__(self, namespace_registry=None, path=None):
         self.namespace_registry = namespace_registry
+        self.path = path or namespaces._path
         if self.namespace_registry is None:
             self.namespace_registry = namespaces._namespace_registry
-
-        if path is None:
-            self.main_path = namespaces._path
-            self.installed_path = namespaces._installed_path
-        else:
-            self.main_path = path
-            self.installed_path = os.path.join(self.main_path, "installed")
-        self.rollback_path = os.path.join(self.main_path, "rollback")
 
     def install(self, *files):
         self._install(files, self._get_new_packages, False)
@@ -28,7 +21,7 @@ class OntologyInstallationManager():
 
     def uninstall(self, *files_or_namespaces):
         self._install(files_or_namespaces, self._get_remaining_packages, True)
-        logger.info("Installation successful")
+        logger.info("Uninstallation successful")
 
     def install_overwrite(self, *files):
         self._install(files, self._get_replaced_packages, True)
@@ -36,7 +29,7 @@ class OntologyInstallationManager():
 
     def get_installed_packages(self, return_path=False):
         result = list()
-        for item in os.listdir(self.installed_path):
+        for item in os.listdir(self.path):
             if item.endswith(".yml"):
                 result.append(item.split(".")[0])
                 if return_path:
@@ -87,7 +80,7 @@ class OntologyInstallationManager():
         self.namespace_registry.update_namespaces()
         # serialize the result
         if clear:
-            shutil.rmtree(self.installed_path)
-            os.makedirs(self.installed_path)
-        parser.store(self.installed_path)
-        self.namespace_registry.store(self.installed_path)
+            shutil.rmtree(self.path)
+            os.makedirs(self.path)
+        parser.store(self.path)
+        self.namespace_registry.store(self.path)
