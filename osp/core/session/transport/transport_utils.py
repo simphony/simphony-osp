@@ -269,11 +269,9 @@ def _serializable(cuds_object):
               "uid": convert_from(cuds_object.uid, "UUID"),
               "attributes": dict(),
               "relationships": dict()}
-    attributes = cuds_object.oclass.attributes
-    for attribute in attributes:
+    for attribute, value in cuds_object.get_attributes().items():
         result["attributes"][attribute.argname] = convert_from(
-            getattr(cuds_object, attribute.argname),
-            attribute.datatype
+            value, attribute.datatype
         )
     for rel in cuds_object._neighbors:
         result["relationships"][str(rel)] = {
@@ -307,7 +305,8 @@ def _to_cuds_object(json_obj, session, buffer_context):
                                      kwargs=attributes,
                                      session=session,
                                      uid=json_obj["uid"],
-                                     fix_neighbors=False)
+                                     fix_neighbors=False,
+                                     _force=True)
 
         for rel_name, obj_dict in relationships.items():
             rel = get_entity(rel_name)

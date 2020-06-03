@@ -9,7 +9,7 @@ from osp.core.session.core_session import CoreSession
 from .test_session_city import TestWrapperSession
 from osp.core.session.buffers import EngineContext
 from osp.core.utils import (
-    destroy_cuds_object, clone_cuds_object,
+    clone_cuds_object,
     create_recycle, create_from_cuds_object,
     check_arguments, format_class_name, find_cuds_object,
     find_cuds_object_by_uid, remove_cuds_object,
@@ -67,6 +67,9 @@ class TestUtils(unittest.TestCase):
     def test_validate_tree_against_schema(self):
         """Test validation of CUDS tree against schema.yml"""
         schema_file = 'test_validation_schema_city.yml'
+        schema_file_with_missing_entity = \
+            'test_validation_schema_city_with_missing_entity.yml'
+
         c = CITY.CITY(name='freiburg')
         with self.assertRaises(Exception) as context:
             # empty city does not fulfil any constraint
@@ -85,11 +88,13 @@ class TestUtils(unittest.TestCase):
 
         c.get(oclass=CITY.NEIGHBORHOOD)[0].add(CITY.STREET(name='abc street'))
         c.remove(oclass=CITY.CITIZEN)
+
         with self.assertRaises(Exception) as context:
-            # citizen violated
-            validate_tree_against_schema(c, schema_file)
-            self.assertTrue('CITIZEN' in str(context.exception))
-            self.assertTrue('CITY' in str(context.exception))
+            # entity is missing completely in cuds tree
+            validate_tree_against_schema(c, schema_file_with_missing_entity)
+            self.assertTrue('Instance of entity' in str(context.exception))
+            self.assertTrue('CITY.GEOGRAPHICAL_PLACE' in
+                            str(context.exception))
 
     def test_branch(self):
         x = branch(
@@ -144,26 +149,6 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(result.is_a(CITY.CITIZEN))
         self.assertEqual(result.name, "Peter")
         self.assertEqual(result.age, 23)
-
-    def test_destroy_cuds_object(self):
-        """Test destroying of cuds"""
-        a = CITY.CITY(name="Freiburg")
-        b = CITY.CITIZEN(age=12, name="Horst")
-        with CoreSession() as session:
-            w = CITY.CITY_WRAPPER(session=session)
-            aw = w.add(a)
-            bw = aw.add(b, rel=CITY.HAS_INHABITANT)
-            session._expired = {bw.uid}
-            destroy_cuds_object(aw)
-
-            self.assertEqual(a.name, "Freiburg")
-            self.assertEqual(bw.name, "Horst")
-            self.assertFalse(hasattr(aw, "name"))
-            self.assertEqual(aw.get(), [])
-
-            destroy_cuds_object(bw)
-            self.assertFalse(hasattr(bw, "name"))
-            self.assertEqual(session._expired, set())
 
     def test_clone_cuds_object(self):
         """Test cloning of cuds"""

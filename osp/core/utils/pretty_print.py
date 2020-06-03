@@ -103,9 +103,8 @@ def _pp_values(cuds_object, indentation="\n          "):
     :rtype: [type]
     """
     result = []
-    for value in cuds_object.oclass.attributes:
-        if value.argname != "name":
-            v = getattr(cuds_object, value.argname)
-            result.append("%s: %s" % (value.argname, v))
+    for attribute, value in cuds_object.get_attributes().items():
+        if attribute.argname != "name":
+            result.append("%s: %s" % (attribute.argname, value))
     if result:
         return indentation.join(result)

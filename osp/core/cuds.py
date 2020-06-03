@@ -54,6 +54,7 @@ class Cuds():
         Raises:
             ValueError: Uid of zero is not allowed.
         """
+        self._stored = False
         # self._attr_values = {k.argname: k.convert_to_datatype(v)
         #                      for k, v in attributes.items()}
         self._neighbors = NeighborDictRel({}, self)
@@ -65,6 +66,7 @@ class Cuds():
         # self._onto_attributes = {k.argname: k for k in attributes}
         self._oclass = oclass
         self.session._store(self)
+        self._stored = True
 
     @property
     def uid(self) -> uuid.UUID:
@@ -103,7 +105,8 @@ class Cuds():
         """Get the attributes as a dictionary"""
         result = {}
         for attribute in self.oclass.attributes:
-            result[attribute] = getattr(self, attribute.argname)
+            if hasattr(self, attribute.argname):
+                result[attribute] = getattr(self, attribute.argname)
         return result
 
     def is_a(self, oclass):
