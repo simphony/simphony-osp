@@ -98,7 +98,8 @@ def deserialize_buffers(session_obj, buffer_context, data,
         for k, v in data.items():
             d = deserialize(json_obj=v,
                             session=session_obj,
-                            buffer_context=buffer_context)
+                            buffer_context=buffer_context,
+                            _force=(k=="deleted"))
             deserialized[k] = d
             move_files(get_file_cuds(d), temp_directory, target_directory)
         deleted = deserialized["deleted"] if "deleted" in deserialized else []
@@ -169,7 +170,7 @@ def move_files(file_cuds, temp_directory, target_directory):
     return result
 
 
-def deserialize(json_obj, session, buffer_context):
+def deserialize(json_obj, session, buffer_context, _force=False):
     """Deserialize a json object, instantiate the Cuds object in there.
 
     :param json_obj: The json object do deserialize.
@@ -188,14 +189,15 @@ def deserialize(json_obj, session, buffer_context):
     if isinstance(json_obj, (str, int, float)):
         return json_obj
     if isinstance(json_obj, list):
-        return [deserialize(x, session, buffer_context)
+        return [deserialize(x, session, buffer_context, _force=_force)
                 for x in json_obj]
     if isinstance(json_obj, dict) \
             and "oclass" in json_obj \
             and "uid" in json_obj \
             and "attributes" in json_obj \
             and "relationships" in json_obj:
-        cuds = _to_cuds_object(json_obj, session, buffer_context)
+        cuds = _to_cuds_object(json_obj, session, buffer_context,
+                               _force=_force)
         return cuds
     if isinstance(json_obj, dict) \
             and set(["UUID"]) == set(json_obj.keys()):
@@ -204,7 +206,7 @@ def deserialize(json_obj, session, buffer_context):
             and set(["ENTITY"]) == set(json_obj.keys()):
         return get_entity(json_obj["ENTITY"])
     if isinstance(json_obj, dict):
-        return {k: deserialize(v, session, buffer_context)
+        return {k: deserialize(v, session, buffer_context, _force=_force)
                 for k, v in json_obj.items()}
     raise ValueError("Could not deserialize %s." % json_obj)
 
@@ -281,7 +283,7 @@ def _serializable(cuds_object):
     return result
 
 
-def _to_cuds_object(json_obj, session, buffer_context):
+def _to_cuds_object(json_obj, session, buffer_context, _force=False):
     """Transform a json serializable dict to a cuds_object
 
     :param json_obj: The json object to convert to a Cuds object
@@ -306,7 +308,7 @@ def _to_cuds_object(json_obj, session, buffer_context):
                                      session=session,
                                      uid=json_obj["uid"],
                                      fix_neighbors=False,
-                                     _force=True)
+                                     _force=_force)
 
         for rel_name, obj_dict in relationships.items():
             rel = get_entity(rel_name)
