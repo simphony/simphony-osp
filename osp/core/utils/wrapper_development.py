@@ -127,7 +127,7 @@ def create_recycle(oclass, kwargs, session, uid,
                 del cuds_object._neighbors[rel]
             else:
                 cuds_object.remove(rel=rel)
-        change_oclass(cuds_object, oclass, kwargs)
+        change_oclass(cuds_object, oclass, kwargs, _force=_force)
     else:  # create new
         cuds_object = oclass(uid=uid, session=session, **kwargs, _force=_force)
     return cuds_object
@@ -161,7 +161,7 @@ def create_from_cuds_object(cuds_object, session):
     return clone
 
 
-def change_oclass(cuds_object, new_oclass, kwargs):
+def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
     """Change the oclass of a cuds object. Only allowed if cuds object does
     not have any neighbors.
 
@@ -185,7 +185,7 @@ def change_oclass(cuds_object, new_oclass, kwargs):
                     new_oclass
 
     # update attributes
-    attributes = new_oclass._get_attributes_values(kwargs, False)
+    attributes = new_oclass._get_attributes_values(kwargs, _force=_force)
     cuds_object._attr_values = {k.argname: k.convert_to_datatype(v)
                                 for k, v in attributes.items()}
     cuds_object._onto_attributes = {k.argname: k for k in attributes}
