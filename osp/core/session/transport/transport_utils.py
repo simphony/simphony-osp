@@ -99,7 +99,7 @@ def deserialize_buffers(session_obj, buffer_context, data,
             d = deserialize(json_obj=v,
                             session=session_obj,
                             buffer_context=buffer_context,
-                            _force=(k=="deleted"))
+                            _force=(k == "deleted"))
             deserialized[k] = d
             move_files(get_file_cuds(d), temp_directory, target_directory)
         deleted = deserialized["deleted"] if "deleted" in deserialized else []
