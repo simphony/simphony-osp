@@ -5,7 +5,13 @@ from osp.core.session import DbWrapperSession
 class DataspaceSession(TransportSessionClient):
     """The dataspace wrapper connects OSP-core to a dataspace."""
 
-    def __init__(self, uri, file_destination=None, connect_kwargs=None):
+    def __init__(
+        self,
+        uri,
+        file_destination=None,
+        connect_kwargs=None,
+        **kwargs
+    ):
         """Constructs the dataspace session.
 
         Args:
@@ -14,5 +20,6 @@ class DataspaceSession(TransportSessionClient):
         """
         super().__init__(
             DbWrapperSession, uri, file_destination,
-            connect_kwargs=connect_kwargs
+            connect_kwargs=connect_kwargs,
+            **kwargs
         )
