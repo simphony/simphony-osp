@@ -16,6 +16,29 @@ class TestSessionCity(unittest.TestCase):
     def setUp(self):
         pass
 
+    def test_delete_cuds_object(self):
+        """Tests the pruning method"""
+        with TestWrapperSession() as session:
+            w = CITY.CITY_WRAPPER(session=session)
+            cities = list()
+            neighborhoods = list()
+            for i in range(2):
+                c = CITY.CITY(name="city %s" % i)
+                for j in range(2):
+                    n = CITY.NEIGHBORHOOD(name="neighborhood %s %s" % (i, j))
+                    c.add(n)
+                cities.append(w.add(c))
+                neighborhoods.extend(cities[-1].get())
+            session._reset_buffers(BufferContext.USER)
+            session.delete_cuds_object(cities[0])
+            self.maxDiff = None
+            self.assertEqual(session._buffers, [
+                [{}, {w.uid: w, neighborhoods[0].uid: neighborhoods[0],
+                      neighborhoods[1].uid: neighborhoods[1]},
+                 {cities[0].uid: cities[0]}], [{}, {}, {}]])
+            self.assertNotIn(cities[0], session._registry)
+            self.assertRaises(AttributeError, getattr, cities[0], "name")
+
     def test_notify_update_call(self):
         """
         Tests if notify_update is called when Cuds objects are updated.
@@ -220,8 +243,9 @@ class TestWrapperSession(WrapperSession):
     def _apply_updated(self, root_obj, buffer):
         pass
 
-    def _notify_read(self, cuds_object):
-        pass
-
     def _load_from_backend(self, uids, expired=None):
         yield from Session.load(self, *uids)
+
+
+if __name__ == "__main__":
+    unittest.main()
