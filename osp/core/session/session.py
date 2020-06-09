@@ -66,6 +66,18 @@ class Session(ABC):
         for d in deleted:
             self._notify_delete(d)
 
+    def delete_cuds_object(self, cuds_object):
+        """Remove a CUDS object. Will (for now) not delete the cuds objects
+        contained.
+
+        Args:
+            cuds_object (Cuds): The CUDS object to be deleted
+        """
+        from osp.core import cuba
+        cuds_object.remove(rel=cuba.relationship)
+        del self._registry[cuds_object.uid]
+        self._notify_delete(cuds_object)
+
     @abstractmethod
     def _notify_delete(self, cuds_object):
         """This method is called if some object from the registry is deleted
