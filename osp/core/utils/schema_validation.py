@@ -3,8 +3,11 @@ import logging
 
 from osp.core import get_entity
 
+
 logger = logging.getLogger(__name__)
 
+class ConsistencyError(Exception):
+    pass
 
 def validate_tree_against_schema(root_obj, schema_file):
     """Checks whether the CUDS tree that starts at root_obj
@@ -75,7 +78,7 @@ def _check_cuds_object_cardinality(
             max,
             actual_cardinality,
             origin_cuds.uid)
-        raise Exception(message)
+        raise ConsistencyError(message)
 
 
 def _interpret_cardinality_value_from_constraints(constraints):
