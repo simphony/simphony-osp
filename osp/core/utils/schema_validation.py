@@ -3,7 +3,7 @@ import logging
 
 from osp.core import get_entity
 
-logger = logging.getLogger("osp.core")
+logger = logging.getLogger("schema_validation")
 
 
 def validate_tree_against_schema(root_obj, schema_file):
