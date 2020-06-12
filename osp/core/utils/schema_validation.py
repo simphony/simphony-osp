@@ -18,7 +18,7 @@ def validate_tree_against_schema(root_obj, schema_file):
     :raises Exception: Tells the user which constraint was violated
     """
 
-    print("""Validating tree of root object {}
+    logger.info("""Validating tree of root object {}
     against schema file {} ...""".format(root_obj.uid, schema_file))
 
     data_model_dict = _load_data_model_from_yaml(schema_file)
