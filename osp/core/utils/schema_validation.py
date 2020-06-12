@@ -1,6 +1,9 @@
 import yaml
+import logging
+
 from osp.core import get_entity
 
+logger = logging.getLogger("osp.core")
 
 def validate_tree_against_schema(root_obj, schema_file):
     """Checks whether the CUDS tree that starts at root_obj
@@ -38,7 +41,7 @@ def validate_tree_against_schema(root_obj, schema_file):
                         relationship,
                         constraints
                     )
-    print('Tree is valid.')
+    logger.info('Tree is valid.')
 
 
 def _load_data_model_from_yaml(data_model_file):
