@@ -5,6 +5,7 @@ from osp.core import get_entity
 
 logger = logging.getLogger("osp.core")
 
+
 def validate_tree_against_schema(root_obj, schema_file):
     """Checks whether the CUDS tree that starts at root_obj
     fulfills the cardinality constraints defined in the schema file.
