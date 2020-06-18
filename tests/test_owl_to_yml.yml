@@ -47,7 +47,7 @@ ontology:
   CLASS_A:
     description: ''
     subclass_of:
-    - CUBA.ENTITY
+    - CUBA.CLASS
     - TEST.REL_A:
         exclusive: true
         cardinality: 1+
@@ -60,7 +60,7 @@ ontology:
   CLASS_B:
     description: ''
     subclass_of:
-    - CUBA.ENTITY
+    - CUBA.CLASS
     - TEST.REL_B:
         exclusive: true
         cardinality: 1+

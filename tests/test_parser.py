@@ -67,7 +67,7 @@ class TestParser(unittest.TestCase):
         Citizen = osp.core.CITY.CITIZEN
         Person = osp.core.CITY.PERSON
         LivingBeing = osp.core.CITY.LIVING_BEING
-        Entity = osp.core.CUBA.ENTITY
+        Entity = osp.core.CUBA.CLASS
 
         self.assertEqual(
             Person.direct_superclasses,

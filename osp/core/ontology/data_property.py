@@ -48,7 +48,7 @@ class OntologyDataProperty(OntologyEntity):
 
     #     return super().get_triples() + [
     #         (self.iri, rdflib.OWL.subDataPropertyOf, x.iri)
-    #         for x in self.superclasses if str(x) != "CUBA.ENTITY"
+    #         for x in self.superclasses if str(x) != "CUBA.CLASS"
     #     ] + [
     #         (self.iri, rdflib.OWL.subDataPropertyOf,
     #          rdflib.OWL.topDataProperty),

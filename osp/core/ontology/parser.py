@@ -2,6 +2,7 @@ import os
 import rdflib
 import logging
 import yaml
+from osp.core.ontology.yml.yml_parser import YmlParser
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +35,12 @@ class Parser():
         for file_path in file_paths:
             with open(file_path, 'r') as f:
                 yaml_doc = yaml.safe_load(f)
-                if RDF_FILES_KEY in yaml_doc:
+                if YmlParser.is_yaml_ontology(yaml_doc):
+                    YmlParser(self.graph).parse(file_path, yaml_doc)
+                elif RDF_FILES_KEY in yaml_doc:
                     self._parse_rdf(**self._parse_yml(yaml_doc, file_path))
+                else:
+                    raise SyntaxError(f"Invalid format of file {file_path}")
         logger.info("Loaded ontology with %s triples" % len(self.graph))
 
     def store(self, destination):
