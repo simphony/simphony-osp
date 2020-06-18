@@ -24,7 +24,7 @@ class TestAPICity(unittest.TestCase):
         c = CITY.CITY(name="City")
         self.assertTrue(c.is_a(CITY.CITY))
         self.assertTrue(c.is_a(CITY.POPULATED_PLACE))
-        self.assertTrue(c.is_a(CUBA.ENTITY))
+        self.assertTrue(c.is_a(CUBA.CLASS))
         self.assertFalse(c.is_a(CUBA.RELATIONSHIP))
         self.assertFalse(c.is_a(CITY.CITIZEN))
         self.assertFalse(c.is_a(CITY.NEIGHBORHOOD))

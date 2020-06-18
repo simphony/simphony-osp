@@ -12,13 +12,13 @@ ontology:
     attributes:
       PARSER_TEST.ATTRIBUTE_A: DEFAULT_A
     subclass_of: 
-    - CUBA.ENTITY
+    - CUBA.CLASS
   
   ENTITY_B:
     attributes:
       PARSER_TEST.ATTRIBUTE_A: DEFAULT_B
     subclass_of:
-    - CUBA.ENTITY
+    - CUBA.CLASS
 
   ENTITY_C:
     subclass_of:

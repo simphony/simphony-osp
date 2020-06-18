@@ -4,10 +4,9 @@ import rdflib
 import logging
 
 from typing import Union, List, Iterator, Dict, Any
-from osp.core import ONTOLOGY_INSTALLER
-from osp.core.ontology.relationship import OntologyEntity
-from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.attribute import OntologyAttribute
+from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.object_property import OntologyObjectProperty
+from osp.core.ontology.data_property import OntologyDataProperty
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.datatypes import convert_to
 from osp.core.session.core_session import CoreSession
@@ -31,7 +30,7 @@ class Cuds():
 
     def __init__(
         self,
-        attributes: Dict[OntologyAttribute, Any],
+        # attributes: Dict[OntologyAttribute, Any],
         oclass: OntologyEntity,
         session: Session = None,
         uid: uuid.UUID = None
@@ -56,15 +55,15 @@ class Cuds():
             ValueError: Uid of zero is not allowed.
         """
         self._stored = False
-        self._attr_values = {k.argname: k.convert_to_datatype(v)
-                             for k, v in attributes.items()}
+        # self._attr_values = {k.argname: k.convert_to_datatype(v)
+        #                      for k, v in attributes.items()}
         self._neighbors = NeighborDictRel({}, self)
 
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         if self.__uid.int == 0:
             raise ValueError("Invalid UUID")
         self._session = session or Cuds._session
-        self._onto_attributes = {k.argname: k for k in attributes}
+        # self._onto_attributes = {k.argname: k for k in attributes}
         self._oclass = oclass
         self.session._store(self)
         self._stored = True
@@ -125,7 +124,7 @@ class Cuds():
 
     def add(self,
             *args: "Cuds",
-            rel: OntologyRelationship = None) -> Union["Cuds", List["Cuds"]]:
+            rel: OntologyObjectProperty = None) -> Union["Cuds", List["Cuds"]]:
         """
         Adds CUDS objects to their respective relationship.
         If the added objects are associated with the same session,
@@ -135,7 +134,7 @@ class Cuds():
 
         Args:
             args (Cuds): The objects to be added
-            rel (OntologyRelationship): The relationship between the objects.
+            rel (OntologyObjectProperty): The relationship between the objects.
 
         Raises:
             TypeError: Ne relationship given and no default specified.
@@ -172,7 +171,7 @@ class Cuds():
 
     def get(self,
             *uids: uuid.UUID,
-            rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
+            rel: OntologyObjectProperty = CUBA.ACTIVE_RELATIONSHIP,
             oclass: OntologyClass = None,
             return_rel: bool = False) -> Union["Cuds", List["Cuds"]]:
         """
@@ -192,7 +191,7 @@ class Cuds():
 
         Args:
             uids (uuid.UUID): UUIDs of the elements.
-            rel (OntologyRelationship, optional): Only return cuds_object
+            rel (OntologyObjectProperty, optional): Only return cuds_object
                 which are connected by subclass of given relationship.
                 Defaults to CUBA.ACTIVE_RELATIONSHIP.
             oclass (OntologyClass, optional): Only return elements which are a
@@ -255,7 +254,7 @@ class Cuds():
 
     def remove(self,
                *args: Union["Cuds", uuid.UUID],
-               rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
+               rel: OntologyObjectProperty = CUBA.ACTIVE_RELATIONSHIP,
                oclass: OntologyClass = None):
         """
         Removes elements from the CUDS object.
@@ -266,7 +265,7 @@ class Cuds():
         Args:
             args (Union[Cuds, UUID]): UUIDs of the elements to remove or the
                 elements themselves.
-            rel (OntologyRelationship, optional): Only remove cuds_object
+            rel (OntologyObjectProperty, optional): Only remove cuds_object
                 which are connected by subclass of given relationship.
                 Defaults to CUBA.ACTIVE_RELATIONSHIP.
             oclass (OntologyClass, optional): Only remove elements which are a
@@ -297,7 +296,7 @@ class Cuds():
 
     def iter(self,
              *uids: uuid.UUID,
-             rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
+             rel: OntologyObjectProperty = CUBA.ACTIVE_RELATIONSHIP,
              oclass: OntologyClass = None,
              return_rel: bool = False) -> Iterator["Cuds"]:
         """
@@ -314,7 +313,7 @@ class Cuds():
 
         Args:
             uids (uuid.UUID): UUIDs of the elements.
-            rel (OntologyRelationship, optional): Only return cuds_object
+            rel (OntologyObjectProperty, optional): Only return cuds_object
                 which are connected by subclass of given relationship.
                 Defaults to CUBA.ACTIVE_RELATIONSHIP.
             oclass (OntologyClass, optional): Only return elements which are a
@@ -538,7 +537,7 @@ class Cuds():
 
         Args:
             cuds_object (Cuds): CUDS object to be added
-            rel (OntologyRelationship): relationship with the cuds_object to
+            rel (OntologyObjectProperty): relationship with the cuds_object to
                 add.
         """
         # First element, create set
@@ -557,7 +556,7 @@ class Cuds():
 
         Args:
             cuds_object (Cuds): CUDS object to connect with.
-            rel (OntologyRelationship): direct relationship
+            rel (OntologyObjectProperty): direct relationship
         """
 
         inverse_rel = rel.inverse
@@ -574,7 +573,7 @@ class Cuds():
 
         Args:
             uids (UUID): UUIDs of the elements to get.
-            rel (OntologyRelationship, optional): Only return CUDS objects
+            rel (OntologyObjectProperty, optional): Only return CUDS objects
                 connected with a subclass of relationship. Defaults to None.
             oclass (OntologyClass, optional): Only return CUDS objects of a
                 subclass of this ontology class. Defaults to None.
@@ -594,9 +593,9 @@ class Cuds():
 
         if uids and oclass is not None:
             raise TypeError("Do not specify both uids and oclass")
-        if rel is not None and not isinstance(rel, OntologyRelationship):
+        if rel is not None and not isinstance(rel, OntologyObjectProperty):
             raise ValueError("Found object of type %s passed to argument rel. "
-                             "Should be an OntologyRelationship." % type(rel))
+                             "Should be an OntologyObjectProperty." % type(rel))
         if oclass is not None and not isinstance(oclass, OntologyClass):
             raise ValueError("Found object of type %s passed to argument "
                              "oclass. Should be an OntologyClass."
@@ -738,7 +737,7 @@ class Cuds():
         the object with the given uid.
 
         Args:
-            relationship (OntologyRelationship): The relationship to remove.
+            relationship (OntologyObjectProperty): The relationship to remove.
             uid (UUID): The uid to remove.
         """
         del self._neighbors[relationship][uid]
@@ -749,7 +748,7 @@ class Cuds():
         """Remove the inverse of the given relationship.
 
         Args:
-            relationship (OntologyRelationship): The relationship to remove.
+            relationship (OntologyObjectProperty): The relationship to remove.
             uid (UUID): The uid to remove.
         """
         inverse = relationship.inverse
@@ -779,64 +778,64 @@ class Cuds():
         """
         return "%s: %s" % (self.oclass, self.uid)
 
-    def __getattr__(self, name):
-        """Set the attributes corresponding to ontology values
+    # def __getattr__(self, name):  TODO
+    #     """Set the attributes corresponding to ontology values
 
-        Args:
-            name (str): The name of the attribute
+    #     Args:
+    #         name (str): The name of the attribute
 
-        Raises:
-            AttributeError: Unknown attribute name
+    #     Raises:
+    #         AttributeError: Unknown attribute name
 
-        Returns:
-            The value of the attribute: Any
-        """
-        if name not in self._attr_values:
-            if (  # check if user calls session's methods on wrapper
-                self.is_a(CUBA.WRAPPER)
-                and self._session is not None
-                and hasattr(self._session, name)
-            ):
-                logger.warn(
-                    "Trying to get non-defined attribute '%s' "
-                    "of wrapper CUDS object '%s'. Will return attribute of "
-                    "its session '%s' instead." % (name, self, self._session)
-                )
-                return getattr(self._session, name)
-            else:
-                raise AttributeError(name)
-        if self.session:
-            self.session._notify_read(self)
-        if name not in self._attr_values:
-            raise AttributeError(name)
-        return self._attr_values[name]
+    #     Returns:
+    #         The value of the attribute: Any
+    #     """
+    #     if name not in self._attr_values:
+    #         if (  # check if user calls session's methods on wrapper
+    #             self.is_a(CUBA.WRAPPER)
+    #             and self._session is not None
+    #             and hasattr(self._session, name)
+    #         ):
+    #             logger.warn(
+    #                 "Trying to get non-defined attribute '%s' "
+    #                 "of wrapper CUDS object '%s'. Will return attribute of "
+    #                 "its session '%s' instead." % (name, self, self._session)
+    #             )
+    #             return getattr(self._session, name)
+    #         else:
+    #             raise AttributeError(name)
+    #     if self.session:
+    #         self.session._notify_read(self)
+    #     if name not in self._attr_values:
+    #         raise AttributeError(name)
+    #     return self._attr_values[name]
 
-    def __setattr__(self, name, new_value):
-        """
-        Set an attribute.
-        Will notify the session of it corresponds to an ontology value.
+    # def __setattr__(self, name, new_value):
+    #     """
+    #     Set an attribute.
+    #     Will notify the session of it corresponds to an ontology value.
 
-        Args:
-            name (str): The name of the attribute.
-            new_value (Any): The new value.
+    #     Args:
+    #         name (str): The name of the attribute.
+    #         new_value (Any): The new value.
 
-        Raises:
-            AttributeError: Unknown attribute name
-        """
+    #     Raises:
+    #         AttributeError: Unknown attribute name
+    #     """
 
-        if name.startswith("_"):
-            super().__setattr__(name, new_value)
-            return
-        if name not in self._attr_values:
-            raise AttributeError(name)
-        if self.session:
-            self.session._notify_read(self)
-        if name not in self._attr_values:
-            raise AttributeError(name)
-        self._attr_values[name] = \
-            self._onto_attributes[name].convert_to_datatype(new_value)
-        if self.session:
-            self.session._notify_update(self)
+    #     if name.startswith("_"):
+    #         super().__setattr__(name, new_value)
+    #         return
+    #     if name not in self._attr_values:
+    #         raise AttributeError(name)
+    #     if self.session:
+    #         self.session._notify_read(self)
+    #     if name not in self._attr_values:
+    #         raise AttributeError(name)
+    #     self._attr_values[name] = \
+    #         self._onto_attributes[name].convert_to_datatype(new_value)
+    #     if self.session:
+    #         self.session._notify_update(self)
 
     def __repr__(self) -> str:
         """
@@ -875,50 +874,50 @@ class Cuds():
 
         return other.oclass == self.oclass and self.uid == other.uid
 
-    def __getstate__(self):
-        """
-        Get the state for pickling or copying
+    # def __getstate__(self):
+    #     """
+    #     Get the state for pickling or copying
 
-        Returns:
-            Dict[str, Any]: The state of the object. Does not contain session.
-                Contains the string of the OntologyClass.
-        """
+    #     Returns:
+    #         Dict[str, Any]: The state of the object. Does not contain session.
+    #             Contains the string of the OntologyClass.
+    #     """
 
-        state = {k: v for k, v in self.__dict__.items()
-                 if k not in {"_session", "_oclass", "_values"}}
-        state["_oclass"] = (self.oclass.namespace.name, self._oclass.name)
-        state["_neighbors"] = [
-            (k.namespace.name, k.name, [
-                (uid, vv.namespace.name, vv.name)
-                for uid, vv in v.items()
-            ])
-            for k, v in self._neighbors.items()
-        ]
-        state["_values"] = [(k, v.namespace.name, v.name)
-                            for k, v in self._onto_attributes.items()]
-        return state
+    #     state = {k: v for k, v in self.__dict__.items()
+    #              if k not in {"_session", "_oclass", "_values"}}
+    #     state["_oclass"] = (self.oclass.namespace.name, self._oclass.name)
+    #     state["_neighbors"] = [
+    #         (k.namespace.name, k.name, [
+    #             (uid, vv.namespace.name, vv.name)
+    #             for uid, vv in v.items()
+    #         ])
+    #         for k, v in self._neighbors.items()
+    #     ]
+    #     state["_values"] = [(k, v.namespace.name, v.name)
+    #                         for k, v in self._onto_attributes.items()]
+    #     return state
 
-    def __setstate__(self, state):
-        """
-        Set the state for pickling or copying.
+    # def __setstate__(self, state):
+    #     """
+    #     Set the state for pickling or copying.
 
-        Args:
-            state (Dict[str, Any]): The state of the object. Does not contain
-                session. Contains the string of the OntologyClass.
-        """
+    #     Args:
+    #         state (Dict[str, Any]): The state of the object. Does not contain
+    #             session. Contains the string of the OntologyClass.
+    #     """
 
-        namespace, oclass = state["_oclass"]
-        oclass = ONTOLOGY_INSTALLER.namespace_registry[namespace][oclass]
-        state["_oclass"] = oclass
-        state["_session"] = None
-        state["_neighbors"] = NeighborDictRel({
-            ONTOLOGY_INSTALLER.namespace_registry[ns][cl]:
-                NeighborDictTarget({
-                    uid: ONTOLOGY_INSTALLER.namespace_registry[ns2][cl2]
-                    for uid, ns2, cl2 in v
-                }, self, ONTOLOGY_INSTALLER.namespace_registry[ns][cl])
-            for ns, cl, v in state["_neighbors"]
-        }, self)
-        state["_values"] = {k: ONTOLOGY_INSTALLER.namespace_registry[ns][cl]
-                            for k, ns, cl in state["_values"]}
-        self.__dict__ = state
+    #     namespace, oclass = state["_oclass"]
+    #     oclass = ONTOLOGY_INSTALLER.namespace_registry[namespace][oclass]
+    #     state["_oclass"] = oclass
+    #     state["_session"] = None
+    #     state["_neighbors"] = NeighborDictRel({
+    #         ONTOLOGY_INSTALLER.namespace_registry[ns][cl]:
+    #             NeighborDictTarget({
+    #                 uid: ONTOLOGY_INSTALLER.namespace_registry[ns2][cl2]
+    #                 for uid, ns2, cl2 in v
+    #             }, self, ONTOLOGY_INSTALLER.namespace_registry[ns][cl])
+    #         for ns, cl, v in state["_neighbors"]
+    #     }, self)
+    #     state["_values"] = {k: ONTOLOGY_INSTALLER.namespace_registry[ns][cl]
+    #                         for k, ns, cl in state["_values"]}
+    #     self.__dict__ = state

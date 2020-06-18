@@ -102,18 +102,18 @@ ontology:
 
   GEOGRAPHICAL_PLACE:
     subclass_of:
-    - CUBA.ENTITY
+    - CUBA.CLASS
     attributes:
       CITY.NAME:
 
   ARCHITECTURAL_COMPONENT:
     subclass_of:
-    - CUBA.ENTITY
+    - CUBA.CLASS
 
   LIVING_BEING:
     description: A being that lives
     subclass_of:
-    - CUBA.ENTITY
+    - CUBA.CLASS
     - CITY.IS_CHILD_OF:
         range: CITY.LIVING_BEING
         cardinality: 0-2
@@ -142,7 +142,7 @@ ontology:
 
   ADDRESS:
     subclass_of:
-    - CUBA.ENTITY
+    - CUBA.CLASS
     - CITY.IS_PART_OF:
         range: CITY.BUILDING
         cardinality: 1

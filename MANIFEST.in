@@ -1,2 +1,4 @@
 include packageinfo.py
 include osp/core/ontology/yml/*.yml
+include osp/core/java/lib/so/*
+include osp/core/java/lib/jars/*.jar

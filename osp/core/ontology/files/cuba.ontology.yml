@@ -1,25 +1,29 @@
 ---
 version: "0.0.1"
 
-namespace: "CUBA"
+namespace: CUBA
 
 ontology:
 
-  ENTITY:
+  CLASS:
     description: The root of the ontology.
     subclass_of: []
+
+  ENTITY:
+    description: deprecated  # TODO remove
+    subclass_of:
+    - CUBA.CLASS
   
   NOTHING:
     description: A class without any individuals.
     subclass_of:
-    - CUBA.ENTITY
+    - CUBA.CLASS
 
  ################
 
   RELATIONSHIP:
     description: The root of all relationships.
-    subclass_of:
-    - CUBA.ENTITY
+    subclass_of: []
     inverse: CUBA.RELATIONSHIP
 
   ACTIVE_RELATIONSHIP:
@@ -40,17 +44,16 @@ ontology:
   WRAPPER:
     description: The root of all wrappers. These are the bridge to simulation engines and databases.
     subclass_of:
-    - CUBA.ENTITY
+    - CUBA.CLASS
 
   ATTRIBUTE:
     description: The root of all attributes.
-    subclass_of:
-    - CUBA.ENTITY
+    subclass_of: []
 
   FILE:
     description: An entity associated to a binary file
     subclass_of:
-      - CUBA.ENTITY
+      - CUBA.CLASS
     attributes:
       CUBA.PATH: ~
 
