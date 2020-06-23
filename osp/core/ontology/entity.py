@@ -124,15 +124,19 @@ class OntologyEntity(ABC):
     #         return self._description
     #     return "To Be Determined"
 
-    # def is_subclass_of(self, other):  TODO
-    #     """Subclass check.
+    def is_subclass_of(self, other):
+        """Subclass check.
 
-    #     :param other: Check if self is a subclass of this entity.
-    #     :type other: OntologyEntity
-    #     :return: Whether self is a subclass of other.
-    #     :rtype: bool
-    #     """
-    #     return self in other.subclasses
+        :param other: Check if self is a subclass of this entity.
+        :type other: OntologyEntity
+        :return: Whether self is a subclass of other.
+        :rtype: bool
+        """
+        return (
+            self.iri,
+            rdflib.RDFS.subClassOf,
+            other.iri
+        ) in self._namespace._namespace_registry._graph
 
     # def is_superclass_of(self, other):  TODO
     #     """Superclass check.
