@@ -46,7 +46,7 @@ class OntologyEntity(ABC):
     @property
     def iri(self):
         """Get the IRI of the Entity"""
-        return rdflib.URIRef(self._namespace.name + self.name)
+        return rdflib.URIRef(self._namespace.iri + self.name)
 
     @property
     def tblname(self):

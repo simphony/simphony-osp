@@ -31,6 +31,10 @@ class YmlParser:
     def is_yaml_ontology(doc):
         return ONTOLOGY_KEY in doc and NAMESPACE_KEY in doc
 
+    @staticmethod
+    def get_namespace_name(doc):
+        return doc[NAMESPACE_KEY]
+
     def parse(self, file_path, doc=None):
         """
         Reads the YAML and extracts the dictionary with the CUDS.
@@ -60,6 +64,7 @@ class YmlParser:
         """Parse the entity descriptions."""
         logger.debug("Parse the ontology %s" % self._namespace)
 
+        self.graph.bind(self._namespace, self._get_iri())
         for entity_name in self._ontology_doc:
             self._load_entity(entity_name)
 
@@ -96,8 +101,7 @@ class YmlParser:
         """
         logger.debug("Parse entity definition for %s" % entity_name)
         entity_doc = self._ontology_doc[entity_name]
-        iri = self._get_entity_iri(entity_name)
-        description = None
+        iri = self._get_iri(entity_name)
         if DESCRIPTION_KEY in entity_doc:
             description = rdflib.Literal(entity_doc[DESCRIPTION_KEY])
             self.graph.add((iri, rdflib.RDFS.isDefinedBy, description))
@@ -107,10 +111,11 @@ class YmlParser:
         for superclass_doc in entity_doc[SUPERCLASSES_KEY]:
             self._add_superclass(entity_name, iri, superclass_doc)
 
-    def _get_entity_iri(self, entity_name, namespace=None):
+    def _get_iri(self, entity_name=None, namespace=None):
         namespace = namespace or self._namespace
+        entity_name = entity_name or ""
         return rdflib.URIRef(
-            f"http://www.osp-core.com/{namespace}/{entity_name}"
+            f"http://www.osp-core.com/{namespace}#{entity_name}"
         )
 
     def _add_superclass(self, entity_name, iri, superclass_doc):
@@ -125,27 +130,25 @@ class YmlParser:
                     % (superclass_name, entity_name)
                 )
             self.graph.add((iri, rdflib.RDFS.subClassOf,
-                            self._get_entity_iri(superclass_name, namespace)))
+                            self._get_iri(superclass_name, namespace)))
 
     def _add_type_triple(self, entity_name, iri):
         queue = [(self._namespace, entity_name)]
         while queue:
             namespace, name = queue.pop()
             if (namespace, name) == (MAIN_NAMESPACE, ROOT_RELATIONSHIP):
-                self.graph.add((iri, rdflib.RDFS.subClassOf,
+                self.graph.add((iri, rdflib.RDF.type,
                                 rdflib.OWL.ObjectProperty))
                 return
             if (namespace, name) == (MAIN_NAMESPACE, ROOT_ATTRIBUTE):
-                self.graph.add((iri, rdflib.RDFS.subClassOf,
+                self.graph.add((iri, rdflib.RDF.type,
                                 rdflib.OWL.DataProperty))
-                self.graph.add((iri, rdflib.RDFS.subClassOf,
+                self.graph.add((iri, rdflib.RDF.type,
                                 rdflib.OWL.FunctionalProperty))
                 return
             if (namespace, name) == (MAIN_NAMESPACE, ROOT_CLASS):
-                self.graph.add((iri, rdflib.RDFS.subClassOf,
+                self.graph.add((iri, rdflib.RDF.type,
                                 rdflib.OWL.DataProperty))
-                self.graph.add((iri, rdflib.RDFS.subClassOf,
-                                rdflib.OWL.FunctionalProperty))
                 return
             assert namespace == self._namespace  # TODO dependencies
             queue += [self.split_name(x)

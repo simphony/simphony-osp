@@ -37,26 +37,42 @@ class Parser():
                 yaml_doc = yaml.safe_load(f)
                 if YmlParser.is_yaml_ontology(yaml_doc):
                     YmlParser(self.graph).parse(file_path, yaml_doc)
-                elif RDF_FILES_KEY in yaml_doc:
+                elif RDF_FILES_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
                     self._parse_rdf(**self._parse_yml(yaml_doc, file_path))
                 else:
                     raise SyntaxError(f"Invalid format of file {file_path}")
+                self._yaml_docs.append(yaml_doc)
         logger.info("Loaded ontology with %s triples" % len(self.graph))
 
     def store(self, destination):
         for yaml_doc in self._yaml_docs:
-            rdf_files = list()
-            identifier = yaml_doc[IDENTIFIER_KEY]
-            for i, g in enumerate(self._graphs[identifier]):
-                rdf_files.append("%s-%s.owl" % (identifier, i))
-                g.serialize(os.path.join(destination, rdf_files[-1]),
-                            format="xml")
-            yaml_doc[RDF_FILES_KEY] = rdf_files
+            identifier = self.get_identifier(yaml_doc)
+            # store rdf files
+            if not YmlParser.is_yaml_ontology(yaml_doc):
+                rdf_files = list()
+                for i, g in enumerate(self._graphs[identifier]):
+                    rdf_files.append("%s-%s.owl" % (identifier, i))
+                    g.serialize(os.path.join(destination, rdf_files[-1]),
+                                format="xml")
+                yaml_doc[RDF_FILES_KEY] = rdf_files
 
-            file_path = os.path.join(destination, "%s.yml"
-                                     % yaml_doc[IDENTIFIER_KEY])
+            # store yaml files
+            file_path = os.path.join(destination, f"{identifier}.yml")
             with open(file_path, "w") as f:
                 yaml.safe_dump(yaml_doc, f)
+
+    @staticmethod
+    def get_identifier(file_path_or_doc):
+        yaml_doc = file_path_or_doc
+        if isinstance(file_path_or_doc, str):
+            with open(file_path_or_doc, "r") as f:
+                yaml_doc = yaml.safe_load(f)
+        if YmlParser.is_yaml_ontology(yaml_doc):
+            return YmlParser.get_namespace_name(yaml_doc)
+        elif RDF_FILES_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
+            return yaml_doc[IDENTIFIER_KEY]
+        else:
+            raise SyntaxError(f"Invalid format of file {file_path}")
 
     def _parse_yml(self, yaml_doc, file_path):
         """Parse the owl files specified in the given YAML docs
@@ -75,7 +91,6 @@ class Parser():
             os.path.join(os.path.dirname(file_path), x)
             for x in yaml_doc[RDF_FILES_KEY]
         ]
-        self._yaml_docs.append(yaml_doc)
         return yaml_doc
 
     def _parse_rdf(self, **kwargs):

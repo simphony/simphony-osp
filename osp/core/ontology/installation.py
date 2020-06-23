@@ -3,7 +3,7 @@ import logging
 import osp.core.namespaces as namespaces
 import yaml
 import shutil
-from osp.core.ontology.parser import Parser, IDENTIFIER_KEY
+from osp.core.ontology.parser import Parser
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +42,7 @@ class OntologyInstallationManager():
             if not pkg.endswith(".yml"):
                 remove_pkgs.add(pkg)
             elif os.path.exists(pkg):
-                with open(pkg, "r") as f:
-                    remove_pkgs.add(yaml.safe_load(f)[IDENTIFIER_KEY])
+                remove_pkgs.add(Parser.get_identifier(pkg))
             else:
                 raise ValueError("Could not uninstall %s. No file nor "
                                  "installed ontology package." % pkg)
@@ -53,21 +52,19 @@ class OntologyInstallationManager():
     def _get_replaced_packages(self, new_packages):
         installed = dict(self.get_installed_packages(return_path=True))
         for pkg in new_packages:
-            with open(pkg, "r") as f:
-                installed[yaml.safe_load(f)[IDENTIFIER_KEY]] = pkg
+            installed[Parser.get_identifier(pkg)] = pkg
         return installed.values()
 
     def _get_new_packages(self, packages):
         result = set(packages)
         installed = set(self.get_installed_packages())
         for pkg in packages:
-            with open(pkg, "r") as f:
-                identifier = yaml.safe_load(f)[IDENTIFIER_KEY]
-                if identifier in installed:
-                    logger.info("Skipping package %s with identifier %s, "
-                                "because it is already installed."
-                                % (pkg, identifier))
-                    result.remove(pkg)
+            identifier = Parser.get_identifier(pkg)
+            if identifier in installed:
+                logger.info("Skipping package %s with identifier %s, "
+                            "because it is already installed."
+                            % (pkg, identifier))
+                result.remove(pkg)
         return result
 
     def _install(self, files, filter_func, clear):
