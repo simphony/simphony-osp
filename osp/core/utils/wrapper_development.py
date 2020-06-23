@@ -2,7 +2,7 @@ from copy import deepcopy
 from osp.core.neighbor_dict import NeighborDictTarget
 from osp.core.ontology.datatypes import convert_to
 from osp.core.utils.general import get_relationships_between
-from osp.core import CUBA
+from osp.core.namespaces import CUBA
 
 
 # General utility methods

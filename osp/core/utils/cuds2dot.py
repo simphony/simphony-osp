@@ -1,6 +1,6 @@
 import graphviz
 import logging
-from osp.core import CUBA
+from osp.core.namespaces import CUBA
 
 logger = logging.getLogger(__name__)
 

@@ -40,7 +40,7 @@ print(city.Person.is_subclass_of(city.LivingBeing))
 print(city.LivingBeing.is_superclass_of(city.Person))
 
 # Get entities by string
-from osp.core import get_entity  # noqa: E402
+from osp.core.namespaces import get_entity  # noqa: E402
 
 print("\nYou can get an entity with a string")
 print(get_entity("city.LivingBeing"))
@@ -48,7 +48,7 @@ print(get_entity("city.LivingBeing") is city.LivingBeing)
 
 # CUBA namespace
 # This is the main namespace that is always available
-from osp.core import cuba  # noqa: E402
+from osp.core.namespaces import CUBA  # noqa: E402
 
 # These are the classes for the ontology entities
 from osp.core.ontology import (  # noqa: F401, E402

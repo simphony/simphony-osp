@@ -148,7 +148,7 @@ class OntologyClass(OntologyEntity):
         :rtype: Cuds
         """
         from osp.core.cuds import Cuds
-        from osp.core import CUBA
+        from osp.core.namespaces import CUBA
 
         if self.is_subclass_of(CUBA.WRAPPER) and session is None:
             raise TypeError("Missing keyword argument 'session' for wrapper.")

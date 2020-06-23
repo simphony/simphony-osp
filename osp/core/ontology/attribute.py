@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 CONFLICTING = "2L4N4lGLYBU8mBNx8H6X6dC6Mcf2AcBqIKnFnXUI"
 
 
-class OntologyDataProperty(OntologyEntity):
+class OntologyAttribute(OntologyEntity):
     def __init__(self, namespace, name):
         super().__init__(namespace, name)
         logger.debug("Created ontology data property %s" % self)

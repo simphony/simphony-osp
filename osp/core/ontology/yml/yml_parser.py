@@ -148,7 +148,7 @@ class YmlParser:
                 return
             if (namespace, name) == (MAIN_NAMESPACE, ROOT_CLASS):
                 self.graph.add((iri, rdflib.RDF.type,
-                                rdflib.OWL.DataProperty))
+                                rdflib.OWL.Class))
                 return
             assert namespace == self._namespace  # TODO dependencies
             queue += [self.split_name(x)

@@ -1,5 +1,5 @@
 import unittest2 as unittest
-from osp.core import CUBA
+from osp.core.namespaces import CUBA
 from osp.core.session.session import Session
 from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.buffers import BufferContext

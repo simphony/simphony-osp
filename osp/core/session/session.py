@@ -73,7 +73,7 @@ class Session(ABC):
         Args:
             cuds_object (Cuds): The CUDS object to be deleted
         """
-        from osp.core import cuba
+        from osp.core.namespaces import CUBA
         cuds_object.remove(rel=cuba.relationship)
         del self._registry[cuds_object.uid]
         self._notify_delete(cuds_object)

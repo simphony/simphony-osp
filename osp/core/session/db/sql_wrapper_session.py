@@ -8,7 +8,7 @@ from osp.core.ontology.datatypes import convert_to, convert_from, \
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from osp.core.session.db.conditions import EqualsCondition, AndCondition
 from osp.core.neighbor_dict import NeighborDictTarget
-from osp.core import get_entity
+from osp.core.namespaces import get_entity
 from osp.core.session.buffers import BufferContext
 
 
@@ -303,7 +303,7 @@ class SqlWrapperSession(DbWrapperSession):
         self._init_transaction()
         try:
             # clear local datastructure
-            from osp.core import cuba
+            from osp.core.namespaces import CUBA
             self._reset_buffers(BufferContext.USER)
             self._registry.get(self.root).remove(rel=cuba.Relationship)
             for uid in list(self._registry.keys()):

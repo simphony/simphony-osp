@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class OntologyObjectProperty(OntologyEntity):
+class OntologyRelationship(OntologyEntity):
     def __init__(self, namespace, name):
         super().__init__(namespace, name)
         logger.debug("Create ontology object property %s" % self)

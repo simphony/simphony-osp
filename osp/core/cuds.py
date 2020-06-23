@@ -5,8 +5,8 @@ import logging
 
 from typing import Union, List, Iterator, Dict, Any
 from osp.core.ontology.entity import OntologyEntity
-from osp.core.ontology.object_property import OntologyObjectProperty
-from osp.core.ontology.data_property import OntologyDataProperty
+from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.datatypes import convert_to
 from osp.core.session.core_session import CoreSession
@@ -14,7 +14,7 @@ from osp.core.session.session import Session
 from osp.core.neighbor_dict import NeighborDictRel, NeighborDictTarget
 from osp.core.utils import check_arguments, clone_cuds_object, \
     create_from_cuds_object, get_neighbor_diff
-from osp.core import CUBA
+from osp.core.namespaces import CUBA
 
 logger = logging.getLogger("osp.core")
 
@@ -124,7 +124,7 @@ class Cuds():
 
     def add(self,
             *args: "Cuds",
-            rel: OntologyObjectProperty = None) -> Union["Cuds", List["Cuds"]]:
+            rel: OntologyRelationship = None) -> Union["Cuds", List["Cuds"]]:
         """
         Adds CUDS objects to their respective relationship.
         If the added objects are associated with the same session,
@@ -134,7 +134,7 @@ class Cuds():
 
         Args:
             args (Cuds): The objects to be added
-            rel (OntologyObjectProperty): The relationship between the objects.
+            rel (OntologyRelationship): The relationship between the objects.
 
         Raises:
             TypeError: Ne relationship given and no default specified.
@@ -171,7 +171,7 @@ class Cuds():
 
     def get(self,
             *uids: uuid.UUID,
-            rel: OntologyObjectProperty = CUBA.ACTIVE_RELATIONSHIP,
+            rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
             oclass: OntologyClass = None,
             return_rel: bool = False) -> Union["Cuds", List["Cuds"]]:
         """
@@ -191,7 +191,7 @@ class Cuds():
 
         Args:
             uids (uuid.UUID): UUIDs of the elements.
-            rel (OntologyObjectProperty, optional): Only return cuds_object
+            rel (OntologyRelationship, optional): Only return cuds_object
                 which are connected by subclass of given relationship.
                 Defaults to CUBA.ACTIVE_RELATIONSHIP.
             oclass (OntologyClass, optional): Only return elements which are a
@@ -254,7 +254,7 @@ class Cuds():
 
     def remove(self,
                *args: Union["Cuds", uuid.UUID],
-               rel: OntologyObjectProperty = CUBA.ACTIVE_RELATIONSHIP,
+               rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
                oclass: OntologyClass = None):
         """
         Removes elements from the CUDS object.
@@ -265,7 +265,7 @@ class Cuds():
         Args:
             args (Union[Cuds, UUID]): UUIDs of the elements to remove or the
                 elements themselves.
-            rel (OntologyObjectProperty, optional): Only remove cuds_object
+            rel (OntologyRelationship, optional): Only remove cuds_object
                 which are connected by subclass of given relationship.
                 Defaults to CUBA.ACTIVE_RELATIONSHIP.
             oclass (OntologyClass, optional): Only remove elements which are a
@@ -296,7 +296,7 @@ class Cuds():
 
     def iter(self,
              *uids: uuid.UUID,
-             rel: OntologyObjectProperty = CUBA.ACTIVE_RELATIONSHIP,
+             rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
              oclass: OntologyClass = None,
              return_rel: bool = False) -> Iterator["Cuds"]:
         """
@@ -313,7 +313,7 @@ class Cuds():
 
         Args:
             uids (uuid.UUID): UUIDs of the elements.
-            rel (OntologyObjectProperty, optional): Only return cuds_object
+            rel (OntologyRelationship, optional): Only return cuds_object
                 which are connected by subclass of given relationship.
                 Defaults to CUBA.ACTIVE_RELATIONSHIP.
             oclass (OntologyClass, optional): Only return elements which are a
@@ -537,7 +537,7 @@ class Cuds():
 
         Args:
             cuds_object (Cuds): CUDS object to be added
-            rel (OntologyObjectProperty): relationship with the cuds_object to
+            rel (OntologyRelationship): relationship with the cuds_object to
                 add.
         """
         # First element, create set
@@ -556,7 +556,7 @@ class Cuds():
 
         Args:
             cuds_object (Cuds): CUDS object to connect with.
-            rel (OntologyObjectProperty): direct relationship
+            rel (OntologyRelationship): direct relationship
         """
 
         inverse_rel = rel.inverse
@@ -573,7 +573,7 @@ class Cuds():
 
         Args:
             uids (UUID): UUIDs of the elements to get.
-            rel (OntologyObjectProperty, optional): Only return CUDS objects
+            rel (OntologyRelationship, optional): Only return CUDS objects
                 connected with a subclass of relationship. Defaults to None.
             oclass (OntologyClass, optional): Only return CUDS objects of a
                 subclass of this ontology class. Defaults to None.
@@ -593,9 +593,9 @@ class Cuds():
 
         if uids and oclass is not None:
             raise TypeError("Do not specify both uids and oclass")
-        if rel is not None and not isinstance(rel, OntologyObjectProperty):
+        if rel is not None and not isinstance(rel, OntologyRelationship):
             raise ValueError("Found object of type %s passed to argument rel. "
-                             "Should be an OntologyObjectProperty." % type(rel))
+                             "Should be an OntologyRelationship." % type(rel))
         if oclass is not None and not isinstance(oclass, OntologyClass):
             raise ValueError("Found object of type %s passed to argument "
                              "oclass. Should be an OntologyClass."
@@ -737,7 +737,7 @@ class Cuds():
         the object with the given uid.
 
         Args:
-            relationship (OntologyObjectProperty): The relationship to remove.
+            relationship (OntologyRelationship): The relationship to remove.
             uid (UUID): The uid to remove.
         """
         del self._neighbors[relationship][uid]
@@ -748,7 +748,7 @@ class Cuds():
         """Remove the inverse of the given relationship.
 
         Args:
-            relationship (OntologyObjectProperty): The relationship to remove.
+            relationship (OntologyRelationship): The relationship to remove.
             uid (UUID): The uid to remove.
         """
         inverse = relationship.inverse

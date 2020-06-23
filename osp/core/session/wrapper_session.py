@@ -156,7 +156,7 @@ class WrapperSession(Session):
         :param cuds_object: The cuds_object to store.
         :type cuds_object: Cuds
         """
-        from osp.core import CUBA
+        from osp.core.namespaces import CUBA
         # Check if root is wrapper and wrapper is root
         if cuds_object.is_a(CUBA.WRAPPER) and self.root is not None:
             raise RuntimeError("Only one wrapper is allowed per session")

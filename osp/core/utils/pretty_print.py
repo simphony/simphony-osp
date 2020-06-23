@@ -1,5 +1,5 @@
 import sys
-from osp.core import CUBA
+from osp.core.namespaces import CUBA
 
 
 def pretty_print(cuds_object, file=sys.stdout):

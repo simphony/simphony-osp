@@ -20,5 +20,10 @@ except RuntimeError:
     _logger.critical("Could not load installed ontologies.", exc_info=1)
 
 
+def get_entity(name):
+    _logger.warn("osp.core.get_entity is deprecated")
+    ns, n = name.split(".")
+    return _namespace_registry._get(ns)._get(n)
+
 def __getattr__(name):
     return getattr(_namespace_registry, name)

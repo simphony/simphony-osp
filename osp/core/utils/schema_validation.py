@@ -1,5 +1,5 @@
 import yaml
-from osp.core import get_entity
+from osp.core.namespaces import get_entity
 
 
 def validate_tree_against_schema(root_obj, schema_file):

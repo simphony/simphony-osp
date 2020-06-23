@@ -3,7 +3,7 @@ import unittest
 import responses
 import uuid
 import osp.core
-from osp.core import CUBA
+from osp.core.namespaces import CUBA
 from osp.core.session.transport.transport_utils import serializable
 from osp.core.session.core_session import CoreSession
 from .test_session_city import TestWrapperSession

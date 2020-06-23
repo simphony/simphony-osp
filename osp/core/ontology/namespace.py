@@ -9,8 +9,8 @@ import rdflib
 import logging
 
 from osp.core.ontology.oclass import OntologyClass
-from osp.core.ontology.object_property import OntologyObjectProperty
-from osp.core.ontology.data_property import OntologyDataProperty
+from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.ontology.attribute import OntologyAttribute
 
 logger = logging.getLogger(__name__)
 
@@ -121,9 +121,11 @@ class OntologyNamespace():
         iri = rdflib.URIRef(str(self.iri) + name)
         for s, p, o in self._graph.triples((iri, rdflib.RDF.type, None)):
             if o == rdflib.OWL.DataProperty:
-                return OntologyDataProperty(self, name)
+                assert (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty) \
+                    in self._graph  # TODO allow non functional attributes
+                return OntologyAttribute(self, name)
             if o == rdflib.OWL.ObjectProperty:
-                return OntologyObjectProperty(self, name)
+                return OntologyRelationship(self, name)
             if o == rdflib.OWL.Class:
                 return OntologyClass(self, name)
         raise KeyError("Unknown entity %s in namespace %s" % (name, self))

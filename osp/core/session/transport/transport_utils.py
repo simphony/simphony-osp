@@ -4,7 +4,7 @@ import os
 import shutil
 import logging
 import hashlib
-from osp.core import get_entity, CUBA
+from osp.core.namespaces import get_entity, CUBA
 from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity

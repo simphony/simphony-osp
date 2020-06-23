@@ -2,7 +2,7 @@ import sys
 import logging
 from osp.wrappers.sqlite import SqliteSession
 from osp.core.session import TransportSessionServer
-from osp.core import cuba
+from osp.core.namespaces import CUBA
 from osp.wrappers.dataspace import DataspaceSession
 
 logging.getLogger("osp.core.session.transport").setLevel(logging.DEBUG)

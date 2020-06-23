@@ -1,5 +1,5 @@
 import unittest2 as unittest
-from osp.core import CUBA
+from osp.core.namespaces import CUBA
 from osp.core.cuds import Cuds
 from .test_utils import get_test_city
 

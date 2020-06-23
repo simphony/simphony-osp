@@ -1,7 +1,7 @@
 import requests
 import json
 import rdflib
-from osp.core import CUBA
+from osp.core.namespaces import CUBA
 
 
 def branch(cuds_object, *args, rel=None):
