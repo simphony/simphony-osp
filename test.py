@@ -1,6 +1,6 @@
 import rdflib
 import logging
 
-from osp.core.namespaces import CUBA
+from osp.core.namespaces import CITY
 
-print(CUBA.CLASS())
+print(CITY.CITY())

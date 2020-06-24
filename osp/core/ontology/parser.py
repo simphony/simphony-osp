@@ -72,7 +72,7 @@ class Parser():
         elif RDF_FILES_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
             return yaml_doc[IDENTIFIER_KEY]
         else:
-            raise SyntaxError(f"Invalid format of file {file_path}")
+            raise SyntaxError(f"Invalid format of file {file_path_or_doc}")
 
     def _parse_yml(self, yaml_doc, file_path):
         """Parse the owl files specified in the given YAML docs

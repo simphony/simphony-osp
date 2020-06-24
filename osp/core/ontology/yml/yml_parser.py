@@ -134,29 +134,31 @@ class YmlParser:
 
     def _add_type_triple(self, entity_name, iri):
         queue = [(self._namespace, entity_name)]
+        types = set()
         while queue:
             namespace, name = queue.pop()
+
+            # CUBA namespace
             if (namespace, name) == (MAIN_NAMESPACE, ROOT_RELATIONSHIP):
-                self.graph.add((iri, rdflib.RDF.type,
-                                rdflib.OWL.ObjectProperty))
-                return
-            if (namespace, name) == (MAIN_NAMESPACE, ROOT_ATTRIBUTE):
-                self.graph.add((iri, rdflib.RDF.type,
-                                rdflib.OWL.DataProperty))
-                self.graph.add((iri, rdflib.RDF.type,
-                                rdflib.OWL.FunctionalProperty))
-                return
-            if (namespace, name) == (MAIN_NAMESPACE, ROOT_CLASS):
-                self.graph.add((iri, rdflib.RDF.type,
-                                rdflib.OWL.Class))
-                return
-            assert namespace == self._namespace  # TODO dependencies
-            queue += [self.split_name(x)
-                      for x in self._ontology_doc[name][SUPERCLASSES_KEY]
-                      if isinstance(x, str)]
-        self.graph.add((iri, rdflib.RDFS.subClassOf, rdflib.OWL.Class))
-
-
+                types.add(rdflib.OWL.ObjectProperty)
+            elif (namespace, name) == (MAIN_NAMESPACE, ROOT_ATTRIBUTE):
+                types |= {rdflib.OWL.DataProperty,
+                          rdflib.OWL.FunctionalProperty}
+            elif (namespace, name) == (MAIN_NAMESPACE, ROOT_CLASS):
+                types.add(rdflib.OWL.Class)
+            else:  # inherit type
+                superclass_iri = self._get_iri(name, namespace)
+                triple = (superclass_iri, rdflib.RDF.type, None)
+                for _, _, o in self.graph.triples(triple):
+                    types.add(o)
+            if namespace == self._namespace:
+                queue += [self.split_name(x)
+                          for x in self._ontology_doc[name][SUPERCLASSES_KEY]
+                          if isinstance(x, str)]
+        if not types:
+            raise ValueError(f"Could not determine type of {entity_name}")
+        for t in types:
+            self.graph.add((iri, rdflib.RDF.type, t))
 
     # def _load_class_expressions(self, entity):
     #     """Load class expressions.
