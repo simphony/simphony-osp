@@ -3,4 +3,4 @@ import logging
 
 from osp.core.namespaces import CUBA
 
-print(CUBA.CLASS())
+print(list(CUBA.CLASS.subclasses))

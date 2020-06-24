@@ -7,6 +7,7 @@
 
 from osp.core.ontology.entity import OntologyEntity
 import logging
+import rdflib
 
 logger = logging.getLogger(__name__)
 
@@ -110,3 +111,19 @@ class OntologyAttribute(OntologyEntity):
     #                          % (datatype, self))
     #     logger.debug("Set datatype %s for attribute %s" % (datatype, self))
     #     self._datatype = datatype
+
+    def _direct_superclasses(self):
+        return self._directly_connected(rdflib.OWL.subDataPropertyOf)
+
+    def _direct_subclasses(self):
+        return self._directly_connected(rdflib.OWL.subDataPropertyOf,
+                                        inverse=True)
+
+    def _superclasses(self):
+        yield self
+        yield from self._transitive_hull(rdflib.OWL.subDataPropertyOf)
+
+    def _subclasses(self):
+        yield self
+        yield from self._transitive_hull(rdflib.OWL.subDataPropertyOf,
+                                         inverse=True)

@@ -36,12 +36,6 @@ class NamespaceRegistry():
     def __getitem__(self, name):
         return self._get(name)
 
-    def __getstate__(self):
-        return self.__dict__
-
-    def __setstate__(self, state):
-        self.__dict__ = state
-
     def __contains__(self, other):
         if isinstance(other, str):
             return other.lower() in self._namespaces.keys()

@@ -8,11 +8,9 @@
 
 from osp.core.ontology.entity import OntologyEntity
 import logging
+import rdflib
 
 logger = logging.getLogger(__name__)
-
-
-CONFLICTING = "2L4N4lGLYBU8mBNx8H6X6dC6Mcf2AcBqIKnFnXUI"
 
 
 class OntologyClass(OntologyEntity):
@@ -38,41 +36,12 @@ class OntologyClass(OntologyEntity):
 
     # @property
     # def own_attributes(self):
-    #     """Get all the own attributes of this Cuds object.
+    #     """Get all the own attributes of this ontology class.
 
     #     :return: The attributes of the class
     #     :rtype: List[OntologyAttribute]
     #     """
     #     return self._attributes
-
-    # @property
-    # def subclass_of_expressions(self):
-    #     """Get the subclass_of class expressions"""
-    #     from osp.core.ontology.parser import SUPERCLASSES_KEY
-    #     return self._collect_class_expressions(SUPERCLASSES_KEY)
-
-    # @property
-    # def equivalent_to_expressions(self):
-    #     """Get the subclass_of class expressions"""
-    #     from osp.core.ontology.parser import EQUIVALENT_TO_KEY
-    #     if EQUIVALENT_TO_KEY in self._class_expressions:
-    #         return self._class_expressions[EQUIVALENT_TO_KEY]
-    #     return list()
-
-    # @property
-    # def disjoint_with_expressions(self):
-    #     """Get the subclass_of class expressions"""
-    #     from osp.core.ontology.parser import DISJOINTS_KEY
-    #     return self._collect_class_expressions(DISJOINTS_KEY)
-
-    # # OVERRIDE
-    # def get_triples(self):
-    #     return super().get_triples() + [
-    #         (self.iri, rdflib.RDFS.subClassOf, x.iri)
-    #         for x in self.superclasses
-    #     ] + [
-    #         (self.iri, rdflib.RDF.type, rdflib.OWL.Class),
-    #     ]
 
     # def _get_attributes_recursively(self):
     #     """Get the attributes and defaults recursively
@@ -90,19 +59,6 @@ class OntologyClass(OntologyEntity):
 
     #     result.update(self.own_attributes)
     #     return result
-
-    # def _add_attribute(self, attribute, default):
-    #     """Add an attribute to the class
-
-    #     :param attribute: The attribute to add
-    #     :type attribute: OntologyAttribute
-    #     """
-    #     if not isinstance(attribute, OntologyAttribute):
-    #         raise TypeError("Tried to add non-attribute %s as "
-    #                         "attribute to %s"
-    #                         % (attribute, self))
-    #     logger.debug("Add attribute %s to %s" % (attribute, self))
-    #     self._attributes[attribute] = default
 
     # def _get_attributes_values(self, kwargs, _force):
     #     """Get the cuds object's attributes from the given kwargs.
@@ -133,6 +89,20 @@ class OntologyClass(OntologyEntity):
     #         if missing:
     #             raise TypeError("Missing keyword arguments: %s" % missing)
     #     return attributes
+
+    def _direct_superclasses(self):
+        return self._directly_connected(rdflib.RDFS.subClassOf)
+
+    def _direct_subclasses(self):
+        return self._directly_connected(rdflib.RDFS.subClassOf, inverse=True)
+
+    def _superclasses(self):
+        yield self
+        yield from self._transitive_hull(rdflib.RDFS.subClassOf)
+
+    def _subclasses(self):
+        yield self
+        yield from self._transitive_hull(rdflib.RDFS.subClassOf, inverse=True)
 
     def __call__(self, uid=None, session=None, _force=False):  # , **kwargs):
         """Create a Cuds object from this ontology class.

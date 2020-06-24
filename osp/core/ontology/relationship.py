@@ -7,6 +7,7 @@
 
 from osp.core.ontology.entity import OntologyEntity
 import logging
+import rdflib
 
 logger = logging.getLogger(__name__)
 
@@ -51,3 +52,19 @@ class OntologyRelationship(OntologyEntity):
     # def _add_characteristic(self, characteristic):
     #     logger.debug("Add characteristic %s to %s" % (characteristic, self))
     #     self._characteristics.append(characteristic)
+
+    def _direct_superclasses(self):
+        return self._directly_connected(rdflib.OWL.subObjectPropertyOf)
+
+    def _direct_subclasses(self):
+        return self._directly_connected(rdflib.OWL.subObjectPropertyOf,
+                                        inverse=True)
+
+    def _superclasses(self):
+        yield self
+        yield from self._transitive_hull(rdflib.OWL.subObjectPropertyOf)
+
+    def _subclasses(self):
+        yield self
+        yield from self._transitive_hull(rdflib.OWL.subObjectPropertyOf,
+                                         inverse=True)
