@@ -6,13 +6,11 @@
 # No redistribution is allowed without explicit written permission.
 
 from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.datatypes import convert_from, convert_to
 import logging
 import rdflib
 
 logger = logging.getLogger(__name__)
-
-
-CONFLICTING = "2L4N4lGLYBU8mBNx8H6X6dC6Mcf2AcBqIKnFnXUI"
 
 
 class OntologyAttribute(OntologyEntity):
@@ -20,97 +18,48 @@ class OntologyAttribute(OntologyEntity):
         super().__init__(namespace, name)
         logger.debug("Created ontology data property %s" % self)
 
-    # @property TODO
-    # def name(self):
-    #     return super().name
+    @property
+    def name(self):
+        return super().name
 
-    # @property
-    # def argname(self):
-    #     return super().name.lower()
+    @property
+    def argname(self):
+        return super().name.lower()
 
-    # @property
-    # def datatype(self):
-    #     result = self._get_datatype_recursively()
-    #     if result == CONFLICTING:
-    #         logger.warning("Conflicting datatype for %s" % self)
-    #         return "UNDEFINED"
-    #     return result or "UNDEFINED"
+    @property
+    def datatype(self):
+        superclasses = self.superclasses
+        datatypes = set()
+        for superclass in superclasses:
+            triple = (self.iri, rdflib.RDFS.range, None)
+            for _, _, o in self.namespace._graph.triples(triple):
+                datatypes.add(o)
+        if len(datatypes) == 1:
+            return datatypes.pop()
+        if len(datatypes) == 0:
+            return None
+        raise RuntimeError(f"More than one datatype associated to {self}:"
+                           f" {datatypes}")
 
-    # # OVERRIDE
-    # def get_triples(self):
-    #     from osp.core.ontology.datatypes import ONTOLOGY_DATATYPES
-    #     datatype_triple = []
-    #     yml_datatype = self.datatype.split(":")[0]
-    #     if ONTOLOGY_DATATYPES[yml_datatype][3] is not None:
-    #         datatype_triple = [
-    #             (self.iri, rdflib.RDFS.range,
-    #              ONTOLOGY_DATATYPES[yml_datatype][3])
-    #         ]
+    def convert_to_datatype(self, value):
+        """Convert to the datatype of the value
 
-    #     return super().get_triples() + [
-    #         (self.iri, rdflib.OWL.subDataPropertyOf, x.iri)
-    #         for x in self.superclasses if str(x) != "CUBA.CLASS"
-    #     ] + [
-    #         (self.iri, rdflib.OWL.subDataPropertyOf,
-    #          rdflib.OWL.topDataProperty),
-    #         (self.iri, rdflib.RDF.type, rdflib.OWL.FunctionalDataProperty),
-    #     ] + datatype_triple
+        :param value: The value to convert
+        :type value: Any
+        :return: The converted value
+        :rtype: Any
+        """
+        return convert_to(value, self.datatype)
 
-    # def _get_datatype_recursively(self):
-    #     """Get the datatype of the value
+    def convert_to_basic_type(self, value):
+        """Convert from the datatype of the value to a python basic type
 
-    #     :return: The datatype of the ontology value
-    #     :rtype: str
-    #     """
-    #     if self._datatype is not None:
-    #         return self._datatype  # datatype is defined
-
-    #     # check for inherited datatype
-    #     datatype = None
-    #     for p in self.direct_superclasses:
-    #         if not isinstance(p, OntologyAttribute):
-    #             continue
-    #         superclass_datatype = p._get_datatype_recursively()
-    #         if (
-    #             datatype is not None
-    #             and superclass_datatype is not None
-    #             and datatype != superclass_datatype
-    #         ):
-    #             return CONFLICTING  # conflicting datatypes of superclasses
-    #         datatype = datatype or superclass_datatype
-    #     return datatype
-
-    # def convert_to_datatype(self, value):
-    #     """Convert to the datatype of the value
-
-    #     :param value: The value to convert
-    #     :type value: Any
-    #     :return: The converted value
-    #     :rtype: Any
-    #     """
-    #     return convert_to(value, self.datatype)
-
-    # def convert_to_basic_type(self, value):
-    #     """Convert from the datatype of the value to a python basic type
-
-    #     :param value: The value to convert
-    #     :type value: Any
-    #             :return: The converted value
-    #     :rtype: Any
-    #     """
-    #     return convert_from(value, self.datatype)
-
-    # def _set_datatype(self, datatype):
-    #     """Set the datatype of the value
-
-    #     :param datatype: The datatype of the value
-    #     :type datatype: str
-    #     """
-    #     if datatype.split(":")[0] not in ONTOLOGY_DATATYPES:
-    #         raise ValueError("Invalid datatype %s specified for %s"
-    #                          % (datatype, self))
-    #     logger.debug("Set datatype %s for attribute %s" % (datatype, self))
-    #     self._datatype = datatype
+        :param value: The value to convert
+        :type value: Any
+                :return: The converted value
+        :rtype: Any
+        """
+        return convert_from(value, self.datatype)
 
     def _direct_superclasses(self):
         return self._directly_connected(rdflib.OWL.subDataPropertyOf)

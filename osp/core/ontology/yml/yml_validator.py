@@ -1,13 +1,13 @@
 import re
 import logging
-from osp.core.ontology.datatypes import ONTOLOGY_DATATYPES
 
 from osp.core.ontology.yml.yml_keywords import (
     VERSION_KEY, AUTHOR_KEY, ONTOLOGY_KEY, NAMESPACE_KEY, REQUIREMENTS_KEY,
     DESCRIPTION_KEY, SUPERCLASSES_KEY,
     INVERSE_KEY, DEFAULT_REL_KEY, DATATYPE_KEY, ATTRIBUTES_KEY, DISJOINTS_KEY,
     EQUIVALENT_TO_KEY, DOMAIN_KEY, RANGE_KEY, CHARACTERISTICS_KEY,
-    CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY, CHARACTERISTICS
+    CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY, CHARACTERISTICS,
+    DATATYPES
 )
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ relationship_definition = {
 
 attribute_definition = {
     DATATYPE_KEY: re.compile(r"^(VECTOR:)?(%s)(:\d+)*$"
-                             % "|".join(map(re.escape, ONTOLOGY_DATATYPES)))
+                             % "|".join(map(re.escape, DATATYPES)))
 }
 
 format_description = {

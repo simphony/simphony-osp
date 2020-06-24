@@ -30,7 +30,7 @@ class Cuds():
 
     def __init__(
         self,
-        # attributes: Dict[OntologyAttribute, Any],
+        attributes: Dict[OntologyAttribute, Any],
         oclass: OntologyEntity,
         session: Session = None,
         uid: uuid.UUID = None
@@ -55,15 +55,15 @@ class Cuds():
             ValueError: Uid of zero is not allowed.
         """
         self._stored = False
-        # self._attr_values = {k.argname: k.convert_to_datatype(v)
-        #                      for k, v in attributes.items()}
+        self._attr_values = {k.argname: k.convert_to_datatype(v)
+                             for k, v in attributes.items()}
         self._neighbors = NeighborDictRel({}, self)
 
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         if self.__uid.int == 0:
             raise ValueError("Invalid UUID")
         self._session = session or Cuds._session
-        # self._onto_attributes = {k.argname: k for k in attributes}
+        self._onto_attributes = {k.argname: k for k in attributes}
         self._oclass = oclass
         self.session._store(self)
         self._stored = True

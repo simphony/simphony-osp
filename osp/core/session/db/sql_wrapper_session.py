@@ -3,8 +3,7 @@ from operator import mul
 from functools import reduce
 from abc import abstractmethod
 from osp.core.utils import create_recycle
-from osp.core.ontology.datatypes import convert_to, convert_from, \
-    parse_vector_args
+from osp.core.ontology.datatypes import convert_to, convert_from
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from osp.core.session.db.conditions import EqualsCondition, AndCondition
 from osp.core.neighbor_dict import NeighborDictTarget

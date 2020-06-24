@@ -1,3 +1,5 @@
+import rdflib
+
 VERSION_KEY = "version"
 AUTHOR_KEY = "author"
 ONTOLOGY_KEY = "ontology"
@@ -34,4 +36,12 @@ CHARACTERISTICS = {
     "irreflexive",
     "asymmetric",
     "inversefunctional"
+}
+
+DATATYPES = {
+    "BOOL": rdflib.XSD.boolean,
+    "INT": rdflib.XSD.integer,
+    "FLOAT": rdflib.XSD.float,
+    "STRING": rdflib.XSD.string,
+    # TODO "VECTOR": (to_vector, from_vector, None, rdflib.XSD.string)
 }
