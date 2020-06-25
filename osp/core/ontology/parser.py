@@ -33,6 +33,7 @@ class Parser():
             file_paths (str): path to the YAML file
         """
         for file_path in file_paths:
+            file_path = self.get_file_path(file_path)
             with open(file_path, 'r') as f:
                 yaml_doc = yaml.safe_load(f)
                 if YmlParser.is_yaml_ontology(yaml_doc):
@@ -65,7 +66,8 @@ class Parser():
     def get_identifier(file_path_or_doc):
         yaml_doc = file_path_or_doc
         if isinstance(file_path_or_doc, str):
-            with open(file_path_or_doc, "r") as f:
+            file_path = Parser.get_file_path(file_path_or_doc)
+            with open(file_path, "r") as f:
                 yaml_doc = yaml.safe_load(f)
         if YmlParser.is_yaml_ontology(yaml_doc):
             return YmlParser.get_namespace_name(yaml_doc)
@@ -73,6 +75,15 @@ class Parser():
             return yaml_doc[IDENTIFIER_KEY]
         else:
             raise SyntaxError(f"Invalid format of file {file_path_or_doc}")
+
+    @staticmethod
+    def get_file_path(file_path):
+        if file_path.endswith("yml"):
+            return file_path
+        file_path = file_path.lower()
+        return os.path.join(
+            os.path.dirname(__file__), "docs", f"{file_path}.ontology.yml"
+        )
 
     def _parse_yml(self, yaml_doc, file_path):
         """Parse the owl files specified in the given YAML docs
