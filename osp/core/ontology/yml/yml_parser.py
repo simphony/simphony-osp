@@ -67,23 +67,23 @@ class YmlParser:
         logger.debug("Parse the ontology %s" % self._namespace)
 
         self.graph.bind(self._namespace, self._get_iri())
-        for entity_name in self._ontology_doc:
-            self._load_entity(entity_name)
-            self._validate_entity(entity_name)
+        types = dict()
+        for entity_name, entity_doc in self._ontology_doc.items():
+            self._load_entity(entity_name, entity_doc)
+            t = self._validate_entity(entity_name, entity_doc)
+            types[entity_name] = t
 
-        # missing_inverse = set()  TODO
-        # for entity in self._ontology_namespace:
-            # self._validate_entity(entity)
-            # self._load_class_expressions(entity)
-            # if isinstance(entity, OntologyClass):
-            #     self._add_attributes(entity)
-            # elif isinstance(entity, OntologyRelationship):
-            #     self._set_inverse(entity, missing_inverse)
-            #     self._parse_rel_characteristics(entity)
-            #     self._check_default_rel(entity)
+        for entity_name, entity_doc in self._ontology_doc.items():
+            # self._load_class_expressions(entity) TODO
+            if types[entity_name] == "class":
+                self._add_attributes(entity_name, entity_doc)
+            # elif status[1]:  TODO
+            #     self._set_inverse(entity_name, entity_doc)
+            #     self._parse_rel_characteristics(entity_name, entity_doc)
+            #     self._check_default_rel(entity_name, entity_doc)
             # else:
             #     self._set_datatype(entity)
-        # for entity in missing_inverse:
+        # for entity in missing_inverse:  TODO
         #     self._create_missing_inverse(entity)
         # self._validate_parsed_datastructure(self._ontology_namespace)
 
@@ -96,14 +96,13 @@ class YmlParser:
             raise ValueError("Reference to entity '%s' without namespace"
                              % name) from e
 
-    def _load_entity(self, entity_name):
+    def _load_entity(self, entity_name, entity_doc):
         """Load an entity into the registry
 
         :param entity_name: The name of the entity to load.
         :type entity_name: str
         """
         logger.debug("Parse entity definition for %s" % entity_name)
-        entity_doc = self._ontology_doc[entity_name]
         iri = self._get_iri(entity_name)
         if DESCRIPTION_KEY in entity_doc:
             description = rdflib.Literal(entity_doc[DESCRIPTION_KEY])
@@ -113,6 +112,7 @@ class YmlParser:
         # Parse superclasses
         for superclass_doc in entity_doc[SUPERCLASSES_KEY]:
             self._add_superclass(entity_name, iri, superclass_doc)
+        return entity_doc
 
     def _get_iri(self, entity_name=None, namespace=None):
         namespace = namespace or self._namespace
@@ -191,29 +191,35 @@ class YmlParser:
     #                 keyword, self._parse_class_expression(ce)
     #             )
 
-    # def _add_attributes(self, entity: OntologyClass):
-    #     """Add a attribute to an ontology class
+    def _add_attributes(self, entity_name, entity_doc):
+        """Add a attribute to an ontology class
 
-    #     :param entity: The ontology to add the attributes to
-    #     :type entity: OntologyClass
-    #     """
-    #     ontology_doc = self._ontology_doc
-    #     entity_doc = ontology_doc[entity.name]
+        :param entity: The ontology to add the attributes to
+        :type entity: OntologyClass
+        """
+        iri = self._get_iri(entity_name)
+        attributes_def = None
+        if ATTRIBUTES_KEY in entity_doc:
+            attributes_def = entity_doc[ATTRIBUTES_KEY]
 
-    #     attributes_def = None
-    #     if ATTRIBUTES_KEY in entity_doc:
-    #         attributes_def = entity_doc[ATTRIBUTES_KEY]
+        if attributes_def is None:
+            return
 
-    #     if attributes_def is None:
-    #         return
+        # Add the attributes one by one
+        # TODO default
+        for attribute_name, default in attributes_def.items():
+            attribute_namespace, attribute_name = \
+                self.split_name(attribute_name)
 
-    #     # Add the attributes one by one
-    #     for attribute_name, default in attributes_def.items():
-    #         attribute_namespace, attribute_name = \
-    #             self.split_name(attribute_name)
-    #         attribute_namespace = self._namespace_registry[attribute_namespace]
-    #         attribute = attribute_namespace[attribute_name]
-    #         entity._add_attribute(attribute, default)
+            attribute_iri = self._get_iri(attribute_name, attribute_namespace)
+            x = (attribute_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
+            if x not in self.graph:
+                raise ValueError(f"Invalid attribute {attribute_namespace}."
+                                 f"{attribute_name} of entity {entity_name}")
+            # TODO CRITICAL wrong if multiple have same attribute
+            self.graph.add(
+                (attribute_iri, rdflib.RDFS.domain, iri)
+            )
 
     # def _set_inverse(self, entity: OntologyRelationship, missing_inverse: set):
     #     """Set the inverse of the given entity
@@ -329,15 +335,13 @@ class YmlParser:
     #     if datatype_def is not None:
     #         entity._set_datatype(datatype_def)
 
-    def _validate_entity(self, entity_name):
+    def _validate_entity(self, entity_name, entity_doc):
         """Validate the yaml definition of an entity.
         Will check for the special keywords of the different entity types.
 
         :param entity: The entity to check.
         :type entity: OntologyEntity
         """
-        ontology_doc = self._ontology_doc
-        entity_doc = ontology_doc[entity_name]
         iri = self._get_iri(entity_name)
         class_triple = (iri, rdflib.RDF.type, rdflib.OWL.Class)
         rel_triple = (iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
@@ -350,17 +354,18 @@ class YmlParser:
         if sum(status) != 1:
             raise RuntimeError(f"Couldn't determine type of {entity_name}")
         if status[0]:
-            pattern = "class_def"
+            t = "class"
         elif status[1]:
-            pattern = "relationship_def"
+            t = "relationship"
         else:
-            pattern = "attribute_def"
+            t = "attribute"
 
         validate(
-            entity_doc, pattern,
+            entity_doc, t + "_def",
             context="<%s>/ONTOLOGY/%s" % (os.path.basename(self._file_path),
                                           entity_name)
         )
+        return t
 
     # def _parse_rel_characteristics(self, entity):
     #     """Parse the characteristics of a relationship

@@ -28,11 +28,14 @@ class OntologyClass(OntologyEntity):
         superclasses = self.superclasses
         attributes = set()
         for superclass in superclasses:
-            triple = (None, rdflib.RDFS.domain, superclass)
+            # TODO more cases
+            triple = (None, rdflib.RDFS.domain, superclass.iri)
             for s, _, _ in self.namespace._graph.triples(triple):
-                if (s, rdflib.RDF.type, rdflib.OWL.DatatypeProperty) \
-                        in self._namespace.graph:
-                    attributes.add(s)  # TODO default values
+                triple = (s, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
+                if triple in self._namespace._graph:
+                    attributes.add(
+                        self.namespace._namespace_registry.from_iri(s)
+                    )  # TODO default values
         return attributes
 
     def _get_attributes_values(self, kwargs, _force):

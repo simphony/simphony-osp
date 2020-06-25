@@ -128,7 +128,7 @@ class OntologyNamespace():
                 return OntologyRelationship(self, name)
             if o == rdflib.OWL.Class:
                 return OntologyClass(self, name)
-        raise KeyError("Unknown entity %s in namespace %s" % (name, self))
+        raise KeyError("Unknown entity '%s' in namespace %s" % (name, self))
 
         # if (  # TODO case insensitivity
         #     any(x.islower() for x in name)
