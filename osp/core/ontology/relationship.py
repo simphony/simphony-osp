@@ -30,17 +30,17 @@ class OntologyRelationship(OntologyEntity):
         raise ValueError(f"No inverse for {self} found.")
 
     def _direct_superclasses(self):
-        return self._directly_connected(rdflib.OWL.subObjectPropertyOf)
+        return self._directly_connected(rdflib.OWL.subPropertyOf)
 
     def _direct_subclasses(self):
-        return self._directly_connected(rdflib.OWL.subObjectPropertyOf,
+        return self._directly_connected(rdflib.OWL.subPropertyOf,
                                         inverse=True)
 
     def _superclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.OWL.subObjectPropertyOf)
+        yield from self._transitive_hull(rdflib.OWL.subPropertyOf)
 
     def _subclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.OWL.subObjectPropertyOf,
+        yield from self._transitive_hull(rdflib.OWL.subPropertyOf,
                                          inverse=True)

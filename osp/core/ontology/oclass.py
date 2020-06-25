@@ -30,7 +30,7 @@ class OntologyClass(OntologyEntity):
         for superclass in superclasses:
             triple = (None, rdflib.RDFS.domain, superclass)
             for s, _, _ in self.namespace._graph.triples(triple):
-                if (s, rdflib.RDF.type, rdflib.OWL.DataProperty) \
+                if (s, rdflib.RDF.type, rdflib.OWL.DatatypeProperty) \
                         in self._namespace.graph:
                     attributes.add(s)  # TODO default values
         return attributes

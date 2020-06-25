@@ -129,7 +129,11 @@ class YmlParser:
                     "Reference to undefined entity %s in definition of %s"
                     % (superclass_name, entity_name)
                 )
-            self.graph.add((iri, rdflib.RDFS.subClassOf,
+            predicate = rdflib.RDFS.subPropertyOf
+            if (iri, rdflib.RDF.type, rdflib.OWL.Class) in self.graph:
+                predicate = rdflib.RDFS.subClassOf
+
+            self.graph.add((iri, predicate,
                             self._get_iri(superclass_name, namespace)))
 
     def _add_type_triple(self, entity_name, iri):
@@ -142,7 +146,7 @@ class YmlParser:
             if (namespace, name) == (MAIN_NAMESPACE, ROOT_RELATIONSHIP):
                 types.add(rdflib.OWL.ObjectProperty)
             elif (namespace, name) == (MAIN_NAMESPACE, ROOT_ATTRIBUTE):
-                types |= {rdflib.OWL.DataProperty,
+                types |= {rdflib.OWL.DatatypeProperty,
                           rdflib.OWL.FunctionalProperty}
             elif (namespace, name) == (MAIN_NAMESPACE, ROOT_CLASS):
                 types.add(rdflib.OWL.Class)
