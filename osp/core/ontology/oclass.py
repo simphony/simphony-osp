@@ -41,7 +41,6 @@ class OntologyClass(OntologyEntity):
     def _get_default(self, attribute_iri, superclass_iri):
         triple = (superclass_iri, rdflib_cuba._default, None)
         for _, _, bnode in self.namespace._graph.triples(triple):
-            print(bnode)
             x = (bnode, rdflib_cuba._default_attribute, attribute_iri)
             if x in self.namespace._graph:
                 return self.namespace._graph.value(bnode,
