@@ -79,8 +79,8 @@ class YmlParser:
             if types[entity_name] == "class":
                 self._add_attributes(entity_name, entity_doc)
             elif types[entity_name] == "relationship":
-            #     self._set_inverse(entity_name, entity_doc)  TODO
-            #     self._parse_rel_characteristics(entity_name, entity_doc)
+                self._set_inverse(entity_name, entity_doc)
+            #     self._parse_rel_characteristics(entity_name, entity_doc) TODO
                 self._check_default_rel(entity_name, entity_doc)
             # else:
             #     self._set_datatype(entity)
@@ -230,90 +230,23 @@ class YmlParser:
             self.graph.add(
                 (bnode, rdflib_cuba._default_value, rdflib.Literal(default)))
 
-    # def _set_inverse(self, entity: OntologyRelationship, missing_inverse: set):
-    #     """Set the inverse of the given entity
+    def _set_inverse(self, entity_name, entity_doc):
+        if INVERSE_KEY not in entity_doc:
+            return
+        inverse_def = entity_doc[INVERSE_KEY]
 
-    #     :param entity: The ontology relationship to set an inverse.
-    #     :type entity: OntologyRelationship
-    #     """
-    #     ontology_doc = self._ontology_doc
-    #     entity_doc = ontology_doc[entity.name]
-
-    #     # Check if incerse is defined
-    #     inverse_def = None
-    #     if INVERSE_KEY in entity_doc:
-    #         inverse_def = entity_doc[INVERSE_KEY]
-    #     if inverse_def is None:
-    #         missing_inverse |= {entity}
-    #         return
-
-    #     # inverse is defined
-    #     inverse_namespace, inverse_name = self.split_name(inverse_def)
-    #     inverse_namespace = self._namespace_registry[inverse_namespace]
-    #     inverse = inverse_namespace[inverse_name]
-    #     if inverse.inverse and inverse.inverse != entity:
-    #         raise RuntimeError(
-    #             "Conflicting inverses for %s, %s, %s"
-    #             % (entity, inverse, inverse.inverse)
-    #         )
-    #     entity._set_inverse(inverse)
-    #     inverse._set_inverse(entity)
-    #     if inverse in missing_inverse:
-    #         missing_inverse.remove(inverse)
-    #     self._set_missing_passive(entity)
-
-    # def _set_missing_passive(self, entity):
-    #     CUBA = self._namespace_registry.get_main_namespace()
-    #     if self._ontology_namespace == CUBA:
-    #         return
-    #     for x in [entity, entity.inverse]:
-    #         if (
-    #             CUBA.ACTIVE_RELATIONSHIP in x.direct_superclasses
-    #         ):
-    #             x.inverse._add_superclass(CUBA.PASSIVE_RELATIONSHIP)
-    #             CUBA.PASSIVE_RELATIONSHIP._add_subclass(x.inverse)
-    #         if (
-    #             CUBA.PASSIVE_RELATIONSHIP in x.direct_superclasses
-    #         ):
-    #             x.inverse._add_superclass(CUBA.ACTIVE_RELATIONSHIP)
-    #             CUBA.ACTIVE_RELATIONSHIP._add_subclass(x.inverse)
-
-    # def _create_missing_inverse(self, entity: OntologyRelationship):
-    #     """Create the missing inverse for an relationship
-
-    #     :param entity: the relationship to add the inverse to
-    #     :type entity: OntologyRelationship
-    #     :return: The added inverse
-    #     :rtype: OntologyRelationship
-    #     """
-    #     if entity.inverse:  # inverse not missing. Return.
-    #         return entity.inverse
-
-    #     # Try to infer the superclasses of the inverse
-    #     inverse_superclasses = list()
-    #     for x in entity.direct_superclasses:
-    #         if x.inverse:
-    #             inverse_superclasses.append(x.inverse)
-    #         elif x.namespace == self._ontology_namespace:
-    #             inverse_superclasses.append(self._create_missing_inverse(x))
-    #     if not inverse_superclasses:
-    #         inverse_superclasses = [  # Fallback to CUBA.RELATIONSHIP
-    #             self._namespace_registry.get_main_namespace().relationship
-    #         ]
-
-    #     # Create the inverse
-    #     inverse = OntologyRelationship(
-    #         namespace=self._ontology_namespace,
-    #         name="INVERSE_OF_%s" % entity.name,
-    #         superclasses=inverse_superclasses,
-    #         description="Inverse of %s" % entity.name
-    #     )
-    #     for x in inverse_superclasses:
-    #         x._add_subclass(inverse)
-    #     self._ontology_namespace._add_entity(inverse)
-    #     inverse._set_inverse(entity)  # set the inverses
-    #     entity._set_inverse(inverse)
-    #     return inverse
+        # inverse is defined
+        inverse_namespace, inverse_name = self.split_name(inverse_def)
+        # if inverse.inverse and inverse.inverse != entity:  TODO
+        #     raise RuntimeError(
+        #         "Conflicting inverses for %s, %s, %s"
+        #         % (entity, inverse, inverse.inverse)
+        #     )
+        inverse_iri = self._get_iri(inverse_name, inverse_namespace)
+        iri = self._get_iri(entity_name)
+        self.graph.add(
+            (iri, rdflib.OWL.inverseOf, inverse_iri)
+        )
 
     def _check_default_rel(self, entity_name, entity_doc):
         """Check of the given relationship the default
