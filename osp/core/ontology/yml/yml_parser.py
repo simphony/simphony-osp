@@ -2,6 +2,7 @@ import os
 import logging
 import yaml
 import rdflib
+from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.yml.yml_keywords import (
     ONTOLOGY_KEY, NAMESPACE_KEY,
     ROOT_RELATIONSHIP, ROOT_ATTRIBUTE, DESCRIPTION_KEY, SUPERCLASSES_KEY,
@@ -206,7 +207,6 @@ class YmlParser:
             return
 
         # Add the attributes one by one
-        # TODO default
         for attribute_name, default in attributes_def.items():
             attribute_namespace, attribute_name = \
                 self.split_name(attribute_name)
@@ -216,10 +216,19 @@ class YmlParser:
             if x not in self.graph:
                 raise ValueError(f"Invalid attribute {attribute_namespace}."
                                  f"{attribute_name} of entity {entity_name}")
-            # TODO CRITICAL wrong if multiple have same attribute
+            self._add_attribute(iri, attribute_iri, default)
+
+    def _add_attribute(self, class_iri, attribute_iri, default):
+        self.graph.add(  # TODO CRITICAL wrong if multiple have same attribute
+            (attribute_iri, rdflib.RDFS.domain, class_iri)
+        )
+        if default is not None:
+            bnode = rdflib.BNode()
+            self.graph.add((class_iri, rdflib_cuba._default, bnode))
             self.graph.add(
-                (attribute_iri, rdflib.RDFS.domain, iri)
-            )
+                (bnode, rdflib_cuba._default_attribute, attribute_iri))
+            self.graph.add(
+                (bnode, rdflib_cuba._default_value, rdflib.Literal(default)))
 
     # def _set_inverse(self, entity: OntologyRelationship, missing_inverse: set):
     #     """Set the inverse of the given entity

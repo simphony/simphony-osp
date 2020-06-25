@@ -7,6 +7,7 @@
 
 
 from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.cuba import rdflib_cuba
 import logging
 import rdflib
 
@@ -26,17 +27,25 @@ class OntologyClass(OntologyEntity):
         :rtype: Dict[OntologyAttribute, str]
         """
         superclasses = self.superclasses
-        attributes = set()
+        attributes = dict()
         for superclass in superclasses:
             # TODO more cases
             triple = (None, rdflib.RDFS.domain, superclass.iri)
             for s, _, _ in self.namespace._graph.triples(triple):
                 triple = (s, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
                 if triple in self._namespace._graph:
-                    attributes.add(
-                        self.namespace._namespace_registry.from_iri(s)
-                    )  # TODO default values
+                    a = self.namespace._namespace_registry.from_iri(s)
+                    attributes[a] = self._get_default(s, superclass.iri)
         return attributes
+
+    def _get_default(self, attribute_iri, superclass_iri):
+        triple = (superclass_iri, rdflib_cuba._default, None)
+        for _, _, bnode in self.namespace._graph.triples(triple):
+            print(bnode)
+            x = (bnode, rdflib_cuba._default_attribute, attribute_iri)
+            if x in self.namespace._graph:
+                return self.namespace._graph.value(bnode,
+                                                   rdflib_cuba._default_value)
 
     def _get_attributes_values(self, kwargs, _force):
         """Get the cuds object's attributes from the given kwargs.
@@ -51,8 +60,7 @@ class OntologyClass(OntologyEntity):
         """
         kwargs = dict(kwargs)
         attributes = dict()
-        default = None  # TODO
-        for attribute in self.attributes:
+        for attribute, default in self.attributes.items():
             if attribute.argname in kwargs:
                 attributes[attribute] = kwargs[attribute.argname]
                 del kwargs[attribute.argname]
