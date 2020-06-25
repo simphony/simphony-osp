@@ -11,6 +11,7 @@ import logging
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
+from osp.core.ontology.cuba import rdflib_cuba
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +43,9 @@ class OntologyNamespace():
     def default_rel(self):
         """Get the default relationship of the namespace"""
         if self._default_rel == -1:
-            from osp.core.ontology.parser import DEFAULT_REL_IRI
+            self._default_rel = None
             for s, p, o in self._graph.triples((self._iri,
-                                                DEFAULT_REL_IRI,
+                                                rdflib_cuba._default_rel,
                                                 None)):
                 self._default_rel = self._namespace_registry.from_iri(o)
         return self._default_rel

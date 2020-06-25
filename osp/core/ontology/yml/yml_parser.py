@@ -78,10 +78,10 @@ class YmlParser:
             # self._load_class_expressions(entity) TODO
             if types[entity_name] == "class":
                 self._add_attributes(entity_name, entity_doc)
-            # elif status[1]:  TODO
-            #     self._set_inverse(entity_name, entity_doc)
+            elif types[entity_name] == "relationship":
+            #     self._set_inverse(entity_name, entity_doc)  TODO
             #     self._parse_rel_characteristics(entity_name, entity_doc)
-            #     self._check_default_rel(entity_name, entity_doc)
+                self._check_default_rel(entity_name, entity_doc)
             # else:
             #     self._set_datatype(entity)
         # for entity in missing_inverse:  TODO
@@ -315,18 +315,19 @@ class YmlParser:
     #     entity._set_inverse(inverse)
     #     return inverse
 
-    # def _check_default_rel(self, entity: OntologyRelationship):
-    #     """Check of the given relationship the default
-    #     When it is a default, save that accordingly.
+    def _check_default_rel(self, entity_name, entity_doc):
+        """Check of the given relationship the default
+        When it is a default, save that accordingly.
 
-    #     :param entity: The relationship to check
-    #     :type entity: OntologyRelationship
-    #     """
-    #     ontology_doc = self._ontology_doc
-    #     entity_doc = ontology_doc[entity.name]
-    #     if DEFAULT_REL_KEY in entity_doc \
-    #             and entity_doc[DEFAULT_REL_KEY]:
-    #         self._ontology_namespace._default_rel = entity
+        :param entity: The relationship to check
+        :type entity: OntologyRelationship
+        """
+        if DEFAULT_REL_KEY in entity_doc \
+                and entity_doc[DEFAULT_REL_KEY]:
+            self.graph.add(
+                (self._get_iri(), rdflib_cuba._default_rel,
+                 self._get_iri(entity_name))
+            )
 
     # def _set_datatype(self, entity: OntologyAttribute):
     #     """Set the datatype of a attribute

@@ -36,7 +36,7 @@ class OntologyEntity(ABC):
         )
 
     def __eq__(self, other):
-        return self.iri == other.iri
+        return isinstance(other, OntologyEntity) and self.iri == other.iri
 
     @property
     def name(self):
