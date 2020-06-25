@@ -778,64 +778,64 @@ class Cuds():
         """
         return "%s: %s" % (self.oclass, self.uid)
 
-    # def __getattr__(self, name):  TODO
-    #     """Set the attributes corresponding to ontology values
+    def __getattr__(self, name):
+        """Set the attributes corresponding to ontology values
 
-    #     Args:
-    #         name (str): The name of the attribute
+        Args:
+            name (str): The name of the attribute
 
-    #     Raises:
-    #         AttributeError: Unknown attribute name
+        Raises:
+            AttributeError: Unknown attribute name
 
-    #     Returns:
-    #         The value of the attribute: Any
-    #     """
-    #     if name not in self._attr_values:
-    #         if (  # check if user calls session's methods on wrapper
-    #             self.is_a(CUBA.WRAPPER)
-    #             and self._session is not None
-    #             and hasattr(self._session, name)
-    #         ):
-    #             logger.warn(
-    #                 "Trying to get non-defined attribute '%s' "
-    #                 "of wrapper CUDS object '%s'. Will return attribute of "
-    #                 "its session '%s' instead." % (name, self, self._session)
-    #             )
-    #             return getattr(self._session, name)
-    #         else:
-    #             raise AttributeError(name)
-    #     if self.session:
-    #         self.session._notify_read(self)
-    #     if name not in self._attr_values:
-    #         raise AttributeError(name)
-    #     return self._attr_values[name]
+        Returns:
+            The value of the attribute: Any
+        """
+        if name not in self._attr_values:
+            if (  # check if user calls session's methods on wrapper
+                self.is_a(CUBA.WRAPPER)
+                and self._session is not None
+                and hasattr(self._session, name)
+            ):
+                logger.warn(
+                    "Trying to get non-defined attribute '%s' "
+                    "of wrapper CUDS object '%s'. Will return attribute of "
+                    "its session '%s' instead." % (name, self, self._session)
+                )
+                return getattr(self._session, name)
+            else:
+                raise AttributeError(name)
+        if self.session:
+            self.session._notify_read(self)
+        if name not in self._attr_values:
+            raise AttributeError(name)
+        return self._attr_values[name]
 
-    # def __setattr__(self, name, new_value):
-    #     """
-    #     Set an attribute.
-    #     Will notify the session of it corresponds to an ontology value.
+    def __setattr__(self, name, new_value):
+        """
+        Set an attribute.
+        Will notify the session of it corresponds to an ontology value.
 
-    #     Args:
-    #         name (str): The name of the attribute.
-    #         new_value (Any): The new value.
+        Args:
+            name (str): The name of the attribute.
+            new_value (Any): The new value.
 
-    #     Raises:
-    #         AttributeError: Unknown attribute name
-    #     """
+        Raises:
+            AttributeError: Unknown attribute name
+        """
 
-    #     if name.startswith("_"):
-    #         super().__setattr__(name, new_value)
-    #         return
-    #     if name not in self._attr_values:
-    #         raise AttributeError(name)
-    #     if self.session:
-    #         self.session._notify_read(self)
-    #     if name not in self._attr_values:
-    #         raise AttributeError(name)
-    #     self._attr_values[name] = \
-    #         self._onto_attributes[name].convert_to_datatype(new_value)
-    #     if self.session:
-    #         self.session._notify_update(self)
+        if name.startswith("_"):
+            super().__setattr__(name, new_value)
+            return
+        if name not in self._attr_values:
+            raise AttributeError(name)
+        if self.session:
+            self.session._notify_read(self)
+        if name not in self._attr_values:
+            raise AttributeError(name)
+        self._attr_values[name] = \
+            self._onto_attributes[name].convert_to_datatype(new_value)
+        if self.session:
+            self.session._notify_update(self)
 
     def __repr__(self) -> str:
         """
