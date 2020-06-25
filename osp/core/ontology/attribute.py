@@ -62,17 +62,17 @@ class OntologyAttribute(OntologyEntity):
         return convert_from(value, self.datatype)
 
     def _direct_superclasses(self):
-        return self._directly_connected(rdflib.OWL.subPropertyOf)
+        return self._directly_connected(rdflib.RDFS.subPropertyOf)
 
     def _direct_subclasses(self):
-        return self._directly_connected(rdflib.OWL.subPropertyOf,
+        return self._directly_connected(rdflib.RDFS.subPropertyOf,
                                         inverse=True)
 
     def _superclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.OWL.subPropertyOf)
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf)
 
     def _subclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.OWL.subPropertyOf,
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
                                          inverse=True)

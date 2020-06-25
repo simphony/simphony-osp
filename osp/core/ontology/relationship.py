@@ -27,20 +27,28 @@ class OntologyRelationship(OntologyEntity):
             return self.namespace._namespace_registry.from_iri(o)
         for s, _, _ in self.namespace._graph.triples(triple2):
             return self.namespace._namespace_registry.from_iri(s)
-        raise ValueError(f"No inverse for {self} found.")
+        return self._add_inverse()
 
     def _direct_superclasses(self):
-        return self._directly_connected(rdflib.OWL.subPropertyOf)
+        return self._directly_connected(rdflib.RDFS.subPropertyOf)
 
     def _direct_subclasses(self):
-        return self._directly_connected(rdflib.OWL.subPropertyOf,
+        return self._directly_connected(rdflib.RDFS.subPropertyOf,
                                         inverse=True)
 
     def _superclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.OWL.subPropertyOf)
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf)
 
     def _subclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.OWL.subPropertyOf,
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
                                          inverse=True)
+
+    def _add_inverse(self):
+        o = rdflib.URIRef(self.namespace.iri + "INVERSE_OF_" + self.name)
+        x = (self.iri, rdflib.OWL.inverseOf, o)
+        y = (o, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
+        self.namespace._graph.add(x)
+        self.namespace._graph.add(y)
+        return self.namespace._namespace_registry.from_iri(o)

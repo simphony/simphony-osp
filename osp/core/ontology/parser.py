@@ -155,6 +155,6 @@ class Parser():
     def _add_cuba_triples(self, active_rels):
         for rel in active_rels:
             self.graph.add(
-                (rdflib.URIRef(rel), rdflib.OWL.subPropertyOf,
+                (rdflib.URIRef(rel), rdflib.RDFS.subPropertyOf,
                  ACTIVE_REL_IRI)
             )
