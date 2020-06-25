@@ -25,6 +25,7 @@ class YmlParser:
         self._doc = None
         self._ontology_doc = None
         self._namespace = None
+        self._file_path = None
         self.graph = graph
 
     @staticmethod
@@ -45,6 +46,7 @@ class YmlParser:
                  context="<%s>" % os.path.basename(file_path))
 
         # TODO version and author
+        self._file_path = file_path
         self._namespace = self._doc[NAMESPACE_KEY]
         self._ontology_doc = self._doc[ONTOLOGY_KEY]
         self._parse_ontology()
@@ -67,19 +69,20 @@ class YmlParser:
         self.graph.bind(self._namespace, self._get_iri())
         for entity_name in self._ontology_doc:
             self._load_entity(entity_name)
+            self._validate_entity(entity_name)
 
         # missing_inverse = set()  TODO
         # for entity in self._ontology_namespace:
-        #     self._validate_entity(entity)
-        #     self._load_class_expressions(entity)
-        #     if isinstance(entity, OntologyClass):
-        #         self._add_attributes(entity)
-        #     elif isinstance(entity, OntologyRelationship):
-        #         self._set_inverse(entity, missing_inverse)
-        #         self._parse_rel_characteristics(entity)
-        #         self._check_default_rel(entity)
-        #     else:
-        #         self._set_datatype(entity)
+            # self._validate_entity(entity)
+            # self._load_class_expressions(entity)
+            # if isinstance(entity, OntologyClass):
+            #     self._add_attributes(entity)
+            # elif isinstance(entity, OntologyRelationship):
+            #     self._set_inverse(entity, missing_inverse)
+            #     self._parse_rel_characteristics(entity)
+            #     self._check_default_rel(entity)
+            # else:
+            #     self._set_datatype(entity)
         # for entity in missing_inverse:
         #     self._create_missing_inverse(entity)
         # self._validate_parsed_datastructure(self._ontology_namespace)
@@ -164,7 +167,7 @@ class YmlParser:
     #     :type entity_name: str
     #     """
     #     logger.debug("Parse class expressions for %s" % entity)
-    #     ontology_doc = self._doc[ONTOLOGY_KEY]
+    #     ontology_doc = self._ontology_doc
     #     entity_doc = ontology_doc[entity.name]
 
     #     # The keywords containing the class expressions
@@ -194,7 +197,7 @@ class YmlParser:
     #     :param entity: The ontology to add the attributes to
     #     :type entity: OntologyClass
     #     """
-    #     ontology_doc = self._doc[ONTOLOGY_KEY]
+    #     ontology_doc = self._ontology_doc
     #     entity_doc = ontology_doc[entity.name]
 
     #     attributes_def = None
@@ -218,7 +221,7 @@ class YmlParser:
     #     :param entity: The ontology relationship to set an inverse.
     #     :type entity: OntologyRelationship
     #     """
-    #     ontology_doc = self._doc[ONTOLOGY_KEY]
+    #     ontology_doc = self._ontology_doc
     #     entity_doc = ontology_doc[entity.name]
 
     #     # Check if incerse is defined
@@ -304,7 +307,7 @@ class YmlParser:
     #     :param entity: The relationship to check
     #     :type entity: OntologyRelationship
     #     """
-    #     ontology_doc = self._doc[ONTOLOGY_KEY]
+    #     ontology_doc = self._ontology_doc
     #     entity_doc = ontology_doc[entity.name]
     #     if DEFAULT_REL_KEY in entity_doc \
     #             and entity_doc[DEFAULT_REL_KEY]:
@@ -316,7 +319,7 @@ class YmlParser:
     #     :param entity: The attribute to set the datatype of
     #     :type entity: OntologyAttribute
     #     """
-    #     ontology_doc = self._doc[ONTOLOGY_KEY]
+    #     ontology_doc = self._ontology_doc
     #     entity_doc = ontology_doc[entity.name]
 
     #     datatype_def = None
@@ -326,27 +329,38 @@ class YmlParser:
     #     if datatype_def is not None:
     #         entity._set_datatype(datatype_def)
 
-    # def _validate_entity(self, entity):
-    #     """Validate the yaml definition of an entity.
-    #     Will check for the special keywords of the different entity types.
+    def _validate_entity(self, entity_name):
+        """Validate the yaml definition of an entity.
+        Will check for the special keywords of the different entity types.
 
-    #     :param entity: The entity to check.
-    #     :type entity: OntologyEntity
-    #     """
-    #     ontology_doc = self._doc[ONTOLOGY_KEY]
-    #     entity_doc = ontology_doc[entity.name]
-    #     if isinstance(entity, OntologyClass):
-    #         pattern = "class_def"
-    #     elif isinstance(entity, OntologyRelationship):
-    #         pattern = "relationship_def"
-    #     else:
-    #         pattern = "attribute_def"
+        :param entity: The entity to check.
+        :type entity: OntologyEntity
+        """
+        ontology_doc = self._ontology_doc
+        entity_doc = ontology_doc[entity_name]
+        iri = self._get_iri(entity_name)
+        class_triple = (iri, rdflib.RDF.type, rdflib.OWL.Class)
+        rel_triple = (iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
+        attr_triple = (iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
+        status = (
+            class_triple in self.graph,
+            rel_triple in self.graph,
+            attr_triple in self.graph
+        )
+        if sum(status) != 1:
+            raise RuntimeError(f"Couldn't determine type of {entity_name}")
+        if status[0]:
+            pattern = "class_def"
+        elif status[1]:
+            pattern = "relationship_def"
+        else:
+            pattern = "attribute_def"
 
-    #     validate(
-    #         entity_doc, pattern,
-    #         context="<%s>/ONTOLOGY/%s" % (os.path.basename(self._filename),
-    #                                       entity.name)
-    #     )
+        validate(
+            entity_doc, pattern,
+            context="<%s>/ONTOLOGY/%s" % (os.path.basename(self._file_path),
+                                          entity_name)
+        )
 
     # def _parse_rel_characteristics(self, entity):
     #     """Parse the characteristics of a relationship
@@ -354,7 +368,7 @@ class YmlParser:
     #     :param entity: The relationship to parse the characteristics for.
     #     :type entity: OntologyRelationship
     #     """
-    #     ontology_doc = self._doc[ONTOLOGY_KEY]
+    #     ontology_doc = self._ontology_doc
     #     entity_doc = ontology_doc[entity.name]
     #     if CHARACTERISTICS_KEY not in entity_doc:
     #         return

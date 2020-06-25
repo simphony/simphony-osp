@@ -69,6 +69,7 @@ class NamespaceRegistry():
 
     def clear(self):
         self._graph = rdflib.Graph()
+        self._load_cuba()
         return self._graph
 
     def store(self, path):
@@ -82,7 +83,6 @@ class NamespaceRegistry():
     def load(self, path):
         path_graph = os.path.join(path, "graph.ttl")
         path_ns = os.path.join(path, "namespaces.txt")
-        path_cuba = os.path.join(os.path.dirname(__file__), "docs", "cuba.ttl")
         if os.path.exists(path_graph):
             self._graph.parse(path_graph, format="ttl")
             if os.path.exists(path_ns):
@@ -92,7 +92,11 @@ class NamespaceRegistry():
                         self._graph.bind(name, rdflib.URIRef(iri))
                 self.update_namespaces()
         else:
-            self._graph.parse(path_cuba, format="ttl")
-            self._graph.bind("CUBA",
-                             rdflib.URIRef("http://www.osp-core.com/CUBA#"))
-            self.update_namespaces()
+            self._load_cuba()
+
+    def _load_cuba(self):
+        path_cuba = os.path.join(os.path.dirname(__file__), "docs", "cuba.ttl")
+        self._graph.parse(path_cuba, format="ttl")
+        self._graph.bind("CUBA",
+                         rdflib.URIRef("http://www.osp-core.com/CUBA#"))
+        self.update_namespaces()
