@@ -72,21 +72,27 @@ class NamespaceRegistry():
         return self._graph
 
     def store(self, path):
-        path_graph = os.path.join(path, "graph.xml")
+        path_graph = os.path.join(path, "graph.ttl")
         path_ns = os.path.join(path, "namespaces.txt")
-        self._graph.serialize(destination=path_graph, format="xml")
+        self._graph.serialize(destination=path_graph, format="turtle")
         with open(path_ns, "w") as f:
             for name, iri in self._graph.namespace_manager.namespaces():
                 print("%s\t%s" % (name, iri), file=f)
 
     def load(self, path):
-        path_graph = os.path.join(path, "graph.xml")
+        path_graph = os.path.join(path, "graph.ttl")
         path_ns = os.path.join(path, "namespaces.txt")
+        path_cuba = os.path.join(os.path.dirname(__file__), "docs", "cuba.ttl")
         if os.path.exists(path_graph):
-            self._graph.parse(path_graph)
-        if os.path.exists(path_ns):
-            with open(path_ns, "r") as f:
-                for line in f:
-                    name, iri = line.strip("\n").split("\t")
-                    self._graph.bind(name, rdflib.URIRef(iri))
+            self._graph.parse(path_graph, format="ttl")
+            if os.path.exists(path_ns):
+                with open(path_ns, "r") as f:
+                    for line in f:
+                        name, iri = line.strip("\n").split("\t")
+                        self._graph.bind(name, rdflib.URIRef(iri))
+                self.update_namespaces()
+        else:
+            self._graph.parse(path_cuba, format="ttl")
+            self._graph.bind("CUBA",
+                             rdflib.URIRef("http://www.osp-core.com/CUBA#"))
             self.update_namespaces()

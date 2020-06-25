@@ -142,19 +142,12 @@ class YmlParser:
         while queue:
             namespace, name = queue.pop()
 
-            # CUBA namespace
-            if (namespace, name) == (MAIN_NAMESPACE, ROOT_RELATIONSHIP):
-                types.add(rdflib.OWL.ObjectProperty)
-            elif (namespace, name) == (MAIN_NAMESPACE, ROOT_ATTRIBUTE):
-                types |= {rdflib.OWL.DatatypeProperty,
-                          rdflib.OWL.FunctionalProperty}
-            elif (namespace, name) == (MAIN_NAMESPACE, ROOT_CLASS):
-                types.add(rdflib.OWL.Class)
-            else:  # inherit type
-                superclass_iri = self._get_iri(name, namespace)
-                triple = (superclass_iri, rdflib.RDF.type, None)
-                for _, _, o in self.graph.triples(triple):
-                    types.add(o)
+            # same type as parent
+            superclass_iri = self._get_iri(name, namespace)
+            triple = (superclass_iri, rdflib.RDF.type, None)
+            for _, _, o in self.graph.triples(triple):
+                types.add(o)
+
             if namespace == self._namespace:
                 queue += [self.split_name(x)
                           for x in self._ontology_doc[name][SUPERCLASSES_KEY]
@@ -194,30 +187,6 @@ class YmlParser:
     #             entity._add_class_expression(
     #                 keyword, self._parse_class_expression(ce)
     #             )
-
-    # def _create_entity(self, entity_name, superclasses, description):
-    #     """Create an entity object
-
-    #     :param entity_name: The name of the entity
-    #     :type entity_name: str
-    #     :param description: The description of the entity
-    #     :type yaml_def: str
-    #     """
-    #     superclass_names = {entity_name}
-    #     for p in superclasses:
-    #         superclass_names |= {x.name for x in p.superclasses}
-    #     if ROOT_ATTRIBUTE in superclass_names:
-    #         Class = OntologyAttribute
-    #     elif ROOT_RELATIONSHIP in superclass_names:
-    #         Class = OntologyRelationship
-    #     else:
-    #         Class = OntologyClass
-    #     result = Class(namespace=self._ontology_namespace,
-    #                    name=entity_name,
-    #                    superclasses=superclasses,
-    #                    description=description)
-    #     self._ontology_namespace._add_entity(result)
-    #     return result
 
     # def _add_attributes(self, entity: OntologyClass):
     #     """Add a attribute to an ontology class

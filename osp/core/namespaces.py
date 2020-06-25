@@ -25,5 +25,6 @@ def get_entity(name):
     ns, n = name.split(".")
     return _namespace_registry._get(ns)._get(n)
 
+
 def __getattr__(name):
     return getattr(_namespace_registry, name)

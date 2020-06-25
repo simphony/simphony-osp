@@ -51,9 +51,9 @@ class Parser():
             if not YmlParser.is_yaml_ontology(yaml_doc):
                 rdf_files = list()
                 for i, g in enumerate(self._graphs[identifier]):
-                    rdf_files.append("%s-%s.owl" % (identifier, i))
+                    rdf_files.append("%s-%s.ttl" % (identifier, i))
                     g.serialize(os.path.join(destination, rdf_files[-1]),
-                                format="xml")
+                                format="ttl")
                 yaml_doc[RDF_FILES_KEY] = rdf_files
 
             # store yaml files
