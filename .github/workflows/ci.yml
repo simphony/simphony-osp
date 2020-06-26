@@ -7,22 +7,23 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v2
+      - continue-on-error: true
+      - uses: actions/checkout@v2
 
+      - name: Flake8
+        run: flake8 . --exclude=*/__init__.py --ignore=W503
 
-    - name: Flake8
-      run: flake8 . --exclude=*/__init__.py --ignore=W503
-
-    - name: Radon
-      run: |
-        radon cc -s -a .,
-        radon mi -s .
+      - name: Radon
+        run: |
+          radon cc -s -a .,
+          radon mi -s .
         
-    - name: bandit
-      run: bandit -r osp --skip B101
+      - name: bandit
+        run: bandit -r osp --skip B101
   
   test:
     runs-on: self-hosted
     steps:
+      - uses: actions/checkout@v2
       - name: unittesting
         run: tox
