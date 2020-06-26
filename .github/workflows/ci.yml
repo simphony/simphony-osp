@@ -21,7 +21,6 @@ jobs:
         run: bandit -r osp --skip B101
   
   test:
-    needs: code_analysis
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
