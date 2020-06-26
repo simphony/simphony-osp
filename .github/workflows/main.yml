@@ -20,9 +20,7 @@ jobs:
         radon mi -s .
         
     - name: bandit
-      run: |
-        bandit --version,
-        bandit -r osp --skip B101
+      run: bandit -r osp --skip B101
   
   test:
     runs-on: self-hosted
