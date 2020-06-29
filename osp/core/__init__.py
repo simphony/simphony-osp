@@ -18,3 +18,9 @@ logging.getLogger("osp.wrappers").addHandler(ch)
 
 
 # TODO replacement for get_entity(), install_current_ontology()
+
+def __getattr__(name):
+    import osp.core.namespaces
+    logger.warning(f"osp.core.{name} is deprecated. "
+                   f"Use osp.core.namespaces.{name} instead.")
+    return getattr(osp.core.namespaces, name)
