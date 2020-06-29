@@ -61,6 +61,7 @@ ONTOLOGY_DATATYPES = {
     rdflib.XSD.integer: (int, int, np.dtype("int")),
     rdflib.XSD.float: (float, float, np.dtype("float")),
     rdflib.XSD.string: (str, str, np.dtype("str")),
+    "UUID": (to_uuid, str, np.dtype("str")),
     None: (str, str, np.dtype("str"))
-    # TODO vectors, uuid
+    # TODO vectors
 }

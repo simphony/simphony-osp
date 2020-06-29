@@ -9,7 +9,7 @@ from osp.core.ontology.yml.yml_keywords import (
     INVERSE_KEY, DEFAULT_REL_KEY, DATATYPE_KEY, ATTRIBUTES_KEY, DISJOINTS_KEY,
     EQUIVALENT_TO_KEY, DOMAIN_KEY, RANGE_KEY, CHARACTERISTICS_KEY,
     MAIN_NAMESPACE, CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY, AUTHOR_KEY,
-    VERSION_KEY, ROOT_CLASS
+    VERSION_KEY, ROOT_CLASS, DATATYPES
 )
 from osp.core.ontology.yml.yml_validator import validate
 
@@ -82,8 +82,8 @@ class YmlParser:
                 self._set_inverse(entity_name, entity_doc)
             #     self._parse_rel_characteristics(entity_name, entity_doc) TODO
                 self._check_default_rel(entity_name, entity_doc)
-            # else:
-            #     self._set_datatype(entity)
+            else:
+                self._set_datatype(entity_name, entity_doc)
         # for entity in missing_inverse:  TODO
         #     self._create_missing_inverse(entity)
         # self._validate_parsed_datastructure(self._ontology_namespace)
@@ -262,28 +262,26 @@ class YmlParser:
                  self._get_iri(entity_name))
             )
 
-    # def _set_datatype(self, entity: OntologyAttribute):
-    #     """Set the datatype of a attribute
+    def _set_datatype(self, entity_name, entity_doc):
+        """Set the datatype of a attribute TODO docstring
+        """
+        ontology_doc = self._ontology_doc
+        entity_doc = ontology_doc[entity_name]
 
-    #     :param entity: The attribute to set the datatype of
-    #     :type entity: OntologyAttribute
-    #     """
-    #     ontology_doc = self._ontology_doc
-    #     entity_doc = ontology_doc[entity.name]
+        datatype_def = None
+        if DATATYPE_KEY in entity_doc:
+            datatype_def = entity_doc[DATATYPE_KEY]
 
-    #     datatype_def = None
-    #     if DATATYPE_KEY in entity_doc:
-    #         datatype_def = entity_doc[DATATYPE_KEY]
-
-    #     if datatype_def is not None:
-    #         entity._set_datatype(datatype_def)
+        if datatype_def is not None:
+            self.graph.add(
+                (self._get_iri(entity_name), rdflib.RDFS.range, 
+                 DATATYPES[datatype_def])
+            )
 
     def _validate_entity(self, entity_name, entity_doc):
         """Validate the yaml definition of an entity.
         Will check for the special keywords of the different entity types.
-
-        :param entity: The entity to check.
-        :type entity: OntologyEntity
+        TODO docstring
         """
         iri = self._get_iri(entity_name)
         class_triple = (iri, rdflib.RDF.type, rdflib.OWL.Class)

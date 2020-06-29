@@ -14,7 +14,7 @@ from osp.core.session.session import Session
 from osp.core.neighbor_dict import NeighborDictRel, NeighborDictTarget
 from osp.core.utils import check_arguments, clone_cuds_object, \
     create_from_cuds_object, get_neighbor_diff
-from osp.core.namespaces import CUBA
+from osp.core.namespaces import CUBA, _namespace_registry
 
 logger = logging.getLogger("osp.core")
 
@@ -874,50 +874,54 @@ class Cuds():
 
         return other.oclass == self.oclass and self.uid == other.uid
 
-    # def __getstate__(self):
-    #     """
-    #     Get the state for pickling or copying
+    def __getstate__(self):
+        """
+        Get the state for pickling or copying
 
-    #     Returns:
-    #         Dict[str, Any]: The state of the object. Does not contain session.
-    #             Contains the string of the OntologyClass.
-    #     """
+        Returns:
+            Dict[str, Any]: The state of the object. Does not contain session.
+                Contains the string of the OntologyClass.
+        """
 
-    #     state = {k: v for k, v in self.__dict__.items()
-    #              if k not in {"_session", "_oclass", "_values"}}
-    #     state["_oclass"] = (self.oclass.namespace.name, self._oclass.name)
-    #     state["_neighbors"] = [
-    #         (k.namespace.name, k.name, [
-    #             (uid, vv.namespace.name, vv.name)
-    #             for uid, vv in v.items()
-    #         ])
-    #         for k, v in self._neighbors.items()
-    #     ]
-    #     state["_values"] = [(k, v.namespace.name, v.name)
-    #                         for k, v in self._onto_attributes.items()]
-    #     return state
+        state = {k: v for k, v in self.__dict__.items()
+                 if k not in {"_session", "_oclass", "_values",
+                              "_onto_attributes", "_stored"}}
+        state["_oclass"] = (self.oclass.namespace.name, self._oclass.name)
+        state["_neighbors"] = [
+            (k.namespace.name, k.name, [
+                (uid, vv.namespace.name, vv.name)
+                for uid, vv in v.items()
+            ])
+            for k, v in self._neighbors.items()
+        ]
+        state["_onto_attributes"] = [(k, v.namespace.name, v.name)
+                                     for k, v in self._onto_attributes.items()]
+        return state
 
-    # def __setstate__(self, state):
-    #     """
-    #     Set the state for pickling or copying.
+    def __setstate__(self, state):
+        """
+        Set the state for pickling or copying.
 
-    #     Args:
-    #         state (Dict[str, Any]): The state of the object. Does not contain
-    #             session. Contains the string of the OntologyClass.
-    #     """
+        Args:
+            state (Dict[str, Any]): The state of the object. Does not contain
+                session. Contains the string of the OntologyClass.
+        """
 
-    #     namespace, oclass = state["_oclass"]
-    #     oclass = ONTOLOGY_INSTALLER.namespace_registry[namespace][oclass]
-    #     state["_oclass"] = oclass
-    #     state["_session"] = None
-    #     state["_neighbors"] = NeighborDictRel({
-    #         ONTOLOGY_INSTALLER.namespace_registry[ns][cl]:
-    #             NeighborDictTarget({
-    #                 uid: ONTOLOGY_INSTALLER.namespace_registry[ns2][cl2]
-    #                 for uid, ns2, cl2 in v
-    #             }, self, ONTOLOGY_INSTALLER.namespace_registry[ns][cl])
-    #         for ns, cl, v in state["_neighbors"]
-    #     }, self)
-    #     state["_values"] = {k: ONTOLOGY_INSTALLER.namespace_registry[ns][cl]
-    #                         for k, ns, cl in state["_values"]}
-    #     self.__dict__ = state
+        namespace, oclass = state["_oclass"]
+        oclass = _namespace_registry[namespace].get(oclass)
+        state["_oclass"] = oclass
+        state["_session"] = None
+        state["_neighbors"] = NeighborDictRel({
+            _namespace_registry[ns].get(cl):
+                NeighborDictTarget({
+                    uid: _namespace_registry[ns2].get(cl2)
+                    for uid, ns2, cl2 in v
+                }, self, _namespace_registry[ns].get(cl))
+            for ns, cl, v in state["_neighbors"]
+        }, self)
+        state["_onto_attributes"] = {
+            k: _namespace_registry[ns].get(cl)
+            for k, ns, cl in state["_onto_attributes"]
+        }
+        state["_stored"] = False
+        self.__dict__ = state

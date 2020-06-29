@@ -31,7 +31,7 @@ class OntologyAttribute(OntologyEntity):
         superclasses = self.superclasses
         datatypes = set()
         for superclass in superclasses:
-            triple = (self.iri, rdflib.RDFS.range, None)
+            triple = (superclass.iri, rdflib.RDFS.range, None)
             for _, _, o in self.namespace._graph.triples(triple):
                 datatypes.add(o)
         if len(datatypes) == 1:
