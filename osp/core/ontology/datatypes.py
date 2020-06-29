@@ -76,7 +76,7 @@ def get_python_datatype(rdf_datatype):
     if str(rdf_datatype).startswith(vec_prefix):
         args = str(rdf_datatype)[len(str_prefix):].split("-")
         dtype, shape = _parse_vector_args(args)
-        np_dtype = RDF_DATATYPES[YML_DATATYPES[dtype]][2]
+        np_dtype = RDF_DATATYPES[dtype][2]
         return (lambda x: to_vector(x, np_dtype, shape), from_vector, np_dtype)
     raise RuntimeError(f"Unknown datatype {rdf_datatype}")
 
@@ -108,7 +108,7 @@ def _parse_vector_args(args):
     if args[0] in YML_DATATYPES:
         datatype = args[0]
         shape = args[1:]
-    return datatype, list(map(int, shape))
+    return YML_DATATYPES[datatype], list(map(int, shape))
 
 
 def _add_string_datatype(graph, length):

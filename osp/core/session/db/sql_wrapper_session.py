@@ -1,4 +1,5 @@
 import uuid
+import rdflib
 from operator import mul
 from functools import reduce
 from abc import abstractmethod
@@ -10,6 +11,7 @@ from osp.core.session.db.conditions import EqualsCondition, AndCondition
 from osp.core.neighbor_dict import NeighborDictTarget
 from osp.core.namespaces import get_entity
 from osp.core.session.buffers import BufferContext
+from osp.core.ontology.cuba import rdflib_cuba
 
 
 class SqlWrapperSession(DbWrapperSession):
@@ -24,12 +26,12 @@ class SqlWrapperSession(DbWrapperSession):
     }
     DATATYPES = {
         MASTER_TABLE: {"uid": "UUID",
-                       "oclass": "STRING",
-                       "first_level": "BOOL"},
+                       "oclass": rdflib.XSD.string,
+                       "first_level": rdflib.XSD.boolean},
         RELATIONSHIP_TABLE: {"origin": "UUID",
                              "target": "UUID",
-                             "name": "STRING",
-                             "target_oclass": "STRING"}
+                             "name": rdflib.XSD.string,
+                             "target_oclass": rdflib.XSD.string}
     }
     PRIMARY_KEY = {
         MASTER_TABLE: ["uid"],
@@ -155,8 +157,9 @@ class SqlWrapperSession(DbWrapperSession):
         # iterate over the columns and look for vectors
         for i, column in enumerate(columns):
             # non vectors are simply added to the result
+            vec_prefix = str(rdflib_cuba["datatypes/VECTOR-"])
             if datatypes[column] is None or \
-                    not datatypes[column].startswith("VECTOR:"):
+                    not datatypes[column].startswith(vec_prefix):
                 columns_expanded.append(column)
                 datatypes_expanded[column] = datatypes[column]
                 if values:
@@ -164,7 +167,7 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # create a column for each element in the vector
-            vector_args = datatypes[column].split(":")[1:]
+            vector_args = datatypes[column][len(vec_prefix):].split("-")
             datatype, shape = _parse_vector_args(vector_args)
             size = reduce(mul, map(int, shape))
             expanded_cols = ["%s___%s" % (column, x) for x in range(size)]
@@ -305,7 +308,7 @@ class SqlWrapperSession(DbWrapperSession):
             # clear local datastructure
             from osp.core.namespaces import CUBA
             self._reset_buffers(BufferContext.USER)
-            self._registry.get(self.root).remove(rel=cuba.Relationship)
+            self._registry.get(self.root).remove(rel=CUBA.Relationship)
             for uid in list(self._registry.keys()):
                 if uid != self.root:
                     del self._registry[uid]
@@ -532,7 +535,8 @@ class SqlWrapperSession(DbWrapperSession):
             table_name=self.MASTER_TABLE,
             columns=["uid"],
             condition=EqualsCondition(self.MASTER_TABLE,
-                                      "uid", str(uuid.UUID(int=0)), "STRING"),
+                                      "uid", str(uuid.UUID(int=0)),
+                                      rdflib.XSD.string),
             datatypes=self.DATATYPES[self.MASTER_TABLE]
         )
         if len(list(c)) == 0:
@@ -549,7 +553,7 @@ class SqlWrapperSession(DbWrapperSession):
             self.MASTER_TABLE,
             ["uid", "oclass"],
             EqualsCondition(self.MASTER_TABLE,
-                            "first_level", True, "BOOL"),
+                            "first_level", True, rdflib.XSD.boolean),
             self.DATATYPES[self.MASTER_TABLE]
         )
         list(self._load_from_backend(
