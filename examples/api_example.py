@@ -5,7 +5,7 @@
 # p = Parser()
 # p.parse("city")
 
-from osp.core import CITY
+from osp.core.namespaces import CITY
 
 print("Creating a City object, c...")
 c = CITY.CITY(name="Freiburg", coordinates=[47, 7])

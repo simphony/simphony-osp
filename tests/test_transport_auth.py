@@ -11,10 +11,13 @@ from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
 
 try:
-    from osp.core import CITY
+    from osp.core.namespaces import CITY
 except ImportError:
     from osp.core.ontology import Parser
-    CITY = Parser().parse("city")
+    from osp.core.namespaces import _namespace_registry
+    Parser(_namespace_registry._graph).parse("city")
+    _namespace_registry.update_namespaces()
+    from osp.core.namespaces import CITY
 
 HOST = "127.0.0.1"
 PORT1 = 8469

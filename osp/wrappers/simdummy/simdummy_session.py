@@ -8,7 +8,7 @@ from osp.core.utils import change_oclass
 class SimDummySession(SimWrapperSession):
     def __init__(self, **kwargs):
         super().__init__(engine=DummySyntacticLayer(), **kwargs)
-        from osp.core import CITY
+        from osp.core.namespaces import CITY
         self.onto = CITY
         self._person_map = dict()
 

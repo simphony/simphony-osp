@@ -1,5 +1,5 @@
 import os
-from osp.core import CITY
+from osp.core.namespaces import CITY
 from osp.core.utils import pretty_print
 from osp.wrappers.sqlite_wrapper_session import \
     SqliteWrapperSession

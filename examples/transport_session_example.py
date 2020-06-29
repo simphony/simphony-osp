@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 import time
-from osp.core import CITY
+from osp.core.namespaces import CITY
 from osp.core.utils import pretty_print
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient

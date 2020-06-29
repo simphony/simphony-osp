@@ -4,10 +4,13 @@ from osp.core.session.db.sql_wrapper_session import \
     SqlWrapperSession
 
 try:
-    from osp.core import CITY
+    from osp.core.namespaces import CITY
 except ImportError:
     from osp.core.ontology import Parser
-    CITY = Parser().parse("city")
+    from osp.core.namespaces import _namespace_registry
+    Parser(_namespace_registry._graph).parse("city")
+    _namespace_registry.update_namespaces()
+    from osp.core.namespaces import CITY
 
 EXPANDED_COLS = ['1',
                  '2___0', '2___1',

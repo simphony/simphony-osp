@@ -1,4 +1,4 @@
-from osp.core import CITY
+from osp.core.namespaces import CITY
 from osp.core.utils import pretty_print
 
 
