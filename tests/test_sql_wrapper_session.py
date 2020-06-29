@@ -3,15 +3,6 @@ import numpy as np
 from osp.core.session.db.sql_wrapper_session import \
     SqlWrapperSession
 
-try:
-    from osp.core.namespaces import CITY
-except ImportError:
-    from osp.core.ontology import Parser
-    from osp.core.namespaces import _namespace_registry
-    Parser(_namespace_registry._graph).parse("city")
-    _namespace_registry.update_namespaces()
-    from osp.core.namespaces import CITY
-
 EXPANDED_COLS = ['1',
                  '2___0', '2___1',
                  '3___0', '3___1', '3___2',
@@ -43,3 +34,7 @@ class TestSqliteCity(unittest.TestCase):
                                                       EXPANDED_DTYPES,
                                                       [EXPANDED_VALS])
         np.testing.assert_equal(next(r), VALS)
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -86,10 +86,11 @@ YML_DATATYPES = {
     "INT": rdflib.XSD.integer,
     "FLOAT": rdflib.XSD.float,
     "STRING": rdflib.XSD.string,
+    "UUID": "UUID"
 }
 
 
-def get_rdflib_datatype(graph, yml_datatype):
+def get_rdflib_datatype(yml_datatype, graph=None):
     if yml_datatype in YML_DATATYPES:
         return YML_DATATYPES[yml_datatype]
     args = yml_datatype.split(":")
@@ -113,8 +114,8 @@ def _parse_vector_args(args):
 def _add_string_datatype(graph, length):
     iri = rdflib_cuba[f"datatypes/STRING-{length}"]
     triple = (iri, rdflib.RDF.type, rdflib.RDFS.Datatype)
-    if triple in graph:
-        return
+    if graph is None or triple in graph:
+        return iri
     graph.add(triple)
     # length_triple = (iri, rdflib_cuba._length, rdflib.Literal(int(length)))
     # graph.add(length_triple)
@@ -126,8 +127,8 @@ def _add_vector_datatype(graph, shape, dtype):
     iri = rdflib_cuba[f"datatypes/VECTOR-{dtype}-"
                       + "-".join(map(str, shape))]
     triple = (iri, rdflib.RDF.type, rdflib.RDFS.Datatype)
-    if triple in graph:
-        return
+    if graph is None or triple in graph:
+        return iri
     graph.add(triple)
     # dtype_triple = (iri, rdflib_cuba._length, YML_DATATYPES[dtype])
     # graph.add(dtype_triple)

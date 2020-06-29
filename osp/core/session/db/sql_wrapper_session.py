@@ -3,7 +3,8 @@ from operator import mul
 from functools import reduce
 from abc import abstractmethod
 from osp.core.utils import create_recycle
-from osp.core.ontology.datatypes import convert_to, convert_from
+from osp.core.ontology.datatypes import convert_to, convert_from, \
+    _parse_vector_args
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from osp.core.session.db.conditions import EqualsCondition, AndCondition
 from osp.core.neighbor_dict import NeighborDictTarget
@@ -153,9 +154,9 @@ class SqlWrapperSession(DbWrapperSession):
 
         # iterate over the columns and look for vectors
         for i, column in enumerate(columns):
-
             # non vectors are simply added to the result
-            if not datatypes[column].startswith("VECTOR:"):
+            if datatypes[column] is None or \
+                    not datatypes[column].startswith("VECTOR:"):
                 columns_expanded.append(column)
                 datatypes_expanded[column] = datatypes[column]
                 if values:
@@ -164,7 +165,7 @@ class SqlWrapperSession(DbWrapperSession):
 
             # create a column for each element in the vector
             vector_args = datatypes[column].split(":")[1:]
-            datatype, shape = parse_vector_args(vector_args)
+            datatype, shape = _parse_vector_args(vector_args)
             size = reduce(mul, map(int, shape))
             expanded_cols = ["%s___%s" % (column, x) for x in range(size)]
             columns_expanded.extend(expanded_cols)

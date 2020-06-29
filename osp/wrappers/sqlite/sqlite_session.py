@@ -180,6 +180,8 @@ class SqliteSession(SqlWrapperSession):
         :return: A sqlite datatype.
         :rtype: str
         """
+        if cuds_datatype is None:
+            return "TEXT"
         if cuds_datatype == "UUID":
             return "TEXT"
         if cuds_datatype == "INT":
@@ -188,9 +190,8 @@ class SqliteSession(SqlWrapperSession):
             return "BOOLEAN"
         if cuds_datatype == "FLOAT":
             return "REAL"
-        elif cuds_datatype.startswith("STRING"):
-            return "TEXT"
-        elif cuds_datatype == "UNDEFINED":
+        if cuds_datatype.startswith("STRING"):
             return "TEXT"
         else:
-            raise NotImplementedError("Unsupported data type!")
+            raise NotImplementedError(f"Unsupported data type "
+                                      f"{cuds_datatype}!")

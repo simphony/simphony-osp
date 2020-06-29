@@ -276,7 +276,7 @@ class YmlParser:
         if datatype_def is not None:
             self.graph.add(
                 (self._get_iri(entity_name), rdflib.RDFS.range, 
-                 get_rdflib_datatype(self.graph, datatype_def))
+                 get_rdflib_datatype(datatype_def, self.graph))
             )
 
     def _validate_entity(self, entity_name, entity_doc):
