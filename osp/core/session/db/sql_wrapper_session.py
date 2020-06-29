@@ -467,21 +467,20 @@ class SqlWrapperSession(DbWrapperSession):
                         datatype="UUID"
                     )
                 )
-
-            self._do_db_delete(
-                table_name=self.MASTER_TABLE,
-                condition=EqualsCondition(
-                    table_name=self.MASTER_TABLE,
-                    column="uid",
-                    value=deleted.uid,
-                    datatype="UUID"
-                )
-            )
             self._do_db_delete(
                 table_name=self.RELATIONSHIP_TABLE,
                 condition=EqualsCondition(
                     table_name=self.RELATIONSHIP_TABLE,
                     column="origin",
+                    value=deleted.uid,
+                    datatype="UUID"
+                )
+            )
+            self._do_db_delete(
+                table_name=self.MASTER_TABLE,
+                condition=EqualsCondition(
+                    table_name=self.MASTER_TABLE,
+                    column="uid",
                     value=deleted.uid,
                     datatype="UUID"
                 )

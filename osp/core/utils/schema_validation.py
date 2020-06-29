@@ -1,5 +1,14 @@
 import yaml
+import logging
+
 from osp.core.namespaces import get_entity
+
+
+logger = logging.getLogger(__name__)
+
+
+class ConsistencyError(Exception):
+    pass
 
 
 def validate_tree_against_schema(root_obj, schema_file):
@@ -14,7 +23,7 @@ def validate_tree_against_schema(root_obj, schema_file):
     :raises Exception: Tells the user which constraint was violated
     """
 
-    print("""Validating tree of root object {}
+    logger.info("""Validating tree of root object {}
     against schema file {} ...""".format(root_obj.uid, schema_file))
 
     data_model_dict = _load_data_model_from_yaml(schema_file)
@@ -38,7 +47,7 @@ def validate_tree_against_schema(root_obj, schema_file):
                         relationship,
                         constraints
                     )
-    print('Tree is valid.')
+    logger.info('Tree is valid.')
 
 
 def _load_data_model_from_yaml(data_model_file):
@@ -71,7 +80,7 @@ def _check_cuds_object_cardinality(
             max,
             actual_cardinality,
             origin_cuds.uid)
-        raise Exception(message)
+        raise ConsistencyError(message)
 
 
 def _interpret_cardinality_value_from_constraints(constraints):
