@@ -3,13 +3,14 @@ import logging
 import yaml
 import rdflib
 from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.datatypes import get_rdflib_datatype
 from osp.core.ontology.yml.yml_keywords import (
     ONTOLOGY_KEY, NAMESPACE_KEY,
     ROOT_RELATIONSHIP, ROOT_ATTRIBUTE, DESCRIPTION_KEY, SUPERCLASSES_KEY,
     INVERSE_KEY, DEFAULT_REL_KEY, DATATYPE_KEY, ATTRIBUTES_KEY, DISJOINTS_KEY,
     EQUIVALENT_TO_KEY, DOMAIN_KEY, RANGE_KEY, CHARACTERISTICS_KEY,
     MAIN_NAMESPACE, CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY, AUTHOR_KEY,
-    VERSION_KEY, ROOT_CLASS, DATATYPES
+    VERSION_KEY, ROOT_CLASS
 )
 from osp.core.ontology.yml.yml_validator import validate
 
@@ -275,7 +276,7 @@ class YmlParser:
         if datatype_def is not None:
             self.graph.add(
                 (self._get_iri(entity_name), rdflib.RDFS.range, 
-                 DATATYPES[datatype_def])
+                 get_rdflib_datatype(self.graph, datatype_def))
             )
 
     def _validate_entity(self, entity_name, entity_doc):

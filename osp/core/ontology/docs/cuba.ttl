@@ -9,6 +9,9 @@ CUBA:_default rdf:type owl:AnnotationProperty .
 CUBA:_default_attribute rdf:type owl:AnnotationProperty .
 CUBA:_default_value rdf:type owl:AnnotationProperty .
 CUBA:_default_rel rdf:type owl:AnnotationProperty .
+CUBA:_length rdf:type owl:AnnotationProperty .
+CUBA:_shape rdf:type owl:AnnotationProperty .
+CUBA:_dtype rdf:type owl:AnnotationProperty .
 
 CUBA:ACTIVE_RELATIONSHIP a owl:ObjectProperty ;
     rdfs:isDefinedBy "The root of all active relationships. Active relationships express that one cuds object is in the container of another." ;

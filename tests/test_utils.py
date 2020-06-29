@@ -268,7 +268,7 @@ class TestUtils(unittest.TestCase):
         change_oclass(c, CITY.POPULATED_PLACE, {
             "name": "Umkirch"
         })
-        self.assertIs(c.oclass, CITY.POPULATED_PLACE)
+        self.assertEqual(c.oclass, CITY.POPULATED_PLACE)
         self.assertEqual(p1._neighbors[CITY.IS_INHABITANT_OF],
                          {c.uid: CITY.POPULATED_PLACE})
         self.assertEqual(p2._neighbors[CITY.IS_INHABITANT_OF],

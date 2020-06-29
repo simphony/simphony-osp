@@ -39,12 +39,10 @@ CHARACTERISTICS = {
     "inversefunctional"
 }
 
-
-DATATYPES = defaultdict(lambda: rdflib.XSD.string)  # TODO normal dict
-DATATYPES.update({
-    "BOOL": rdflib.XSD.boolean,
-    "INT": rdflib.XSD.integer,
-    "FLOAT": rdflib.XSD.float,
-    "STRING": rdflib.XSD.string,
-    # TODO "VECTOR": (to_vector, from_vector, None, rdflib.XSD.string)
-})
+DATATYPES = {
+    "BOOL",
+    "INT",
+    "FLOAT",
+    "STRING",
+    "VECTOR"
+}
