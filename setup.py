@@ -26,9 +26,7 @@ setup(
     long_description=README_TEXT,
     packages=find_packages(exclude=("examples", "tests")),
     package_data={
-        "osp.core.ontology.files": ["*.yml", "*.ttl"],
-        "osp.core.java.lib.so": ["*"],
-        "osp.core.java.lib.jars": ["*.jar"]
+        "osp.core.ontology.docs": ["*.yml", "*.ttl"],
     },
     include_package_data=True,
     python_requires=">=3.6",
