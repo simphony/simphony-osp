@@ -105,7 +105,7 @@ class OntologyEntity(ABC):
                 (self.iri, rdflib.RDFS.isDefinedBy, None)
             )))
         except StopIteration:
-            return None
+            return "To Be Determined"
 
     def get_triples(self):
         """ Get the triples of the entity """

@@ -504,8 +504,8 @@ class TestUtils(unittest.TestCase):
             "- Cuds object named <Freiburg>:",
             "  uuid: %s" % c.uid,
             "  type: city.City",
-            "  superclasses: city.City, city.PopulatedPlace, "
-            + "city.GeographicalPlace, cuba.Class",
+            "  superclasses: city.City, city.GeographicalPlace, "
+            + "city.PopulatedPlace, cuba.Class",
             "  values: coordinates: [1 2]",
             "  description: ",
             "    To Be Determined",

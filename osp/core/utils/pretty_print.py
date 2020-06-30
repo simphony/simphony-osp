@@ -14,7 +14,7 @@ def pretty_print(cuds_object, file=sys.stdout):
     pp += "\n  uuid: " + str(cuds_object.uid)
     pp += "\n  type: " + str(cuds_object.oclass)
     pp += "\n  superclasses: " + ", ".join(
-        map(str, cuds_object.oclass.superclasses)
+        sorted(map(str, cuds_object.oclass.superclasses))
     )
     values_str = _pp_values(cuds_object)
     if values_str:
