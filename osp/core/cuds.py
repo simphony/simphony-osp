@@ -796,7 +796,7 @@ class Cuds():
                 and self._session is not None
                 and hasattr(self._session, name)
             ):
-                logger.warn(
+                logger.warning(
                     "Trying to get non-defined attribute '%s' "
                     "of wrapper CUDS object '%s'. Will return attribute of "
                     "its session '%s' instead." % (name, self, self._session)

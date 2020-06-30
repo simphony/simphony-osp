@@ -21,7 +21,7 @@ except RuntimeError:
 
 
 def get_entity(name):
-    _logger.warn("osp.core.get_entity is deprecated")
+    _logger.warning("osp.core.get_entity is deprecated")
     ns, n = name.split(".")
     return _namespace_registry._get(ns)._get(n)
 
