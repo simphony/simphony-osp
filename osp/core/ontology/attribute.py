@@ -24,7 +24,7 @@ class OntologyAttribute(OntologyEntity):
 
     @property
     def argname(self):
-        return super().name.lower()
+        return super().name
 
     @property
     def datatype(self):

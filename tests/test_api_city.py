@@ -45,7 +45,7 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(c.oclass, city.City)
         self.assertEqual(p.oclass, city.Person)
 
-        self.assertRaises(TypeError, cuba.nothing)
+        self.assertRaises(TypeError, cuba.Nothing)
         self.assertRaises(TypeError, cuba.Wrapper)
         cuba.Wrapper(session=CoreSession())
 
