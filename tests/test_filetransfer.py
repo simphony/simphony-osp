@@ -283,12 +283,12 @@ class TestFiletransfer(unittest.TestCase):
         """Test extracting the file cuds from a datatstructure"""
         image1 = city.Image(path="x")
         image2 = city.Image(path="y")
-        city = city.City(name="Freiburg")
+        c = city.City(name="Freiburg")
         x = {
             "a": image1,
             "b": 1,
             "c": None,
-            "d": [city, image2]
+            "d": [c, image2]
         }
         r = get_file_cuds(x)
         self.assertEqual(r, [image1, image2])
