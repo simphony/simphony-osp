@@ -22,7 +22,7 @@ class TestRegistryCity(unittest.TestCase):
         """
         Tests the get_subtree method.
         """
-        c = city.city(name="a city")
+        c = city.City(name="a city")
         p = city.Citizen()
         n = city.Neighborhood(name="a neighborhood")
         s = city.Street(name="The street")
@@ -47,7 +47,7 @@ class TestRegistryCity(unittest.TestCase):
         """Tests the pruning method"""
         cities = list()
         for i in range(3):
-            c = city.city(name="city %s" % i)
+            c = city.City(name="city %s" % i)
             cities.append(c)
             for j in range(2):
                 n = city.Neighborhood(name="neighborhood %s %s" % (i, j))
@@ -92,7 +92,7 @@ class TestRegistryCity(unittest.TestCase):
         registry.reset()
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertEqual(
-            registry.filter_by_oclass(city.city),
+            registry.filter_by_oclass(city.City),
             {c.uid: c}
         )
         self.assertEqual(

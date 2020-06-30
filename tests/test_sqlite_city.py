@@ -27,7 +27,7 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_insert(self):
         """Test inserting in the sqlite table."""
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Georg")
         c.add(p1, p2, rel=city.hasInhabitant)
@@ -41,7 +41,7 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_update(self):
         """Test updating the sqlite table."""
-        c = city.city(name="Paris")
+        c = city.City(name="Paris")
         p1 = city.Citizen(name="Peter")
         c.add(p1, rel=city.hasInhabitant)
 
@@ -59,7 +59,7 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_delete(self):
         """Test to delete cuds_objects from the sqlite table"""
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Georg")
         p3 = city.Citizen(name="Hans")
@@ -78,7 +78,7 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_init(self):
         """Test of first level of children are loaded automatically."""
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
         p3 = city.Citizen(name="Julia")
@@ -106,7 +106,7 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_load_missing(self):
         """Test if missing objects are loaded automatically."""
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
         p3 = city.Citizen(name="Julia")
@@ -147,7 +147,7 @@ class TestSqliteCity(unittest.TestCase):
             )
 
     def test_load_by_oclass(self):
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
         p3 = city.Citizen(name="Julia")
@@ -163,7 +163,7 @@ class TestSqliteCity(unittest.TestCase):
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
             cs = wrapper.get(c.uid)
-            r = session.load_by_oclass(city.city)
+            r = session.load_by_oclass(city.City)
             self.assertIs(next(r), cs)
             r = session.load_by_oclass(city.Citizen)
             self.assertEqual(set(r), {p1, p2, p3})
@@ -177,7 +177,7 @@ class TestSqliteCity(unittest.TestCase):
             self.assertRaises(StopIteration, next, r)
 
     def test_expiring(self):
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
         p3 = city.Citizen(name="Julia")
@@ -229,7 +229,7 @@ class TestSqliteCity(unittest.TestCase):
             self.assertNotIn(p3w.uid, session._registry)
 
     def test_refresh(self):
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
         p3 = city.Citizen(name="Julia")
@@ -278,7 +278,7 @@ class TestSqliteCity(unittest.TestCase):
             self.assertNotIn(p3w.uid, session._registry)
 
     def test_clear_database(self):
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
         p3 = city.Citizen(name="Julia")
@@ -347,8 +347,8 @@ def check_state(test_case, c, p1, p2, db=DB):
         test_case.assertEqual(result, {
             (str(c.uid), str(p1.uid), "city.hasInhabitant", "city.Citizen"),
             (str(c.uid), str(p2.uid), "city.hasInhabitant", "city.Citizen"),
-            (str(p1.uid), str(c.uid), "city.isInhabitantOf", "city.city"),
-            (str(p2.uid), str(c.uid), "city.isInhabitantOf", "city.city"),
+            (str(p1.uid), str(c.uid), "city.isInhabitantOf", "city.City"),
+            (str(p2.uid), str(c.uid), "city.isInhabitantOf", "city.City"),
             (str(c.uid), str(uuid.UUID(int=0)),
                 "city.isPartOf", "city.CityWrapper")
         })

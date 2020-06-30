@@ -158,10 +158,10 @@ class WrapperSession(Session):
         """
         from osp.core.namespaces import cuba
         # Check if root is wrapper and wrapper is root
-        if cuds_object.is_a(Wrapper) and self.root is not None:
+        if cuds_object.is_a(cuba.Wrapper) and self.root is not None:
             raise RuntimeError("Only one wrapper is allowed per session")
 
-        if not cuds_object.is_a(Wrapper) and self.root is None:
+        if not cuds_object.is_a(cuba.Wrapper) and self.root is None:
             raise RuntimeError("Please add a wrapper to the session first")
 
         # update buffers

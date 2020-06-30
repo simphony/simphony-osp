@@ -119,7 +119,7 @@ def move_files(file_cuds, temp_directory, target_directory):
     from one directory to the other. Return all moved CUDS.
 
     Args:
-        file_cuds (List[Cuds]): Cuds whose oclass is cuba.FILE
+        file_cuds (List[Cuds]): Cuds whose oclass is cuba.File
         temp_directory (path): The directory where the files are stored.
             If None, file cuds are expected to have the whole path.
         target_directory (path): The directory to move the files to.
@@ -251,7 +251,7 @@ def get_file_cuds(obj):
     """
     from osp.core.cuds import Cuds
 
-    if isinstance(obj, Cuds) and obj.is_a(cuba.FILE):
+    if isinstance(obj, Cuds) and obj.is_a(cuba.File):
         return [obj]
     if isinstance(obj, (Cuds, str, float, int, uuid.UUID, OntologyEntity)) \
             or obj is None:

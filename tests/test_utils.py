@@ -38,7 +38,7 @@ CUDS_DICT = {
         "age": 23
     },
     "relationships": {
-        "city.isInhabitantOf": {str(uuid.UUID(int=1)): "city.city"},
+        "city.isInhabitantOf": {str(uuid.UUID(int=1)): "city.City"},
         "city.hasChild": {str(uuid.UUID(int=2)): "city.Person",
                            str(uuid.UUID(int=3)): "city.Person"}
     }
@@ -47,7 +47,7 @@ CUDS_DICT = {
 
 def get_test_city():
     """helper function"""
-    c = city.city(name="Freiburg", coordinates=[1, 2])
+    c = city.City(name="Freiburg", coordinates=[1, 2])
     p1 = city.Citizen(name="Rainer")
     p2 = city.Citizen(name="Carlos")
     p3 = city.Citizen(name="Maria")
@@ -73,7 +73,7 @@ class TestUtils(unittest.TestCase):
         schema_file_with_missing_entity = \
             'test_validation_schema_city_with_missing_entity.yml'
 
-        c = city.city(name='freiburg')
+        c = city.City(name='freiburg')
         with self.assertRaises(Exception) as context:
             # empty city does not fulfil any constraint
             validate_tree_against_schema(c, schema_file)
@@ -102,7 +102,7 @@ class TestUtils(unittest.TestCase):
     def test_branch(self):
         x = branch(
             branch(
-                city.city(name="Freiburg"),
+                city.City(name="Freiburg"),
                 city.Citizen(name="Peter"),
                 city.Citizen(name="Maria"),
                 rel=city.hasInhabitant
@@ -155,7 +155,7 @@ class TestUtils(unittest.TestCase):
 
     def test_clone_cuds_object(self):
         """Test cloning of cuds"""
-        a = city.city(name="Freiburg")
+        a = city.City(name="Freiburg")
         with CoreSession() as session:
             w = city.CityWrapper(session=session)
             aw = w.add(a)
@@ -170,13 +170,13 @@ class TestUtils(unittest.TestCase):
         """Test creation of cuds_objects for different session"""
         default_session = CoreSession()
         osp.core.cuds.Cuds._session = default_session
-        a = city.city(name="Freiburg")
+        a = city.City(name="Freiburg")
         self.assertIs(a.session, default_session)
         with TestWrapperSession() as session:
             w = city.CityWrapper(session=session)
             with EngineContext(session):
                 b = create_recycle(
-                    oclass=city.city,
+                    oclass=city.City,
                     kwargs={"name": "Offenburg"},
                     uid=a.uid,
                     session=session,
@@ -195,7 +195,7 @@ class TestUtils(unittest.TestCase):
             x = city.Citizen()
             x = b.add(x, rel=city.hasInhabitant)
 
-            c = create_recycle(oclass=city.city,
+            c = create_recycle(oclass=city.City,
                                kwargs={"name": "Emmendingen"},
                                session=session, uid=a.uid,
                                fix_neighbors=False)
@@ -214,7 +214,7 @@ class TestUtils(unittest.TestCase):
             x = city.Citizen()
             x = c.add(x, rel=city.hasInhabitant)
 
-            c = create_recycle(oclass=city.city,
+            c = create_recycle(oclass=city.City,
                                kwargs={"name": "Karlsruhe"},
                                session=session, uid=a.uid,
                                fix_neighbors=True)
@@ -224,7 +224,7 @@ class TestUtils(unittest.TestCase):
         """Test copying cuds_objects to different session"""
         default_session = CoreSession()
         Cuds._session = default_session
-        a = city.city(name="Freiburg")
+        a = city.City(name="Freiburg")
         self.assertIs(a.session, default_session)
         with TestWrapperSession() as session:
             w = city.CityWrapper(session=session)
@@ -261,7 +261,7 @@ class TestUtils(unittest.TestCase):
 
     def test_change_oclass(self):
         """Check utility method to change oclass"""
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Tim")
         p2 = city.Citizen(name="Tom")
         c.add(p1, p2, rel=city.hasInhabitant)
@@ -278,11 +278,11 @@ class TestUtils(unittest.TestCase):
         """ Test checking of arguments """
         check_arguments(str, "hello", "bye")
         check_arguments((int, float), 1, 1.2, 5.9, 2)
-        check_arguments(Cuds, city.city(name="Freiburg"))
+        check_arguments(Cuds, city.City(name="Freiburg"))
         self.assertRaises(TypeError, check_arguments, str, 12)
         self.assertRaises(TypeError, check_arguments, (int, float), 1.2, "h")
         self.assertRaises(TypeError, check_arguments,
-                          Cuds, city.city)
+                          Cuds, city.City)
 
     def test_format_class_name(self):
         """Test class name formatting"""
@@ -373,7 +373,7 @@ class TestUtils(unittest.TestCase):
         """ Test find by cuba key """
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertEqual(find_cuds_objects_by_oclass(
-            city.city, c, cuba.activeRelationship),
+            city.City, c, cuba.activeRelationship),
             [c])
         found = find_cuds_objects_by_oclass(
             city.Citizen,
@@ -436,7 +436,7 @@ class TestUtils(unittest.TestCase):
 
     def test_get_relationships_between(self):
         """ Test get the relationship between two cuds entities"""
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p = city.Citizen(name="Peter")
         self.assertEqual(get_relationships_between(c, p), set())
         self.assertEqual(get_relationships_between(p, c), set())
@@ -457,9 +457,9 @@ class TestUtils(unittest.TestCase):
         """Check if get_neighbor_diff can compute the difference
         of neighbors between to objects.
         """
-        c1 = city.city(name="Paris")
-        c2 = city.city(name="Berlin")
-        c3 = city.city(name="London")
+        c1 = city.City(name="Paris")
+        c2 = city.City(name="Berlin")
+        c3 = city.City(name="London")
         n1 = city.Neighborhood(name="Zähringen")
         n2 = city.Neighborhood(name="Herdern")
         s1 = city.Street(name="Waldkircher Straße")
@@ -503,8 +503,8 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(f.getvalue(), "\n".join([
             "- Cuds object named <Freiburg>:",
             "  uuid: %s" % c.uid,
-            "  type: city.city",
-            "  superclasses: city.city, city.PopulatedPlace, "
+            "  type: city.City",
+            "  superclasses: city.City, city.PopulatedPlace, "
             + "city.GeographicalPlace, cuba.Class",
             "  values: coordinates: [1 2]",
             "  description: ",

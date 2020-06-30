@@ -17,7 +17,7 @@ class SimDummySession(SimWrapperSession):
 
     # OVERRIDE
     def _run(self, root_cuds_object):
-        self._engine.simulate(root_cuds_object.num_steps)
+        self._engine.simulate(root_cuds_object.numSteps)
 
     # OVERRIDE
     def _load_from_backend(self, uids, expired=None):

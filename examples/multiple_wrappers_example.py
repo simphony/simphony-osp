@@ -22,7 +22,7 @@ port = int(input("Port [5432]: ") or 5432)
 postgres_url = 'postgres://%s:%s@%s:%s/%s' % (user, pwd, host, port, db_name)
 
 # Let's build an EMMO compatible city!
-emmo_town = city.city(name='EMMO town')
+emmo_town = city.City(name='EMMO town')
 
 emmo_town.add(city.Citizen(name='Emanuele Ghedini'), rel=city.hasInhabitant)
 emmo_town.add(city.Citizen(name='Adham Hashibon'), rel=city.hasInhabitant)
@@ -62,7 +62,7 @@ with SqlAlchemyWrapperSession(postgres_url) as db_session:
 
     # Working with a Simulation wrapper
     with SimDummySession() as sim_session:
-        sim_wrapper = city.CitySimWrapper(num_steps=1,
+        sim_wrapper = city.CitySimWrapper(numSteps=1,
                                             session=sim_session)
         new_inhabitant = city.Person(age=31, name="Peter")
         sim_emmo_town, _ = sim_wrapper.add(db_emmo_town, new_inhabitant)

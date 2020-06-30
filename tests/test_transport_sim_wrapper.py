@@ -53,8 +53,8 @@ class TestTransportSimWrapperCity(unittest.TestCase):
         """
         with TransportSessionClient(SimDummySession, URI) \
                 as session:
-            wrapper = city.CitySimWrapper(num_steps=1, session=session)
-            c = city.city(name="Freiburg")
+            wrapper = city.CitySimWrapper(numSteps=1, session=session)
+            c = city.City(name="Freiburg")
             p1 = city.Person(name="Hans", age=34)
             p2 = city.Person(name="Renate", age=54)
             cw, _, _ = wrapper.add(c, p1, p2)

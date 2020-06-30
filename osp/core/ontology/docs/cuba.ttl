@@ -36,7 +36,9 @@ cuba:passiveRelationship a owl:ObjectProperty ;
 cuba:path a owl:DatatypeProperty,
         owl:FunctionalProperty ;
     rdfs:isDefinedBy "The path to a local file." ;
-    rdfs:subPropertyOf cuba:attribute .
+    rdfs:subPropertyOf cuba:attribute ;
+    rdfs:domain cuba:File ;
+    rdfs:range xsd:string .
 
 cuba:Wrapper a owl:Class ;
     rdfs:isDefinedBy "The root of all wrappers. These are the bridge to simulation engines and databases." ;

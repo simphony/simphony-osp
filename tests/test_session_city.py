@@ -26,7 +26,7 @@ class TestSessionCity(unittest.TestCase):
             cities = list()
             neighborhoods = list()
             for i in range(2):
-                c = city.city(name="city %s" % i)
+                c = city.City(name="city %s" % i)
                 for j in range(2):
                     n = city.Neighborhood(name="neighborhood %s %s" % (i, j))
                     c.add(n)
@@ -49,7 +49,7 @@ class TestSessionCity(unittest.TestCase):
         updated = set()
         session = TestSession(notify_update=lambda x: updated.add(x))
         w = city.CityWrapper(session=session)
-        c = city.city(name="city 1")
+        c = city.City(name="city 1")
         cw = w.add(c)
         self.assertEqual(updated, set([c, w]))
 
@@ -59,7 +59,7 @@ class TestSessionCity(unittest.TestCase):
         self.assertEqual(updated, set([c]))
 
         updated.pop()
-        c3 = city.city(name="city 3")
+        c3 = city.City(name="city 3")
         w.add(c3)
         self.assertEqual(updated, set([c3, w]))
 
@@ -72,7 +72,7 @@ class TestSessionCity(unittest.TestCase):
         w = city.CityWrapper(session=session)
         cities = list()
         for i in range(3):
-            c = city.city(name="city %s" % i)
+            c = city.City(name="city %s" % i)
             cw = w.add(c)
             cities.append(cw)
             for j in range(2):
@@ -108,7 +108,7 @@ class TestSessionCity(unittest.TestCase):
         )
 
         w = city.CityWrapper(session=session)
-        c = city.city(name="city 1")
+        c = city.City(name="city 1")
         n = city.Neighborhood(name="neighborhood")
         cw = w.add(c)
         cw.add(n)
@@ -121,7 +121,7 @@ class TestSessionCity(unittest.TestCase):
             [dict(), dict(), dict()]])
 
         w.session._reset_buffers(BufferContext.USER)
-        c2 = city.city(name="city3")
+        c2 = city.City(name="city3")
         w.add(c2)
         cw2 = w.get(c2.uid)
         w.remove(cw.uid)
@@ -155,7 +155,7 @@ class TestSessionCity(unittest.TestCase):
     #                      (5, 10))
 
     # def test_get_ontology_cardinalities(self):
-    #     c = city.city(name="a city")
+    #     c = city.City(name="a city")
     #     p = cuds.classes.Citizen(name="a person")
     #     n = city.Neighborhood(name="a neighborhood")
     #     c.add(p, rel=cuds.classes.HasInhabitant)
@@ -176,8 +176,8 @@ class TestSessionCity(unittest.TestCase):
     #             (0, float("inf"))})
 
     # def test_check_cardinalities(self):
-    #     c1 = city.city(name="a city")
-    #     c2 = city.city(name="a city")
+    #     c1 = city.City(name="a city")
+    #     c2 = city.City(name="a city")
     #     p = cuds.classes.Citizen(name="a person")
     #     c1.add(p, rel=cuds.classes.HasInhabitant)
     #     c2.add(p, rel=cuds.classes.HasInhabitant)

@@ -308,7 +308,7 @@ class SqlWrapperSession(DbWrapperSession):
             # clear local datastructure
             from osp.core.namespaces import cuba
             self._reset_buffers(BufferContext.USER)
-            self._registry.get(self.root).remove(rel=cuba.Relationship)
+            self._registry.get(self.root).remove(rel=cuba.relationship)
             for uid in list(self._registry.keys()):
                 if uid != self.root:
                     del self._registry[uid]

@@ -63,7 +63,7 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_insert(self):
         """Test inserting in the sqlite table."""
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Georg")
         c.add(p1, p2, rel=city.hasInhabitant)
@@ -77,7 +77,7 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_update(self):
         """Test updating the sqlite table."""
-        c = city.city(name="Paris")
+        c = city.City(name="Paris")
         p1 = city.Citizen(name="Peter")
         c.add(p1, rel=city.hasInhabitant)
 
@@ -95,7 +95,7 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_delete(self):
         """Test to delete cuds_objects from the sqlite table"""
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Georg")
         p3 = city.Citizen(name="Hans")

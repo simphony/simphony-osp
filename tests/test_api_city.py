@@ -24,8 +24,8 @@ class TestAPICity(unittest.TestCase):
 
     def test_is_a(self):
         """Test instance check"""
-        c = city.city(name="City")
-        self.assertTrue(c.is_a(city.city))
+        c = city.City(name="City")
+        self.assertTrue(c.is_a(city.City))
         self.assertTrue(c.is_a(city.PopulatedPlace))
         self.assertTrue(c.is_a(cuba.Class))
         self.assertFalse(c.is_a(cuba.relationship))
@@ -36,13 +36,13 @@ class TestAPICity(unittest.TestCase):
         """
         Tests the instantiation and type of the objects
         """
-        self.assertRaises(TypeError, city.city, name="name",
+        self.assertRaises(TypeError, city.City, name="name",
                           coordinates=[1, 2], uid=0, unwanted="unwanted")
-        self.assertRaises(TypeError, city.city)
+        self.assertRaises(TypeError, city.City)
 
-        c = city.city(name="a city")
+        c = city.City(name="a city")
         p = city.Person()
-        self.assertEqual(c.oclass, city.city)
+        self.assertEqual(c.oclass, city.City)
         self.assertEqual(p.oclass, city.Person)
 
         self.assertRaises(TypeError, cuba.nothing)
@@ -53,7 +53,7 @@ class TestAPICity(unittest.TestCase):
         """
         Tests that the uid variable contains a UUID object
         """
-        c = city.city(name="a city")
+        c = city.City(name="a city")
         self.assertIsInstance(c.uid, uuid.UUID)
 
     def test_set_throws_exception(self):
@@ -61,7 +61,7 @@ class TestAPICity(unittest.TestCase):
         Tests that setting a value for a key not in restricted
         keys throws an exception.
         """
-        c = city.city(name="a city")
+        c = city.City(name="a city")
         self.assertRaises(ValueError, c._neighbors.__setitem__,
                           "not an allowed key", 15)
 
@@ -69,7 +69,7 @@ class TestAPICity(unittest.TestCase):
         """
         Tests the standard, normal behavior of the add() method
         """
-        c = city.city(name="a city")
+        c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
         p = city.Citizen()
 
@@ -90,7 +90,7 @@ class TestAPICity(unittest.TestCase):
          - Adding an object that is already there
          - Adding an unsupported object
         """
-        c = city.city(name="a city")
+        c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
 
         c.add(n)
@@ -100,7 +100,7 @@ class TestAPICity(unittest.TestCase):
     def test_recursive_add(self):
         """Tests if add() works correctly if added cuds_object is from another session.
         """
-        c = city.city(name="City")
+        c = city.City(name="City")
         p1 = city.Citizen()
         c.add(p1, rel=city.hasInhabitant)
 
@@ -171,10 +171,10 @@ class TestAPICity(unittest.TestCase):
         w1 = city.CityWrapper(session=CoreSession())
         w2 = city.CityWrapper(session=CoreSession())
 
-        c1w1 = city.city(name="city1")  # parent in both wrappers
-        c2w1 = city.city(name="city2")  # parent in w1, not present in w2
-        c3w1 = city.city(name="city3")  # parent only in w1, present in w2
-        c4w1 = city.city(name="city4")  # parent only in w2
+        c1w1 = city.City(name="city1")  # parent in both wrappers
+        c2w1 = city.City(name="city2")  # parent in w1, not present in w2
+        c3w1 = city.City(name="city3")  # parent only in w1, present in w2
+        c4w1 = city.City(name="city4")  # parent only in w2
         p1w1 = city.Citizen(name="citizen")
         p2w1 = city.Citizen(name="child")
 
@@ -246,7 +246,7 @@ class TestAPICity(unittest.TestCase):
          - get(*uids, rel)
          - get(rel, oclass)
         """
-        c = city.city(name="a city")
+        c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
         p = city.Citizen(name="John Smith")
         q = city.Citizen(name="Jane Doe")
@@ -316,7 +316,7 @@ class TestAPICity(unittest.TestCase):
          - Getting with a wrong type
          - Getting with a not allowed combination of arguments
         """
-        c = city.city(name="a city")
+        c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
         c.add(n)
 
@@ -331,7 +331,7 @@ class TestAPICity(unittest.TestCase):
         """
         Tests the standard, normal behavior of the update() method.
         """
-        c = city.city(name="a city")
+        c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
         new_n = create_from_cuds_object(n, CoreSession())
         new_s = city.Street(name="a new street")
@@ -364,7 +364,7 @@ class TestAPICity(unittest.TestCase):
          - remove(rel, oclass)
          - remove(*uids/DataContainers, rel)
         """
-        c = city.city(name="a city")
+        c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
         p = city.Citizen(name="John Smith")
         q = city.Citizen(name="Jane Doe")
@@ -436,7 +436,7 @@ class TestAPICity(unittest.TestCase):
          - Removing something non-existent
          - Removing with a not allowed argument combination
         """
-        c = city.city(name="a city")
+        c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
 
         # Wrong key
@@ -460,7 +460,7 @@ class TestAPICity(unittest.TestCase):
 
          - Update an element that wasn't added before
         """
-        c = city.city(name="a city")
+        c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
         c.add(n)
         p = city.Citizen()
@@ -470,7 +470,7 @@ class TestAPICity(unittest.TestCase):
         """
         Tests the iter() method when no ontology class is provided.
         """
-        c = city.city(name="a city")
+        c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
         p = city.Citizen(name="John Smith")
         q = city.Citizen(name="Jane Doe")
@@ -508,7 +508,7 @@ class TestAPICity(unittest.TestCase):
     #     c.add(p2, rel=cuds.classes.HasMajor)
     #     self.assertRaises(ValueError, c.add, p1, rel=city.hasPart)
 
-    #     c = city.city("Freiburg")
+    #     c = city.City("Freiburg")
     #     c.add(p1, rel=cuds.classes.HasWorker)
     #     c.add(p2, rel=cuds.classes.HasWorker)
     #     self.assertRaises(ValueError, c.add, p3, rel=cuds.classes.HasWorker)
@@ -528,7 +528,7 @@ class TestAPICity(unittest.TestCase):
         """Check if _recursive_store correctly stores cuds_objects recursively,
         correcting dangling and one-way connections.
         """
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         with CoreSession() as session:
             w = city.CityWrapper(session=session)
             cw = w.add(c)
@@ -570,9 +570,9 @@ class TestAPICity(unittest.TestCase):
         """
         n = city.Neighborhood(name="Zähringen")
         # parent in both sessions
-        c1 = city.city(name="Berlin")
+        c1 = city.City(name="Berlin")
         # only parent in default session (available in both)
-        c2 = city.city(name="Paris")
+        c2 = city.City(name="Paris")
         n.add(c1, c2, rel=city.isPartOf)
 
         with CoreSession() as session:
@@ -582,7 +582,7 @@ class TestAPICity(unittest.TestCase):
             nw.remove(c2.uid, rel=cuba.relationship)
 
             # only parent + available in default session
-            c3 = city.city(name="London")
+            c3 = city.City(name="London")
             n.add(c3, rel=city.isPartOf)
 
             n = clone_cuds_object(n)
@@ -609,7 +609,7 @@ class TestAPICity(unittest.TestCase):
         - Deletes old children.
         - Adds connection to old parents.
         """
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
 
         with CoreSession() as session:
             wrapper = city.CityWrapper(session=session)
@@ -634,8 +634,8 @@ class TestAPICity(unittest.TestCase):
         """ Test what happens if you add the same
         object twice to a new session"""
         p = city.Citizen(name="Ralf")
-        c1 = city.city(name="Freiburg")
-        c2 = city.city(name="Offenburg")
+        c1 = city.City(name="Freiburg")
+        c2 = city.City(name="Offenburg")
         with CoreSession() as session:
             w = city.CityWrapper(session=session)
             c1w, c2w = w.add(c1, c2)

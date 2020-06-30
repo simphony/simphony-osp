@@ -30,7 +30,7 @@ time.sleep(1)
 
 try:
     # Construct the Datastructure.
-    c = city.city(name="Freiburg")
+    c = city.City(name="Freiburg")
     p1 = city.Citizen(name="Peter")
     p2 = city.Citizen(name="Hans")
     p3 = city.Citizen(name="Michel")
@@ -54,7 +54,7 @@ try:
         SqliteSession, "ws://localhost:8688", "test.db"
     ) as session:
         wrapper = city.CityWrapper(session=session)
-        city = wrapper.get(oclass=city.city)[0]
+        city = wrapper.get(oclass=city.City)[0]
         pretty_print(city)
 
     print("Reconnect and make some changes")
@@ -62,7 +62,7 @@ try:
         SqliteSession, "ws://localhost:8688", "test.db"
     ) as session:
         wrapper = city.CityWrapper(session=session)
-        city = wrapper.get(oclass=city.city)[0]
+        city = wrapper.get(oclass=city.City)[0]
         city.name = "Paris"
         wrapper.session.commit()
 
@@ -71,7 +71,7 @@ try:
         SqliteSession, "ws://localhost:8688", "test.db"
     ) as session:
         wrapper = city.CityWrapper(session=session)
-        city = wrapper.get(oclass=city.city)[0]
+        city = wrapper.get(oclass=city.City)[0]
         pretty_print(city)
 
     print("Delete the city")
@@ -79,7 +79,7 @@ try:
         SqliteSession, "ws://localhost:8688", "test.db"
     ) as session:
         wrapper = city.CityWrapper(session=session)
-        city = wrapper.get(oclass=city.city)[0]
+        city = wrapper.get(oclass=city.City)[0]
         wrapper.remove(city)
         wrapper.session.prune()
         wrapper.session.commit()
@@ -89,7 +89,7 @@ try:
         SqliteSession, "ws://localhost:8688", "test.db"
     ) as session:
         wrapper = city.CityWrapper(session=session)
-        print("All cities:", wrapper.get(oclass=city.city))
+        print("All cities:", wrapper.get(oclass=city.City))
 
 finally:
     p.terminate()

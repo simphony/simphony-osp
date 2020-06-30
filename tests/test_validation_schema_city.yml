@@ -1,9 +1,9 @@
 version: "1.0.0"
 
-oclass: city.city
+oclass: city.City
 
 model:
-    city.city:
+    city.City:
         city.hasCitizen:
             city.Citizen:
                 cardinality: 1-2
@@ -15,4 +15,4 @@ model:
         city.hasPart:
             city.Street: 1+
 
-display_value: city.city.name
+display_value: city.City.name

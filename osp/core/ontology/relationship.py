@@ -46,7 +46,7 @@ class OntologyRelationship(OntologyEntity):
                                          inverse=True)
 
     def _add_inverse(self):
-        o = rdflib.URIRef(self.namespace.iri + "INVERSE_OF_" + self.name)
+        o = rdflib.URIRef(self.namespace.get_iri() + "INVERSE_OF_" + self.name)
         x = (self.iri, rdflib.OWL.inverseOf, o)
         y = (o, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
         # TODO add subclass statement

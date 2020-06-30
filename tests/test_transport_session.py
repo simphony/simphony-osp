@@ -34,7 +34,7 @@ CUDS_DICT = {
         "age": 23
     },
     "relationships": {
-        "city.isInhabitantOf": {str(uuid.UUID(int=1)): "city.city"},
+        "city.isInhabitantOf": {str(uuid.UUID(int=1)): "city.City"},
         "city.hasChild": {str(uuid.UUID(int=2)): "city.Person",
                            str(uuid.UUID(int=3)): "city.Person"}
     }
@@ -45,13 +45,13 @@ ROOT_DICT = {
     "uid": str(uuid.UUID(int=43)),
     "attributes": {},
     "relationships": {
-        "city.hasPart": {str(uuid.UUID(int=1)): "city.city"}
+        "city.hasPart": {str(uuid.UUID(int=1)): "city.City"}
     }
 }
 
 SERIALIZED_BUFFERS = (
     '{"added": [{'
-    '"oclass": "city.city", '
+    '"oclass": "city.City", '
     '"uid": "00000000-0000-0000-0000-000000000002", '
     '"attributes": {"name": "Paris", '
     '"coordinates": [0, 0]}, '
@@ -64,9 +64,9 @@ SERIALIZED_BUFFERS = (
     '"attributes": {}, '
     '"relationships": {"city.hasPart": '
     '{"00000000-0000-0000-0000-000000000002": '
-    '"city.city"}}}], '
+    '"city.City"}}}], '
     '"deleted": [{'
-    '"oclass": "city.city", '
+    '"oclass": "city.City", '
     '"uid": "00000000-0000-0000-0000-000000000001", '
     '"attributes": {}, '
     '"relationships": {}}], '
@@ -77,7 +77,7 @@ SERIALIZED_BUFFERS = (
 
 SERIALIZED_BUFFERS_EXPIRED = (
     '{"added": [{'
-    '"oclass": "city.city", '
+    '"oclass": "city.City", '
     '"uid": "00000000-0000-0000-0000-000000000002", '
     '"attributes": {"name": "Paris", '
     '"coordinates": [0, 0]}, '
@@ -90,9 +90,9 @@ SERIALIZED_BUFFERS_EXPIRED = (
     '"attributes": {}, '
     '"relationships": {"city.hasPart": '
     '{"00000000-0000-0000-0000-000000000002": '
-    '"city.city"}}}], '
+    '"city.City"}}}], '
     '"deleted": [{'
-    '"oclass": "city.city", '
+    '"oclass": "city.City", '
     '"uid": "00000000-0000-0000-0000-000000000001", '
     '"attributes": {}, '
     '"relationships": {}}], '
@@ -103,7 +103,7 @@ SERIALIZED_BUFFERS_EXPIRED = (
 
 SERIALIZED_BUFFERS2 = (
     '{"added": [{'
-    '"oclass": "city.city", '
+    '"oclass": "city.City", '
     '"uid": "00000000-0000-0000-0000-00000000002a", '
     '"attributes": {"name": "London", '
     '"coordinates": [0, 0]}, '
@@ -115,15 +115,15 @@ SERIALIZED_BUFFERS3 = (
     '"uid": "00000000-0000-0000-0000-000000000002", '
     '"attributes": {"name": "Peter", "age": 12}, '
     '"relationships": {"city.isInhabitantOf": '
-    '{"00000000-0000-0000-0000-000000000001": "city.city"}}}], '
-    '"updated": [{"oclass": "city.city", '
+    '{"00000000-0000-0000-0000-000000000001": "city.City"}}}], '
+    '"updated": [{"oclass": "city.City", '
     '"uid": "00000000-0000-0000-0000-000000000001", "attributes": '
     '{"name": "Freiburg", "coordinates": [0, 0]}, "relationships": '
     '{"city.isPartOf": {"00000000-0000-0000-0000-000000000003": '
     '"city.CityWrapper"}, "city.hasInhabitant": '
     '{"00000000-0000-0000-0000-000000000002": "city.Citizen"}}}], '
     '"deleted": [], "expired": [], '
-    '"result": [{"oclass": "city.city", '
+    '"result": [{"oclass": "city.City", '
     '"uid": "00000000-0000-0000-0000-000000000001", "attributes": '
     '{"name": "Freiburg", "coordinates": [0, 0]}, "relationships": '
     '{"city.isPartOf": {"00000000-0000-0000-0000-000000000003": '
@@ -134,7 +134,7 @@ SERIALIZED_BUFFERS3 = (
     '"attributes": {}, '
     '"relationships": {'
     '"city.hasPart": '
-    '{"00000000-0000-0000-0000-000000000001": "city.city"}}}]}'
+    '{"00000000-0000-0000-0000-000000000001": "city.City"}}}]}'
 )
 
 
@@ -153,7 +153,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                              {city.isInhabitantOf,
                              city.hasChild})
             self.assertEqual(cuds_object._neighbors[city.isInhabitantOf],
-                             {uuid.UUID(int=1): city.city})
+                             {uuid.UUID(int=1): city.City})
             self.assertEqual(cuds_object._neighbors[city.hasChild],
                              {uuid.UUID(int=2): city.Person,
                              uuid.UUID(int=3): city.Person})
@@ -192,8 +192,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             )
             self.assertEqual(
                 deserialize([{"ENTITY": "city.Citizen"},
-                             {"ENTITY": "city.city"}], session, True),
-                [city.Citizen, city.city])
+                             {"ENTITY": "city.City"}], session, True),
+                [city.Citizen, city.City])
             self.assertEqual(deserialize([1, 1.2, "hallo"], session, True),
                              [1, 1.2, "hallo"])
 
@@ -202,7 +202,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         p = city.Citizen(age=23,
                          name="Peter",
                          uid=uuid.UUID(int=123))
-        c = city.city(name="Freiburg", uid=uuid.UUID(int=1))
+        c = city.City(name="Freiburg", uid=uuid.UUID(int=1))
         c1 = city.Person(uid=uuid.UUID(int=2))
         c2 = city.Person(uid=uuid.UUID(int=3))
         p.add(c, rel=city.isInhabitantOf)
@@ -218,8 +218,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                          serializable([uuid.UUID(int=1), uuid.UUID(int=2)]))
         self.assertEqual({"ENTITY": "city.Citizen"},
                          serializable(city.Citizen))
-        self.assertEqual([{"ENTITY": "city.Citizen"}, {"ENTITY": "city.city"}],
-                         serializable([city.Citizen, city.city]))
+        self.assertEqual([{"ENTITY": "city.Citizen"}, {"ENTITY": "city.City"}],
+                         serializable([city.Citizen, city.City]))
         self.assertEqual([1, 1.2, "hallo"],
                          serializable([1, 1.2, "hallo"]))
 
@@ -227,7 +227,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         # buffer context user
         with TestWrapperSession() as s1:
             ws1 = city.CityWrapper(session=s1, uid=123)
-            c = city.city(name="Freiburg", uid=1)
+            c = city.City(name="Freiburg", uid=1)
             p1 = city.Citizen(uid=uuid.UUID(int=3))
             p2 = city.Citizen(uid=uuid.UUID(int=4))
             c.add(p1, p2, rel=city.hasInhabitant)
@@ -246,7 +246,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
             self.assertEqual(ws1._neighbors[city.hasPart],
-                             {cn.uid: city.city})
+                             {cn.uid: city.City})
             self.assertEqual(set(ws1._neighbors.keys()), {city.hasPart})
             self.assertEqual(cn._neighbors[city.isPartOf],
                              {ws1.uid: city.CityWrapper})
@@ -259,7 +259,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         # buffer context engine
         with TestWrapperSession() as s1:
             ws1 = city.CityWrapper(session=s1, uid=123)
-            c = city.city(name="Freiburg", uid=1)
+            c = city.City(name="Freiburg", uid=1)
             p1 = city.Citizen(uid=uuid.UUID(int=3))
             p2 = city.Citizen(uid=uuid.UUID(int=4))
             c.add(p1, p2, rel=city.hasInhabitant)
@@ -282,7 +282,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
             self.assertEqual(ws1._neighbors[city.hasPart],
-                             {cn.uid: city.city})
+                             {cn.uid: city.City})
             self.assertEqual(set(ws1._neighbors.keys()), {city.hasPart})
             self.assertEqual(cn._neighbors[city.isPartOf],
                              {ws1.uid: city.CityWrapper})
@@ -297,11 +297,11 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         # no expiration
         with TestWrapperSession() as s1:
             ws1 = city.CityWrapper(session=s1, uid=123)
-            c = city.city(name="Freiburg", uid=1)
+            c = city.City(name="Freiburg", uid=1)
             ws1.add(c)
             s1._reset_buffers(BufferContext.USER)
 
-            cn = city.city(name="Paris", uid=2)
+            cn = city.City(name="Paris", uid=2)
             ws1.add(cn)
             ws1.remove(c.uid)
             s1.prune()
@@ -336,11 +336,11 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         # with expiration
         with TestWrapperSession() as s1:
             ws1 = city.CityWrapper(session=s1, uid=123)
-            c = city.city(name="Freiburg", uid=1)
+            c = city.City(name="Freiburg", uid=1)
             ws1.add(c)
             s1._reset_buffers(BufferContext.USER)
 
-            cn = city.city(name="Paris", uid=2)
+            cn = city.City(name="Paris", uid=2)
             ws1.add(cn)
             ws1.remove(c.uid)
             s1.prune()
@@ -399,15 +399,15 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client = TransportSessionClient(TestWrapperSession, None)
         client.root = 1
         c1 = create_recycle(
-            oclass=city.city,
+            oclass=city.City,
             kwargs={"name": "Freiburg"},
             uid=1,
             session=client,
             fix_neighbors=False
         )
-        c2 = city.city(name="London", uid=2)
+        c2 = city.City(name="London", uid=2)
         c3 = create_recycle(
-            oclass=city.city,
+            oclass=city.City,
             kwargs={"name": "Paris"},
             uid=3,
             session=client,
@@ -463,7 +463,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client._engine._sent_data = None
         client._engine._sent_command = None
         c2 = create_recycle(
-            oclass=city.city,
+            oclass=city.City,
             kwargs={"name": "Freiburg"},
             uid=2,
             session=client,
@@ -546,7 +546,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
             s._reset_buffers(BufferContext.USER)
 
             added = s._buffers[BufferContext.ENGINE][BufferType.ADDED]
-            added[uuid.UUID(int=uid)] = city.city(name=name,
+            added[uuid.UUID(int=uid)] = city.City(name=name,
                                                   uid=uid)
 
         TestWrapperSession.command = consumes_buffers(command)
@@ -555,7 +555,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
 
             # initialize buffers
             ws1 = city.CityWrapper(session=s1, uid=123)
-            c = city.city(name="Freiburg", uid=1)
+            c = city.City(name="Freiburg", uid=1)
             ws1.add(c)
             s1._reset_buffers(BufferContext.USER)
 
@@ -568,7 +568,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
     def test_load_from_session(self):
         """Test loading from the remote side"""
         with TestWrapperSession() as s1:
-            c = city.city(name="Freiburg", uid=1)
+            c = city.City(name="Freiburg", uid=1)
             w = city.CityWrapper(session=s1, uid=3)
             cw = w.add(c)
 
@@ -614,7 +614,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
         with TestWrapperSession() as s1:
             # initialize buffers
             ws1 = city.CityWrapper(session=s1, uid=123)
-            c = city.city(name="Freiburg", uid=1)
+            c = city.City(name="Freiburg", uid=1)
             ws1.add(c)
             s1._reset_buffers(BufferContext.USER)
 

@@ -147,7 +147,7 @@ class Cuds():
                 returned.
         """
         check_arguments(Cuds, *args)
-        rel = rel or self.oclass.namespace.default_rel
+        rel = rel or self.oclass.namespace.get_default_rel()
         if rel is None:
             raise TypeError("Missing argument 'rel'! No default "
                             "relationship specified for namespace %s."
@@ -792,7 +792,7 @@ class Cuds():
         """
         if name not in self._attr_values:
             if (  # check if user calls session's methods on wrapper
-                self.is_a(Wrapper)
+                self.is_a(cuba.Wrapper)
                 and self._session is not None
                 and hasattr(self._session, name)
             ):
@@ -886,15 +886,15 @@ class Cuds():
         state = {k: v for k, v in self.__dict__.items()
                  if k not in {"_session", "_oclass", "_values",
                               "_onto_attributes", "_stored"}}
-        state["_oclass"] = (self.oclass.namespace.name, self._oclass.name)
+        state["_oclass"] = (self.oclass.namespace._name, self._oclass.name)
         state["_neighbors"] = [
-            (k.namespace.name, k.name, [
-                (uid, vv.namespace.name, vv.name)
+            (k.namespace._name, k.name, [
+                (uid, vv.namespace._name, vv.name)
                 for uid, vv in v.items()
             ])
             for k, v in self._neighbors.items()
         ]
-        state["_onto_attributes"] = [(k, v.namespace.name, v.name)
+        state["_onto_attributes"] = [(k, v.namespace._name, v.name)
                                      for k, v in self._onto_attributes.items()]
         return state
 

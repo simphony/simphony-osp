@@ -58,12 +58,12 @@ class TestParser(unittest.TestCase):
     def test_subclass_check(self):
         """ Test subclass and superclass check"""
         city = ONTOLOGY_INSTALLER.namespace_registry.city
-        self.assertTrue(city.city.is_subclass_of(city.PopulatedPlace))
-        self.assertTrue(city.PopulatedPlace.is_superclass_of(city.city))
-        self.assertFalse(city.city.is_superclass_of(city.PopulatedPlace))
-        self.assertFalse(city.PopulatedPlace.is_subclass_of(city.city))
-        self.assertTrue(city.city.is_subclass_of(city.city))
-        self.assertTrue(city.city.is_superclass_of(city.city))
+        self.assertTrue(city.City.is_subclass_of(city.PopulatedPlace))
+        self.assertTrue(city.PopulatedPlace.is_superclass_of(city.City))
+        self.assertFalse(city.City.is_superclass_of(city.PopulatedPlace))
+        self.assertFalse(city.PopulatedPlace.is_subclass_of(city.City))
+        self.assertTrue(city.City.is_subclass_of(city.City))
+        self.assertTrue(city.City.is_superclass_of(city.City))
 
     def test_ontology_entity(self):
         """Test the ontology entities"""

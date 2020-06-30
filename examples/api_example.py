@@ -8,7 +8,7 @@
 from osp.core.namespaces import city
 
 print("Creating a City object, c...")
-c = city.city(name="Freiburg", coordinates=[47, 7])
+c = city.City(name="Freiburg", coordinates=[47, 7])
 print("  uid of c: " + str(c.uid))
 print("  oclass of c: " + str(c.oclass) + "\n")
 

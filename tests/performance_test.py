@@ -23,7 +23,7 @@ class TestPerformance(unittest.TestCase):
         if not RUN_PERFORMANCE_TEST:
             return
         self.iterations = 100000
-        self.c = city.city(name="A big city")
+        self.c = city.City(name="A big city")
         for i in range(10):
             j = i * 9
             self.c.add(city.Citizen(uid=j + 0), rel=city.hasInhabitant)

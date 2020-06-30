@@ -26,12 +26,12 @@ class OntologyEntity(ABC):
         self._namespace = namespace
 
     def __str__(self):
-        return "%s.%s" % (self.namespace.name, self._name)
+        return "%s.%s" % (self.namespace._name, self._name)
 
     def __repr__(self):
         return "<%s %s.%s>" % (
             self.__class__.__name__,
-            self.namespace.name,
+            self._namespace._name,
             self._name
         )
 
@@ -46,11 +46,11 @@ class OntologyEntity(ABC):
     @property
     def iri(self):
         """Get the IRI of the Entity"""
-        return rdflib.URIRef(self._namespace.iri + self.name)
+        return rdflib.URIRef(self._namespace.get_iri() + self.name)
 
     @property
     def tblname(self):
-        return "%s___%s" % (self.namespace.name, self._name)
+        return "%s___%s" % (self.namespace._name, self._name)
 
     @property
     def namespace(self):

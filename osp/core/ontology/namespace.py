@@ -25,13 +25,12 @@ class OntologyNamespace():
         self._default_rel = -1
 
     def __str__(self):
-        return "%s (%s)" % (self.name, self.iri)
+        return "%s (%s)" % (self._name, self._iri)
 
     def __repr__(self):
-        return "<%s: %s>" % (self.name, self.iri)
+        return "<%s: %s>" % (self._name, self._iri)
 
-    @property
-    def name(self):
+    def get_name(self):
         """Get the name of the namespace"""
         return self._name
 
@@ -39,8 +38,7 @@ class OntologyNamespace():
     def _graph(self):
         return self._namespace_registry._graph
 
-    @property
-    def default_rel(self):
+    def get_default_rel(self):
         """Get the default relationship of the namespace"""
         if self._default_rel == -1:
             self._default_rel = None
@@ -50,8 +48,7 @@ class OntologyNamespace():
                 self._default_rel = self._namespace_registry.from_iri(o)
         return self._default_rel
 
-    @property
-    def iri(self):
+    def get_iri(self):
         """Get the IRI of the namespace"""
         return self._iri
 
@@ -119,7 +116,7 @@ class OntologyNamespace():
         :return: The ontology entity
         :rtype: OntologyEntity
         """
-        iri = rdflib.URIRef(str(self.iri) + name)
+        iri = rdflib.URIRef(str(self._iri) + name)
         for s, p, o in self._graph.triples((iri, rdflib.RDF.type, None)):
             if o == rdflib.OWL.DatatypeProperty:
                 assert (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty) \
@@ -170,14 +167,12 @@ class OntologyNamespace():
     #     assert isinstance(entity, OntologyEntity)
     #     self._entities[entity.name.lower()] = entity
 
-    @property
-    def author(self):
+    def get_author(self):
         """Get the author of the namespace"""
         logger.warning("The use of OntologyNamespace.author is deprecated.")
         return self._author
 
-    @property
-    def version(self):
+    def get_version(self):
         """Get the version of the namespace"""
         logger.warning("The use of OntologyNamespace.version is deprecated.")
         return self._version

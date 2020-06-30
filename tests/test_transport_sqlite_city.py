@@ -60,7 +60,7 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_insert(self):
         """Test inserting in the sqlite table."""
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Georg")
         c.add(p1, p2, rel=city.hasInhabitant)
@@ -75,7 +75,7 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_update(self):
         """Test updating the sqlite table."""
-        c = city.city(name="Paris")
+        c = city.City(name="Paris")
         p1 = city.Citizen(name="Peter")
         c.add(p1, rel=city.hasInhabitant)
 
@@ -94,7 +94,7 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_delete(self):
         """Test to delete cuds_objects from the sqlite table"""
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Georg")
         p3 = city.Citizen(name="Hans")
@@ -114,7 +114,7 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_init(self):
         """Test if first level of children are loaded automatically."""
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
         p3 = city.Citizen(name="Julia")
@@ -143,7 +143,7 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_load_missing(self):
         """Test if missing objects are loaded automatically."""
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
         p3 = city.Citizen(name="Julia")
@@ -186,7 +186,7 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_expiring(self):
         """Test expiring with transport + db session"""
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
         p3 = city.Citizen(name="Julia")
@@ -237,7 +237,7 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_load_by_oclass(self):
         """Load elements by ontology class via transport + db session"""
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
         p3 = city.Citizen(name="Julia")
@@ -253,7 +253,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         with TransportSessionClient(SqliteSession, URI, path=DB) as session:
             wrapper = city.CityWrapper(session=session)
             cs = wrapper.get(c.uid)
-            r = session.load_by_oclass(city.city)
+            r = session.load_by_oclass(city.City)
             self.assertIs(next(iter(r)), cs)
             r = session.load_by_oclass(city.Citizen)
             self.assertEqual(set(r), {p1, p2, p3})
@@ -261,7 +261,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             self.assertEqual(set(r), {p1, p2, p3})
 
     def test_refresh(self):
-        c = city.city(name="Freiburg")
+        c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
         p3 = city.Citizen(name="Julia")

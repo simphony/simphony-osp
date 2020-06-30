@@ -283,7 +283,7 @@ class TestFiletransfer(unittest.TestCase):
         """Test extracting the file cuds from a datatstructure"""
         image1 = city.Image(path="x")
         image2 = city.Image(path="y")
-        city = city.city(name="Freiburg")
+        city = city.City(name="Freiburg")
         x = {
             "a": image1,
             "b": 1,

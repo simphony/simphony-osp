@@ -3,7 +3,7 @@ from osp.core.utils import pretty_print
 
 
 # Let's build an EMMO compatible city!
-emmo_town = city.city(name='EMMO town', coordinates=[42, 42])
+emmo_town = city.City(name='EMMO town', coordinates=[42, 42])
 
 emmo_town.add(city.Citizen(name='Emanuele Ghedini'), rel=city.hasInhabitant)
 emmo_town.add(city.Citizen(name='Adham Hashibon'), rel=city.hasInhabitant)

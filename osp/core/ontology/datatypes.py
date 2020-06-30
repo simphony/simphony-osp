@@ -95,19 +95,21 @@ def get_rdflib_datatype(yml_datatype, graph=None):
         return YML_DATATYPES[yml_datatype]
     args = yml_datatype.split(":")
     if args[0] == "VECTOR":
-        dtype, shape = _parse_vector_args(args[1:])
+        dtype, shape = _parse_vector_args(args[1:], return_yml_dtypes=True)
         return _add_vector_datatype(graph, shape, dtype)
     if args[0] == "STRING" and len(args) == 2:
         length = int(args[1])
         return _add_string_datatype(graph, length)
 
 
-def _parse_vector_args(args):
+def _parse_vector_args(args, return_yml_dtypes=False):
     datatype = "FLOAT"
     shape = args
     if args[0] in YML_DATATYPES:
         datatype = args[0]
         shape = args[1:]
+    if return_yml_dtypes:
+        return datatype, list(map(int, shape))
     return YML_DATATYPES[datatype], list(map(int, shape))
 
 
