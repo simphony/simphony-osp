@@ -1,6 +1,3 @@
-import rdflib
-from collections import defaultdict
-
 VERSION_KEY = "version"
 AUTHOR_KEY = "author"
 ONTOLOGY_KEY = "ontology"

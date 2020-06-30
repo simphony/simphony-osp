@@ -1,7 +1,6 @@
 import os
 import logging
 import osp.core.namespaces as namespaces
-import yaml
 import shutil
 from osp.core.ontology.parser import Parser
 

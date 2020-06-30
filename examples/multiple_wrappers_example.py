@@ -63,7 +63,7 @@ with SqlAlchemyWrapperSession(postgres_url) as db_session:
     # Working with a Simulation wrapper
     with SimDummySession() as sim_session:
         sim_wrapper = city.CitySimWrapper(numSteps=1,
-                                            session=sim_session)
+                                          session=sim_session)
         new_inhabitant = city.Person(age=31, name="Peter")
         sim_emmo_town, _ = sim_wrapper.add(db_emmo_town, new_inhabitant)
         sim_session.run()

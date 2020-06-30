@@ -6,12 +6,18 @@ from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.datatypes import get_rdflib_datatype
 from osp.core.ontology.yml.yml_keywords import (
     ONTOLOGY_KEY, NAMESPACE_KEY,
-    ROOT_relationship, ROOT_ATTRIBUTE, DESCRIPTION_KEY, SUPERCLASSES_KEY,
-    INVERSE_KEY, DEFAULT_REL_KEY, DATATYPE_KEY, ATTRIBUTES_KEY, DISJOINTS_KEY,
-    EQUIVALENT_TO_KEY, DOMAIN_KEY, RANGE_KEY, CHARACTERISTICS_KEY,
-    MAIN_NAMESPACE, CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY, AUTHOR_KEY,
-    VERSION_KEY, ROOT_CLASS
+    DESCRIPTION_KEY, SUPERCLASSES_KEY,
+    INVERSE_KEY, DEFAULT_REL_KEY, DATATYPE_KEY, ATTRIBUTES_KEY,
 )
+# from osp.core.ontology.yml.yml_keywords import (
+#     ONTOLOGY_KEY, NAMESPACE_KEY,
+#     ROOT_RELATIONSHIP, ROOT_ATTRIBUTE, DESCRIPTION_KEY, SUPERCLASSES_KEY,
+#     INVERSE_KEY, DEFAULT_REL_KEY, DATATYPE_KEY, ATTRIBUTES_KEY,
+#     DISJOINTS_KEY,
+#     EQUIVALENT_TO_KEY, DOMAIN_KEY, RANGE_KEY, CHARACTERISTICS_KEY,
+#     MAIN_NAMESPACE, CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY, AUTHOR_KEY,
+#     VERSION_KEY, ROOT_CLASS
+# )
 from osp.core.ontology.yml.yml_validator import validate
 
 logger = logging.getLogger(__name__)
@@ -275,7 +281,7 @@ class YmlParser:
 
         if datatype_def is not None:
             self.graph.add(
-                (self._get_iri(entity_name), rdflib.RDFS.range, 
+                (self._get_iri(entity_name), rdflib.RDFS.range,
                  get_rdflib_datatype(datatype_def, self.graph))
             )
 
@@ -340,7 +346,7 @@ class YmlParser:
     #         raise ValueError(
     #             "Invalid dictionary call expression: %s. "
     #             "A class expression that is a dictionary is only allowed to "
-    #             "have at most one key. You should probably transform it to a "
+    #            "have at most one key. You should probably transform it to a "
     #             "list of dictionaries." % yaml_ce
     #         )
     #     key = next(iter(yaml_ce.keys()))
@@ -397,7 +403,7 @@ class YmlParser:
     #     namespace, rel_name = self.split_name(rel_key)
     #     rel = self._namespace_registry[namespace][rel_name]
     #     if not isinstance(rel, OntologyRelationship):
-    #         raise ValueError("Invalid relationship %s in class expression %s "
+    #        raise ValueError("Invalid relationship %s in class expression %s "
     #                          % (rel, yaml_ce))
     #     target = self._parse_class_expression(
     #         yaml_ce[rel_key][TARGET_KEY]
@@ -428,7 +434,7 @@ class YmlParser:
     #                 and inverse.is_subclass_of(cuba.activeRelationship)
     #             ):
     #                 raise RuntimeError(
-    #                     "%s and its inverse %s are both active relationships!"
+    #                    "%s and its inverse %s are both active relationships!"
     #                     % (entity, inverse)
     #                 )
     #             if (
@@ -436,6 +442,6 @@ class YmlParser:
     #                 and inverse.is_subclass_of(cuba.passiveRelationship)
     #             ):
     #                 raise RuntimeError(
-    #                     "%s and its inverse %s are both passive relationships!"
+    #                   "%s and its inverse %s are both passive relationships!"
     #                     % (entity, inverse)
     #                 )

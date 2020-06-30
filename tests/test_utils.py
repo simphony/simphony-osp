@@ -40,7 +40,7 @@ CUDS_DICT = {
     "relationships": {
         "city.isInhabitantOf": {str(uuid.UUID(int=1)): "city.City"},
         "city.hasChild": {str(uuid.UUID(int=2)): "city.Person",
-                           str(uuid.UUID(int=3)): "city.Person"}
+                          str(uuid.UUID(int=3)): "city.Person"}
     }
 }
 

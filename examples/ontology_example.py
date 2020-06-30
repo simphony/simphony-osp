@@ -5,12 +5,9 @@
 # p = Parser()
 # p.parse("city")
 
-from osp.core import city, city  # This imports the namespace city
+from osp.core import city  # This imports the namespace city
 
 # Basic operations on entities
-
-print("\nYou can use UPPERCASE and lowercase to access a namespace")
-print(city is city)
 
 print("\nYou can use the namespace to access its entities")
 print(city.living_being)

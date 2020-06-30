@@ -197,4 +197,4 @@ class SqliteSession(SqlWrapperSession):
             return "TEXT"
         else:
             raise NotImplementedError(f"Unsupported data type "
-                                      f"{cuds_datatype}!")
+                                      f"{rdflib_datatype}!")
