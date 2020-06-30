@@ -41,7 +41,7 @@ class SimDummySession(SimWrapperSession):
         person = self._registry.get(uid)
         idx = self._person_map[uid]
         person.age = self._engine.get_person(idx)[1].age
-        if person.is_a(self.onto.CITIZEN):
+        if person.is_a(self.onto.Citizen):
             return person
         self._check_convert_to_inhabitant(uid)
         return person
@@ -49,7 +49,7 @@ class SimDummySession(SimWrapperSession):
     def _load_city(self, uid):
         c = self._registry.get(uid)
         inhabitant_uids = set(
-            [x.uid for x in c.get(rel=self.onto.HAS_INHABITANT)]
+            [x.uid for x in c.get(rel=self.onto.hasInhabitant)]
         )
         person_uids = self._person_map.keys() - inhabitant_uids
         for person_uid in person_uids:
@@ -69,11 +69,11 @@ class SimDummySession(SimWrapperSession):
         is_inhabitant, dummy_person = self._engine.get_person(idx)
         if is_inhabitant:
             person = self._registry.get(uid)
-            change_oclass(person, self.onto.CITIZEN,
+            change_oclass(person, self.onto.Citizen,
                           {"name": dummy_person.name,
                            "age": dummy_person.age})
-            wrapper.remove(person, rel=self.onto.HAS_PART)
-            c.add(person, rel=self.onto.HAS_INHABITANT)
+            wrapper.remove(person, rel=self.onto.hasPart)
+            c.add(person, rel=self.onto.hasInhabitant)
 
     # OVERRIDE
     def _apply_added(self, root_obj, buffer):
