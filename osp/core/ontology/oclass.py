@@ -104,14 +104,14 @@ class OntologyClass(OntologyEntity):
         :rtype: Cuds
         """
         from osp.core.cuds import Cuds
-        from osp.core.namespaces import CUBA
+        from osp.core.namespaces import cuba
 
-        if self.is_subclass_of(CUBA.WRAPPER) and session is None:
+        if self.is_subclass_of(cuba.Wrapper) and session is None:
             raise TypeError("Missing keyword argument 'session' for wrapper.")
 
-        if self.is_subclass_of(CUBA.NOTHING):
+        if self.is_subclass_of(cuba.Nothing):
             raise TypeError("Cannot instantiate cuds object for ontology class"
-                            " CUBA.NOTHING.")
+                            " cuba.Nothing.")
 
         # build attributes dictionary by combining
         # kwargs and defaults

@@ -1,22 +1,22 @@
-# If you did not install the CITY ontology
+# If you did not install the city ontology
 # (pico install city),
 # you have to execute these commands first:
 # from osp.core import Parser
 # p = Parser()
 # p.parse("city")
 
-from osp.core import city, CITY  # This imports the namespace city
+from osp.core import city, city  # This imports the namespace city
 
 # Basic operations on entities
 
 print("\nYou can use UPPERCASE and lowercase to access a namespace")
-print(city is CITY)
+print(city is city)
 
 print("\nYou can use the namespace to access its entities")
 print(city.living_being)
 
 print("\nYou can use UPPERCASE, lowercase or CamelCase to access entities")
-print(city.living_being is city.LIVING_BEING is city.LivingBeing)
+print(city.living_being is city.LivingBeing is city.LivingBeing)
 
 print("\nYou can also use index noteation")
 print(city.living_being is city["living_being"])
@@ -46,9 +46,9 @@ print("\nYou can get an entity with a string")
 print(get_entity("city.LivingBeing"))
 print(get_entity("city.LivingBeing") is city.LivingBeing)
 
-# CUBA namespace
+# cuba namespace
 # This is the main namespace that is always available
-from osp.core.namespaces import CUBA  # noqa: E402
+from osp.core.namespaces import cuba  # noqa: E402
 
 # These are the classes for the ontology entities
 from osp.core.ontology import (  # noqa: F401, E402

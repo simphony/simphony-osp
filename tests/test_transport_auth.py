@@ -11,13 +11,13 @@ from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
 
 try:
-    from osp.core.namespaces import CITY
+    from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.namespaces import _namespace_registry
     Parser(_namespace_registry._graph).parse("city")
     _namespace_registry.update_namespaces()
-    from osp.core.namespaces import CITY
+    from osp.core.namespaces import city
 
 HOST = "127.0.0.1"
 PORT1 = 8469
@@ -109,20 +109,20 @@ class TestTransportAuth(unittest.TestCase):
         """Test authentication."""
         with TransportSessionClient(AuthSession, URI_CORRECT1, path=DB) \
                 as session:
-            CITY.CITY_WRAPPER(session=session)
+            city.CityWrapper(session=session)
 
         with TransportSessionClient(AuthSession, URI_WRONG1, path=DB) \
                 as session:
-            self.assertRaises(RuntimeError, CITY.CITY_WRAPPER,
+            self.assertRaises(RuntimeError, city.CityWrapper,
                               session=session)
 
         with TransportSessionClient(SimpleAuthSession, URI_CORRECT2, path=DB) \
                 as session:
-            CITY.CITY_WRAPPER(session=session)
+            city.CityWrapper(session=session)
 
         with TransportSessionClient(SimpleAuthSession, URI_WRONG2, path=DB) \
                 as session:
-            self.assertRaises(RuntimeError, CITY.CITY_WRAPPER,
+            self.assertRaises(RuntimeError, city.CityWrapper,
                               session=session)
 
 

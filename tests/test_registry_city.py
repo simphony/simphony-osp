@@ -1,16 +1,16 @@
 import unittest2 as unittest
-from osp.core.namespaces import CUBA
+from osp.core.namespaces import cuba
 from osp.core.cuds import Cuds
 from .test_utils import get_test_city
 
 try:
-    from osp.core.namespaces import CITY
+    from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.namespaces import _namespace_registry
     Parser(_namespace_registry._graph).parse("city")
     _namespace_registry.update_namespaces()
-    from osp.core.namespaces import CITY
+    from osp.core.namespaces import city
 
 
 class TestRegistryCity(unittest.TestCase):
@@ -22,11 +22,11 @@ class TestRegistryCity(unittest.TestCase):
         """
         Tests the get_subtree method.
         """
-        c = CITY.CITY(name="a city")
-        p = CITY.CITIZEN()
-        n = CITY.NEIGHBORHOOD(name="a neighborhood")
-        s = CITY.STREET(name="The street")
-        c.add(p, rel=CITY.HAS_INHABITANT)
+        c = city.city(name="a city")
+        p = city.Citizen()
+        n = city.Neighborhood(name="a neighborhood")
+        s = city.Street(name="The street")
+        c.add(p, rel=city.hasInhabitant)
         c.add(n)
         n.add(s)
         registry = c.session._registry
@@ -34,26 +34,26 @@ class TestRegistryCity(unittest.TestCase):
             registry.get_subtree(c.uid),
             set([c, p, n, s]))
         self.assertEqual(
-            registry.get_subtree(c.uid, rel=CUBA.ACTIVE_RELATIONSHIP),
+            registry.get_subtree(c.uid, rel=cuba.activeRelationship),
             set([c, p, n, s]))
         self.assertEqual(
             registry.get_subtree(n.uid),
             set([c, p, n, s]))
         self.assertEqual(
-            registry.get_subtree(n.uid, rel=CUBA.ACTIVE_RELATIONSHIP),
+            registry.get_subtree(n.uid, rel=cuba.activeRelationship),
             set([n, s]))
 
     def test_prune(self):
         """Tests the pruning method"""
         cities = list()
         for i in range(3):
-            c = CITY.CITY(name="city %s" % i)
+            c = city.city(name="city %s" % i)
             cities.append(c)
             for j in range(2):
-                n = CITY.NEIGHBORHOOD(name="neighborhood %s %s" % (i, j))
+                n = city.Neighborhood(name="neighborhood %s %s" % (i, j))
                 c.add(n)
                 for k in range(2):
-                    s = CITY.STREET(name="street %s %s %s" % (i, j, k))
+                    s = city.Street(name="street %s %s %s" % (i, j, k))
                     n.add(s)
         registry = cities[0].session._registry
         registry.prune(*[c.uid for c in cities[0:2]])
@@ -66,7 +66,7 @@ class TestRegistryCity(unittest.TestCase):
                  "street 1 1 1"]))
 
         root, = [n for n in cities[0].get() if n.name == "neighborhood 0 0"]
-        registry.prune(root, rel=CUBA.ACTIVE_RELATIONSHIP)
+        registry.prune(root, rel=cuba.activeRelationship)
         self.assertEqual(
             set([k.name for k in registry.values()]),
             set(["neighborhood 0 0",
@@ -82,7 +82,7 @@ class TestRegistryCity(unittest.TestCase):
         self.assertEqual(found, {c.uid: c})
         found = registry.filter(lambda x: x.uid == n1.uid)
         self.assertEqual(found, {n1.uid: n1})
-        found = registry.filter(lambda x: CITY.IS_PART_OF in x._neighbors)
+        found = registry.filter(lambda x: city.isPartOf in x._neighbors)
         self.assertEqual(found, {n1.uid: n1,
                                  n2.uid: n2,
                                  s1.uid: s1})
@@ -92,15 +92,15 @@ class TestRegistryCity(unittest.TestCase):
         registry.reset()
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertEqual(
-            registry.filter_by_oclass(CITY.CITY),
+            registry.filter_by_oclass(city.city),
             {c.uid: c}
         )
         self.assertEqual(
-            registry.filter_by_oclass(CITY.CITIZEN),
+            registry.filter_by_oclass(city.Citizen),
             {p1.uid: p1, p2.uid: p2, p3.uid: p3}
         )
         self.assertEqual(
-            registry.filter_by_oclass(CITY.NEIGHBORHOOD),
+            registry.filter_by_oclass(city.Neighborhood),
             {n1.uid: n1, n2.uid: n2}
         )
 
@@ -124,13 +124,13 @@ class TestRegistryCity(unittest.TestCase):
         self.maxDiff = 2000
         self.assertEqual(
             registry.filter_by_relationships(
-                CITY.IS_INHABITANT_OF
+                city.isInhabitantOf
             ),
             {p1.uid: p1, p2.uid: p2, p3.uid: p3}
         )
         self.assertEqual(
             registry.filter_by_relationships(
-                CITY.IS_PART_OF,
+                city.isPartOf,
                 consider_subrelationships=True
             ),
             {p3.uid: p3,

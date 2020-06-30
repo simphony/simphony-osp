@@ -18,28 +18,28 @@ class SqlWrapperSession(DbWrapperSession):
     """Abstract class for an SQL DB Wrapper Session"""
 
     CUDS_PREFIX = "CUDS_"
-    RELATIONSHIP_TABLE = "OSP_RELATIONSHIPS"
+    relationship_TABLE = "OSP_relationshipS"
     MASTER_TABLE = "OSP_MASTER"
     COLUMNS = {
         MASTER_TABLE: ["uid", "oclass", "first_level"],
-        RELATIONSHIP_TABLE: ["origin", "target", "name", "target_oclass"]
+        relationship_TABLE: ["origin", "target", "name", "target_oclass"]
     }
     DATATYPES = {
         MASTER_TABLE: {"uid": "UUID",
                        "oclass": rdflib.XSD.string,
                        "first_level": rdflib.XSD.boolean},
-        RELATIONSHIP_TABLE: {"origin": "UUID",
+        relationship_TABLE: {"origin": "UUID",
                              "target": "UUID",
                              "name": rdflib.XSD.string,
                              "target_oclass": rdflib.XSD.string}
     }
     PRIMARY_KEY = {
         MASTER_TABLE: ["uid"],
-        RELATIONSHIP_TABLE: ["origin", "target", "name"]
+        relationship_TABLE: ["origin", "target", "name"]
     }
     FOREIGN_KEY = {
         MASTER_TABLE: {},
-        RELATIONSHIP_TABLE: {
+        relationship_TABLE: {
             "origin": (MASTER_TABLE, "uid"),
             "target": (MASTER_TABLE, "uid")
         }
@@ -48,7 +48,7 @@ class SqlWrapperSession(DbWrapperSession):
         MASTER_TABLE: [
             ["oclass"], ["first_level"]
         ],
-        RELATIONSHIP_TABLE: [["origin"]]
+        relationship_TABLE: [["origin"]]
     }
 
     @abstractmethod
@@ -306,9 +306,9 @@ class SqlWrapperSession(DbWrapperSession):
         self._init_transaction()
         try:
             # clear local datastructure
-            from osp.core.namespaces import CUBA
+            from osp.core.namespaces import cuba
             self._reset_buffers(BufferContext.USER)
-            self._registry.get(self.root).remove(rel=CUBA.Relationship)
+            self._registry.get(self.root).remove(rel=cuba.Relationship)
             for uid in list(self._registry.keys()):
                 if uid != self.root:
                     del self._registry[uid]
@@ -318,7 +318,7 @@ class SqlWrapperSession(DbWrapperSession):
             for table_name in self._get_table_names(
                     SqlWrapperSession.CUDS_PREFIX):
                 self._do_db_delete(table_name, None)
-            self._do_db_delete(self.RELATIONSHIP_TABLE, None)
+            self._do_db_delete(self.relationship_TABLE, None)
             self._do_db_delete(self.MASTER_TABLE, None)
             self._initialize()
             self._commit()
@@ -385,11 +385,11 @@ class SqlWrapperSession(DbWrapperSession):
                 for uid, target_oclass in neighbor_dict.items():
                     target_uid = uid if uid != self.root else uuid.UUID(int=0)
                     self._do_db_insert(
-                        self.RELATIONSHIP_TABLE,
+                        self.relationship_TABLE,
                         ["origin", "target", "name", "target_oclass"],
                         [added.uid, target_uid,
                          rel, target_oclass],
-                        self.DATATYPES[self.RELATIONSHIP_TABLE]
+                        self.DATATYPES[self.relationship_TABLE]
                     )
 
     # OVERRIDE
@@ -420,9 +420,9 @@ class SqlWrapperSession(DbWrapperSession):
             # Update the relationships
             first_level = False
             self._do_db_delete(
-                table_name=self.RELATIONSHIP_TABLE,
+                table_name=self.relationship_TABLE,
                 condition=EqualsCondition(
-                    table_name=self.RELATIONSHIP_TABLE,
+                    table_name=self.relationship_TABLE,
                     column="origin",
                     value=updated.uid,
                     datatype="UUID"
@@ -433,11 +433,11 @@ class SqlWrapperSession(DbWrapperSession):
                     first_level = first_level or uid == self.root
                     target_uuid = uid if uid != self.root else uuid.UUID(int=0)
                     self._do_db_insert(
-                        table_name=self.RELATIONSHIP_TABLE,
-                        columns=self.COLUMNS[self.RELATIONSHIP_TABLE],
+                        table_name=self.relationship_TABLE,
+                        columns=self.COLUMNS[self.relationship_TABLE],
                         values=[updated.uid, target_uuid,
                                 rel, target_oclass],
-                        datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE]
+                        datatypes=self.DATATYPES[self.relationship_TABLE]
                     )
 
             # update first_level flag
@@ -472,9 +472,9 @@ class SqlWrapperSession(DbWrapperSession):
                     )
                 )
             self._do_db_delete(
-                table_name=self.RELATIONSHIP_TABLE,
+                table_name=self.relationship_TABLE,
                 condition=EqualsCondition(
-                    table_name=self.RELATIONSHIP_TABLE,
+                    table_name=self.relationship_TABLE,
                     column="origin",
                     value=deleted.uid,
                     datatype="UUID"
@@ -519,12 +519,12 @@ class SqlWrapperSession(DbWrapperSession):
             indexes=self.INDEXES[self.MASTER_TABLE]
         )
         self._do_db_create(
-            table_name=self.RELATIONSHIP_TABLE,
-            columns=self.COLUMNS[self.RELATIONSHIP_TABLE],
-            datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE],
-            primary_key=self.PRIMARY_KEY[self.RELATIONSHIP_TABLE],
-            foreign_key=self.FOREIGN_KEY[self.RELATIONSHIP_TABLE],
-            indexes=self.INDEXES[self.RELATIONSHIP_TABLE]
+            table_name=self.relationship_TABLE,
+            columns=self.COLUMNS[self.relationship_TABLE],
+            datatypes=self.DATATYPES[self.relationship_TABLE],
+            primary_key=self.PRIMARY_KEY[self.relationship_TABLE],
+            foreign_key=self.FOREIGN_KEY[self.relationship_TABLE],
+            indexes=self.INDEXES[self.relationship_TABLE]
         )
         # Add the dummy root element if it doesn't exist.
         # We do not want to store the actual root element since it will be
@@ -629,15 +629,15 @@ class SqlWrapperSession(DbWrapperSession):
         """
         # Fetch the data
         c = self._do_db_select(
-            table_name=self.RELATIONSHIP_TABLE,
+            table_name=self.relationship_TABLE,
             columns=["target", "name", "target_oclass"],
             condition=EqualsCondition(
-                table_name=self.RELATIONSHIP_TABLE,
+                table_name=self.relationship_TABLE,
                 column="origin",
                 value=cuds_object.uid,
                 datatype="UUID"
             ),
-            datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE]
+            datatypes=self.DATATYPES[self.relationship_TABLE]
         )
 
         # update the cuds object

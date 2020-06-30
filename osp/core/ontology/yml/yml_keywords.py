@@ -7,8 +7,8 @@ ONTOLOGY_KEY = "ontology"
 NAMESPACE_KEY = "namespace"
 REQUIREMENTS_KEY = "requirements"
 
-MAIN_NAMESPACE = "CUBA"
-ROOT_RELATIONSHIP = "RELATIONSHIP"
+MAIN_NAMESPACE = "cuba"
+ROOT_relationship = "relationship"
 ROOT_ATTRIBUTE = "ATTRIBUTE"
 ROOT_CLASS = "CLASS"
 

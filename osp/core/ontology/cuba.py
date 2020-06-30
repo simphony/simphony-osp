@@ -9,13 +9,13 @@ class _CubaNamespace(ClosedNamespace):
 
     def __init__(self):
         super(_CubaNamespace, self).__init__(
-            URIRef("http://www.osp-core.com/CUBA#"),
+            URIRef("http://www.osp-core.com/cuba#"),
             terms=[
                 "_default", "_default_attribute", "_default_value",
                 "_default_rel", "_length", "_shape", "_dtype",
-                "ACTIVE_RELATIONSHIP", "ENTITY", "FILE", "NOTHING",
-                "PASSIVE_RELATIONSHIP", "PATH", "WRAPPER", "ATTRIBUTE",
-                "RELATIONSHIP", "CLASS", "datatypes/STRING-",
+                "activeRelationship", "Entity", "File", "Nothing",
+                "passiveRelationship", "path", "Wrapper", "attribute",
+                "relationship", "Class", "datatypes/STRING-",
                 "datatypes/VECTOR-"
             ]
         )

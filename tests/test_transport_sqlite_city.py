@@ -16,13 +16,13 @@ except ImportError:
     from test_sqlite_city import check_state
 
 try:
-    from osp.core.namespaces import CITY
+    from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.namespaces import _namespace_registry
     Parser(_namespace_registry._graph).parse("city")
     _namespace_registry.update_namespaces()
-    from osp.core.namespaces import CITY
+    from osp.core.namespaces import city
 
 HOST = "127.0.0.1"
 PORT = 8687
@@ -60,14 +60,14 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_insert(self):
         """Test inserting in the sqlite table."""
-        c = CITY.CITY(name="Freiburg")
-        p1 = CITY.CITIZEN(name="Peter")
-        p2 = CITY.CITIZEN(name="Georg")
-        c.add(p1, p2, rel=CITY.HAS_INHABITANT)
+        c = city.city(name="Freiburg")
+        p1 = city.Citizen(name="Peter")
+        p2 = city.Citizen(name="Georg")
+        c.add(p1, p2, rel=city.hasInhabitant)
 
         with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
-            wrapper = CITY.CITY_WRAPPER(session=session)
+            wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
@@ -75,18 +75,18 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_update(self):
         """Test updating the sqlite table."""
-        c = CITY.CITY(name="Paris")
-        p1 = CITY.CITIZEN(name="Peter")
-        c.add(p1, rel=CITY.HAS_INHABITANT)
+        c = city.city(name="Paris")
+        p1 = city.Citizen(name="Peter")
+        c.add(p1, rel=city.hasInhabitant)
 
         with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
-            wrapper = CITY.CITY_WRAPPER(session=session)
+            wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
             session.commit()
 
-            p2 = CITY.CITIZEN(name="Georg")
-            cw.add(p2, rel=CITY.HAS_INHABITANT)
+            p2 = city.Citizen(name="Georg")
+            cw.add(p2, rel=city.hasInhabitant)
             cw.name = "Freiburg"
             session.commit()
 
@@ -94,15 +94,15 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_delete(self):
         """Test to delete cuds_objects from the sqlite table"""
-        c = CITY.CITY(name="Freiburg")
-        p1 = CITY.CITIZEN(name="Peter")
-        p2 = CITY.CITIZEN(name="Georg")
-        p3 = CITY.CITIZEN(name="Hans")
-        c.add(p1, p2, p3, rel=CITY.HAS_INHABITANT)
+        c = city.city(name="Freiburg")
+        p1 = city.Citizen(name="Peter")
+        p2 = city.Citizen(name="Georg")
+        p3 = city.Citizen(name="Hans")
+        c.add(p1, p2, p3, rel=city.hasInhabitant)
 
         with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
-            wrapper = CITY.CITY_WRAPPER(session=session)
+            wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
             session.commit()
 
@@ -114,51 +114,51 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_init(self):
         """Test if first level of children are loaded automatically."""
-        c = CITY.CITY(name="Freiburg")
-        p1 = CITY.CITIZEN(name="Peter")
-        p2 = CITY.CITIZEN(name="Anna")
-        p3 = CITY.CITIZEN(name="Julia")
-        c.add(p1, p2, p3, rel=CITY.HAS_INHABITANT)
-        p1.add(p3, rel=CITY.HAS_CHILD)
-        p2.add(p3, rel=CITY.HAS_CHILD)
+        c = city.city(name="Freiburg")
+        p1 = city.Citizen(name="Peter")
+        p2 = city.Citizen(name="Anna")
+        p3 = city.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=city.hasInhabitant)
+        p1.add(p3, rel=city.hasChild)
+        p2.add(p3, rel=city.hasChild)
 
         with SqliteSession(DB) as session:
-            wrapper = CITY.CITY_WRAPPER(session=session)
+            wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
         with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
-            wrapper = CITY.CITY_WRAPPER(session=session)
+            wrapper = city.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
                              {c.uid, wrapper.uid})
             self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(
-                session._registry.get(c.uid)._neighbors[CITY.HAS_INHABITANT],
+                session._registry.get(c.uid)._neighbors[city.hasInhabitant],
                 {p1.uid: p1.oclass, p2.uid: p2.oclass,
                  p3.uid: p3.oclass})
             self.assertEqual(
-                session._registry.get(c.uid)._neighbors[CITY.IS_PART_OF],
+                session._registry.get(c.uid)._neighbors[city.isPartOf],
                 {wrapper.uid: wrapper.oclass})
 
     def test_load_missing(self):
         """Test if missing objects are loaded automatically."""
-        c = CITY.CITY(name="Freiburg")
-        p1 = CITY.CITIZEN(name="Peter")
-        p2 = CITY.CITIZEN(name="Anna")
-        p3 = CITY.CITIZEN(name="Julia")
-        c.add(p1, p2, p3, rel=CITY.HAS_INHABITANT)
-        p1.add(p3, rel=CITY.HAS_CHILD)
-        p2.add(p3, rel=CITY.HAS_CHILD)
+        c = city.city(name="Freiburg")
+        p1 = city.Citizen(name="Peter")
+        p2 = city.Citizen(name="Anna")
+        p3 = city.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=city.hasInhabitant)
+        p1.add(p3, rel=city.hasChild)
+        p2.add(p3, rel=city.hasChild)
 
         with SqliteSession(DB) as session:
-            wrapper = CITY.CITY_WRAPPER(session=session)
+            wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
         with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
-            wrapper = CITY.CITY_WRAPPER(session=session)
+            wrapper = city.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
                              {c.uid, wrapper.uid})
             cw = wrapper.get(c.uid)
@@ -172,31 +172,31 @@ class TestTransportSqliteCity(unittest.TestCase):
             self.assertEqual(p2w.name, "Anna")
             self.assertEqual(p3w.name, "Julia")
             self.assertEqual(
-                p3w._neighbors[CITY.IS_CHILD_OF],
+                p3w._neighbors[city.isChildOf],
                 {p1.uid: p1.oclass, p2.uid: p2.oclass}
             )
             self.assertEqual(
-                p2w._neighbors[CITY.HAS_CHILD],
+                p2w._neighbors[city.hasChild],
                 {p3.uid: p3.oclass}
             )
             self.assertEqual(
-                p2w._neighbors[CITY.IS_INHABITANT_OF],
+                p2w._neighbors[city.isInhabitantOf],
                 {c.uid: c.oclass}
             )
 
     def test_expiring(self):
         """Test expiring with transport + db session"""
-        c = CITY.CITY(name="Freiburg")
-        p1 = CITY.CITIZEN(name="Peter")
-        p2 = CITY.CITIZEN(name="Anna")
-        p3 = CITY.CITIZEN(name="Julia")
-        c.add(p1, p2, p3, rel=CITY.HAS_INHABITANT)
-        p1.add(p3, rel=CITY.HAS_CHILD)
-        p2.add(p3, rel=CITY.HAS_CHILD)
+        c = city.city(name="Freiburg")
+        p1 = city.Citizen(name="Peter")
+        p2 = city.Citizen(name="Anna")
+        p3 = city.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=city.hasInhabitant)
+        p1.add(p3, rel=city.hasChild)
+        p2.add(p3, rel=city.hasChild)
 
         with TransportSessionClient(SqliteSession, URI, path=DB)\
                 as session:
-            wrapper = CITY.CITY_WRAPPER(session=session)
+            wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
             p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)
             session.commit()
@@ -206,19 +206,19 @@ class TestTransportSqliteCity(unittest.TestCase):
 
             with sqlite3.connect(DB) as conn:
                 cursor = conn.cursor()
-                cursor.execute("UPDATE CUDS_CITY___CITY SET name = 'Paris' "
+                cursor.execute("UPDATE CUDS_city___city SET name = 'Paris' "
                                "WHERE uid='%s';" % (c.uid))
-                cursor.execute("UPDATE CUDS_CITY___CITIZEN SET name = 'Maria' "
+                cursor.execute("UPDATE CUDS_city___CITIZEN SET name = 'Maria' "
                                "WHERE uid='%s';" % (p1.uid))
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
-                               % (SqliteSession.RELATIONSHIP_TABLE,
+                               % (SqliteSession.relationship_TABLE,
                                   p2.uid, p2.uid))
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
-                               % (SqliteSession.RELATIONSHIP_TABLE,
+                               % (SqliteSession.relationship_TABLE,
                                   p3.uid, p3.uid))
-                cursor.execute("DELETE FROM CUDS_CITY___CITIZEN "
+                cursor.execute("DELETE FROM CUDS_city___CITIZEN "
                                "WHERE uid == '%s'"
                                % p3.uid)
                 cursor.execute("DELETE FROM %s "
@@ -237,41 +237,41 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_load_by_oclass(self):
         """Load elements by ontology class via transport + db session"""
-        c = CITY.CITY(name="Freiburg")
-        p1 = CITY.CITIZEN(name="Peter")
-        p2 = CITY.CITIZEN(name="Anna")
-        p3 = CITY.CITIZEN(name="Julia")
-        c.add(p1, p2, p3, rel=CITY.HAS_INHABITANT)
-        p1.add(p3, rel=CITY.HAS_CHILD)
-        p2.add(p3, rel=CITY.HAS_CHILD)
+        c = city.city(name="Freiburg")
+        p1 = city.Citizen(name="Peter")
+        p2 = city.Citizen(name="Anna")
+        p3 = city.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=city.hasInhabitant)
+        p1.add(p3, rel=city.hasChild)
+        p2.add(p3, rel=city.hasChild)
 
         with TransportSessionClient(SqliteSession, URI, path=DB) as session:
-            wrapper = CITY.CITY_WRAPPER(session=session)
+            wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
         with TransportSessionClient(SqliteSession, URI, path=DB) as session:
-            wrapper = CITY.CITY_WRAPPER(session=session)
+            wrapper = city.CityWrapper(session=session)
             cs = wrapper.get(c.uid)
-            r = session.load_by_oclass(CITY.CITY)
+            r = session.load_by_oclass(city.city)
             self.assertIs(next(iter(r)), cs)
-            r = session.load_by_oclass(CITY.CITIZEN)
+            r = session.load_by_oclass(city.Citizen)
             self.assertEqual(set(r), {p1, p2, p3})
-            r = session.load_by_oclass(CITY.PERSON)
+            r = session.load_by_oclass(city.Person)
             self.assertEqual(set(r), {p1, p2, p3})
 
     def test_refresh(self):
-        c = CITY.CITY(name="Freiburg")
-        p1 = CITY.CITIZEN(name="Peter")
-        p2 = CITY.CITIZEN(name="Anna")
-        p3 = CITY.CITIZEN(name="Julia")
-        c.add(p1, p2, p3, rel=CITY.HAS_INHABITANT)
-        p1.add(p3, rel=CITY.HAS_CHILD)
-        p2.add(p3, rel=CITY.HAS_CHILD)
+        c = city.city(name="Freiburg")
+        p1 = city.Citizen(name="Peter")
+        p2 = city.Citizen(name="Anna")
+        p3 = city.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=city.hasInhabitant)
+        p1.add(p3, rel=city.hasChild)
+        p2.add(p3, rel=city.hasChild)
 
         with TransportSessionClient(SqliteSession, URI, path=DB) \
                 as session:
-            wrapper = CITY.CITY_WRAPPER(session=session)
+            wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
             p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)
             session.commit()
@@ -284,19 +284,19 @@ class TestTransportSqliteCity(unittest.TestCase):
 
             with sqlite3.connect(DB) as conn:
                 cursor = conn.cursor()
-                cursor.execute("UPDATE CUDS_CITY___CITY SET name = 'Paris' "
+                cursor.execute("UPDATE CUDS_city___city SET name = 'Paris' "
                                "WHERE uid='%s';" % (c.uid))
-                cursor.execute("UPDATE CUDS_CITY___CITIZEN SET name = 'Maria' "
+                cursor.execute("UPDATE CUDS_city___CITIZEN SET name = 'Maria' "
                                "WHERE uid='%s';" % (p1.uid))
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
-                               % (SqliteSession.RELATIONSHIP_TABLE,
+                               % (SqliteSession.relationship_TABLE,
                                   p2.uid, p2.uid))
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
-                               % (SqliteSession.RELATIONSHIP_TABLE,
+                               % (SqliteSession.relationship_TABLE,
                                   p3.uid, p3.uid))
-                cursor.execute("DELETE FROM CUDS_CITY___CITIZEN "
+                cursor.execute("DELETE FROM CUDS_city___CITIZEN "
                                "WHERE uid == '%s'"
                                % p3.uid)
                 cursor.execute("DELETE FROM %s "

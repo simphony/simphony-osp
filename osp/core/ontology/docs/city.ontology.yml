@@ -1,263 +1,263 @@
 ---
 version: "0.0.3"
 
-namespace: "CITY"
+namespace: "city"
 
 ontology:
 
  ################
 
-  ENCLOSES:
+  encloses:
     subclass_of:
-    - CUBA.ACTIVE_RELATIONSHIP
-    inverse: CITY.IS_ENCLOSED_BY
+    - cuba.activeRelationship
+    inverse: city.isEnclosedBy
 
-  HAS_PART:
+  hasPart:
     subclass_of:
-    - CITY.ENCLOSES
-    inverse: CITY.IS_PART_OF
+    - city.encloses
+    inverse: city.isPartOf
     default_rel: true
     characteristics:
     - transitive
 
-  IS_INHABITANT_OF:
+  isInhabitantOf:
     subclass_of:
-    - CITY.IS_ENCLOSED_BY
-    inverse: CITY.HAS_INHABITANT
+    - city.isEnclosedBy
+    inverse: city.hasInhabitant
 
-  IS_ENCLOSED_BY:
+  isEnclosedBy:
     subclass_of:
-    - CUBA.PASSIVE_RELATIONSHIP
-    inverse: CITY.ENCLOSES
+    - cuba.passiveRelationship
+    inverse: city.encloses
 
-  IS_PART_OF:
+  isPartOf:
     subclass_of:
-    - CITY.IS_ENCLOSED_BY
-    inverse: CITY.HAS_PART
+    - city.isEnclosedBy
+    inverse: city.hasPart
 
-  HAS_INHABITANT:
+  hasInhabitant:
     subclass_of:
-    - CITY.ENCLOSES
-    inverse: CITY.IS_INHABITANT_OF
+    - city.encloses
+    inverse: city.isInhabitantOf
   
-  HAS_CHILD:
+  hasChild:
     subclass_of:
-    - CITY.HAS_PART
-    inverse: CITY.IS_CHILD_OF
+    - city.hasPart
+    inverse: city.isChildOf
 
-  IS_CHILD_OF:
+  isChildOf:
     subclass_of:
-    - CITY.IS_PART_OF
-    inverse: CITY.HAS_CHILD
+    - city.isPartOf
+    inverse: city.hasChild
   
-  HAS_WORKER:
+  hasWorker:
     subclass_of:
-    - CITY.HAS_PART
-    inverse: CITY.WORKS_IN
+    - city.hasPart
+    inverse: city.worksIn
 
-  WORKS_IN:
+  worksIn:
     subclass_of:
-    - CITY.IS_PART_OF
-    inverse: CITY.HAS_WORKER
+    - city.isPartOf
+    inverse: city.hasWorker
 
-  HAS_MAJOR:
+  hasMajor:
     subclass_of:
-    - CITY.HAS_WORKER
-    inverse: CITY.IS_MAJOR_OF
+    - city.hasWorker
+    inverse: city.isMajorOf
 
-  IS_MAJOR_OF:
+  isMajorOf:
     subclass_of:
-    - CITY.WORKS_IN
-    inverse: CITY.HAS_MAJOR
+    - city.worksIn
+    inverse: city.hasMajor
 
  ################
 
-  CITY_WRAPPER:
+  CityWrapper:
     subclass_of:
-    - CUBA.WRAPPER
-    - CITY.HAS_PART:
-        range: CITY.CITY
+    - cuba.Wrapper
+    - city.hasPart:
+        range: city.City
         cardinality: 1+
         exclusive: false
 
-  CITY_SIM_WRAPPER:
+  CitySimWrapper:
     subclass_of:
-    - CITY.CITY_WRAPPER
-    - CITY.HAS_PART:
-        range: CITY.PERSON
+    - city.CityWrapper
+    - city.hasPart:
+        range: city.Person
         cardinality: many
         exclusive: false
-    - CITY.HAS_PART:
-        range: CITY.CITY
+    - city.hasPart:
+        range: city.City
         cardinality: 1
         exclusive: false
     attributes:
-      CITY.NUM_STEPS:
+      city.numSteps:
   
-  NUM_STEPS:
+  numSteps:
     subclass_of:
-    - CITY.NUMBER
+    - city.number
 
   ################
 
-  GEOGRAPHICAL_PLACE:
+  GeographicalPlace:
     subclass_of:
-    - CUBA.CLASS
+    - cuba.Class
     attributes:
-      CITY.NAME:
+      city.name:
 
-  ARCHITECTURAL_COMPONENT:
+  ArchitecturalComponent:
     subclass_of:
-    - CUBA.CLASS
+    - cuba.Class
 
-  LIVING_BEING:
+  LivingBeing:
     description: A being that lives
     subclass_of:
-    - CUBA.CLASS
-    - CITY.IS_CHILD_OF:
-        range: CITY.LIVING_BEING
+    - cuba.Class
+    - city.isChildOf:
+        range: city.LivingBeing
         cardinality: 0-2
         exclusive: false
     attributes:
-      CITY.NAME: "John Smith"
-      CITY.AGE:  25
+      city.name: "John Smith"
+      city.age:  25
 
-  NUMBER:
+  number:
     subclass_of:
-    - CUBA.ATTRIBUTE
+    - cuba.attribute
     datatype: INT
 
-  POSTAL_CODE:
+  postalCode:
     subclass_of:
-    - CITY.NUMBER
+    - city.number
 
-  NAME:
+  name:
     subclass_of:
-    - CUBA.ATTRIBUTE
+    - cuba.attribute
 
-  COORDINATES:
+  coordinates:
     subclass_of:
-    - CUBA.ATTRIBUTE
+    - cuba.attribute
     datatype: VECTOR:INT:2
 
-  ADDRESS:
+  address:
     subclass_of:
-    - CUBA.CLASS
-    - CITY.IS_PART_OF:
-        range: CITY.BUILDING
+    - cuba.Class
+    - city.isPartOf:
+        range: city.Building
         cardinality: 1
         exclusive: false
     attributes:
-      CITY.NAME:  "Street"
-      CITY.NUMBER: 7
-      CITY.POSTAL_CODE:
+      city.name:  "Street"
+      city.number: 7
+      city.postalCode:
 
-  POPULATED_PLACE:
+  PopulatedPlace:
     subclass_of:
-    - CITY.GEOGRAPHICAL_PLACE
-    - CITY.HAS_INHABITANT:
-        range: CITY.CITIZEN
+    - city.GeographicalPlace
+    - city.hasInhabitant:
+        range: city.Citizen
         cardinality: many
         exclusive: true
-    - CITY.HAS_WORKER:
-        range: CITY.PERSON
+    - city.hasWorker:
+        range: city.Person
         cardinality: many
         exclusive: true
     attributes:
-      CITY.COORDINATES: [0, 0]
+      city.coordinates: [0, 0]
 
-  CITY:
+  City:
     subclass_of:
-    - CITY.POPULATED_PLACE
-    - CITY.HAS_PART:
-        range: CITY.NEIGHBORHOOD
+    - city.PopulatedPlace
+    - city.hasPart:
+        range: city.Neighborhood
         cardinality: many
         exclusive: true
-    - CITY.IS_PART_OF:
-        range: CITY.CITY_WRAPPER
+    - city.isPartOf:
+        range: city.CityWrapper
         cardinality: 0-1
         exclusive: true
-    - CITY.HAS_MAJOR:
-        range: CITY.CITIZEN
+    - city.hasMajor:
+        range: city.Citizen
         cardinality: 0-1
         exclusive: true
 
-  NEIGHBORHOOD:
+  Neighborhood:
     subclass_of:
-    - CITY.POPULATED_PLACE
-    - CITY.IS_PART_OF:
-        range: CITY.CITY
+    - city.PopulatedPlace
+    - city.isPartOf:
+        range: city.City
         cardinality: 1
         exclusive: true
-    - CITY.HAS_PART:
-        range: CITY.STREET
+    - city.hasPart:
+        range: city.Street
         cardinality: many
         exclusive: true
 
-  STREET:
+  Street:
     subclass_of:
-    - CITY.POPULATED_PLACE
-    - CITY.HAS_PART:
-        range: CITY.BUILDING
+    - city.PopulatedPlace
+    - city.hasPart:
+        range: city.Building
         cardinality: many
         exclusive: true
-    - CITY.IS_PART_OF:
-        range: CITY.NEIGHBORHOOD
+    - city.isPartOf:
+        range: city.Neighborhood
         cardinality: 1
         exclusive: true
 
-  ARCHITECTURAL_STRUCTURE:
+  ArchitecturalStructure:
     subclass_of:
-    - CITY.GEOGRAPHICAL_PLACE
+    - city.GeographicalPlace
 
-  BUILDING:
+  Building:
     subclass_of:
-    - CITY.ARCHITECTURAL_STRUCTURE
-    - CITY.HAS_PART:
-        range: CITY.ADDRESS
+    - city.ArchitecturalStructure
+    - city.hasPart:
+        range: city.Adress
         cardinality: 1
         exclusive: false
-    - CITY.HAS_PART:
-        range: CITY.FLOOR
+    - city.hasPart:
+        range: city.Floor
         cardinality: many
         exclusive: false
-    - CITY.IS_PART_OF:
-        range: CITY.STREET
+    - city.isPartOf:
+        range: city.Street
         cardinality: 1
         exclusive: true
 
-  FLOOR:
+  Floor:
     subclass_of:
-    - CITY.ARCHITECTURAL_COMPONENT
+    - city.ArchitecturalComponent
 
-  PERSON:
+  Person:
     subclass_of:
-    - CITY.LIVING_BEING
-    - CITY.WORKS_IN:
-        range: CITY.POPULATED_PLACE
+    - city.LivingBeing
+    - city.worksIn:
+        range: city.PopulatedPlace
         cardinality: 0-1
         exclusive: true
-    - CITY.IS_PART_OF:
-        range: CITY.CITY_SIM_WRAPPER
+    - city.isPartOf:
+        range: city.CitySimWrapper
         cardinality: 0-1
         exclusive: false
 
-  CITIZEN:
+  Citizen:
     subclass_of:
-    - CITY.PERSON
-    - CITY.IS_INHABITANT_OF:
-        range: CITY.POPULATED_PLACE
+    - city.Person
+    - city.isInhabitantOf:
+        range: city.PopulatedPlace
         cardinality: 0-1
         exclusive: true
-    - CITY.IS_MAJOR_OF:
-        range: CITY.CITY
+    - city.isMajorOf:
+        range: city.City
         cardinality: 0-1
         exclusive: true
 
-  AGE:
+  age:
     subclass_of:
-    - CITY.NUMBER
+    - city.number
 
-  IMAGE:
+  Image:
     subclass_of:
-    - CUBA.FILE
+    - cuba.File

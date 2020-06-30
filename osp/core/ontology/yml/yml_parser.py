@@ -6,7 +6,7 @@ from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.datatypes import get_rdflib_datatype
 from osp.core.ontology.yml.yml_keywords import (
     ONTOLOGY_KEY, NAMESPACE_KEY,
-    ROOT_RELATIONSHIP, ROOT_ATTRIBUTE, DESCRIPTION_KEY, SUPERCLASSES_KEY,
+    ROOT_relationship, ROOT_ATTRIBUTE, DESCRIPTION_KEY, SUPERCLASSES_KEY,
     INVERSE_KEY, DEFAULT_REL_KEY, DATATYPE_KEY, ATTRIBUTES_KEY, DISJOINTS_KEY,
     EQUIVALENT_TO_KEY, DOMAIN_KEY, RANGE_KEY, CHARACTERISTICS_KEY,
     MAIN_NAMESPACE, CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY, AUTHOR_KEY,
@@ -419,21 +419,21 @@ class YmlParser:
     #     :raises RuntimeError: rel and inverse are both active
     #     :raises RuntimeError: rel and inverse are both passive
     #     """
-    #     CUBA = self._namespace_registry.get_main_namespace()
+    #     cuba = self._namespace_registry.get_main_namespace()
     #     for entity in namespace:
     #         if isinstance(entity, OntologyRelationship):
     #             inverse = entity.inverse
     #             if (
-    #                 entity.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP)
-    #                 and inverse.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP)
+    #                 entity.is_subclass_of(cuba.activeRelationship)
+    #                 and inverse.is_subclass_of(cuba.activeRelationship)
     #             ):
     #                 raise RuntimeError(
     #                     "%s and its inverse %s are both active relationships!"
     #                     % (entity, inverse)
     #                 )
     #             if (
-    #                 entity.is_subclass_of(CUBA.PASSIVE_RELATIONSHIP)
-    #                 and inverse.is_subclass_of(CUBA.PASSIVE_RELATIONSHIP)
+    #                 entity.is_subclass_of(cuba.passiveRelationship)
+    #                 and inverse.is_subclass_of(cuba.passiveRelationship)
     #             ):
     #                 raise RuntimeError(
     #                     "%s and its inverse %s are both passive relationships!"

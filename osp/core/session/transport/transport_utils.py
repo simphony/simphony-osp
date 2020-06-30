@@ -4,7 +4,7 @@ import os
 import shutil
 import logging
 import hashlib
-from osp.core.namespaces import get_entity, CUBA
+from osp.core.namespaces import get_entity, cuba
 from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
@@ -119,7 +119,7 @@ def move_files(file_cuds, temp_directory, target_directory):
     from one directory to the other. Return all moved CUDS.
 
     Args:
-        file_cuds (List[Cuds]): Cuds whose oclass is CUBA.FILE
+        file_cuds (List[Cuds]): Cuds whose oclass is cuba.FILE
         temp_directory (path): The directory where the files are stored.
             If None, file cuds are expected to have the whole path.
         target_directory (path): The directory to move the files to.
@@ -251,7 +251,7 @@ def get_file_cuds(obj):
     """
     from osp.core.cuds import Cuds
 
-    if isinstance(obj, Cuds) and obj.is_a(CUBA.FILE):
+    if isinstance(obj, Cuds) and obj.is_a(cuba.FILE):
         return [obj]
     if isinstance(obj, (Cuds, str, float, int, uuid.UUID, OntologyEntity)) \
             or obj is None:

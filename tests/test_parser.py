@@ -1,18 +1,18 @@
 import unittest2 as unittest
 import osp.core
-from osp.core import ONTOLOGY_INSTALLER, CUBA
+from osp.core import ONTOLOGY_INSTALLER, cuba
 
 try:
-    from osp.core.namespaces import CITY
+    from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.namespaces import _namespace_registry
     Parser(_namespace_registry._graph).parse("city")
     _namespace_registry.update_namespaces()
-    from osp.core.namespaces import CITY
+    from osp.core.namespaces import city
 
 try:
-    from osp.core import PARSER_TEST as ONTO
+    from osp.core import parser_test as ONTO
 except ImportError:
     ONTO = ONTOLOGY_INSTALLER.parser.parse(
         "osp/core/ontology/yml/parser_test.ontology.yml"
@@ -24,53 +24,53 @@ class TestParser(unittest.TestCase):
     def test_ontology_namespace_registry(self):
         """Test the namespace registry"""
         self.assertEqual(
-            ONTOLOGY_INSTALLER.namespace_registry.CUBA.name,
-            "CUBA"
+            ONTOLOGY_INSTALLER.namespace_registry.cuba.name,
+            "cuba"
         )
         self.assertEqual(
-            ONTOLOGY_INSTALLER.namespace_registry["CITY"].name,
-            "CITY"
+            ONTOLOGY_INSTALLER.namespace_registry["city"].name,
+            "city"
         )
         self.assertEqual(
             ONTOLOGY_INSTALLER.namespace_registry.get_main_namespace().name,
-            "CUBA"
+            "cuba"
         )
 
     def test_ontology_namespace(self):
         """Test the namespaces"""
-        CUBA = ONTOLOGY_INSTALLER.namespace_registry.CUBA
+        cuba = ONTOLOGY_INSTALLER.namespace_registry.cuba
         self.assertEqual(
-            CUBA.RELATIONSHIP.name,
-            "RELATIONSHIP"
+            cuba.relationship.name,
+            "relationship"
         )
         self.assertEqual(
-            CUBA["ENTITY"].name,
+            cuba["ENTITY"].name,
             "ENTITY"
         )
-        all_names = [x.name for x in CUBA]
+        all_names = [x.name for x in cuba]
         self.assertEqual(
             set(all_names),
-            {"ENTITY", "RELATIONSHIP", "ACTIVE_RELATIONSHIP",
+            {"ENTITY", "relationship", "activeRelationship",
              "WRAPPER", "ATTRIBUTE",
-             "PASSIVE_RELATIONSHIP", "NOTHING", "FILE", "PATH"}
+             "passiveRelationship", "NOTHING", "FILE", "PATH"}
         )
 
     def test_subclass_check(self):
         """ Test subclass and superclass check"""
-        CITY = ONTOLOGY_INSTALLER.namespace_registry.CITY
-        self.assertTrue(CITY.CITY.is_subclass_of(CITY.POPULATED_PLACE))
-        self.assertTrue(CITY.POPULATED_PLACE.is_superclass_of(CITY.CITY))
-        self.assertFalse(CITY.CITY.is_superclass_of(CITY.POPULATED_PLACE))
-        self.assertFalse(CITY.POPULATED_PLACE.is_subclass_of(CITY.CITY))
-        self.assertTrue(CITY.CITY.is_subclass_of(CITY.CITY))
-        self.assertTrue(CITY.CITY.is_superclass_of(CITY.CITY))
+        city = ONTOLOGY_INSTALLER.namespace_registry.city
+        self.assertTrue(city.city.is_subclass_of(city.PopulatedPlace))
+        self.assertTrue(city.PopulatedPlace.is_superclass_of(city.city))
+        self.assertFalse(city.city.is_superclass_of(city.PopulatedPlace))
+        self.assertFalse(city.PopulatedPlace.is_subclass_of(city.city))
+        self.assertTrue(city.city.is_subclass_of(city.city))
+        self.assertTrue(city.city.is_superclass_of(city.city))
 
     def test_ontology_entity(self):
         """Test the ontology entities"""
-        Citizen = osp.core.CITY.CITIZEN
-        Person = osp.core.CITY.PERSON
-        LivingBeing = osp.core.CITY.LIVING_BEING
-        Entity = osp.core.CUBA.CLASS
+        Citizen = osp.core.city.Citizen
+        Person = osp.core.city.Person
+        LivingBeing = osp.core.city.LivingBeing
+        Entity = osp.core.cuba.Class
 
         self.assertEqual(
             Person.direct_superclasses,
@@ -91,9 +91,9 @@ class TestParser(unittest.TestCase):
 
     def test_ontology_class(self):
         """Test the ontology relationships"""
-        Citizen = osp.core.CITY.CITIZEN
-        Name = osp.core.CITY.NAME
-        Age = osp.core.CITY.AGE
+        Citizen = osp.core.city.Citizen
+        Name = osp.core.city.name
+        Age = osp.core.city.age
 
         self.assertEqual(
             Citizen.attributes,
@@ -106,11 +106,11 @@ class TestParser(unittest.TestCase):
 
     def test_ontology_relationship(self):
         """Test the ontology relationship"""
-        HasPart = osp.core.CITY.HAS_PART
-        IsPartOf = osp.core.CITY.IS_PART_OF
-        ActiveRelationship = osp.core.CUBA.ACTIVE_RELATIONSHIP
-        Relationship = osp.core.CUBA.RELATIONSHIP
-        PassiveRelationship = osp.core.CUBA.PASSIVE_RELATIONSHIP
+        HasPart = osp.core.city.hasPart
+        IsPartOf = osp.core.city.isPartOf
+        ActiveRelationship = osp.core.cuba.activeRelationship
+        Relationship = osp.core.cuba.relationship
+        PassiveRelationship = osp.core.cuba.passiveRelationship
         self.assertEqual(HasPart.inverse, IsPartOf)
         self.assertEqual(IsPartOf.inverse, HasPart)
         self.assertEqual(ActiveRelationship.inverse, PassiveRelationship)
@@ -125,128 +125,128 @@ class TestParser(unittest.TestCase):
 
     def test_ontology_attributes(self):
         """Test the ontology values"""
-        self.assertEqual(osp.core.CUBA.ATTRIBUTE.datatype, "UNDEFINED")
-        self.assertEqual(osp.core.CITY.NUMBER.datatype, "INT")
-        self.assertEqual(osp.core.CITY.NAME.datatype, "UNDEFINED")
-        self.assertEqual(osp.core.CITY.COORDINATES.datatype, "VECTOR:INT:2")
-        self.assertEqual(osp.core.CITY.NUM_STEPS.datatype, "INT")
+        self.assertEqual(osp.core.cuba.attribute.datatype, "UNDEFINED")
+        self.assertEqual(osp.core.city.Number.datatype, "INT")
+        self.assertEqual(osp.core.city.name.datatype, "UNDEFINED")
+        self.assertEqual(osp.core.city.coordinates.datatype, "VECTOR:INT:2")
+        self.assertEqual(osp.core.city.numSteps.datatype, "INT")
 
     def test_multiple_inheritance(self):
         """Test corner cases of multiple inheritance"""
-        self.assertEqual(ONTO.ENTITY_C.attributes, {ONTO.ATTRIBUTE_A: None})
-        self.assertEqual(ONTO.ENTITY_D.attributes,
-                         {ONTO.ATTRIBUTE_A: "DEFAULT_D"})
-        self.assertEqual(ONTO.ATTRIBUTE_C.datatype, "UNDEFINED")
-        self.assertEqual(ONTO.ATTRIBUTE_D.datatype, "FLOAT")
+        self.assertEqual(ONTO.ClassC.attributes, {ONTO.attributeA: None})
+        self.assertEqual(ONTO.ClassD.attributes,
+                         {ONTO.attributeA: "DEFAULT_D"})
+        self.assertEqual(ONTO.attributeC.datatype, "UNDEFINED")
+        self.assertEqual(ONTO.attributeD.datatype, "FLOAT")
 
     def test_parse_class_expressions(self):
         """Test the parsing of class expressions"""
         self.assertEqual(
-            len(ONTO.RELATIONSHIP_B.domain_expressions), 2
+            len(ONTO.relationship_B.domain_expressions), 2
         )
         self.assertEqual(
-            ONTO.RELATIONSHIP_B.domain_expressions[0].operator, "and"
+            ONTO.relationship_B.domain_expressions[0].operator, "and"
         )
         self.assertEqual(
-            ONTO.RELATIONSHIP_B.domain_expressions[1].operator, "or"
+            ONTO.relationship_B.domain_expressions[1].operator, "or"
         )
         self.assertEqual(
-            ONTO.RELATIONSHIP_B.domain_expressions[1].operands,
-            [ONTO.ENTITY_A, ONTO.ENTITY_B]
+            ONTO.relationship_B.domain_expressions[1].operands,
+            [ONTO.ClassA, ONTO.ClassB]
         )
         self.assertEqual(
-            len(ONTO.RELATIONSHIP_B.domain_expressions[0].operands), 2
+            len(ONTO.relationship_B.domain_expressions[0].operands), 2
         )
         self.assertEqual(
-            ONTO.RELATIONSHIP_B.domain_expressions[0].operands[0],
-            ONTO.ENTITY_C
+            ONTO.relationship_B.domain_expressions[0].operands[0],
+            ONTO.ClassC
         )
         self.assertEqual(
-            ONTO.RELATIONSHIP_B.domain_expressions[0].operands[1].operator,
+            ONTO.relationship_B.domain_expressions[0].operands[1].operator,
             "not"
         )
         self.assertEqual(
-            ONTO.RELATIONSHIP_B.domain_expressions[0].operands[1].operands[0],
-            ONTO.ENTITY_D
+            ONTO.relationship_B.domain_expressions[0].operands[1].operands[0],
+            ONTO.ClassD
         )
         self.assertEqual(
-            len(ONTO.RELATIONSHIP_B.range_expressions), 1
+            len(ONTO.relationship_B.range_expressions), 1
         )
         self.assertEqual(
-            ONTO.RELATIONSHIP_B.range_expressions[0].relationship,
-            ONTO.RELATIONSHIP_A
+            ONTO.relationship_B.range_expressions[0].relationship,
+            ONTO.relationship_A
         )
         self.assertEqual(
-            ONTO.RELATIONSHIP_B.range_expressions[0].range,
-            ONTO.ENTITY_A
+            ONTO.relationship_B.range_expressions[0].range,
+            ONTO.ClassA
         )
         self.assertEqual(
-            ONTO.RELATIONSHIP_B.range_expressions[0].cardinality, "some"
+            ONTO.relationship_B.range_expressions[0].cardinality, "some"
         )
         self.assertEqual(
-            ONTO.RELATIONSHIP_B.range_expressions[0].exclusive, True
+            ONTO.relationship_B.range_expressions[0].exclusive, True
         )
 
     def test_inverses(self):
         """ Test if missing inverses and active + passive relationships
         have been added"""
         self.assertIs(
-            ONTO.RELATIONSHIP_A.inverse,
-            ONTO.RELATIONSHIP_C
+            ONTO.relationship_A.inverse,
+            ONTO.relationship_C
         )
         self.assertIs(
-            ONTO.RELATIONSHIP_A,
-            ONTO.RELATIONSHIP_C.inverse
+            ONTO.relationship_A,
+            ONTO.relationship_C.inverse
         )
         self.assertIs(
-            ONTO.RELATIONSHIP_B.inverse,
-            ONTO.INVERSE_OF_RELATIONSHIP_B
+            ONTO.relationship_B.inverse,
+            ONTO.INVERSE_OF_relationship_B
         )
         self.assertIs(
-            ONTO.RELATIONSHIP_B,
-            ONTO.INVERSE_OF_RELATIONSHIP_B.inverse
+            ONTO.relationship_B,
+            ONTO.INVERSE_OF_relationship_B.inverse
         )
         # created inverse
         self.assertEqual(
-            ONTO.INVERSE_OF_RELATIONSHIP_B.direct_superclasses,
-            [ONTO.RELATIONSHIP_C, CUBA.PASSIVE_RELATIONSHIP]
+            ONTO.INVERSE_OF_relationship_B.direct_superclasses,
+            [ONTO.relationship_C, cuba.passiveRelationship]
         )
 
         # active and passive
         self.assertIn(
-            CUBA.ACTIVE_RELATIONSHIP,
-            ONTO.RELATIONSHIP_A.direct_superclasses
+            cuba.activeRelationship,
+            ONTO.relationship_A.direct_superclasses
         )
         self.assertIn(
-            CUBA.PASSIVE_RELATIONSHIP,
-            ONTO.RELATIONSHIP_C.direct_superclasses
-        )
-
-        self.assertIn(
-            ONTO.RELATIONSHIP_A,
-            CUBA.ACTIVE_RELATIONSHIP.direct_subclasses,
-        )
-        self.assertIn(
-            ONTO.RELATIONSHIP_C,
-            CUBA.PASSIVE_RELATIONSHIP.direct_subclasses,
+            cuba.passiveRelationship,
+            ONTO.relationship_C.direct_superclasses
         )
 
         self.assertIn(
-            CUBA.ACTIVE_RELATIONSHIP,
-            ONTO.RELATIONSHIP_B.direct_superclasses
+            ONTO.relationship_A,
+            cuba.activeRelationship.direct_subclasses,
         )
         self.assertIn(
-            CUBA.PASSIVE_RELATIONSHIP,
-            ONTO.INVERSE_OF_RELATIONSHIP_B.direct_superclasses
+            ONTO.relationship_C,
+            cuba.passiveRelationship.direct_subclasses,
         )
 
         self.assertIn(
-            ONTO.RELATIONSHIP_B,
-            CUBA.ACTIVE_RELATIONSHIP.direct_subclasses,
+            cuba.activeRelationship,
+            ONTO.relationship_B.direct_superclasses
         )
         self.assertIn(
-            ONTO.INVERSE_OF_RELATIONSHIP_B,
-            CUBA.PASSIVE_RELATIONSHIP.direct_subclasses,
+            cuba.passiveRelationship,
+            ONTO.INVERSE_OF_relationship_B.direct_superclasses
+        )
+
+        self.assertIn(
+            ONTO.relationship_B,
+            cuba.activeRelationship.direct_subclasses,
+        )
+        self.assertIn(
+            ONTO.INVERSE_OF_relationship_B,
+            cuba.passiveRelationship.direct_subclasses,
         )
 
 

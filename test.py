@@ -1,6 +1,6 @@
 import rdflib
 import logging
 
-from osp.core.namespaces import CITY
+from osp.core.namespaces import city
 
-print(CITY.HAS_PART.superclasses)
+print(city.hasPart.superclasses)

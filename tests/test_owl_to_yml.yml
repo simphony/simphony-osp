@@ -5,8 +5,8 @@ ontology:
   REL_A:
     description: ''
     subclass_of:
-    - CUBA.RELATIONSHIP
-    - CUBA.ACTIVE_RELATIONSHIP
+    - cuba.relationship
+    - cuba.activeRelationship
     domain:
       and:
       - TEST.CLASS_A
@@ -20,7 +20,7 @@ ontology:
   REL_B:
     description: ''
     subclass_of:
-    - CUBA.RELATIONSHIP
+    - cuba.relationship
     domain:
       and:
       - TEST.CLASS_B
@@ -47,7 +47,7 @@ ontology:
   CLASS_A:
     description: ''
     subclass_of:
-    - CUBA.CLASS
+    - cuba.Class
     - TEST.REL_A:
         exclusive: true
         cardinality: 1+
@@ -60,7 +60,7 @@ ontology:
   CLASS_B:
     description: ''
     subclass_of:
-    - CUBA.CLASS
+    - cuba.Class
     - TEST.REL_B:
         exclusive: true
         cardinality: 1+
@@ -92,5 +92,5 @@ ontology:
   VALUE:
     datatype: FLOAT
     subclass_of:
-    - CUBA.VALUE
+    - cuba.VALUE
 

@@ -8,8 +8,8 @@ from osp.core.utils import change_oclass
 class SimDummySession(SimWrapperSession):
     def __init__(self, **kwargs):
         super().__init__(engine=DummySyntacticLayer(), **kwargs)
-        from osp.core.namespaces import CITY
-        self.onto = CITY
+        from osp.core.namespaces import city
+        self.onto = city
         self._person_map = dict()
 
     def __str__(self):
@@ -24,7 +24,7 @@ class SimDummySession(SimWrapperSession):
         # update the age of each person and delete persons that became citizens
         for uid in uids:
             root_cuds_object = self._registry.get(self.root)
-            cities = root_cuds_object.get(oclass=self.onto.CITY)
+            cities = root_cuds_object.get(oclass=self.onto.city)
             if uid == self.root:
                 yield self._load_wrapper(uid)
             elif cities and uid == cities[0].uid:
@@ -64,7 +64,7 @@ class SimDummySession(SimWrapperSession):
 
     def _check_convert_to_inhabitant(self, uid):
         wrapper = self._registry.get(self.root)
-        city = wrapper.get(oclass=self.onto.CITY)[0]
+        city = wrapper.get(oclass=self.onto.city)[0]
         idx = self._person_map[uid]
         is_inhabitant, dummy_person = self._engine.get_person(idx)
         if is_inhabitant:

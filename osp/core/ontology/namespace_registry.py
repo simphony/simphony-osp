@@ -97,6 +97,6 @@ class NamespaceRegistry():
     def _load_cuba(self):
         path_cuba = os.path.join(os.path.dirname(__file__), "docs", "cuba.ttl")
         self._graph.parse(path_cuba, format="ttl")
-        self._graph.bind("CUBA",
-                         rdflib.URIRef("http://www.osp-core.com/CUBA#"))
+        self._graph.bind("cuba",
+                         rdflib.URIRef("http://www.osp-core.com/cuba#"))
         self.update_namespaces()

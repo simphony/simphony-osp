@@ -1,55 +1,55 @@
-@prefix CUBA: <http://www.osp-core.com/CUBA#> .
+@prefix cuba: <http://www.osp-core.com/cuba#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 
-CUBA:_default rdf:type owl:AnnotationProperty .
-CUBA:_default_attribute rdf:type owl:AnnotationProperty .
-CUBA:_default_value rdf:type owl:AnnotationProperty .
-CUBA:_default_rel rdf:type owl:AnnotationProperty .
-CUBA:_length rdf:type owl:AnnotationProperty .
-CUBA:_shape rdf:type owl:AnnotationProperty .
-CUBA:_dtype rdf:type owl:AnnotationProperty .
+cuba:_default rdf:type owl:AnnotationProperty .
+cuba:_default_attribute rdf:type owl:AnnotationProperty .
+cuba:_default_value rdf:type owl:AnnotationProperty .
+cuba:_default_rel rdf:type owl:AnnotationProperty .
+cuba:_length rdf:type owl:AnnotationProperty .
+cuba:_shape rdf:type owl:AnnotationProperty .
+cuba:_dtype rdf:type owl:AnnotationProperty .
 
-CUBA:ACTIVE_RELATIONSHIP a owl:ObjectProperty ;
+cuba:activeRelationship a owl:ObjectProperty ;
     rdfs:isDefinedBy "The root of all active relationships. Active relationships express that one cuds object is in the container of another." ;
-    rdfs:subPropertyOf CUBA:RELATIONSHIP .
+    rdfs:subPropertyOf cuba:relationship .
 
-CUBA:ENTITY a owl:Class ;
+cuba:Entity a owl:Class ;
     rdfs:isDefinedBy "deprecated" ;
-    rdfs:subClassOf CUBA:CLASS .
+    rdfs:subClassOf cuba:Class .
 
-CUBA:FILE a owl:Class ;
+cuba:File a owl:Class ;
     rdfs:isDefinedBy "An entity associated to a binary file" ;
-    rdfs:subClassOf CUBA:CLASS .
+    rdfs:subClassOf cuba:Class .
 
-CUBA:NOTHING a owl:Class ;
+cuba:Nothing a owl:Class ;
     rdfs:isDefinedBy "A class without any individuals." ;
-    rdfs:subClassOf CUBA:CLASS .
+    rdfs:subClassOf cuba:Class .
 
-CUBA:PASSIVE_RELATIONSHIP a owl:ObjectProperty ;
-    rdfs:isDefinedBy "The inverse of ACTIVE_RELATIONSHIP." ;
-    rdfs:subPropertyOf CUBA:RELATIONSHIP .
+cuba:passiveRelationship a owl:ObjectProperty ;
+    rdfs:isDefinedBy "The inverse of ACTIVE_Relationship." ;
+    rdfs:subPropertyOf cuba:relationship .
 
-CUBA:PATH a owl:DatatypeProperty,
+cuba:path a owl:DatatypeProperty,
         owl:FunctionalProperty ;
     rdfs:isDefinedBy "The path to a local file." ;
-    rdfs:subPropertyOf CUBA:ATTRIBUTE .
+    rdfs:subPropertyOf cuba:attribute .
 
-CUBA:WRAPPER a owl:Class ;
+cuba:Wrapper a owl:Class ;
     rdfs:isDefinedBy "The root of all wrappers. These are the bridge to simulation engines and databases." ;
-    rdfs:subClassOf CUBA:CLASS .
+    rdfs:subClassOf cuba:Class .
 
-CUBA:ATTRIBUTE a owl:DatatypeProperty,
+cuba:attribute a owl:DatatypeProperty,
         owl:FunctionalProperty ;
     rdfs:isDefinedBy "The root of all attributes." .
 
-CUBA:RELATIONSHIP a owl:ObjectProperty ;
+cuba:relationship a owl:ObjectProperty ;
     rdfs:isDefinedBy "The root of all relationships." .
 
-CUBA:CLASS a owl:Class ;
+cuba:Class a owl:Class ;
     rdfs:isDefinedBy "The root of the ontology." .
 
 

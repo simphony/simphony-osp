@@ -14,7 +14,7 @@ from osp.core.session.session import Session
 from osp.core.neighbor_dict import NeighborDictRel, NeighborDictTarget
 from osp.core.utils import check_arguments, clone_cuds_object, \
     create_from_cuds_object, get_neighbor_diff
-from osp.core.namespaces import CUBA, _namespace_registry
+from osp.core.namespaces import cuba, _namespace_registry
 
 logger = logging.getLogger("osp.core")
 
@@ -171,7 +171,7 @@ class Cuds():
 
     def get(self,
             *uids: uuid.UUID,
-            rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
+            rel: OntologyRelationship = cuba.activeRelationship,
             oclass: OntologyClass = None,
             return_rel: bool = False) -> Union["Cuds", List["Cuds"]]:
         """
@@ -193,7 +193,7 @@ class Cuds():
             uids (uuid.UUID): UUIDs of the elements.
             rel (OntologyRelationship, optional): Only return cuds_object
                 which are connected by subclass of given relationship.
-                Defaults to CUBA.ACTIVE_RELATIONSHIP.
+                Defaults to cuba.activeRelationship.
             oclass (OntologyClass, optional): Only return elements which are a
                 subclass of the given ontology class. Defaults to None.
             return_rel (bool, optional): Whether to return the connecting
@@ -254,7 +254,7 @@ class Cuds():
 
     def remove(self,
                *args: Union["Cuds", uuid.UUID],
-               rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
+               rel: OntologyRelationship = cuba.activeRelationship,
                oclass: OntologyClass = None):
         """
         Removes elements from the CUDS object.
@@ -267,7 +267,7 @@ class Cuds():
                 elements themselves.
             rel (OntologyRelationship, optional): Only remove cuds_object
                 which are connected by subclass of given relationship.
-                Defaults to CUBA.ACTIVE_RELATIONSHIP.
+                Defaults to cuba.activeRelationship.
             oclass (OntologyClass, optional): Only remove elements which are a
                 subclass of the given ontology class. Defaults to None.
 
@@ -296,7 +296,7 @@ class Cuds():
 
     def iter(self,
              *uids: uuid.UUID,
-             rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
+             rel: OntologyRelationship = cuba.activeRelationship,
              oclass: OntologyClass = None,
              return_rel: bool = False) -> Iterator["Cuds"]:
         """
@@ -315,7 +315,7 @@ class Cuds():
             uids (uuid.UUID): UUIDs of the elements.
             rel (OntologyRelationship, optional): Only return cuds_object
                 which are connected by subclass of given relationship.
-                Defaults to CUBA.ACTIVE_RELATIONSHIP.
+                Defaults to cuba.activeRelationship.
             oclass (OntologyClass, optional): Only return elements which are a
                 subclass of the given ontology class. Defaults to None.
             return_rel (bool, optional): Whether to return the connecting
@@ -374,7 +374,7 @@ class Cuds():
             for outgoing_rel in new_cuds_object._neighbors:
 
                 # do not recursively add parents
-                if not outgoing_rel.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP):
+                if not outgoing_rel.is_subclass_of(cuba.activeRelationship):
                     continue
 
                 # add children not already added
@@ -475,7 +475,7 @@ class Cuds():
         # Iterate over the new parents
         for (parent_uid, relationship), parent in zip(new_parent_diff,
                                                       new_parents):
-            if relationship.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP):
+            if relationship.is_subclass_of(cuba.activeRelationship):
                 continue
             inverse = relationship.inverse
             # Delete connection to parent if parent is not present
@@ -515,7 +515,7 @@ class Cuds():
             inverse = relationship.inverse
 
             # delete the inverse if neighbors are children
-            if relationship.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP):
+            if relationship.is_subclass_of(cuba.activeRelationship):
                 if inverse in neighbor._neighbors:
                     neighbor._remove_direct(inverse, new_cuds_object.uid)
 
@@ -792,7 +792,7 @@ class Cuds():
         """
         if name not in self._attr_values:
             if (  # check if user calls session's methods on wrapper
-                self.is_a(CUBA.WRAPPER)
+                self.is_a(Wrapper)
                 and self._session is not None
                 and hasattr(self._session, name)
             ):

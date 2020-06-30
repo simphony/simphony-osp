@@ -117,12 +117,12 @@ class WrapperSession(Session):
     def get_triples(self):
         """Get the triples in the core session"""
         from osp.core.utils import find_cuds_object
-        from osp.core.utils import CUBA
+        from osp.core.utils import cuba
         return [
             triple
             for cuds_object in find_cuds_object(lambda x: True,
                                                 self._registry.get(self.root),
-                                                CUBA.Relationship,
+                                                cuba.Relationship,
                                                 True)
             for triple in cuds_object.get_triples()
         ]
@@ -156,12 +156,12 @@ class WrapperSession(Session):
         :param cuds_object: The cuds_object to store.
         :type cuds_object: Cuds
         """
-        from osp.core.namespaces import CUBA
+        from osp.core.namespaces import cuba
         # Check if root is wrapper and wrapper is root
-        if cuds_object.is_a(CUBA.WRAPPER) and self.root is not None:
+        if cuds_object.is_a(Wrapper) and self.root is not None:
             raise RuntimeError("Only one wrapper is allowed per session")
 
-        if not cuds_object.is_a(CUBA.WRAPPER) and self.root is None:
+        if not cuds_object.is_a(Wrapper) and self.root is None:
             raise RuntimeError("Please add a wrapper to the session first")
 
         # update buffers
@@ -391,7 +391,7 @@ class WrapperSession(Session):
     #     :raises ValueError: The cuds_object did not satisfy the cardinalities
     #         given by the ontology
     #     """
-    #     from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
+    #     from cuds.classes.generated.cuba_mapping import cuba_MAPPING
     #     ontology_cardinalities, consider_relationships = \
     #         WrapperSession._get_ontology_cardinalities(cuds_object)
 
@@ -402,7 +402,7 @@ class WrapperSession(Session):
     #         for _, cuba in cuds_object[rel].items():
     #             for r, o in ontology_cardinalities.keys():
     #                 if issubclass(rel, r) \
-    #                         and issubclass(CUBA_MAPPING[cuba], o):
+    #                         and issubclass(cuba_MAPPING[cuba], o):
     #                     observed_cardinalities[r, o] += 1
 
     #     # Check if observed cardinalities are consistent
@@ -459,7 +459,7 @@ class WrapperSession(Session):
     #         to consider when checking if cardinalities are satisfied.
     #     :rtype: Tuple[Dict[Tuple[Class, Class], Tuple[int, int]], Set]
     #     """
-    #     from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
+    #     from cuds.classes.generated.cuba_mapping import cuba_MAPPING
     #     ontology_cardinalities = dict()
     #     consider_relationships = set()
     #     for rel, objects in cuds_object.supported_relationships.items():
@@ -468,8 +468,8 @@ class WrapperSession(Session):
     #             if options and "cardinality" in options:
     #                 cardinality = options["cardinality"]
     #             cardinality = WrapperSession._parse_cardinality(cardinality)
-    #             rel_cls = CUBA_MAPPING[rel]
-    #             obj_cls = CUBA_MAPPING[obj]
+    #             rel_cls = cuba_MAPPING[rel]
+    #             obj_cls = cuba_MAPPING[obj]
     #             ontology_cardinalities[rel_cls, obj_cls] = cardinality
     #             consider_relationships |= cuds_object._relationship_tree \
     #                 .get_subrelationships(rel_cls)

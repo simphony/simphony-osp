@@ -1,81 +1,81 @@
 ---
 version: "0.0.1"
 
-namespace: "PARSER_TEST"
+namespace: "parser_test"
 
 requirements:
-- CITY
+- city
 
 ontology:
 
-  ENTITY_A:
+  ClassA:
     attributes:
-      PARSER_TEST.ATTRIBUTE_A: DEFAULT_A
+      parser_test.attributeA: DEFAULT_A
     subclass_of: 
-    - CUBA.CLASS
+    - cuba.Class
   
-  ENTITY_B:
+  ClassB:
     attributes:
-      PARSER_TEST.ATTRIBUTE_A: DEFAULT_B
+      parser_test.attributeA: DEFAULT_B
     subclass_of:
-    - CUBA.CLASS
+    - cuba.Class
 
-  ENTITY_C:
+  ClassC:
     subclass_of:
-    - PARSER_TEST.ENTITY_A
-    - PARSER_TEST.ENTITY_B
+    - parser_test.ClassA
+    - parser_test.ClassB
 
-  ENTITY_D:
+  ClassD:
     attributes:
-      PARSER_TEST.ATTRIBUTE_A: DEFAULT_D
+      parser_test.attributeA: DEFAULT_D
     subclass_of:
-    - PARSER_TEST.ENTITY_A
-    - PARSER_TEST.ENTITY_B
+    - parser_test.ClassA
+    - parser_test.ClassB
 
-  ATTRIBUTE_A:
+  attributeA:
     datatype: STRING
     subclass_of:
-    - CUBA.ATTRIBUTE
+    - cuba.attribute
 
-  ATTRIBUTE_B:
+  attributeB:
     datatype: INT
     subclass_of:
-    - CUBA.ATTRIBUTE
+    - cuba.attribute
 
-  ATTRIBUTE_C:
+  attributeC:
     subclass_of:
-    - PARSER_TEST.ATTRIBUTE_A
-    - PARSER_TEST.ATTRIBUTE_B
+    - parser_test.attributeA
+    - parser_test.attributeB
 
-  ATTRIBUTE_D:
+  attributeD:
     datatype: FLOAT
     subclass_of:
-    - PARSER_TEST.ATTRIBUTE_A
-    - PARSER_TEST.ATTRIBUTE_B
+    - parser_test.attributeA
+    - parser_test.attributeB
 
-  RELATIONSHIP_A:
+  relationship_A:
     subclass_of:
-    - CUBA.ACTIVE_RELATIONSHIP
+    - cuba.activeRelationship
     domain:
       or:
-      - PARSER_TEST.ENTITY_A
-      - PARSER_TEST.ENTITY_B
+      - parser_test.ClassA
+      - parser_test.ClassB
     range:
-      PARSER_TEST.RELATIONSHIP_A:
-        range: PARSER_TEST.ENTITY_A
+      parser_test.relationship_A:
+        range: parser_test.ClassA
         cardinality: some
         exclusive: true
   
-  RELATIONSHIP_B:
+  relationship_B:
     subclass_of:
-    - PARSER_TEST.RELATIONSHIP_A
-    - CUBA.ACTIVE_RELATIONSHIP
+    - parser_test.relationship_A
+    - cuba.activeRelationship
     domain:
       and:
-      - PARSER_TEST.ENTITY_C
-      - not: PARSER_TEST.ENTITY_D
+      - parser_test.ClassC
+      - not: parser_test.ClassD
   
-  RELATIONSHIP_C:
+  relationship_C:
     subclass_of:
-    - CUBA.RELATIONSHIP
-    inverse: PARSER_TEST.RELATIONSHIP_A
+    - cuba.relationship
+    inverse: parser_test.relationship_A
