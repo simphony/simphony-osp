@@ -124,5 +124,5 @@ print("\nAll namespaces are stored in the namespace registry")
 print(namespace_reg)
 
 print("\nYou can access the namespaces using dot or index notation")
-print(namespace_reg.city)
-print(namespace_reg["city"])
+print(namespace_reg.City)
+print(namespace_reg["City"])

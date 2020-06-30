@@ -170,7 +170,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
             invalid_rel = deepcopy(CUDS_DICT)
             invalid_rel["relationships"]["IS_INHABITANT_OF"] = {
-                str(uuid.UUID(int=1)): "PERSON"}
+                str(uuid.UUID(int=1)): "Person"}
             self.assertRaises(ValueError, deserialize,
                               invalid_rel, session, True)
 

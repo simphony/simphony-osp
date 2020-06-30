@@ -24,7 +24,7 @@ class SimDummySession(SimWrapperSession):
         # update the age of each person and delete persons that became citizens
         for uid in uids:
             root_cuds_object = self._registry.get(self.root)
-            cities = root_cuds_object.get(oclass=self.onto.city)
+            cities = root_cuds_object.get(oclass=self.onto.City)
             if uid == self.root:
                 yield self._load_wrapper(uid)
             elif cities and uid == cities[0].uid:
@@ -58,13 +58,13 @@ class SimDummySession(SimWrapperSession):
 
     def _load_wrapper(self, uid):
         wrapper = self._registry.get(uid)
-        for person in wrapper.get(oclass=self.onto.PERSON):
+        for person in wrapper.get(oclass=self.onto.Person):
             self.refresh(person.uid)
         return wrapper
 
     def _check_convert_to_inhabitant(self, uid):
         wrapper = self._registry.get(self.root)
-        city = wrapper.get(oclass=self.onto.city)[0]
+        city = wrapper.get(oclass=self.onto.City)[0]
         idx = self._person_map[uid]
         is_inhabitant, dummy_person = self._engine.get_person(idx)
         if is_inhabitant:
@@ -85,7 +85,7 @@ class SimDummySession(SimWrapperSession):
             key=lambda x: x.name if hasattr(x, "name") else "0")
         for added in sorted_added:
             if (
-                added.is_a(self.onto.PERSON)
+                added.is_a(self.onto.Person)
                 and self.root in map(lambda x: x.uid,
                                      added.get(rel=self.onto.IS_PART_OF))
             ):
