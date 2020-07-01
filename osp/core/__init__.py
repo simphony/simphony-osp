@@ -21,6 +21,7 @@ logging.getLogger("osp.wrappers").addHandler(ch)
 
 def __getattr__(name):
     import osp.core.namespaces
-    logger.warning(f"osp.core.{name} is deprecated. "
-                   f"Use osp.core.namespaces.{name} instead.")
+    if name != "load_tests":
+        logger.warning(f"osp.core.{name} is deprecated. "
+                    f"Use osp.core.namespaces.{name} instead.")
     return getattr(osp.core.namespaces, name)

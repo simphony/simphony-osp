@@ -49,93 +49,105 @@ ROOT_DICT = {
     }
 }
 
-SERIALIZED_BUFFERS = (
-    '{"added": [{'
-    '"oclass": "city.City", '
-    '"uid": "00000000-0000-0000-0000-000000000002", '
-    '"attributes": {"name": "Paris", '
-    '"coordinates": [0, 0]}, '
-    '"relationships": {"city.isPartOf": '
-    '{"00000000-0000-0000-0000-00000000007b": '
-    '"city.CityWrapper"}}}], '
-    '"updated": [{'
-    '"oclass": "city.CityWrapper", '
-    '"uid": "00000000-0000-0000-0000-00000000007b", '
-    '"attributes": {}, '
-    '"relationships": {"city.hasPart": '
-    '{"00000000-0000-0000-0000-000000000002": '
-    '"city.City"}}}], '
-    '"deleted": [{'
-    '"oclass": "city.City", '
-    '"uid": "00000000-0000-0000-0000-000000000001", '
-    '"attributes": {}, '
-    '"relationships": {}}], '
-    '"expired": [], '
-    '"args": [42], '
-    '"kwargs": {"name": "London"}}'
-)
+SERIALIZED_BUFFERS = {
+    "added": [{
+        "oclass": "city.City",
+        "uid": "00000000-0000-0000-0000-000000000002",
+        "attributes": {"name": "Paris",
+                       "coordinates": [0, 0]},
+        "relationships": {
+            "city.isPartOf": {
+                "00000000-0000-0000-0000-00000000007b": "city.CityWrapper"}}}],
+    "updated": [{
+        "oclass": "city.CityWrapper",
+        "uid": "00000000-0000-0000-0000-00000000007b",
+        "attributes": {},
+        "relationships": {
+            "city.hasPart":
+                {"00000000-0000-0000-0000-000000000002":
+                 "city.City"}}}],
+    "deleted": [{
+        "oclass": "city.City",
+        "uid": "00000000-0000-0000-0000-000000000001",
+        "attributes": {},
+        "relationships": {}}],
+    "expired": [],
+    "args": [42],
+    "kwargs": {"name": "London"}
+}
 
-SERIALIZED_BUFFERS_EXPIRED = (
-    '{"added": [{'
-    '"oclass": "city.City", '
-    '"uid": "00000000-0000-0000-0000-000000000002", '
-    '"attributes": {"name": "Paris", '
-    '"coordinates": [0, 0]}, '
-    '"relationships": {"city.isPartOf": '
-    '{"00000000-0000-0000-0000-00000000007b": '
-    '"city.CityWrapper"}}}], '
-    '"updated": [{'
-    '"oclass": "city.CityWrapper", "uid": '
-    '"00000000-0000-0000-0000-00000000007b", '
-    '"attributes": {}, '
-    '"relationships": {"city.hasPart": '
-    '{"00000000-0000-0000-0000-000000000002": '
-    '"city.City"}}}], '
-    '"deleted": [{'
-    '"oclass": "city.City", '
-    '"uid": "00000000-0000-0000-0000-000000000001", '
-    '"attributes": {}, '
-    '"relationships": {}}], '
-    '"expired": [{"UUID": "00000000-0000-0000-0000-000000000003"}], '
-    '"args": [42], '
-    '"kwargs": {"name": "London"}}'
-)
+SERIALIZED_BUFFERS_EXPIRED = {
+    "added": [{
+        "oclass": "city.City",
+        "uid": "00000000-0000-0000-0000-000000000002",
+        "attributes": {"name": "Paris",
+                       "coordinates": [0, 0]},
+        "relationships": {
+            "city.isPartOf": {
+                "00000000-0000-0000-0000-00000000007b": "city.CityWrapper"}}}],
+    "updated": [{
+        "oclass": "city.CityWrapper",
+        "uid": "00000000-0000-0000-0000-00000000007b",
+        "attributes": {},
+        "relationships": {
+            "city.hasPart": {
+                "00000000-0000-0000-0000-000000000002": "city.City"}}}],
+    "deleted": [{
+        "oclass": "city.City",
+        "uid": "00000000-0000-0000-0000-000000000001",
+        "attributes": {},
+        "relationships": {}}],
+    "expired": [{"UUID": "00000000-0000-0000-0000-000000000003"}],
+    "args": [42],
+    "kwargs": {"name": "London"}
+}
 
-SERIALIZED_BUFFERS2 = (
-    '{"added": [{'
-    '"oclass": "city.City", '
-    '"uid": "00000000-0000-0000-0000-00000000002a", '
-    '"attributes": {"name": "London", '
-    '"coordinates": [0, 0]}, '
-    '"relationships": {}}], "updated": [], "deleted": [], "expired": []}'
-)
+SERIALIZED_BUFFERS2 = {
+    "added": [{
+        "oclass": "city.City",
+        "uid": "00000000-0000-0000-0000-00000000002a",
+        "attributes": {"name": "London",
+                       "coordinates": [0, 0]},
+        "relationships": {}}],
+    "updated": [], "deleted": [], "expired": []
+}
 
-SERIALIZED_BUFFERS3 = (
-    '{"added": [{"oclass": "city.Citizen", '
-    '"uid": "00000000-0000-0000-0000-000000000002", '
-    '"attributes": {"name": "Peter", "age": 12}, '
-    '"relationships": {"city.isInhabitantOf": '
-    '{"00000000-0000-0000-0000-000000000001": "city.City"}}}], '
-    '"updated": [{"oclass": "city.City", '
-    '"uid": "00000000-0000-0000-0000-000000000001", "attributes": '
-    '{"name": "Freiburg", "coordinates": [0, 0]}, "relationships": '
-    '{"city.isPartOf": {"00000000-0000-0000-0000-000000000003": '
-    '"city.CityWrapper"}, "city.hasInhabitant": '
-    '{"00000000-0000-0000-0000-000000000002": "city.Citizen"}}}], '
-    '"deleted": [], "expired": [], '
-    '"result": [{"oclass": "city.City", '
-    '"uid": "00000000-0000-0000-0000-000000000001", "attributes": '
-    '{"name": "Freiburg", "coordinates": [0, 0]}, "relationships": '
-    '{"city.isPartOf": {"00000000-0000-0000-0000-000000000003": '
-    '"city.CityWrapper"}, "city.hasInhabitant": '
-    '{"00000000-0000-0000-0000-000000000002": "city.Citizen"}}}, '
-    '{"oclass": "city.CityWrapper", "uid": '
-    '"00000000-0000-0000-0000-000000000003", '
-    '"attributes": {}, '
-    '"relationships": {'
-    '"city.hasPart": '
-    '{"00000000-0000-0000-0000-000000000001": "city.City"}}}]}'
-)
+SERIALIZED_BUFFERS3 = {
+    "added": [{
+        "oclass": "city.Citizen",
+        "uid": "00000000-0000-0000-0000-000000000002",
+        "attributes": {"name": "Peter", "age": 12},
+        "relationships": {
+            "city.isInhabitantOf": {
+                "00000000-0000-0000-0000-000000000001": "city.City"}}}],
+    "updated": [{
+        "oclass": "city.City",
+        "uid": "00000000-0000-0000-0000-000000000001",
+        "attributes": {"name": "Freiburg",
+                       "coordinates": [0, 0]},
+        "relationships": {
+            "city.isPartOf": {
+                "00000000-0000-0000-0000-000000000003": "city.CityWrapper"},
+            "city.hasInhabitant": {
+                "00000000-0000-0000-0000-000000000002": "city.Citizen"}}}],
+    "deleted": [], "expired": [],
+    "result": [{
+        "oclass": "city.City",
+        "uid": "00000000-0000-0000-0000-000000000001",
+        "attributes": {"name": "Freiburg",
+                       "coordinates": [0, 0]},
+        "relationships": {
+            "city.isPartOf": {
+                "00000000-0000-0000-0000-000000000003": "city.CityWrapper"},
+            "city.hasInhabitant": {
+                "00000000-0000-0000-0000-000000000002": "city.Citizen"}}}, {
+        "oclass": "city.CityWrapper",
+        "uid": "00000000-0000-0000-0000-000000000003",
+        "attributes": {},
+        "relationships": {
+            "city.hasPart": {
+                "00000000-0000-0000-0000-000000000001": "city.City"}}}]
+}
 
 
 class TestCommunicationEngineSharedFunctions(unittest.TestCase):
@@ -235,9 +247,11 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             s1._reset_buffers(BufferContext.USER)
             s1.expire(p2)
 
-            additional = deserialize_buffers(s1,
-                                             buffer_context=BufferContext.USER,
-                                             data=SERIALIZED_BUFFERS_EXPIRED)
+            additional = deserialize_buffers(
+                s1,
+                buffer_context=BufferContext.USER,
+                data=json.dumps(SERIALIZED_BUFFERS_EXPIRED)
+            )
             self.assertEqual(additional, {"args": [42],
                                           "kwargs": {"name": "London"}})
             self.assertEqual(set(s1._registry.keys()),
@@ -269,7 +283,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
             additional = deserialize_buffers(
                 s1, buffer_context=BufferContext.ENGINE,
-                data=SERIALIZED_BUFFERS_EXPIRED
+                data=json.dumps(SERIALIZED_BUFFERS_EXPIRED)
             )
             self.assertEqual(additional, {"args": [42],
                                           "kwargs": {"name": "London"}})
@@ -318,15 +332,14 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(s1._buffers[BufferContext.ENGINE],
                              [dict(), dict(), dict()])
             self.maxDiff = None
-            self.assertEqual(
-                (SERIALIZED_BUFFERS, []),
-                serialize_buffers(
-                    s1, buffer_context=BufferContext.USER,
-                    additional_items={
-                        "args": [42], "kwargs": {"name": "London"}
-                    }
-                )
+            result = serialize_buffers(
+                s1, buffer_context=BufferContext.USER,
+                additional_items={
+                    "args": [42], "kwargs": {"name": "London"}
+                }
             )
+            self.assertEqual(json.loads(result[0]), SERIALIZED_BUFFERS)
+            self.assertEqual(result[1], [])
             self.assertEqual(s1._buffers, [
                 [dict(), dict(), dict()],
                 [dict(), dict(), dict()]
@@ -363,13 +376,18 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                              [dict(), dict(), dict()])
 
             self.maxDiff = 3000
+            result = serialize_buffers(
+                s1,
+                buffer_context=BufferContext.USER,
+                additional_items={"args": [42],
+                                  "kwargs": {"name": "London"}})
             self.assertEqual(
-                (SERIALIZED_BUFFERS_EXPIRED, []),
-                serialize_buffers(
-                    s1,
-                    buffer_context=BufferContext.USER,
-                    additional_items={"args": [42],
-                                      "kwargs": {"name": "London"}})
+                SERIALIZED_BUFFERS_EXPIRED,
+                json.loads(result[0])
+            )
+            self.assertEqual(
+                [],
+                result[1]
             )
             self.assertEqual(s1._buffers, [
                 [dict(), dict(), dict()],
@@ -490,7 +508,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client._engine = MockEngine()
         w = city.CityWrapper(session=client)
         self.assertRaises(RuntimeError, client._receive, "ERROR: Error!", None)
-        client._receive(SERIALIZED_BUFFERS2, None)
+        client._receive(json.dumps(SERIALIZED_BUFFERS2), None)
         self.assertEqual(set(client._registry.keys()), {uuid.UUID(int=42),
                                                         w.uid})
         self.assertEqual(client._buffers[BufferContext.USER],
@@ -561,9 +579,11 @@ class TestCommunicationEngineServer(unittest.TestCase):
 
             # test the method
             server.session_objs = {"1": s1, "2": 123}
-            result = server._run_command(SERIALIZED_BUFFERS, "command", "1")
+            result = server._run_command(json.dumps(SERIALIZED_BUFFERS),
+                                         "command", "1")
             self.assertTrue(correct)
-            self.assertEqual(result, (SERIALIZED_BUFFERS2, []))
+            self.assertEqual(json.loads(result[0]), SERIALIZED_BUFFERS2)
+            self.assertEqual(result[1], [])
 
     def test_load_from_session(self):
         """Test loading from the remote side"""
@@ -581,7 +601,8 @@ class TestCommunicationEngineServer(unittest.TestCase):
                 result = server._load_from_session(
                     '{"uids": [{"UUID": 1}, {"UUID": 3}]}', "user")
             self.maxDiff = None
-            self.assertEqual(result, (SERIALIZED_BUFFERS3, []))
+            self.assertEqual(json.loads(result[0]), SERIALIZED_BUFFERS3)
+            self.assertEqual(result[1], [])
 
     def test_init_session(self):
         """Test the initialization of the session on the remote side"""
@@ -624,7 +645,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
                 command="run", data=SERIALIZED_BUFFERS, connection_id="user1",
                 temp_directory=None), ("ERROR: Invalid command", []))
             self.assertEqual(server.handle_request(
-                command="command", data=SERIALIZED_BUFFERS,
+                command="command", data=json.dumps(SERIALIZED_BUFFERS),
                 connection_id="user1",
                 temp_directory=None),
                 ("ERROR: RuntimeError: Something went wrong: 42, London", []))
