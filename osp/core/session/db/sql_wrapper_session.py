@@ -477,6 +477,8 @@ class SqlWrapperSession(DbWrapperSession):
                     datatype="UUID"
                 )
             )
+
+        for deleted in buffer.values():
             self._do_db_delete(
                 table_name=self.MASTER_TABLE,
                 condition=EqualsCondition(
