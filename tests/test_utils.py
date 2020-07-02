@@ -2,6 +2,7 @@ import io
 import unittest
 import responses
 import uuid
+import os
 import osp.core
 from osp.core import CUBA
 from osp.core.session.transport.transport_utils import serializable
@@ -17,7 +18,8 @@ from osp.core.utils import (
     find_cuds_objects_by_oclass, find_relationships,
     find_cuds_objects_by_attribute, post,
     get_relationships_between,
-    get_neighbor_diff, change_oclass, branch, validate_tree_against_schema
+    get_neighbor_diff, change_oclass, branch, validate_tree_against_schema,
+    ConsistencyError, CardinalityError
 )
 from osp.core.cuds import Cuds
 
@@ -66,35 +68,49 @@ class TestUtils(unittest.TestCase):
 
     def test_validate_tree_against_schema(self):
         """Test validation of CUDS tree against schema.yml"""
-        schema_file = 'test_validation_schema_city.yml'
-        schema_file_with_missing_entity = \
+        schema_file = os.path.join(
+            os.path.dirname(__file__),
+            'test_validation_schema_city.yml'
+        )
+        schema_file_with_missing_entity = os.path.join(
+            os.path.dirname(__file__),
             'test_validation_schema_city_with_missing_entity.yml'
+        )
 
         c = CITY.CITY(name='freiburg')
-        with self.assertRaises(Exception) as context:
-            # empty city does not fulfil any constraint
-            validate_tree_against_schema(c, schema_file)
-            self.assertTrue(str(c.uid) in str(context.exception))
-            self.assertTrue('invalid cardinality' in str(context.exception))
+
+        # empty city is not valid
+        self.assertRaises(
+            CardinalityError,
+            validate_tree_against_schema,
+            c,
+            schema_file
+        )
 
         c.add(CITY.NEIGHBORHOOD(name='some hood'))
-        c.add(CITY.CITIZEN(name='peter'))
-        c.add(CITY.CITIZEN(name='peter'))
-        with self.assertRaises(Exception) as context:
-            # street violated
-            validate_tree_against_schema(c, schema_file)
-            self.assertTrue('NEIGHBORHOOD' in str(context.exception))
-            self.assertTrue('STREET' in str(context.exception))
+        c.add(CITY.CITIZEN(name='peter'), rel=CITY.HAS_INHABITANT)
+        c.add(CITY.CITIZEN(name='peter'), rel=CITY.HAS_INHABITANT)
+
+        # street of neighborhood violated
+        self.assertRaises(
+            CardinalityError,
+            validate_tree_against_schema,
+            c,
+            schema_file
+        )
 
         c.get(oclass=CITY.NEIGHBORHOOD)[0].add(CITY.STREET(name='abc street'))
-        c.remove(oclass=CITY.CITIZEN)
 
-        with self.assertRaises(Exception) as context:
-            # entity is missing completely in cuds tree
-            validate_tree_against_schema(c, schema_file_with_missing_entity)
-            self.assertTrue('Instance of entity' in str(context.exception))
-            self.assertTrue('CITY.GEOGRAPHICAL_PLACE' in
-                            str(context.exception))
+        # now the city is valid and validation should pass
+        validate_tree_against_schema(c, schema_file)
+
+        # entity that was defined is completely missing completely in cuds tree
+        self.assertRaises(
+            ConsistencyError,
+            validate_tree_against_schema,
+            c,
+            schema_file_with_missing_entity
+        )
 
     def test_branch(self):
         x = branch(

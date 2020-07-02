@@ -4,7 +4,7 @@ oclass: CITY.CITY
 
 model:
     CITY.CITY:
-        CITY.HAS_CITIZEN:
+        CITY.HAS_INHABITANT:
             CITY.CITIZEN:
                 cardinality: 1-2
         CITY.HAS_PART:
@@ -13,6 +13,7 @@ model:
     
     CITY.NEIGHBORHOOD:
         CITY.HAS_PART:
-            CITY.STREET: 1+
+            CITY.STREET: 
+                cardinality: 1+
 
 display_value: CITY.CITY.NAME
