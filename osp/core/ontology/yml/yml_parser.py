@@ -91,9 +91,6 @@ class YmlParser:
                 self._check_default_rel(entity_name, entity_doc)
             else:
                 self._set_datatype(entity_name, entity_doc)
-        # for entity in missing_inverse:  TODO
-        #     self._create_missing_inverse(entity)
-        # self._validate_parsed_datastructure(self._ontology_namespace)
 
     @staticmethod
     def split_name(name):

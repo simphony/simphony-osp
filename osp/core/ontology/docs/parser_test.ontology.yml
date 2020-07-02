@@ -53,7 +53,7 @@ ontology:
     - parser_test.attributeA
     - parser_test.attributeB
 
-  relationship_A:
+  relationshipA:
     subclass_of:
     - cuba.activeRelationship
     domain:
@@ -61,21 +61,21 @@ ontology:
       - parser_test.ClassA
       - parser_test.ClassB
     range:
-      parser_test.relationship_A:
+      parser_test.relationshipA:
         range: parser_test.ClassA
         cardinality: some
         exclusive: true
   
-  relationship_B:
+  relationshipB:
     subclass_of:
-    - parser_test.relationship_A
+    - parser_test.relationshipA
     - cuba.activeRelationship
     domain:
       and:
       - parser_test.ClassC
       - not: parser_test.ClassD
   
-  relationship_C:
+  relationshipC:
     subclass_of:
     - cuba.relationship
-    inverse: parser_test.relationship_A
+    inverse: parser_test.relationshipA
