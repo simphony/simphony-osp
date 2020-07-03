@@ -13,6 +13,7 @@ ontology:
       parser_test.attributeA: DEFAULT_A
     subclass_of: 
     - cuba.Class
+    description: "Class A"
   
   ClassB:
     attributes:

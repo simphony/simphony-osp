@@ -121,9 +121,71 @@ class TestYmlParser(unittest.TestCase):
         })
 
     def test_add_type_triple(self):
+        iri = self.parser._get_iri("ClassA")
         self.assertRaises(ValueError, self.parser._add_type_triple, "ClassA",
-                          self.ontology_doc["ClassA"])
+                          iri)
+        self.graph.parse(CUBA_FILE, format="ttl")
 
+        # Class
+        pre = set(self.graph)
+        self.parser._add_type_triple("ClassA", iri)
+        self.assertEqual(set(self.graph) - pre, {(
+            iri, rdflib.RDF.type, rdflib.OWL.Class
+        )})
+        iri = self.parser._get_iri("ClassC")
+        pre = set(self.graph)
+        self.parser._add_type_triple("ClassC", iri)
+        self.assertEqual(set(self.graph) - pre, {(
+            iri, rdflib.RDF.type, rdflib.OWL.Class
+        )})
+
+        # Relationship
+        iri = self.parser._get_iri("relationshipC")
+        pre = set(self.graph)
+        self.parser._add_type_triple("relationshipC", iri)
+        self.assertEqual(set(self.graph) - pre, {(
+            iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty
+        )})
+
+        # Attribute
+        iri = self.parser._get_iri("attributeB")
+        pre = set(self.graph)
+        self.parser._add_type_triple("attributeB", iri)
+        self.assertEqual(set(self.graph) - pre, {
+            (iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty),
+            (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty)
+        })
+
+    def test_add_superclass(self):
+        iri = self.parser._get_iri("ClassD")
+        self.assertRaises(AttributeError, self.parser._add_superclass,
+                          "ClassD", iri, "parser_test.Invalid")
+        self.assertRaises(AttributeError, self.parser._add_superclass,
+                          "ClassD", iri, "cuba.Invalid")
+        self.assertRaises(AttributeError, self.parser._add_superclass,
+                          "ClassD", iri, "invalid.ClassA")
+        self.parser._add_superclass("ClassD", iri, "parser_test.ClassA")
+        iri = self.parser._get_iri("relationshipB")
+        self.parser._add_superclass("relationshipB", iri,
+                                    "parser_test.relationshipA")
+        iri = self.parser._get_iri("attributeB")
+        self.parser._add_superclass("attributeB", iri,
+                                    "parser_test.attributeA")
+
+    def test_get_iri(self):
+        self.assertEqual(self.parser._get_iri("A", "B"),
+                         rdflib.term.URIRef('http://www.osp-core.com/B#A'))
+        self.assertEqual(self.parser._get_iri(None, "B"),
+                         rdflib.term.URIRef('http://www.osp-core.com/B#'))
+        self.assertEqual(
+            self.parser._get_iri("A", None),
+            rdflib.term.URIRef('http://www.osp-core.com/parser_test#A'))
+        self.assertEqual(
+            self.parser._get_iri(None, None), 
+            rdflib.term.URIRef('http://www.osp-core.com/parser_test#'))
+
+    def test_load_entity(self):
+        self.graph.parse(CUBA_FILE, format="ttl")
 
 if __name__ == "__main__":
     unittest.main()

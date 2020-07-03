@@ -129,20 +129,23 @@ class YmlParser:
     def _add_superclass(self, entity_name, iri, superclass_doc):
         if isinstance(superclass_doc, str):
             namespace, superclass_name = self.split_name(superclass_doc)
-            if (
+            superclass_iri = self._get_iri(superclass_name, namespace)
+            if ((  # Check if superclass is defined
                 namespace == self._namespace
                 and superclass_name not in self._ontology_doc
-            ):
-                raise KeyError(
-                    "Reference to undefined entity %s in definition of %s"
-                    % (superclass_name, entity_name)
+            ) or (
+                namespace != self._namespace
+                and (superclass_iri, None, None) not in self.graph
+            )):
+                raise AttributeError(
+                    f"Reference to undefined entity {superclass_doc} in "
+                    f"definition of {entity_name}"
                 )
             predicate = rdflib.RDFS.subPropertyOf
             if (iri, rdflib.RDF.type, rdflib.OWL.Class) in self.graph:
                 predicate = rdflib.RDFS.subClassOf
 
-            self.graph.add((iri, predicate,
-                            self._get_iri(superclass_name, namespace)))
+            self.graph.add((iri, predicate, superclass_iri))
 
     def _add_type_triple(self, entity_name, iri):
         queue = [(self._namespace, entity_name)]
