@@ -253,7 +253,7 @@ class YmlParser:
         )
 
     def _check_default_rel(self, entity_name, entity_doc):
-        """Check of the given relationship the default
+        """Check if the given relationship the default
         When it is a default, save that accordingly.
 
         :param entity: The relationship to check
