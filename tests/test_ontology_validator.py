@@ -8,10 +8,10 @@ class TestOntologyValidator(unittest.TestCase):
         """Test the validate method"""
 
         # pattern is string
-        validate({"version": "0.0.1", "namespace": "TEST", "ontology": {}},
+        validate({"version": "0.0.1", "namespace": "test", "ontology": {}},
                  pattern="/")
         self.assertRaises(ValueError, validate,
-                          {"version": "0.0.1", "namespace": "TEST"},
+                          {"version": "0.0.1", "namespace": "test"},
                           pattern="/")
 
         # pattern is regex pattern
