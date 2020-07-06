@@ -72,7 +72,8 @@ class OntologyInstallationManager():
             graph = self.namespace_registry.clear()
         files = filter_func(files)
         parser = Parser(graph)
-        parser.parse(*files)
+        for file in files:
+            parser.parse(file)
         self.namespace_registry.update_namespaces()
         # serialize the result
         if clear:

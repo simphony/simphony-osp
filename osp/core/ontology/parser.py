@@ -2,6 +2,7 @@ import os
 import rdflib
 import logging
 import yaml
+from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.yml.yml_parser import YmlParser
 
 logger = logging.getLogger(__name__)
@@ -16,9 +17,6 @@ ALL_KEYS = set([
     IDENTIFIER_KEY
 ])
 
-DEFAULT_REL_IRI = rdflib.URIRef("http://osp-core.com/default_rel")  # TODO move
-ACTIVE_REL_IRI = rdflib.URIRef("http://osp-core.com/cuba/ActiveRelationship")
-
 
 class Parser():
     def __init__(self, graph):
@@ -26,23 +24,22 @@ class Parser():
         self._yaml_docs = list()
         self._graphs = dict()
 
-    def parse(self, *file_paths):
+    def parse(self, file_path):
         """Parse the given YAML files
 
         Args:
-            file_paths (str): path to the YAML file
+            file_path (str): path to the YAML file
         """
-        for file_path in file_paths:
-            file_path = self.get_file_path(file_path)
-            with open(file_path, 'r') as f:
-                yaml_doc = yaml.safe_load(f)
-                if YmlParser.is_yaml_ontology(yaml_doc):
-                    YmlParser(self.graph).parse(file_path, yaml_doc)
-                elif RDF_FILES_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
-                    self._parse_rdf(**self._parse_yml(yaml_doc, file_path))
-                else:
-                    raise SyntaxError(f"Invalid format of file {file_path}")
-                self._yaml_docs.append(yaml_doc)
+        file_path = self.get_file_path(file_path)
+        with open(file_path, 'r') as f:
+            yaml_doc = yaml.safe_load(f)
+            if YmlParser.is_yaml_ontology(yaml_doc):
+                YmlParser(self.graph).parse(file_path, yaml_doc)
+            elif RDF_FILES_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
+                self._parse_rdf(**self._parse_yml(yaml_doc, file_path))
+            else:
+                raise SyntaxError(f"Invalid format of file {file_path}")
+            self._yaml_docs.append(yaml_doc)
         logger.info("Loaded ontology with %s triples" % len(self.graph))
 
     def store(self, destination):
@@ -148,7 +145,7 @@ class Parser():
                 continue
             self.graph.add((
                 rdflib.URIRef(namespace),
-                DEFAULT_REL_IRI,
+                rdflib_cuba._default_rel,
                 rdflib.URIRef(default_rel)
             ))
 
@@ -156,5 +153,5 @@ class Parser():
         for rel in active_rels:
             self.graph.add(
                 (rdflib.URIRef(rel), rdflib.RDFS.subPropertyOf,
-                 ACTIVE_REL_IRI)
+                 rdflib_cuba.activeRelationship)
             )
