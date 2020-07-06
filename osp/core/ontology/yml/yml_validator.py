@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 entity_name_regex = r"([a-zA-Z])([a-zA-Z]|[0-9])*"
 namespace_name_regex = r"([a-z])([a-z]|[0-9]|_)*"
+namespace_name_pattern = re.compile(namespace_name_regex)
 entity_name_pattern = re.compile(r"^%s$" % entity_name_regex)
 qualified_entity_name_pattern = re.compile(
     r"^%s.%s$" % (namespace_name_regex, entity_name_regex))
@@ -45,7 +46,7 @@ attribute_definition = {
 format_description = {
     "/": {
         "!" + VERSION_KEY: re.compile(r"^\d+\.\d+(\.\d+)?$"),
-        "!" + NAMESPACE_KEY: entity_name_pattern,
+        "!" + NAMESPACE_KEY: namespace_name_pattern,
         "!" + ONTOLOGY_KEY: {entity_name_pattern: "entity_def"},
         AUTHOR_KEY: str,
         REQUIREMENTS_KEY: [entity_name_pattern]

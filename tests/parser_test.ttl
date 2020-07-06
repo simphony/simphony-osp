@@ -1,0 +1,71 @@
+@prefix ns1: <http://www.osp-core.com/cuba#> .
+@prefix ns2: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://www.osp-core.com/parser_test#> ns1:_default_rel <http://www.osp-core.com/parser_test#relationshipA> .
+
+<http://www.osp-core.com/parser_test#ClassC> a ns2:Class ;
+    rdfs:subClassOf <http://www.osp-core.com/parser_test#ClassA>,
+        <http://www.osp-core.com/parser_test#ClassB> .
+
+<http://www.osp-core.com/parser_test#attributeC> a ns2:DatatypeProperty,
+        ns2:FunctionalProperty ;
+    rdfs:subPropertyOf <http://www.osp-core.com/parser_test#attributeA>,
+        <http://www.osp-core.com/parser_test#attributeB> .
+
+<http://www.osp-core.com/parser_test#attributeD> a ns2:DatatypeProperty,
+        ns2:FunctionalProperty ;
+    rdfs:range xsd:float ;
+    rdfs:subPropertyOf <http://www.osp-core.com/parser_test#attributeA>,
+        <http://www.osp-core.com/parser_test#attributeB> .
+
+<http://www.osp-core.com/parser_test#relationshipB> a ns2:ObjectProperty ;
+    rdfs:subPropertyOf ns1:activeRelationship,
+        <http://www.osp-core.com/parser_test#relationshipA> .
+
+<http://www.osp-core.com/parser_test#relationshipC> a ns2:ObjectProperty ;
+    rdfs:subPropertyOf ns1:relationship ;
+    ns2:inverseOf <http://www.osp-core.com/parser_test#relationshipA> .
+
+<http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2-2> a rdfs:Datatype .
+
+<http://www.osp-core.com/parser_test#ClassD> a ns2:Class ;
+    ns1:_default [ ns1:_default_attribute <http://www.osp-core.com/parser_test#attributeA> ;
+            ns1:_default_value "DEFAULT_D" ] ;
+    rdfs:subClassOf <http://www.osp-core.com/parser_test#ClassA>,
+        <http://www.osp-core.com/parser_test#ClassB> .
+
+<http://www.osp-core.com/parser_test#ClassE> a ns2:Class ;
+    rdfs:subClassOf ns1:Class .
+
+<http://www.osp-core.com/parser_test#attributeB> a ns2:DatatypeProperty,
+        ns2:FunctionalProperty ;
+    rdfs:range <http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2-2> ;
+    rdfs:subPropertyOf ns1:attribute .
+
+<http://www.osp-core.com/parser_test#ClassA> a ns2:Class ;
+    ns1:_default [ ns1:_default_attribute <http://www.osp-core.com/parser_test#attributeA> ;
+            ns1:_default_value "DEFAULT_A" ] ;
+    rdfs:isDefinedBy "Class A" ;
+    rdfs:subClassOf ns1:Class .
+
+<http://www.osp-core.com/parser_test#ClassB> a ns2:Class ;
+    ns1:_default [ ns1:_default_attribute <http://www.osp-core.com/parser_test#attributeA> ;
+            ns1:_default_value "DEFAULT_B" ] ;
+    rdfs:subClassOf ns1:Class .
+
+<http://www.osp-core.com/parser_test#relationshipA> a ns2:ObjectProperty ;
+    rdfs:subPropertyOf ns1:activeRelationship .
+
+<http://www.osp-core.com/parser_test#attributeA> a ns2:DatatypeProperty,
+        ns2:FunctionalProperty ;
+    rdfs:domain <http://www.osp-core.com/parser_test#ClassA>,
+        <http://www.osp-core.com/parser_test#ClassB>,
+        <http://www.osp-core.com/parser_test#ClassD>,
+        <http://www.osp-core.com/parser_test#ClassE> ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf ns1:attribute .
+

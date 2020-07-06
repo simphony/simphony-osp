@@ -2,8 +2,10 @@ import os
 import yaml
 import rdflib
 import unittest2 as unittest
+from rdflib.compare import isomorphic
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.yml.yml_parser import YmlParser
+
 
 YML_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
@@ -11,6 +13,8 @@ YML_FILE = os.path.join(
 )
 CUBA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          "..", "osp", "core", "ontology", "docs", "cuba.ttl")
+RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "parser_test.ttl")
 
 
 class TestYmlParser(unittest.TestCase):
@@ -179,13 +183,76 @@ class TestYmlParser(unittest.TestCase):
                          rdflib.term.URIRef('http://www.osp-core.com/B#'))
         self.assertEqual(
             self.parser._get_iri("A", None),
-            rdflib.term.URIRef('http://www.osp-core.com/parser_test#A'))
+            self.parser._get_iri('A'))
         self.assertEqual(
-            self.parser._get_iri(None, None), 
-            rdflib.term.URIRef('http://www.osp-core.com/parser_test#'))
+            self.parser._get_iri(None, None),
+            self.parser._get_iri(''))
 
     def test_load_entity(self):
+        # load class
+        name = "ClassA"
         self.graph.parse(CUBA_FILE, format="ttl")
+        pre = set(self.graph)
+        self.parser._load_entity(name, self.ontology_doc[name])
+        iri = self.parser._get_iri(name)
+        self.assertEqual(set(self.graph) - pre, {
+            (iri, rdflib.RDF.type, rdflib.OWL.Class),
+            (iri, rdflib.RDFS.isDefinedBy, rdflib.term.Literal("Class A")),
+            (iri, rdflib.RDFS.subClassOf, rdflib_cuba.Class)
+        })
+
+        # load relationship
+        name = "relationshipA"
+        self.graph.parse(CUBA_FILE, format="ttl")
+        pre = set(self.graph)
+        self.parser._load_entity(name, self.ontology_doc[name])
+        iri = self.parser._get_iri(name)
+        self.assertEqual(set(self.graph) - pre, {
+            (iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty),
+            (iri, rdflib.RDFS.subPropertyOf, rdflib_cuba.activeRelationship)
+        })
+
+        # load attribute
+        name = "attributeA"
+        self.graph.parse(CUBA_FILE, format="ttl")
+        pre = set(self.graph)
+        self.parser._load_entity(name, self.ontology_doc[name])
+        iri = self.parser._get_iri(name)
+        self.assertEqual(set(self.graph) - pre, {
+            (iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty),
+            (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty),
+            (iri, rdflib.RDFS.subPropertyOf, rdflib_cuba.attribute)
+        })
+
+    def test_split_name(self):
+        self.assertEqual(("A", "B"), self.parser.split_name("A.B"))
+        self.assertRaises(ValueError, self.parser.split_name, "B")
+
+    def test_parse_ontology(self):
+        self.graph.parse(CUBA_FILE, format="ttl")
+        pre = set(self.graph)
+        self.parser._parse_ontology()
+        test_graph1 = rdflib.Graph()
+        test_graph1.parse(RDF_FILE, format="ttl")
+        test_graph2 = rdflib.Graph()
+        for triple in set(self.parser.graph) - pre:
+            test_graph2.add(triple)
+        self.assertTrue(isomorphic(test_graph1, test_graph2))
+
+    def test_parse(self):
+        self.graph.parse(CUBA_FILE, format="ttl")
+        self.parser = YmlParser(self.graph)
+        pre = set(self.graph)
+        self.parser.parse(YML_FILE)
+        test_graph1 = rdflib.Graph()
+        test_graph1.parse(RDF_FILE, format="ttl")
+        test_graph2 = rdflib.Graph()
+        for triple in set(self.parser.graph) - pre:
+            test_graph2.add(triple)
+        self.assertTrue(isomorphic(test_graph1, test_graph2))
+        self.assertEqual(self.parser._file_path, YML_FILE)
+        self.assertEqual(self.parser._namespace, "parser_test")
+
 
 if __name__ == "__main__":
     unittest.main()
