@@ -8,13 +8,13 @@ from osp.core.ontology.yml.yml_parser import YmlParser
 logger = logging.getLogger(__name__)
 
 IDENTIFIER_KEY = "identifier"
-RDF_FILES_KEY = "ontology_files"
+RDF_FILE_KEY = "ontology_file"
 NAMESPACES_KEY = "namespaces"
 ACTIVE_REL_KEY = "active_relationships"
 DEFAULT_REL_KEY = "default_relationship"
 FILE_FORMAT_KEY = "format"
 ALL_KEYS = set([
-    RDF_FILES_KEY, NAMESPACES_KEY, ACTIVE_REL_KEY, DEFAULT_REL_KEY,
+    RDF_FILE_KEY, NAMESPACES_KEY, ACTIVE_REL_KEY, DEFAULT_REL_KEY,
     IDENTIFIER_KEY, FILE_FORMAT_KEY
 ])
 
@@ -36,7 +36,7 @@ class Parser():
             yaml_doc = yaml.safe_load(f)
             if YmlParser.is_yaml_ontology(yaml_doc):
                 YmlParser(self.graph).parse(file_path, yaml_doc)
-            elif RDF_FILES_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
+            elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
                 self._parse_rdf(**self._parse_yml(yaml_doc, file_path))
             else:
                 raise SyntaxError(f"Invalid format of file {file_path}")
@@ -48,12 +48,11 @@ class Parser():
             identifier = self.get_identifier(yaml_doc)
             # store rdf files
             if not YmlParser.is_yaml_ontology(yaml_doc):
-                rdf_files = list()
-                for i, g in enumerate(self._graphs[identifier]):
-                    rdf_files.append("%s-%s.ttl" % (identifier, i))
-                    g.serialize(os.path.join(destination, rdf_files[-1]),
-                                format="ttl")
-                yaml_doc[RDF_FILES_KEY] = rdf_files
+                g = self._graphs[identifier]
+                rdf_file = f"{identifier}.ttl"
+                g.serialize(os.path.join(destination, rdf_file),
+                            format="ttl")
+                yaml_doc[RDF_FILE_KEY] = rdf_file
 
             # store yaml files
             file_path = os.path.join(destination, f"{identifier}.yml")
@@ -69,7 +68,7 @@ class Parser():
                 yaml_doc = yaml.safe_load(f)
         if YmlParser.is_yaml_ontology(yaml_doc):
             return YmlParser.get_namespace_name(yaml_doc)
-        elif RDF_FILES_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
+        elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
             return yaml_doc[IDENTIFIER_KEY]
         else:
             raise SyntaxError(f"Invalid format of file {file_path_or_doc}")
@@ -96,10 +95,8 @@ class Parser():
             raise ValueError("No dot allowed in package identifier. "
                              "Identifier given: %s"
                              % yaml_doc[IDENTIFIER_KEY])
-        yaml_doc[RDF_FILES_KEY] = [
-            os.path.join(os.path.dirname(file_path), x)
-            for x in yaml_doc[RDF_FILES_KEY]
-        ]
+        yaml_doc[RDF_FILE_KEY] = os.path.join(os.path.dirname(file_path),
+                                               yaml_doc[RDF_FILE_KEY])
         return yaml_doc
 
     def _parse_rdf(self, **kwargs):
@@ -111,7 +108,7 @@ class Parser():
         """
         # parse input kwargs
         try:
-            rdf_files = kwargs[RDF_FILES_KEY]
+            rdf_file = kwargs[RDF_FILE_KEY]
             namespaces = kwargs[NAMESPACES_KEY]
             identifier = kwargs[IDENTIFIER_KEY]
             active_rels = kwargs.get(ACTIVE_REL_KEY, [])
@@ -127,12 +124,10 @@ class Parser():
                             % other_keys)
 
         # parse the files
-        for file in rdf_files:
-            logger.info("Parsing %s" % file)
-            self._graphs[identifier] = self._graphs.get(identifier, list())
-            self._graphs[identifier].append(rdflib.Graph())
-            self._graphs[identifier][-1].parse(file, format=file_format)
-            self.graph.parse(file, format=file_format)
+        logger.info("Parsing %s" % rdf_file)
+        self._graphs[identifier] = rdflib.Graph()
+        self._graphs[identifier].parse(rdf_file, format=file_format)
+        self.graph.parse(rdf_file, format=file_format)
         default_rels = dict()
         for namespace, iri in namespaces.items():
             if not (
