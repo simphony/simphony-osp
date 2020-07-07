@@ -2,6 +2,7 @@ import os
 import unittest2 as unittest
 import tempfile
 import rdflib
+import shutil
 from osp.core.ontology.installation import OntologyInstallationManager
 from osp.core.ontology.namespace_registry import NamespaceRegistry
 
@@ -25,6 +26,13 @@ class TestParser(unittest.TestCase):
 
     def tearDown(self):
         self.tempdir.cleanup()
+
+    def copy_files(self):
+        p1 = os.path.join(self.tempdir.name, os.path.basename(FILES[0]))
+        p2 = os.path.join(self.tempdir.name, os.path.basename(FILES[1]))
+        shutil.copyfile(FILES[0], p1)
+        shutil.copyfile(FILES[1], p2)
+        return p1, p2
 
     def test_do_install(self):
         # clear False
@@ -67,16 +75,45 @@ class TestParser(unittest.TestCase):
                           lines)
 
     def test_get_new_packages(self):
-        pass
+        o1, o2 = self.copy_files()
+        self.assertEqual(self.installer._get_new_packages(FILES), set())
+        os.remove(o1)
+        self.assertEqual(self.installer._get_new_packages(FILES), {FILES[0]})
 
     def test_get_replaced_packages(self):
-        pass
+        o1, o2 = self.copy_files()
+        self.assertEqual(
+            set(self.installer._get_replaced_packages([FILES[0]])),
+            {FILES[0], o2}
+        )
+        self.assertRaises(FileNotFoundError,
+                          self.installer._get_replaced_packages, ["invalid"])
 
     def test_get_remaining_packages(self):
-        pass
+        o1, o2 = self.copy_files()
+        self.assertRaises(
+            ValueError, self.installer._get_remaining_packages,
+            ["city", "invalid"]
+        )
+        self.assertRaises(
+            ValueError, self.installer._get_remaining_packages, ["city.yml"]
+        )
+        self.assertEquals(self.installer._get_remaining_packages(FILES), [])
+        self.assertEquals(self.installer._get_remaining_packages([FILES[0]]),
+                          [o2])
+        self.assertEquals(self.installer._get_remaining_packages([o2]),
+                          [o1])
+        os.remove(o2)
+        self.assertRaises(ValueError, self.installer._get_remaining_packages,
+                          FILES)
 
     def test_get_installed_packages(self):
-        pass
+        o1, o2 = self.copy_files()
+        open(os.path.join(self.tempdir.name, "o3.ttl"), "w").close()
+        self.assertEqual(self.installer.get_installed_packages(),
+                         ["city", "parser_test"])
+        self.assertEqual(self.installer.get_installed_packages(True),
+                         [("city", o2), ("parser_test", o1)])
 
 
 if __name__ == "__main__":

@@ -37,16 +37,16 @@ class OntologyInstallationManager():
 
     def _get_remaining_packages(self, remove_packages):
         remove_pkgs = set()
+        installed_pkgs = dict(self.get_installed_packages(return_path=True))
         for pkg in remove_packages:
-            if not pkg.endswith(".yml"):
+            if pkg.endswith(".yml") and os.path.exists(pkg):
+                pkg = Parser.get_identifier(pkg)
+            if pkg in installed_pkgs:
                 remove_pkgs.add(pkg)
-            elif os.path.exists(pkg):
-                remove_pkgs.add(Parser.get_identifier(pkg))
             else:
                 raise ValueError("Could not uninstall %s. No file nor "
                                  "installed ontology package." % pkg)
-        installed_pkgs = self.get_installed_packages(return_path=True)
-        return [v for k, v in installed_pkgs if k not in remove_pkgs]
+        return [v for k, v in installed_pkgs.items() if k not in remove_pkgs]
 
     def _get_replaced_packages(self, new_packages):
         installed = dict(self.get_installed_packages(return_path=True))
