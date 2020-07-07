@@ -11,6 +11,7 @@ CUBA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "parser_test.ttl")
 
+
 class TestParser(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.TemporaryDirectory()

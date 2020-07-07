@@ -100,9 +100,9 @@ class TestParser(unittest.TestCase):
         )
         self.assertEqual(self.installer._get_remaining_packages(FILES), [])
         self.assertEqual(self.installer._get_remaining_packages([FILES[0]]),
-                          [o2])
+                         [o2])
         self.assertEqual(self.installer._get_remaining_packages([o2]),
-                          [o1])
+                         [o1])
         os.remove(o2)
         self.assertRaises(ValueError, self.installer._get_remaining_packages,
                           FILES)
