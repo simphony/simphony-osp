@@ -40,9 +40,9 @@ class TestParser(unittest.TestCase):
                                 clear=False)
         self.assertIn("city", self.namespace_registry._namespaces)
         self.assertIn("parser_test", self.namespace_registry._namespaces)
-        self.assertEquals(self.namespace_registry._namespaces["city"],
-                          rdflib.term.URIRef('http://www.osp-core.com/city#'))
-        self.assertEquals(
+        self.assertEqual(self.namespace_registry._namespaces["city"],
+                         rdflib.term.URIRef('http://www.osp-core.com/city#'))
+        self.assertEqual(
             self.namespace_registry._namespaces["parser_test"],
             rdflib.term.URIRef('http://www.osp-core.com/parser_test#'))
         self.assertEqual(os.listdir(self.tempdir.name), [
@@ -61,7 +61,7 @@ class TestParser(unittest.TestCase):
         self.assertNotIn("city", self.namespace_registry._namespaces)
         self.assertIn("parser_test", self.namespace_registry._namespaces)
         self.assertIsNot(g_old, self.namespace_registry._graph)
-        self.assertEquals(
+        self.assertEqual(
             self.namespace_registry._namespaces["parser_test"],
             rdflib.term.URIRef('http://www.osp-core.com/parser_test#'))
         self.assertEqual(os.listdir(self.tempdir.name), [
@@ -98,10 +98,10 @@ class TestParser(unittest.TestCase):
         self.assertRaises(
             ValueError, self.installer._get_remaining_packages, ["city.yml"]
         )
-        self.assertEquals(self.installer._get_remaining_packages(FILES), [])
-        self.assertEquals(self.installer._get_remaining_packages([FILES[0]]),
+        self.assertEqual(self.installer._get_remaining_packages(FILES), [])
+        self.assertEqual(self.installer._get_remaining_packages([FILES[0]]),
                           [o2])
-        self.assertEquals(self.installer._get_remaining_packages([o2]),
+        self.assertEqual(self.installer._get_remaining_packages([o2]),
                           [o1])
         os.remove(o2)
         self.assertRaises(ValueError, self.installer._get_remaining_packages,
