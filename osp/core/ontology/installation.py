@@ -70,7 +70,7 @@ class OntologyInstallationManager():
         graph = self.namespace_registry._graph
         if clear:
             graph = self.namespace_registry.clear()
-        files = filter_func(files)
+        files = filter_func(files)  # TODO order files
         parser = Parser(graph)
         for file in files:
             parser.parse(file)

@@ -55,6 +55,7 @@ class NamespaceRegistry():
         raise KeyError("Namespace %s not installed." % name)
 
     def update_namespaces(self):
+        self._namespaces = dict()
         for name, iri in self._graph.namespace_manager.namespaces():
             self._namespaces[name] = iri
 
