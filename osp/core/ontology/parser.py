@@ -96,7 +96,7 @@ class Parser():
                              "Identifier given: %s"
                              % yaml_doc[IDENTIFIER_KEY])
         yaml_doc[RDF_FILE_KEY] = os.path.join(os.path.dirname(file_path),
-                                               yaml_doc[RDF_FILE_KEY])
+                                              yaml_doc[RDF_FILE_KEY])
         return yaml_doc
 
     def _parse_rdf(self, **kwargs):

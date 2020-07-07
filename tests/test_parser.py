@@ -129,7 +129,8 @@ class TestParser(unittest.TestCase):
         g2.parse(RDF_FILE, format="ttl")
         self.assertTrue(self.parser._graphs["parser_test"], [g1])
         self.assertEqual(len(self.parser._yaml_docs), 1)
-        self.assertEqual(self.parser._yaml_docs[0]["ontology_file"], 
+        self.assertEqual(
+            self.parser._yaml_docs[0]["ontology_file"],
             os.path.abspath(os.path.realpath(os.path.join(
                 os.path.dirname(__file__), "parser_test.ttl"))))
         x = dict(self.parser._yaml_docs[0])
