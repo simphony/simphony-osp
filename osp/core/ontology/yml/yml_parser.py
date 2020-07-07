@@ -35,6 +35,7 @@ class YmlParser:
         self._namespace = None
         self._file_path = None
         self.graph = graph
+        graph.bind("owl", rdflib.OWL.iri)
 
     @staticmethod
     def is_yaml_ontology(doc):

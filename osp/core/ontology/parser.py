@@ -11,10 +11,11 @@ IDENTIFIER_KEY = "identifier"
 RDF_FILES_KEY = "ontology_files"
 NAMESPACES_KEY = "namespaces"
 ACTIVE_REL_KEY = "active_relationships"
-DEFAULT_REL_KEY = "default_rel"
+DEFAULT_REL_KEY = "default_relationship"
+FILE_FORMAT_KEY = "format"
 ALL_KEYS = set([
     RDF_FILES_KEY, NAMESPACES_KEY, ACTIVE_REL_KEY, DEFAULT_REL_KEY,
-    IDENTIFIER_KEY
+    IDENTIFIER_KEY, FILE_FORMAT_KEY
 ])
 
 
@@ -75,7 +76,7 @@ class Parser():
 
     @staticmethod
     def get_file_path(file_path):
-        if file_path.endswith("yml"):
+        if file_path.endswith(".yml"):
             return file_path
         file_path = file_path.lower()
         return os.path.join(
@@ -109,11 +110,17 @@ class Parser():
                 in a yaml file.
         """
         # parse input kwargs
-        rdf_files = kwargs[RDF_FILES_KEY]
-        namespaces = kwargs[NAMESPACES_KEY]
-        active_rels = kwargs.get(ACTIVE_REL_KEY, [])
-        default_rel = kwargs.get(DEFAULT_REL_KEY, None)
-        identifier = kwargs.get(IDENTIFIER_KEY)
+        try:
+            rdf_files = kwargs[RDF_FILES_KEY]
+            namespaces = kwargs[NAMESPACES_KEY]
+            identifier = kwargs[IDENTIFIER_KEY]
+            active_rels = kwargs.get(ACTIVE_REL_KEY, [])
+            default_rel = kwargs.get(DEFAULT_REL_KEY, None)
+            file_format = kwargs.get(FILE_FORMAT_KEY, "xml")
+        except KeyError as e:
+            raise TypeError(
+                f"Didn't specify necessary parameter {e}. "
+                f"Check your YAML file.") from e
         other_keys = set(kwargs.keys()) - ALL_KEYS
         if other_keys:
             raise TypeError("Specified unknown keys in YAML file: %s"
@@ -124,8 +131,8 @@ class Parser():
             logger.info("Parsing %s" % file)
             self._graphs[identifier] = self._graphs.get(identifier, list())
             self._graphs[identifier].append(rdflib.Graph())
-            self._graphs[identifier][-1].parse(file)
-            self.graph.parse(file)
+            self._graphs[identifier][-1].parse(file, format=file_format)
+            self.graph.parse(file, format=file_format)
         default_rels = dict()
         for namespace, iri in namespaces.items():
             if not (
