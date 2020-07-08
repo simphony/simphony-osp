@@ -100,12 +100,11 @@ class OntologyEntity(ABC):
         :return: The description of the entity
         :rtype: str
         """
-        try:
-            return str(next(self.namespace._graph.triples(
-                (self.iri, rdflib.RDFS.isDefinedBy, None)
-            )))
-        except StopIteration:
+        desc = self.namespace._graph.value(
+            self.iri, rdflib.RDFS.isDefinedBy, None)
+        if desc is None:
             return "To Be Determined"
+        return str(desc)
 
     def get_triples(self):
         """ Get the triples of the entity """

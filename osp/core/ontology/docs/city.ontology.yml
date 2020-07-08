@@ -37,7 +37,7 @@ ontology:
 
   hasInhabitant:
     subclass_of:
-    - city.encloses
+    - city.hasPart
     inverse: city.isInhabitantOf
   
   hasChild:

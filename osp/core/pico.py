@@ -51,7 +51,7 @@ def install_from_terminal():
     ontology_installer = OntologyInstallationManager()
 
     try:
-        all_namespaces = map(lambda x: x.name,
+        all_namespaces = map(lambda x: x.get_name(),
                              ontology_installer.namespace_registry)
         all_packages = ontology_installer.get_installed_packages()
         if args.command == "install" and args.overwrite:

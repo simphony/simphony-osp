@@ -15,7 +15,7 @@ RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "parser_test.ttl")
 
 
-class TestParser(unittest.TestCase):
+class TestNamespaces(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.TemporaryDirectory()
         self.namespace_registry = NamespaceRegistry()
