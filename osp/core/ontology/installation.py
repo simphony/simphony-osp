@@ -1,6 +1,5 @@
 import os
 import logging
-import osp.core.namespaces as namespaces
 import shutil
 from osp.core.ontology.parser import Parser
 
@@ -9,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 class OntologyInstallationManager():
     def __init__(self, namespace_registry=None, path=None):
+        import osp.core.namespaces as namespaces
         self.namespace_registry = namespace_registry
         self.path = path or namespaces._path
         if self.namespace_registry is None:

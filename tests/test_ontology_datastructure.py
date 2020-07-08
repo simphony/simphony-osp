@@ -78,16 +78,16 @@ class TestParser(unittest.TestCase):
     def test_namespace_registry_from_iri(self):
         c = self.namespace_registry.from_iri(rdflib_cuba.Class)
         self.assertIsInstance(c, OntologyClass)
-        self.assertEquals(c.namespace.get_name(), "cuba")
-        self.assertEquals(c.name, "Class")
+        self.assertEqual(c.namespace.get_name(), "cuba")
+        self.assertEqual(c.name, "Class")
         r = self.namespace_registry.from_iri(rdflib_cuba.relationship)
         self.assertIsInstance(r, OntologyRelationship)
-        self.assertEquals(r.namespace.get_name(), "cuba")
-        self.assertEquals(r.name, "relationship")
+        self.assertEqual(r.namespace.get_name(), "cuba")
+        self.assertEqual(r.name, "relationship")
         a = self.namespace_registry.from_iri(rdflib_cuba.attribute)
         self.assertIsInstance(a, OntologyAttribute)
-        self.assertEquals(a.namespace.get_name(), "cuba")
-        self.assertEquals(a.name, "attribute")
+        self.assertEqual(a.namespace.get_name(), "cuba")
+        self.assertEqual(a.name, "attribute")
 
     def test_namespace_registry_update_namespaces(self):
         self.graph.bind("a", rdflib.URIRef("aaa"))
@@ -116,7 +116,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(self.namespace_registry.city.get_name(),
                          "city")
         self.assertRaises(KeyError, self.namespace_registry._get, "invalid")
-        self.assertEquals(self.namespace_registry.get("invalid"), None)
+        self.assertEqual(self.namespace_registry.get("invalid"), None)
         self.assertRaises(KeyError, self.namespace_registry.__getitem__,
                           "invalid")
         self.assertRaises(AttributeError, getattr, self.namespace_registry,
