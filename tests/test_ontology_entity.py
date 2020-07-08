@@ -151,13 +151,13 @@ class TestOntologyEntity(unittest.TestCase):
                           kwargs={"name": "name", "invalid": "invalid"},
                           _force=False)
         self.assertEqual(city.City._get_attributes_values(kwargs={},
-                                                           _force=True),
-                          {city.name: None,
-                           city.coordinates: rdflib.term.Literal('[0, 0]')})
+                                                          _force=True),
+                         {city.name: None,
+                          city.coordinates: rdflib.term.Literal('[0, 0]')})
         self.assertEqual(city.City._get_attributes_values(kwargs={},
-                                                           _force=True),
-                          {city.name: None,
-                           city.coordinates: rdflib.term.Literal('[0, 0]')})
+                                                          _force=True),
+                         {city.name: None,
+                          city.coordinates: rdflib.term.Literal('[0, 0]')})
         self.assertEqual(city.City._get_attributes_values(
             kwargs={"name": "Freiburg"}, _force=True),
             {city.name: "Freiburg",
@@ -202,7 +202,7 @@ class TestOntologyEntity(unittest.TestCase):
         self.assertEqual(city.name.convert_to_datatype(12.3), "12.3")
         self.assertEqual(city.name.convert_to_datatype([1, 2, 3]), "[1, 2, 3]")
         self.assertTrue(np.all(
-            city.coordinates.convert_to_datatype([1, 2]) \
+            city.coordinates.convert_to_datatype([1, 2])
             == np.array([1, 2])))
         self.assertRaises(ValueError, city.coordinates.convert_to_datatype,
                           "[1, 2]")
