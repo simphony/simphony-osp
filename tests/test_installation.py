@@ -115,6 +115,14 @@ class TestParser(unittest.TestCase):
         self.assertEqual(self.installer.get_installed_packages(True),
                          [("city", o2), ("parser_test", o1)])
 
+    def test_sort_for_installation(self):
+        r = self.installer._sort_for_installation(["city", "parser_test"])
+        self.assertEqual(r, ["city", "parser_test"])
+        r = self.installer._sort_for_installation(["parser_test", "city"])
+        self.assertEqual(r, ["city", "parser_test"])
+        self.assertRaises(RuntimeError, self.installer._sort_for_installation,
+                          ["parser_test"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -102,6 +102,11 @@ class TestParser(unittest.TestCase):
         self.assertEqual(self.parser.get_identifier("parser_test"),
                          "parser_test")
 
+    def test_get_requirements(self):
+        self.assertEqual(self.parser.get_requirements(YML_DOC), set())
+        self.assertEqual(self.parser.get_requirements(YML_FILE), set())
+        self.assertEqual(self.parser.get_requirements("parser_test"), {"city"})
+
     def test_store(self):
         self.parser.parse(YML_FILE)
         with tempfile.TemporaryDirectory() as destination:
