@@ -3,8 +3,11 @@ import unittest2 as unittest
 import tempfile
 import rdflib
 from rdflib.compare import isomorphic
+from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.namespace_registry import NamespaceRegistry
 from osp.core.ontology.installation import OntologyInstallationManager
+from osp.core.ontology import OntologyClass, OntologyRelationship, \
+    OntologyAttribute
 
 CUBA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          "..", "osp", "core", "ontology", "docs", "cuba.ttl")
@@ -56,19 +59,70 @@ class TestParser(unittest.TestCase):
                           lines)
 
     def test_namespace_registry_load(self):
-        pass
+        self.graph.parse(RDF_FILE, format="ttl")
+        self.graph.bind("parser_test",
+                        rdflib.URIRef("http://www.osp-core.com/parser_test#"))
+        self.namespace_registry.update_namespaces()
+        self.namespace_registry.store(self.tempdir.name)
+
+        nr = NamespaceRegistry()
+        nr.load(self.tempdir.name)
+        self.assertTrue(isomorphic(nr._graph, self.graph))
+        self.assertIn("parser_test", nr)
 
     def test_namespace_registry_clear(self):
-        pass
+        self.namespace_registry.clear()
+        self.assertIsNot(self.namespace_registry._graph, self.graph)
+        self.assertTrue(isomorphic(self.namespace_registry._graph, self.graph))
 
     def test_namespace_registry_from_iri(self):
-        pass
+        c = self.namespace_registry.from_iri(rdflib_cuba.Class)
+        self.assertIsInstance(c, OntologyClass)
+        self.assertEquals(c.namespace.get_name(), "cuba")
+        self.assertEquals(c.name, "Class")
+        r = self.namespace_registry.from_iri(rdflib_cuba.relationship)
+        self.assertIsInstance(r, OntologyRelationship)
+        self.assertEquals(r.namespace.get_name(), "cuba")
+        self.assertEquals(r.name, "relationship")
+        a = self.namespace_registry.from_iri(rdflib_cuba.attribute)
+        self.assertIsInstance(a, OntologyAttribute)
+        self.assertEquals(a.namespace.get_name(), "cuba")
+        self.assertEquals(a.name, "attribute")
 
     def test_namespace_registry_update_namespaces(self):
-        pass
+        self.graph.bind("a", rdflib.URIRef("aaa"))
+        self.graph.bind("b", rdflib.URIRef("bbb"))
+        self.graph.bind("c", rdflib.URIRef("ccc"))
+        self.namespace_registry.update_namespaces()
+        self.assertEqual(self.namespace_registry.a.get_name(), "a")
+        self.assertEqual(self.namespace_registry.a.get_iri(),
+                         rdflib.URIRef("aaa"))
+        self.assertEqual(self.namespace_registry.b.get_name(), "b")
+        self.assertEqual(self.namespace_registry.b.get_iri(),
+                         rdflib.URIRef("bbb"))
+        self.assertEqual(self.namespace_registry.c.get_name(), "c")
+        self.assertEqual(self.namespace_registry.c.get_iri(),
+                         rdflib.URIRef("ccc"))
 
     def test_namespace_registry_get(self):
-        pass  # TODO iter, contains
+        self.installer.install("city")
+        self.assertIn("city", self.namespace_registry)
+        self.assertEqual(self.namespace_registry._get("city").get_name(),
+                         "city")
+        self.assertEqual(self.namespace_registry.get("city").get_name(),
+                         "city")
+        self.assertEqual(self.namespace_registry["city"].get_name(),
+                         "city")
+        self.assertEqual(self.namespace_registry.city.get_name(),
+                         "city")
+        self.assertRaises(KeyError, self.namespace_registry._get, "invalid")
+        self.assertEquals(self.namespace_registry.get("invalid"), None)
+        self.assertRaises(KeyError, self.namespace_registry.__getitem__,
+                          "invalid")
+        self.assertRaises(AttributeError, getattr, self.namespace_registry,
+                          "invalid")
+        self.assertEqual([x.get_name() for x in self.namespace_registry], [
+                         'xml', 'rdf', 'rdfs', 'xsd', 'cuba', 'owl', 'city'])
 
 
 if __name__ == "__main__":
