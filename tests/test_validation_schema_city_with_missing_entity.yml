@@ -4,7 +4,7 @@ oclass: city.City
 
 model:
     city.City:
-        city.hasCitizen:
+        city.hasInhabitant:
             city.Citizen:
                 cardinality: 1-2
         city.hasPart:
@@ -13,7 +13,8 @@ model:
     
     city.Neighborhood:
         city.hasPart:
-            city.Street: 1+
+            city.Street: 
+                cardinality: 1+
     
     city.GeographicalPlace:
         city.hasPart:

@@ -49,10 +49,10 @@ from osp.core.namespaces import cuba  # noqa: E402
 
 # These are the classes for the ontology entities
 from osp.core.ontology import (  # noqa: F401, E402
-      OntologyEntity,
-      OntologyClass,
-      OntologyRelationship,
-      OntologyAttribute
+    OntologyEntity,
+    OntologyClass,
+    OntologyRelationship,
+    OntologyAttribute
 )
 
 print("\nYou can test if an entity is a class")

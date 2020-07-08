@@ -11,6 +11,10 @@ class ConsistencyError(Exception):
     pass
 
 
+class CardinalityError(Exception):
+    pass
+
+
 def validate_tree_against_schema(root_obj, schema_file):
     """Checks whether the CUDS tree that starts at root_obj
     fulfills the cardinality constraints defined in the schema file.
@@ -34,7 +38,7 @@ def validate_tree_against_schema(root_obj, schema_file):
         try:
             entity_instances_to_check = oclass_groups[entity]
         except KeyError:
-            raise Exception(f"Instance of entity {entity} is expected to be \
+            raise ConsistencyError(f"Instance of entity {entity} is expected to be \
                             present in the CUDS tree, but none was found.")
 
         for cuds_obj in entity_instances_to_check:
@@ -80,7 +84,7 @@ def _check_cuds_object_cardinality(
             max,
             actual_cardinality,
             origin_cuds.uid)
-        raise ConsistencyError(message)
+        raise CardinalityError(message)
 
 
 def _interpret_cardinality_value_from_constraints(constraints):
