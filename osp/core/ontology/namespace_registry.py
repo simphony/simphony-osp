@@ -37,9 +37,7 @@ class NamespaceRegistry():
         return self._get(name)
 
     def __contains__(self, other):
-        if isinstance(other, str):
-            return other.lower() in self._namespaces.keys()
-        return other in self._namespaces.values()
+        return other.lower() in self._namespaces.keys()
 
     def get(self, name, fallback=None):
         try:

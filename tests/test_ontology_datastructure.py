@@ -59,6 +59,16 @@ class TestParser(unittest.TestCase):
                           lines)
 
     def test_namespace_registry_load(self):
+        # no graph.ttl found
+        self.namespace_registry.clear()
+        self.namespace_registry.load(self.tempdir.name)
+        g = rdflib.Graph()
+        g.parse(CUBA_FILE, format="ttl")
+        self.assertTrue(isomorphic(g, self.namespace_registry._graph))
+        self.namespace_registry.clear()
+        self.graph = self.namespace_registry._graph
+
+        # graph.ttl found
         self.graph.parse(RDF_FILE, format="ttl")
         self.graph.bind("parser_test",
                         rdflib.URIRef("http://www.osp-core.com/parser_test#"))

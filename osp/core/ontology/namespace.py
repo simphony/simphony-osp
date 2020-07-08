@@ -167,12 +167,10 @@ class OntologyNamespace():
     #     assert isinstance(entity, OntologyEntity)
     #     self._entities[entity.name.lower()] = entity
 
-    def get_author(self):
-        """Get the author of the namespace"""
-        logger.warning("The use of OntologyNamespace.author is deprecated.")
-        return self._author
+    # def get_author(self):
+    #     """Get the author of the namespace"""
+    #     return self._author
 
-    def get_version(self):
-        """Get the version of the namespace"""
-        logger.warning("The use of OntologyNamespace.version is deprecated.")
-        return self._version
+    # def get_version(self):
+    #     """Get the version of the namespace"""
+    #     return self._version
