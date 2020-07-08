@@ -159,8 +159,17 @@ class TestParser(unittest.TestCase):
         self.assertEqual(namespace.get("COORDINATES"), None)
 
     def test_namespace_str(self):
-        pass
+        self.installer.install("city")
+        namespace = self.namespace_registry.city
+        self.assertEqual(str(namespace),
+                         "city (http://www.osp-core.com/city#)")
+        self.assertEqual(repr(namespace),
+                         "<city: http://www.osp-core.com/city#>")
 
+    def test_get_default_rel(self):
+        self.installer.install("city")
+        namespace = self.namespace_registry.city
+        self.assertEqual(namespace.get_default_rel().name, "hasPart")
 
 if __name__ == "__main__":
     unittest.main()
