@@ -98,6 +98,11 @@ class TestParser(unittest.TestCase):
         self.assertIsInstance(a, OntologyAttribute)
         self.assertEqual(a.namespace.get_name(), "cuba")
         self.assertEqual(a.name, "attribute")
+        from osp.core.namespaces import from_iri
+        c = from_iri(rdflib_cuba.Class)
+        self.assertIsInstance(c, OntologyClass)
+        self.assertEqual(c.namespace.get_name(), "cuba")
+        self.assertEqual(c.name, "Class")
 
     def test_namespace_registry_update_namespaces(self):
         self.graph.bind("a", rdflib.URIRef("aaa"))

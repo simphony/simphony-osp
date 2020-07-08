@@ -25,5 +25,9 @@ def get_entity(name):
     return _namespace_registry._get(ns)._get(n)
 
 
+def from_iri(iri):
+    return _namespace_registry.from_iri(iri)
+
+
 def __getattr__(name):
     return getattr(_namespace_registry, name)
