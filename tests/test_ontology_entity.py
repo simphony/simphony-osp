@@ -45,15 +45,14 @@ class TestOntologyEntity(unittest.TestCase):
             cuba.Class
         })
         self.assertEqual(city.hasPart.subclasses, {
-            city.hasPart, city.hasInhabitant, city.hasMajor, city.hasChild,
-            city.hasWorker
+            city.hasPart, city.hasMajor, city.hasChild, city.hasWorker
         })
         self.assertEqual(city.hasPart.superclasses, {
             city.encloses, cuba.activeRelationship, cuba.relationship,
             city.hasPart
         })
         self.assertEqual(city.hasPart.direct_subclasses, {
-            city.hasChild, city.hasWorker, city.hasInhabitant
+            city.hasChild, city.hasWorker
         })
         self.assertEqual(city.hasPart.direct_superclasses, {city.encloses})
         self.assertEqual(city.name.subclasses, {city.name})

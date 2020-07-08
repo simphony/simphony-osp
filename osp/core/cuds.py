@@ -872,7 +872,8 @@ class Cuds():
             bool: True if they share the uid and class, False otherwise
         """
 
-        return other.oclass == self.oclass and self.uid == other.uid
+        return isinstance(other, Cuds) and other.oclass == self.oclass \
+            and self.uid == other.uid
 
     def __getstate__(self):
         """
