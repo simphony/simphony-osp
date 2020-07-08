@@ -1,5 +1,6 @@
 import unittest2 as unittest
 import rdflib
+import numpy as np
 
 from osp.core.namespaces import cuba
 from osp.core.ontology.cuba import rdflib_cuba
@@ -116,6 +117,67 @@ class TestOntologyEntity(unittest.TestCase):
                                                         inverse=True)),
             {city.Street, city.City, city.Neighborhood}
         )
+
+    def test_oclass_attributes(self):
+        self.assertEqual(city.City.attributes, {
+            city.name: None,
+            city.coordinates: rdflib.term.Literal('[0, 0]')
+        })
+        self.assertEqual(city.PopulatedPlace.attributes, {
+            city.name: None,
+            city.coordinates: rdflib.term.Literal('[0, 0]')
+        })
+        self.assertEqual(city.GeographicalPlace.attributes, {
+            city.name: None,
+        })
+
+    def test_oclass_get_default(self):
+        self.assertEqual(city.City._get_default(city.name.iri, city.City.iri),
+                         None)
+        self.assertEqual(city.City._get_default(city.name.iri,
+                                                city.GeographicalPlace.iri),
+                         None)
+        self.assertEqual(city.City._get_default(city.coordinates.iri,
+                                                city.City.iri),
+                         None)
+        self.assertEqual(city.City._get_default(city.coordinates.iri,
+                                                city.PopulatedPlace.iri),
+                         rdflib.term.Literal('[0, 0]'))
+
+    def test_get_attribute_values(self):
+        self.assertRaises(TypeError, city.City._get_attributes_values,
+                          kwargs={}, _force=False)
+        self.assertRaises(TypeError, city.City._get_attributes_values,
+                          kwargs={"name": "name", "invalid": "invalid"},
+                          _force=False)
+        self.assertEqual(city.City._get_attributes_values(kwargs={},
+                                                           _force=True),
+                          {city.name: None,
+                           city.coordinates: rdflib.term.Literal('[0, 0]')})
+        self.assertEqual(city.City._get_attributes_values(kwargs={},
+                                                           _force=True),
+                          {city.name: None,
+                           city.coordinates: rdflib.term.Literal('[0, 0]')})
+        self.assertEqual(city.City._get_attributes_values(
+            kwargs={"name": "Freiburg"}, _force=True),
+            {city.name: "Freiburg",
+             city.coordinates: rdflib.term.Literal('[0, 0]')}
+        )
+        self.assertEqual(city.City._get_attributes_values(
+            kwargs={"name": "Freiburg", "coordinates": [1, 1]}, _force=True),
+            {city.name: "Freiburg",
+             city.coordinates: [1, 1]}
+        )
+
+    def test_oclass_call(self):
+        c = city.City(name="Freiburg")
+        self.assertEqual(c.name, "Freiburg")
+        self.assertTrue(np.all(c.coordinates == np.array([0, 0])))
+        c = city.City(name="Basel", coordinates=[1, 2])
+        self.assertEqual(c.name, "Basel")
+        self.assertTrue(np.all(c.coordinates == np.array([1, 2])))
+        self.assertRaises(TypeError, city.City)
+        self.assertRaises(TypeError, city.City, name="Name", invalid="invalid")
 
 
 if __name__ == "__main__":
