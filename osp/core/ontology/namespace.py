@@ -128,22 +128,6 @@ class OntologyNamespace():
                 return OntologyClass(self, name)
         raise KeyError("Unknown entity '%s' in namespace %s" % (name, self))
 
-        # if (  # TODO case insensitivity
-        #     any(x.islower() for x in name)
-        #     and any(x.isupper() for x in name)
-        # ):
-        #     given = name
-        #     name = name[0]
-        #     for x in given[1:]:
-        #         if x.isupper():
-        #             name += "_"
-        #         name += x
-        # try:
-        #     return self._entities[name.lower()]
-        # except KeyError as e:
-        #     raise KeyError("%s not defined in namespace %s"
-        #                    % (name, self.name)) from e
-
     # def __iter__(self):  TODO
     #     """Iterate over the ontology entities in the namespace.
 

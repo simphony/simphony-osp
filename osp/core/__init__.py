@@ -17,8 +17,6 @@ logger.addHandler(ch)
 logging.getLogger("osp.wrappers").addHandler(ch)
 
 
-# TODO replacement for get_entity(), install_current_ontology()
-
 def __getattr__(name):
     import osp.core.namespaces
     if name != "load_tests":
