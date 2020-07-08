@@ -44,3 +44,16 @@ class OntologyRelationship(OntologyEntity):
         yield self
         yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
                                          inverse=True)
+
+    def _add_inverse(self):
+        o = rdflib.URIRef(self.namespace.get_iri() + "INVERSE_OF_" + self.name)
+        x = (self.iri, rdflib.OWL.inverseOf, o)
+        y = (o, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
+        # TODO add subclass statement
+        self.namespace._graph.add(x)
+        self.namespace._graph.add(y)
+        for superclass in self.direct_superclasses:
+            self.namespace._graph.add((
+                o, rdflib.RDFS.subPropertyOf, superclass.inverse.iri
+            ))
+        return self.namespace._namespace_registry.from_iri(o)

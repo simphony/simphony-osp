@@ -179,6 +179,19 @@ class TestOntologyEntity(unittest.TestCase):
         self.assertRaises(TypeError, city.City)
         self.assertRaises(TypeError, city.City, name="Name", invalid="invalid")
 
+    def test_rel_inverse(self):
+        self.assertEqual(city.hasPart.inverse, city.isPartOf)
+        self.assertEqual(city.isPartOf.inverse, city.hasPart)
+        self.assertEqual(cuba.relationship.inverse, cuba.relationship)
+        self.assertEqual(cuba.activeRelationship.inverse,
+                         cuba.passiveRelationship)
+        self.assertEqual(cuba.passiveRelationship.inverse,
+                         cuba.activeRelationship)
+        self.assertEqual(city.hasMajor.inverse,
+                         city.INVERSE_OF_hasMajor)
+        self.assertEqual(city.INVERSE_OF_hasMajor.direct_superclasses,
+                         {city.worksIn})
+        self.assertEqual(city.INVERSE_OF_hasMajor.inverse, city.hasMajor)
 
 if __name__ == "__main__":
     unittest.main()

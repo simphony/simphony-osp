@@ -15,7 +15,8 @@ cuba:_dtype rdf:type owl:AnnotationProperty .
 
 cuba:activeRelationship a owl:ObjectProperty ;
     rdfs:isDefinedBy "The root of all active relationships. Active relationships express that one cuds object is in the container of another." ;
-    rdfs:subPropertyOf cuba:relationship .
+    rdfs:subPropertyOf cuba:relationship ;
+    owl:inverseOf cuba:passiveRelationship .
 
 cuba:Entity a owl:Class ;
     rdfs:isDefinedBy "deprecated" ;
@@ -31,7 +32,8 @@ cuba:Nothing a owl:Class ;
 
 cuba:passiveRelationship a owl:ObjectProperty ;
     rdfs:isDefinedBy "The inverse of ACTIVE_Relationship." ;
-    rdfs:subPropertyOf cuba:relationship .
+    rdfs:subPropertyOf cuba:relationship ;
+    owl:inverseOf cuba:activeRelationship .
 
 cuba:path a owl:DatatypeProperty,
         owl:FunctionalProperty ;
@@ -49,6 +51,7 @@ cuba:attribute a owl:DatatypeProperty,
     rdfs:isDefinedBy "The root of all attributes." .
 
 cuba:relationship a owl:ObjectProperty ;
+    owl:inverseOf cuba:relationship ;
     rdfs:isDefinedBy "The root of all relationships." .
 
 cuba:Class a owl:Class ;

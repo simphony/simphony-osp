@@ -63,12 +63,6 @@ ontology:
   hasMajor:
     subclass_of:
     - city.hasWorker
-    inverse: city.isMajorOf
-
-  isMajorOf:
-    subclass_of:
-    - city.worksIn
-    inverse: city.hasMajor
 
  ################
 
