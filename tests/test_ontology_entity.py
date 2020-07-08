@@ -193,5 +193,29 @@ class TestOntologyEntity(unittest.TestCase):
                          {city.worksIn})
         self.assertEqual(city.INVERSE_OF_hasMajor.inverse, city.hasMajor)
 
+    def test_attribute_datatype(self):
+        self.assertEqual(city.name.datatype, None)
+        self.assertEqual(city.coordinates.datatype,
+                         rdflib_cuba["datatypes/VECTOR-INT-2"])
+        self.assertEqual(cuba.attribute.datatype, None)
+        self.assertEqual(city.name.convert_to_datatype("abc"), "abc")
+        self.assertEqual(city.name.convert_to_datatype(12.3), "12.3")
+        self.assertEqual(city.name.convert_to_datatype([1, 2, 3]), "[1, 2, 3]")
+        self.assertTrue(np.all(
+            city.coordinates.convert_to_datatype([1, 2]) \
+            == np.array([1, 2])))
+        self.assertRaises(ValueError, city.coordinates.convert_to_datatype,
+                          "[1, 2]")
+        self.assertRaises(ValueError, city.coordinates.convert_to_datatype,
+                          [1, 2, 3])
+        self.assertTrue(np.all(
+            city.coordinates.convert_to_datatype(rdflib.Literal([1, 2]))
+            == np.array([1, 2])))
+        self.assertEqual(
+            city.coordinates.convert_to_basic_type(np.array([1, 2])),
+            [1, 2]
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
