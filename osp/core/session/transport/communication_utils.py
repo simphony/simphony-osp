@@ -22,11 +22,11 @@ def decode_header(bytestring, lengths):
                          using utf-8.
     """
     i = 0
-    for lenght in lengths:
-        if i + lenght > len(bytestring):
+    for length in lengths:
+        if i + length > len(bytestring):
             raise IndexError("Length mismatch in header")
-        yield int.from_bytes(bytestring[i: i + lenght], byteorder="big")
-        i += lenght
+        yield int.from_bytes(bytestring[i: i + length], byteorder="big")
+        i += length
     if len(bytestring) > i:
         yield bytestring[i:].decode("utf-8")
 
