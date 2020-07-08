@@ -39,6 +39,10 @@ ontology:
     subclass_of: 
     - cuba.Class
 
+  ClassF:
+    subclass_of:
+    - city.City
+
   attributeA:
     datatype: STRING
     subclass_of:

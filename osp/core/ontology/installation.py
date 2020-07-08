@@ -70,7 +70,7 @@ class OntologyInstallationManager():
         graph = self.namespace_registry._graph
         if clear:
             graph = self.namespace_registry.clear()
-        files = filter_func(files)  # TODO order files
+        files = self._sort_for_installation(filter_func(files))
         parser = Parser(graph)
         for file in files:
             parser.parse(file)
@@ -81,3 +81,37 @@ class OntologyInstallationManager():
             os.makedirs(self.path)
         parser.store(self.path)
         self.namespace_registry.store(self.path)
+
+    def _sort_for_installation(self, files):
+        """Get the right order to install the files.
+
+        :param files: The list of file paths to sort.
+        :type files: List[str]
+        :return: The sorted list of file paths.
+        :rtype: List[str]
+        """
+        result = list()
+        files = {Parser.get_identifier(f): f for f in files}
+        requirements = {n: Parser.get_requirements(f) for
+                        n, f in files.items()}
+        installed = set(self.get_installed_packages())
+
+        # order the files
+        while requirements:
+            add_to_result = list()
+            for namespace, req in requirements.items():
+                req -= installed | set(result)
+                if not req:
+                    add_to_result.append(namespace)
+            if not add_to_result:
+                raise RuntimeError(
+                    "Installation failed. Unsatisfied requirements: \n - %s"
+                    % "\n - ".join(["%s: %s" % (n, r)
+                                    for n, r in requirements.items()])
+                )
+            result += add_to_result
+            for x in add_to_result:
+                del requirements[x]
+        logger.info("Will install the following namespaces: %s"
+                    % result)
+        return [files[n] for n in result]

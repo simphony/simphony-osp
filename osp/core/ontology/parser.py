@@ -13,6 +13,7 @@ NAMESPACES_KEY = "namespaces"
 ACTIVE_REL_KEY = "active_relationships"
 DEFAULT_REL_KEY = "default_relationship"
 FILE_FORMAT_KEY = "format"
+REQUIREMENTS_KEY = "requirements"
 ALL_KEYS = set([
     RDF_FILE_KEY, NAMESPACES_KEY, ACTIVE_REL_KEY, DEFAULT_REL_KEY,
     IDENTIFIER_KEY, FILE_FORMAT_KEY
@@ -41,7 +42,7 @@ class Parser():
             else:
                 raise SyntaxError(f"Invalid format of file {file_path}")
             self._yaml_docs.append(yaml_doc)
-        logger.info("Loaded ontology with %s triples" % len(self.graph))
+        logger.info("Loaded %s ontology triples in total" % len(self.graph))
 
     def store(self, destination):
         for yaml_doc in self._yaml_docs:
@@ -72,6 +73,18 @@ class Parser():
             return yaml_doc[IDENTIFIER_KEY]
         else:
             raise SyntaxError(f"Invalid format of file {file_path_or_doc}")
+
+    @staticmethod
+    def get_requirements(file_path_or_doc):
+        yaml_doc = file_path_or_doc
+        if isinstance(file_path_or_doc, str):
+            file_path = Parser.get_file_path(file_path_or_doc)
+            with open(file_path, "r") as f:
+                yaml_doc = yaml.safe_load(f)
+        if REQUIREMENTS_KEY in yaml_doc:
+            return set(yaml_doc[REQUIREMENTS_KEY])
+        else:
+            return set()
 
     @staticmethod
     def get_file_path(file_path):
