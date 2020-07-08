@@ -171,5 +171,6 @@ class TestParser(unittest.TestCase):
         namespace = self.namespace_registry.city
         self.assertEqual(namespace.get_default_rel().name, "hasPart")
 
+
 if __name__ == "__main__":
     unittest.main()
