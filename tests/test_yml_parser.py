@@ -197,8 +197,10 @@ class TestYmlParser(unittest.TestCase):
         iri = self.parser._get_iri(name)
         self.assertEqual(set(self.graph) - pre, {
             (iri, rdflib.RDF.type, rdflib.OWL.Class),
-            (iri, rdflib.RDFS.isDefinedBy, rdflib.term.Literal("Class A")),
-            (iri, rdflib.RDFS.subClassOf, rdflib_cuba.Class)
+            (iri, rdflib.RDFS.isDefinedBy,
+             rdflib.term.Literal("Class A", lang="en")),
+            (iri, rdflib.RDFS.subClassOf, rdflib_cuba.Class),
+            (iri, rdflib.RDFS.label, rdflib.term.Literal("ClassA", lang="en"))
         })
 
         # load relationship
@@ -209,7 +211,9 @@ class TestYmlParser(unittest.TestCase):
         iri = self.parser._get_iri(name)
         self.assertEqual(set(self.graph) - pre, {
             (iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty),
-            (iri, rdflib.RDFS.subPropertyOf, rdflib_cuba.activeRelationship)
+            (iri, rdflib.RDFS.subPropertyOf, rdflib_cuba.activeRelationship),
+            (iri, rdflib.RDFS.label,
+             rdflib.term.Literal("relationshipA", lang="en"))
         })
 
         # load attribute
@@ -221,7 +225,9 @@ class TestYmlParser(unittest.TestCase):
         self.assertEqual(set(self.graph) - pre, {
             (iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty),
             (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty),
-            (iri, rdflib.RDFS.subPropertyOf, rdflib_cuba.attribute)
+            (iri, rdflib.RDFS.subPropertyOf, rdflib_cuba.attribute),
+            (iri, rdflib.RDFS.label,
+             rdflib.term.Literal("attributeA", lang="en"))
         })
 
     def test_split_name(self):

@@ -111,8 +111,11 @@ class YmlParser:
         logger.debug("Parse entity definition for %s" % entity_name)
         iri = self._get_iri(entity_name)
         if DESCRIPTION_KEY in entity_doc:
-            description = rdflib.Literal(entity_doc[DESCRIPTION_KEY])
+            description = rdflib.Literal(entity_doc[DESCRIPTION_KEY],
+                                         lang="en")
             self.graph.add((iri, rdflib.RDFS.isDefinedBy, description))
+        label = rdflib.Literal(entity_name, lang="en")
+        self.graph.add((iri, rdflib.RDFS.label, label))
         self._add_type_triple(entity_name, iri)
 
         # Parse superclasses

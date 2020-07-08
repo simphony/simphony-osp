@@ -134,6 +134,28 @@ class TestParser(unittest.TestCase):
         self.assertEqual([x.get_name() for x in self.namespace_registry], [
                          'xml', 'rdf', 'rdfs', 'xsd', 'cuba', 'owl', 'city'])
 
+    def test_namespace_get(self):
+        self.installer.install("city")
+        namespace = self.namespace_registry.city
+        self.assertIsInstance(namespace.City, OntologyClass)
+        self.assertIsInstance(namespace.hasPart, OntologyRelationship)
+        self.assertIsInstance(namespace.coordinates, OntologyAttribute)
+        self.assertIsInstance(namespace["City"], OntologyClass)
+        self.assertIsInstance(namespace["City"], OntologyClass)
+        self.assertIsInstance(namespace["City", "en"], OntologyClass)
+        self.assertIsInstance(namespace["hasPart"], OntologyRelationship)
+        self.assertEqual(namespace["hasPart"].name, "hasPart")
+        self.assertIsInstance(namespace["coordinates"], OntologyAttribute)
+        self.assertIsInstance(namespace.get("City"), OntologyClass)
+        self.assertIsInstance(namespace.get("hasPart"), OntologyRelationship)
+        self.assertIsInstance(namespace.get("coordinates"), OntologyAttribute)
+        self.assertRaises(AttributeError, namespace.__getattr__, "CITY")
+        self.assertRaises(KeyError, namespace.__getitem__, "HAS_PART")
+        self.assertEqual(namespace.get("COORDINATES"), None)
+
+    def test_namespace_str(self):
+        pass
+
 
 if __name__ == "__main__":
     unittest.main()
