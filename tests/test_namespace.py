@@ -171,6 +171,12 @@ class TestNamespaces(unittest.TestCase):
         namespace = self.namespace_registry.city
         self.assertEqual(namespace.get_default_rel().name, "hasPart")
 
+    def test_contains(self):
+        self.installer.install("city")
+        namespace = self.namespace_registry.city
+        self.assertIn("City", namespace)
+        self.assertIn("hasPart", namespace)
+
 
 if __name__ == "__main__":
     unittest.main()

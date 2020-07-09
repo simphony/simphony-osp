@@ -164,25 +164,5 @@ class OntologyNamespace():
     #     """
     #     return iter(self._entities.values())
 
-    # def __contains__(self, obj):  TODO
-    #     if isinstance(obj, str):
-    #         return obj.lower() in self._entities.keys()
-    #     return obj in self._entities.values()
-
-    # def _add_entity(self, entity):  TODO for YAML
-    #     """Add an entity to the namespace.
-
-    #     :param entity: The entity to add.
-    #     :type entity: OntologyEntity
-    #     """
-    #     from osp.core.ontology.entity import OntologyEntity
-    #     assert isinstance(entity, OntologyEntity)
-    #     self._entities[entity.name.lower()] = entity
-
-    # def get_author(self):
-    #     """Get the author of the namespace"""
-    #     return self._author
-
-    # def get_version(self):
-    #     """Get the version of the namespace"""
-    #     return self._version
+    def __contains__(self, name):
+        return bool(self._get(name))
