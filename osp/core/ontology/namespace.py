@@ -12,6 +12,8 @@ from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.yml.case_insensitivity import \
+    get_case_insensitive_alternative as alt
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +110,7 @@ class OntologyNamespace():
         except KeyError:
             return fallback
 
-    def _get(self, name):
+    def _get(self, name, _case_sensitive=False):
         """Get an ontology entity from the registry by name.
 
         :param name: The name of the ontology entity
@@ -126,7 +128,30 @@ class OntologyNamespace():
                 return OntologyRelationship(self, name)
             if o == rdflib.OWL.Class:
                 return OntologyClass(self, name)
-        raise KeyError("Unknown entity '%s' in namespace %s" % (name, self))
+        if _case_sensitive:
+            raise KeyError(
+                f"Unknown entity '{name}' in namespace {self._name}"
+            )
+        return self._get_case_insensitive(name)
+
+    def _get_case_insensitive(self, name):
+        alternative = alt(name, self._name == "cuba")
+        if alternative is None:
+            raise KeyError(
+                f"Unknown entity '{name}' in namespace {self._name}."
+            )
+        try:
+            r = self._get(alternative, _case_sensitive=True)
+            logger.warning("Referencing entities will be case sensitive in "
+                           "future releases. Note that entity names no "
+                           "longer need to be ALL_CAPS in the YAML ontology.")
+            return r
+        except KeyError as e:
+            raise KeyError(
+                f"Unknown entity '{name}' in namespace {self._name}. "
+                f"For backwards compatibility reasons we also "
+                f"looked for {alternative} and failed."
+            ) from e
 
     # def __iter__(self):  TODO
     #     """Iterate over the ontology entities in the namespace.

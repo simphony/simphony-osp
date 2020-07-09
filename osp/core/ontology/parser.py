@@ -70,7 +70,7 @@ class Parser():
         if YmlParser.is_yaml_ontology(yaml_doc):
             return YmlParser.get_namespace_name(yaml_doc)
         elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
-            return yaml_doc[IDENTIFIER_KEY]
+            return yaml_doc[IDENTIFIER_KEY].lower()
         else:
             raise SyntaxError(f"Invalid format of file {file_path_or_doc}")
 

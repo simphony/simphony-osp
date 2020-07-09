@@ -126,8 +126,8 @@ class TestYmlParser(unittest.TestCase):
 
     def test_add_type_triple(self):
         iri = self.parser._get_iri("ClassA")
-        self.assertRaises(ValueError, self.parser._add_type_triple, "ClassA",
-                          iri)
+        self.assertRaises(AttributeError, self.parser._add_type_triple,
+                          "ClassA", iri)
         self.graph.parse(CUBA_FILE, format="ttl")
 
         # Class
@@ -177,16 +177,12 @@ class TestYmlParser(unittest.TestCase):
                                     "parser_test.attributeA")
 
     def test_get_iri(self):
-        self.assertEqual(self.parser._get_iri("A", "B"),
-                         rdflib.term.URIRef('http://www.osp-core.com/B#A'))
+        self.graph.parse(CUBA_FILE, format="ttl")
+        self.assertEqual(
+            self.parser._get_iri("Entity", "CUBA"),
+            rdflib.term.URIRef('http://www.osp-core.com/cuba#Entity'))
         self.assertEqual(self.parser._get_iri(None, "B"),
-                         rdflib.term.URIRef('http://www.osp-core.com/B#'))
-        self.assertEqual(
-            self.parser._get_iri("A", None),
-            self.parser._get_iri('A'))
-        self.assertEqual(
-            self.parser._get_iri(None, None),
-            self.parser._get_iri(''))
+                         rdflib.term.URIRef('http://www.osp-core.com/b#'))
 
     def test_load_entity(self):
         # load class
@@ -231,7 +227,8 @@ class TestYmlParser(unittest.TestCase):
         })
 
     def test_split_name(self):
-        self.assertEqual(("A", "B"), self.parser.split_name("A.B"))
+        self.assertEqual(("a", "B"), self.parser.split_name("A.B"))
+        self.assertEqual(("a", "b"), self.parser.split_name("a.b"))
         self.assertRaises(ValueError, self.parser.split_name, "B")
 
     def test_parse_ontology(self):

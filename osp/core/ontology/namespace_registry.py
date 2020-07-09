@@ -46,6 +46,7 @@ class NamespaceRegistry():
             return fallback
 
     def _get(self, name):
+        name = name.lower()
         if name in self._namespaces:
             return OntologyNamespace(name=name,
                                      namespace_registry=self,
@@ -55,7 +56,7 @@ class NamespaceRegistry():
     def update_namespaces(self):
         self._namespaces = dict()
         for name, iri in self._graph.namespace_manager.namespaces():
-            self._namespaces[name] = iri
+            self._namespaces[name.lower()] = iri
 
     def from_iri(self, iri):
         for name, ns_iri in self._graph.namespace_manager.namespaces():

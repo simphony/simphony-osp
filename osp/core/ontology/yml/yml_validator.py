@@ -12,8 +12,8 @@ from osp.core.ontology.yml.yml_keywords import (
 
 logger = logging.getLogger(__name__)
 
-entity_name_regex = r"([a-zA-Z])([a-zA-Z]|[0-9])*"
-namespace_name_regex = r"([a-z])([a-z]|[0-9]|_)*"
+entity_name_regex = r"([a-zA-Z])([a-zA-Z]|[0-9]|_)*"
+namespace_name_regex = r"([a-zA-Z])([a-zA-Z]|[0-9]|_)*"
 namespace_name_pattern = re.compile(namespace_name_regex)
 entity_name_pattern = re.compile(r"^%s$" % entity_name_regex)
 qualified_entity_name_pattern = re.compile(

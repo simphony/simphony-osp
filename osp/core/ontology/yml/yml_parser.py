@@ -19,6 +19,8 @@ from osp.core.ontology.yml.yml_keywords import (
 #     VERSION_KEY, ROOT_CLASS
 # )
 from osp.core.ontology.yml.yml_validator import validate
+from osp.core.ontology.yml.case_insensitivity import \
+    get_case_insensitive_alternative as alt
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +45,7 @@ class YmlParser:
 
     @staticmethod
     def get_namespace_name(doc):
-        return doc[NAMESPACE_KEY]
+        return doc[NAMESPACE_KEY].lower()
 
     def parse(self, file_path, doc=None):
         """
@@ -56,7 +58,7 @@ class YmlParser:
 
         # TODO version and author
         self._file_path = file_path
-        self._namespace = self._doc[NAMESPACE_KEY]
+        self._namespace = self._doc[NAMESPACE_KEY].lower()
         self._ontology_doc = self._doc[ONTOLOGY_KEY]
         self._parse_ontology()
 
@@ -97,7 +99,7 @@ class YmlParser:
     def split_name(name):
         try:
             a, b = name.split(".")
-            return a, b
+            return a.lower(), b
         except ValueError as e:
             raise ValueError("Reference to entity '%s' without namespace"
                              % name) from e
@@ -123,28 +125,62 @@ class YmlParser:
             self._add_superclass(entity_name, iri, superclass_doc)
         return entity_doc
 
-    def _get_iri(self, entity_name=None, namespace=None):
+    def _get_iri(self, entity_name=None, namespace=None,
+                 current_entity=None, _case_sensitive=False):
         namespace = namespace or self._namespace
+        namespace = namespace.lower()
         entity_name = entity_name or ""
-        return rdflib.URIRef(
+        iri = rdflib.URIRef(
             f"http://www.osp-core.com/{namespace}#{entity_name}"
         )
+        if not entity_name:
+            return iri
+        if ((
+            namespace == self._namespace
+            and entity_name not in self._ontology_doc
+        ) or (
+            namespace != self._namespace
+            and (iri, None, None) not in self.graph
+        )):
+            if _case_sensitive:
+                raise AttributeError(
+                    f"Reference to undefined entity {namespace}.{entity_name} "
+                    f"in  definition of {current_entity}"
+                )
+            return self._get_iri_case_insensitive(entity_name, namespace,
+                                                  current_entity)
+        return iri
+
+    def _get_iri_case_insensitive(self, entity_name, namespace,
+                                  current_entity):
+        alternative = alt(entity_name, namespace == "cuba")
+        if alternative is None:
+            raise AttributeError(
+                f"Reference to undefined entity {namespace}.{entity_name} "
+                f"in  definition of {current_entity}"
+            )
+        try:
+            r = self._get_iri(alternative, namespace, current_entity, True)
+            logger.warning(
+                f"Referencing entities will be case sensitive in future "
+                f"releases. Note that entity names no longer need to be "
+                f"ALL_CAPS in the YAML ontology. Referenced {namespace}."
+                f"{alternative} with '{namespace}.{entity_name}' in "
+                f"definition of {current_entity}."
+            )
+            return r
+        except AttributeError as e:
+            raise AttributeError(
+                f"Referenced undefined entity '{namespace}.{entity_name}' in "
+                f"definition of entity {current_entity}. "
+                f"For backwards compatibility reasons we also  looked for "
+                f"{namespace}.{alternative} and failed.") from e
 
     def _add_superclass(self, entity_name, iri, superclass_doc):
         if isinstance(superclass_doc, str):
             namespace, superclass_name = self.split_name(superclass_doc)
-            superclass_iri = self._get_iri(superclass_name, namespace)
-            if ((  # Check if superclass is defined
-                namespace == self._namespace
-                and superclass_name not in self._ontology_doc
-            ) or (
-                namespace != self._namespace
-                and (superclass_iri, None, None) not in self.graph
-            )):
-                raise AttributeError(
-                    f"Reference to undefined entity {superclass_doc} in "
-                    f"definition of {entity_name}"
-                )
+            superclass_iri = self._get_iri(superclass_name, namespace,
+                                           entity_name)
             predicate = rdflib.RDFS.subPropertyOf
             if (iri, rdflib.RDF.type, rdflib.OWL.Class) in self.graph:
                 predicate = rdflib.RDFS.subClassOf
@@ -158,7 +194,7 @@ class YmlParser:
             namespace, name = queue.pop()
 
             # same type as parent
-            superclass_iri = self._get_iri(name, namespace)
+            superclass_iri = self._get_iri(name, namespace, entity_name)
             triple = (superclass_iri, rdflib.RDF.type, None)
             for _, _, o in self.graph.triples(triple):
                 types.add(o)
@@ -222,7 +258,8 @@ class YmlParser:
             attribute_namespace, attribute_name = \
                 self.split_name(attribute_name)
 
-            attribute_iri = self._get_iri(attribute_name, attribute_namespace)
+            attribute_iri = self._get_iri(attribute_name, attribute_namespace,
+                                          entity_name)
             x = (attribute_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
             if x not in self.graph:
                 raise ValueError(f"Invalid attribute {attribute_namespace}."
@@ -253,7 +290,8 @@ class YmlParser:
         #         "Conflicting inverses for %s, %s, %s"
         #         % (entity, inverse, inverse.inverse)
         #     )
-        inverse_iri = self._get_iri(inverse_name, inverse_namespace)
+        inverse_iri = self._get_iri(inverse_name, inverse_namespace,
+                                    entity_name)
         iri = self._get_iri(entity_name)
         self.graph.add(
             (iri, rdflib.OWL.inverseOf, inverse_iri)
