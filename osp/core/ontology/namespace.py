@@ -142,9 +142,10 @@ class OntologyNamespace():
             )
         try:
             r = self._get(alternative, _case_sensitive=True)
-            logger.warning("Referencing entities will be case sensitive in "
-                           "future releases. Note that entity names no "
-                           "longer need to be ALL_CAPS in the YAML ontology.")
+            logger.warning(f"Referencing entities will be case sensitive in "
+                           f"future releases. Note that entity names no "
+                           f"longer need to be ALL_CAPS in the YAML ontology. "
+                           f"Referenced {alternative} with '{name}'.")
             return r
         except KeyError as e:
             raise KeyError(
