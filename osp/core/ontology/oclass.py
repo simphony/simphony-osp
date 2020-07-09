@@ -63,6 +63,15 @@ class OntologyClass(OntologyEntity):
             if attribute.argname in kwargs:
                 attributes[attribute] = kwargs[attribute.argname]
                 del kwargs[attribute.argname]
+            elif attribute.argname.lower() in kwargs:
+                attributes[attribute] = kwargs[attribute.argname.lower()]
+                del kwargs[attribute.argname.lower()]
+                logger.warning(f"Providing attribute values will be case "
+                               f"sensitive in future releases. Referenced "
+                               f"{attribute.argname} with "
+                               f"'{attribute.argname.lower()}'. "
+                               f"Note that entity names no longer need to be "
+                               f"ALL_CAPS in the YAML ontology")
             else:
                 attributes[attribute] = default
 

@@ -802,6 +802,16 @@ class Cuds():
                     "its session '%s' instead." % (name, self, self._session)
                 )
                 return getattr(self._session, name)
+            elif name.upper() in self._attr_values:
+                logger.warning(
+                    f"Accessing attribute values will be case "
+                    f"sensitive in future releases. Referenced "
+                    f"{name.upper()} with "
+                    f"'{name}'. "
+                    f"Note that entity names no longer need to be "
+                    f"ALL_CAPS in the YAML ontology"
+                )
+                return self._attr_values[name.upper()]
             else:
                 raise AttributeError(name)
         if self.session:
@@ -827,6 +837,16 @@ class Cuds():
             super().__setattr__(name, new_value)
             return
         if name not in self._attr_values:
+            if name.upper() in self._attr_values:
+                logger.warning(
+                    f"Setting attribute values will be case "
+                    f"sensitive in future releases. Referenced "
+                    f"{name.upper()} with "
+                    f"'{name}'. "
+                    f"Note that entity names no longer need to be "
+                    f"ALL_CAPS in the YAML ontology"
+                )
+                return self._attr_values[name.upper()]
             raise AttributeError(name)
         if self.session:
             self.session._notify_read(self)
