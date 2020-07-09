@@ -2,6 +2,7 @@ import os
 import yaml
 import rdflib
 import unittest2 as unittest
+import logging
 from rdflib.compare import isomorphic
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.yml.yml_parser import YmlParser
@@ -177,11 +178,44 @@ class TestYmlParser(unittest.TestCase):
                                     "parser_test.attributeA")
 
     def test_get_iri(self):
+        logging.getLogger(
+            "osp.core.ontology.yml.yml_parser"
+        ).addFilter(lambda record: False)
         self.graph.parse(CUBA_FILE, format="ttl")
         self.assertEqual(
             self.parser._get_iri("Entity", "CUBA"),
             rdflib.term.URIRef('http://www.osp-core.com/cuba#Entity'))
+        self.assertEqual(
+            self.parser._get_iri("ENTITY", "CUBA"),
+            rdflib.term.URIRef('http://www.osp-core.com/cuba#Entity'))
+        self.assertEqual(
+            self.parser._get_iri("ENTITY", "cuba"),
+            rdflib.term.URIRef('http://www.osp-core.com/cuba#Entity'))
+        self.assertEqual(
+            self.parser._get_iri("entity", "CUBA"),
+            rdflib.term.URIRef('http://www.osp-core.com/cuba#Entity'))
+        self.assertRaises(AttributeError, self.parser._get_iri, "A", "B")
+        self.graph.add((
+            rdflib.term.URIRef('http://www.osp-core.com/ns#MY_CLASS'),
+            rdflib.RDF.type, rdflib.OWL.Class
+        ))
+        self.assertEqual(
+            self.parser._get_iri("my_class", "NS"),
+            rdflib.term.URIRef('http://www.osp-core.com/ns#MY_CLASS'))
+        self.assertEqual(
+            self.parser._get_iri("MY_CLASS", "NS"),
+            rdflib.term.URIRef('http://www.osp-core.com/ns#MY_CLASS'))
+        self.assertEqual(
+            self.parser._get_iri("myClass", "ns"),
+            rdflib.term.URIRef('http://www.osp-core.com/ns#MY_CLASS'))
+        self.assertEqual(
+            self.parser._get_iri("MyClass", "NS"),
+            rdflib.term.URIRef('http://www.osp-core.com/ns#MY_CLASS'))
+
+        # no entity name --> no checks
         self.assertEqual(self.parser._get_iri(None, "B"),
+                         rdflib.term.URIRef('http://www.osp-core.com/b#'))
+        self.assertEqual(self.parser._get_iri(None, "b"),
                          rdflib.term.URIRef('http://www.osp-core.com/b#'))
 
     def test_load_entity(self):
