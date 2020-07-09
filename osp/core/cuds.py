@@ -804,12 +804,11 @@ class Cuds():
                 return getattr(self._session, name)
             elif name.upper() in self._attr_values:
                 logger.warning(
-                    f"Accessing attribute values will be case "
-                    f"sensitive in future releases. Referenced "
-                    f"{name.upper()} with "
-                    f"'{name}'. "
-                    f"Note that entity names no longer need to be "
-                    f"ALL_CAPS in the YAML ontology"
+                    f"{name.upper()} is referenced with '{name}'. "
+                    f"Note that you must match the case of the definition in "
+                    f"the ontology in future releases. Additionally, entity "
+                    f"names defined in YAML ontology are no longer required "
+                    f"to be ALL_CAPS."
                 )
                 return self._attr_values[name.upper()]
             else:
@@ -839,12 +838,11 @@ class Cuds():
         if name not in self._attr_values:
             if name.upper() in self._attr_values:
                 logger.warning(
-                    f"Setting attribute values will be case "
-                    f"sensitive in future releases. Referenced "
-                    f"{name.upper()} with "
-                    f"'{name}'. "
-                    f"Note that entity names no longer need to be "
-                    f"ALL_CAPS in the YAML ontology"
+                    f"{name.upper()} is referenced with '{name}'. "
+                    f"Note that you must match the case of the definition in "
+                    f"the ontology in future releases. Additionally, entity "
+                    f"names defined in YAML ontology are no longer required "
+                    f"to be ALL_CAPS."
                 )
                 return self._attr_values[name.upper()]
             raise AttributeError(name)

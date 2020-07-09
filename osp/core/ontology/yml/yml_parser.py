@@ -162,11 +162,12 @@ class YmlParser:
         try:
             r = self._get_iri(alternative, namespace, current_entity, True)
             logger.warning(
-                f"Referencing entities will be case sensitive in future "
-                f"releases. Note that entity names no longer need to be "
-                f"ALL_CAPS in the YAML ontology. Referenced {namespace}."
-                f"{alternative} with '{namespace}.{entity_name}' in "
-                f"definition of {current_entity}."
+                f"{namespace}.{alternative} is referenced with "
+                f"'{namespace}.{entity_name}' in defintion of "
+                f"{current_entity}. "
+                f"Note that referencing entities will be case sensitive "
+                f"in future releases. Additionally, entity names defined "
+                f"in YAML ontology are no longer required to be ALL_CAPS."
             )
             return r
         except AttributeError as e:

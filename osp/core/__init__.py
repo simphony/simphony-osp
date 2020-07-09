@@ -21,5 +21,5 @@ def __getattr__(name):
     import osp.core.namespaces
     if name != "load_tests":
         logger.warning(f"osp.core.{name} is deprecated. "
-                    f"Use osp.core.namespaces.{name} instead.")
+                       f"Use osp.core.namespaces.{name} instead.")
     return getattr(osp.core.namespaces, name)
