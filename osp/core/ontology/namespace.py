@@ -132,8 +132,8 @@ class OntologyNamespace():
         iri = rdflib.URIRef(str(self._iri) + iri_suffix)
         for s, p, o in self._graph.triples((iri, rdflib.RDF.type, None)):
             if o == rdflib.OWL.DatatypeProperty:
-                assert (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty) \
-                    in self._graph  # TODO allow non functional attributes
+                # assert (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty)
+                #     in self._graph  # TODO allow non functional attributes
                 return OntologyAttribute(self, name, iri_suffix)
             if o == rdflib.OWL.ObjectProperty:
                 return OntologyRelationship(self, name, iri_suffix)

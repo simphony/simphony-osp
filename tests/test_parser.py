@@ -92,7 +92,21 @@ class TestParser(unittest.TestCase):
             self.parser.get_file_path("my_file"),
             os.path.abspath(os.path.relpath(os.path.join(
                 os.path.dirname(__file__), "..", "osp", "core", "ontology",
-                "docs", "my_file.ontology.yml"
+                "docs", "my_file.yml"
+            )))
+        )
+        self.assertEqual(
+            self.parser.get_file_path("emmo"),
+            os.path.abspath(os.path.relpath(os.path.join(
+                os.path.dirname(__file__), "..", "osp", "core", "ontology",
+                "docs", "emmo.yml"
+            )))
+        )
+        self.assertEqual(
+            self.parser.get_file_path("city"),
+            os.path.abspath(os.path.relpath(os.path.join(
+                os.path.dirname(__file__), "..", "osp", "core", "ontology",
+                "docs", "city.ontology.yml"
             )))
         )
 
