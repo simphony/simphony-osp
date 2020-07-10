@@ -92,9 +92,15 @@ class Parser():
         if file_path.endswith(".yml"):
             return file_path
         file_path = file_path.lower()
-        return os.path.join(
+        a = os.path.join(
             os.path.dirname(__file__), "docs", f"{file_path}.ontology.yml"
         )
+        b = os.path.join(
+            os.path.dirname(__file__), "docs", f"{file_path}.yml"
+        )
+        if os.path.exists(a):
+            return a
+        return b
 
     def _parse_yml(self, yaml_doc, file_path):
         """Parse the owl files specified in the given YAML docs

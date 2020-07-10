@@ -1,3 +1,4 @@
 include packageinfo.py
 include osp/core/ontology/docs/*.yml
 include osp/core/ontology/docs/*.ttl
+include osp/core/ontology/docs/EMMO/emmo-inferred.owl
