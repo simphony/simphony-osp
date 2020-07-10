@@ -205,10 +205,10 @@ class TestSqliteCity(unittest.TestCase):
                                "WHERE uid='%s';" % (p2.uid))
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
-                               % (session.relationship_TABLE, p2.uid, p2.uid))
+                               % (session.RELATIONSHIP_TABLE, p2.uid, p2.uid))
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
-                               % (session.relationship_TABLE, p3.uid, p3.uid))
+                               % (session.RELATIONSHIP_TABLE, p3.uid, p3.uid))
                 cursor.execute("DELETE FROM CUDS_city___CITIZEN "
                                "WHERE uid == '%s'"
                                % p3.uid)
@@ -257,10 +257,10 @@ class TestSqliteCity(unittest.TestCase):
                                "WHERE uid='%s';" % (p1.uid))
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
-                               % (session.relationship_TABLE, p2.uid, p2.uid))
+                               % (session.RELATIONSHIP_TABLE, p2.uid, p2.uid))
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
-                               % (session.relationship_TABLE, p3.uid, p3.uid))
+                               % (session.RELATIONSHIP_TABLE, p3.uid, p3.uid))
                 cursor.execute("DELETE FROM CUDS_city___CITIZEN "
                                "WHERE uid == '%s'"
                                % p3.uid)
@@ -342,7 +342,7 @@ def check_state(test_case, c, p1, p2, db=DB):
         })
 
         cursor.execute("SELECT origin, target, name, target_oclass FROM %s;"
-                       % SqliteSession.relationship_TABLE)
+                       % SqliteSession.RELATIONSHIP_TABLE)
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
             (str(c.uid), str(p1.uid), "city.hasInhabitant", "city.Citizen"),
@@ -369,7 +369,7 @@ def check_db_cleared(test_case, table):
         test_case.assertEqual(
             list(cursor), [('00000000-0000-0000-0000-000000000000', '', 0)])
         cursor.execute("SELECT * FROM %s;"
-                       % SqliteSession.relationship_TABLE)
+                       % SqliteSession.RELATIONSHIP_TABLE)
         test_case.assertEqual(list(cursor), list())
         cursor.execute("SELECT * FROM CUDS_city___CITIZEN")
         test_case.assertEqual(list(cursor), list())
