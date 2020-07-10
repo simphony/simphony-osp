@@ -12,6 +12,7 @@ cuba:_default_rel rdf:type owl:AnnotationProperty .
 cuba:_length rdf:type owl:AnnotationProperty .
 cuba:_shape rdf:type owl:AnnotationProperty .
 cuba:_dtype rdf:type owl:AnnotationProperty .
+cuba:_reference_by_label rdf:type owl:AnnotationProperty .
 
 cuba:activeRelationship a owl:ObjectProperty ;
     rdfs:isDefinedBy "The root of all active relationships. Active relationships express that one cuds object is in the container of another." ;

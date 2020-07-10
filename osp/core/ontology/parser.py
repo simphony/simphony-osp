@@ -14,9 +14,10 @@ ACTIVE_REL_KEY = "active_relationships"
 DEFAULT_REL_KEY = "default_relationship"
 FILE_FORMAT_KEY = "format"
 REQUIREMENTS_KEY = "requirements"
+REFERENCE_STYLE_KEY = "reference_by_label"
 ALL_KEYS = set([
     RDF_FILE_KEY, NAMESPACES_KEY, ACTIVE_REL_KEY, DEFAULT_REL_KEY,
-    IDENTIFIER_KEY, FILE_FORMAT_KEY
+    IDENTIFIER_KEY, FILE_FORMAT_KEY, REFERENCE_STYLE_KEY
 ])
 
 
@@ -126,6 +127,7 @@ class Parser():
             identifier = kwargs[IDENTIFIER_KEY]
             active_rels = kwargs.get(ACTIVE_REL_KEY, [])
             default_rel = kwargs.get(DEFAULT_REL_KEY, None)
+            reference_style = kwargs.get(REFERENCE_STYLE_KEY, False)
             file_format = kwargs.get(FILE_FORMAT_KEY, "xml")
         except KeyError as e:
             raise TypeError(
@@ -142,6 +144,7 @@ class Parser():
         self._graphs[identifier].parse(rdf_file, format=file_format)
         self.graph.parse(rdf_file, format=file_format)
         default_rels = dict()
+        reference_styles = dict()
         for namespace, iri in namespaces.items():
             if not (
                 iri.endswith("#") or iri.endswith("/")
@@ -150,9 +153,11 @@ class Parser():
             logger.debug("Create namespace %s" % namespace)
             self.graph.bind(namespace, rdflib.URIRef(iri))
             default_rels[iri] = default_rel
+            reference_styles[iri] = reference_style
 
         self._add_cuba_triples(active_rels)
         self._add_default_rel_triples(default_rels)
+        self._add_reference_style_triples(reference_styles)
 
     def _add_default_rel_triples(self, default_rels):
         for namespace, default_rel in default_rels.items():
@@ -170,3 +175,12 @@ class Parser():
                 (rdflib.URIRef(rel), rdflib.RDFS.subPropertyOf,
                  rdflib_cuba.activeRelationship)
             )
+
+    def _add_reference_style_triples(self, reference_styles):
+        for namespace, by_label in reference_styles.items():
+            if by_label:
+                self.graph.add((
+                    rdflib.URIRef(namespace),
+                    rdflib_cuba._reference_by_label,
+                    rdflib.Literal(True)
+                ))

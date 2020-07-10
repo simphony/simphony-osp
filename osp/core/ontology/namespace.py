@@ -25,6 +25,9 @@ class OntologyNamespace():
         self._iri = rdflib.URIRef(str(iri))
         self._label_cache = dict()
         self._default_rel = -1
+        self._reference_by_label = (
+            self._iri, rdflib_cuba._reference_by_label, rdflib.Literal(True)
+        ) in self._graph
 
     def __str__(self):
         return "%s (%s)" % (self._name, self._iri)
@@ -81,13 +84,18 @@ class OntologyNamespace():
             label = rdflib.term.Literal(label[0], lang=label[1])
         if label in self._label_cache:
             return self._label_cache[label]
+        result = list()
         for s, p, o in self._graph.triples((None, rdflib.RDFS.label, label)):
             if str(s).startswith(self._iri):  # TODO more efficient
                 name = str(s)[len(self._iri):]
-                self._label_cache[label] = self.get(name)
-                return self._label_cache[label]
-        raise KeyError("No element with label %s in namespace %s"
-                       % (label, self))
+                result.append(
+                    self._get(str(label) if self._reference_by_label else name,
+                              _case_sensitive=True, _force_by_iri=name))
+        if not result:
+            raise KeyError("No element with label %s in namespace %s"
+                           % (label, self))
+        self._label_cache[label] = result
+        return result
 
     def __getstate__(self):
         return self.__dict__
@@ -110,7 +118,7 @@ class OntologyNamespace():
         except KeyError:
             return fallback
 
-    def _get(self, name, _case_sensitive=False):
+    def _get(self, name, _case_sensitive=False, _force_by_iri=False):
         """Get an ontology entity from the registry by name.
 
         :param name: The name of the ontology entity
@@ -118,16 +126,19 @@ class OntologyNamespace():
         :return: The ontology entity
         :rtype: OntologyEntity
         """
-        iri = rdflib.URIRef(str(self._iri) + name)
+        if self._reference_by_label and not _force_by_iri:
+            return self[name][0]
+        iri_suffix = name if not _force_by_iri else _force_by_iri
+        iri = rdflib.URIRef(str(self._iri) + iri_suffix)
         for s, p, o in self._graph.triples((iri, rdflib.RDF.type, None)):
             if o == rdflib.OWL.DatatypeProperty:
                 assert (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty) \
                     in self._graph  # TODO allow non functional attributes
-                return OntologyAttribute(self, name)
+                return OntologyAttribute(self, name, iri_suffix)
             if o == rdflib.OWL.ObjectProperty:
-                return OntologyRelationship(self, name)
+                return OntologyRelationship(self, name, iri_suffix)
             if o == rdflib.OWL.Class:
-                return OntologyClass(self, name)
+                return OntologyClass(self, name, iri_suffix)
         if _case_sensitive:
             raise KeyError(
                 f"Unknown entity '{name}' in namespace {self._name}"

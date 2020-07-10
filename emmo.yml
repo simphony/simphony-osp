@@ -1,6 +1,7 @@
 ---
 identifier: emmo
 ontology_file: ../emmo-20200109/emmo-inferred.owl
+reference_by_label: True
 namespaces:
     models: http://emmo.info/domains/emmo-models.owl
     graphical: http://emmo.info/domains/emmo-graphical.owl

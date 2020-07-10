@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class OntologyEntity(ABC):
     @abstractmethod
-    def __init__(self, namespace, name):
+    def __init__(self, namespace, name, iri_suffix):
         """Initialise the ontology entity
 
         :param namespace: The namespace of the entity
@@ -23,6 +23,7 @@ class OntologyEntity(ABC):
         :type name: str
         """
         self._name = name
+        self._iri_suffix = iri_suffix
         self._namespace = namespace
 
     def __str__(self):
@@ -46,11 +47,11 @@ class OntologyEntity(ABC):
     @property
     def iri(self):
         """Get the IRI of the Entity"""
-        return rdflib.URIRef(self._namespace.get_iri() + self.name)
+        return rdflib.URIRef(self._namespace.get_iri() + self._iri_suffix)
 
     @property
     def tblname(self):
-        return "%s___%s" % (self.namespace._name, self._name)
+        return "%s___%s" % (self.namespace._name, self._iri_suffix)
 
     @property
     def namespace(self):

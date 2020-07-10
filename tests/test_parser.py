@@ -142,6 +142,19 @@ class TestParser(unittest.TestCase):
         x["ontology_file"] = YML_DOC["ontology_file"]
         self.assertEqual(x, YML_DOC)
 
+    def test_add_reference_style_triples(self):
+        self.parser._add_reference_style_triples({
+            "ns1": True,
+            "ns2": False,
+            "ns3": True
+        })
+        self.assertEqual(set(self.graph), {
+            (rdflib.URIRef("ns1"), rdflib_cuba._reference_by_label,
+             rdflib.Literal(True)),
+            (rdflib.URIRef("ns3"), rdflib_cuba._reference_by_label,
+             rdflib.Literal(True)),
+        })
+
 
 if __name__ == "__main__":
     unittest.main()
