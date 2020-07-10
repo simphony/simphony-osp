@@ -1,0 +1,3 @@
+[submodule "osp/core/ontology/docs/EMMO"]
+	path = osp/core/ontology/docs/EMMO
+	url = https://github.com/emmo-repo/EMMO.git
