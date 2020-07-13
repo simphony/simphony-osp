@@ -14,7 +14,7 @@ FILES = [
 ]
 
 
-class TestParser(unittest.TestCase):
+class TestInstallation(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.TemporaryDirectory()
         self.namespace_registry = NamespaceRegistry()
@@ -45,9 +45,9 @@ class TestParser(unittest.TestCase):
         self.assertEqual(
             self.namespace_registry._namespaces["parser_test"],
             rdflib.term.URIRef('http://www.osp-core.com/parser_test#'))
-        self.assertEqual(os.listdir(self.tempdir.name), [
+        self.assertEqual(sorted(os.listdir(self.tempdir.name)), sorted([
             'city.yml', 'graph.xml', 'namespaces.txt', 'parser_test.xml',
-            'parser_test.yml'])
+            'parser_test.yml']))
         with open(os.path.join(self.tempdir.name, "namespaces.txt")) as f:
             lines = set(map(lambda x: x.strip(), f))
             self.assertIn("city\thttp://www.osp-core.com/city#", lines)
@@ -64,9 +64,9 @@ class TestParser(unittest.TestCase):
         self.assertEqual(
             self.namespace_registry._namespaces["parser_test"],
             rdflib.term.URIRef('http://www.osp-core.com/parser_test#'))
-        self.assertEqual(os.listdir(self.tempdir.name), [
+        self.assertEqual(sorted(os.listdir(self.tempdir.name)), sorted([
             'graph.xml', 'namespaces.txt', 'parser_test.xml',
-            'parser_test.yml'])
+            'parser_test.yml']))
         with open(os.path.join(self.tempdir.name, "namespaces.txt")) as f:
             lines = set(map(lambda x: x.strip(), f))
             self.assertNotIn("city\thttp://www.osp-core.com/city#", lines)
