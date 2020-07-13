@@ -143,7 +143,10 @@ class OntologyEntity(ABC):
                 triple = (None, predicate_iri, current)
             for x in self.namespace._graph.triples(triple):
                 o = x[0 if inverse else 2]
-                if o not in result and not isinstance(o, rdflib.BNode):
+                if o not in result and not isinstance(o, rdflib.BNode) \
+                    and not str(o).startswith((str(rdflib.RDF),
+                                               str(rdflib.RDFS),
+                                               str(rdflib.OWL))):
                     frontier.add(o)
                     result.add(o)
                     yield self.namespace._namespace_registry.from_iri(o)
@@ -154,7 +157,11 @@ class OntologyEntity(ABC):
             triple = (None, predicate_iri, self.iri)
         for x in self.namespace._graph.triples(triple):
             o = x[0 if inverse else 2]
-            yield self.namespace._namespace_registry.from_iri(o)
+            if not isinstance(o, rdflib.BNode) \
+                and not str(o).startswith((str(rdflib.RDF),
+                                           str(rdflib.RDFS),
+                                           str(rdflib.OWL))):
+                yield self.namespace._namespace_registry.from_iri(o)
 
     def __hash__(self):
         return hash(self.iri)

@@ -134,7 +134,7 @@ ontology:
     - cuba.attribute
     datatype: VECTOR:INT:2
 
-  address:
+  Address:
     subclass_of:
     - cuba.Class
     - city.isPartOf:

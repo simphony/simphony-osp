@@ -106,23 +106,35 @@ class TestYmlParser(unittest.TestCase):
         # with default
         pre = set(self.graph)
         self.parser._add_attributes("ClassA", self.ontology_doc["ClassA"])
-        bnode = self.graph.value(self.parser._get_iri("ClassA"),
-                                 rdflib_cuba._default)
+        bnode1 = self.graph.value(self.parser._get_iri("ClassA"),
+                                  rdflib_cuba._default)
+        bnode2 = self.graph.value(None, rdflib.RDF.type,
+                                  rdflib.OWL.Restriction)
         self.assertEqual(set(self.graph) - pre, {
-            (self.parser._get_iri("ClassA"), rdflib_cuba._default, bnode),
-            (bnode, rdflib_cuba._default_value, rdflib.Literal("DEFAULT_A")),
-            (bnode, rdflib_cuba._default_attribute,
+            (self.parser._get_iri("ClassA"), rdflib_cuba._default, bnode1),
+            (bnode1, rdflib_cuba._default_value, rdflib.Literal("DEFAULT_A")),
+            (bnode1, rdflib_cuba._default_attribute,
              self.parser._get_iri("attributeA")),
-            (self.parser._get_iri("attributeA"),
-             rdflib.RDFS.domain, self.parser._get_iri("ClassA"))
+            (bnode2, rdflib.OWL.someValuesFrom, rdflib.XSD.string),
+            (bnode2, rdflib.RDF.type, rdflib.OWL.Restriction),
+            (self.parser._get_iri("ClassA"), rdflib.RDFS.subClassOf, bnode2),
+            (bnode2, rdflib.OWL.onProperty, self.parser._get_iri("attributeA"))
         })
 
         # without default
         pre = set(self.graph)
         self.parser._add_attributes("ClassE", self.ontology_doc["ClassE"])
+        for s, _, _ in self.graph.triples((None, rdflib.RDF.type,
+                                           rdflib.OWL.Restriction)):
+            if s != bnode2:
+                bnode3 = s
+
         self.assertEqual(set(self.graph) - pre, {
-            (self.parser._get_iri("attributeA"),
-             rdflib.RDFS.domain, self.parser._get_iri("ClassE"))
+            (bnode3, rdflib.OWL.onProperty,
+             self.parser._get_iri("attributeA")),
+            (bnode3, rdflib.OWL.someValuesFrom, rdflib.XSD.string),
+            (bnode3, rdflib.RDF.type, rdflib.OWL.Restriction),
+            (self.parser._get_iri("ClassE"), rdflib.RDFS.subClassOf, bnode3)
         })
 
     def test_add_type_triple(self):
@@ -274,6 +286,7 @@ class TestYmlParser(unittest.TestCase):
         test_graph2 = rdflib.Graph()
         for triple in set(self.parser.graph) - pre:
             test_graph2.add(triple)
+        test_graph2.serialize("blub.ttl", format="ttl")
         self.assertTrue(isomorphic(test_graph1, test_graph2))
 
     def test_parse(self):

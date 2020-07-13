@@ -92,8 +92,7 @@ class TestOntologyEntity(unittest.TestCase):
             (city.coordinates.iri, rdflib.RDF.type,
              rdflib.OWL.FunctionalProperty),
             (city.coordinates.iri, rdflib.RDFS.range,
-             rdflib_cuba["datatypes/VECTOR-INT-2"]),
-            (city.coordinates.iri, rdflib.RDFS.domain, city.PopulatedPlace.iri)
+             rdflib_cuba["datatypes/VECTOR-INT-2"])
         })
 
     def test_transitive_hull(self):

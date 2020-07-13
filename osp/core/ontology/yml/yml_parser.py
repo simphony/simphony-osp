@@ -2,6 +2,7 @@ import os
 import logging
 import yaml
 import rdflib
+import rdflib.collection
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.datatypes import get_rdflib_datatype
 from osp.core.ontology.yml.yml_keywords import (
@@ -86,14 +87,16 @@ class YmlParser:
 
         for entity_name, entity_doc in self._ontology_doc.items():
             # self._load_class_expressions(entity) TODO
-            if types[entity_name] == "class":
-                self._add_attributes(entity_name, entity_doc)
-            elif types[entity_name] == "relationship":
+            if types[entity_name] == "relationship":
                 self._set_inverse(entity_name, entity_doc)
             #     self._parse_rel_characteristics(entity_name, entity_doc) TODO
                 self._check_default_rel(entity_name, entity_doc)
-            else:
+            elif types[entity_name] == "attribute":
                 self._set_datatype(entity_name, entity_doc)
+
+        for entity_name, entity_doc in self._ontology_doc.items():
+            if types[entity_name] == "class":
+                self._add_attributes(entity_name, entity_doc)
 
     @staticmethod
     def split_name(name):
@@ -268,9 +271,29 @@ class YmlParser:
             self._add_attribute(iri, attribute_iri, default)
 
     def _add_attribute(self, class_iri, attribute_iri, default):
-        self.graph.add(  # TODO CRITICAL wrong if multiple have same attribute
-            (attribute_iri, rdflib.RDFS.domain, class_iri)
-        )
+        datatype_iri = self.graph.value(attribute_iri, rdflib.RDFS.range) \
+            or rdflib.XSD.string
+        bnode = rdflib.BNode()
+        self.graph.add(
+            (class_iri, rdflib.RDFS.subClassOf, bnode))
+        self.graph.add(
+            (bnode, rdflib.RDF.type, rdflib.OWL.Restriction))
+        self.graph.add(
+            (bnode, rdflib.OWL.someValuesFrom, datatype_iri))
+        self.graph.add(
+            (bnode, rdflib.OWL.onProperty, attribute_iri))
+
+        # if bnode1 is None:
+        #     bnode1 = rdflib.BNode()
+        #     self.graph.add((attribute_iri, rdflib.RDFS.domain, bnode1))
+        #     self.graph.add((bnode1, rdflib.RDF.type, rdflib.OWL.Class))
+        # bnode2 = self.graph.value(bnode1, rdflib.OWL.unionOf)
+        # if bnode2 is None:
+        #     bnode2 = rdflib.BNode()
+        #     self.graph.add((bnode1, rdflib.OWL.unionOf, bnode2))
+        # collection = rdflib.collection.Collection(self.graph, bnode2)
+        # collection.append(class_iri)
+
         if default is not None:
             bnode = rdflib.BNode()
             self.graph.add((class_iri, rdflib_cuba._default, bnode))
