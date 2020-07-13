@@ -286,7 +286,6 @@ class TestYmlParser(unittest.TestCase):
         test_graph2 = rdflib.Graph()
         for triple in set(self.parser.graph) - pre:
             test_graph2.add(triple)
-        test_graph2.serialize("blub.ttl", format="ttl")
         self.assertTrue(isomorphic(test_graph1, test_graph2))
 
     def test_parse(self):
