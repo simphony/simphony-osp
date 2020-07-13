@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 import subprocess
 import unittest2 as unittest
 import hashlib
@@ -89,14 +88,20 @@ class TestTransportAuth(unittest.TestCase):
                 "tests/test_transport_auth.py",
                 "server1"]
         TestTransportAuth.OUTPUT_FILE = open("output_test_auth", "w")
-        p = subprocess.Popen(args, stderr=TestTransportAuth.OUTPUT_FILE)
+        p = subprocess.Popen(args, stderr=TestTransportAuth.OUTPUT_FILE,
+                             stdout=subprocess.PIPE)
         TestTransportAuth.SERVER_STARTED.append(p)
-        time.sleep(1)
+        for line in p.stdout:
+            if b"ready\n" == line:
+                break
 
         args[-1] = "server2"
-        p = subprocess.Popen(args, stderr=TestTransportAuth.OUTPUT_FILE)
+        p = subprocess.Popen(args, stderr=TestTransportAuth.OUTPUT_FILE,
+                             stdout=subprocess.PIPE)
         TestTransportAuth.SERVER_STARTED.append(p)
-        time.sleep(1)
+        for line in p.stdout:
+            if b"ready\n" == line:
+                break
 
     @classmethod
     def tearDownClass(cls):
@@ -129,9 +134,11 @@ class TestTransportAuth(unittest.TestCase):
 if __name__ == "__main__":
     if sys.argv[-1] == "server1":
         server = TransportSessionServer(AuthSession, HOST, PORT1)
+        print("ready", flush=True)
         server.startListening()
     elif sys.argv[-1] == "server2":
         server = TransportSessionServer(SimpleAuthSession, HOST, PORT2)
+        print("ready", flush=True)
         server.startListening()
     else:
         unittest.main()

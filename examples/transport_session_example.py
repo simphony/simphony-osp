@@ -26,7 +26,7 @@ try:
 except FileNotFoundError:
     args[0] = "python"
     p = subprocess.Popen(args)
-time.sleep(1)
+time.sleep(5)
 
 try:
     # Construct the Datastructure.
@@ -93,6 +93,6 @@ try:
 
 finally:
     p.terminate()
-    time.sleep(1)
+    time.sleep(5)
     if os.path.exists("test.db"):
         os.remove("test.db")

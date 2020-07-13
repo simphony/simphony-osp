@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 import uuid
 import subprocess
 import unittest2 as unittest
@@ -93,13 +92,15 @@ class TestFiletransfer(unittest.TestCase):
                 "tests/test_filetransfer.py",
                 "server"]
         try:
-            p = subprocess.Popen(args)
+            p = subprocess.Popen(args, stdout=subprocess.PIPE)
         except FileNotFoundError:
             args[0] = "python"
             p = subprocess.Popen(args)
 
         TestFiletransfer.SERVER_STARTED = p
-        time.sleep(1)
+        for line in p.stdout:
+            if b"ready\n" == line:
+                break
 
     @classmethod
     def tearDownClass(cls):
@@ -452,4 +453,7 @@ if __name__ == "__main__":
         server = TransportSessionServer(SqliteSession, HOST, PORT,
                                         session_kwargs={"path": DB},
                                         file_destination=SERVER_DIR)
+        print("ready", flush=True)
         server.startListening()
+    else:
+        unittest.main()

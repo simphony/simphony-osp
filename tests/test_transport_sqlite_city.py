@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 import subprocess
 import unittest2 as unittest
 import sqlite3
@@ -38,10 +37,12 @@ class TestTransportSqliteCity(unittest.TestCase):
         args = ["python",
                 "tests/test_transport_sqlite_city.py",
                 "server"]
-        p = subprocess.Popen(args)
+        p = subprocess.Popen(args, stdout=subprocess.PIPE)
 
         TestTransportSqliteCity.SERVER_STARTED = p
-        time.sleep(1)
+        for line in p.stdout:
+            if b"ready\n" == line:
+                break
 
     @classmethod
     def tearDownClass(cls):
@@ -316,4 +317,7 @@ class TestTransportSqliteCity(unittest.TestCase):
 if __name__ == "__main__":
     if sys.argv[-1] == "server":
         server = TransportSessionServer(SqliteSession, HOST, PORT)
+        print("ready", flush=True)
         server.startListening()
+    else:
+        unittest.main()

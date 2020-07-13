@@ -1,5 +1,4 @@
 import sys
-import time
 import subprocess
 import unittest2 as unittest
 import logging
@@ -38,10 +37,12 @@ class TestTransportSimWrapperCity(unittest.TestCase):
         args = ["python",
                 "tests/test_transport_sim_wrapper.py",
                 "server"]
-        p = subprocess.Popen(args)
+        p = subprocess.Popen(args, stdout=subprocess.PIPE)
 
         TestTransportSimWrapperCity.SERVER_STARTED = p
-        time.sleep(1)
+        for line in p.stdout:
+            if b"ready\n" == line:
+                break
 
     @classmethod
     def tearDownClass(cls):
@@ -81,4 +82,7 @@ if __name__ == '__main__':
     if sys.argv[-1] == "server":
         sys.path.append("tests")
         server = TransportSessionServer(SimDummySession, HOST, PORT)
+        print("ready", flush=True)
         server.startListening()
+    else:
+        unittest.main()
