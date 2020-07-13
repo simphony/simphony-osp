@@ -130,6 +130,8 @@ class OntologyNamespace():
             return self[name][0]
         iri_suffix = name if not _force_by_iri else _force_by_iri
         iri = rdflib.URIRef(str(self._iri) + iri_suffix)
+        if name is None and _force_by_iri:
+            name = str(self._graph.value(iri, rdflib.RDFS.label))
         for s, p, o in self._graph.triples((iri, rdflib.RDF.type, None)):
             if o == rdflib.OWL.DatatypeProperty:
                 # assert (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty)

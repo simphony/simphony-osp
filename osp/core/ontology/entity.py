@@ -143,7 +143,7 @@ class OntologyEntity(ABC):
                 triple = (None, predicate_iri, current)
             for x in self.namespace._graph.triples(triple):
                 o = x[0 if inverse else 2]
-                if o not in result:
+                if o not in result and not isinstance(o, rdflib.BNode):
                     frontier.add(o)
                     result.add(o)
                     yield self.namespace._namespace_registry.from_iri(o)

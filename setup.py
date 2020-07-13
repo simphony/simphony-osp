@@ -26,7 +26,7 @@ setup(
     long_description=README_TEXT,
     packages=find_packages(exclude=("examples", "tests")),
     package_data={
-        "osp.core.ontology.docs": ["*.yml", "*.ttl", "EMMO/*.owl"],
+        "osp.core.ontology.docs": ["*.yml", "*.ttl", "*.xml", "EMMO/*.owl"],
     },
     include_package_data=True,
     python_requires=">=3.6",

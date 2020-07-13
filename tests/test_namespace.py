@@ -43,10 +43,10 @@ class TestNamespaces(unittest.TestCase):
                         rdflib.URIRef("http://www.osp-core.com/parser_test#"))
         self.namespace_registry.update_namespaces()
         self.namespace_registry.store(self.tempdir.name)
-        self.assertEqual(os.listdir(self.tempdir.name), ["graph.ttl",
+        self.assertEqual(os.listdir(self.tempdir.name), ["graph.xml",
                                                          "namespaces.txt"])
         g = rdflib.Graph()
-        g.parse(os.path.join(self.tempdir.name, "graph.ttl"), format="ttl")
+        g.parse(os.path.join(self.tempdir.name, "graph.xml"), format="xml")
         g1 = rdflib.Graph()
         g1.parse(CUBA_FILE, format="ttl")
         g1.parse(RDF_FILE, format="ttl")
@@ -59,7 +59,7 @@ class TestNamespaces(unittest.TestCase):
                           lines)
 
     def test_namespace_registry_load(self):
-        # no graph.ttl found
+        # no graph.xml found
         self.namespace_registry.clear()
         self.namespace_registry.load(self.tempdir.name)
         g = rdflib.Graph()
@@ -86,6 +86,12 @@ class TestNamespaces(unittest.TestCase):
         self.assertTrue(isomorphic(self.namespace_registry._graph, self.graph))
 
     def test_namespace_registry_from_iri(self):
+        self.installer.install("city")
+        ns_iri = rdflib.URIRef("http://www.osp-core.com/city#")
+        city_iri = ns_iri + "City"
+        hasPart_iri = ns_iri + "hasPart"
+        self.modify_labels()
+
         c = self.namespace_registry.from_iri(rdflib_cuba.Class)
         self.assertIsInstance(c, OntologyClass)
         self.assertEqual(c.namespace.get_name(), "cuba")
@@ -98,11 +104,33 @@ class TestNamespaces(unittest.TestCase):
         self.assertIsInstance(a, OntologyAttribute)
         self.assertEqual(a.namespace.get_name(), "cuba")
         self.assertEqual(a.name, "attribute")
+        c = self.namespace_registry.from_iri(city_iri)
+        self.assertIsInstance(c, OntologyClass)
+        self.assertEqual(c.namespace.get_name(), "city")
+        self.assertEqual(c.name, "City")
+        r = self.namespace_registry.from_iri(hasPart_iri)
+        self.assertIsInstance(r, OntologyRelationship)
+        self.assertEqual(r.namespace.get_name(), "city")
+        self.assertEqual(r.name, "hasPart")
         from osp.core.namespaces import from_iri
         c = from_iri(rdflib_cuba.Class)
         self.assertIsInstance(c, OntologyClass)
         self.assertEqual(c.namespace.get_name(), "cuba")
         self.assertEqual(c.name, "Class")
+
+        self.graph.add((
+            ns_iri,
+            rdflib_cuba._reference_by_label,
+            rdflib.Literal(True)
+        ))
+        c = self.namespace_registry.from_iri(city_iri)
+        self.assertIsInstance(c, OntologyClass)
+        self.assertEqual(c.namespace.get_name(), "city")
+        self.assertEqual(c.name, "City_T")
+        r = self.namespace_registry.from_iri(hasPart_iri)
+        self.assertIsInstance(r, OntologyRelationship)
+        self.assertEqual(r.namespace.get_name(), "city")
+        self.assertEqual(r.name, "hasPart_T")
 
     def test_namespace_registry_update_namespaces(self):
         self.graph.bind("a", rdflib.URIRef("aaa"))
@@ -139,8 +167,7 @@ class TestNamespaces(unittest.TestCase):
         self.assertEqual([x.get_name() for x in self.namespace_registry], [
                          'xml', 'rdf', 'rdfs', 'xsd', 'cuba', 'owl', 'city'])
 
-    def test_namespace_get(self):
-        self.installer.install("city")
+    def modify_labels(self):
         triples = list()
         for s, p, o in self.graph:
             if (
@@ -153,6 +180,10 @@ class TestNamespaces(unittest.TestCase):
         self.graph.remove((None, None, None))
         for t in triples:
             self.graph.add(t)
+
+    def test_namespace_get(self):
+        self.installer.install("city")
+        self.modify_labels()
         namespace = self.namespace_registry.city
 
         # dot

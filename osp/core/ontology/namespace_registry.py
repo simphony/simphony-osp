@@ -61,11 +61,15 @@ class NamespaceRegistry():
     def from_iri(self, iri):
         for name, ns_iri in self._graph.namespace_manager.namespaces():
             if str(iri).startswith(str(ns_iri)):
-                return OntologyNamespace(
+                ns = OntologyNamespace(
                     name=name,
                     namespace_registry=self,
                     iri=ns_iri
-                ).get(iri[len(ns_iri):])
+                )
+                if ns._reference_by_label:
+                    return ns._get(None, _force_by_iri=iri[len(ns_iri):])
+                else:
+                    return ns._get(iri[len(ns_iri):])
 
     def clear(self):
         self._graph = rdflib.Graph()
@@ -73,18 +77,18 @@ class NamespaceRegistry():
         return self._graph
 
     def store(self, path):
-        path_graph = os.path.join(path, "graph.ttl")
+        path_graph = os.path.join(path, "graph.xml")
         path_ns = os.path.join(path, "namespaces.txt")
-        self._graph.serialize(destination=path_graph, format="turtle")
+        self._graph.serialize(destination=path_graph, format="xml")
         with open(path_ns, "w") as f:
             for name, iri in self._graph.namespace_manager.namespaces():
                 print("%s\t%s" % (name, iri), file=f)
 
     def load(self, path):
-        path_graph = os.path.join(path, "graph.ttl")
+        path_graph = os.path.join(path, "graph.xml")
         path_ns = os.path.join(path, "namespaces.txt")
         if os.path.exists(path_graph):
-            self._graph.parse(path_graph, format="ttl")
+            self._graph.parse(path_graph, format="xml")
             if os.path.exists(path_ns):
                 with open(path_ns, "r") as f:
                     for line in f:

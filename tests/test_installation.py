@@ -46,7 +46,7 @@ class TestParser(unittest.TestCase):
             self.namespace_registry._namespaces["parser_test"],
             rdflib.term.URIRef('http://www.osp-core.com/parser_test#'))
         self.assertEqual(os.listdir(self.tempdir.name), [
-            'city.yml', 'graph.ttl', 'namespaces.txt', 'parser_test.ttl',
+            'city.yml', 'graph.xml', 'namespaces.txt', 'parser_test.xml',
             'parser_test.yml'])
         with open(os.path.join(self.tempdir.name, "namespaces.txt")) as f:
             lines = set(map(lambda x: x.strip(), f))
@@ -65,7 +65,7 @@ class TestParser(unittest.TestCase):
             self.namespace_registry._namespaces["parser_test"],
             rdflib.term.URIRef('http://www.osp-core.com/parser_test#'))
         self.assertEqual(os.listdir(self.tempdir.name), [
-            'graph.ttl', 'namespaces.txt', 'parser_test.ttl',
+            'graph.xml', 'namespaces.txt', 'parser_test.xml',
             'parser_test.yml'])
         with open(os.path.join(self.tempdir.name, "namespaces.txt")) as f:
             lines = set(map(lambda x: x.strip(), f))
@@ -109,7 +109,7 @@ class TestParser(unittest.TestCase):
 
     def test_get_installed_packages(self):
         o1, o2 = self.copy_files()
-        open(os.path.join(self.tempdir.name, "o3.ttl"), "w").close()
+        open(os.path.join(self.tempdir.name, "o3.xml"), "w").close()
         self.assertEqual(self.installer.get_installed_packages(),
                          ["city", "parser_test"])
         self.assertEqual(self.installer.get_installed_packages(True),

@@ -126,15 +126,15 @@ class TestParser(unittest.TestCase):
         with tempfile.TemporaryDirectory() as destination:
             self.parser.store(destination)
             self.assertEqual(os.listdir(destination),
-                             ["parser_test.ttl", "parser_test.yml"])
+                             ["parser_test.xml", "parser_test.yml"])
             with open(os.path.join(destination, "parser_test.yml")) as f:
                 yml_doc = yaml.safe_load(f)
-                self.assertEqual(yml_doc["ontology_file"], "parser_test.ttl")
+                self.assertEqual(yml_doc["ontology_file"], "parser_test.xml")
                 yml_doc["ontology_file"] = YML_DOC["ontology_file"]
                 self.assertEqual(yml_doc, YML_DOC)
             g = rdflib.Graph()
-            g.parse(os.path.join(destination, "parser_test.ttl"),
-                    format="ttl")
+            g.parse(os.path.join(destination, "parser_test.xml"),
+                    format="xml")
             self.assertTrue(
                 isomorphic(g, self.parser._graphs["parser_test"]))
 
