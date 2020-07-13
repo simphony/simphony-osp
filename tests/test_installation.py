@@ -111,9 +111,9 @@ class TestInstallation(unittest.TestCase):
         o1, o2 = self.copy_files()
         open(os.path.join(self.tempdir.name, "o3.xml"), "w").close()
         self.assertEqual(self.installer.get_installed_packages(),
-                         ["city", "parser_test"])
+                         {"city", "parser_test"})
         self.assertEqual(self.installer.get_installed_packages(True),
-                         [("city", o2), ("parser_test", o1)])
+                         {("city", o2), ("parser_test", o1)})
 
     def test_sort_for_installation(self):
         r = self.installer._sort_for_installation(["city", "parser_test"])

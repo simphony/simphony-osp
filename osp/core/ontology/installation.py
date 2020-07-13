@@ -33,7 +33,7 @@ class OntologyInstallationManager():
                 result.append(item.split(".")[0])
                 if return_path:
                     result[-1] = (result[-1], os.path.join(self.path, item))
-        return result
+        return set(result)
 
     def _get_remaining_packages(self, remove_packages):
         remove_pkgs = set()
