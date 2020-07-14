@@ -382,7 +382,8 @@ class TestFiletransfer(unittest.TestCase):
                              {target[0], target[2]})
 
         # download again and check that no errors occur
-        # and that the duplicates are still in the download folder (and not more)
+        # and that the duplicates are still
+        # in the download folder (and not more)
         number_of_downloaded_files = len(os.listdir(CLIENT_DIR))
         with TransportSessionClient(SqliteSession, URI,
                                     file_destination=CLIENT_DIR) as session:
