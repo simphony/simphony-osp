@@ -164,17 +164,13 @@ def move_files(file_cuds, temp_directory, target_directory):
                 "Will not move %s to %s" % (repr(path), repr(target_path))
             )
             if not os.path.exists(os.path.dirname(target_path)):
-                # TODO make a warning on client side?
                 logger.debug("Reason: Target path does not exist")
             elif not os.path.exists(path):
-                # TODO is this the right place to check
-                raise Exception('File to move does not exist: {}'.format(path))
-                # logger.debug("Reason: File to move does not exist")
+                logger.debug("Reason: File to move does not exist")
             elif os.path.exists(target_path) and os.path.samefile(
                 path,
                 target_path
             ):
-                # TODO make a warning on client side?
                 logger.debug("Reason: The exact same file is already present "
                              "at the destination")
     return result
