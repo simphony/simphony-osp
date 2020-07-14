@@ -26,28 +26,40 @@ class OntologyClass(OntologyEntity):
         :return: Mapping from attributes of the class to the default
         :rtype: Dict[OntologyAttribute, str]
         """
-        graph = self._namespace._graph
-        superclasses = self.superclasses
         attributes = dict()
-        for superclass in superclasses:
+        for superclass in self.superclasses:
+            attributes.update(self._get_attributes(superclass.iri))
+        return attributes
 
-            # Case 1: domain of Datatype
-            triple = (None, rdflib.RDFS.domain, superclass.iri)
-            for a_iri, _, _ in self.namespace._graph.triples(triple):
-                triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
-                if triple in graph \
-                        and not isinstance(a_iri, rdflib.BNode):
-                    a = self.namespace._namespace_registry.from_iri(a_iri)
-                    attributes[a] = self._get_default(a_iri, superclass.iri)
+    @property
+    def own_attributes(self):
+        """Get non inherited attributes of this Cuds object.
 
-            # Case 2: restrictions
-            triple = (superclass.iri, rdflib.RDFS.subClassOf, None)
-            for _, _, o in self.namespace._graph.triples(triple):
-                if (o, rdflib.RDF.type, rdflib.OWL.Restriction) in graph:
-                    a_iri = graph.value(o, rdflib.OWL.onProperty)
-                    a = self.namespace._namespace_registry.from_iri(a_iri)
-                    attributes[a] = self._get_default(a_iri, superclass.iri)
-            # TODO more cases
+        :return: Mapping from attributes of the class to the default
+        :rtype: Dict[OntologyAttribute, str]
+        """
+        return self._get_attributes(self.iri)
+
+    def _get_attributes(self, iri):
+        graph = self._namespace._graph
+        attributes = dict()
+        # Case 1: domain of Datatype
+        triple = (None, rdflib.RDFS.domain, iri)
+        for a_iri, _, _ in self.namespace._graph.triples(triple):
+            triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
+            if triple in graph \
+                    and not isinstance(a_iri, rdflib.BNode):
+                a = self.namespace._namespace_registry.from_iri(a_iri)
+                attributes[a] = self._get_default(a_iri, iri)
+
+        # Case 2: restrictions
+        triple = (iri, rdflib.RDFS.subClassOf, None)
+        for _, _, o in self.namespace._graph.triples(triple):
+            if (o, rdflib.RDF.type, rdflib.OWL.Restriction) in graph:
+                a_iri = graph.value(o, rdflib.OWL.onProperty)
+                a = self.namespace._namespace_registry.from_iri(a_iri)
+                attributes[a] = self._get_default(a_iri, iri)
+        # TODO more cases
         return attributes
 
     def _get_default(self, attribute_iri, superclass_iri):

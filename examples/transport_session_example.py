@@ -8,7 +8,7 @@ from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
-from osp.wrappers.sqlite_session import SqliteSession
+from osp.wrappers.sqlite import SqliteSession
 
 # Start Server
 if sys.argv[-1] == "server":
@@ -37,13 +37,13 @@ try:
     n = city.Neighborhood(name="Zähringen")
     s = city.Street(name="Le street")
     b = city.Building(name="Theater")
-    a = city.Address(postal_code=79123, name='Le street', number=12)
+    a = city.Address(postalCode=79123, name='Le street', number=12)
     c.add(p1, p2, p3, rel=city.hasInhabitant)
     c.add(n).add(s).add(b).add(a)
 
     print("Connect to DB via transport session")
     with TransportSessionClient(
-        SqliteSession, "ws://localhost:8688", "test.db"
+        SqliteSession, "ws://localhost:8688", path="test.db"
     ) as session:
         wrapper = city.CityWrapper(session=session)
         wrapper.add(c)
@@ -51,7 +51,7 @@ try:
 
     print("Reconnect and check if data is still there")
     with TransportSessionClient(
-        SqliteSession, "ws://localhost:8688", "test.db"
+        SqliteSession, "ws://localhost:8688", path="test.db"
     ) as session:
         wrapper = city.CityWrapper(session=session)
         c = wrapper.get(oclass=city.City)[0]
@@ -59,7 +59,7 @@ try:
 
     print("Reconnect and make some changes")
     with TransportSessionClient(
-        SqliteSession, "ws://localhost:8688", "test.db"
+        SqliteSession, "ws://localhost:8688", path="test.db"
     ) as session:
         wrapper = city.CityWrapper(session=session)
         c = wrapper.get(oclass=city.City)[0]
@@ -68,7 +68,7 @@ try:
 
     print("Reconnect and check if changes were successful")
     with TransportSessionClient(
-        SqliteSession, "ws://localhost:8688", "test.db"
+        SqliteSession, "ws://localhost:8688", path="test.db"
     ) as session:
         wrapper = city.CityWrapper(session=session)
         c = wrapper.get(oclass=city.City)[0]
@@ -76,7 +76,7 @@ try:
 
     print("Delete the city")
     with TransportSessionClient(
-        SqliteSession, "ws://localhost:8688", "test.db"
+        SqliteSession, "ws://localhost:8688", path="test.db"
     ) as session:
         wrapper = city.CityWrapper(session=session)
         c = wrapper.get(oclass=city.City)[0]
@@ -86,7 +86,7 @@ try:
 
     print("Reconnect and check if deletion was successful")
     with TransportSessionClient(
-        SqliteSession, "ws://localhost:8688", "test.db"
+        SqliteSession, "ws://localhost:8688", path="test.db"
     ) as session:
         wrapper = city.CityWrapper(session=session)
         print("All cities:", wrapper.get(oclass=city.City))

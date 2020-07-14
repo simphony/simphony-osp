@@ -122,6 +122,18 @@ class TestOntologyEntity(unittest.TestCase):
             city.name: None,
             city.coordinates: rdflib.term.Literal('[0, 0]')
         })
+        self.assertEqual(city.City.own_attributes, {})
+        self.assertEqual(city.GeographicalPlace.own_attributes, {
+            city.name: None,
+        })
+        self.assertEqual(city.LivingBeing.own_attributes, {
+            city.name: rdflib.term.Literal("John Smith"),
+            city.age: rdflib.term.Literal(25)
+        })
+        self.assertEqual(city.Person.attributes, {
+            city.name: rdflib.term.Literal("John Smith"),
+            city.age: rdflib.term.Literal(25)
+        })
         self.assertEqual(city.PopulatedPlace.attributes, {
             city.name: None,
             city.coordinates: rdflib.term.Literal('[0, 0]')

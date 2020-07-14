@@ -13,7 +13,7 @@ try:
     n = city.Neighborhood(name="Zähringen")
     s = city.Street(name="Le street")
     b = city.Building(name="Theater")
-    a = city.Address(postal_code=79123, name='Le street', number=12)
+    a = city.Address(postalCode=79123, name='Le street', number=12)
     c.add(p1, p2, p3, rel=city.hasInhabitant)
     c.add(n).add(s).add(b).add(a)
 
