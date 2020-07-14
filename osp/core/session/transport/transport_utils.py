@@ -418,7 +418,10 @@ def _determine_path_type_of_file_cuds(file_cuds):
         return 'windows'
     elif '/' in path and '\\' not in path:    # linux path
         return 'linux'
-    elif '/' not in path and '\\' not in path:    # doesn't matter (path is just a file name)
+    # doesn't matter (path is just a file name)
+    elif '/' not in path and '\\' not in path:
         return 'linux'
     else:
-        raise Exception('Inconsistent path attribute for CUBA.FILE object {} with path {}.'.format(file_cuds.uid, path))
+        raise Exception("""Inconsistent path attribute for
+        CUBA.FILE object {} with
+        path {}.""".format(file_cuds.uid, path))
