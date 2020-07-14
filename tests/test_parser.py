@@ -79,9 +79,9 @@ class TestParser(unittest.TestCase):
         invalid = dict(YML_DOC)
         invalid["identifier"] = "parser.test"
         self.assertRaises(ValueError, self.parser._parse_yml, invalid,
-                          "/a/b/c/parser_test.yml")
+                          "/a/b/c/parser_test.yml", None)
         result = self.parser._parse_yml(dict(YML_DOC),
-                                        "/a/b/c/parser_test.yml")
+                                        "/a/b/c/parser_test.yml", None)
         self.assertEqual(result["ontology_file"],
                          "/a/b/c/parser_test.ttl")
 
