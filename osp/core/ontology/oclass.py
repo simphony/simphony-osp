@@ -65,8 +65,11 @@ class OntologyClass(OntologyEntity):
         for _, _, o in self.namespace._graph.triples(triple):
             if (o, rdflib.RDF.type, rdflib.OWL.Restriction) in graph:
                 a_iri = graph.value(o, rdflib.OWL.onProperty)
-                a = self.namespace._namespace_registry.from_iri(a_iri)
-                attributes[a] = self._get_default(a_iri, iri)
+                triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
+                if triple in graph \
+                        and not isinstance(a_iri, rdflib.BNode):
+                    a = self.namespace._namespace_registry.from_iri(a_iri)
+                    attributes[a] = self._get_default(a_iri, iri)
         # TODO more cases
         return attributes
 

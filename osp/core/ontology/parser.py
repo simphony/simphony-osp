@@ -2,6 +2,8 @@ import os
 import rdflib
 import logging
 import yaml
+import requests
+import tempfile
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.yml.yml_parser import YmlParser
 
@@ -39,7 +41,8 @@ class Parser():
             if YmlParser.is_yaml_ontology(yaml_doc):
                 YmlParser(self.graph).parse(file_path, yaml_doc)
             elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
-                self._parse_rdf(**self._parse_yml(yaml_doc, file_path))
+                with tempfile.NamedTemporaryFile(mode="wt") as f:
+                    self._parse_rdf(**self._parse_yml(yaml_doc, file_path, f))
             else:
                 raise SyntaxError(f"Invalid format of file {file_path}")
             self._yaml_docs.append(yaml_doc)
@@ -139,19 +142,33 @@ class Parser():
             return a
         return b
 
-    def _parse_yml(self, yaml_doc, file_path):
+    def _parse_yml(self, yaml_doc, file_path, f):
         """Parse the owl files specified in the given YAML docs
 
         Args:
             yaml_doc (dict): Parsed YAML doc that specify
                 the ontologies to install
             file_path (str): Location of the corresponding YAML file
+            f (str): temporary file to store owl file in case it
+                needs to be downloaded
         """
         logger.info("Parsing %s" % file_path)
         if "." in yaml_doc[IDENTIFIER_KEY]:
             raise ValueError("No dot allowed in package identifier. "
                              "Identifier given: %s"
                              % yaml_doc[IDENTIFIER_KEY])
+
+        # download
+        if yaml_doc[RDF_FILE_KEY].startswith(("http://", "https://")):
+            logger.info(f"Downloading {yaml_doc[RDF_FILE_KEY]}")
+            content = requests.get(yaml_doc[RDF_FILE_KEY]) \
+                .content.decode("utf-8")
+            content = content.replace("xml:lang=\"unibo.it\"",
+                                      "xml:lang=\"en\"")
+            f.write(content)
+            yaml_doc[RDF_FILE_KEY] = f.name
+            return yaml_doc
+
         yaml_doc[RDF_FILE_KEY] = os.path.join(os.path.dirname(file_path),
                                               yaml_doc[RDF_FILE_KEY])
         return yaml_doc
