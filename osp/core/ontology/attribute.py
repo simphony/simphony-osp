@@ -28,6 +28,15 @@ class OntologyAttribute(OntologyEntity):
 
     @property
     def datatype(self):
+        """Get the datatype of the attribute
+
+        Raises:
+            RuntimeError: More than one datatype associated with the attribute.
+            # TODO should be allowed
+
+        Returns:
+            URIRef: IRI of the datatype
+        """
         superclasses = self.superclasses
         datatypes = set()
         for superclass in superclasses:

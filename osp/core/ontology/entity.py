@@ -134,6 +134,16 @@ class OntologyEntity(ABC):
         pass
 
     def _transitive_hull(self, predicate_iri, inverse=False):
+        """Get all the entities connected with the given predicate.
+
+        Args:
+            predicate_iri (URIRef): The IRI of the predicate
+            inverse (bool, optional): Use the inverse instead.
+                Defaults to False.
+
+        Yields:
+            OntologyEntity: The connected entities
+        """
         result = {self.iri}
         frontier = {self.iri}
         while frontier:
@@ -152,6 +162,16 @@ class OntologyEntity(ABC):
                     yield self.namespace._namespace_registry.from_iri(o)
 
     def _directly_connected(self, predicate_iri, inverse=False):
+        """Get all the entities directly connected with the given predicate.
+
+        Args:
+            predicate_iri (URIRef): The IRI of the predicate
+            inverse (bool, optional): Use the inverse instead.
+                Defaults to False.
+
+        Yields:
+            OntologyEntity: The connected entities
+        """
         triple = (self.iri, predicate_iri, None)
         if inverse:
             triple = (None, predicate_iri, self.iri)

@@ -148,6 +148,17 @@ class OntologyNamespace():
         return self._get_case_insensitive(name)
 
     def _get_case_insensitive(self, name):
+        """Get by trying alternative naming convention of given name.
+
+        Args:
+            name (str): The name of the entity.
+
+        Raises:
+            KeyError: Reference to unknown entity.
+
+        Returns:
+            OntologyEntity: The Entity to return
+        """
         alternative = alt(name, self._name == "cuba")
         if alternative is None:
             raise KeyError(

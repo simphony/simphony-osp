@@ -21,10 +21,10 @@ class OntologyClass(OntologyEntity):
 
     @property
     def attributes(self):
-        """Get all (inherited + own) the attributes of this Cuds object.
+        """Get all the attributes of this oclass
 
-        :return: Mapping from attributes of the class to the default
-        :rtype: Dict[OntologyAttribute, str]
+        Returns:
+            Dict[OntologyAttribute, str]: Mapping from attribute to default
         """
         attributes = dict()
         for superclass in self.superclasses:
@@ -33,14 +33,22 @@ class OntologyClass(OntologyEntity):
 
     @property
     def own_attributes(self):
-        """Get non inherited attributes of this Cuds object.
+        """Get the non-inherited attributes of this oclass
 
-        :return: Mapping from attributes of the class to the default
-        :rtype: Dict[OntologyAttribute, str]
+        Returns:
+            Dict[OntologyAttribute, str]: Mapping from attribute to default
         """
         return self._get_attributes(self.iri)
 
     def _get_attributes(self, iri):
+        """Get the non-inherited attributes of the oclass with the given iri.
+
+        Args:
+            iri (URIRef): The iri of the oclass.
+
+        Returns:
+            Dict[OntologyAttribute, str]: Mapping from attribute to default
+        """
         graph = self._namespace._graph
         attributes = dict()
         # Case 1: domain of Datatype
@@ -63,6 +71,16 @@ class OntologyClass(OntologyEntity):
         return attributes
 
     def _get_default(self, attribute_iri, superclass_iri):
+        """Get the default of the attribute with the given iri.
+
+        Args:
+            attribute_iri (URIRef): IRI of the attribute
+            superclass_iri (URIRef): IRI of the superclass that defines
+                the default.
+
+        Returns:
+            Any: the default
+        """
         triple = (superclass_iri, rdflib_cuba._default, None)
         for _, _, bnode in self.namespace._graph.triples(triple):
             x = (bnode, rdflib_cuba._default_attribute, attribute_iri)

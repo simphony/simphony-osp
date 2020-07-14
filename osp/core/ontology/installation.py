@@ -15,18 +15,30 @@ class OntologyInstallationManager():
             self.namespace_registry = namespaces._namespace_registry
 
     def install(self, *files):
+        """Install given packages. Skip already installed ones"""
         self._install(files, self._get_new_packages, False)
         logger.info("Installation successful")
 
     def uninstall(self, *files_or_namespaces):
+        """Uninstall given packages"""
         self._install(files_or_namespaces, self._get_remaining_packages, True)
         logger.info("Uninstallation successful")
 
     def install_overwrite(self, *files):
+        """Install packages and overwrite already installed ones"""
         self._install(files, self._get_replaced_packages, True)
         logger.info("Installation successful")
 
     def get_installed_packages(self, return_path=False):
+        """Get the list of installed packages
+
+        Args:
+            return_path (bool, optional): Whether to return the path to the
+                file, too. Defaults to False.
+
+        Returns:
+            Tuple[str]: The installed packages.
+        """
         result = list()
         for item in os.listdir(self.path):
             if item.endswith(".yml"):
@@ -36,6 +48,18 @@ class OntologyInstallationManager():
         return set(result)
 
     def _get_remaining_packages(self, remove_packages):
+        """Get list of packages that remain after given list of packages
+        have been removed.
+
+        Args:
+            remove_packages (List[str]): List of packages to remove.
+
+        Raises:
+            ValueError: Given package to remove is not installed
+
+        Returns:
+            List[str]: The remaining packages.
+        """
         remove_pkgs = set()
         installed_pkgs = dict(self.get_installed_packages(return_path=True))
         for pkg in remove_packages:
@@ -49,12 +73,29 @@ class OntologyInstallationManager():
         return [v for k, v in installed_pkgs.items() if k not in remove_pkgs]
 
     def _get_replaced_packages(self, new_packages):
+        """Get the package paths that by replacing the package paths of
+        already installed packages with new packages,
+
+        Args:
+            new_packages (List[str]): Path to new package files.
+
+        Returns:
+            List[str]: Resulting list of package paths.
+        """
         installed = dict(self.get_installed_packages(return_path=True))
         for pkg in new_packages:
             installed[Parser.get_identifier(pkg)] = pkg
         return installed.values()
 
     def _get_new_packages(self, packages):
+        """From the given list of packages, return the ones that are new.
+
+        Args:
+            packages (List[str]): Path to ontology file.
+
+        Returns:
+            List[str]: List of package path that are new
+        """
         result = set(packages)
         installed = set(self.get_installed_packages())
         for pkg in packages:
@@ -67,6 +108,15 @@ class OntologyInstallationManager():
         return result
 
     def _install(self, files, filter_func, clear):
+        """Install the ontology
+
+        Args:
+            files (List[str]): The ontology files to install
+            filter_func (Callable): Function that takes the list of files
+                as input and returns a list of files that need to be installed.
+            clear (bool): Whether it is necessary to clear what is already
+                installed.
+        """
         graph = self.namespace_registry._graph
         if clear:
             graph = self.namespace_registry.clear()

@@ -40,12 +40,32 @@ class NamespaceRegistry():
         return other.lower() in self._namespaces.keys()
 
     def get(self, name, fallback=None):
+        """Get the namespace by name, return given fallback value if not found.
+
+        Args:
+            name (str): Name of the namespace
+            fallback (Any, optional): Fallback value. Defaults to None.
+
+        Returns:
+            Any: OntologyNamespace or fallback value
+        """
         try:
             return self._get(name)
         except KeyError:
             return fallback
 
     def _get(self, name):
+        """Get the namespace by name.
+
+        Args:
+            name (str): The name of the namespace.
+
+        Raises:
+            KeyError: Namespace not installed.
+
+        Returns:
+            OntologyNamespace: The namespace with the given name.
+        """
         name = name.lower()
         if name in self._namespaces:
             return OntologyNamespace(name=name,
@@ -54,11 +74,21 @@ class NamespaceRegistry():
         raise KeyError("Namespace %s not installed." % name)
 
     def update_namespaces(self):
+        """Update the namespaces of the namespace registry from the
+        namespaces of the graph."""
         self._namespaces = dict()
         for name, iri in self._graph.namespace_manager.namespaces():
             self._namespaces[name.lower()] = iri
 
     def from_iri(self, iri):
+        """Get an entity from IRI.
+
+        Args:
+            iri (URIRef): The IRI of the entity.
+
+        Returns:
+            OntologyEntity: The OntologyEntity.
+        """
         for name, ns_iri in self._graph.namespace_manager.namespaces():
             if str(iri).startswith(str(ns_iri)):
                 ns = OntologyNamespace(
@@ -72,11 +102,21 @@ class NamespaceRegistry():
                     return ns._get(iri[len(ns_iri):])
 
     def clear(self):
+        """Clear the loaded Graph and load cuba only.
+
+        Returns:
+            [type]: [description]
+        """
         self._graph = rdflib.Graph()
         self._load_cuba()
         return self._graph
 
     def store(self, path):
+        """Store the current graph to the given directory,
+
+        Args:
+            path (Path): Directory to store current graph in.
+        """
         path_graph = os.path.join(path, "graph.xml")
         path_ns = os.path.join(path, "namespaces.txt")
         self._graph.serialize(destination=path_graph, format="xml")
@@ -85,6 +125,12 @@ class NamespaceRegistry():
                 print("%s\t%s" % (name, iri), file=f)
 
     def load(self, path):
+        """Load the installed graph from at the given path.
+
+        Args:
+            path (Path): path to directory where the ontology has been
+                installed.
+        """
         path_graph = os.path.join(path, "graph.xml")
         path_ns = os.path.join(path, "namespaces.txt")
         if os.path.exists(path_graph):
@@ -99,6 +145,7 @@ class NamespaceRegistry():
             self._load_cuba()
 
     def _load_cuba(self):
+        """Load the cuba namespace"""
         path_cuba = os.path.join(os.path.dirname(__file__), "docs", "cuba.ttl")
         self._graph.parse(path_cuba, format="ttl")
         self._graph.bind("cuba",

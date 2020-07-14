@@ -46,6 +46,11 @@ class Parser():
         logger.info("Loaded %s ontology triples in total" % len(self.graph))
 
     def store(self, destination):
+        """Store the parsed files at the given destination.
+
+        Args:
+            destination (Path): The directory to store the files.
+        """
         for yaml_doc in self._yaml_docs:
             identifier = self.get_identifier(yaml_doc)
             # store rdf files
@@ -63,6 +68,18 @@ class Parser():
 
     @staticmethod
     def get_identifier(file_path_or_doc):
+        """Get the identifier of the given yaml doc or path to such.
+
+        Args:
+            file_path_or_doc (Union[Path, dict]): The YAML document or
+                a path to it
+
+        Raises:
+            SyntaxError: Invalid YAML format
+
+        Returns:
+            str: The identifier of the yaml document.
+        """
         yaml_doc = file_path_or_doc
         if isinstance(file_path_or_doc, str):
             file_path = Parser.get_file_path(file_path_or_doc)
@@ -77,6 +94,15 @@ class Parser():
 
     @staticmethod
     def get_requirements(file_path_or_doc):
+        """Get the requirements of a given document or file path to such.
+
+        Args:
+            file_path_or_doc (Union[Path, dict]): The YAML document or
+                a path to it
+
+        Returns:
+            Set[str]: The requirements
+        """
         yaml_doc = file_path_or_doc
         if isinstance(file_path_or_doc, str):
             file_path = Parser.get_file_path(file_path_or_doc)
@@ -88,15 +114,26 @@ class Parser():
             return set()
 
     @staticmethod
-    def get_file_path(file_path):
-        if file_path.endswith(".yml"):
-            return file_path
-        file_path = file_path.lower()
+    def get_file_path(file_identifier):
+        """Get the correct file path, for a given one, i.e. translate non
+        paths to osp/core/ontology/docs/*.yml
+
+        Args:
+            file_identifier (str): A filepath or file indentifier
+
+        Returns:
+            Path: The translated file path
+        """
+        if file_identifier.endswith(".yml"):
+            return file_identifier
+        file_identifier = file_identifier.lower()
         a = os.path.join(
-            os.path.dirname(__file__), "docs", f"{file_path}.ontology.yml"
+            os.path.dirname(__file__), "docs",
+            f"{file_identifier}.ontology.yml"
         )
         b = os.path.join(
-            os.path.dirname(__file__), "docs", f"{file_path}.yml"
+            os.path.dirname(__file__), "docs",
+            f"{file_identifier}.yml"
         )
         if os.path.exists(a):
             return a
@@ -166,6 +203,13 @@ class Parser():
         self._add_reference_style_triples(reference_styles)
 
     def _add_default_rel_triples(self, default_rels):
+        """Add the triples to the graph that indicate the default
+        relationships per namespace.
+
+        Args:
+            default_rels (Dict[str: str]): Mapping from namespace URI to
+                default rel URI
+        """
         for namespace, default_rel in default_rels.items():
             if default_rel is None:
                 continue
@@ -176,6 +220,11 @@ class Parser():
             ))
 
     def _add_cuba_triples(self, active_rels):
+        """Add the triples to connect the owl ontology to CUBA.
+
+        Args:
+            active_rels (List[str]): The URIs of the active relationships.
+        """
         for rel in active_rels:
             self.graph.add(
                 (rdflib.URIRef(rel), rdflib.RDFS.subPropertyOf,
@@ -183,6 +232,12 @@ class Parser():
             )
 
     def _add_reference_style_triples(self, reference_styles):
+        """Add a triple to store how the user should reference the entities
+        (by entity or by iri suffix)
+
+        Args:
+            reference_styles ([type]): [description]
+        """
         for namespace, by_label in reference_styles.items():
             if by_label:
                 self.graph.add((

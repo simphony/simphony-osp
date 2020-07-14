@@ -7,6 +7,18 @@ from osp.core.ontology.cuba import rdflib_cuba
 
 
 def convert_to(x, rdf_datatype):
+    """Convert a value to the given datatype.
+
+    Args:
+        x (Any): The value to convert
+        rdf_datatype (URIRef): The datatype to convert to.
+
+    Raises:
+        RuntimeError: Unknown datatype
+
+    Returns:
+        Any: The converted value.
+    """
     try:
         datatype = get_python_datatype(rdf_datatype)[0]
     except KeyError as e:
@@ -16,6 +28,18 @@ def convert_to(x, rdf_datatype):
 
 
 def convert_from(x, rdf_datatype):
+    """Convert to a python basic type.
+
+    Args:
+        x (Any): The value to convert
+        rdf_datatype (URIRef): The datatype of x
+
+    Raises:
+        RuntimeError: Unknown datatype provided.
+
+    Returns:
+        Any: The converted value
+    """
     try:
         datatype = get_python_datatype(rdf_datatype)[1]
     except KeyError as e:
@@ -25,6 +49,17 @@ def convert_from(x, rdf_datatype):
 
 
 def to_uuid(x):
+    """Convert given value to a UUID
+
+    Args:
+        x (Any): The value to convert
+
+    Raises:
+        ValueError: Invalid UUID specified
+
+    Returns:
+        UUID: The resulting UUID
+    """
     if isinstance(x, uuid.UUID):
         return x
     if isinstance(x, str):
@@ -37,6 +72,19 @@ def to_uuid(x):
 
 
 def to_string(x, maxsize=None):
+    """Convert given value to a string.
+
+    Args:
+        x (Any): The value to convert
+        maxsize (int, optional): The maximum length of the string.
+            Defaults to None.
+
+    Raises:
+        ValueError: String longer than specified maximum length.
+
+    Returns:
+        str: The converted value
+    """
     x = str(x)
     if maxsize and len(x) > int(maxsize):
         raise ValueError("String %s is longer than " % x
@@ -45,6 +93,16 @@ def to_string(x, maxsize=None):
 
 
 def to_vector(x, np_dtype, shape):
+    """Convert the given value to numpy array.
+
+    Args:
+        x (Any): The value to convert
+        np_dtype (np.dtype): The numpy datatype if the array elements.
+        shape (Tuple[int]): The shape of the array
+
+    Returns:
+        np.ndarray: The converted value
+    """
     if isinstance(x, rdflib.Literal):
         x = ast.literal_eval(str(x))
     x = np.array(x, dtype=np_dtype)
@@ -52,6 +110,14 @@ def to_vector(x, np_dtype, shape):
 
 
 def from_vector(x):
+    """Convert the given numpy array to a python flat list.
+
+    Args:
+        x (np.ndarray): The value to convert
+
+    Returns:
+        List: The converted value
+    """
     return x.reshape((-1, )).tolist()
 
 
@@ -66,6 +132,17 @@ RDF_DATATYPES = {
 
 
 def get_python_datatype(rdf_datatype):
+    """Get the python datatype for a given rdf datatype
+
+    Args:
+        rdf_datatype (URIRef): The rdf datatype
+
+    Raises:
+        RuntimeError: Unknown datatype specified.
+
+    Returns:
+        Callable: Type or function to convert to python type
+    """
     if rdf_datatype in RDF_DATATYPES:
         return RDF_DATATYPES[rdf_datatype]
     str_prefix = str(rdflib_cuba["datatypes/STRING-"])
@@ -91,6 +168,16 @@ YML_DATATYPES = {
 
 
 def get_rdflib_datatype(yml_datatype, graph=None):
+    """Get rdflib datatype from given YAML datatype
+
+    Args:
+        yml_datatype (str): YAMl datatype
+        graph (rdflib.Graph, optional): The rdflib graph, necessary if a new
+            datatype needs to be created. Defaults to None.
+
+    Returns:
+        URIRef: The IRI of the datatype
+    """
     if yml_datatype in YML_DATATYPES:
         return YML_DATATYPES[yml_datatype]
     args = yml_datatype.split(":")
@@ -103,6 +190,18 @@ def get_rdflib_datatype(yml_datatype, graph=None):
 
 
 def _parse_vector_args(args, return_yml_dtypes=False):
+    """Parse the YAML datatype description of a vector
+
+    Args:
+        args (str): The arguments of the vector
+            (shape and datatype of elememts)
+        return_yml_dtypes (bool, optional): Whether to return the datatype of
+            the elements as YML string or rdflib datatype. Defaults to False.
+
+    Returns:
+        Tuple[Union[str, URIRef], Tuple[int]]: datatype of elements and
+            shape of array
+    """
     datatype = "FLOAT"
     shape = args
     if args[0] in YML_DATATYPES:
@@ -114,6 +213,16 @@ def _parse_vector_args(args, return_yml_dtypes=False):
 
 
 def _add_string_datatype(graph, length):
+    """Add a datatype to the graph refering to a string of a certian maximum
+    length,
+
+    Args:
+        graph (rdflib.Graph): The graph to add the datatype to
+        length (int): The maximim length of the string
+
+    Returns:
+        URIRef: The iri of the new datatype
+    """
     iri = rdflib_cuba[f"datatypes/STRING-{length}"]
     triple = (iri, rdflib.RDF.type, rdflib.RDFS.Datatype)
     if graph is None or triple in graph:
@@ -125,6 +234,17 @@ def _add_string_datatype(graph, length):
 
 
 def _add_vector_datatype(graph, shape, dtype):
+    """Add da datatype tp the graph for a vector with given element
+        datatype and shape
+
+    Args:
+        graph (rdflib.Graph): The graph to add the datatype to
+        shape (Tuple[int]): The shape of the array
+        dtype (str): The datatype of the elements as YAML datatype
+
+    Returns:
+        [type]: [description]
+    """
     shape = list(map(int, shape))
     iri = rdflib_cuba[f"datatypes/VECTOR-{dtype}-"
                       + "-".join(map(str, shape))]

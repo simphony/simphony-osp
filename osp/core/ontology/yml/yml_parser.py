@@ -100,6 +100,17 @@ class YmlParser:
 
     @staticmethod
     def split_name(name):
+        """Split the name in namespace and entity name
+
+        Args:
+            name (str): namespace.entity_name
+
+        Raises:
+            ValueError: Not exactly one '.' in the given name
+
+        Returns:
+            Tuple[str, str]: Tuple of namespace and name.
+        """
         try:
             a, b = name.split(".")
             return a.lower(), b
@@ -130,6 +141,23 @@ class YmlParser:
 
     def _get_iri(self, entity_name=None, namespace=None,
                  current_entity=None, _case_sensitive=False):
+        """Get the iri of the given entity and namespace.
+
+        Args:
+            entity_name (str, optional): The entity name. Defaults to None.
+            namespace (str, optional): The namespace. Defaults to None.
+            current_entity (str, optional): Name of the entity that is
+                currently parsed (For printing meaningful warnings).
+                Defaults to None.
+            _case_sensitive (bool, optional): Wheather entities are case
+                sensitive. Defaults to False.
+
+        Raises:
+            AttributeError: Reference to undefined entity
+
+        Returns:
+            URIRef: The iri of the given entity
+        """
         namespace = namespace or self._namespace
         namespace = namespace.lower()
         entity_name = entity_name or ""
@@ -156,6 +184,20 @@ class YmlParser:
 
     def _get_iri_case_insensitive(self, entity_name, namespace,
                                   current_entity):
+        """Try to get iri with alternative naming convention of entity.
+        This method is for backwards compatibility only.
+
+        Args:
+            entity_name (str): The entity name
+            namespace (str): The namespace
+            current_entity (str): The current entity, for printing warnings.
+
+        Raises:
+            AttributeError: Reference to undefined entity.
+
+        Returns:
+            URIRef: The iri of the given entity
+        """
         alternative = alt(entity_name, namespace == "cuba")
         if alternative is None:
             raise AttributeError(
@@ -181,6 +223,14 @@ class YmlParser:
                 f"{namespace}.{alternative} and failed.") from e
 
     def _add_superclass(self, entity_name, iri, superclass_doc):
+        """Add superclass triples to the graph.
+
+        Args:
+            entity_name (str): The name of the entity that has superclasses.
+            iri (URIRef): The iri of the entity
+            superclass_doc (dict): The YAML document describing the
+                superclasses.
+        """
         if isinstance(superclass_doc, str):
             namespace, superclass_name = self.split_name(superclass_doc)
             superclass_iri = self._get_iri(superclass_name, namespace,
@@ -192,6 +242,15 @@ class YmlParser:
             self.graph.add((iri, predicate, superclass_iri))
 
     def _add_type_triple(self, entity_name, iri):
+        """Add a triple describing the type of an entity.
+
+        Args:
+            entity_name (str): The name of the entity
+            iri (URIRef): The IRI of the entity
+
+        Raises:
+            ValueError: Could not determine the type of the given entity.
+        """
         queue = [(self._namespace, entity_name)]
         types = set()
         while queue:
@@ -246,8 +305,12 @@ class YmlParser:
     def _add_attributes(self, entity_name, entity_doc):
         """Add a attribute to an ontology class
 
-        :param entity: The ontology to add the attributes to
-        :type entity: OntologyClass
+        Args:
+            entity_name (str): The name of the entity to add attributes to.
+            entity_doc (dict): The YAML document describing the entity.
+
+        Raises:
+            ValueError: Invalid attribute specified.
         """
         iri = self._get_iri(entity_name)
         attributes_def = None
@@ -271,6 +334,13 @@ class YmlParser:
             self._add_attribute(iri, attribute_iri, default)
 
     def _add_attribute(self, class_iri, attribute_iri, default):
+        """Add triples to add a single attribute to a class.
+
+        Args:
+            class_iri (URIRef): The URI of the class to add attributes to.
+            attribute_iri (URIRef): The IRI of the attribute to add
+            default (Any): The default value.
+        """
         datatype_iri = self.graph.value(attribute_iri, rdflib.RDFS.range) \
             or rdflib.XSD.string
         bnode = rdflib.BNode()
@@ -303,6 +373,15 @@ class YmlParser:
                 (bnode, rdflib_cuba._default_value, rdflib.Literal(default)))
 
     def _set_inverse(self, entity_name, entity_doc):
+        """Set a triple describing the inverse of relationship entity.
+
+        Args:
+            entity_name (str): The name of the relationship entity.
+            entity_doc (dict): The YAML doc describing the entity.
+
+        Raises:
+            RuntimeError: [description]
+        """
         if INVERSE_KEY not in entity_doc:
             return
         inverse_def = entity_doc[INVERSE_KEY]
@@ -325,8 +404,9 @@ class YmlParser:
         """Check if the given relationship the default
         When it is a default, save that accordingly.
 
-        :param entity: The relationship to check
-        :type entity: OntologyRelationship
+        Args:
+            entity_name (str): The name of the relationship entity.
+            entity_doc (dict): The YAML doc describing the entity.
         """
         if DEFAULT_REL_KEY in entity_doc \
                 and entity_doc[DEFAULT_REL_KEY]:
@@ -336,7 +416,11 @@ class YmlParser:
             )
 
     def _set_datatype(self, entity_name, entity_doc):
-        """Set the datatype of a attribute TODO docstring
+        """Add triples that specify the datatype of an attribute entity.
+
+        Args:
+            entity_name (str): The name of the datatype entity.
+            entity_doc (dict): The YAML doc decribing the entity.
         """
         ontology_doc = self._ontology_doc
         entity_doc = ontology_doc[entity_name]
@@ -354,7 +438,16 @@ class YmlParser:
     def _validate_entity(self, entity_name, entity_doc):
         """Validate the yaml definition of an entity.
         Will check for the special keywords of the different entity types.
-        TODO docstring
+
+        Args:
+            entity_name (str): The name of the entity
+            entity_doc (dict): The YAML doc describing the entity.
+
+        Raises:
+            RuntimeError: Could not deterimine type of entity.
+
+        Returns:
+            str: Type of entity
         """
         iri = self._get_iri(entity_name)
         class_triple = (iri, rdflib.RDF.type, rdflib.OWL.Class)
