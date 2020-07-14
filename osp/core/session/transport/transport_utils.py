@@ -130,19 +130,19 @@ def move_files(file_cuds, temp_directory, target_directory):
                     The list of all files (if target_directory None)
     """
     if target_directory is None:
-        return [c.path for c in file_cuds]
+        return [_convert_path_of_file_cuds(c) for c in file_cuds]
     result = list()
     for cuds in file_cuds:
         # get current location
-        path = cuds.path
+        path = _convert_path_of_file_cuds(cuds)
+        base_name = os.path.basename(path)
         if temp_directory is not None:
             path = os.path.join(temp_directory,
-                                os.path.basename(cuds.path))
+                                base_name)
         # get target location
-        target_basename = os.path.basename(path)
-        if not target_basename.startswith(cuds.uid.hex):
-            target_basename = cuds.uid.hex + "-" + os.path.basename(path)
-        target_path = os.path.join(target_directory, target_basename)
+        if not base_name.startswith(cuds.uid.hex):
+            base_name = cuds.uid.hex + "-" + base_name
+        target_path = os.path.join(target_directory, base_name)
         # copy
         if (
             os.path.exists(os.path.dirname(target_path))
@@ -155,16 +155,22 @@ def move_files(file_cuds, temp_directory, target_directory):
             shutil.copyfile(path, target_path)
             assert cuds.uid not in cuds.session._expired
             cuds.path = target_path
-            logger.debug("Copy file %s to %s" % (path, target_path))
+            logger.debug(
+                "Copy file %s to %s" % (repr(path), repr(target_path))
+            )
             result.append(target_path)
         else:
-            logger.debug("Will not move %s to %s" % (path, target_path))
+            logger.debug(
+                "Will not move %s to %s" % (repr(path), repr(target_path))
+            )
             if not os.path.exists(os.path.dirname(target_path)):
                 logger.debug("Reason: Target path does not exist")
-            if not os.path.exists(path):
+            elif not os.path.exists(path):
                 logger.debug("Reason: File to move does not exist")
-            if os.path.exists(target_path) and os.path.samefile(path,
-                                                                target_path):
+            elif os.path.exists(target_path) and os.path.samefile(
+                path,
+                target_path
+            ):
                 logger.debug("Reason: The exact same file is already present "
                              "at the destination")
     return result
@@ -380,3 +386,42 @@ def get_hash(file_path):
                 break
             result.update(data)
     return result.hexdigest()
+
+
+def _convert_path_of_file_cuds(file_cuds):
+    if os.name not in ['nt', 'posix']:
+        raise Exception('Your machine is not supported.')
+
+    path_type = _determine_path_type_of_file_cuds(file_cuds)
+    path = file_cuds.path
+
+    if path_type == 'windows':
+        # on windows machine
+        if os.name == 'nt':
+            return path
+        # on linux machine
+        else:
+            return path.replace('\\', '/')
+    # linux path
+    elif path_type == 'linux':
+        # on linux machine
+        if os.name == 'posix':
+            return path
+        # on windows machine
+        else:
+            return path.replace('/', '\\')
+
+
+def _determine_path_type_of_file_cuds(file_cuds):
+    path = file_cuds.path
+    if '\\' in path and '/' not in path:    # windows path
+        return 'windows'
+    elif '/' in path and '\\' not in path:    # linux path
+        return 'linux'
+    # doesn't matter (path is just a file name)
+    elif '/' not in path and '\\' not in path:
+        return 'linux'
+    else:
+        raise Exception("""Inconsistent path attribute for
+        CUBA.FILE object {} with
+        path {}.""".format(file_cuds.uid, path))

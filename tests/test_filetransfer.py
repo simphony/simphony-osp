@@ -381,6 +381,21 @@ class TestFiletransfer(unittest.TestCase):
             self.assertEqual(set(os.listdir(CLIENT_DIR)),
                              {target[0], target[2]})
 
+        # download again and check that no errors occur
+        # and that the duplicates are still
+        # in the download folder (and not more)
+        number_of_downloaded_files = len(os.listdir(CLIENT_DIR))
+        with TransportSessionClient(SqliteSession, URI,
+                                    file_destination=CLIENT_DIR) as session:
+            CITY.CITY_WRAPPER(session=session)
+            session.load(images[0].uid)
+            session.load(images[1].uid)
+            session.load(images[2].uid)
+            self.assertEqual(
+                number_of_downloaded_files,
+                len(os.listdir(CLIENT_DIR))
+            )
+
     def test_hashes(self):
         """Test the methods for computing hashes"""
         self.assertEqual(get_hash_dir(FILES_DIR), HASHES)
