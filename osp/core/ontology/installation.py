@@ -1,6 +1,7 @@
 import os
 import logging
 import shutil
+import tempfile
 from osp.core.ontology.parser import Parser
 
 logger = logging.getLogger(__name__)
@@ -8,10 +9,13 @@ logger = logging.getLogger(__name__)
 
 class OntologyInstallationManager():
     def __init__(self, namespace_registry=None, path=None):
-        import osp.core.namespaces as namespaces
         self.namespace_registry = namespace_registry
-        self.path = path or namespaces._path
+        self.path = path
+        if self.path is None:
+            import osp.core.namespaces as namespaces
+            self.path = namespaces._path
         if self.namespace_registry is None:
+            import osp.core.namespaces as namespaces
             self.namespace_registry = namespaces._namespace_registry
 
     def install(self, *files):
@@ -165,3 +169,27 @@ class OntologyInstallationManager():
         logger.info("Will install the following namespaces: %s"
                     % result)
         return [files[n] for n in result]
+
+
+def pico_migrate(namespace_registry, path):
+    """Migrate old installations to new.
+
+    Args:
+        namespace_registry (NamespaceRegistry): The namespace registry
+        path (str): The installation path
+    """
+    logger.info("Migrating installed ontologies to new osp-core version")
+    yml_path = os.path.join(path, "yml", "installed")
+    with tempfile.TemporaryDirectory() as d:
+        files = list()
+        for file in os.listdir(yml_path):
+            if file == "ontology.cuba.yml" or file == "cuba.ontology.yml":
+                continue
+            os.rename(os.path.join(yml_path, file), os.path.join(d, file))
+            files.append(os.path.join(d, file))
+        shutil.rmtree(path)
+        os.mkdir(path)
+
+        installer = OntologyInstallationManager(namespace_registry, path)
+        namespace_registry._load_cuba()
+        installer.install(*files)

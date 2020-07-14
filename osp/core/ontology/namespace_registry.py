@@ -131,6 +131,9 @@ class NamespaceRegistry():
             path (Path): path to directory where the ontology has been
                 installed.
         """
+        if os.path.exists(os.path.join(path, "yml")):
+            from osp.core.ontology.installation import pico_migrate
+            pico_migrate(self, path)
         path_graph = os.path.join(path, "graph.xml")
         path_ns = os.path.join(path, "namespaces.txt")
         if os.path.exists(path_graph):
