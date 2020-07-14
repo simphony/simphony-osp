@@ -199,9 +199,9 @@ class TestSqliteCity(unittest.TestCase):
                 cursor = conn.cursor()
                 cursor.execute("UPDATE CUDS_city___city SET name = 'Paris' "
                                "WHERE uid='%s';" % (c.uid))
-                cursor.execute("UPDATE CUDS_city___CITIZEN SET name = 'Maria' "
+                cursor.execute("UPDATE CUDS_city___Citizen SET name = 'Maria' "
                                "WHERE uid='%s';" % (p1.uid))
-                cursor.execute("UPDATE CUDS_city___CITIZEN SET name = 'Jacob' "
+                cursor.execute("UPDATE CUDS_city___Citizen SET name = 'Jacob' "
                                "WHERE uid='%s';" % (p2.uid))
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
@@ -209,7 +209,7 @@ class TestSqliteCity(unittest.TestCase):
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
                                % (session.RELATIONSHIP_TABLE, p3.uid, p3.uid))
-                cursor.execute("DELETE FROM CUDS_city___CITIZEN "
+                cursor.execute("DELETE FROM CUDS_city___Citizen "
                                "WHERE uid == '%s'"
                                % p3.uid)
                 cursor.execute("DELETE FROM %s "
@@ -253,7 +253,7 @@ class TestSqliteCity(unittest.TestCase):
                 cursor = conn.cursor()
                 cursor.execute("UPDATE CUDS_city___city SET name = 'Paris' "
                                "WHERE uid='%s';" % (c.uid))
-                cursor.execute("UPDATE CUDS_city___CITIZEN SET name = 'Maria' "
+                cursor.execute("UPDATE CUDS_city___Citizen SET name = 'Maria' "
                                "WHERE uid='%s';" % (p1.uid))
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
@@ -261,7 +261,7 @@ class TestSqliteCity(unittest.TestCase):
                 cursor.execute("DELETE FROM %s "
                                "WHERE origin == '%s' OR target = '%s'"
                                % (session.RELATIONSHIP_TABLE, p3.uid, p3.uid))
-                cursor.execute("DELETE FROM CUDS_city___CITIZEN "
+                cursor.execute("DELETE FROM CUDS_city___Citizen "
                                "WHERE uid == '%s'"
                                % p3.uid)
                 cursor.execute("DELETE FROM %s "
@@ -354,7 +354,7 @@ def check_state(test_case, c, p1, p2, db=DB):
         })
 
         cursor.execute("SELECT uid, name, coordinates___0, coordinates___1 "
-                       "FROM CUDS_city___city;")
+                       "FROM CUDS_city___City;")
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
             (str(c.uid), "Freiburg", 0, 0)
@@ -371,7 +371,7 @@ def check_db_cleared(test_case, table):
         cursor.execute("SELECT * FROM %s;"
                        % SqliteSession.RELATIONSHIP_TABLE)
         test_case.assertEqual(list(cursor), list())
-        cursor.execute("SELECT * FROM CUDS_city___CITIZEN")
+        cursor.execute("SELECT * FROM CUDS_city___Citizen")
         test_case.assertEqual(list(cursor), list())
         cursor.execute("SELECT * FROM CUDS_city___city")
         test_case.assertEqual(list(cursor), list())
