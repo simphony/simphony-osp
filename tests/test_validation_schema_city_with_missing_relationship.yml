@@ -1,0 +1,8 @@
+version: "1.0.0"
+
+oclass: CITY.CITY
+
+model:
+    CITY.CITY:
+        
+display_value: CITY.CITY.NAME
