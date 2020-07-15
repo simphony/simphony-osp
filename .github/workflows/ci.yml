@@ -5,7 +5,6 @@ on: pull_request
 jobs:
   code_analysis:
     runs-on: self-hosted
-    needs: cleanup
     steps:
       - uses: actions/checkout@v2
 
@@ -22,7 +21,6 @@ jobs:
   
   test:
     runs-on: self-hosted
-    needs: cleanup
     steps:
       - uses: actions/checkout@v2
       - name: unittesting
