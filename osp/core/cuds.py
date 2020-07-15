@@ -382,9 +382,7 @@ class Cuds():
                     if child_uid not in uids_stored:
                         new_child = new_child_getter.get(
                             child_uid, rel=outgoing_rel)
-                        old_child = old_cuds_object.get(child_uid,
-                                                        rel=outgoing_rel) \
-                            if old_cuds_object else None
+                        old_child = self.session.load(child_uid).first()
                         queue.append((new_cuds_object, new_child, old_child))
                         uids_stored.add(new_child.uid)
 
