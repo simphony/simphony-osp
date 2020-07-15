@@ -112,6 +112,13 @@ class Parser():
             with open(file_path, "r") as f:
                 yaml_doc = yaml.safe_load(f)
         if REQUIREMENTS_KEY in yaml_doc:
+            if not isinstance(yaml_doc[REQUIREMENTS_KEY], list):
+                identifier = Parser.get_identifier(yaml_doc)
+                raise ValueError(
+                    f"Object of type {type(yaml_doc[REQUIREMENTS_KEY])} given "
+                    f"as list of requirements for ontology {identifier}. "
+                    f"You need to specify a list."
+                )
             return set(yaml_doc[REQUIREMENTS_KEY])
         else:
             return set()
@@ -210,7 +217,8 @@ class Parser():
                 iri.endswith("#") or iri.endswith("/")
             ):
                 iri += "#"
-            logger.debug("Create namespace %s" % namespace)
+            logger.info(f"You can now use `from osp.core.namespaces import "
+                        f"{namespace}`.")
             self.graph.bind(namespace, rdflib.URIRef(iri))
             default_rels[iri] = default_rel
             reference_styles[iri] = reference_style

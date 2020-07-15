@@ -62,6 +62,8 @@ class YmlParser:
         self._namespace = self._doc[NAMESPACE_KEY].lower()
         self._ontology_doc = self._doc[ONTOLOGY_KEY]
         self._parse_ontology()
+        logger.info(f"You can now use `from osp.core.namespaces import "
+                    f"{self._namespace}`.")
 
     @staticmethod
     def get_doc(file_path):
