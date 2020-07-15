@@ -40,7 +40,11 @@ def validate_tree_against_schema(root_obj, schema_file):
         except KeyError:
             raise ConsistencyError(f"Instance of entity {entity} is expected to be \
                             present in the CUDS tree, but none was found.")
-
+        
+        # no relationship specified in the yaml means that the entity should simply exist
+        if relationships is None:
+            continue
+                
         for cuds_obj in entity_instances_to_check:
             for relationship, connected_entities in relationships.items():
                 for connected_entity, constraints in connected_entities.items(
