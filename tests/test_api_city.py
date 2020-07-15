@@ -652,6 +652,18 @@ class TestAPICity(unittest.TestCase):
             {city.name: "Ralf", city.age: 25}
         )
 
+    def test_add_multi_session(self):
+        with CoreSession() as session:
+            wrapper = cuba.Wrapper(session=session)
+            aw = cuba.Class(session=session)
+            b = cuba.Class()
+            c = cuba.Class()
+            bw = aw.add(b, rel=cuba.activeRelationship)
+            c.add(b, rel=cuba.activeRelationship)
+            wrapper.add(c, rel=cuba.activeRelationship)
+            self.assertIn(bw, aw.get(rel=cuba.activeRelationship))
+            self.assertIn(aw, bw.get(rel=cuba.passiveRelationship))
+
 
 if __name__ == '__main__':
     unittest.main()
