@@ -28,8 +28,3 @@ jobs:
       - name: unittesting
         run: tox
 
-  cleanup:
-    runs-on: self-hosted
-    steps:
-      - name: cleanup
-        run: rm -rf /app/_work/osp-core-migration/osp-core-migration/*
