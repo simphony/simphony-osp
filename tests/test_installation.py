@@ -3,7 +3,8 @@ import unittest2 as unittest
 import tempfile
 import rdflib
 import shutil
-from osp.core.ontology.installation import OntologyInstallationManager
+from osp.core.ontology.installation import OntologyInstallationManager, \
+    pico_migrate
 from osp.core.ontology.namespace_registry import NamespaceRegistry
 
 FILES = [
@@ -122,6 +123,21 @@ class TestInstallation(unittest.TestCase):
         self.assertEqual(r, ["city", "parser_test"])
         self.assertRaises(RuntimeError, self.installer._sort_for_installation,
                           ["parser_test"])
+
+    def test_pico_migrate(self):
+        path = os.path.join(self.tempdir.name, ".osp_ontologies")
+        yml_dir = os.path.join(path, "yml", "installed")
+        os.makedirs(os.path.join(path, "yml", "installed"))
+        file = FILES[1]
+        dest = os.path.join(yml_dir, os.path.basename(file))
+        shutil.copyfile(file, dest)
+        pkl_file = os.path.join(path, "foo.bar.pkl")
+        open(pkl_file, "wb").close()
+        self.installer.namespace_registry._graph = rdflib.Graph()
+        pico_migrate(self.installer.namespace_registry,
+                     path)
+        self.assertEqual(sorted(os.listdir(path)), sorted([
+            'city.yml', 'graph.xml', 'namespaces.txt']))
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ import yaml
 import rdflib
 import unittest2 as unittest
 import tempfile
+import responses
 from rdflib.compare import isomorphic
 from osp.core.ontology.parser import Parser
 from osp.core.ontology.cuba import rdflib_cuba
@@ -84,6 +85,26 @@ class TestParser(unittest.TestCase):
                                         "/a/b/c/parser_test.yml", None)
         self.assertEqual(result["ontology_file"],
                          "/a/b/c/parser_test.ttl")
+
+    @responses.activate
+    def test_parse_yml_download(self):
+        def request_callback(request):
+            headers = {'request-id': '728d329e-0e86-11e4-a748-0c84dc037c13'}
+            return (200, headers, "TEST FILE CONTENT")
+
+        url = "http://my_ontology.com/ontology.owl"
+        responses.add_callback(
+            responses.GET, url,
+            callback=request_callback,
+            content_type='text/plain',
+        )
+        doc = dict(YML_DOC)
+        doc["ontology_file"] = url
+        with tempfile.NamedTemporaryFile(mode="w+t") as f:
+            r = self.parser._parse_yml(doc, "/a/b/c/parser_test.yml", f)
+            self.assertEqual(r["ontology_file"], f.name)
+            f.seek(0)
+            self.assertEqual(f.read(), "TEST FILE CONTENT")
 
     def test_get_file_path(self):
         self.assertEqual(self.parser.get_file_path("test/my_file.yml"),
