@@ -41,7 +41,8 @@ class Parser():
             if YmlParser.is_yaml_ontology(yaml_doc):
                 YmlParser(self.graph).parse(file_path, yaml_doc)
             elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
-                with tempfile.NamedTemporaryFile(mode="wt") as f:
+                s = "-" + os.path.basename(file_path)
+                with tempfile.NamedTemporaryFile(mode="wt", suffix=s) as f:
                     self._parse_rdf(**self._parse_yml(yaml_doc, file_path, f))
             else:
                 raise SyntaxError(f"Invalid format of file {file_path}")
