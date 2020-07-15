@@ -1,7 +1,7 @@
 import requests
 import json
 import rdflib
-from osp.core import CUBA
+from osp.core.namespaces import cuba
 
 
 def branch(cuds_object, *args, rel=None):
@@ -65,7 +65,7 @@ def post(url, cuds_object, max_depth=float("inf")):
     from osp.core.session.transport.transport_utils import serializable
     cuds_objects = find_cuds_object(criterion=lambda x: True,
                                     root=cuds_object,
-                                    rel=CUBA.ACTIVE_RELATIONSHIP,
+                                    rel=cuba.activeRelationship,
                                     find_all=True,
                                     max_depth=max_depth)
     serialized = json.dumps(serializable(cuds_objects))
@@ -111,8 +111,8 @@ def remove_cuds_object(cuds_object):
     :param cuds_object: The cuds_object to remove.
     """
     # Method does not allow deletion of the root element of a container
-    for elem in cuds_object.iter(rel=CUBA.RELATIONSHIP):
-        cuds_object.remove(elem.uid, rel=CUBA.RELATIONSHIP)
+    for elem in cuds_object.iter(rel=cuba.relationship):
+        cuds_object.remove(elem.uid, rel=cuba.relationship)
 
 
 def get_relationships_between(subj, obj):

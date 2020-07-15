@@ -1,0 +1,257 @@
+---
+version: "0.0.3"
+
+namespace: "city"
+
+ontology:
+
+ ################
+
+  encloses:
+    subclass_of:
+    - cuba.activeRelationship
+    inverse: city.isEnclosedBy
+
+  hasPart:
+    subclass_of:
+    - city.encloses
+    inverse: city.isPartOf
+    default_rel: true
+    characteristics:
+    - transitive
+
+  isInhabitantOf:
+    subclass_of:
+    - city.isEnclosedBy
+    inverse: city.hasInhabitant
+
+  isEnclosedBy:
+    subclass_of:
+    - cuba.passiveRelationship
+    inverse: city.encloses
+
+  isPartOf:
+    subclass_of:
+    - city.isEnclosedBy
+    inverse: city.hasPart
+
+  hasInhabitant:
+    subclass_of:
+    - city.encloses
+    inverse: city.isInhabitantOf
+  
+  hasChild:
+    subclass_of:
+    - city.hasPart
+    inverse: city.isChildOf
+
+  isChildOf:
+    subclass_of:
+    - city.isPartOf
+    inverse: city.hasChild
+  
+  hasWorker:
+    subclass_of:
+    - city.hasPart
+    inverse: city.worksIn
+
+  worksIn:
+    subclass_of:
+    - city.isPartOf
+    inverse: city.hasWorker
+
+  hasMajor:
+    subclass_of:
+    - city.hasWorker
+
+ ################
+
+  CityWrapper:
+    subclass_of:
+    - cuba.Wrapper
+    - city.hasPart:
+        range: city.City
+        cardinality: 1+
+        exclusive: false
+
+  CitySimWrapper:
+    subclass_of:
+    - city.CityWrapper
+    - city.hasPart:
+        range: city.Person
+        cardinality: many
+        exclusive: false
+    - city.hasPart:
+        range: city.City
+        cardinality: 1
+        exclusive: false
+    attributes:
+      city.numSteps:
+  
+  numSteps:
+    subclass_of:
+    - city.number
+
+  ################
+
+  GeographicalPlace:
+    subclass_of:
+    - cuba.Class
+    attributes:
+      city.name:
+
+  ArchitecturalComponent:
+    subclass_of:
+    - cuba.Class
+
+  LivingBeing:
+    description: A being that lives
+    subclass_of:
+    - cuba.Class
+    - city.isChildOf:
+        range: city.LivingBeing
+        cardinality: 0-2
+        exclusive: false
+    attributes:
+      city.name: "John Smith"
+      city.age:  25
+
+  number:
+    subclass_of:
+    - cuba.attribute
+    datatype: INT
+
+  postalCode:
+    subclass_of:
+    - city.number
+
+  name:
+    subclass_of:
+    - cuba.attribute
+
+  coordinates:
+    subclass_of:
+    - cuba.attribute
+    datatype: VECTOR:INT:2
+
+  Address:
+    subclass_of:
+    - cuba.Class
+    - city.isPartOf:
+        range: city.Building
+        cardinality: 1
+        exclusive: false
+    attributes:
+      city.name:  "Street"
+      city.number: 7
+      city.postalCode:
+
+  PopulatedPlace:
+    subclass_of:
+    - city.GeographicalPlace
+    - city.hasInhabitant:
+        range: city.Citizen
+        cardinality: many
+        exclusive: true
+    - city.hasWorker:
+        range: city.Person
+        cardinality: many
+        exclusive: true
+    attributes:
+      city.coordinates: [0, 0]
+
+  City:
+    subclass_of:
+    - city.PopulatedPlace
+    - city.hasPart:
+        range: city.Neighborhood
+        cardinality: many
+        exclusive: true
+    - city.isPartOf:
+        range: city.CityWrapper
+        cardinality: 0-1
+        exclusive: true
+    - city.hasMajor:
+        range: city.Citizen
+        cardinality: 0-1
+        exclusive: true
+
+  Neighborhood:
+    subclass_of:
+    - city.PopulatedPlace
+    - city.isPartOf:
+        range: city.City
+        cardinality: 1
+        exclusive: true
+    - city.hasPart:
+        range: city.Street
+        cardinality: many
+        exclusive: true
+
+  Street:
+    subclass_of:
+    - city.PopulatedPlace
+    - city.hasPart:
+        range: city.Building
+        cardinality: many
+        exclusive: true
+    - city.isPartOf:
+        range: city.Neighborhood
+        cardinality: 1
+        exclusive: true
+
+  ArchitecturalStructure:
+    subclass_of:
+    - city.GeographicalPlace
+
+  Building:
+    subclass_of:
+    - city.ArchitecturalStructure
+    - city.hasPart:
+        range: city.Adress
+        cardinality: 1
+        exclusive: false
+    - city.hasPart:
+        range: city.Floor
+        cardinality: many
+        exclusive: false
+    - city.isPartOf:
+        range: city.Street
+        cardinality: 1
+        exclusive: true
+
+  Floor:
+    subclass_of:
+    - city.ArchitecturalComponent
+
+  Person:
+    subclass_of:
+    - city.LivingBeing
+    - city.worksIn:
+        range: city.PopulatedPlace
+        cardinality: 0-1
+        exclusive: true
+    - city.isPartOf:
+        range: city.CitySimWrapper
+        cardinality: 0-1
+        exclusive: false
+
+  Citizen:
+    subclass_of:
+    - city.Person
+    - city.isInhabitantOf:
+        range: city.PopulatedPlace
+        cardinality: 0-1
+        exclusive: true
+    - city.isMajorOf:
+        range: city.City
+        cardinality: 0-1
+        exclusive: true
+
+  age:
+    subclass_of:
+    - city.number
+
+  Image:
+    subclass_of:
+    - cuba.File

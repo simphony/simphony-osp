@@ -4,8 +4,7 @@ import rdflib
 import logging
 
 from typing import Union, List, Iterator, Dict, Any
-from osp.core import ONTOLOGY_INSTALLER
-from osp.core.ontology.relationship import OntologyEntity
+from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.oclass import OntologyClass
@@ -15,7 +14,7 @@ from osp.core.session.session import Session
 from osp.core.neighbor_dict import NeighborDictRel, NeighborDictTarget
 from osp.core.utils import check_arguments, clone_cuds_object, \
     create_from_cuds_object, get_neighbor_diff
-from osp.core import CUBA
+from osp.core.namespaces import cuba, _namespace_registry
 
 logger = logging.getLogger("osp.core")
 
@@ -148,7 +147,7 @@ class Cuds():
                 returned.
         """
         check_arguments(Cuds, *args)
-        rel = rel or self.oclass.namespace.default_rel
+        rel = rel or self.oclass.namespace.get_default_rel()
         if rel is None:
             raise TypeError("Missing argument 'rel'! No default "
                             "relationship specified for namespace %s."
@@ -172,7 +171,7 @@ class Cuds():
 
     def get(self,
             *uids: uuid.UUID,
-            rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
+            rel: OntologyRelationship = cuba.activeRelationship,
             oclass: OntologyClass = None,
             return_rel: bool = False) -> Union["Cuds", List["Cuds"]]:
         """
@@ -194,7 +193,7 @@ class Cuds():
             uids (uuid.UUID): UUIDs of the elements.
             rel (OntologyRelationship, optional): Only return cuds_object
                 which are connected by subclass of given relationship.
-                Defaults to CUBA.ACTIVE_RELATIONSHIP.
+                Defaults to cuba.activeRelationship.
             oclass (OntologyClass, optional): Only return elements which are a
                 subclass of the given ontology class. Defaults to None.
             return_rel (bool, optional): Whether to return the connecting
@@ -255,7 +254,7 @@ class Cuds():
 
     def remove(self,
                *args: Union["Cuds", uuid.UUID],
-               rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
+               rel: OntologyRelationship = cuba.activeRelationship,
                oclass: OntologyClass = None):
         """
         Removes elements from the CUDS object.
@@ -268,7 +267,7 @@ class Cuds():
                 elements themselves.
             rel (OntologyRelationship, optional): Only remove cuds_object
                 which are connected by subclass of given relationship.
-                Defaults to CUBA.ACTIVE_RELATIONSHIP.
+                Defaults to cuba.activeRelationship.
             oclass (OntologyClass, optional): Only remove elements which are a
                 subclass of the given ontology class. Defaults to None.
 
@@ -297,7 +296,7 @@ class Cuds():
 
     def iter(self,
              *uids: uuid.UUID,
-             rel: OntologyRelationship = CUBA.ACTIVE_RELATIONSHIP,
+             rel: OntologyRelationship = cuba.activeRelationship,
              oclass: OntologyClass = None,
              return_rel: bool = False) -> Iterator["Cuds"]:
         """
@@ -316,7 +315,7 @@ class Cuds():
             uids (uuid.UUID): UUIDs of the elements.
             rel (OntologyRelationship, optional): Only return cuds_object
                 which are connected by subclass of given relationship.
-                Defaults to CUBA.ACTIVE_RELATIONSHIP.
+                Defaults to cuba.activeRelationship.
             oclass (OntologyClass, optional): Only return elements which are a
                 subclass of the given ontology class. Defaults to None.
             return_rel (bool, optional): Whether to return the connecting
@@ -375,7 +374,7 @@ class Cuds():
             for outgoing_rel in new_cuds_object._neighbors:
 
                 # do not recursively add parents
-                if not outgoing_rel.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP):
+                if not outgoing_rel.is_subclass_of(cuba.activeRelationship):
                     continue
 
                 # add children not already added
@@ -476,7 +475,7 @@ class Cuds():
         # Iterate over the new parents
         for (parent_uid, relationship), parent in zip(new_parent_diff,
                                                       new_parents):
-            if relationship.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP):
+            if relationship.is_subclass_of(cuba.activeRelationship):
                 continue
             inverse = relationship.inverse
             # Delete connection to parent if parent is not present
@@ -516,7 +515,7 @@ class Cuds():
             inverse = relationship.inverse
 
             # delete the inverse if neighbors are children
-            if relationship.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP):
+            if relationship.is_subclass_of(cuba.activeRelationship):
                 if inverse in neighbor._neighbors:
                     neighbor._remove_direct(inverse, new_cuds_object.uid)
 
@@ -793,16 +792,25 @@ class Cuds():
         """
         if name not in self._attr_values:
             if (  # check if user calls session's methods on wrapper
-                self.is_a(CUBA.WRAPPER)
+                self.is_a(cuba.Wrapper)
                 and self._session is not None
                 and hasattr(self._session, name)
             ):
-                logger.warn(
+                logger.warning(
                     "Trying to get non-defined attribute '%s' "
                     "of wrapper CUDS object '%s'. Will return attribute of "
                     "its session '%s' instead." % (name, self, self._session)
                 )
                 return getattr(self._session, name)
+            elif name.upper() in self._attr_values:
+                logger.warning(
+                    f"{name.upper()} is referenced with '{name}'. "
+                    f"Note that you must match the case of the definition in "
+                    f"the ontology in future releases. Additionally, entity "
+                    f"names defined in YAML ontology are no longer required "
+                    f"to be ALL_CAPS."
+                )
+                return self._attr_values[name.upper()]
             else:
                 raise AttributeError(name)
         if self.session:
@@ -828,6 +836,15 @@ class Cuds():
             super().__setattr__(name, new_value)
             return
         if name not in self._attr_values:
+            if name.upper() in self._attr_values:
+                logger.warning(
+                    f"{name.upper()} is referenced with '{name}'. "
+                    f"Note that you must match the case of the definition in "
+                    f"the ontology in future releases. Additionally, entity "
+                    f"names defined in YAML ontology are no longer required "
+                    f"to be ALL_CAPS."
+                )
+                return self._attr_values[name.upper()]
             raise AttributeError(name)
         if self.session:
             self.session._notify_read(self)
@@ -873,7 +890,8 @@ class Cuds():
             bool: True if they share the uid and class, False otherwise
         """
 
-        return other.oclass == self.oclass and self.uid == other.uid
+        return isinstance(other, Cuds) and other.oclass == self.oclass \
+            and self.uid == other.uid
 
     def __getstate__(self):
         """
@@ -885,17 +903,18 @@ class Cuds():
         """
 
         state = {k: v for k, v in self.__dict__.items()
-                 if k not in {"_session", "_oclass", "_values"}}
-        state["_oclass"] = (self.oclass.namespace.name, self._oclass.name)
+                 if k not in {"_session", "_oclass", "_values",
+                              "_onto_attributes", "_stored"}}
+        state["_oclass"] = (self.oclass.namespace._name, self._oclass.name)
         state["_neighbors"] = [
-            (k.namespace.name, k.name, [
-                (uid, vv.namespace.name, vv.name)
+            (k.namespace._name, k.name, [
+                (uid, vv.namespace._name, vv.name)
                 for uid, vv in v.items()
             ])
             for k, v in self._neighbors.items()
         ]
-        state["_values"] = [(k, v.namespace.name, v.name)
-                            for k, v in self._onto_attributes.items()]
+        state["_onto_attributes"] = [(k, v.namespace._name, v.name)
+                                     for k, v in self._onto_attributes.items()]
         return state
 
     def __setstate__(self, state):
@@ -908,17 +927,20 @@ class Cuds():
         """
 
         namespace, oclass = state["_oclass"]
-        oclass = ONTOLOGY_INSTALLER.namespace_registry[namespace][oclass]
+        oclass = _namespace_registry[namespace].get(oclass)
         state["_oclass"] = oclass
         state["_session"] = None
         state["_neighbors"] = NeighborDictRel({
-            ONTOLOGY_INSTALLER.namespace_registry[ns][cl]:
+            _namespace_registry[ns].get(cl):
                 NeighborDictTarget({
-                    uid: ONTOLOGY_INSTALLER.namespace_registry[ns2][cl2]
+                    uid: _namespace_registry[ns2].get(cl2)
                     for uid, ns2, cl2 in v
-                }, self, ONTOLOGY_INSTALLER.namespace_registry[ns][cl])
+                }, self, _namespace_registry[ns].get(cl))
             for ns, cl, v in state["_neighbors"]
         }, self)
-        state["_values"] = {k: ONTOLOGY_INSTALLER.namespace_registry[ns][cl]
-                            for k, ns, cl in state["_values"]}
+        state["_onto_attributes"] = {
+            k: _namespace_registry[ns].get(cl)
+            for k, ns, cl in state["_onto_attributes"]
+        }
+        state["_stored"] = False
         self.__dict__ = state

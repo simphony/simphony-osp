@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 import subprocess
 import unittest2 as unittest
 import hashlib
@@ -11,10 +10,13 @@ from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
 
 try:
-    from osp.core import CITY
+    from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
-    CITY = Parser().parse("city")
+    from osp.core.namespaces import _namespace_registry
+    Parser(_namespace_registry._graph).parse("city")
+    _namespace_registry.update_namespaces()
+    from osp.core.namespaces import city
 
 HOST = "127.0.0.1"
 PORT1 = 8469
@@ -86,14 +88,20 @@ class TestTransportAuth(unittest.TestCase):
                 "tests/test_transport_auth.py",
                 "server1"]
         TestTransportAuth.OUTPUT_FILE = open("output_test_auth", "w")
-        p = subprocess.Popen(args, stderr=TestTransportAuth.OUTPUT_FILE)
+        p = subprocess.Popen(args, stderr=TestTransportAuth.OUTPUT_FILE,
+                             stdout=subprocess.PIPE)
         TestTransportAuth.SERVER_STARTED.append(p)
-        time.sleep(1)
+        for line in p.stdout:
+            if b"ready\n" == line:
+                break
 
         args[-1] = "server2"
-        p = subprocess.Popen(args, stderr=TestTransportAuth.OUTPUT_FILE)
+        p = subprocess.Popen(args, stderr=TestTransportAuth.OUTPUT_FILE,
+                             stdout=subprocess.PIPE)
         TestTransportAuth.SERVER_STARTED.append(p)
-        time.sleep(1)
+        for line in p.stdout:
+            if b"ready\n" == line:
+                break
 
     @classmethod
     def tearDownClass(cls):
@@ -106,29 +114,31 @@ class TestTransportAuth(unittest.TestCase):
         """Test authentication."""
         with TransportSessionClient(AuthSession, URI_CORRECT1, path=DB) \
                 as session:
-            CITY.CITY_WRAPPER(session=session)
+            city.CityWrapper(session=session)
 
         with TransportSessionClient(AuthSession, URI_WRONG1, path=DB) \
                 as session:
-            self.assertRaises(RuntimeError, CITY.CITY_WRAPPER,
+            self.assertRaises(RuntimeError, city.CityWrapper,
                               session=session)
 
         with TransportSessionClient(SimpleAuthSession, URI_CORRECT2, path=DB) \
                 as session:
-            CITY.CITY_WRAPPER(session=session)
+            city.CityWrapper(session=session)
 
         with TransportSessionClient(SimpleAuthSession, URI_WRONG2, path=DB) \
                 as session:
-            self.assertRaises(RuntimeError, CITY.CITY_WRAPPER,
+            self.assertRaises(RuntimeError, city.CityWrapper,
                               session=session)
 
 
 if __name__ == "__main__":
     if sys.argv[-1] == "server1":
         server = TransportSessionServer(AuthSession, HOST, PORT1)
+        print("ready", flush=True)
         server.startListening()
     elif sys.argv[-1] == "server2":
         server = TransportSessionServer(SimpleAuthSession, HOST, PORT2)
+        print("ready", flush=True)
         server.startListening()
     else:
         unittest.main()

@@ -1,8 +1,8 @@
 version: "1.0.0"
 
-oclass: CITY.CITY
+oclass: city.City
 
 model:
-    CITY.CITY:
+    city.City:
         
-display_value: CITY.CITY.NAME
+display_value: city.City.name

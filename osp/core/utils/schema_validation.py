@@ -1,7 +1,7 @@
 import yaml
 import logging
 
-from osp.core import get_entity
+from osp.core.namespaces import get_entity
 
 
 logger = logging.getLogger(__name__)

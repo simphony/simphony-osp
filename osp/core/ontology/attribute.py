@@ -1,21 +1,22 @@
+# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
+# at Fraunhofer IWM.
+# All rights reserved.
+# Redistribution and use are limited to the scope agreed with the end user.
+# No parts of this software may be used outside of this context.
+# No redistribution is allowed without explicit written permission.
+
 from osp.core.ontology.entity import OntologyEntity
-from osp.core.ontology.datatypes import (
-    ONTOLOGY_DATATYPES, convert_from, convert_to
-)
+from osp.core.ontology.datatypes import convert_from, convert_to
 import logging
 import rdflib
 
 logger = logging.getLogger(__name__)
 
 
-CONFLICTING = "2L4N4lGLYBU8mBNx8H6X6dC6Mcf2AcBqIKnFnXUI"
-
-
 class OntologyAttribute(OntologyEntity):
-    def __init__(self, namespace, name, superclasses, description):
-        super().__init__(namespace, name, superclasses, description)
-        self._datatype = None
-        logger.debug("Create ontology attribute %s" % self)
+    def __init__(self, namespace, name, iri_suffix):
+        super().__init__(namespace, name, iri_suffix)
+        logger.debug("Created ontology data property %s" % self)
 
     @property
     def name(self):
@@ -23,98 +24,64 @@ class OntologyAttribute(OntologyEntity):
 
     @property
     def argname(self):
-        return super().name.lower()
+        return super().name
 
     @property
     def datatype(self):
-        result = self._get_datatype_recursively()
-        if result == CONFLICTING:
-            logger.warning("Conflicting datatype for %s" % self)
-            return "UNDEFINED"
-        return result or "UNDEFINED"
+        """Get the datatype of the attribute
 
-    # OVERRIDE
-    def get_triples(self):
-        """Get the RDF triples for the attribute.
+        Raises:
+            RuntimeError: More than one datatype associated with the attribute.
+            # TODO should be allowed
 
         Returns:
-            List[rdflib triple]: The triples for the attribute.
+            URIRef: IRI of the datatype
         """
-        from osp.core.ontology.datatypes import ONTOLOGY_DATATYPES
-        datatype_triple = []
-        yml_datatype = self.datatype.split(":")[0]
-        if ONTOLOGY_DATATYPES[yml_datatype][3] is not None:
-            datatype_triple = [
-                (self.iri, rdflib.RDFS.range,
-                 ONTOLOGY_DATATYPES[yml_datatype][3])
-            ]
-
-        return super().get_triples() + [
-            (self.iri, rdflib.OWL.subDataPropertyOf, x.iri)
-            for x in self.superclasses if str(x) != "CUBA.ENTITY"
-        ] + [
-            (self.iri, rdflib.OWL.subDataPropertyOf,
-             rdflib.OWL.topDataProperty),
-            (self.iri, rdflib.RDF.type, rdflib.OWL.FunctionalDataProperty),
-        ] + datatype_triple
-
-    def _get_datatype_recursively(self):
-        """Get the datatype of the value
-
-        Returns:
-            str: The datatype of the ontology value
-        """
-        if self._datatype is not None:
-            return self._datatype  # datatype is defined
-
-        # check for inherited datatype
-        datatype = None
-        for p in self.direct_superclasses:
-            if not isinstance(p, OntologyAttribute):
-                continue
-            superclass_datatype = p._get_datatype_recursively()
-            if (
-                datatype is not None
-                and superclass_datatype is not None
-                and datatype != superclass_datatype
-            ):
-                return CONFLICTING  # conflicting datatypes of superclasses
-            datatype = datatype or superclass_datatype
-        return datatype
+        superclasses = self.superclasses
+        datatypes = set()
+        for superclass in superclasses:
+            triple = (superclass.iri, rdflib.RDFS.range, None)
+            for _, _, o in self.namespace._graph.triples(triple):
+                datatypes.add(o)
+        if len(datatypes) == 1:
+            return datatypes.pop()
+        if len(datatypes) == 0:
+            return None
+        raise RuntimeError(f"More than one datatype associated to {self}:"
+                           f" {datatypes}")
 
     def convert_to_datatype(self, value):
         """Convert to the datatype of the value
 
-        Args:
-            value (Any): The value to convert.
-
-        Returns:
-            Any: The converted value
+        :param value: The value to convert
+        :type value: Any
+        :return: The converted value
+        :rtype: Any
         """
         return convert_to(value, self.datatype)
 
     def convert_to_basic_type(self, value):
         """Convert from the datatype of the value to a python basic type
 
-        Args:
-            value (Any): The value to convert
-
-        Returns:
-            Any: The converted value
+        :param value: The value to convert
+        :type value: Any
+                :return: The converted value
+        :rtype: Any
         """
         return convert_from(value, self.datatype)
 
-    def _set_datatype(self, datatype):
-        """Set the datatype of the attribute
+    def _direct_superclasses(self):
+        return self._directly_connected(rdflib.RDFS.subPropertyOf)
 
-        Args:
-            datatype (str): The datatype of the attribute
+    def _direct_subclasses(self):
+        return self._directly_connected(rdflib.RDFS.subPropertyOf,
+                                        inverse=True)
 
-        Raises:
-            ValueError: Invalid datatype specified
-        """
-        if datatype.split(":")[0] not in ONTOLOGY_DATATYPES:
-            raise ValueError("Invalid datatype %s specified for %s"
-                             % (datatype, self))
-        logger.debug("Set datatype %s for attribute %s" % (datatype, self))
-        self._datatype = datatype
+    def _superclasses(self):
+        yield self
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf)
+
+    def _subclasses(self):
+        yield self
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
+                                         inverse=True)

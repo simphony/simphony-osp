@@ -2,7 +2,7 @@ from copy import deepcopy
 from osp.core.neighbor_dict import NeighborDictTarget
 from osp.core.ontology.datatypes import convert_to
 from osp.core.utils.general import get_relationships_between
-from osp.core import CUBA
+from osp.core.namespaces import cuba
 
 
 # General utility methods
@@ -62,10 +62,10 @@ def get_neighbor_diff(cuds1, cuds2, mode="all"):
     for relationship in cuds1._neighbors.keys():
         if ((
             mode == "active"
-            and not relationship.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP)
+            and not relationship.is_subclass_of(cuba.activeRelationship)
         ) or (
             mode == "non-active"
-            and relationship.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP)
+            and relationship.is_subclass_of(cuba.activeRelationship)
         )):
             continue
 
@@ -179,7 +179,7 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
     # change oclass
     if cuds_object.oclass != new_oclass:
         cuds_object._oclass = new_oclass
-        for neighbor in cuds_object.get(rel=CUBA.RELATIONSHIP):
+        for neighbor in cuds_object.get(rel=cuba.relationship):
             for rel in get_relationships_between(cuds_object, neighbor):
                 neighbor._neighbors[rel.inverse][cuds_object.uid] = \
                     new_oclass

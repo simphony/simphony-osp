@@ -7,7 +7,7 @@ active_relationships:
 insert_entities:
   VALUE:
     subclass_of:
-    - CUBA.ATTRIBUTE
+    - cuba.attribute
     datatype: FLOAT
 update_entities:
   NUMBER:

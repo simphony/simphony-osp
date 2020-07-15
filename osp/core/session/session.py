@@ -73,7 +73,7 @@ class Session(ABC):
         Args:
             cuds_object (Cuds): The CUDS object to be deleted
         """
-        from osp.core import cuba
+        from osp.core.namespaces import cuba
         if cuds_object.session != self:
             cuds_object = next(self.load(cuds_object.uid))
         if cuds_object.get():
