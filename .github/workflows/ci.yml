@@ -32,4 +32,4 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: cleanup
-      - run: rm -rf app/_work/osp-core-migration/osp-core-migration/*
+        run: rm -rf app/_work/osp-core-migration/osp-core-migration/*
