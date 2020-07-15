@@ -79,6 +79,10 @@ class TestUtils(unittest.TestCase):
             os.path.dirname(__file__),
             'test_validation_schema_city_with_missing_entity.yml'
         )
+        schema_file_with_missing_relationship = os.path.join(
+            os.path.dirname(__file__),
+            'test_validation_schema_city_with_missing_relationship.yml'
+        )
 
         c = city.City(name='freiburg')
 
@@ -88,6 +92,19 @@ class TestUtils(unittest.TestCase):
             validate_tree_against_schema,
             c,
             schema_file
+        )
+
+        # unless I do not specify relationships for it
+        validate_tree_against_schema(c, schema_file_with_missing_relationship)
+
+        # but it at least should be a city,
+        # even when no relationships are defined
+        wrong_object = cuba.File(path='some path')
+        self.assertRaises(
+            ConsistencyError,
+            validate_tree_against_schema,
+            wrong_object,
+            schema_file_with_missing_relationship
         )
 
         c.add(city.Neighborhood(name='some hood'))
