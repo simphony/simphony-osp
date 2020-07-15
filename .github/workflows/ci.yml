@@ -5,7 +5,7 @@ on: pull_request
 jobs:
   code_analysis:
     runs-on: self-hosted
-
+    needs: cleanup
     steps:
       - uses: actions/checkout@v2
 
@@ -22,7 +22,14 @@ jobs:
   
   test:
     runs-on: self-hosted
+    needs: cleanup
     steps:
       - uses: actions/checkout@v2
       - name: unittesting
         run: tox
+
+  cleanup:
+    runs-on: self-hosted
+    steps:
+      - name: cleanup
+      - run: rm -rf app/_work/osp-core-migration/osp-core-migration/*
