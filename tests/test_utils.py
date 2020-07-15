@@ -94,7 +94,7 @@ class TestUtils(unittest.TestCase):
         # unless I do not specify relationships for it
         validate_tree_against_schema(c, schema_file_with_missing_relationship)
 
-        # but it at least should be a city, 
+        # but it at least should be a city,
         # even when no relationships are defined
         wrong_object = CUBA.FILE(path='some path')
         self.assertRaises(
