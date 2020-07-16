@@ -62,7 +62,7 @@ def validate_tree_against_schema(root_obj, schema_file):
             # if there are no relationships defined,
             # the only constraint is that the object exists
             continue
-                
+
         # now go through all objects of this oclass in the tree
         # and check whether the definition is fulfilled
         for object_to_check in all_objects_to_check:
