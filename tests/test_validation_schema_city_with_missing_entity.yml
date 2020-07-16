@@ -1,25 +1,25 @@
 version: "1.0.0"
 
-oclass: CITY.CITY
+oclass: city.City
 
 model:
-    CITY.CITY:
-        CITY.HAS_INHABITANT:
-            CITY.CITIZEN:
+    city.City:
+        city.hasInhabitant:
+            city.Citizen:
                 cardinality: 1-2
-        CITY.HAS_PART:
-            CITY.NEIGHBORHOOD:
+        city.hasPart:
+            city.Neighborhood:
                 cardinality: 1
     
-    CITY.NEIGHBORHOOD:
-        CITY.HAS_PART:
-            CITY.STREET: 
+    city.Neighborhood:
+        city.hasPart:
+            city.Street: 
                 cardinality: 1+
     
-    CITY.GEOGRAPHICAL_PLACE:
-        CITY.HAS_PART:
-            CITY.NEIGHBORHOOD:
+    city.GeographicalPlace:
+        city.hasPart:
+            city.Neighborhood:
                 cardinality: 1
 
 
-display_value: CITY.CITY.NAME
+display_value: city.City.name

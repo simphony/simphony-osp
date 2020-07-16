@@ -1,14 +1,17 @@
 import unittest2 as unittest
-from osp.core import CUBA
+from osp.core.namespaces import cuba
 from osp.core.session.session import Session
 from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.buffers import BufferContext
 
 try:
-    from osp.core import CITY
+    from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
-    CITY = Parser().parse("city")
+    from osp.core.namespaces import _namespace_registry
+    Parser(_namespace_registry._graph).parse("city")
+    _namespace_registry.update_namespaces()
+    from osp.core.namespaces import city
 
 
 class TestSessionCity(unittest.TestCase):
@@ -19,13 +22,13 @@ class TestSessionCity(unittest.TestCase):
     def test_delete_cuds_object(self):
         """Tests the pruning method"""
         with TestWrapperSession() as session:
-            w = CITY.CITY_WRAPPER(session=session)
+            w = city.CityWrapper(session=session)
             cities = list()
             neighborhoods = list()
             for i in range(2):
-                c = CITY.CITY(name="city %s" % i)
+                c = city.City(name="city %s" % i)
                 for j in range(2):
-                    n = CITY.NEIGHBORHOOD(name="neighborhood %s %s" % (i, j))
+                    n = city.Neighborhood(name="neighborhood %s %s" % (i, j))
                     c.add(n)
                 cities.append(w.add(c))
                 neighborhoods.extend(cities[-1].get())
@@ -45,8 +48,8 @@ class TestSessionCity(unittest.TestCase):
         """
         updated = set()
         session = TestSession(notify_update=lambda x: updated.add(x))
-        w = CITY.CITY_WRAPPER(session=session)
-        c = CITY.CITY(name="city 1")
+        w = city.CityWrapper(session=session)
+        c = city.City(name="city 1")
         cw = w.add(c)
         self.assertEqual(updated, set([c, w]))
 
@@ -56,7 +59,7 @@ class TestSessionCity(unittest.TestCase):
         self.assertEqual(updated, set([c]))
 
         updated.pop()
-        c3 = CITY.CITY(name="city 3")
+        c3 = city.City(name="city 3")
         w.add(c3)
         self.assertEqual(updated, set([c3, w]))
 
@@ -66,23 +69,23 @@ class TestSessionCity(unittest.TestCase):
         """
         deleted = set()
         session = TestSession(notify_delete=lambda x: deleted.add(x))
-        w = CITY.CITY_WRAPPER(session=session)
+        w = city.CityWrapper(session=session)
         cities = list()
         for i in range(3):
-            c = CITY.CITY(name="city %s" % i)
+            c = city.City(name="city %s" % i)
             cw = w.add(c)
             cities.append(cw)
             for j in range(2):
-                n = CITY.NEIGHBORHOOD(name="neighborhood %s %s" % (i, j))
+                n = city.Neighborhood(name="neighborhood %s %s" % (i, j))
                 cw.add(n)
                 nw = cw.get(n.uid)
                 for k in range(2):
-                    s = CITY.STREET(name="street %s %s %s" % (i, j, k))
+                    s = city.Street(name="street %s %s %s" % (i, j, k))
                     nw.add(s)
         w.remove(cities[1].uid, cities[2].uid)
         session.prune(rel=None)
         self.assertEqual(
-            set(["wrapper" if k.is_a(CUBA.WRAPPER) else k.name
+            set(["wrapper" if k.is_a(cuba.Wrapper) else k.name
                  for k in session._registry.values()]),
             set(["city 0", "neighborhood 0 0", "neighborhood 0 1",
                  "street 0 0 0", "street 0 0 1", "street 0 1 0",
@@ -104,9 +107,9 @@ class TestSessionCity(unittest.TestCase):
             [[dict(), dict(), dict()], [dict(), dict(), dict()]]
         )
 
-        w = CITY.CITY_WRAPPER(session=session)
-        c = CITY.CITY(name="city 1")
-        n = CITY.NEIGHBORHOOD(name="neighborhood")
+        w = city.CityWrapper(session=session)
+        c = city.City(name="city 1")
+        n = city.Neighborhood(name="neighborhood")
         cw = w.add(c)
         cw.add(n)
         cw.remove(n.uid)
@@ -118,7 +121,7 @@ class TestSessionCity(unittest.TestCase):
             [dict(), dict(), dict()]])
 
         w.session._reset_buffers(BufferContext.USER)
-        c2 = CITY.CITY(name="city3")
+        c2 = city.City(name="city3")
         w.add(c2)
         cw2 = w.get(c2.uid)
         w.remove(cw.uid)
@@ -152,18 +155,18 @@ class TestSessionCity(unittest.TestCase):
     #                      (5, 10))
 
     # def test_get_ontology_cardinalities(self):
-    #     c = CITY.CITY(name="a city")
+    #     c = city.City(name="a city")
     #     p = cuds.classes.Citizen(name="a person")
-    #     n = CITY.NEIGHBORHOOD(name="a neighborhood")
+    #     n = city.Neighborhood(name="a neighborhood")
     #     c.add(p, rel=cuds.classes.HasInhabitant)
     #     c.add(n)
     #     cardinalities, rels = WrapperSession._get_ontology_cardinalities(c)
     #     self.assertEqual(rels,
     #                      {cuds.classes.HasInhabitant, cuds.classes.HasPart})
     #     self.assertEqual(cardinalities, {
-    #         (cuds.classes.HasPart, CITY.NEIGHBORHOOD):
+    #         (cuds.classes.HasPart, city.Neighborhood):
     #             (0, float("inf")),
-    #         (cuds.classes.IsPartOf, CITY.CITY_WRAPPER):
+    #         (cuds.classes.IsPartOf, city.CityWrapper):
     #             (0, 1),
     #         (cuds.classes.HasInhabitant, cuds.classes.Citizen):
     #             (0, float("inf")),
@@ -173,14 +176,14 @@ class TestSessionCity(unittest.TestCase):
     #             (0, float("inf"))})
 
     # def test_check_cardinalities(self):
-    #     c1 = CITY.CITY(name="a city")
-    #     c2 = CITY.CITY(name="a city")
+    #     c1 = city.City(name="a city")
+    #     c2 = city.City(name="a city")
     #     p = cuds.classes.Citizen(name="a person")
     #     c1.add(p, rel=cuds.classes.HasInhabitant)
     #     c2.add(p, rel=cuds.classes.HasInhabitant)
 
     #     with TestWrapperSession() as session:
-    #         wrapper = CITY.CITY_WRAPPER(session=session)
+    #         wrapper = city.CityWrapper(session=session)
     #         wrapper.add(c1, c2)
     #         self.assertRaises(ValueError, session._check_cardinalities)
     #         Cuds.CUDS_SETTINGS["check_cardinalities"] = False
@@ -195,7 +198,7 @@ class TestSessionCity(unittest.TestCase):
     #     p.add(c2, rel=cuds.classes.WorksIn)
     #     p.add(c1, rel=cuds.classes.IsInhabitantOf)
     #     with TestWrapperSession() as session:
-    #         wrapper = CITY.CITY_WRAPPER(session=session)
+    #         wrapper = city.CityWrapper(session=session)
     #         wrapper.add(c1, c2)
     #         self.assertRaises(ValueError, session._check_cardinalities)
     #         Cuds.CUDS_SETTINGS["check_cardinalities"] = False

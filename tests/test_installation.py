@@ -1,122 +1,144 @@
 import os
-import shutil
 import unittest2 as unittest
-from osp.core.ontology import OntologyInstallationManager
-import logging
+import tempfile
+import rdflib
+import shutil
+from osp.core.ontology.installation import OntologyInstallationManager, \
+    pico_migrate
+from osp.core.ontology.namespace_registry import NamespaceRegistry
 
-logger = logging.getLogger("osp.core")
-logger.setLevel(logging.CRITICAL)
+FILES = [
+    os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                 "parser_test.yml"),
+    os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                 "..", "osp", "core", "ontology", "docs", "city.ontology.yml"),
+]
 
 
 class TestInstallation(unittest.TestCase):
-    def test_init(self):
-        oim = OntologyInstallationManager(path=os.path.dirname(__file__))
-        self.assertEqual(
-            oim.path,
-            os.path.join(os.path.dirname(__file__), ".osp_ontologies")
-        )
-        self.assertEqual(
-            oim.yaml_path,
-            os.path.join(os.path.dirname(__file__),
-                         ".osp_ontologies", "yml")
-        )
-        self.assertEqual(
-            oim.installed_path,
-            os.path.join(os.path.dirname(__file__),
-                         ".osp_ontologies", "yml", "installed")
-        )
-        self.assertEqual(
-            oim.tmp_path,
-            os.path.join(os.path.dirname(__file__),
-                         ".osp_ontologies", "yml", str(oim.session_id))
-        )
-        self.assertEqual(
-            oim.pkl_path,
-            os.path.join(os.path.dirname(__file__),
-                         ".osp_ontologies", "ontology.pkl")
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.namespace_registry = NamespaceRegistry()
+        self.namespace_registry._load_cuba()
+        self.installer = OntologyInstallationManager(
+            namespace_registry=self.namespace_registry,
+            path=self.tempdir.name
         )
 
-    def test_tmp_open(self):
-        """Check of ontology file is moved to temporary dir"""
-        oim = OntologyInstallationManager(path=os.path.dirname(__file__))
-        city_path = os.path.join(
-            os.path.dirname(__file__),
-            "..", "osp", "core", "ontology", "yml",
-            "city.ontology.yml"
+    def tearDown(self):
+        self.tempdir.cleanup()
+
+    def copy_files(self):
+        p1 = os.path.join(self.tempdir.name, os.path.basename(FILES[0]))
+        p2 = os.path.join(self.tempdir.name, os.path.basename(FILES[1]))
+        shutil.copyfile(FILES[0], p1)
+        shutil.copyfile(FILES[1], p2)
+        return p1, p2
+
+    def test_do_install(self):
+        # clear False
+        self.installer._install(FILES + ["invalid"], lambda x: x[:-1],
+                                clear=False)
+        self.assertIn("city", self.namespace_registry._namespaces)
+        self.assertIn("parser_test", self.namespace_registry._namespaces)
+        self.assertEqual(self.namespace_registry._namespaces["city"],
+                         rdflib.term.URIRef('http://www.osp-core.com/city#'))
+        self.assertEqual(
+            self.namespace_registry._namespaces["parser_test"],
+            rdflib.term.URIRef('http://www.osp-core.com/parser_test#'))
+        self.assertEqual(sorted(os.listdir(self.tempdir.name)), sorted([
+            'city.yml', 'graph.xml', 'namespaces.txt', 'parser_test.xml',
+            'parser_test.yml']))
+        with open(os.path.join(self.tempdir.name, "namespaces.txt")) as f:
+            lines = set(map(lambda x: x.strip(), f))
+            self.assertIn("city\thttp://www.osp-core.com/city#", lines)
+            self.assertIn("cuba\thttp://www.osp-core.com/cuba#", lines)
+            self.assertIn("parser_test\thttp://www.osp-core.com/parser_test#",
+                          lines)
+        g_old = self.namespace_registry._graph
+
+        # clear False
+        self.installer._install([FILES[0]], lambda x: x, clear=True)
+        self.assertNotIn("city", self.namespace_registry._namespaces)
+        self.assertIn("parser_test", self.namespace_registry._namespaces)
+        self.assertIsNot(g_old, self.namespace_registry._graph)
+        self.assertEqual(
+            self.namespace_registry._namespaces["parser_test"],
+            rdflib.term.URIRef('http://www.osp-core.com/parser_test#'))
+        self.assertEqual(sorted(os.listdir(self.tempdir.name)), sorted([
+            'graph.xml', 'namespaces.txt', 'parser_test.xml',
+            'parser_test.yml']))
+        with open(os.path.join(self.tempdir.name, "namespaces.txt")) as f:
+            lines = set(map(lambda x: x.strip(), f))
+            self.assertNotIn("city\thttp://www.osp-core.com/city#", lines)
+            self.assertIn("cuba\thttp://www.osp-core.com/cuba#", lines)
+            self.assertIn("parser_test\thttp://www.osp-core.com/parser_test#",
+                          lines)
+
+    def test_get_new_packages(self):
+        o1, o2 = self.copy_files()
+        self.assertEqual(self.installer._get_new_packages(FILES), set())
+        os.remove(o1)
+        self.assertEqual(self.installer._get_new_packages(FILES), {FILES[0]})
+
+    def test_get_replaced_packages(self):
+        o1, o2 = self.copy_files()
+        self.assertEqual(
+            set(self.installer._get_replaced_packages([FILES[0]])),
+            {FILES[0], o2}
         )
-        oim._create_directories()
-        oim.tmp_open(city_path)
-        try:
-            f1 = open(city_path, "r")
-            self.assertEqual(  # check if file has been moved
-                os.listdir(oim.tmp_path),
-                ["city.ontology.yml"]
-            )  # check contents of the file
-            f2 = open(os.path.join(oim.tmp_path, "city.ontology.yml"), "r")
-            num_lines = 0
-            for l1, l2 in zip(f1, f2):
-                self.assertEqual(l1, l2)
-                num_lines += 1
-            self.assertEqual(num_lines, 263)
-        finally:
-            f1.close()
-            f2.close()
-            shutil.rmtree(oim.path)
+        self.assertRaises(FileNotFoundError,
+                          self.installer._get_replaced_packages, ["invalid"])
+
+    def test_get_remaining_packages(self):
+        o1, o2 = self.copy_files()
+        self.assertRaises(
+            ValueError, self.installer._get_remaining_packages,
+            ["city", "invalid"]
+        )
+        self.assertRaises(
+            ValueError, self.installer._get_remaining_packages, ["city.yml"]
+        )
+        self.assertEqual(self.installer._get_remaining_packages(FILES), [])
+        self.assertEqual(self.installer._get_remaining_packages([FILES[0]]),
+                         [o2])
+        self.assertEqual(self.installer._get_remaining_packages([o2]),
+                         [o1])
+        os.remove(o2)
+        self.assertRaises(ValueError, self.installer._get_remaining_packages,
+                          FILES)
+
+    def test_get_installed_packages(self):
+        o1, o2 = self.copy_files()
+        open(os.path.join(self.tempdir.name, "o3.xml"), "w").close()
+        self.assertEqual(self.installer.get_installed_packages(),
+                         {"city", "parser_test"})
+        self.assertEqual(self.installer.get_installed_packages(True),
+                         {("city", o2), ("parser_test", o1)})
 
     def test_sort_for_installation(self):
-        """Check if sort for installation works"""
-        oim = OntologyInstallationManager(path=os.path.dirname(__file__))
-        oim.namespace_registry = set()
-        self.assertEqual(
-            oim._sort_for_installation(["city"]),
-            ["cuba", "city"]
-        )
+        r = self.installer._sort_for_installation(["city", "parser_test"])
+        self.assertEqual(r, ["city", "parser_test"])
+        r = self.installer._sort_for_installation(["parser_test", "city"])
+        self.assertEqual(r, ["city", "parser_test"])
+        self.assertRaises(RuntimeError, self.installer._sort_for_installation,
+                          ["parser_test"])
 
-        self.assertEqual(
-            oim._sort_for_installation(["city", "parser_test"]),
-            ["cuba", "city", "parser_test"]
-        )
+    def test_pico_migrate(self):
+        path = os.path.join(self.tempdir.name, ".osp_ontologies")
+        yml_dir = os.path.join(path, "yml", "installed")
+        os.makedirs(os.path.join(path, "yml", "installed"))
+        file = FILES[1]
+        dest = os.path.join(yml_dir, os.path.basename(file))
+        shutil.copyfile(file, dest)
+        pkl_file = os.path.join(path, "foo.bar.pkl")
+        open(pkl_file, "wb").close()
+        self.installer.namespace_registry._graph = rdflib.Graph()
+        pico_migrate(self.installer.namespace_registry,
+                     path)
+        self.assertEqual(sorted(os.listdir(path)), sorted([
+            'city.yml', 'graph.xml', 'namespaces.txt']))
 
-        self.assertRaises(RuntimeError,
-                          oim._sort_for_installation, ["parser_test"])
 
-        self.assertEqual(
-            oim._sort_for_installation(["parser_test", "city", "cuba"]),
-            ["cuba", "city", "parser_test"]
-        )
-
-        self.assertEqual(
-            oim._sort_for_installation(["city", "parser_test"]),
-            ["cuba", "city", "parser_test"]
-        )
-
-        oim.namespace_registry = set(["cuba"])
-        self.assertEqual(
-            oim._sort_for_installation(["city"]),
-            ["city"]
-        )
-
-        oim.namespace_registry = set(["cuba", "city"])
-        self.assertEqual(
-            oim._sort_for_installation(["city", "cuba", "parser_test"]),
-            ["parser_test"]
-        )
-
-        oim.namespace_registry = set(["cuba", "city"])
-        self.assertEqual(
-            oim._sort_for_installation(["parser_test"]),
-            ["parser_test"]
-        )
-
-    def test_get_namespace(self):
-        """Get the namespace of a file"""
-        self.assertEqual(
-            OntologyInstallationManager._get_namespace("city"), "city"
-        )
-        self.assertEqual(
-            OntologyInstallationManager._get_namespace("parser_test"),
-            "parser_test"
-        )
-        self.assertEqual(
-            OntologyInstallationManager._get_namespace("cuba"), "cuba"
-        )
+if __name__ == "__main__":
+    unittest.main()

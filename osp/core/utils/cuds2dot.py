@@ -1,6 +1,6 @@
 import graphviz
 import logging
-from osp.core import CUBA
+from osp.core.namespaces import cuba
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class Cuds2dot():
         """
         from osp.core.utils import get_relationships_between
         current_uid = self.shorten_uid(current.uid)
-        for cuds_object in current.iter(rel=CUBA.RELATIONSHIP):
+        for cuds_object in current.iter(rel=cuba.relationship):
             cuds_object_uid = self.shorten_uid(cuds_object.uid)
             # Add the relationships
             relationship_set = get_relationships_between(current, cuds_object)

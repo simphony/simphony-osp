@@ -50,10 +50,10 @@ class Ontology2Dot():
             return self._graph
         if namespace in self._subgraphs:
             return self._subgraphs[namespace]
-        cluster_name = "cluster_" + namespace.name
+        cluster_name = "cluster_" + namespace._name
         if namespace in self._namespaces:
             self._subgraphs[namespace] = graphviz.Digraph(name=cluster_name)
-            self._subgraphs[namespace].attr(label=namespace.name)
+            self._subgraphs[namespace].attr(label=namespace._name)
             return self._subgraphs[namespace]
         self._subgraphs[namespace] = graphviz.Digraph(name=cluster_name)
         self._subgraphs[namespace].attr(penwidth="0")

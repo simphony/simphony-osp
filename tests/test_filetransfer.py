@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 import uuid
 import subprocess
 import unittest2 as unittest
@@ -33,10 +32,13 @@ except Exception:
         pass
 
 try:
-    from osp.core import CITY
+    from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
-    CITY = Parser().parse("city")
+    from osp.core.namespaces import _namespace_registry
+    Parser(_namespace_registry._graph).parse("city")
+    _namespace_registry.update_namespaces()
+    from osp.core.namespaces import city
 
 HOST = "127.0.0.1"
 PORT = 8645
@@ -59,22 +61,22 @@ HASHES = {
 
 
 SERIALIZED_BUFFERS = (
-    '{"added": [{"oclass": "CITY.IMAGE", '
+    '{"added": [{"oclass": "city.Image", '
     '"uid": "00000000-0000-0000-0000-000000000003", '
     '"attributes": {"path": "%s"}, '
-    '"relationships": {"CITY.IS_PART_OF": '
-    '{"00000000-0000-0000-0000-00000000002a": "CITY.CITY_WRAPPER"}}}], '
-    '"updated": [{"oclass": "CITY.CITY_WRAPPER", '
+    '"relationships": {"city.isPartOf": '
+    '{"00000000-0000-0000-0000-00000000002a": "city.CityWrapper"}}}], '
+    '"updated": [{"oclass": "city.CityWrapper", '
     '"uid": "00000000-0000-0000-0000-00000000002a", '
     '"attributes": {}, '
-    '"relationships": {"CITY.HAS_PART": '
-    '{"00000000-0000-0000-0000-000000000001": "CITY.IMAGE", '
-    '"00000000-0000-0000-0000-000000000003": "CITY.IMAGE"}}}, '
-    '{"oclass": "CITY.IMAGE", "uid": "00000000-0000-0000-0000-000000000001", '
+    '"relationships": {"city.hasPart": '
+    '{"00000000-0000-0000-0000-000000000001": "city.Image", '
+    '"00000000-0000-0000-0000-000000000003": "city.Image"}}}, '
+    '{"oclass": "city.Image", "uid": "00000000-0000-0000-0000-000000000001", '
     '"attributes": {"path": "%s"}, '
-    '"relationships": {"CITY.IS_PART_OF": '
-    '{"00000000-0000-0000-0000-00000000002a": "CITY.CITY_WRAPPER"}}}], '
-    '"deleted": [{"oclass": "CITY.IMAGE", '
+    '"relationships": {"city.isPartOf": '
+    '{"00000000-0000-0000-0000-00000000002a": "city.CityWrapper"}}}], '
+    '"deleted": [{"oclass": "city.Image", '
     '"uid": "00000000-0000-0000-0000-000000000002", '
     '"attributes": {"path": "%s"}, "relationships": {}}], '
     '"expired": []}' % (FILE_PATHS[2], FILE_PATHS[0], FILE_PATHS[1])
@@ -90,13 +92,15 @@ class TestFiletransfer(unittest.TestCase):
                 "tests/test_filetransfer.py",
                 "server"]
         try:
-            p = subprocess.Popen(args)
+            p = subprocess.Popen(args, stdout=subprocess.PIPE)
         except FileNotFoundError:
             args[0] = "python"
             p = subprocess.Popen(args)
 
         TestFiletransfer.SERVER_STARTED = p
-        time.sleep(1)
+        for line in p.stdout:
+            if b"ready\n" == line:
+                break
 
     @classmethod
     def tearDownClass(cls):
@@ -134,11 +138,11 @@ class TestFiletransfer(unittest.TestCase):
         """Test moving the files"""
         with TransportSessionClient(SqliteSession, URI) as session:
             # Image path is full path
-            wrapper = CITY.CITY_WRAPPER(session=session)
+            wrapper = city.CityWrapper(session=session)
             images = wrapper.add(
-                CITY.IMAGE(path=FILE_PATHS[0]),
-                CITY.IMAGE(path=FILE_PATHS[1]),
-                CITY.IMAGE(path=FILE_PATHS[2])
+                city.Image(path=FILE_PATHS[0]),
+                city.Image(path=FILE_PATHS[1]),
+                city.Image(path=FILE_PATHS[2])
             )
             result = move_files(images, None, CLIENT_DIR)
             target = ["%s-%s" % (image.uid.hex, file)
@@ -157,9 +161,9 @@ class TestFiletransfer(unittest.TestCase):
                      os.path.abspath('.').split(os.path.sep)[0]
                      + os.path.sep + FILES[2]]
             images = wrapper.add(
-                CITY.IMAGE(path=paths[0]),
-                CITY.IMAGE(path=paths[1]),
-                CITY.IMAGE(path=paths[2])
+                city.Image(path=paths[0]),
+                city.Image(path=paths[1]),
+                city.Image(path=paths[2])
             )
             result = move_files(images, FILES_DIR, CLIENT_DIR)
             target = ["%s-%s" % (image.uid.hex, file)
@@ -173,9 +177,9 @@ class TestFiletransfer(unittest.TestCase):
 
             # Not target given --> Nothing will be moved
             images = wrapper.add(
-                CITY.IMAGE(path=paths[0]),
-                CITY.IMAGE(path=paths[1]),
-                CITY.IMAGE(path=paths[2])
+                city.Image(path=paths[0]),
+                city.Image(path=paths[1]),
+                city.Image(path=paths[2])
             )
             result = move_files(images, FILES_DIR, None)
             self.assertEqual(set(os.listdir(CLIENT_DIR)), set())
@@ -183,9 +187,9 @@ class TestFiletransfer(unittest.TestCase):
 
             # Target does not exist
             images = wrapper.add(
-                CITY.IMAGE(path=paths[0]),
-                CITY.IMAGE(path=paths[1]),
-                CITY.IMAGE(path=paths[2])
+                city.Image(path=paths[0]),
+                city.Image(path=paths[1]),
+                city.Image(path=paths[2])
             )
             result = move_files(images, FILES_DIR, "not-existent")
             self.assertEqual(set(os.listdir(CLIENT_DIR)), set())
@@ -193,9 +197,9 @@ class TestFiletransfer(unittest.TestCase):
 
             # paths don't exist
             images = wrapper.add(
-                CITY.IMAGE(path=paths[0]),
-                CITY.IMAGE(path=paths[1]),
-                CITY.IMAGE(path=paths[2])
+                city.Image(path=paths[0]),
+                city.Image(path=paths[1]),
+                city.Image(path=paths[2])
             )
             result = move_files(images, None, CLIENT_DIR)
             self.assertEqual(set(os.listdir(CLIENT_DIR)), set())
@@ -203,16 +207,16 @@ class TestFiletransfer(unittest.TestCase):
 
     def setup_buffers1(self, session):
         """Helper fuction to set up the buffers for the methods below"""
-        wrapper = CITY.CITY_WRAPPER(session=session)
+        wrapper = city.CityWrapper(session=session)
         images = wrapper.add(
-            CITY.IMAGE(path=FILE_PATHS[0]),
-            CITY.IMAGE(path=FILE_PATHS[1])
+            city.Image(path=FILE_PATHS[0]),
+            city.Image(path=FILE_PATHS[1])
         )
         session._reset_buffers(BufferContext.USER)
         wrapper.remove(images[1].uid)
         images[0].path = FILE_PATHS[0]
         images = list(images) + \
-            [wrapper.add(CITY.IMAGE(path=FILE_PATHS[2]))]
+            [wrapper.add(city.Image(path=FILE_PATHS[2]))]
         session.prune()
         return images
 
@@ -246,10 +250,10 @@ class TestFiletransfer(unittest.TestCase):
 
     def setup_buffers2(self, session):
         """Helper function to setup the buffers for the methods below"""
-        wrapper = CITY.CITY_WRAPPER(session=session, uid=42)
+        wrapper = city.CityWrapper(session=session, uid=42)
         images = wrapper.add(
-            CITY.IMAGE(path=FILE_PATHS[0], uid=1),
-            CITY.IMAGE(path=FILE_PATHS[1], uid=2)
+            city.Image(path=FILE_PATHS[0], uid=1),
+            city.Image(path=FILE_PATHS[1], uid=2)
         )
         session._reset_buffers(BufferContext.USER)
         return images
@@ -278,14 +282,14 @@ class TestFiletransfer(unittest.TestCase):
 
     def test_get_file_cuds(self):
         """Test extracting the file cuds from a datatstructure"""
-        image1 = CITY.IMAGE(path="x")
-        image2 = CITY.IMAGE(path="y")
-        city = CITY.CITY(name="Freiburg")
+        image1 = city.Image(path="x")
+        image2 = city.Image(path="y")
+        c = city.City(name="Freiburg")
         x = {
             "a": image1,
             "b": 1,
             "c": None,
-            "d": [city, image2]
+            "d": [c, image2]
         }
         r = get_file_cuds(x)
         self.assertEqual(r, [image1, image2])
@@ -372,7 +376,7 @@ class TestFiletransfer(unittest.TestCase):
 
         with TransportSessionClient(SqliteSession, URI,
                                     file_destination=CLIENT_DIR) as session:
-            CITY.CITY_WRAPPER(session=session)
+            city.CityWrapper(session=session)
             session.load(images[0].uid)
             session.load(images[1].uid)
             session.load(images[2].uid)
@@ -387,7 +391,7 @@ class TestFiletransfer(unittest.TestCase):
         number_of_downloaded_files = len(os.listdir(CLIENT_DIR))
         with TransportSessionClient(SqliteSession, URI,
                                     file_destination=CLIENT_DIR) as session:
-            CITY.CITY_WRAPPER(session=session)
+            city.CityWrapper(session=session)
             session.load(images[0].uid)
             session.load(images[1].uid)
             session.load(images[2].uid)
@@ -464,4 +468,7 @@ if __name__ == "__main__":
         server = TransportSessionServer(SqliteSession, HOST, PORT,
                                         session_kwargs={"path": DB},
                                         file_destination=SERVER_DIR)
+        print("ready", flush=True)
         server.startListening()
+    else:
+        unittest.main()

@@ -1,5 +1,5 @@
 import sys
-from osp.core import CUBA
+from osp.core.namespaces import cuba
 
 
 def pretty_print(cuds_object, file=sys.stdout):
@@ -14,7 +14,7 @@ def pretty_print(cuds_object, file=sys.stdout):
     pp += "\n  uuid: " + str(cuds_object.uid)
     pp += "\n  type: " + str(cuds_object.oclass)
     pp += "\n  superclasses: " + ", ".join(
-        map(str, cuds_object.oclass.superclasses)
+        sorted(map(str, cuds_object.oclass.superclasses))
     )
     values_str = _pp_values(cuds_object)
     if values_str:
@@ -53,7 +53,7 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
     """
     pp_sub = ""
     filtered_relationships = filter(
-        lambda x: x.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP),
+        lambda x: x.is_subclass_of(cuba.activeRelationship),
         cuds_object._neighbors.keys())
     sorted_relationships = sorted(filtered_relationships, key=str)
     visited = visited or set()

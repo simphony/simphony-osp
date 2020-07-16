@@ -1,22 +1,23 @@
 import re
 import logging
-from osp.core.ontology.datatypes import ONTOLOGY_DATATYPES
 
-from osp.core.ontology.keywords import (
+from osp.core.ontology.yml.yml_keywords import (
     VERSION_KEY, AUTHOR_KEY, ONTOLOGY_KEY, NAMESPACE_KEY, REQUIREMENTS_KEY,
     DESCRIPTION_KEY, SUPERCLASSES_KEY,
     INVERSE_KEY, DEFAULT_REL_KEY, DATATYPE_KEY, ATTRIBUTES_KEY, DISJOINTS_KEY,
     EQUIVALENT_TO_KEY, DOMAIN_KEY, RANGE_KEY, CHARACTERISTICS_KEY,
-    CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY, CHARACTERISTICS
+    CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY, CHARACTERISTICS,
+    DATATYPES
 )
 
 logger = logging.getLogger(__name__)
 
-entity_name_regex = r"(_|[A-Z])([A-Z]|[0-9]|_)*"
+entity_name_regex = r"([a-zA-Z])([a-zA-Z]|[0-9]|_)*"
+namespace_name_regex = r"([a-zA-Z])([a-zA-Z]|[0-9]|_)*"
+namespace_name_pattern = re.compile(namespace_name_regex)
 entity_name_pattern = re.compile(r"^%s$" % entity_name_regex)
 qualified_entity_name_pattern = re.compile(
-    r"^%s.%s$" % tuple([entity_name_regex] * 2)
-)
+    r"^%s.%s$" % (namespace_name_regex, entity_name_regex))
 
 entity_common_keys = {
     DESCRIPTION_KEY: str,
@@ -39,13 +40,13 @@ relationship_definition = {
 
 attribute_definition = {
     DATATYPE_KEY: re.compile(r"^(VECTOR:)?(%s)(:\d+)*$"
-                             % "|".join(map(re.escape, ONTOLOGY_DATATYPES)))
+                             % "|".join(map(re.escape, DATATYPES)))
 }
 
 format_description = {
     "/": {
         "!" + VERSION_KEY: re.compile(r"^\d+\.\d+(\.\d+)?$"),
-        "!" + NAMESPACE_KEY: entity_name_pattern,
+        "!" + NAMESPACE_KEY: namespace_name_pattern,
         "!" + ONTOLOGY_KEY: {entity_name_pattern: "entity_def"},
         AUTHOR_KEY: str,
         REQUIREMENTS_KEY: [entity_name_pattern]

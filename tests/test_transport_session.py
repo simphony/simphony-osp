@@ -18,121 +18,136 @@ from osp.core.session.transport.transport_utils import (
 from osp.core.utils import create_from_cuds_object
 
 try:
-    from osp.core import CITY
+    from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
-    CITY = Parser().parse("city")
+    from osp.core.namespaces import _namespace_registry
+    Parser(_namespace_registry._graph).parse("city")
+    _namespace_registry.update_namespaces()
+    from osp.core.namespaces import city
 
 CUDS_DICT = {
-    "oclass": "CITY.CITIZEN",
+    "oclass": "city.Citizen",
     "uid": str(uuid.UUID(int=123)),
     "attributes": {
         "name": "Peter",
         "age": 23
     },
     "relationships": {
-        "CITY.IS_INHABITANT_OF": {str(uuid.UUID(int=1)): "CITY.CITY"},
-        "CITY.HAS_CHILD": {str(uuid.UUID(int=2)): "CITY.PERSON",
-                           str(uuid.UUID(int=3)): "CITY.PERSON"}
+        "city.isInhabitantOf": {str(uuid.UUID(int=1)): "city.City"},
+        "city.hasChild": {str(uuid.UUID(int=2)): "city.Person",
+                          str(uuid.UUID(int=3)): "city.Person"}
     }
 }
 
 ROOT_DICT = {
-    "oclass": "CITY.CITY_WRAPPER",
+    "oclass": "city.CityWrapper",
     "uid": str(uuid.UUID(int=43)),
     "attributes": {},
     "relationships": {
-        "CITY.HAS_PART": {str(uuid.UUID(int=1)): "CITY.CITY"}
+        "city.hasPart": {str(uuid.UUID(int=1)): "city.City"}
     }
 }
 
-SERIALIZED_BUFFERS = (
-    '{"added": [{'
-    '"oclass": "CITY.CITY", '
-    '"uid": "00000000-0000-0000-0000-000000000002", '
-    '"attributes": {"name": "Paris", '
-    '"coordinates": [0, 0]}, '
-    '"relationships": {"CITY.IS_PART_OF": '
-    '{"00000000-0000-0000-0000-00000000007b": '
-    '"CITY.CITY_WRAPPER"}}}], '
-    '"updated": [{'
-    '"oclass": "CITY.CITY_WRAPPER", '
-    '"uid": "00000000-0000-0000-0000-00000000007b", '
-    '"attributes": {}, '
-    '"relationships": {"CITY.HAS_PART": '
-    '{"00000000-0000-0000-0000-000000000002": '
-    '"CITY.CITY"}}}], '
-    '"deleted": [{'
-    '"oclass": "CITY.CITY", '
-    '"uid": "00000000-0000-0000-0000-000000000001", '
-    '"attributes": {}, '
-    '"relationships": {}}], '
-    '"expired": [], '
-    '"args": [42], '
-    '"kwargs": {"name": "London"}}'
-)
+SERIALIZED_BUFFERS = {
+    "added": [{
+        "oclass": "city.City",
+        "uid": "00000000-0000-0000-0000-000000000002",
+        "attributes": {"name": "Paris",
+                       "coordinates": [0, 0]},
+        "relationships": {
+            "city.isPartOf": {
+                "00000000-0000-0000-0000-00000000007b": "city.CityWrapper"}}}],
+    "updated": [{
+        "oclass": "city.CityWrapper",
+        "uid": "00000000-0000-0000-0000-00000000007b",
+        "attributes": {},
+        "relationships": {
+            "city.hasPart":
+                {"00000000-0000-0000-0000-000000000002":
+                 "city.City"}}}],
+    "deleted": [{
+        "oclass": "city.City",
+        "uid": "00000000-0000-0000-0000-000000000001",
+        "attributes": {},
+        "relationships": {}}],
+    "expired": [],
+    "args": [42],
+    "kwargs": {"name": "London"}
+}
 
-SERIALIZED_BUFFERS_EXPIRED = (
-    '{"added": [{'
-    '"oclass": "CITY.CITY", '
-    '"uid": "00000000-0000-0000-0000-000000000002", '
-    '"attributes": {"name": "Paris", '
-    '"coordinates": [0, 0]}, '
-    '"relationships": {"CITY.IS_PART_OF": '
-    '{"00000000-0000-0000-0000-00000000007b": '
-    '"CITY.CITY_WRAPPER"}}}], '
-    '"updated": [{'
-    '"oclass": "CITY.CITY_WRAPPER", "uid": '
-    '"00000000-0000-0000-0000-00000000007b", '
-    '"attributes": {}, '
-    '"relationships": {"CITY.HAS_PART": '
-    '{"00000000-0000-0000-0000-000000000002": '
-    '"CITY.CITY"}}}], '
-    '"deleted": [{'
-    '"oclass": "CITY.CITY", '
-    '"uid": "00000000-0000-0000-0000-000000000001", '
-    '"attributes": {}, '
-    '"relationships": {}}], '
-    '"expired": [{"UUID": "00000000-0000-0000-0000-000000000003"}], '
-    '"args": [42], '
-    '"kwargs": {"name": "London"}}'
-)
+SERIALIZED_BUFFERS_EXPIRED = {
+    "added": [{
+        "oclass": "city.City",
+        "uid": "00000000-0000-0000-0000-000000000002",
+        "attributes": {"name": "Paris",
+                       "coordinates": [0, 0]},
+        "relationships": {
+            "city.isPartOf": {
+                "00000000-0000-0000-0000-00000000007b": "city.CityWrapper"}}}],
+    "updated": [{
+        "oclass": "city.CityWrapper",
+        "uid": "00000000-0000-0000-0000-00000000007b",
+        "attributes": {},
+        "relationships": {
+            "city.hasPart": {
+                "00000000-0000-0000-0000-000000000002": "city.City"}}}],
+    "deleted": [{
+        "oclass": "city.City",
+        "uid": "00000000-0000-0000-0000-000000000001",
+        "attributes": {},
+        "relationships": {}}],
+    "expired": [{"UUID": "00000000-0000-0000-0000-000000000003"}],
+    "args": [42],
+    "kwargs": {"name": "London"}
+}
 
-SERIALIZED_BUFFERS2 = (
-    '{"added": [{'
-    '"oclass": "CITY.CITY", '
-    '"uid": "00000000-0000-0000-0000-00000000002a", '
-    '"attributes": {"name": "London", '
-    '"coordinates": [0, 0]}, '
-    '"relationships": {}}], "updated": [], "deleted": [], "expired": []}'
-)
+SERIALIZED_BUFFERS2 = {
+    "added": [{
+        "oclass": "city.City",
+        "uid": "00000000-0000-0000-0000-00000000002a",
+        "attributes": {"name": "London",
+                       "coordinates": [0, 0]},
+        "relationships": {}}],
+    "updated": [], "deleted": [], "expired": []
+}
 
-SERIALIZED_BUFFERS3 = (
-    '{"added": [{"oclass": "CITY.CITIZEN", '
-    '"uid": "00000000-0000-0000-0000-000000000002", '
-    '"attributes": {"name": "Peter", "age": 12}, '
-    '"relationships": {"CITY.IS_INHABITANT_OF": '
-    '{"00000000-0000-0000-0000-000000000001": "CITY.CITY"}}}], '
-    '"updated": [{"oclass": "CITY.CITY", '
-    '"uid": "00000000-0000-0000-0000-000000000001", "attributes": '
-    '{"name": "Freiburg", "coordinates": [0, 0]}, "relationships": '
-    '{"CITY.IS_PART_OF": {"00000000-0000-0000-0000-000000000003": '
-    '"CITY.CITY_WRAPPER"}, "CITY.HAS_INHABITANT": '
-    '{"00000000-0000-0000-0000-000000000002": "CITY.CITIZEN"}}}], '
-    '"deleted": [], "expired": [], '
-    '"result": [{"oclass": "CITY.CITY", '
-    '"uid": "00000000-0000-0000-0000-000000000001", "attributes": '
-    '{"name": "Freiburg", "coordinates": [0, 0]}, "relationships": '
-    '{"CITY.IS_PART_OF": {"00000000-0000-0000-0000-000000000003": '
-    '"CITY.CITY_WRAPPER"}, "CITY.HAS_INHABITANT": '
-    '{"00000000-0000-0000-0000-000000000002": "CITY.CITIZEN"}}}, '
-    '{"oclass": "CITY.CITY_WRAPPER", "uid": '
-    '"00000000-0000-0000-0000-000000000003", '
-    '"attributes": {}, '
-    '"relationships": {'
-    '"CITY.HAS_PART": '
-    '{"00000000-0000-0000-0000-000000000001": "CITY.CITY"}}}]}'
-)
+SERIALIZED_BUFFERS3 = {
+    "added": [{
+        "oclass": "city.Citizen",
+        "uid": "00000000-0000-0000-0000-000000000002",
+        "attributes": {"name": "Peter", "age": 12},
+        "relationships": {
+            "city.isInhabitantOf": {
+                "00000000-0000-0000-0000-000000000001": "city.City"}}}],
+    "updated": [{
+        "oclass": "city.City",
+        "uid": "00000000-0000-0000-0000-000000000001",
+        "attributes": {"name": "Freiburg",
+                       "coordinates": [0, 0]},
+        "relationships": {
+            "city.isPartOf": {
+                "00000000-0000-0000-0000-000000000003": "city.CityWrapper"},
+            "city.hasInhabitant": {
+                "00000000-0000-0000-0000-000000000002": "city.Citizen"}}}],
+    "deleted": [], "expired": [],
+    "result": [{
+        "oclass": "city.City",
+        "uid": "00000000-0000-0000-0000-000000000001",
+        "attributes": {"name": "Freiburg",
+                       "coordinates": [0, 0]},
+        "relationships": {
+            "city.isPartOf": {
+                "00000000-0000-0000-0000-000000000003": "city.CityWrapper"},
+            "city.hasInhabitant": {
+                "00000000-0000-0000-0000-000000000002": "city.Citizen"}}}, {
+        "oclass": "city.CityWrapper",
+        "uid": "00000000-0000-0000-0000-000000000003",
+        "attributes": {},
+        "relationships": {
+            "city.hasPart": {
+                "00000000-0000-0000-0000-000000000001": "city.City"}}}]
+}
 
 
 class TestCommunicationEngineSharedFunctions(unittest.TestCase):
@@ -140,20 +155,20 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
     def testDeserialize(self):
         """Test transformation from normal dictionary to cuds"""
         with TestWrapperSession() as session:
-            CITY.CITY_WRAPPER(session=session)
+            city.CityWrapper(session=session)
             cuds_object = deserialize(CUDS_DICT, session, True)
             self.assertEqual(cuds_object.uid.int, 123)
             self.assertEqual(cuds_object.name, "Peter")
             self.assertEqual(cuds_object.age, 23)
-            self.assertEqual(cuds_object.oclass, CITY.CITIZEN)
+            self.assertEqual(cuds_object.oclass, city.Citizen)
             self.assertEqual(set(cuds_object._neighbors.keys()),
-                             {CITY.IS_INHABITANT_OF,
-                             CITY.HAS_CHILD})
-            self.assertEqual(cuds_object._neighbors[CITY.IS_INHABITANT_OF],
-                             {uuid.UUID(int=1): CITY.CITY})
-            self.assertEqual(cuds_object._neighbors[CITY.HAS_CHILD],
-                             {uuid.UUID(int=2): CITY.PERSON,
-                             uuid.UUID(int=3): CITY.PERSON})
+                             {city.isInhabitantOf,
+                             city.hasChild})
+            self.assertEqual(cuds_object._neighbors[city.isInhabitantOf],
+                             {uuid.UUID(int=1): city.City})
+            self.assertEqual(cuds_object._neighbors[city.hasChild],
+                             {uuid.UUID(int=2): city.Person,
+                             uuid.UUID(int=3): city.Person})
 
             invalid_oclass = deepcopy(CUDS_DICT)
             invalid_oclass["oclass"] = "INVALID_OCLASS"
@@ -167,7 +182,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
             invalid_rel = deepcopy(CUDS_DICT)
             invalid_rel["relationships"]["IS_INHABITANT_OF"] = {
-                str(uuid.UUID(int=1)): "PERSON"}
+                str(uuid.UUID(int=1)): "Person"}
             self.assertRaises(ValueError, deserialize,
                               invalid_rel, session, True)
 
@@ -184,26 +199,26 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                     session, True),
                 [uuid.UUID(int=1), uuid.UUID(int=2)])
             self.assertEqual(
-                deserialize({"ENTITY": "CITY.CITIZEN"}, session, True),
-                CITY.CITIZEN
+                deserialize({"ENTITY": "city.Citizen"}, session, True),
+                city.Citizen
             )
             self.assertEqual(
-                deserialize([{"ENTITY": "CITY.CITIZEN"},
-                             {"ENTITY": "CITY.CITY"}], session, True),
-                [CITY.CITIZEN, CITY.CITY])
+                deserialize([{"ENTITY": "city.Citizen"},
+                             {"ENTITY": "city.City"}], session, True),
+                [city.Citizen, city.City])
             self.assertEqual(deserialize([1, 1.2, "hallo"], session, True),
                              [1, 1.2, "hallo"])
 
     def test_serializable(self):
         """Test function to make Cuds objects json serializable"""
-        p = CITY.CITIZEN(age=23,
+        p = city.Citizen(age=23,
                          name="Peter",
                          uid=uuid.UUID(int=123))
-        c = CITY.CITY(name="Freiburg", uid=uuid.UUID(int=1))
-        c1 = CITY.PERSON(uid=uuid.UUID(int=2))
-        c2 = CITY.PERSON(uid=uuid.UUID(int=3))
-        p.add(c, rel=CITY.IS_INHABITANT_OF)
-        p.add(c1, c2, rel=CITY.HAS_CHILD)
+        c = city.City(name="Freiburg", uid=uuid.UUID(int=1))
+        c1 = city.Person(uid=uuid.UUID(int=2))
+        c2 = city.Person(uid=uuid.UUID(int=3))
+        p.add(c, rel=city.isInhabitantOf)
+        p.add(c1, c2, rel=city.hasChild)
         self.assertEqual(CUDS_DICT, serializable(p))
         self.assertEqual([CUDS_DICT], serializable([p]))
         self.assertEqual(None, serializable(None))
@@ -213,28 +228,30 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         self.assertEqual([{"UUID": "00000000-0000-0000-0000-000000000001"},
                           {"UUID": "00000000-0000-0000-0000-000000000002"}],
                          serializable([uuid.UUID(int=1), uuid.UUID(int=2)]))
-        self.assertEqual({"ENTITY": "CITY.CITIZEN"},
-                         serializable(CITY.CITIZEN))
-        self.assertEqual([{"ENTITY": "CITY.CITIZEN"}, {"ENTITY": "CITY.CITY"}],
-                         serializable([CITY.CITIZEN, CITY.CITY]))
+        self.assertEqual({"ENTITY": "city.Citizen"},
+                         serializable(city.Citizen))
+        self.assertEqual([{"ENTITY": "city.Citizen"}, {"ENTITY": "city.City"}],
+                         serializable([city.Citizen, city.City]))
         self.assertEqual([1, 1.2, "hallo"],
                          serializable([1, 1.2, "hallo"]))
 
     def test_deserialize_buffers(self):
         # buffer context user
         with TestWrapperSession() as s1:
-            ws1 = CITY.CITY_WRAPPER(session=s1, uid=123)
-            c = CITY.CITY(name="Freiburg", uid=1)
-            p1 = CITY.CITIZEN(uid=uuid.UUID(int=3))
-            p2 = CITY.CITIZEN(uid=uuid.UUID(int=4))
-            c.add(p1, p2, rel=CITY.HAS_INHABITANT)
+            ws1 = city.CityWrapper(session=s1, uid=123)
+            c = city.City(name="Freiburg", uid=1)
+            p1 = city.Citizen(uid=uuid.UUID(int=3))
+            p2 = city.Citizen(uid=uuid.UUID(int=4))
+            c.add(p1, p2, rel=city.hasInhabitant)
             ws1.add(c)
             s1._reset_buffers(BufferContext.USER)
             s1.expire(p2)
 
-            additional = deserialize_buffers(s1,
-                                             buffer_context=BufferContext.USER,
-                                             data=SERIALIZED_BUFFERS_EXPIRED)
+            additional = deserialize_buffers(
+                s1,
+                buffer_context=BufferContext.USER,
+                data=json.dumps(SERIALIZED_BUFFERS_EXPIRED)
+            )
             self.assertEqual(additional, {"args": [42],
                                           "kwargs": {"name": "London"}})
             self.assertEqual(set(s1._registry.keys()),
@@ -242,12 +259,12 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                               uuid.UUID(int=3), uuid.UUID(int=4)})
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
-            self.assertEqual(ws1._neighbors[CITY.HAS_PART],
-                             {cn.uid: CITY.CITY})
-            self.assertEqual(set(ws1._neighbors.keys()), {CITY.HAS_PART})
-            self.assertEqual(cn._neighbors[CITY.IS_PART_OF],
-                             {ws1.uid: CITY.CITY_WRAPPER})
-            self.assertEqual(set(cn._neighbors.keys()), {CITY.IS_PART_OF})
+            self.assertEqual(ws1._neighbors[city.hasPart],
+                             {cn.uid: city.City})
+            self.assertEqual(set(ws1._neighbors.keys()), {city.hasPart})
+            self.assertEqual(cn._neighbors[city.isPartOf],
+                             {ws1.uid: city.CityWrapper})
+            self.assertEqual(set(cn._neighbors.keys()), {city.isPartOf})
             self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
             self.assertEqual(s1._buffers, [
                 [{cn.uid: cn}, {ws1.uid: ws1}, {c.uid: c}],
@@ -255,18 +272,18 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
         # buffer context engine
         with TestWrapperSession() as s1:
-            ws1 = CITY.CITY_WRAPPER(session=s1, uid=123)
-            c = CITY.CITY(name="Freiburg", uid=1)
-            p1 = CITY.CITIZEN(uid=uuid.UUID(int=3))
-            p2 = CITY.CITIZEN(uid=uuid.UUID(int=4))
-            c.add(p1, p2, rel=CITY.HAS_INHABITANT)
+            ws1 = city.CityWrapper(session=s1, uid=123)
+            c = city.City(name="Freiburg", uid=1)
+            p1 = city.Citizen(uid=uuid.UUID(int=3))
+            p2 = city.Citizen(uid=uuid.UUID(int=4))
+            c.add(p1, p2, rel=city.hasInhabitant)
             ws1.add(c)
             s1._reset_buffers(BufferContext.USER)
             s1.expire(p2)
 
             additional = deserialize_buffers(
                 s1, buffer_context=BufferContext.ENGINE,
-                data=SERIALIZED_BUFFERS_EXPIRED
+                data=json.dumps(SERIALIZED_BUFFERS_EXPIRED)
             )
             self.assertEqual(additional, {"args": [42],
                                           "kwargs": {"name": "London"}})
@@ -278,12 +295,12 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                               uuid.UUID(int=3), uuid.UUID(int=4)})
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
-            self.assertEqual(ws1._neighbors[CITY.HAS_PART],
-                             {cn.uid: CITY.CITY})
-            self.assertEqual(set(ws1._neighbors.keys()), {CITY.HAS_PART})
-            self.assertEqual(cn._neighbors[CITY.IS_PART_OF],
-                             {ws1.uid: CITY.CITY_WRAPPER})
-            self.assertEqual(set(cn._neighbors.keys()), {CITY.IS_PART_OF})
+            self.assertEqual(ws1._neighbors[city.hasPart],
+                             {cn.uid: city.City})
+            self.assertEqual(set(ws1._neighbors.keys()), {city.hasPart})
+            self.assertEqual(cn._neighbors[city.isPartOf],
+                             {ws1.uid: city.CityWrapper})
+            self.assertEqual(set(cn._neighbors.keys()), {city.isPartOf})
             self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
             self.assertEqual(s1._buffers, [
                 [dict(), dict(), dict()],
@@ -293,12 +310,12 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         """ Test if serialization of buffers work """
         # no expiration
         with TestWrapperSession() as s1:
-            ws1 = CITY.CITY_WRAPPER(session=s1, uid=123)
-            c = CITY.CITY(name="Freiburg", uid=1)
+            ws1 = city.CityWrapper(session=s1, uid=123)
+            c = city.City(name="Freiburg", uid=1)
             ws1.add(c)
             s1._reset_buffers(BufferContext.USER)
 
-            cn = CITY.CITY(name="Paris", uid=2)
+            cn = city.City(name="Paris", uid=2)
             ws1.add(cn)
             ws1.remove(c.uid)
             s1.prune()
@@ -315,15 +332,14 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(s1._buffers[BufferContext.ENGINE],
                              [dict(), dict(), dict()])
             self.maxDiff = None
-            self.assertEqual(
-                (SERIALIZED_BUFFERS, []),
-                serialize_buffers(
-                    s1, buffer_context=BufferContext.USER,
-                    additional_items={
-                        "args": [42], "kwargs": {"name": "London"}
-                    }
-                )
+            result = serialize_buffers(
+                s1, buffer_context=BufferContext.USER,
+                additional_items={
+                    "args": [42], "kwargs": {"name": "London"}
+                }
             )
+            self.assertEqual(json.loads(result[0]), SERIALIZED_BUFFERS)
+            self.assertEqual(result[1], [])
             self.assertEqual(s1._buffers, [
                 [dict(), dict(), dict()],
                 [dict(), dict(), dict()]
@@ -332,12 +348,12 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
         # with expiration
         with TestWrapperSession() as s1:
-            ws1 = CITY.CITY_WRAPPER(session=s1, uid=123)
-            c = CITY.CITY(name="Freiburg", uid=1)
+            ws1 = city.CityWrapper(session=s1, uid=123)
+            c = city.City(name="Freiburg", uid=1)
             ws1.add(c)
             s1._reset_buffers(BufferContext.USER)
 
-            cn = CITY.CITY(name="Paris", uid=2)
+            cn = city.City(name="Paris", uid=2)
             ws1.add(cn)
             ws1.remove(c.uid)
             s1.prune()
@@ -360,13 +376,18 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                              [dict(), dict(), dict()])
 
             self.maxDiff = 3000
+            result = serialize_buffers(
+                s1,
+                buffer_context=BufferContext.USER,
+                additional_items={"args": [42],
+                                  "kwargs": {"name": "London"}})
             self.assertEqual(
-                (SERIALIZED_BUFFERS_EXPIRED, []),
-                serialize_buffers(
-                    s1,
-                    buffer_context=BufferContext.USER,
-                    additional_items={"args": [42],
-                                      "kwargs": {"name": "London"}})
+                SERIALIZED_BUFFERS_EXPIRED,
+                json.loads(result[0])
+            )
+            self.assertEqual(
+                [],
+                result[1]
             )
             self.assertEqual(s1._buffers, [
                 [dict(), dict(), dict()],
@@ -396,15 +417,15 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client = TransportSessionClient(TestWrapperSession, None)
         client.root = 1
         c1 = create_recycle(
-            oclass=CITY.CITY,
+            oclass=city.City,
             kwargs={"name": "Freiburg"},
             uid=1,
             session=client,
             fix_neighbors=False
         )
-        c2 = CITY.CITY(name="London", uid=2)
+        c2 = city.City(name="London", uid=2)
         c3 = create_recycle(
-            oclass=CITY.CITY,
+            oclass=city.City,
             kwargs={"name": "Paris"},
             uid=3,
             session=client,
@@ -442,7 +463,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client._engine = MockEngine()
 
         # first item
-        c1 = create_recycle(oclass=CITY.CITY_WRAPPER,
+        c1 = create_recycle(oclass=city.CityWrapper,
                             kwargs={},
                             uid=1,
                             session=client,
@@ -450,7 +471,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
         self.assertEqual(client._engine._sent_data, (
             '{"args": [], "kwargs": {}, '
-            '"root": {"oclass": "CITY.CITY_WRAPPER", '
+            '"root": {"oclass": "city.CityWrapper", '
             '"uid": "00000000-0000-0000-0000-000000000001", '
             '"attributes": {}, '
             '"relationships": {}}, "hashes": {}, "auth": null}'))
@@ -460,7 +481,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client._engine._sent_data = None
         client._engine._sent_command = None
         c2 = create_recycle(
-            oclass=CITY.CITY,
+            oclass=city.City,
             kwargs={"name": "Freiburg"},
             uid=2,
             session=client,
@@ -485,9 +506,9 @@ class TestCommunicationEngineClient(unittest.TestCase):
     def test_receive(self):
         client = TransportSessionClient(TestWrapperSession, None)
         client._engine = MockEngine()
-        w = CITY.CITY_WRAPPER(session=client)
+        w = city.CityWrapper(session=client)
         self.assertRaises(RuntimeError, client._receive, "ERROR: Error!", None)
-        client._receive(SERIALIZED_BUFFERS2, None)
+        client._receive(json.dumps(SERIALIZED_BUFFERS2), None)
         self.assertEqual(set(client._registry.keys()), {uuid.UUID(int=42),
                                                         w.uid})
         self.assertEqual(client._buffers[BufferContext.USER],
@@ -543,7 +564,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
             s._reset_buffers(BufferContext.USER)
 
             added = s._buffers[BufferContext.ENGINE][BufferType.ADDED]
-            added[uuid.UUID(int=uid)] = CITY.CITY(name=name,
+            added[uuid.UUID(int=uid)] = city.City(name=name,
                                                   uid=uid)
 
         TestWrapperSession.command = consumes_buffers(command)
@@ -551,34 +572,37 @@ class TestCommunicationEngineServer(unittest.TestCase):
         with TestWrapperSession() as s1:
 
             # initialize buffers
-            ws1 = CITY.CITY_WRAPPER(session=s1, uid=123)
-            c = CITY.CITY(name="Freiburg", uid=1)
+            ws1 = city.CityWrapper(session=s1, uid=123)
+            c = city.City(name="Freiburg", uid=1)
             ws1.add(c)
             s1._reset_buffers(BufferContext.USER)
 
             # test the method
             server.session_objs = {"1": s1, "2": 123}
-            result = server._run_command(SERIALIZED_BUFFERS, "command", "1")
+            result = server._run_command(json.dumps(SERIALIZED_BUFFERS),
+                                         "command", "1")
             self.assertTrue(correct)
-            self.assertEqual(result, (SERIALIZED_BUFFERS2, []))
+            self.assertEqual(json.loads(result[0]), SERIALIZED_BUFFERS2)
+            self.assertEqual(result[1], [])
 
     def test_load_from_session(self):
         """Test loading from the remote side"""
         with TestWrapperSession() as s1:
-            c = CITY.CITY(name="Freiburg", uid=1)
-            w = CITY.CITY_WRAPPER(session=s1, uid=3)
+            c = city.City(name="Freiburg", uid=1)
+            w = city.CityWrapper(session=s1, uid=3)
             cw = w.add(c)
 
             with EngineContext(s1):
-                p = CITY.CITIZEN(name="Peter", age=12, uid=2)
-                cw.add(p, rel=CITY.HAS_INHABITANT)
+                p = city.Citizen(name="Peter", age=12, uid=2)
+                cw.add(p, rel=city.hasInhabitant)
                 server = TransportSessionServer(TestWrapperSession, None, None)
                 server.session_objs["user"] = s1
                 s1._expired |= {c.uid, w.uid}
                 result = server._load_from_session(
                     '{"uids": [{"UUID": 1}, {"UUID": 3}]}', "user")
             self.maxDiff = None
-            self.assertEqual(result, (SERIALIZED_BUFFERS3, []))
+            self.assertEqual(json.loads(result[0]), SERIALIZED_BUFFERS3)
+            self.assertEqual(result[1], [])
 
     def test_init_session(self):
         """Test the initialization of the session on the remote side"""
@@ -610,8 +634,8 @@ class TestCommunicationEngineServer(unittest.TestCase):
         server = TransportSessionServer(TestWrapperSession, None, None)
         with TestWrapperSession() as s1:
             # initialize buffers
-            ws1 = CITY.CITY_WRAPPER(session=s1, uid=123)
-            c = CITY.CITY(name="Freiburg", uid=1)
+            ws1 = city.CityWrapper(session=s1, uid=123)
+            c = city.City(name="Freiburg", uid=1)
             ws1.add(c)
             s1._reset_buffers(BufferContext.USER)
 
@@ -621,7 +645,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
                 command="run", data=SERIALIZED_BUFFERS, connection_id="user1",
                 temp_directory=None), ("ERROR: Invalid command", []))
             self.assertEqual(server.handle_request(
-                command="command", data=SERIALIZED_BUFFERS,
+                command="command", data=json.dumps(SERIALIZED_BUFFERS),
                 connection_id="user1",
                 temp_directory=None),
                 ("ERROR: RuntimeError: Something went wrong: 42, London", []))

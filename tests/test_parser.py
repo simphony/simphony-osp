@@ -1,251 +1,195 @@
+import os
+import yaml
+import rdflib
 import unittest2 as unittest
-import osp.core
-from osp.core import ONTOLOGY_INSTALLER, CUBA
+import tempfile
+import responses
+from rdflib.compare import isomorphic
+from osp.core.ontology.parser import Parser
+from osp.core.ontology.cuba import rdflib_cuba
 
-try:
-    from osp.core import CITY
-except ImportError:
-    from osp.core.ontology import Parser
-    CITY = Parser().parse("city")
 
-try:
-    from osp.core import PARSER_TEST as ONTO
-except ImportError:
-    ONTO = ONTOLOGY_INSTALLER.parser.parse(
-        "osp/core/ontology/yml/parser_test.ontology.yml"
-    )
+RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "parser_test.ttl")
+CUBA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "..", "osp", "core", "ontology", "docs", "cuba.ttl")
+YML_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "parser_test.yml")
+with open(YML_FILE) as f:
+    YML_DOC = yaml.safe_load(f)
 
 
 class TestParser(unittest.TestCase):
+    def setUp(self):
+        self.graph = rdflib.Graph()
+        self.parser = Parser(self.graph)
 
-    def test_ontology_namespace_registry(self):
-        """Test the namespace registry"""
-        self.assertEqual(
-            ONTOLOGY_INSTALLER.namespace_registry.CUBA.name,
-            "CUBA"
-        )
-        self.assertEqual(
-            ONTOLOGY_INSTALLER.namespace_registry["CITY"].name,
-            "CITY"
-        )
-        self.assertEqual(
-            ONTOLOGY_INSTALLER.namespace_registry.get_main_namespace().name,
-            "CUBA"
-        )
+    def test_add_cuba_triples(self):
+        self.parser._add_cuba_triples([
+            rdflib.URIRef("has_part"), rdflib.URIRef("encloses")
+        ])
+        self.assertEqual(set(self.graph), {
+            (rdflib.URIRef("encloses"), rdflib.RDFS.subPropertyOf,
+             rdflib_cuba.activeRelationship),
+            (rdflib.URIRef("has_part"), rdflib.RDFS.subPropertyOf,
+             rdflib_cuba.activeRelationship)
+        })
 
-    def test_ontology_namespace(self):
-        """Test the namespaces"""
-        CUBA = ONTOLOGY_INSTALLER.namespace_registry.CUBA
-        self.assertEqual(
-            CUBA.RELATIONSHIP.name,
-            "RELATIONSHIP"
-        )
-        self.assertEqual(
-            CUBA["ENTITY"].name,
-            "ENTITY"
-        )
-        all_names = [x.name for x in CUBA]
-        self.assertEqual(
-            set(all_names),
-            {"ENTITY", "RELATIONSHIP", "ACTIVE_RELATIONSHIP",
-             "WRAPPER", "ATTRIBUTE",
-             "PASSIVE_RELATIONSHIP", "NOTHING", "FILE", "PATH"}
-        )
+    def test_add_default_rel_triples(self):
+        self.parser._add_default_rel_triples({
+            "ns1": "has_part",
+            "ns2": "encloses"
+        })
+        self.assertEqual(set(self.graph), {
+            (rdflib.URIRef("ns1"), rdflib_cuba._default_rel,
+             rdflib.URIRef("has_part")),
+            (rdflib.URIRef("ns2"), rdflib_cuba._default_rel,
+             rdflib.URIRef("encloses"))
+        })
 
-    def test_subclass_check(self):
-        """ Test subclass and superclass check"""
-        CITY = ONTOLOGY_INSTALLER.namespace_registry.CITY
-        self.assertTrue(CITY.CITY.is_subclass_of(CITY.POPULATED_PLACE))
-        self.assertTrue(CITY.POPULATED_PLACE.is_superclass_of(CITY.CITY))
-        self.assertFalse(CITY.CITY.is_superclass_of(CITY.POPULATED_PLACE))
-        self.assertFalse(CITY.POPULATED_PLACE.is_subclass_of(CITY.CITY))
-        self.assertTrue(CITY.CITY.is_subclass_of(CITY.CITY))
-        self.assertTrue(CITY.CITY.is_superclass_of(CITY.CITY))
+    def test_parse_rdf(self):
+        self.graph.parse(CUBA_FILE, format="ttl")
+        len_cuba = len(self.graph)
+        self.assertRaises(TypeError, self.parser._parse_rdf,
+                          ontology_file=RDF_FILE, namespaces={})
+        self.assertRaises(TypeError, self.parser._parse_rdf,
+                          namespaces={}, identifier="x")
+        self.assertRaises(TypeError, self.parser._parse_rdf,
+                          ontology_file=RDF_FILE, identifier="x")
+        self.assertRaises(TypeError, self.parser._parse_rdf,
+                          ontology_file=RDF_FILE, namespaces={},
+                          identifier="x", invalid=True)
+        self.parser._parse_rdf(
+            identifier="parser_test",
+            ontology_file=RDF_FILE,
+            namespaces={
+                "parser_test": "http://www.osp-core.com/parser_test"
+            },
+            format="ttl"
+        )
+        rdf = rdflib.Graph()
+        rdf.parse(RDF_FILE, format="ttl")
+        self.assertEqual(len(self.graph), len(rdf) + len_cuba)
+        self.assertEqual(len(self.parser._graphs), 1)
+        self.assertEqual(len(self.parser._graphs["parser_test"]), len(rdf))
+        self.assertTrue(isomorphic(self.parser._graphs["parser_test"], rdf))
+        self.assertIn(dict(self.graph.namespaces())["parser_test"],
+                      rdflib.URIRef("http://www.osp-core.com/parser_test#"))
 
-    def test_ontology_entity(self):
-        """Test the ontology entities"""
-        Citizen = osp.core.CITY.CITIZEN
-        Person = osp.core.CITY.PERSON
-        LivingBeing = osp.core.CITY.LIVING_BEING
-        Entity = osp.core.CUBA.ENTITY
+    def test_parse_yml(self):
+        invalid = dict(YML_DOC)
+        invalid["identifier"] = "parser.test"
+        self.assertRaises(ValueError, self.parser._parse_yml, invalid,
+                          "/a/b/c/parser_test.yml", None)
+        result = self.parser._parse_yml(dict(YML_DOC),
+                                        "/a/b/c/parser_test.yml", None)
+        self.assertEqual(result["ontology_file"],
+                         "/a/b/c/parser_test.ttl")
 
-        self.assertEqual(
-            Person.direct_superclasses,
-            [LivingBeing]
-        )
-        self.assertEqual(
-            Person.direct_subclasses,
-            [Citizen]
-        )
-        self.assertEqual(
-            Person.superclasses,
-            [Person, LivingBeing, Entity]
-        )
-        self.assertEqual(
-            Person.subclasses,
-            [Person, Citizen]
-        )
+    @responses.activate
+    def test_parse_yml_download(self):
+        def request_callback(request):
+            headers = {'request-id': '728d329e-0e86-11e4-a748-0c84dc037c13'}
+            return (200, headers, "TEST FILE CONTENT")
 
-    def test_ontology_class(self):
-        """Test the ontology relationships"""
-        Citizen = osp.core.CITY.CITIZEN
-        Name = osp.core.CITY.NAME
-        Age = osp.core.CITY.AGE
+        url = "http://my_ontology.com/ontology.owl"
+        responses.add_callback(
+            responses.GET, url,
+            callback=request_callback,
+            content_type='text/plain',
+        )
+        doc = dict(YML_DOC)
+        doc["ontology_file"] = url
+        with tempfile.NamedTemporaryFile(mode="w+t") as f:
+            r = self.parser._parse_yml(doc, "/a/b/c/parser_test.yml", f)
+            self.assertEqual(r["ontology_file"], f.name)
+            f.seek(0)
+            self.assertEqual(f.read(), "TEST FILE CONTENT")
 
+    def test_get_file_path(self):
+        self.assertEqual(self.parser.get_file_path("test/my_file.yml"),
+                         "test/my_file.yml")
         self.assertEqual(
-            Citizen.attributes,
-            {Name: "John Smith", Age: 25}
+            self.parser.get_file_path("my_file"),
+            os.path.abspath(os.path.relpath(os.path.join(
+                os.path.dirname(__file__), "..", "osp", "core", "ontology",
+                "docs", "my_file.yml"
+            )))
         )
         self.assertEqual(
-            Citizen.own_attributes,
-            dict()
-        )
-
-    def test_ontology_relationship(self):
-        """Test the ontology relationship"""
-        HasPart = osp.core.CITY.HAS_PART
-        IsPartOf = osp.core.CITY.IS_PART_OF
-        ActiveRelationship = osp.core.CUBA.ACTIVE_RELATIONSHIP
-        Relationship = osp.core.CUBA.RELATIONSHIP
-        PassiveRelationship = osp.core.CUBA.PASSIVE_RELATIONSHIP
-        self.assertEqual(HasPart.inverse, IsPartOf)
-        self.assertEqual(IsPartOf.inverse, HasPart)
-        self.assertEqual(ActiveRelationship.inverse, PassiveRelationship)
-        self.assertEqual(PassiveRelationship.inverse, ActiveRelationship)
-        self.assertEqual(PassiveRelationship.direct_superclasses,
-                         [Relationship])
-        self.assertEqual(HasPart.characteristics, ["transitive"])
-        self.assertTrue(HasPart.is_transitive)
-        self.assertFalse(HasPart.is_symmetric)
-        self.assertRaises(AttributeError, getattr, HasPart, "is_cool")
-        self.assertRaises(AttributeError, getattr, HasPart, "cool")
-
-    def test_ontology_attributes(self):
-        """Test the ontology values"""
-        self.assertEqual(osp.core.CUBA.ATTRIBUTE.datatype, "UNDEFINED")
-        self.assertEqual(osp.core.CITY.NUMBER.datatype, "INT")
-        self.assertEqual(osp.core.CITY.NAME.datatype, "UNDEFINED")
-        self.assertEqual(osp.core.CITY.COORDINATES.datatype, "VECTOR:INT:2")
-        self.assertEqual(osp.core.CITY.NUM_STEPS.datatype, "INT")
-
-    def test_multiple_inheritance(self):
-        """Test corner cases of multiple inheritance"""
-        self.assertEqual(ONTO.ENTITY_C.attributes, {ONTO.ATTRIBUTE_A: None})
-        self.assertEqual(ONTO.ENTITY_D.attributes,
-                         {ONTO.ATTRIBUTE_A: "DEFAULT_D"})
-        self.assertEqual(ONTO.ATTRIBUTE_C.datatype, "UNDEFINED")
-        self.assertEqual(ONTO.ATTRIBUTE_D.datatype, "FLOAT")
-
-    def test_parse_class_expressions(self):
-        """Test the parsing of class expressions"""
-        self.assertEqual(
-            len(ONTO.RELATIONSHIP_B.domain_expressions), 2
+            self.parser.get_file_path("emmo"),
+            os.path.abspath(os.path.relpath(os.path.join(
+                os.path.dirname(__file__), "..", "osp", "core", "ontology",
+                "docs", "emmo.yml"
+            )))
         )
         self.assertEqual(
-            ONTO.RELATIONSHIP_B.domain_expressions[0].operator, "and"
-        )
-        self.assertEqual(
-            ONTO.RELATIONSHIP_B.domain_expressions[1].operator, "or"
-        )
-        self.assertEqual(
-            ONTO.RELATIONSHIP_B.domain_expressions[1].operands,
-            [ONTO.ENTITY_A, ONTO.ENTITY_B]
-        )
-        self.assertEqual(
-            len(ONTO.RELATIONSHIP_B.domain_expressions[0].operands), 2
-        )
-        self.assertEqual(
-            ONTO.RELATIONSHIP_B.domain_expressions[0].operands[0],
-            ONTO.ENTITY_C
-        )
-        self.assertEqual(
-            ONTO.RELATIONSHIP_B.domain_expressions[0].operands[1].operator,
-            "not"
-        )
-        self.assertEqual(
-            ONTO.RELATIONSHIP_B.domain_expressions[0].operands[1].operands[0],
-            ONTO.ENTITY_D
-        )
-        self.assertEqual(
-            len(ONTO.RELATIONSHIP_B.range_expressions), 1
-        )
-        self.assertEqual(
-            ONTO.RELATIONSHIP_B.range_expressions[0].relationship,
-            ONTO.RELATIONSHIP_A
-        )
-        self.assertEqual(
-            ONTO.RELATIONSHIP_B.range_expressions[0].range,
-            ONTO.ENTITY_A
-        )
-        self.assertEqual(
-            ONTO.RELATIONSHIP_B.range_expressions[0].cardinality, "some"
-        )
-        self.assertEqual(
-            ONTO.RELATIONSHIP_B.range_expressions[0].exclusive, True
+            self.parser.get_file_path("city"),
+            os.path.abspath(os.path.relpath(os.path.join(
+                os.path.dirname(__file__), "..", "osp", "core", "ontology",
+                "docs", "city.ontology.yml"
+            )))
         )
 
-    def test_inverses(self):
-        """ Test if missing inverses and active + passive relationships
-        have been added"""
-        self.assertIs(
-            ONTO.RELATIONSHIP_A.inverse,
-            ONTO.RELATIONSHIP_C
-        )
-        self.assertIs(
-            ONTO.RELATIONSHIP_A,
-            ONTO.RELATIONSHIP_C.inverse
-        )
-        self.assertIs(
-            ONTO.RELATIONSHIP_B.inverse,
-            ONTO.INVERSE_OF_RELATIONSHIP_B
-        )
-        self.assertIs(
-            ONTO.RELATIONSHIP_B,
-            ONTO.INVERSE_OF_RELATIONSHIP_B.inverse
-        )
-        # created inverse
+    def test_get_identifier(self):
+        self.assertEqual(self.parser.get_identifier(YML_DOC), "parser_test")
+        self.assertEqual(self.parser.get_identifier(YML_FILE), "parser_test")
+        self.assertEqual(self.parser.get_identifier("parser_test"),
+                         "parser_test")
+
+    def test_get_requirements(self):
+        self.assertEqual(self.parser.get_requirements(YML_DOC), set())
+        self.assertEqual(self.parser.get_requirements(YML_FILE), set())
+        self.assertEqual(self.parser.get_requirements("parser_test"), {"city"})
+
+    def test_store(self):
+        self.parser.parse(YML_FILE)
+        with tempfile.TemporaryDirectory() as destination:
+            self.parser.store(destination)
+            self.assertEqual(os.listdir(destination),
+                             ["parser_test.xml", "parser_test.yml"])
+            with open(os.path.join(destination, "parser_test.yml")) as f:
+                yml_doc = yaml.safe_load(f)
+                self.assertEqual(yml_doc["ontology_file"], "parser_test.xml")
+                yml_doc["ontology_file"] = YML_DOC["ontology_file"]
+                self.assertEqual(yml_doc, YML_DOC)
+            g = rdflib.Graph()
+            g.parse(os.path.join(destination, "parser_test.xml"),
+                    format="xml")
+            self.assertTrue(
+                isomorphic(g, self.parser._graphs["parser_test"]))
+
+    def test_parse(self):
+        self.parser.parse(YML_FILE)
+        g1 = rdflib.Graph()
+        g1.parse(CUBA_FILE, format="ttl")
+        g1.parse(RDF_FILE, format="ttl")
+        self.assertTrue(self.parser.graph, g1)
+        g2 = rdflib.Graph()
+        g2.parse(RDF_FILE, format="ttl")
+        self.assertTrue(self.parser._graphs["parser_test"], [g1])
+        self.assertEqual(len(self.parser._yaml_docs), 1)
         self.assertEqual(
-            ONTO.INVERSE_OF_RELATIONSHIP_B.direct_superclasses,
-            [ONTO.RELATIONSHIP_C, CUBA.PASSIVE_RELATIONSHIP]
-        )
+            self.parser._yaml_docs[0]["ontology_file"],
+            os.path.abspath(os.path.realpath(os.path.join(
+                os.path.dirname(__file__), "parser_test.ttl"))))
+        x = dict(self.parser._yaml_docs[0])
+        x["ontology_file"] = YML_DOC["ontology_file"]
+        self.assertEqual(x, YML_DOC)
 
-        # active and passive
-        self.assertIn(
-            CUBA.ACTIVE_RELATIONSHIP,
-            ONTO.RELATIONSHIP_A.direct_superclasses
-        )
-        self.assertIn(
-            CUBA.PASSIVE_RELATIONSHIP,
-            ONTO.RELATIONSHIP_C.direct_superclasses
-        )
-
-        self.assertIn(
-            ONTO.RELATIONSHIP_A,
-            CUBA.ACTIVE_RELATIONSHIP.direct_subclasses,
-        )
-        self.assertIn(
-            ONTO.RELATIONSHIP_C,
-            CUBA.PASSIVE_RELATIONSHIP.direct_subclasses,
-        )
-
-        self.assertIn(
-            CUBA.ACTIVE_RELATIONSHIP,
-            ONTO.RELATIONSHIP_B.direct_superclasses
-        )
-        self.assertIn(
-            CUBA.PASSIVE_RELATIONSHIP,
-            ONTO.INVERSE_OF_RELATIONSHIP_B.direct_superclasses
-        )
-
-        self.assertIn(
-            ONTO.RELATIONSHIP_B,
-            CUBA.ACTIVE_RELATIONSHIP.direct_subclasses,
-        )
-        self.assertIn(
-            ONTO.INVERSE_OF_RELATIONSHIP_B,
-            CUBA.PASSIVE_RELATIONSHIP.direct_subclasses,
-        )
+    def test_add_reference_style_triples(self):
+        self.parser._add_reference_style_triples({
+            "ns1": True,
+            "ns2": False,
+            "ns3": True
+        })
+        self.assertEqual(set(self.graph), {
+            (rdflib.URIRef("ns1"), rdflib_cuba._reference_by_label,
+             rdflib.Literal(True)),
+            (rdflib.URIRef("ns3"), rdflib_cuba._reference_by_label,
+             rdflib.Literal(True)),
+        })
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

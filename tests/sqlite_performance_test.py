@@ -14,10 +14,13 @@ from osp.wrappers.sqlite import SqliteSession
 from osp.core.utils.simple_search import find_cuds_object
 
 try:
-    from osp.core import CITY
+    from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
-    CITY = Parser().parse("city")
+    from osp.core.namespaces import _namespace_registry
+    Parser(_namespace_registry._graph).parse("city")
+    _namespace_registry.update_namespaces()
+    from osp.core.namespaces import city
 
 RUN_PERFORMANCE_TEST = False
 DB = "performance_test.db"
@@ -30,11 +33,11 @@ class TestPerformance(unittest.TestCase):
             return
         self.iterations = 1000
         with SqliteSession(DB) as session:
-            w = CITY.CITY_WRAPPER(session=session)
+            w = city.CityWrapper(session=session)
             self.fill_db(w, random_uid=False)
             session.commit()
         self.session = SqliteSession(DB)
-        self.w = CITY.CITY_WRAPPER(session=self.session)
+        self.w = city.CityWrapper(session=self.session)
         gc.collect()
         self.start = time.time()
 
@@ -59,19 +62,19 @@ class TestPerformance(unittest.TestCase):
             uids = iter([None for i in range(9)])
             if not random_uid:
                 uids = iter(range(j * 9 + 1, (j + 1) * 9 + 1))
-            c.add(CITY.CITIZEN(uid=next(uids)), rel=CITY.HAS_INHABITANT)
-            c.add(CITY.CITIZEN(uid=next(uids)), rel=CITY.ENCLOSES)
-            c.add(CITY.CITIZEN(uid=next(uids)), rel=CITY.HAS_PART)
-            c.add(CITY.NEIGHBOURHOOD(name="", uid=next(uids)),
-                  rel=CITY.HAS_INHABITANT)
-            c.add(CITY.NEIGHBOURHOOD(name="", uid=next(uids)),
-                  rel=CITY.ENCLOSES)
-            c.add(CITY.NEIGHBOURHOOD(name="", uid=next(uids)),
-                  rel=CITY.HAS_PART)
-            c.add(CITY.STREET(name="", uid=next(uids)),
-                  rel=CITY.HAS_INHABITANT)
-            c.add(CITY.STREET(name="", uid=next(uids)), rel=CITY.ENCLOSES)
-            c = c.add(CITY.STREET(name="", uid=next(uids)), rel=CITY.HAS_PART)
+            c.add(city.Citizen(uid=next(uids)), rel=city.hasInhabitant)
+            c.add(city.Citizen(uid=next(uids)), rel=city.encloses)
+            c.add(city.Citizen(uid=next(uids)), rel=city.hasPart)
+            c.add(city.Neighborhood(name="", uid=next(uids)),
+                  rel=city.hasInhabitant)
+            c.add(city.Neighborhood(name="", uid=next(uids)),
+                  rel=city.encloses)
+            c.add(city.Neighborhood(name="", uid=next(uids)),
+                  rel=city.hasPart)
+            c.add(city.Street(name="", uid=next(uids)),
+                  rel=city.hasInhabitant)
+            c.add(city.Street(name="", uid=next(uids)), rel=city.encloses)
+            c = c.add(city.Street(name="", uid=next(uids)), rel=city.hasPart)
 
     def test_fill_db_one_commit(self):
         """
@@ -90,7 +93,7 @@ class TestPerformance(unittest.TestCase):
             return
         print("Traverse db")
         for i in range(self.iterations):
-            find_cuds_object(lambda x: True, self.w, rel=CITY.ENCLOSES,
+            find_cuds_object(lambda x: True, self.w, rel=city.encloses,
                              find_all=True, max_depth=10)
             self.session.commit()
 
