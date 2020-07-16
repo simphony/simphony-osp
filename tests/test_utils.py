@@ -80,12 +80,16 @@ class TestUtils(unittest.TestCase):
             os.path.dirname(__file__),
             'test_validation_schema_city_with_missing_relationship.yml'
         )
+        schema_file_with_optional_subtree = os.path.join(
+            os.path.dirname(__file__),
+            'test_validation_schema_city_with_optional_subtree.yml'
+        )
 
         c = CITY.CITY(name='freiburg')
 
         # empty city is not valid
         self.assertRaises(
-            CardinalityError,
+            ConsistencyError,
             validate_tree_against_schema,
             c,
             schema_file
@@ -104,8 +108,20 @@ class TestUtils(unittest.TestCase):
             schema_file_with_missing_relationship
         )
 
-        c.add(CITY.NEIGHBORHOOD(name='some hood'))
+        # with opional inhabitants an empty city is ok
+        validate_tree_against_schema(c, schema_file_with_optional_subtree)
+
+        # but the optional subtree should follow its own constraints
+        # (here a citizen needs to work in a city)
         c.add(CITY.CITIZEN(name='peter'), rel=CITY.HAS_INHABITANT)
+        self.assertRaises(
+            CardinalityError,
+            validate_tree_against_schema,
+            c,
+            schema_file_with_optional_subtree
+        )
+
+        c.add(CITY.NEIGHBORHOOD(name='some hood'))
         c.add(CITY.CITIZEN(name='peter'), rel=CITY.HAS_INHABITANT)
 
         # street of neighborhood violated
@@ -121,7 +137,7 @@ class TestUtils(unittest.TestCase):
         # now the city is valid and validation should pass
         validate_tree_against_schema(c, schema_file)
 
-        # entity that was defined is completely missing completely in cuds tree
+        # entity that was defined is completely missing in cuds tree
         self.assertRaises(
             ConsistencyError,
             validate_tree_against_schema,

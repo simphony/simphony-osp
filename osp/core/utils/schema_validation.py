@@ -31,28 +31,46 @@ def validate_tree_against_schema(root_obj, schema_file):
     against schema file {} ...""".format(root_obj.uid, schema_file))
 
     data_model_dict = _load_data_model_from_yaml(schema_file)
+    optional_subtrees, mandatory_subtrees = \
+        _get_optional_and_mandatory_subtrees(data_model_dict)
     oclass_groups = _traverse_tree_and_group_all_objects_by_oclass(root_obj)
 
-    for entity, relationships in data_model_dict['model'].items():
-        # get all objects that are an instance of the entity we want to check
+    # first check that the model oclasses that do
+    # not specify relationships (their only constraint is to exist)
+    # or that are mandatory are all in the tree
+    for model_oclass, relationships in data_model_dict['model'].items():
+        if not relationships or \
+            model_oclass in mandatory_subtrees \
+                or model_oclass not in optional_subtrees:
+            try:
+                oclass_groups[model_oclass]
+            except KeyError:
+                raise ConsistencyError(
+                    f"Instance of entity {model_oclass} is expected to be \
+                    present in the CUDS tree, but none was found."
+                )
+
+    for oclass, all_objects_to_check in oclass_groups.items():
+        # get the definition for this oclass from the model
         try:
-            entity_instances_to_check = oclass_groups[entity]
+            relationships = data_model_dict['model'][oclass]
         except KeyError:
-            raise ConsistencyError(f"Instance of entity {entity} is expected to be \
-                            present in the CUDS tree, but none was found.")
-
-        # no relationship specified in the yaml means
-        # that the entity should simply exist
-        if relationships is None:
+            # TODO ask Yoav: is it ok when there is an object
+            # in the tree that is not part of the datamodel?
             continue
-
-        for cuds_obj in entity_instances_to_check:
-            for relationship, connected_entities in relationships.items():
-                for connected_entity, constraints in connected_entities.items(
-                ):
+        if relationships is None:
+            # if there are no relationships defined,
+            # the only constraint is that the object exists
+            continue
+                
+        # now go through all objects of this oclass in the tree
+        # and check whether the definition is fulfilled
+        for object_to_check in all_objects_to_check:
+            for relationship, neighbor_entities in relationships.items():
+                for neighbor_oclass, constraints in neighbor_entities.items():
                     _check_cuds_object_cardinality(
-                        cuds_obj,
-                        connected_entity,
+                        object_to_check,
+                        neighbor_oclass,
                         relationship,
                         constraints
                     )
@@ -128,3 +146,31 @@ def _traverse_tree_and_group_all_objects_by_oclass(root_obj, result=None):
             result[str(neighbour.oclass)].append(neighbour)
         _traverse_tree_and_group_all_objects_by_oclass(neighbour, result)
     return result
+
+
+def _get_optional_and_mandatory_subtrees(data_model_dict):
+    optional_subtrees = set()
+    mandatory_subtrees = set()
+    entities = data_model_dict['model']
+    for entity, relationships in entities.items():
+        if not relationships:
+            continue
+        for relationship, neighbors in relationships.items():
+            for neighbor, constraints in neighbors.items():
+                min, max = _interpret_cardinality_value_from_constraints(
+                    constraints
+                )
+                if min == 0:
+                    optional_subtrees.add(neighbor)
+                if min > 0:
+                    mandatory_subtrees.add(neighbor)
+
+    if optional_subtrees & mandatory_subtrees:
+        raise ConsistencyError(
+            """You specified the following entities to be
+            mandatory and optional at
+            the same time: {}. Please check your model file.""".format(
+                mandatory_subtrees & optional_subtrees
+            )
+        )
+    return optional_subtrees, mandatory_subtrees
