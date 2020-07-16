@@ -1,15 +1,15 @@
 version: "1.0.0"
 
-oclass: CITY.CITY
+oclass: city.City
 
 model:
-    CITY.CITY:
-        CITY.HAS_INHABITANT:
-            CITY.CITIZEN:
+    city.City:
+        city.hasInhabitant:
+            city.Citizen:
                 cardinality: 0+
-    CITY.CITIZEN:
-        CITY.WORKS_IN:
-            CITY.CITY:
+    city.Citizen:
+        city.worksIn:
+            city.City:
                 cardinality: 1+
 
-display_value: CITY.CITY.NAME
+display_value: city.City.Name

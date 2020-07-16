@@ -116,7 +116,7 @@ class TestUtils(unittest.TestCase):
 
         # but the optional subtree should follow its own constraints
         # (here a citizen needs to work in a city)
-        c.add(city.CITIZEN(name='peter'), rel=city.HAS_INHABITANT)
+        c.add(city.Citizen(name='peter'), rel=city.hasInhabitant)
         self.assertRaises(
             CardinalityError,
             validate_tree_against_schema,
@@ -124,8 +124,8 @@ class TestUtils(unittest.TestCase):
             schema_file_with_optional_subtree
         )
 
-        c.add(city.NEIGHBORHOOD(name='some hood'))
-        c.add(city.CITIZEN(name='peter'), rel=city.HAS_INHABITANT)
+        c.add(city.Neighborhood(name='some hood'))
+        c.add(city.Citizen(name='peter'), rel=city.hasInhabitant)
 
         # street of neighborhood violated
         self.assertRaises(
