@@ -96,9 +96,9 @@ python -m unittest -v
 
 ## Documentation
 
-Our documentation is located at <https://simphony.pages.fraunhofer.de/documentation/latest/>.
+Our documentation is located at <https://simphony.readthedocs.io>.
 
-If you want to build the documentation locally, refer to our [documentation repostitory](https://gitlab.cc-asp.fraunhofer.de/simphony/documentation).
+If you want to build the documentation locally, refer to our [documentation repostitory](https://github.com/simphony/docs).
 
 ### Examples
 
