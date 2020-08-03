@@ -1,10 +1,3 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 from abc import abstractmethod
 from .wrapper_session import WrapperSession, consumes_buffers
 from osp.core.session.buffers import BufferContext
@@ -22,10 +15,11 @@ class SimWrapperSession(WrapperSession):
         root_obj = self._registry.get(self.root)
         added, updated, deleted = self._buffers[BufferContext.USER]
         if not self._ran:
-            self._initialise(root_obj)
-        self._apply_added(root_obj, added)
-        self._apply_updated(root_obj, updated)
-        self._apply_deleted(root_obj, deleted)
+            self._initialize(root_obj, added)
+        else:
+            self._apply_added(root_obj, added)
+            self._apply_updated(root_obj, updated)
+            self._apply_deleted(root_obj, deleted)
         self._reset_buffers(BufferContext.USER)
         self._run(root_obj)
         self._ran = True
@@ -66,10 +60,12 @@ class SimWrapperSession(WrapperSession):
             buffer (Dict[UUID, Cuds]): All Cuds objects that have been deleted
         """
 
-    def _initialise(self, root_obj):
-        """Initialise the session.
+    def _initialize(self, root_obj, buffer):
+        """Initialize the session.
         This method is executed before the first run.
 
         Args:
             root_obj (Cuds): The wrapper cuds object.
+            buffer (Dict[UUID, Cuds]): All Cuds objects that have been added
         """
+        self._apply_added(root_obj, buffer)

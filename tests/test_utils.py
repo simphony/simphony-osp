@@ -1,22 +1,16 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import io
 import unittest
 import responses
 import uuid
+import os
 import osp.core
-from osp.core import CUBA
-from osp.core.session.transport.transport_util import serializable
+from osp.core.namespaces import cuba
+from osp.core.session.transport.transport_utils import serializable
 from osp.core.session.core_session import CoreSession
 from .test_session_city import TestWrapperSession
 from osp.core.session.buffers import EngineContext
 from osp.core.utils import (
-    destroy_cuds_object, clone_cuds_object,
+    clone_cuds_object,
     create_recycle, create_from_cuds_object,
     check_arguments, format_class_name, find_cuds_object,
     find_cuds_object_by_uid, remove_cuds_object,
@@ -24,71 +18,154 @@ from osp.core.utils import (
     find_cuds_objects_by_oclass, find_relationships,
     find_cuds_objects_by_attribute, post,
     get_relationships_between,
-    get_neighbour_diff, change_oclass, branch
+    get_neighbor_diff, change_oclass, branch, validate_tree_against_schema,
+    ConsistencyError, CardinalityError
 )
 from osp.core.cuds import Cuds
 
 try:
-    from osp.core import CITY
+    from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
-    CITY = Parser().parse("city")
+    from osp.core.namespaces import _namespace_registry
+    Parser(_namespace_registry._graph).parse("city")
+    _namespace_registry.update_namespaces()
+    from osp.core.namespaces import city
 
 CUDS_DICT = {
-    "oclass": "CITY.CITIZEN",
-    "uid": str(uuid.UUID(int=0)),
+    "oclass": "city.Citizen",
+    "uid": str(uuid.UUID(int=1)),
     "attributes": {
         "name": "Peter",
         "age": 23
     },
     "relationships": {
-        "CITY.IS_INHABITANT_OF": {str(uuid.UUID(int=1)): "CITY.CITY"},
-        "CITY.HAS_CHILD": {str(uuid.UUID(int=2)): "CITY.PERSON",
-                           str(uuid.UUID(int=3)): "CITY.PERSON"}
+        "city.INVERSE_OF_hasInhabitant": {str(uuid.UUID(int=1)): "city.City"},
+        "city.hasChild": {str(uuid.UUID(int=2)): "city.Person",
+                          str(uuid.UUID(int=3)): "city.Person"}
     }
 }
 
 
 def get_test_city():
     """helper function"""
-    c = CITY.CITY(name="Freiburg", coordinates=[1, 2])
-    p1 = CITY.CITIZEN(name="Rainer")
-    p2 = CITY.CITIZEN(name="Carlos")
-    p3 = CITY.CITIZEN(name="Maria")
-    n1 = CITY.NEIGHBOURHOOD(name="Zähringen", coordinates=[2, 3])
-    n2 = CITY.NEIGHBOURHOOD(name="St. Georgen", coordinates=[3, 4])
-    s1 = CITY.STREET(name="Lange Straße", coordinates=[4, 5])
+    c = city.City(name="Freiburg", coordinates=[1, 2])
+    p1 = city.Citizen(name="Rainer")
+    p2 = city.Citizen(name="Carlos")
+    p3 = city.Citizen(name="Maria")
+    n1 = city.Neighborhood(name="Zähringen", coordinates=[2, 3])
+    n2 = city.Neighborhood(name="St. Georgen", coordinates=[3, 4])
+    s1 = city.Street(name="Lange Straße", coordinates=[4, 5])
 
-    c.add(p1, p2, p3, rel=CITY.HAS_INHABITANT)
-    p1.add(p3, rel=CITY.HAS_CHILD)
-    p2.add(p3, rel=CITY.HAS_CHILD)
+    c.add(p1, p2, p3, rel=city.hasInhabitant)
+    p1.add(p3, rel=city.hasChild)
+    p2.add(p3, rel=city.hasChild)
     c.add(n1, n2)
     n1.add(s1)
     n2.add(s1)
-    s1.add(p2, p3, rel=CITY.HAS_INHABITANT)
+    s1.add(p2, p3, rel=city.hasInhabitant)
     return [c, p1, p2, p3, n1, n2, s1]
 
 
 class TestUtils(unittest.TestCase):
 
+    def test_validate_tree_against_schema(self):
+        """Test validation of CUDS tree against schema.yml"""
+        schema_file = os.path.join(
+            os.path.dirname(__file__),
+            'test_validation_schema_city.yml'
+        )
+        schema_file_with_missing_entity = os.path.join(
+            os.path.dirname(__file__),
+            'test_validation_schema_city_with_missing_entity.yml'
+        )
+        schema_file_with_missing_relationship = os.path.join(
+            os.path.dirname(__file__),
+            'test_validation_schema_city_with_missing_relationship.yml'
+        )
+        schema_file_with_optional_subtree = os.path.join(
+            os.path.dirname(__file__),
+            'test_validation_schema_city_with_optional_subtree.yml'
+        )
+
+        c = city.City(name='freiburg')
+
+        # empty city is not valid
+        self.assertRaises(
+            ConsistencyError,
+            validate_tree_against_schema,
+            c,
+            schema_file
+        )
+
+        # unless I do not specify relationships for it
+        validate_tree_against_schema(c, schema_file_with_missing_relationship)
+
+        # but it at least should be a city,
+        # even when no relationships are defined
+        wrong_object = cuba.File(path='some path')
+        self.assertRaises(
+            ConsistencyError,
+            validate_tree_against_schema,
+            wrong_object,
+            schema_file_with_missing_relationship
+        )
+
+        # with opional inhabitants an empty city is ok
+        validate_tree_against_schema(c, schema_file_with_optional_subtree)
+
+        # but the optional subtree should follow its own constraints
+        # (here a citizen needs to work in a city)
+        c.add(city.Citizen(name='peter'), rel=city.hasInhabitant)
+        self.assertRaises(
+            CardinalityError,
+            validate_tree_against_schema,
+            c,
+            schema_file_with_optional_subtree
+        )
+
+        c.add(city.Neighborhood(name='some hood'))
+        c.add(city.Citizen(name='peter'), rel=city.hasInhabitant)
+
+        # street of neighborhood violated
+        self.assertRaises(
+            CardinalityError,
+            validate_tree_against_schema,
+            c,
+            schema_file
+        )
+
+        c.get(oclass=city.Neighborhood)[0].add(city.Street(name='abc street'))
+
+        # now the city is valid and validation should pass
+        validate_tree_against_schema(c, schema_file)
+
+        # entity that was defined is completely missing in cuds tree
+        self.assertRaises(
+            ConsistencyError,
+            validate_tree_against_schema,
+            c,
+            schema_file_with_missing_entity
+        )
+
     def test_branch(self):
         x = branch(
             branch(
-                CITY.CITY(name="Freiburg"),
-                CITY.CITIZEN(name="Peter"),
-                CITY.CITIZEN(name="Maria"),
-                rel=CITY.HAS_INHABITANT
+                city.City(name="Freiburg"),
+                city.Citizen(name="Peter"),
+                city.Citizen(name="Maria"),
+                rel=city.hasInhabitant
             ),
-            CITY.NEIGHBOURHOOD(name="Herdern"),
-            CITY.NEIGHBOURHOOD(name="Vauban")
+            city.Neighborhood(name="Herdern"),
+            city.Neighborhood(name="Vauban")
         )
         self.assertEqual(x.name, "Freiburg")
         self.assertEqual({"Herdern", "Vauban"},
                          set(map(lambda x: x.name,
-                                 x.get(oclass=CITY.NEIGHBOURHOOD))))
+                                 x.get(oclass=city.Neighborhood))))
         self.assertEqual({"Peter", "Maria"},
                          set(map(lambda x: x.name,
-                                 x.get(rel=CITY.HAS_INHABITANT))))
+                                 x.get(rel=city.hasInhabitant))))
 
     @responses.activate
     def test_post(self):
@@ -121,35 +198,15 @@ class TestUtils(unittest.TestCase):
 
     def test_deserialize(self):
         result = deserialize(CUDS_DICT)
-        self.assertTrue(result.is_a(CITY.CITIZEN))
+        self.assertTrue(result.is_a(city.Citizen))
         self.assertEqual(result.name, "Peter")
         self.assertEqual(result.age, 23)
 
-    def test_destroy_cuds_object(self):
-        """Test destroying of cuds"""
-        a = CITY.CITY(name="Freiburg")
-        b = CITY.CITIZEN(age=12, name="Horst")
-        with CoreSession() as session:
-            w = CITY.CITY_WRAPPER(session=session)
-            aw = w.add(a)
-            bw = aw.add(b, rel=CITY.HAS_INHABITANT)
-            session._expired = {bw.uid}
-            destroy_cuds_object(aw)
-
-            self.assertEqual(a.name, "Freiburg")
-            self.assertEqual(bw.name, "Horst")
-            self.assertFalse(hasattr(aw, "name"))
-            self.assertEqual(aw.get(), [])
-
-            destroy_cuds_object(bw)
-            self.assertFalse(hasattr(bw, "name"))
-            self.assertEqual(session._expired, set())
-
     def test_clone_cuds_object(self):
         """Test cloning of cuds"""
-        a = CITY.CITY(name="Freiburg")
+        a = city.City(name="Freiburg")
         with CoreSession() as session:
-            w = CITY.CITY_WRAPPER(session=session)
+            w = city.CityWrapper(session=session)
             aw = w.add(a)
             clone = clone_cuds_object(aw)
             self.assertIsNot(aw, None)
@@ -162,17 +219,17 @@ class TestUtils(unittest.TestCase):
         """Test creation of cuds_objects for different session"""
         default_session = CoreSession()
         osp.core.cuds.Cuds._session = default_session
-        a = CITY.CITY(name="Freiburg")
+        a = city.City(name="Freiburg")
         self.assertIs(a.session, default_session)
         with TestWrapperSession() as session:
-            w = CITY.CITY_WRAPPER(session=session)
+            w = city.CityWrapper(session=session)
             with EngineContext(session):
                 b = create_recycle(
-                    oclass=CITY.CITY,
+                    oclass=city.City,
                     kwargs={"name": "Offenburg"},
                     uid=a.uid,
                     session=session,
-                    fix_neighbours=False)
+                    fix_neighbors=False)
             self.assertEqual(b.name, "Offenburg")
             self.assertEqual(b.uid, a.uid)
             self.assertEqual(set(default_session._registry.keys()), {a.uid})
@@ -184,17 +241,17 @@ class TestUtils(unittest.TestCase):
                 [{b.uid: b}, dict(), dict()]]
             )
 
-            x = CITY.CITIZEN()
-            x = b.add(x, rel=CITY.HAS_INHABITANT)
+            x = city.Citizen()
+            x = b.add(x, rel=city.hasInhabitant)
 
-            c = create_recycle(oclass=CITY.CITY,
+            c = create_recycle(oclass=city.City,
                                kwargs={"name": "Emmendingen"},
                                session=session, uid=a.uid,
-                               fix_neighbours=False)
+                               fix_neighbors=False)
             self.assertIs(b, c)
             self.assertEqual(c.name, "Emmendingen")
-            self.assertEqual(c.get(rel=CUBA.RELATIONSHIP), [])
-            self.assertNotEqual(x.get(rel=CUBA.RELATIONSHIP), [])
+            self.assertEqual(c.get(rel=cuba.relationship), [])
+            self.assertNotEqual(x.get(rel=cuba.relationship), [])
             self.assertEqual(set(default_session._registry.keys()),
                              {a.uid, x.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
@@ -203,23 +260,23 @@ class TestUtils(unittest.TestCase):
                 [dict(), dict(), dict()]]
             )
 
-            x = CITY.CITIZEN()
-            x = c.add(x, rel=CITY.HAS_INHABITANT)
+            x = city.Citizen()
+            x = c.add(x, rel=city.hasInhabitant)
 
-            c = create_recycle(oclass=CITY.CITY,
+            c = create_recycle(oclass=city.City,
                                kwargs={"name": "Karlsruhe"},
                                session=session, uid=a.uid,
-                               fix_neighbours=True)
-            self.assertEqual(x.get(rel=CUBA.RELATIONSHIP), [])
+                               fix_neighbors=True)
+            self.assertEqual(x.get(rel=cuba.relationship), [])
 
     def test_create_from_cuds_object(self):
         """Test copying cuds_objects to different session"""
         default_session = CoreSession()
         Cuds._session = default_session
-        a = CITY.CITY(name="Freiburg")
+        a = city.City(name="Freiburg")
         self.assertIs(a.session, default_session)
         with TestWrapperSession() as session:
-            w = CITY.CITY_WRAPPER(session=session)
+            w = city.CityWrapper(session=session)
             with EngineContext(session):
                 b = create_from_cuds_object(a, session)
             self.assertEqual(b.name, "Freiburg")
@@ -233,17 +290,17 @@ class TestUtils(unittest.TestCase):
                 [{b.uid: b}, dict(), dict()]])
 
             b.name = "Emmendingen"
-            x = CITY.CITIZEN(age=54, name="Franz")
-            b.add(x, rel=CITY.HAS_INHABITANT)
-            y = CITY.CITIZEN(age=21, name="Rolf")
-            a.add(y, rel=CITY.HAS_INHABITANT)
+            x = city.Citizen(age=54, name="Franz")
+            b.add(x, rel=city.hasInhabitant)
+            y = city.Citizen(age=21, name="Rolf")
+            a.add(y, rel=city.hasInhabitant)
 
             c = create_from_cuds_object(a, session)
             self.assertIs(b, c)
             self.assertEqual(c.name, "Freiburg")
-            self.assertEqual(len(c.get(rel=CUBA.RELATIONSHIP)), 1)
-            self.assertEqual(c._neighbours[CITY.HAS_INHABITANT],
-                             {y.uid: CITY.CITIZEN})
+            self.assertEqual(len(c.get(rel=cuba.relationship)), 1)
+            self.assertEqual(c._neighbors[city.hasInhabitant],
+                             {y.uid: city.Citizen})
             self.assertEqual(set(default_session._registry.keys()),
                              {a.uid, x.uid, y.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
@@ -253,28 +310,28 @@ class TestUtils(unittest.TestCase):
 
     def test_change_oclass(self):
         """Check utility method to change oclass"""
-        c = CITY.CITY(name="Freiburg")
-        p1 = CITY.CITIZEN(name="Tim")
-        p2 = CITY.CITIZEN(name="Tom")
-        c.add(p1, p2, rel=CITY.HAS_INHABITANT)
-        change_oclass(c, CITY.POPULATED_PLACE, {
+        c = city.City(name="Freiburg")
+        p1 = city.Citizen(name="Tim")
+        p2 = city.Citizen(name="Tom")
+        c.add(p1, p2, rel=city.hasInhabitant)
+        change_oclass(c, city.PopulatedPlace, {
             "name": "Umkirch"
         })
-        self.assertIs(c.oclass, CITY.POPULATED_PLACE)
-        self.assertEqual(p1._neighbours[CITY.IS_INHABITANT_OF],
-                         {c.uid: CITY.POPULATED_PLACE})
-        self.assertEqual(p2._neighbours[CITY.IS_INHABITANT_OF],
-                         {c.uid: CITY.POPULATED_PLACE})
+        self.assertEqual(c.oclass, city.PopulatedPlace)
+        self.assertEqual(p1._neighbors[city.INVERSE_OF_hasInhabitant],
+                         {c.uid: city.PopulatedPlace})
+        self.assertEqual(p2._neighbors[city.INVERSE_OF_hasInhabitant],
+                         {c.uid: city.PopulatedPlace})
 
     def test_check_arguments(self):
         """ Test checking of arguments """
         check_arguments(str, "hello", "bye")
         check_arguments((int, float), 1, 1.2, 5.9, 2)
-        check_arguments(Cuds, CITY.CITY(name="Freiburg"))
+        check_arguments(Cuds, city.City(name="Freiburg"))
         self.assertRaises(TypeError, check_arguments, str, 12)
         self.assertRaises(TypeError, check_arguments, (int, float), 1.2, "h")
         self.assertRaises(TypeError, check_arguments,
-                          Cuds, CITY.CITY)
+                          Cuds, city.City)
 
     def test_format_class_name(self):
         """Test class name formatting"""
@@ -294,23 +351,23 @@ class TestUtils(unittest.TestCase):
 
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertIs(find_cuds_object(
-            find_maria, c, CUBA.ACTIVE_RELATIONSHIP, False), p3)
+            find_maria, c, cuba.activeRelationship, False), p3)
         self.assertIs(find_cuds_object(
-            find_maria, c, CUBA.PASSIVE_RELATIONSHIP, False), None)
+            find_maria, c, cuba.passiveRelationship, False), None)
         self.assertEqual(find_cuds_object(
-            find_maria, c, CUBA.PASSIVE_RELATIONSHIP, True), list())
+            find_maria, c, cuba.passiveRelationship, True), list())
         all_found = find_cuds_object(
-            find_maria, c, CUBA.ACTIVE_RELATIONSHIP, True)
+            find_maria, c, cuba.activeRelationship, True)
         self.assertIs(all_found[0], p3)
         self.assertEqual(len(all_found), 1)
         self.assertIs(find_cuds_object(
-            find_freiburg, c, CUBA.ACTIVE_RELATIONSHIP, False), c)
+            find_freiburg, c, cuba.activeRelationship, False), c)
         all_found = find_cuds_object(
-            find_non_leaves, c, CUBA.ACTIVE_RELATIONSHIP, True)
+            find_non_leaves, c, cuba.activeRelationship, True)
         self.assertEqual(len(all_found), 6)
         self.assertEqual(set(all_found), {c, p1, p2, n1, n2, s1})
         all_found = find_cuds_object(
-            find_non_leaves, c, CUBA.ACTIVE_RELATIONSHIP, True,
+            find_non_leaves, c, cuba.activeRelationship, True,
             max_depth=1)
         self.assertEqual(len(all_found), 5)
         self.assertEqual(set(all_found), {c, p1, p2, n1, n2})
@@ -319,231 +376,231 @@ class TestUtils(unittest.TestCase):
         """ Test to find a cuds object by uid in given subtree """
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertIs(find_cuds_object_by_uid(
-            c.uid, c, CUBA.ACTIVE_RELATIONSHIP), c)
+            c.uid, c, cuba.activeRelationship), c)
         self.assertIs(find_cuds_object_by_uid(
-            p1.uid, c, CUBA.ACTIVE_RELATIONSHIP), p1)
+            p1.uid, c, cuba.activeRelationship), p1)
         self.assertIs(find_cuds_object_by_uid(
-            p2.uid, c, CUBA.ACTIVE_RELATIONSHIP), p2)
+            p2.uid, c, cuba.activeRelationship), p2)
         self.assertIs(find_cuds_object_by_uid(
-            p3.uid, c, CUBA.ACTIVE_RELATIONSHIP), p3)
+            p3.uid, c, cuba.activeRelationship), p3)
         self.assertIs(find_cuds_object_by_uid(
-            n1.uid, c, CUBA.ACTIVE_RELATIONSHIP), n1)
+            n1.uid, c, cuba.activeRelationship), n1)
         self.assertIs(find_cuds_object_by_uid(
-            n2.uid, c, CUBA.ACTIVE_RELATIONSHIP), n2)
+            n2.uid, c, cuba.activeRelationship), n2)
         self.assertIs(find_cuds_object_by_uid(
-            s1.uid, c, CUBA.ACTIVE_RELATIONSHIP), s1)
+            s1.uid, c, cuba.activeRelationship), s1)
         self.assertIs(find_cuds_object_by_uid(
-            c.uid, c, CITY.HAS_INHABITANT), c)
+            c.uid, c, city.hasInhabitant), c)
         self.assertIs(find_cuds_object_by_uid(
-            p1.uid, c, CITY.HAS_INHABITANT), p1)
+            p1.uid, c, city.hasInhabitant), p1)
         self.assertIs(find_cuds_object_by_uid(
-            p2.uid, c, CITY.HAS_INHABITANT), p2)
+            p2.uid, c, city.hasInhabitant), p2)
         self.assertIs(find_cuds_object_by_uid(
-            p3.uid, c, CITY.HAS_INHABITANT), p3)
+            p3.uid, c, city.hasInhabitant), p3)
         self.assertIs(find_cuds_object_by_uid(
-            n1.uid, c, CITY.HAS_INHABITANT), None)
+            n1.uid, c, city.hasInhabitant), None)
         self.assertIs(find_cuds_object_by_uid(
-            n2.uid, c, CITY.HAS_INHABITANT), None)
+            n2.uid, c, city.hasInhabitant), None)
         self.assertIs(find_cuds_object_by_uid(
-            s1.uid, c, CITY.HAS_INHABITANT), None)
+            s1.uid, c, city.hasInhabitant), None)
         self.assertIs(find_cuds_object_by_uid(
-            c.uid, n1, CUBA.ACTIVE_RELATIONSHIP), None)
+            c.uid, n1, cuba.activeRelationship), None)
         self.assertIs(find_cuds_object_by_uid(
-            p1.uid, n1, CUBA.ACTIVE_RELATIONSHIP), None)
+            p1.uid, n1, cuba.activeRelationship), None)
         self.assertIs(find_cuds_object_by_uid(
-            p2.uid, n1, CUBA.ACTIVE_RELATIONSHIP), p2)
+            p2.uid, n1, cuba.activeRelationship), p2)
         self.assertIs(find_cuds_object_by_uid(
-            p3.uid, n1, CUBA.ACTIVE_RELATIONSHIP), p3)
+            p3.uid, n1, cuba.activeRelationship), p3)
         self.assertIs(find_cuds_object_by_uid(
-            n1.uid, n1, CUBA.ACTIVE_RELATIONSHIP), n1)
+            n1.uid, n1, cuba.activeRelationship), n1)
         self.assertIs(find_cuds_object_by_uid(
-            n2.uid, n1, CUBA.ACTIVE_RELATIONSHIP), None)
+            n2.uid, n1, cuba.activeRelationship), None)
         self.assertIs(find_cuds_object_by_uid(
-            s1.uid, n1, CUBA.ACTIVE_RELATIONSHIP), s1)
+            s1.uid, n1, cuba.activeRelationship), s1)
 
     def test_find_cuds_objects_by_oclass(self):
         """ Test find by cuba key """
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertEqual(find_cuds_objects_by_oclass(
-            CITY.CITY, c, CUBA.ACTIVE_RELATIONSHIP),
+            city.City, c, cuba.activeRelationship),
             [c])
         found = find_cuds_objects_by_oclass(
-            CITY.CITIZEN,
-            c, CUBA.ACTIVE_RELATIONSHIP)
+            city.Citizen,
+            c, cuba.activeRelationship)
         self.assertEqual(len(found), 3)
         self.assertEqual(set(found), {p1, p2, p3})
         found = find_cuds_objects_by_oclass(
-            CITY.NEIGHBOURHOOD, c,
-            CUBA.ACTIVE_RELATIONSHIP)
+            city.Neighborhood, c,
+            cuba.activeRelationship)
         self.assertEqual(set(found), {n1, n2})
         self.assertEqual(len(found), 2)
         self.assertEqual(find_cuds_objects_by_oclass(
-            CITY.STREET, c, CUBA.ACTIVE_RELATIONSHIP),
+            city.Street, c, cuba.activeRelationship),
             [s1])
-        found = find_cuds_objects_by_oclass(CUBA.ENTITY,
-                                            c, CUBA.RELATIONSHIP)
+        found = find_cuds_objects_by_oclass(cuba.Class,
+                                            c, cuba.relationship)
         self.assertEqual(set(found), {c, p1, p2, p3, n1, n2, s1})
 
     def test_find_cuds_objects_by_attribute(self):
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertEqual(
             find_cuds_objects_by_attribute("name", "Maria", c,
-                                           CUBA.RELATIONSHIP), [p3]
+                                           cuba.relationship), [p3]
         )
         found = find_cuds_objects_by_attribute("age", 25, c,
-                                               CUBA.RELATIONSHIP)
+                                               cuba.relationship)
         self.assertEqual(len(found), 3)
         self.assertEqual(set(found), {p1, p2, p3})
         found = find_cuds_objects_by_attribute(
-            "age", 25, c, CUBA.PASSIVE_RELATIONSHIP
+            "age", 25, c, cuba.passiveRelationship
         )
         self.assertEqual(found, [])
 
     def test_find_relationships(self):
         """Test find by relationships"""
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
-        found = find_relationships(CITY.IS_INHABITANT_OF, c,
-                                   CUBA.RELATIONSHIP, False)
+        found = find_relationships(city.INVERSE_OF_hasInhabitant, c,
+                                   cuba.relationship, False)
         self.assertEqual(set(found), {p1, p2, p3})
         self.assertEqual(len(found), 3)
-        found = find_relationships(CITY.IS_PART_OF, c,
-                                   CUBA.RELATIONSHIP, True)
+        found = find_relationships(city.isPartOf, c,
+                                   cuba.relationship, True)
         self.assertEqual(set(found), {p3, n1, n2, s1})
         self.assertEqual(len(found), 4)
-        found = find_relationships(CITY.IS_PART_OF, c,
-                                   CUBA.RELATIONSHIP, False)
+        found = find_relationships(city.isPartOf, c,
+                                   cuba.relationship, False)
         self.assertEqual(set(found), {n1, n2, s1})
 
     def test_remove_cuds_object(self):
         """Test removeing cuds from datastructure"""
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         remove_cuds_object(p3)
-        self.assertEqual(p3.get(rel=CUBA.RELATIONSHIP), [])
-        self.assertNotIn(p3, c.get(rel=CUBA.RELATIONSHIP))
-        self.assertNotIn(p3, p1.get(rel=CUBA.RELATIONSHIP))
-        self.assertNotIn(p3, p2.get(rel=CUBA.RELATIONSHIP))
-        self.assertNotIn(p3, n1.get(rel=CUBA.RELATIONSHIP))
-        self.assertNotIn(p3, n2.get(rel=CUBA.RELATIONSHIP))
-        self.assertNotIn(p3, s1.get(rel=CUBA.RELATIONSHIP))
+        self.assertEqual(p3.get(rel=cuba.relationship), [])
+        self.assertNotIn(p3, c.get(rel=cuba.relationship))
+        self.assertNotIn(p3, p1.get(rel=cuba.relationship))
+        self.assertNotIn(p3, p2.get(rel=cuba.relationship))
+        self.assertNotIn(p3, n1.get(rel=cuba.relationship))
+        self.assertNotIn(p3, n2.get(rel=cuba.relationship))
+        self.assertNotIn(p3, s1.get(rel=cuba.relationship))
 
     def test_get_relationships_between(self):
         """ Test get the relationship between two cuds entities"""
-        c = CITY.CITY(name="Freiburg")
-        p = CITY.CITIZEN(name="Peter")
+        c = city.City(name="Freiburg")
+        p = city.Citizen(name="Peter")
         self.assertEqual(get_relationships_between(c, p), set())
         self.assertEqual(get_relationships_between(p, c), set())
-        c.add(p, rel=CITY.HAS_INHABITANT)
+        c.add(p, rel=city.hasInhabitant)
         self.assertEqual(get_relationships_between(c, p),
-                         {CITY.HAS_INHABITANT})
+                         {city.hasInhabitant})
         self.assertEqual(get_relationships_between(p, c),
-                         {CITY.IS_INHABITANT_OF})
-        c.add(p, rel=CITY.HAS_WORKER)
+                         {city.INVERSE_OF_hasInhabitant})
+        c.add(p, rel=city.hasWorker)
         self.assertEqual(get_relationships_between(c, p),
-                         {CITY.HAS_INHABITANT,
-                          CITY.HAS_WORKER})
+                         {city.hasInhabitant,
+                          city.hasWorker})
         self.assertEqual(get_relationships_between(p, c),
-                         {CITY.IS_INHABITANT_OF,
-                          CITY.WORKS_IN})
+                         {city.INVERSE_OF_hasInhabitant,
+                          city.worksIn})
 
-    def test_get_neighbour_diff(self):
-        """Check if get_neighbour_diff can compute the difference
-        of neighbours between to objects.
+    def test_get_neighbor_diff(self):
+        """Check if get_neighbor_diff can compute the difference
+        of neighbors between to objects.
         """
-        c1 = CITY.CITY(name="Paris")
-        c2 = CITY.CITY(name="Berlin")
-        c3 = CITY.CITY(name="London")
-        n1 = CITY.NEIGHBOURHOOD(name="Zähringen")
-        n2 = CITY.NEIGHBOURHOOD(name="Herdern")
-        s1 = CITY.STREET(name="Waldkircher Straße")
-        s2 = CITY.STREET(name="Habsburger Straße")
-        s3 = CITY.STREET(name="Lange Straße")
+        c1 = city.City(name="Paris")
+        c2 = city.City(name="Berlin")
+        c3 = city.City(name="London")
+        n1 = city.Neighborhood(name="Zähringen")
+        n2 = city.Neighborhood(name="Herdern")
+        s1 = city.Street(name="Waldkircher Straße")
+        s2 = city.Street(name="Habsburger Straße")
+        s3 = city.Street(name="Lange Straße")
 
-        n1.add(c1, c2, rel=CITY.IS_PART_OF)
-        n2.add(c2, c3, rel=CITY.IS_PART_OF)
+        n1.add(c1, c2, rel=city.isPartOf)
+        n2.add(c2, c3, rel=city.isPartOf)
         n1.add(s1, s2)
         n2.add(s2, s3)
 
         self.assertEqual(
-            set(get_neighbour_diff(n1, n2)),
-            {(c1.uid, CITY.IS_PART_OF), (s1.uid, CITY.HAS_PART)}
+            set(get_neighbor_diff(n1, n2)),
+            {(c1.uid, city.isPartOf), (s1.uid, city.hasPart)}
         )
 
         self.assertEqual(
-            set(get_neighbour_diff(n2, n1)),
-            {(c3.uid, CITY.IS_PART_OF), (s3.uid, CITY.HAS_PART)}
+            set(get_neighbor_diff(n2, n1)),
+            {(c3.uid, city.isPartOf), (s3.uid, city.hasPart)}
         )
 
         self.assertEqual(
-            set(get_neighbour_diff(n1, None)),
-            {(c1.uid, CITY.IS_PART_OF), (s1.uid, CITY.HAS_PART),
-             (c2.uid, CITY.IS_PART_OF), (s2.uid, CITY.HAS_PART)}
+            set(get_neighbor_diff(n1, None)),
+            {(c1.uid, city.isPartOf), (s1.uid, city.hasPart),
+             (c2.uid, city.isPartOf), (s2.uid, city.hasPart)}
         )
 
         self.assertEqual(
-            set(get_neighbour_diff(None, n2)),
+            set(get_neighbor_diff(None, n2)),
             set()
         )
 
     def test_pretty_print(self):
         """Test printing cuds objects in a human readable way."""
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
-        px = CITY.PERSON()
-        c.add(px, rel=CITY.ENCLOSES)
+        px = city.Person()
+        c.add(px, rel=city.encloses)
         f = io.StringIO()
         pretty_print(c, file=f)
         self.maxDiff = 5000
         self.assertEqual(f.getvalue(), "\n".join([
             "- Cuds object named <Freiburg>:",
             "  uuid: %s" % c.uid,
-            "  type: CITY.CITY",
-            "  superclasses: CITY.CITY, CITY.POPULATED_PLACE, "
-            + "CITY.GEOGRAPHICAL_PLACE, CUBA.ENTITY",
+            "  type: city.City",
+            "  superclasses: city.City, city.GeographicalPlace, "
+            + "city.PopulatedPlace, cuba.Class",
             "  values: coordinates: [1 2]",
             "  description: ",
             "    To Be Determined",
             "",
-            "   |_Relationship CITY.ENCLOSES:",
-            "   | -  CITY.PERSON cuds object named <John Smith>:",
+            "   |_Relationship city.encloses:",
+            "   | -  city.Person cuds object named <John Smith>:",
             "   |    uuid: %s" % px.uid,
             "   |    age: 25",
-            "   |_Relationship CITY.HAS_INHABITANT:",
-            "   | -  CITY.CITIZEN cuds object named <Rainer>:",
+            "   |_Relationship city.hasInhabitant:",
+            "   | -  city.Citizen cuds object named <Rainer>:",
             "   | .  uuid: %s" % p1.uid,
             "   | .  age: 25",
-            "   | .   |_Relationship CITY.HAS_CHILD:",
-            "   | .     -  CITY.CITIZEN cuds object named <Maria>:",
+            "   | .   |_Relationship city.hasChild:",
+            "   | .     -  city.Citizen cuds object named <Maria>:",
             "   | .        uuid: %s" % p3.uid,
             "   | .        age: 25",
-            "   | -  CITY.CITIZEN cuds object named <Carlos>:",
+            "   | -  city.Citizen cuds object named <Carlos>:",
             "   | .  uuid: %s" % p2.uid,
             "   | .  age: 25",
-            "   | .   |_Relationship CITY.HAS_CHILD:",
-            "   | .     -  CITY.CITIZEN cuds object named <Maria>:",
+            "   | .   |_Relationship city.hasChild:",
+            "   | .     -  city.Citizen cuds object named <Maria>:",
             "   | .        uuid: %s" % p3.uid,
             "   | .        (already printed)",
-            "   | -  CITY.CITIZEN cuds object named <Maria>:",
+            "   | -  city.Citizen cuds object named <Maria>:",
             "   |    uuid: %s" % p3.uid,
             "   |    (already printed)",
-            "   |_Relationship CITY.HAS_PART:",
-            "     -  CITY.NEIGHBOURHOOD cuds object named <Zähringen>:",
+            "   |_Relationship city.hasPart:",
+            "     -  city.Neighborhood cuds object named <Zähringen>:",
             "     .  uuid: %s" % n1.uid,
             "     .  coordinates: [2 3]",
-            "     .   |_Relationship CITY.HAS_PART:",
-            "     .     -  CITY.STREET cuds object named <Lange Straße>:",
+            "     .   |_Relationship city.hasPart:",
+            "     .     -  city.Street cuds object named <Lange Straße>:",
             "     .        uuid: %s" % s1.uid,
             "     .        coordinates: [4 5]",
-            "     .         |_Relationship CITY.HAS_INHABITANT:",
-            "     .           -  CITY.CITIZEN cuds object named <Carlos>:",
+            "     .         |_Relationship city.hasInhabitant:",
+            "     .           -  city.Citizen cuds object named <Carlos>:",
             "     .           .  uuid: %s" % p2.uid,
             "     .           .  (already printed)",
-            "     .           -  CITY.CITIZEN cuds object named <Maria>:",
+            "     .           -  city.Citizen cuds object named <Maria>:",
             "     .              uuid: %s" % p3.uid,
             "     .              (already printed)",
-            "     -  CITY.NEIGHBOURHOOD cuds object named <St. Georgen>:",
+            "     -  city.Neighborhood cuds object named <St. Georgen>:",
             "        uuid: %s" % n2.uid,
             "        coordinates: [3 4]",
-            "         |_Relationship CITY.HAS_PART:",
-            "           -  CITY.STREET cuds object named <Lange Straße>:",
+            "         |_Relationship city.hasPart:",
+            "           -  city.Street cuds object named <Lange Straße>:",
             "              uuid: %s" % s1.uid,
             "              (already printed)",
             ""]))

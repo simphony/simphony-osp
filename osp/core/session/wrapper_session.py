@@ -1,17 +1,10 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import uuid
 import logging
 from abc import abstractmethod
 from osp.core.session.session import Session
 from osp.core.session.result import returns_query_result
-from osp.core.utils import destroy_cuds_object, clone_cuds_object, \
-    get_neighbour_diff
+from osp.core.utils import clone_cuds_object, \
+    get_neighbor_diff
 from osp.core.session.buffers import BufferType, BufferContext, \
     EngineContext
 
@@ -55,7 +48,7 @@ class WrapperSession(Session):
     @returns_query_result
     def load(self, *uids):
         if self.root is None:
-            raise RuntimeError("This Session is not yet initialised. "
+            raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")
 
         # refresh expired
@@ -77,8 +70,9 @@ class WrapperSession(Session):
             old_cuds_object = self._get_old_cuds_object_clone(uid)
             new_cuds_object = self._get_next_missing(missing)
             self._expire_neighour_diff(old_cuds_object, new_cuds_object, uids)
-            if old_cuds_object is not None and new_cuds_object is None:
-                destroy_cuds_object(self._registry.get(uid))
+            if old_cuds_object is not None and new_cuds_object is None \
+                    and uid in self._registry:
+                del self._registry[uid]
             yield new_cuds_object
 
     def expire(self, *cuds_or_uids):
@@ -117,23 +111,28 @@ class WrapperSession(Session):
         """
         if not cuds_or_uids:
             return
+        logger.debug("Refreshing %s in %s" % (list(cuds_or_uids), self))
         list(self.load(*self.expire(*cuds_or_uids)))
 
     def get_triples(self):
         """Get the triples in the core session"""
         from osp.core.utils import find_cuds_object
-        from osp.core.utils import CUBA
+        from osp.core.utils import cuba
         return [
             triple
             for cuds_object in find_cuds_object(lambda x: True,
                                                 self._registry.get(self.root),
-                                                CUBA.Relationship,
+                                                cuba.Relationship,
                                                 True)
             for triple in cuds_object.get_triples()
         ]
 
     def log_buffer_status(self, context):
-        """ TODO """
+        """Log the current status of the buffers
+
+        Args:
+            context (BufferContext): whether to print user or engine buffers
+        """
         added, updated, deleted = self._buffers[context]
         for x in added.values():
             logger.debug("%s has been added to %s", x, self)
@@ -157,22 +156,29 @@ class WrapperSession(Session):
         :param cuds_object: The cuds_object to store.
         :type cuds_object: Cuds
         """
-        from osp.core import CUBA
+        from osp.core.namespaces import cuba
         # Check if root is wrapper and wrapper is root
-        if cuds_object.is_a(CUBA.WRAPPER) and self.root is not None:
+        if cuds_object.is_a(cuba.Wrapper) and self.root is not None:
             raise RuntimeError("Only one wrapper is allowed per session")
 
-        if not cuds_object.is_a(CUBA.WRAPPER) and self.root is None:
+        if not cuds_object.is_a(cuba.Wrapper) and self.root is None:
             raise RuntimeError("Please add a wrapper to the session first")
 
         # update buffers
+        logger.debug("Called store on %s in %s" % (cuds_object, self))
         added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in deleted:
+            logger.debug("Removed %s from deleted buffer in %s of %s"
+                         % (cuds_object, self._current_context, self))
             del deleted[cuds_object.uid]
 
         if cuds_object.uid in self._registry:
+            logger.debug("Added %s to updated buffer in %s of %s"
+                         % (cuds_object, self._current_context, self))
             updated[cuds_object.uid] = cuds_object
         else:
+            logger.debug("Added %s to added buffer in %s of %s"
+                         % (cuds_object, self._current_context, self))
             added[cuds_object.uid] = cuds_object
 
         # store
@@ -186,13 +192,14 @@ class WrapperSession(Session):
         :type cuds_object: Cuds
         :raises RuntimeError: The updated object has been deleted previously.
         """
+        logger.debug("Called notify_update on %s in %s" % (cuds_object, self))
         added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in deleted:
             raise RuntimeError("Cannot update deleted object")
 
-        if cuds_object.uid in added:
-            added[cuds_object.uid] = cuds_object
-        else:
+        if cuds_object.uid not in added and cuds_object.uid not in updated:
+            logger.debug("Added %s to updated buffer in %s of %s"
+                         % (cuds_object, self._current_context, self))
             updated[cuds_object.uid] = cuds_object
 
     # OVERRIDE
@@ -202,19 +209,31 @@ class WrapperSession(Session):
         :param cuds_object: The cuds_object that has been deleted.
         :type cuds_object: Cuds
         """
+        logger.debug("Called notify_delete on %s" % cuds_object)
         added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in added:
+            logger.debug("Removed %s from added buffer in %s of %s"
+                         % (cuds_object, self._current_context, self))
             del added[cuds_object.uid]
         elif cuds_object.uid in updated:
+            logger.debug("Moved %s from updated to deleted buffer in %s of %s"
+                         % (cuds_object, self._current_context, self))
             del updated[cuds_object.uid]
             deleted[cuds_object.uid] = cuds_object
-        else:
+        elif cuds_object.uid not in deleted:
+            logger.debug("Added %s to deleted buffer in %s of %s"
+                         % (cuds_object, self._current_context, self))
             deleted[cuds_object.uid] = cuds_object
 
     # OVERRIDE
     def _notify_read(self, cuds_object):
+        logger.debug("Called notify_read on %s in %s" % (cuds_object, self))
         if cuds_object.uid in self._expired:
             self.refresh(cuds_object)
+        if cuds_object.uid not in self._registry and cuds_object._stored:
+            cuds_object._neighbors = dict()
+            cuds_object._attr_values = dict()
+            cuds_object._onto_attributes = dict()
 
     def _expire(self, uids):
         """Expire the given uids
@@ -223,6 +242,7 @@ class WrapperSession(Session):
         :type uids: Set[UUID]
         """
         not_expirable = uids & self._get_buffer_uids(BufferContext.USER)
+        logger.debug("Expire %s in %s" % (uids, self))
         if not_expirable:
             logger.warning("Did not expire %s, because you have uncommitted "
                            "local changes. You might be out of sync with "
@@ -240,6 +260,7 @@ class WrapperSession(Session):
         :return: Whether the buffers have been resetted.
         :rtype: bool
         """
+        logger.debug("Reset buffers for %s in %s" % (context, self))
         self._buffers[context] = [0] * 3
         self._buffers[context][BufferType.ADDED] = dict()
         self._buffers[context][BufferType.UPDATED] = dict()
@@ -295,9 +316,9 @@ class WrapperSession(Session):
         :type uids: List[UUID]
         """
         if old_cuds_object:
-            diff1 = get_neighbour_diff(new_cuds_object, old_cuds_object)
+            diff1 = get_neighbor_diff(new_cuds_object, old_cuds_object)
             diff1 = set([x[0] for x in diff1])
-            diff2 = get_neighbour_diff(old_cuds_object, new_cuds_object)
+            diff2 = get_neighbor_diff(old_cuds_object, new_cuds_object)
             diff2 = set([x[0] for x in diff2])
             diff = (diff1 | diff2) - set(uids)
             self._expire(diff)
@@ -310,10 +331,46 @@ class WrapperSession(Session):
         :return: A clone of the old cuds object
         :rtype: Optional[Cuds]
         """
-        old_cuds = None
+        clone = None
         if uid in self._registry:
-            old_cuds = clone_cuds_object(self._registry.get(uid))
-        return old_cuds
+            clone = clone_cuds_object(self._registry.get(uid))
+        return clone
+
+    @staticmethod
+    def handshake(username, connection_id):
+        """Will be called on the server, before anything else.
+        Result of this method will be fed into compute_auth() below,
+        that will be executed by the client.
+
+        Args:
+            username (str): The username of the user, as encoded in the URL.
+            connection_id (UUID): A UUID for the connection.
+
+        Returns:
+            Any: Any JSON serializable object that should be fed into
+                compute_auth().
+        """
+        pass
+
+    @staticmethod
+    def compute_auth(username, password, handshake):
+        """Will be called on the client, after the handshake.
+        This method should produce an object that is able to authenticate
+        the user.
+        The __init__() method of the session should have a keyword "auth",
+        that will have the output of this function as a value.
+        --> The user can be authenticated on __init__()
+
+        Args:
+            username (str): The username as encoded in the URI.
+            password (str): The password as encoded in the URI.
+            handshake (Any): The result of the hanshake method.
+
+        Returns:
+            Any: Any JSON serializable object that is able to authenticate
+            the user.
+        """
+        pass
 
     def _check_cardinalities(self):
         """Check if the cardinalities specified in the ontology
@@ -334,7 +391,7 @@ class WrapperSession(Session):
     #     :raises ValueError: The cuds_object did not satisfy the cardinalities
     #         given by the ontology
     #     """
-    #     from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
+    #     from cuds.classes.generated.cuba_mapping import cuba_MAPPING
     #     ontology_cardinalities, consider_relationships = \
     #         WrapperSession._get_ontology_cardinalities(cuds_object)
 
@@ -345,7 +402,7 @@ class WrapperSession(Session):
     #         for _, cuba in cuds_object[rel].items():
     #             for r, o in ontology_cardinalities.keys():
     #                 if issubclass(rel, r) \
-    #                         and issubclass(CUBA_MAPPING[cuba], o):
+    #                         and issubclass(cuba_MAPPING[cuba], o):
     #                     observed_cardinalities[r, o] += 1
 
     #     # Check if observed cardinalities are consistent
@@ -402,7 +459,7 @@ class WrapperSession(Session):
     #         to consider when checking if cardinalities are satisfied.
     #     :rtype: Tuple[Dict[Tuple[Class, Class], Tuple[int, int]], Set]
     #     """
-    #     from cuds.classes.generated.cuba_mapping import CUBA_MAPPING
+    #     from cuds.classes.generated.cuba_mapping import cuba_MAPPING
     #     ontology_cardinalities = dict()
     #     consider_relationships = set()
     #     for rel, objects in cuds_object.supported_relationships.items():
@@ -411,8 +468,8 @@ class WrapperSession(Session):
     #             if options and "cardinality" in options:
     #                 cardinality = options["cardinality"]
     #             cardinality = WrapperSession._parse_cardinality(cardinality)
-    #             rel_cls = CUBA_MAPPING[rel]
-    #             obj_cls = CUBA_MAPPING[obj]
+    #             rel_cls = cuba_MAPPING[rel]
+    #             obj_cls = cuba_MAPPING[obj]
     #             ontology_cardinalities[rel_cls, obj_cls] = cardinality
     #             consider_relationships |= cuds_object._relationship_tree \
     #                 .get_subrelationships(rel_cls)

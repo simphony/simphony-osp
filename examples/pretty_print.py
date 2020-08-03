@@ -1,25 +1,25 @@
-from osp.core import CITY
+from osp.core.namespaces import city
 from osp.core.utils import pretty_print
 
 
 # Let's build an EMMO compatible city!
-emmo_town = CITY.CITY(name='EMMO town', coordinates=[42, 42])
+emmo_town = city.City(name='EMMO town', coordinates=[42, 42])
 
-emmo_town.add(CITY.CITIZEN(name='Emanuele Ghedini'), rel=CITY.HAS_INHABITANT)
-emmo_town.add(CITY.CITIZEN(name='Adham Hashibon'), rel=CITY.HAS_INHABITANT)
-emmo_town.add(CITY.CITIZEN(name='Jesper Friis'),
-              CITY.CITIZEN(name='Gerhard Goldbeck'),
-              CITY.CITIZEN(name='Georg Schmitz'),
-              CITY.CITIZEN(name='Anne de Baas'),
-              rel=CITY.HAS_INHABITANT)
+emmo_town.add(city.Citizen(name='Emanuele Ghedini'), rel=city.hasInhabitant)
+emmo_town.add(city.Citizen(name='Adham Hashibon'), rel=city.hasInhabitant)
+emmo_town.add(city.Citizen(name='Jesper Friis'),
+              city.Citizen(name='Gerhard Goldbeck'),
+              city.Citizen(name='Georg Schmitz'),
+              city.Citizen(name='Anne de Baas'),
+              rel=city.hasInhabitant)
 
-emmo_town.add(CITY.NEIGHBOURHOOD(name="Ontology"))
-emmo_town.add(CITY.NEIGHBOURHOOD(name="User cases"))
+emmo_town.add(city.Neighborhood(name="Ontology"))
+emmo_town.add(city.Neighborhood(name="User cases"))
 
 ontology_uid = None
-for neighbourhood in emmo_town.get(oclass=CITY.NEIGHBOURHOOD):
-    if neighbourhood.name == "Ontology":
-        ontology_uid = neighbourhood.uid
-        neighbourhood.add(CITY.STREET(name="Relationships"), rel=CITY.HAS_PART)
-        neighbourhood.add(CITY.STREET(name="Entities"), rel=CITY.HAS_PART)
+for neighborhood in emmo_town.get(oclass=city.Neighborhood):
+    if neighborhood.name == "Ontology":
+        ontology_uid = neighborhood.uid
+        neighborhood.add(city.Street(name="Relationships"), rel=city.hasPart)
+        neighborhood.add(city.Street(name="Entities"), rel=city.hasPart)
 pretty_print(emmo_town)

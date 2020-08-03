@@ -5,34 +5,57 @@
 # No parts of this software may be used outside of this context.
 # No redistribution is allowed without explicit written permission.
 
+import rdflib
+import logging
+
+from osp.core.ontology.oclass import OntologyClass
+from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.ontology.attribute import OntologyAttribute
+from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.yml.case_insensitivity import \
+    get_case_insensitive_alternative as alt
+
+logger = logging.getLogger(__name__)
+
 
 class OntologyNamespace():
-    def __init__(self, name, author, version):
+    def __init__(self, name, namespace_registry, iri):
         self._name = name
-        self._entities = dict()
-        self._default_rel = None
-        self._author = author
-        self._version = version
+        self._namespace_registry = namespace_registry
+        self._iri = rdflib.URIRef(str(iri))
+        self._label_cache = dict()
+        self._default_rel = -1
+        self._reference_by_label = (
+            self._iri, rdflib_cuba._reference_by_label, rdflib.Literal(True)
+        ) in self._graph
 
-    @property
-    def name(self):
+    def __str__(self):
+        return "%s (%s)" % (self._name, self._iri)
+
+    def __repr__(self):
+        return "<%s: %s>" % (self._name, self._iri)
+
+    def get_name(self):
         """Get the name of the namespace"""
         return self._name
 
     @property
-    def default_rel(self):
+    def _graph(self):
+        return self._namespace_registry._graph
+
+    def get_default_rel(self):
         """Get the default relationship of the namespace"""
+        if self._default_rel == -1:
+            self._default_rel = None
+            for s, p, o in self._graph.triples((self._iri,
+                                                rdflib_cuba._default_rel,
+                                                None)):
+                self._default_rel = self._namespace_registry.from_iri(o)
         return self._default_rel
 
-    @property
-    def author(self):
-        """Get the author of the namespace"""
-        return self._author
-
-    @property
-    def version(self):
-        """Get the version of the namespace"""
-        return self._version
+    def get_iri(self):
+        """Get the IRI of the namespace"""
+        return self._iri
 
     def __getattr__(self, name):
         """Get an ontology entity from the registry by name.
@@ -47,15 +70,32 @@ class OntologyNamespace():
         except KeyError as e:
             raise AttributeError(str(e)) from e
 
-    def __getitem__(self, name):
+    def __getitem__(self, label):
         """Get an ontology entity from the registry by name.
 
-        :param name: The name of the ontology entity
-        :type name: str
+        :param label: The label of the ontology entity
+        :type label: str
         :return: The ontology entity
         :rtype: OntologyEntity
         """
-        return self._get(name)
+        if isinstance(label, str):
+            label = rdflib.term.Literal(label, lang="en")
+        if isinstance(label, tuple):
+            label = rdflib.term.Literal(label[0], lang=label[1])
+        if label in self._label_cache:
+            return self._label_cache[label]
+        result = list()
+        for s, p, o in self._graph.triples((None, rdflib.RDFS.label, label)):
+            if str(s).startswith(self._iri):  # TODO more efficient
+                name = str(s)[len(self._iri):]
+                result.append(
+                    self._get(str(label) if self._reference_by_label else name,
+                              _case_sensitive=True, _force_by_iri=name))
+        if not result:
+            raise KeyError("No element with label %s in namespace %s"
+                           % (label, self))
+        self._label_cache[label] = result
+        return result
 
     def __getstate__(self):
         return self.__dict__
@@ -78,7 +118,7 @@ class OntologyNamespace():
         except KeyError:
             return fallback
 
-    def _get(self, name):
+    def _get(self, name, _case_sensitive=False, _force_by_iri=False):
         """Get an ontology entity from the registry by name.
 
         :param name: The name of the ontology entity
@@ -86,41 +126,83 @@ class OntologyNamespace():
         :return: The ontology entity
         :rtype: OntologyEntity
         """
-        if (
-            any(x.islower() for x in name)
-            and any(x.isupper() for x in name)
-        ):
-            given = name
-            name = name[0]
-            for x in given[1:]:
-                if x.isupper():
-                    name += "_"
-                name += x
         try:
-            return self._entities[name.lower()]
+            return self._do_get(name, _case_sensitive, _force_by_iri)
         except KeyError as e:
-            raise KeyError("%s not defined in namespace %s"
-                           % (name, self.name)) from e
+            if name.startswith("INVERSE_OF_"):
+                return self._do_get(name[11:], _case_sensitive,
+                                    _force_by_iri).inverse
+            raise e
 
-    def __iter__(self):
-        """Iterate over the ontology entities in the namespace.
+    def _do_get(self, name, _case_sensitive, _force_by_iri):
+        """Get an ontology entity from the registry by name.
 
-        :return: An iterator over the entities.
-        :rtype: Iterator[OntologyEntity]
+        :param name: The name of the ontology entity
+        :type name: str
+        :return: The ontology entity
+        :rtype: OntologyEntity
         """
-        return iter(self._entities.values())
+        if self._reference_by_label and not _force_by_iri:
+            return self[name][0]
+        iri_suffix = name if not _force_by_iri else _force_by_iri
+        iri = rdflib.URIRef(str(self._iri) + iri_suffix)
+        if name is None and _force_by_iri:
+            name = str(self._graph.value(iri, rdflib.RDFS.label))
+        for s, p, o in self._graph.triples((iri, rdflib.RDF.type, None)):
+            if o == rdflib.OWL.DatatypeProperty:
+                # assert (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty)
+                #     in self._graph  # TODO allow non functional attributes
+                return OntologyAttribute(self, name, iri_suffix)
+            if o == rdflib.OWL.ObjectProperty:
+                return OntologyRelationship(self, name, iri_suffix)
+            if o == rdflib.OWL.Class:
+                return OntologyClass(self, name, iri_suffix)
+        if _case_sensitive:
+            raise KeyError(
+                f"Unknown entity '{name}' in namespace {self._name}"
+            )
+        return self._get_case_insensitive(name)
 
-    def __contains__(self, obj):
-        if isinstance(obj, str):
-            return obj.lower() in self._entities.keys()
-        return obj in self._entities.values()
+    def _get_case_insensitive(self, name):
+        """Get by trying alternative naming convention of given name.
 
-    def _add_entity(self, entity):
-        """Add an entity to the namespace.
+        Args:
+            name (str): The name of the entity.
 
-        :param entity: The entity to add.
-        :type entity: OntologyEntity
+        Raises:
+            KeyError: Reference to unknown entity.
+
+        Returns:
+            OntologyEntity: The Entity to return
         """
-        from osp.core.ontology.entity import OntologyEntity
-        assert isinstance(entity, OntologyEntity)
-        self._entities[entity.name.lower()] = entity
+        alternative = alt(name, self._name == "cuba")
+        if alternative is None:
+            raise KeyError(
+                f"Unknown entity '{name}' in namespace {self._name}."
+            )
+        try:
+            r = self._get(alternative, _case_sensitive=True)
+            logger.warning(
+                f"{alternative} is referenced with '{name}'. "
+                f"Note that referencing entities will be case sensitive "
+                f"in future releases. Additionally, entity names defined "
+                f"in YAML ontology are no longer required to be ALL_CAPS."
+            )
+            return r
+        except KeyError as e:
+            raise KeyError(
+                f"Unknown entity '{name}' in namespace {self._name}. "
+                f"For backwards compatibility reasons we also "
+                f"looked for {alternative} and failed."
+            ) from e
+
+    # def __iter__(self):  TODO
+    #     """Iterate over the ontology entities in the namespace.
+
+    #     :return: An iterator over the entities.
+    #     :rtype: Iterator[OntologyEntity]
+    #     """
+    #     return iter(self._entities.values())
+
+    def __contains__(self, name):
+        return bool(self._get(name))

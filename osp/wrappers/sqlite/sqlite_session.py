@@ -1,11 +1,6 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import sqlite3
+import rdflib
+from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.session.db.conditions import (EqualsCondition,
                                             AndCondition)
 from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
@@ -178,26 +173,30 @@ class SqliteSession(SqlWrapperSession):
                 return pattern, values
         raise NotImplementedError("Unsupported condition")
 
-    def _to_sqlite_datatype(self, cuds_datatype):
+    def _to_sqlite_datatype(self, rdflib_datatype):
         """Convert the given Cuds datatype to a datatype of sqlite.
 
-        :param cuds_datatype: The given cuds_object datatype.
-        :type cuds_datatype: str
+        :param rdflib_datatype: The given cuds_object datatype.
+        :type rdflib_datatype: URIRef
         :raises NotImplementedError: Unsupported datatype given.
         :return: A sqlite datatype.
         :rtype: str
         """
-        if cuds_datatype == "UUID":
+        if rdflib_datatype is None:
             return "TEXT"
-        if cuds_datatype == "INT":
+        if rdflib_datatype == "UUID":
+            return "TEXT"
+        if rdflib_datatype == rdflib.XSD.integer:
             return "INTEGER"
-        if cuds_datatype == "BOOL":
+        if rdflib_datatype == rdflib.XSD.boolean:
             return "BOOLEAN"
-        if cuds_datatype == "FLOAT":
+        if rdflib_datatype == rdflib.XSD.float:
             return "REAL"
-        elif cuds_datatype.startswith("STRING"):
-            return "TEXT"
-        elif cuds_datatype == "UNDEFINED":
+        if rdflib_datatype == rdflib.XSD.string:
+            return "REAL"
+        if str(rdflib_datatype).startswith(
+                str(rdflib_cuba["datatypes/STRING-"])):
             return "TEXT"
         else:
-            raise NotImplementedError("Unsupported data type!")
+            raise NotImplementedError(f"Unsupported data type "
+                                      f"{rdflib_datatype}!")

@@ -1,5 +1,4 @@
-[![pipeline status](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/badges/master/pipeline.svg)](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/commits/master)
-[![coverage report](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/badges/master/coverage.svg)](https://gitlab.cc-asp.fraunhofer.de/simphony/osp-core/commits/master)
+![](https://github.com/simphony/osp-core/workflows/CI/badge.svg)
 
 # OSP core
 
@@ -7,12 +6,6 @@ Native implementation of the core cuds object and the class generation
 by the SimPhoNy team at Fraunhofer IWM. Builds up on the previous
 version, simphony-common (SimPhoNy, EU FP7 Project (Nr. 604005)
 www.simphony-project.eu)
-
-Copyright (c) 2018, Adham Hashibon and Materials Informatics Team at
-Fraunhofer IWM. All rights reserved. Redistribution and use are limited
-to the scope agreed with the end user. No parts of this software may be
-used outside of this context. No redistribution is allowed without
-explicit written permission.
 
 ## Requirements
 
@@ -27,7 +20,7 @@ explicit written permission.
 
 ## Installation
 
-The package requires python 3.6 or higher (tested for 3.7), installation is based on
+The package requires python 3.7 or higher, installation is based on
 setuptools:
 
 ```sh
@@ -103,9 +96,9 @@ python -m unittest -v
 
 ## Documentation
 
-Our documentation is located at <https://simphony.pages.fraunhofer.de/documentation/latest/>.
+Our documentation is located at <https://simphony.readthedocs.io>.
 
-If you want to build the documentation locally, refer to our [documentation repostitory](https://gitlab.cc-asp.fraunhofer.de/simphony/documentation).
+If you want to build the documentation locally, refer to our [documentation repostitory](https://github.com/simphony/docs).
 
 ### Examples
 

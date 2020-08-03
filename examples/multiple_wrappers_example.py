@@ -1,4 +1,4 @@
-from osp.core import CITY
+from osp.core.namespaces import city
 from osp.core.utils import pretty_print
 from getpass import getpass
 from osp.wrappers.simdummy import SimDummySession
@@ -22,49 +22,49 @@ port = int(input("Port [5432]: ") or 5432)
 postgres_url = 'postgres://%s:%s@%s:%s/%s' % (user, pwd, host, port, db_name)
 
 # Let's build an EMMO compatible city!
-emmo_town = CITY.CITY(name='EMMO town')
+emmo_town = city.City(name='EMMO town')
 
-emmo_town.add(CITY.CITIZEN(name='Emanuele Ghedini'), rel=CITY.HAS_INHABITANT)
-emmo_town.add(CITY.CITIZEN(name='Adham Hashibon'), rel=CITY.HAS_INHABITANT)
-emmo_town.add(CITY.CITIZEN(name='Jesper Friis'),
-              CITY.CITIZEN(name='Gerhard Goldbeck'),
-              CITY.CITIZEN(name='Georg Schmitz'),
-              CITY.CITIZEN(name='Anne de Baas'),
-              rel=CITY.HAS_INHABITANT)
+emmo_town.add(city.Citizen(name='Emanuele Ghedini'), rel=city.hasInhabitant)
+emmo_town.add(city.Citizen(name='Adham Hashibon'), rel=city.hasInhabitant)
+emmo_town.add(city.Citizen(name='Jesper Friis'),
+              city.Citizen(name='Gerhard Goldbeck'),
+              city.Citizen(name='Georg Schmitz'),
+              city.Citizen(name='Anne de Baas'),
+              rel=city.hasInhabitant)
 
-emmo_town.add(CITY.NEIGHBOURHOOD(name="Ontology"))
-emmo_town.add(CITY.NEIGHBOURHOOD(name="User cases"))
+emmo_town.add(city.Neighborhood(name="Ontology"))
+emmo_town.add(city.Neighborhood(name="User cases"))
 
 ontology_uid = None
-for neighbourhood in emmo_town.get(oclass=CITY.NEIGHBOURHOOD):
-    if neighbourhood.name == "Ontology":
-        ontology_uid = neighbourhood.uid
-        neighbourhood.add(CITY.STREET(name="Relationships"), rel=CITY.HAS_PART)
-        neighbourhood.add(CITY.STREET(name="Entities"), rel=CITY.HAS_PART)
+for neighborhood in emmo_town.get(oclass=city.Neighborhood):
+    if neighborhood.name == "Ontology":
+        ontology_uid = neighborhood.uid
+        neighborhood.add(city.Street(name="Relationships"), rel=city.hasPart)
+        neighborhood.add(city.Street(name="Entities"), rel=city.hasPart)
 
 onto = emmo_town.get(ontology_uid)
 
 # We can go through inverse relationships
-print(onto.get(rel=CITY.IS_PART_OF)[0].name + ' is my city!')
+print(onto.get(rel=city.isPartOf)[0].name + ' is my city!')
 
 # Working with a DB-wrapper: Store in the DB.
 with SqlAlchemyWrapperSession(postgres_url) as session:
-    wrapper = CITY.CITY_WRAPPER(session=session)
+    wrapper = city.CityWrapper(session=session)
     wrapper.add(emmo_town)
     session.commit()
 
 # Load from the DB.
 with SqlAlchemyWrapperSession(postgres_url) as db_session:
-    db_wrapper = CITY.CITY_WRAPPER(session=db_session)
+    db_wrapper = city.CityWrapper(session=db_session)
     db_emmo_town = db_wrapper.get(emmo_town.uid)
     print("The database contains the following information about the city:")
     pretty_print(db_emmo_town)
 
     # Working with a Simulation wrapper
     with SimDummySession() as sim_session:
-        sim_wrapper = CITY.CITY_SIM_WRAPPER(num_steps=1,
-                                            session=sim_session)
-        new_inhabitant = CITY.PERSON(age=31, name="Peter")
+        sim_wrapper = city.CitySimWrapper(numSteps=1,
+                                          session=sim_session)
+        new_inhabitant = city.Person(age=31, name="Peter")
         sim_emmo_town, _ = sim_wrapper.add(db_emmo_town, new_inhabitant)
         sim_session.run()
         print("The city has a new inhabitant:")
@@ -76,7 +76,7 @@ with SqlAlchemyWrapperSession(postgres_url) as db_session:
 
 # Check if database contains the changes of the simulation.
 with SqlAlchemyWrapperSession(postgres_url) as db_session:
-    db_wrapper = CITY.CITY_WRAPPER(session=db_session)
+    db_wrapper = city.CityWrapper(session=db_session)
     db_emmo_town = db_wrapper.get(emmo_town.uid)
     print("The database contains the following information about the city:")
     pretty_print(db_emmo_town)

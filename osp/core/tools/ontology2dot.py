@@ -1,10 +1,3 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import os
 import graphviz
 import argparse
@@ -28,7 +21,7 @@ class Ontology2Dot():
 
     def __init__(self, namespaces, output_filename, group=False):
         """Constructor.
-        Initialises the graph.
+        Initializes the graph.
 
         :param namespaces: The namespaces to print.
         :type namespaces: List[str]
@@ -44,10 +37,10 @@ class Ontology2Dot():
         self._visited = set()
         self._subgraphs = dict()
         self._group = group
-        self._graph = self._initialise_graph()
+        self._graph = self._initialize_graph()
 
-    def _initialise_graph(self):
-        """Initialises a directed graph with some default settings"""
+    def _initialize_graph(self):
+        """Initializes a directed graph with some default settings"""
         graph = graphviz.Digraph(format="png", name="ONTOLOGY")
         graph.node_attr['shape'] = 'rectangle'
         return graph
@@ -57,10 +50,10 @@ class Ontology2Dot():
             return self._graph
         if namespace in self._subgraphs:
             return self._subgraphs[namespace]
-        cluster_name = "cluster_" + namespace.name
+        cluster_name = "cluster_" + namespace._name
         if namespace in self._namespaces:
             self._subgraphs[namespace] = graphviz.Digraph(name=cluster_name)
-            self._subgraphs[namespace].attr(label=namespace.name)
+            self._subgraphs[namespace].attr(label=namespace._name)
             return self._subgraphs[namespace]
         self._subgraphs[namespace] = graphviz.Digraph(name=cluster_name)
         self._subgraphs[namespace].attr(penwidth="0")
@@ -72,6 +65,7 @@ class Ontology2Dot():
             self._add_namespace(namespace)
         for subgraph in self._subgraphs.values():
             self._graph.subgraph(subgraph)
+        logger.info("Writing file %s" % self._output_filename)
         self._graph.render(filename=self._output_filename)
 
     def _add_namespace(self, namespace):
@@ -112,7 +106,7 @@ class Ontology2Dot():
         :type oclass: OntologyClass
         """
         attr = ""
-        for key, value in oclass.attributes.items():
+        for key, value in oclass.get_attributes().items():
             attr += self.attribute.format(key.argname, value)
         label = self.label.format(str(oclass), attr)
         if oclass.namespace in self._namespaces:

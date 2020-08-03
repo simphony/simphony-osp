@@ -6,63 +6,85 @@
 # No redistribution is allowed without explicit written permission.
 
 from osp.core.ontology.entity import OntologyEntity
-from osp.core.ontology.keywords import CHARACTERISTICS
-import rdflib
 import logging
+import rdflib
 
 logger = logging.getLogger(__name__)
 
+# TODO characteristics
+
 
 class OntologyRelationship(OntologyEntity):
-    def __init__(self, namespace, name, superclasses, description):
-        super().__init__(namespace, name, superclasses, description)
-        self._inverse = None
-        self._characteristics = []
-        logger.debug("Create ontology relationship %s" % self)
+    def __init__(self, namespace, name, iri_suffix):
+        super().__init__(namespace, name, iri_suffix)
+        logger.debug("Create ontology object property %s" % self)
 
     @property
     def inverse(self):
-        return self._inverse
+        """Get the inverse of this relationship.
+        If it doesn't exist, add one to the graph.
 
-    @property
-    def characteristics(self):
-        return self._characteristics
+        Returns:
+            OntologyRelationship: The inverse relationship.
+        """
+        triple1 = (self.iri, rdflib.OWL.inverseOf, None)
+        triple2 = (None, rdflib.OWL.inverseOf, self.iri)
+        for _, _, o in self.namespace._graph.triples(triple1):
+            return self.namespace._namespace_registry.from_iri(o)
+        for s, _, _ in self.namespace._graph.triples(triple2):
+            return self.namespace._namespace_registry.from_iri(s)
+        return self._add_inverse()
 
-    @property
-    def domain_expressions(self):
-        """Get the subclass_of class expressions"""
-        from osp.core.ontology.parser import DOMAIN_KEY
-        return self._collect_class_expressions(DOMAIN_KEY)
+    def _direct_superclasses(self):
+        """Get all the direct subclasses of this relationship.
 
-    @property
-    def range_expressions(self):
-        """Get the subclass_of class expressions"""
-        from osp.core.ontology.parser import RANGE_KEY
-        return self._collect_class_expressions(RANGE_KEY)
+        Returns:
+            OntologyRelationship: The direct subrelationships
+        """
+        return self._directly_connected(rdflib.RDFS.subPropertyOf)
 
-    # OVERRIDE
-    def get_triples(self):
-        return super().get_triples() + [
-            (self.iri, rdflib.OWL.subObjectPropertyOf, x.iri)
-            for x in self.superclasses if str(x) != "CUBA.ENTITY"
-        ] + [
-            (self.iri, rdflib.OWL.subObjectPropertyOf,
-             rdflib.OWL.topObjectProperty),
-            (self.iri, rdflib.OWL.inverseOf, self.inverse.iri)
-        ]
+    def _direct_subclasses(self):
+        """Get all the direct subclasses of this relationship.
 
-    def __getattr__(self, attr):
-        if attr.startswith("is_") and attr[3:] in CHARACTERISTICS:
-            return attr[3:] in self.characteristics
-        raise AttributeError("Undefined attribute %s" % attr)
+        Returns:
+            OntologyRelationship: The direct subrelationships
+        """
+        return self._directly_connected(rdflib.RDFS.subPropertyOf,
+                                        inverse=True)
 
-    def _set_inverse(self, inverse):
-        logger.debug("Set inverse of %s to %s" % (self, inverse))
-        if not isinstance(inverse, OntologyRelationship):
-            raise TypeError("Tried to add non-relationship %s "
-                            "as inverse to %s" % (inverse, self))
-        self._inverse = inverse
+    def _superclasses(self):
+        """Get all the superclasses of this relationship.
 
-    def _add_characteristic(self, characteristic):
-        logger.debug("Add characteristic %s to %s" % (characteristic, self))
-        self._characteristics.append(characteristic)
+        Yields:
+            OntologyRelationship: The superrelationships.
+        """
+        yield self
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf)
+
+    def _subclasses(self):
+        """Get all the subclasses of this relationship.
+
+        Yields:
+            OntologyRelationship: The subrelationships.
+        """
+        yield self
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
+                                         inverse=True)
+
+    def _add_inverse(self):
+        """Add the inverse of this relationship to the path.
+
+        Returns:
+            OntologyRelationship: The inverse relationship.
+        """
+        o = rdflib.URIRef(self.namespace.get_iri() + "INVERSE_OF_" + self.name)
+        x = (self.iri, rdflib.OWL.inverseOf, o)
+        y = (o, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
+
+        self.namespace._graph.add(x)
+        self.namespace._graph.add(y)
+        for superclass in self.direct_superclasses:
+            self.namespace._graph.add((
+                o, rdflib.RDFS.subPropertyOf, superclass.inverse.iri
+            ))
+        return self.namespace._namespace_registry.from_iri(o)

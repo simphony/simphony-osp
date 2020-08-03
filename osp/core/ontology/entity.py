@@ -14,41 +14,30 @@ logger = logging.getLogger(__name__)
 
 class OntologyEntity(ABC):
     @abstractmethod
-    def __init__(self, namespace, name, superclasses, description):
+    def __init__(self, namespace, name, iri_suffix):
         """Initialise the ontology entity
 
         :param namespace: The namespace of the entity
         :type namespace: OntologyNamespace
         :param name: The name of the entity
         :type name: str
-        :param superclasses: The superclasses of the entity
-        :type superclasses: List[OntologyEntity]
-        :param description: The defintion of the entity
-        :type description: str
         """
         self._name = name
+        self._iri_suffix = iri_suffix
         self._namespace = namespace
-        self._subclasses = list()
-        self._superclasses = list(superclasses)
-        self._description = description
-        self._class_expressions = dict()
-
-        from osp.core import ONTOLOGY_INSTALLER
-        assert (
-            namespace.name not in ONTOLOGY_INSTALLER.namespace_registry
-            or name not in
-            ONTOLOGY_INSTALLER.namespace_registry[namespace.name]
-        )
 
     def __str__(self):
-        return "%s.%s" % (self.namespace.name, self._name)
+        return "%s.%s" % (self.namespace._name, self._name)
 
     def __repr__(self):
         return "<%s %s.%s>" % (
             self.__class__.__name__,
-            self.namespace.name,
+            self._namespace._name,
             self._name
         )
+
+    def __eq__(self, other):
+        return isinstance(other, OntologyEntity) and self.iri == other.iri
 
     @property
     def name(self):
@@ -58,13 +47,11 @@ class OntologyEntity(ABC):
     @property
     def iri(self):
         """Get the IRI of the Entity"""
-        from osp.core import IRI_DOMAIN
-        return rdflib.URIRef(IRI_DOMAIN + "/%s#%s" % (self._namespace.name,
-                                                      self.name))
+        return rdflib.URIRef(self._namespace.get_iri() + self._iri_suffix)
 
     @property
     def tblname(self):
-        return "%s___%s" % (self.namespace.name, self._name)
+        return "%s___%s" % (self.namespace._name, self._iri_suffix)
 
     @property
     def namespace(self):
@@ -78,7 +65,7 @@ class OntologyEntity(ABC):
         :return: The direct superclasses of the entity
         :rtype: List[OntologyEntity]
         """
-        return self._superclasses
+        return set(self._direct_superclasses())
 
     @property
     def direct_subclasses(self):
@@ -87,7 +74,7 @@ class OntologyEntity(ABC):
         :return: The direct subclasses of the entity
         :rtype: Set[OntologyEntity]
         """
-        return self._subclasses
+        return set(self._direct_subclasses())
 
     @property
     def subclasses(self):
@@ -96,14 +83,7 @@ class OntologyEntity(ABC):
         :return: The direct subclasses of the entity
         :rtype: Set[OntologyEntity]
         """
-        subclasses = [self]
-        for p in self._subclasses:
-            subclasses.extend(p.subclasses)
-        result = list()
-        for i, p in enumerate(subclasses):
-            if p not in result:
-                result.append(p)
-        return result
+        return set(self._subclasses())
 
     @property
     def superclasses(self):
@@ -112,14 +92,7 @@ class OntologyEntity(ABC):
         :return: The direct superclasses of the entity
         :rtype: Set[OntologyEntity]
         """
-        superclasses = [self]
-        for p in self._superclasses:
-            superclasses.extend(p.superclasses)
-        result = list()
-        for i, p in enumerate(superclasses):
-            if p not in superclasses[i + 1:]:
-                result.append(p)
-        return result
+        return set(self._superclasses())
 
     @property
     def description(self):
@@ -128,77 +101,87 @@ class OntologyEntity(ABC):
         :return: The description of the entity
         :rtype: str
         """
-        if self._description:
-            return self._description
-        return "To Be Determined"
-
-    def is_subclass_of(self, other):
-        """Subclass check.
-
-        :param other: Check if self is a subclass of this entity.
-        :type other: OntologyEntity
-        :return: Whether self is a subclass of other.
-        :rtype: bool
-        """
-        return self in other.subclasses
-
-    def is_superclass_of(self, other):
-        """Superclass check.
-
-        :param other: Check if self is a superclass of this entity.
-        :type other: OntologyEntity
-        :return: Whether self is a superclass of other.
-        :rtype: bool
-        """
-        return self in other.superclasses
+        desc = self.namespace._graph.value(
+            self.iri, rdflib.RDFS.isDefinedBy, None)
+        if desc is None:
+            return "To Be Determined"
+        return str(desc)
 
     def get_triples(self):
         """ Get the triples of the entity """
-        return [
-            (self.iri, rdflib.RDFS.label, rdflib.Literal(self.name)),
-            (self.iri, rdflib.RDFS.comment, rdflib.Literal(self.description))
-        ]
+        return self.namespace._graph.triples((self.iri, None, None))
 
-    def _add_subclass(self, subclass):
-        """Add a subclass to the entity
+    def is_superclass_of(self, other):
+        return self in other.superclasses
 
-        :param subclass: The subclass to add
-        :type subclass: OntologyEntity
+    def is_subclass_of(self, other):
+        return self in other.subclasses
+
+    @abstractmethod
+    def _direct_superclasses(self):
+        pass
+
+    @abstractmethod
+    def _direct_subclasses(self):
+        pass
+
+    @abstractmethod
+    def _superclasses(self):
+        pass
+
+    @abstractmethod
+    def _subclasses(self):
+        pass
+
+    def _transitive_hull(self, predicate_iri, inverse=False):
+        """Get all the entities connected with the given predicate.
+
+        Args:
+            predicate_iri (URIRef): The IRI of the predicate
+            inverse (bool, optional): Use the inverse instead.
+                Defaults to False.
+
+        Yields:
+            OntologyEntity: The connected entities
         """
-        logger.debug("Add subclass %s to %s" % (subclass, self))
-        if subclass not in self._subclasses:
-            self._subclasses.append(subclass)
+        result = {self.iri}
+        frontier = {self.iri}
+        while frontier:
+            current = frontier.pop()
+            triple = (current, predicate_iri, None)
+            if inverse:
+                triple = (None, predicate_iri, current)
+            for x in self.namespace._graph.triples(triple):
+                o = x[0 if inverse else 2]
+                if o not in result and not isinstance(o, rdflib.BNode) \
+                    and not str(o).startswith((str(rdflib.RDF),
+                                               str(rdflib.RDFS),
+                                               str(rdflib.OWL))):
+                    frontier.add(o)
+                    result.add(o)
+                    yield self.namespace._namespace_registry.from_iri(o)
 
-    def _add_superclass(self, superclass):
-        """Add a superclass to the entity
+    def _directly_connected(self, predicate_iri, inverse=False):
+        """Get all the entities directly connected with the given predicate.
 
-        :param superclass: The superclass to add
-        :type superclass: OntologyEntity
+        Args:
+            predicate_iri (URIRef): The IRI of the predicate
+            inverse (bool, optional): Use the inverse instead.
+                Defaults to False.
+
+        Yields:
+            OntologyEntity: The connected entities
         """
-        logger.debug("Add superclass %s to %s" % (superclass, self))
-        if superclass not in self._superclasses:
-            self._superclasses.append(superclass)
+        triple = (self.iri, predicate_iri, None)
+        if inverse:
+            triple = (None, predicate_iri, self.iri)
+        for x in self.namespace._graph.triples(triple):
+            o = x[0 if inverse else 2]
+            if not isinstance(o, rdflib.BNode) \
+                and not str(o).startswith((str(rdflib.RDF),
+                                           str(rdflib.RDFS),
+                                           str(rdflib.OWL))):
+                yield self.namespace._namespace_registry.from_iri(o)
 
-    def _add_class_expression(self, keyword, class_expression):
-        from osp.core.ontology.class_expression import ClassExpression
-        if not isinstance(class_expression, ClassExpression):
-            raise ValueError("Tried to add %s as class expression to %s"
-                             % (class_expression, self))
-        logger.debug("Add class expression %s for %s to %s"
-                     % (class_expression, keyword, self))
-        if keyword not in self._class_expressions:
-            self._class_expressions[keyword] = list()
-        self._class_expressions[keyword].append(class_expression)
-
-    def _collect_class_expressions(self, keyword):
-        result = list()
-        for superclass in self.superclasses:
-            if keyword in superclass._class_expressions:
-                result += superclass._class_expressions[keyword]
-        return result
-
-    def __getstate__(self):
-        return self.__dict__
-
-    def __setstate__(self, state):
-        self.__dict__ = state
+    def __hash__(self):
+        return hash(self.iri)

@@ -1,15 +1,8 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 from copy import deepcopy
-from osp.core.neighbour_dict import NeighbourDictTarget
+from osp.core.neighbor_dict import NeighborDictTarget
 from osp.core.ontology.datatypes import convert_to
 from osp.core.utils.general import get_relationships_between
-from osp.core import CUBA
+from osp.core.namespaces import cuba
 
 
 # General utility methods
@@ -42,9 +35,9 @@ def format_class_name(name):
     return fixed_name
 
 
-def get_neighbour_diff(cuds1, cuds2, mode="all"):
-    """Get the uids of neighbours of cuds1 which are no neighbours in cuds2.
-    Furthermore get the relationship the neighbours are connected with.
+def get_neighbor_diff(cuds1, cuds2, mode="all"):
+    """Get the uids of neighbors of cuds1 which are no neighbors in cuds2.
+    Furthermore get the relationship the neighbors are connected with.
     Optionally filter the considered relationships.
 
     :param cuds1: A Cuds object.
@@ -65,47 +58,26 @@ def get_neighbour_diff(cuds1, cuds2, mode="all"):
         return []
 
     result = list()
-    # Iterate over all neighbours that are in cuds1 but not cuds2.
-    for relationship in cuds1._neighbours.keys():
+    # Iterate over all neighbors that are in cuds1 but not cuds2.
+    for relationship in cuds1._neighbors.keys():
         if ((
             mode == "active"
-            and not relationship.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP)
+            and not relationship.is_subclass_of(cuba.activeRelationship)
         ) or (
             mode == "non-active"
-            and relationship.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP)
+            and relationship.is_subclass_of(cuba.activeRelationship)
         )):
             continue
 
-        # Get all the neighbours that are no neighbours is cuds2
-        old_neighbour_uids = set()
-        if cuds2 is not None and relationship in cuds2._neighbours:
-            old_neighbour_uids = cuds2._neighbours[relationship].keys()
-        new_neighbour_uids = list(
-            cuds1._neighbours[relationship].keys() - old_neighbour_uids)
-        result += list(zip(new_neighbour_uids,
-                           [relationship] * len(new_neighbour_uids)))
+        # Get all the neighbors that are no neighbors is cuds2
+        old_neighbor_uids = set()
+        if cuds2 is not None and relationship in cuds2._neighbors:
+            old_neighbor_uids = cuds2._neighbors[relationship].keys()
+        new_neighbor_uids = list(
+            cuds1._neighbors[relationship].keys() - old_neighbor_uids)
+        result += list(zip(new_neighbor_uids,
+                           [relationship] * len(new_neighbor_uids)))
     return result
-
-
-def destroy_cuds_object(cuds_object):
-    """Reset all attributes and relationships.
-    Use this for example if a cuds object has been deleted on the backend.
-
-    :param cuds_object: The cuds object to destroy
-    :type cuds_object: Cuds
-    """
-    session = cuds_object.session
-    if hasattr(session, "_expired") and cuds_object.uid in session._expired:
-        session._expired.remove(cuds_object.uid)
-    for rel in set(cuds_object._neighbours.keys()):
-        del cuds_object._neighbours[rel]
-    for attr in cuds_object.oclass.attributes:
-        del cuds_object._attr_values[attr.argname]
-        del cuds_object._onto_attributes[attr.argname]
-    if cuds_object.uid in cuds_object._session._registry:
-        del cuds_object._session._registry[cuds_object.uid]
-    session._notify_delete(cuds_object)
-    cuds_object._oclass = None
 
 
 def clone_cuds_object(cuds_object):
@@ -119,10 +91,12 @@ def clone_cuds_object(cuds_object):
     session = cuds_object._session
     clone = deepcopy(cuds_object)
     clone._session = session
+    clone._stored = False
     return clone
 
 
-def create_recycle(oclass, kwargs, session, uid, fix_neighbours=True):
+def create_recycle(oclass, kwargs, session, uid,
+                   fix_neighbors=True, _force=False):
     """Instantiate a cuds_object with a given session.
     If cuds_object with same uid is already in the session,
     this object will be reused.
@@ -135,9 +109,9 @@ def create_recycle(oclass, kwargs, session, uid, fix_neighbours=True):
     :type session: Session
     :param uid: The uid of the new Cuds object
     :type uid: UUID
-    :param fix_neighbours: Whether to remove the link from the old neighbours
+    :param fix_neighbors: Whether to remove the link from the old neighbors
         to this cuds object, defaults to True
-    :type fix_neighbours: bool
+    :type fix_neighbors: bool
     :result: The created cuds object
     :rtype: Cuds
     """
@@ -148,14 +122,14 @@ def create_recycle(oclass, kwargs, session, uid, fix_neighbours=True):
     # recycle old object
     if uid in session._registry:
         cuds_object = session._registry.get(uid)
-        for rel in set(cuds_object._neighbours.keys()):
-            if not fix_neighbours:
-                del cuds_object._neighbours[rel]
+        for rel in set(cuds_object._neighbors.keys()):
+            if not fix_neighbors:
+                del cuds_object._neighbors[rel]
             else:
                 cuds_object.remove(rel=rel)
-        change_oclass(cuds_object, oclass, kwargs)
+        change_oclass(cuds_object, oclass, kwargs, _force=_force)
     else:  # create new
-        cuds_object = oclass(uid=uid, session=session, **kwargs)
+        cuds_object = oclass(uid=uid, session=session, **kwargs, _force=_force)
     return cuds_object
 
 
@@ -179,17 +153,17 @@ def create_from_cuds_object(cuds_object, session):
                            kwargs=kwargs,
                            session=session,
                            uid=cuds_object.uid,
-                           fix_neighbours=False)
-    for rel, target_dict in cuds_object._neighbours.items():
-        clone._neighbours[rel] = NeighbourDictTarget(dict(), clone, rel)
+                           fix_neighbors=False)
+    for rel, target_dict in cuds_object._neighbors.items():
+        clone._neighbors[rel] = NeighborDictTarget(dict(), clone, rel)
         for uid, target_oclass in target_dict.items():
-            clone._neighbours[rel][uid] = target_oclass
+            clone._neighbors[rel][uid] = target_oclass
     return clone
 
 
-def change_oclass(cuds_object, new_oclass, kwargs):
+def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
     """Change the oclass of a cuds object. Only allowed if cuds object does
-    not have any neighbours.
+    not have any neighbors.
 
     :param cuds_object: The cuds object to change the oclass of
     :type cuds_object: Cuds
@@ -205,13 +179,13 @@ def change_oclass(cuds_object, new_oclass, kwargs):
     # change oclass
     if cuds_object.oclass != new_oclass:
         cuds_object._oclass = new_oclass
-        for neighbour in cuds_object.get(rel=CUBA.RELATIONSHIP):
-            for rel in get_relationships_between(cuds_object, neighbour):
-                neighbour._neighbours[rel.inverse][cuds_object.uid] = \
+        for neighbor in cuds_object.get(rel=cuba.relationship):
+            for rel in get_relationships_between(cuds_object, neighbor):
+                neighbor._neighbors[rel.inverse][cuds_object.uid] = \
                     new_oclass
 
     # update attributes
-    attributes = new_oclass._get_attributes_values(kwargs)
+    attributes = new_oclass._get_attributes_values(kwargs, _force=_force)
     cuds_object._attr_values = {k.argname: k.convert_to_datatype(v)
                                 for k, v in attributes.items()}
     cuds_object._onto_attributes = {k.argname: k for k in attributes}

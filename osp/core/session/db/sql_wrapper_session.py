@@ -1,22 +1,17 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import uuid
+import rdflib
 from operator import mul
 from functools import reduce
 from abc import abstractmethod
 from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_to, convert_from, \
-    parse_vector_args
+    _parse_vector_args
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from osp.core.session.db.conditions import EqualsCondition, AndCondition
-from osp.core.neighbour_dict import NeighbourDictTarget
-from osp.core import get_entity
+from osp.core.neighbor_dict import NeighborDictTarget
+from osp.core.namespaces import get_entity
 from osp.core.session.buffers import BufferContext
+from osp.core.ontology.cuba import rdflib_cuba
 
 
 class SqlWrapperSession(DbWrapperSession):
@@ -31,12 +26,12 @@ class SqlWrapperSession(DbWrapperSession):
     }
     DATATYPES = {
         MASTER_TABLE: {"uid": "UUID",
-                       "oclass": "STRING",
-                       "first_level": "BOOL"},
+                       "oclass": rdflib.XSD.string,
+                       "first_level": rdflib.XSD.boolean},
         RELATIONSHIP_TABLE: {"origin": "UUID",
                              "target": "UUID",
-                             "name": "STRING",
-                             "target_oclass": "STRING"}
+                             "name": rdflib.XSD.string,
+                             "target_oclass": rdflib.XSD.string}
     }
     PRIMARY_KEY = {
         MASTER_TABLE: ["uid"],
@@ -161,9 +156,10 @@ class SqlWrapperSession(DbWrapperSession):
 
         # iterate over the columns and look for vectors
         for i, column in enumerate(columns):
-
             # non vectors are simply added to the result
-            if not datatypes[column].startswith("VECTOR:"):
+            vec_prefix = str(rdflib_cuba["datatypes/VECTOR-"])
+            if datatypes[column] is None or \
+                    not datatypes[column].startswith(vec_prefix):
                 columns_expanded.append(column)
                 datatypes_expanded[column] = datatypes[column]
                 if values:
@@ -171,8 +167,8 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # create a column for each element in the vector
-            vector_args = datatypes[column].split(":")[1:]
-            datatype, shape = parse_vector_args(vector_args)
+            vector_args = datatypes[column][len(vec_prefix):].split("-")
+            datatype, shape = _parse_vector_args(vector_args)
             size = reduce(mul, map(int, shape))
             expanded_cols = ["%s___%s" % (column, x) for x in range(size)]
             columns_expanded.extend(expanded_cols)
@@ -310,9 +306,9 @@ class SqlWrapperSession(DbWrapperSession):
         self._init_transaction()
         try:
             # clear local datastructure
-            from osp.core import cuba
+            from osp.core.namespaces import cuba
             self._reset_buffers(BufferContext.USER)
-            self._registry.get(self.root).remove(rel=cuba.Relationship)
+            self._registry.get(self.root).remove(rel=cuba.relationship)
             for uid in list(self._registry.keys()):
                 if uid != self.root:
                     del self._registry[uid]
@@ -324,7 +320,7 @@ class SqlWrapperSession(DbWrapperSession):
                 self._do_db_delete(table_name, None)
             self._do_db_delete(self.RELATIONSHIP_TABLE, None)
             self._do_db_delete(self.MASTER_TABLE, None)
-            self._initialise()
+            self._initialize()
             self._commit()
         except Exception as e:
             self._rollback_transaction()
@@ -362,7 +358,7 @@ class SqlWrapperSession(DbWrapperSession):
 
             # Add to master
             is_first_level = any(self.root in uids
-                                 for uids in added._neighbours.values())
+                                 for uids in added._neighbors.values())
             self._do_db_insert(
                 table_name=self.MASTER_TABLE,
                 columns=["uid", "oclass", "first_level"],
@@ -385,8 +381,8 @@ class SqlWrapperSession(DbWrapperSession):
                 continue
 
             # Insert the relationships
-            for rel, neighbour_dict in added._neighbours.items():
-                for uid, target_oclass in neighbour_dict.items():
+            for rel, neighbor_dict in added._neighbors.items():
+                for uid, target_oclass in neighbor_dict.items():
                     target_uid = uid if uid != self.root else uuid.UUID(int=0)
                     self._do_db_insert(
                         self.RELATIONSHIP_TABLE,
@@ -432,8 +428,8 @@ class SqlWrapperSession(DbWrapperSession):
                     datatype="UUID"
                 )
             )
-            for rel, neighbour_dict in updated._neighbours.items():
-                for uid, target_oclass in neighbour_dict.items():
+            for rel, neighbor_dict in updated._neighbors.items():
+                for uid, target_oclass in neighbor_dict.items():
                     first_level = first_level or uid == self.root
                     target_uuid = uid if uid != self.root else uuid.UUID(int=0)
                     self._do_db_insert(
@@ -475,21 +471,32 @@ class SqlWrapperSession(DbWrapperSession):
                         datatype="UUID"
                     )
                 )
-
-            self._do_db_delete(
-                table_name=self.MASTER_TABLE,
-                condition=EqualsCondition(
-                    table_name=self.MASTER_TABLE,
-                    column="uid",
-                    value=deleted.uid,
-                    datatype="UUID"
-                )
-            )
             self._do_db_delete(
                 table_name=self.RELATIONSHIP_TABLE,
                 condition=EqualsCondition(
                     table_name=self.RELATIONSHIP_TABLE,
                     column="origin",
+                    value=deleted.uid,
+                    datatype="UUID"
+                )
+            )
+
+            self._do_db_delete(
+                table_name=self.RELATIONSHIP_TABLE,
+                condition=EqualsCondition(
+                    table_name=self.RELATIONSHIP_TABLE,
+                    column="target",
+                    value=deleted.uid,
+                    datatype="UUID"
+                )
+            )
+
+        for deleted in buffer.values():
+            self._do_db_delete(
+                table_name=self.MASTER_TABLE,
+                condition=EqualsCondition(
+                    table_name=self.MASTER_TABLE,
+                    column="uid",
                     value=deleted.uid,
                     datatype="UUID"
                 )
@@ -514,7 +521,7 @@ class SqlWrapperSession(DbWrapperSession):
             yield loaded[0] if loaded else None
 
     # OVERRIDE
-    def _initialise(self):
+    def _initialize(self):
         self._do_db_create(
             table_name=self.MASTER_TABLE,
             columns=self.COLUMNS[self.MASTER_TABLE],
@@ -540,7 +547,8 @@ class SqlWrapperSession(DbWrapperSession):
             table_name=self.MASTER_TABLE,
             columns=["uid"],
             condition=EqualsCondition(self.MASTER_TABLE,
-                                      "uid", str(uuid.UUID(int=0)), "STRING"),
+                                      "uid", str(uuid.UUID(int=0)),
+                                      rdflib.XSD.string),
             datatypes=self.DATATYPES[self.MASTER_TABLE]
         )
         if len(list(c)) == 0:
@@ -557,7 +565,7 @@ class SqlWrapperSession(DbWrapperSession):
             self.MASTER_TABLE,
             ["uid", "oclass"],
             EqualsCondition(self.MASTER_TABLE,
-                            "first_level", True, "BOOL"),
+                            "first_level", True, rdflib.XSD.boolean),
             self.DATATYPES[self.MASTER_TABLE]
         )
         list(self._load_from_backend(
@@ -621,7 +629,7 @@ class SqlWrapperSession(DbWrapperSession):
                                          kwargs=kwargs,
                                          session=self,
                                          uid=uid,
-                                         fix_neighbours=False)
+                                         fix_neighbors=False)
             self._load_relationships(cuds_object)
             yield cuds_object
 
@@ -649,25 +657,25 @@ class SqlWrapperSession(DbWrapperSession):
             target_oclass = get_entity(target_oclass)
             rel = get_entity(name)
 
-            if rel not in cuds_object._neighbours:
-                cuds_object._neighbours[rel] = NeighbourDictTarget(
+            if rel not in cuds_object._neighbors:
+                cuds_object._neighbors[rel] = NeighborDictTarget(
                     {}, cuds_object, rel
                 )
 
             # Special case: target is root --> Add inverse to root
             if target == uuid.UUID(int=0):
                 root_obj = self._registry.get(self.root)
-                cuds_object._neighbours[rel][self.root] = root_obj.oclass
-                if rel.inverse not in root_obj._neighbours:
-                    root_obj._neighbours[rel.inverse] = NeighbourDictTarget(
+                cuds_object._neighbors[rel][self.root] = root_obj.oclass
+                if rel.inverse not in root_obj._neighbors:
+                    root_obj._neighbors[rel.inverse] = NeighborDictTarget(
                         {}, root_obj, rel.inverse
                     )
-                root_obj._neighbours[rel.inverse][cuds_object.uid] = \
+                root_obj._neighbors[rel.inverse][cuds_object.uid] = \
                     cuds_object.oclass
 
             # Target is not root. Simply add the relationship
             elif target != uuid.UUID(int=0):
-                cuds_object._neighbours[rel][target] = target_oclass
+                cuds_object._neighbors[rel][target] = target_oclass
 
     def _get_oclass(self, uid):
         """Get the ontology class of the given uid from the database.

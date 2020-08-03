@@ -1,11 +1,13 @@
-VERSION_KEY = "version"  # TODO
-AUTHOR_KEY = "author"  # TODO
+VERSION_KEY = "version"
+AUTHOR_KEY = "author"
 ONTOLOGY_KEY = "ontology"
 NAMESPACE_KEY = "namespace"
 REQUIREMENTS_KEY = "requirements"
 
-ROOT_RELATIONSHIP = "RELATIONSHIP"
+MAIN_NAMESPACE = "cuba"
+ROOT_relationship = "relationship"
 ROOT_ATTRIBUTE = "ATTRIBUTE"
+ROOT_CLASS = "CLASS"
 
 DESCRIPTION_KEY = "description"
 SUPERCLASSES_KEY = "subclass_of"
@@ -32,4 +34,12 @@ CHARACTERISTICS = {
     "irreflexive",
     "asymmetric",
     "inversefunctional"
+}
+
+DATATYPES = {
+    "BOOL",
+    "INT",
+    "FLOAT",
+    "STRING",
+    "VECTOR"
 }

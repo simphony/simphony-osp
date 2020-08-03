@@ -1,12 +1,4 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import sys
-import time
 import subprocess
 import unittest2 as unittest
 import logging
@@ -20,13 +12,17 @@ logger = logging.getLogger("osp.core")
 logger.setLevel(logging.CRITICAL)
 
 try:
-    from osp.core import CITY
+    from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
-    CITY = Parser().parse("city")
+    from osp.core.namespaces import _namespace_registry
+    Parser(_namespace_registry._graph).parse("city")
+    _namespace_registry.update_namespaces()
+    from osp.core.namespaces import city
 
 HOST = "127.0.0.1"
 PORT = 8689
+URI = f"ws://{HOST}:{PORT}"
 TABLE = "transport.db"
 
 SERVER_STARTED = False
@@ -41,10 +37,12 @@ class TestTransportSimWrapperCity(unittest.TestCase):
         args = ["python",
                 "tests/test_transport_sim_wrapper.py",
                 "server"]
-        p = subprocess.Popen(args)
+        p = subprocess.Popen(args, stdout=subprocess.PIPE)
 
         TestTransportSimWrapperCity.SERVER_STARTED = p
-        time.sleep(1)
+        for line in p.stdout:
+            if b"ready\n" == line:
+                break
 
     @classmethod
     def tearDownClass(cls):
@@ -54,29 +52,29 @@ class TestTransportSimWrapperCity(unittest.TestCase):
         """Create a dummy simulation syntactic layer + test
         if working with this layer works as expected.
         """
-        with TransportSessionClient(SimDummySession, HOST, PORT) \
+        with TransportSessionClient(SimDummySession, URI) \
                 as session:
-            wrapper = CITY.CITY_SIM_WRAPPER(num_steps=1, session=session)
-            c = CITY.CITY(name="Freiburg")
-            p1 = CITY.PERSON(name="Hans", age=34)
-            p2 = CITY.PERSON(name="Renate", age=54)
+            wrapper = city.CitySimWrapper(numSteps=1, session=session)
+            c = city.City(name="Freiburg")
+            p1 = city.Person(name="Hans", age=34)
+            p2 = city.Person(name="Renate", age=54)
             cw, _, _ = wrapper.add(c, p1, p2)
 
             session.run()
 
             self.assertEqual(len(
-                wrapper.get(oclass=CITY.PERSON,
-                            rel=CITY.HAS_PART)), 1)
+                wrapper.get(oclass=city.Person,
+                            rel=city.hasPart)), 1)
             self.assertEqual(len(
-                cw.get(oclass=CITY.CITIZEN,
-                       rel=CITY.HAS_INHABITANT)), 1)
+                cw.get(oclass=city.Citizen,
+                       rel=city.hasInhabitant)), 1)
             self.assertEqual(wrapper.get(p2.uid).name, "Renate")
             self.assertEqual(wrapper.get(p2.uid).age, 55)
             self.assertEqual(cw.get(p1.uid).name, "Hans")
             self.assertEqual(cw.get(p1.uid).age, 35)
 
             session.run()
-            wrapper.add(CITY.PERSON(name="Peter"))
+            wrapper.add(city.Person(name="Peter"))
             self.assertRaises(RuntimeError, session.run)
 
 
@@ -84,4 +82,7 @@ if __name__ == '__main__':
     if sys.argv[-1] == "server":
         sys.path.append("tests")
         server = TransportSessionServer(SimDummySession, HOST, PORT)
+        print("ready", flush=True)
         server.startListening()
+    else:
+        unittest.main()

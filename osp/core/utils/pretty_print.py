@@ -1,5 +1,5 @@
 import sys
-from osp.core import CUBA
+from osp.core.namespaces import cuba
 
 
 def pretty_print(cuds_object, file=sys.stdout):
@@ -14,7 +14,7 @@ def pretty_print(cuds_object, file=sys.stdout):
     pp += "\n  uuid: " + str(cuds_object.uid)
     pp += "\n  type: " + str(cuds_object.oclass)
     pp += "\n  superclasses: " + ", ".join(
-        map(str, cuds_object.oclass.superclasses)
+        sorted(map(str, cuds_object.oclass.superclasses))
     )
     values_str = _pp_values(cuds_object)
     if values_str:
@@ -53,8 +53,8 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
     """
     pp_sub = ""
     filtered_relationships = filter(
-        lambda x: x.is_subclass_of(CUBA.ACTIVE_RELATIONSHIP),
-        cuds_object._neighbours.keys())
+        lambda x: x.is_subclass_of(cuba.activeRelationship),
+        cuds_object._neighbors.keys())
     sorted_relationships = sorted(filtered_relationships, key=str)
     visited = visited or set()
     visited.add(cuds_object.uid)
@@ -103,9 +103,8 @@ def _pp_values(cuds_object, indentation="\n          "):
     :rtype: [type]
     """
     result = []
-    for value in cuds_object.oclass.attributes:
-        if value.argname != "name":
-            v = getattr(cuds_object, value.argname)
-            result.append("%s: %s" % (value.argname, v))
+    for attribute, value in cuds_object.get_attributes().items():
+        if attribute.argname != "name":
+            result.append("%s: %s" % (attribute.argname, value))
     if result:
         return indentation.join(result)

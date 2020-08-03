@@ -1,65 +1,132 @@
-# Copyright (c) 2014-2019, Adham Hashibon, Materials Informatics Team,
-# Fraunhofer IWM and Didrik Pinte, ENTHOUGHT Inc.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import asyncio
 import websockets
 import logging
+import tempfile
+import uuid
+from osp.core.session.transport.communication_utils import (
+    decode_header, encode_header, split_message, join_message, filter_files,
+    encode_files, receive_files
+)
 
 logger = logging.getLogger(__name__)
+
+
+LEN_HEADER = [2, 5, 2]  # version, num_blocks, num_files
+VERSION = 1
+DEBUG_MAX = 1000
 
 
 class CommunicationEngineServer():
     """The communication engine manages the connection between the remote and
     local side of the transport layer. The server will be executed on the
     remote side."""
-    def __init__(self, host, port, handle_request, handle_disconnect):
+
+    def __init__(self, host, port, handle_request, handle_disconnect,
+                 **kwargs):
         """Construct the communication engine's server.
 
-        :param host: The hostname
-        :type host: str
-        :param port: The port
-        :type port: int
-        :param handle_request: Handles the requests of the user.
-        :type handle_request: Callable[str(command), str(data), Hashable(user)]
-        :param handle_disconnect: Gets called when a user disconnects.
-        :type handle_disconnect: Callable[Hashable(user)]
+        Args:
+            host (str): The hostname.
+            port (int): The port.
+            handle_request (Callable[str(command), str(data), UUID(user)]):
+            Handles the requests of the user.
+            handle_disconnect (Callable[UUID(user)]): Gets called when a
+                user disconnects.
+            kwargs (dict[str, Any]): Will be passed to websockets.connect.
+                E.g. it is possible to pass an SSL context with the ssl
+                keyword.
         """
         self.host = host
         self.port = port
+        self.kwargs = kwargs
         self._handle_request = handle_request
         self._handle_disconnect = handle_disconnect
+        self._file_hashes = dict()
+        self._connection_ids = dict()
 
     def startListening(self):
         """Start the server on given host + port."""
         event_loop = asyncio.get_event_loop()
-        start_server = websockets.serve(self._serve, self.host, self.port)
+        start_server = websockets.serve(self._serve, self.host, self.port,
+                                        **self.kwargs)
         event_loop.run_until_complete(start_server)
         event_loop.run_forever()
 
     async def _serve(self, websocket, _):
-        """Wait for requests, compute responses and serve them to the user.
+        """Waits for requests, compute responses and serve them to the user.
 
-        :param websocket: The websockets object.
-        :type websocket: Websocket
-        :param _: The path of the URI (will be ignored).
-        :type _: str
+        Args:
+            websocket (Websocket): The websockets object.
+            _ (str): The path of the URI (will be ignored).
         """
+        connection_id = self._connection_ids.get(websocket, uuid.uuid4())
+        self._connection_ids[websocket] = connection_id
+        file_hashes = self._file_hashes.get(connection_id, dict())
+        self._file_hashes[connection_id] = file_hashes
         try:
-            async for data in websocket:
-                command = data.split(":")[0]
-                data = data[len(command) + 1:]
-                logger.debug("Request %s: %s from %s",
-                             command, data, hash(websocket))
-                response = self._handle_request(command, data, websocket)
-                logger.debug("Response: %s" % response)
-                await websocket.send(response)
+            while True:
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    command, data = await self._decode(websocket, temp_dir,
+                                                       file_hashes,
+                                                       connection_id)
+                    # let session handle the request
+                    response, files = self._handle_request(
+                        command=command,
+                        data=data,
+                        temp_directory=temp_dir,
+                        connection_id=connection_id
+                    )
+
+                    # send the response
+                    files = filter_files(files, file_hashes)
+                    logger.debug("Response: %s with %s files"
+                                 % (response[:DEBUG_MAX], len(files)))
+                    num_blocks, response = split_message(response)
+                    await websocket.send(
+                        encode_header([VERSION, num_blocks, len(files)],
+                                      LEN_HEADER)
+                    )
+                    for part in response:
+                        await websocket.send(part)
+                    for part in encode_files(files):
+                        await websocket.send(part)
+        except websockets.exceptions.ConnectionClosedOK:
+            pass
         finally:
-            logger.debug("User %s disconnected!" % hash(websocket))
-            self._handle_disconnect(websocket)
+            logger.debug("Connection %s closed!" % connection_id)
+            del self._file_hashes[connection_id]
+            del self._connection_ids[websocket]
+            self._handle_disconnect(connection_id)
+
+    async def _decode(self, websocket, temp_dir, file_hashes, connection_id):
+        """Get data from the user.
+
+        Args:
+            websocket (websocket): The websocket object
+            temp_dir (TemporaryDirectory): The place to store the files
+
+        Raises:
+            NotImplementedError: Not implemented the protocol version of
+                the message. You might need to update osp-core.
+
+        Returns:
+            Tuple[str, str, bytes]: Tupole of command to execute,
+                data and binary data.
+        """
+        bytes_data = await websocket.recv()
+        version, num_blocks, num_files, command = decode_header(bytes_data,
+                                                                LEN_HEADER)
+        if version != VERSION:
+            raise NotImplementedError("No decode implemented for "
+                                      "version %s" % version)
+        logger.debug(
+            "Received data from %s.\n\t Protocol version: %s,\n\t "
+            "Command: %s,\n\t Number of files: %s."
+            % (connection_id, version, command, num_files))
+        data = await join_message(websocket, num_blocks)
+        logger.debug("Received data: %s" % data[:DEBUG_MAX])
+        await receive_files(num_files, websocket, temp_dir, file_hashes)
+        return command, data
 
 
 class CommunicationEngineClient():
@@ -67,31 +134,35 @@ class CommunicationEngineClient():
     local side of the transport layer. The client will be executed on the
     local side."""
 
-    def __init__(self, host, port, handle_response):
-        """Construct the communication engine's client.
+    def __init__(self, uri, handle_response, **kwargs):
+        """Constructs the communication engine's client.
 
-        :param host: The hostname.
-        :type host: str
-        :param port: The port.
-        :type port: int
-        :param handle_response: Handles the responses of the server.
-        :type handle_response: Callable[str(response)]
+        Args:
+            uri (str): WebSocket URI.
+            handle_response (Callable[str(response)]): Handles the responses of
+                the server.
+            kwargs (dict[str, Any]): Will be passed to websockets.connect.
+                E.g. it is possible to pass an SSL context with the ssl
+                keyword.
         """
-        self.host = host
-        self.port = port
+        self.uri = uri
+        self.kwargs = kwargs
         self.handle_response = handle_response
         self.websocket = None
 
-    def send(self, command, data):
-        """Send a request to the server
+    def send(self, command, data, files=[]):
+        """Sends a request to the server.
 
-        :param command: The command to execute on the server
-        :type command: str
-        :param data: The data to send to the server
-        :type data: str
+        Args:
+            command (str): The command to execute on the server.
+            data (str): The data to send to the server.
+
+        Returns:
+            Future: The Future’s result or raise its exception.
         """
         event_loop = asyncio.get_event_loop()
-        return event_loop.run_until_complete(self._request(command, data))
+        return event_loop.run_until_complete(
+            self._request(command, data, files))
 
     def close(self):
         """Close the connection to the server"""
@@ -104,19 +175,57 @@ class CommunicationEngineClient():
             await self.websocket.close()
             self.websocket = None
 
-    async def _request(self, command, data):
+    async def _request(self, command, data, files=None):
         """Send a request to the server.
 
-        :param command: The command to execute on the server.
-        :type command: str
-        :param data: The data to send to the server.
-        :type data: str
+        Args:
+            command (str): The command to execute on the server.
+            data (str): The data to send to the server.
+
+        Returns:
+            str: The response for the client.
         """
-        logger.debug("Request %s: %s" % (command, data))
+        logger.debug("Request %s: %s" % (command, data[:DEBUG_MAX]))
         if self.websocket is None:
-            uri = "ws://%s:%s" % (self.host, self.port)
-            self.websocket = await websockets.connect(uri)
-        await self.websocket.send(command + ":" + data)
-        response = await self.websocket.recv()
-        logger.debug("Response: %s" % response)
-        return self.handle_response(response)
+            logger.debug("uri: %s" % (self.uri))
+            self.websocket = await websockets.connect(self.uri, **self.kwargs)
+
+        # send request to the server
+        message = self._encode(command, data, files)
+        for part in message:
+            await self.websocket.send(part)
+
+        # load result
+        with tempfile.TemporaryDirectory() as temp_dir:
+            response = await self.websocket.recv()
+            version, num_blocks, num_files = decode_header(response,
+                                                           LEN_HEADER)
+            logger.debug("Response:\n\t Protocol version: %s,\n\t "
+                         "Number of blocks: %s,\n\t Number of files: %s"
+                         % (version, num_blocks, num_files))
+            data = await join_message(self.websocket, num_blocks)
+            logger.debug("Response data: %s" % data[:DEBUG_MAX])
+            await receive_files(num_files, self.websocket, temp_dir)
+            return self.handle_response(
+                data=data,
+                temp_directory=temp_dir
+            )
+
+    def _encode(self, command, data, files):
+        """Encode the data to send to the server to bytes
+
+        Args:
+            command (str): The command to execute.
+            data (str): The json data to send
+            binary_data (bytes): The binary data to send
+
+        Returns:
+            bytes: The resulting data encoded
+        """
+        files = files or []
+        num_blocks, data = split_message(data)
+        version = 1
+        yield encode_header([version, num_blocks, len(files), command],
+                            LEN_HEADER)
+        yield from data
+        yield from encode_files(files)

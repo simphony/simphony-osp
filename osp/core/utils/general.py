@@ -1,14 +1,7 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import requests
 import json
 import rdflib
-from osp.core import CUBA
+from osp.core.namespaces import cuba
 
 
 def branch(cuds_object, *args, rel=None):
@@ -69,10 +62,10 @@ def post(url, cuds_object, max_depth=float("inf")):
         [type]: [description]
     """
     from osp.core.utils import find_cuds_object
-    from osp.core.session.transport.transport_util import serializable
+    from osp.core.session.transport.transport_utils import serializable
     cuds_objects = find_cuds_object(criterion=lambda x: True,
                                     root=cuds_object,
-                                    rel=CUBA.ACTIVE_RELATIONSHIP,
+                                    rel=cuba.activeRelationship,
                                     find_all=True,
                                     max_depth=max_depth)
     serialized = json.dumps(serializable(cuds_objects))
@@ -96,7 +89,7 @@ def deserialize(json_doc, session=None):
     """
     from osp.core.cuds import Cuds
     from osp.core.session.buffers import BufferContext
-    from osp.core.session.transport.transport_util import deserialize as x
+    from osp.core.session.transport.transport_utils import deserialize as x
 
     if isinstance(json_doc, str):
         json_doc = json.loads(json_doc)
@@ -111,15 +104,15 @@ def deserialize(json_doc, session=None):
 def remove_cuds_object(cuds_object):
     """
     Remove a cuds_object from the datastructure.
-    Removes the relationships to all neighbours.
+    Removes the relationships to all neighbors.
     To delete it from the registry you must call the
     sessions prune method afterwards.
 
     :param cuds_object: The cuds_object to remove.
     """
     # Method does not allow deletion of the root element of a container
-    for elem in cuds_object.iter(rel=CUBA.RELATIONSHIP):
-        cuds_object.remove(elem.uid, rel=CUBA.RELATIONSHIP)
+    for elem in cuds_object.iter(rel=cuba.relationship):
+        cuds_object.remove(elem.uid, rel=cuba.relationship)
 
 
 def get_relationships_between(subj, obj):
@@ -133,7 +126,7 @@ def get_relationships_between(subj, obj):
     :rtype: Set[Type[Relationship]]
     """
     result = set()
-    for rel, obj_uids in subj._neighbours.items():
+    for rel, obj_uids in subj._neighbors.items():
         if obj.uid in obj_uids:
             result.add(rel)
     return result

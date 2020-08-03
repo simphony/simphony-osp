@@ -1,13 +1,5 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
 import os
 import sys
-import time
 import subprocess
 import unittest2 as unittest
 import sqlite3
@@ -26,13 +18,17 @@ except ImportError:
     from test_sqlite_city import check_state
 
 try:
-    from osp.core import CITY
+    from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
-    CITY = Parser().parse("city")
+    from osp.core.namespaces import _namespace_registry
+    Parser(_namespace_registry._graph).parse("city")
+    _namespace_registry.update_namespaces()
+    from osp.core.namespaces import city
 
 HOST = "127.0.0.1"
 PORT = 8681
+URI = f"ws://{HOST}:{PORT}"
 DB = "dataspace.db"
 
 
@@ -44,10 +40,12 @@ class TestTransportSqliteCity(unittest.TestCase):
         args = ["python",
                 "tests/test_dataspace_wrapper.py",
                 "server"]
-        p = subprocess.Popen(args)
+        p = subprocess.Popen(args, stdout=subprocess.PIPE)
 
         TestTransportSqliteCity.SERVER_STARTED = p
-        time.sleep(1)
+        for line in p.stdout:
+            if b"ready\n" == line:
+                break
 
     @classmethod
     def tearDownClass(cls):
@@ -66,13 +64,13 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_insert(self):
         """Test inserting in the sqlite table."""
-        c = CITY.CITY(name="Freiburg")
-        p1 = CITY.CITIZEN(name="Peter")
-        p2 = CITY.CITIZEN(name="Georg")
-        c.add(p1, p2, rel=CITY.HAS_INHABITANT)
+        c = city.City(name="Freiburg")
+        p1 = city.Citizen(name="Peter")
+        p2 = city.Citizen(name="Georg")
+        c.add(p1, p2, rel=city.hasInhabitant)
 
-        with DataspaceSession(HOST, PORT) as session:
-            wrapper = CITY.CITY_WRAPPER(session=session)
+        with DataspaceSession(URI) as session:
+            wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
@@ -80,17 +78,17 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_update(self):
         """Test updating the sqlite table."""
-        c = CITY.CITY(name="Paris")
-        p1 = CITY.CITIZEN(name="Peter")
-        c.add(p1, rel=CITY.HAS_INHABITANT)
+        c = city.City(name="Paris")
+        p1 = city.Citizen(name="Peter")
+        c.add(p1, rel=city.hasInhabitant)
 
-        with DataspaceSession(HOST, PORT) as session:
-            wrapper = CITY.CITY_WRAPPER(session=session)
+        with DataspaceSession(URI) as session:
+            wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
             session.commit()
 
-            p2 = CITY.CITIZEN(name="Georg")
-            cw.add(p2, rel=CITY.HAS_INHABITANT)
+            p2 = city.Citizen(name="Georg")
+            cw.add(p2, rel=city.hasInhabitant)
             cw.name = "Freiburg"
             session.commit()
 
@@ -98,14 +96,14 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     def test_delete(self):
         """Test to delete cuds_objects from the sqlite table"""
-        c = CITY.CITY(name="Freiburg")
-        p1 = CITY.CITIZEN(name="Peter")
-        p2 = CITY.CITIZEN(name="Georg")
-        p3 = CITY.CITIZEN(name="Hans")
-        c.add(p1, p2, p3, rel=CITY.HAS_INHABITANT)
+        c = city.City(name="Freiburg")
+        p1 = city.Citizen(name="Peter")
+        p2 = city.Citizen(name="Georg")
+        p3 = city.Citizen(name="Hans")
+        c.add(p1, p2, p3, rel=city.hasInhabitant)
 
-        with DataspaceSession(HOST, PORT) as session:
-            wrapper = CITY.CITY_WRAPPER(session=session)
+        with DataspaceSession(URI) as session:
+            wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
             session.commit()
 
@@ -118,9 +116,11 @@ class TestTransportSqliteCity(unittest.TestCase):
     def test_user_parameterize(self):
         """Test that parameterizing the dataspace as
         a client throws an error"""
-        with TransportSessionClient(DbWrapperSession,
-                                    HOST, PORT, "dataspace.db") as session:
-            self.assertRaises(RuntimeError, CITY.CITY_WRAPPER, session=session)
+        with TransportSessionClient(
+            DbWrapperSession,
+            URI, path="dataspace.db"
+        ) as session:
+            self.assertRaises(RuntimeError, city.CityWrapper, session=session)
 
 
 if __name__ == "__main__":
@@ -132,4 +132,7 @@ if __name__ == "__main__":
             SqliteSession, HOST, PORT, session_kwargs={
                 "path": DB
             })
+        print("ready", flush=True)
         server.startListening()
+    else:
+        unittest.main()

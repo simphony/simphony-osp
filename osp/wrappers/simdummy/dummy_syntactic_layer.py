@@ -20,8 +20,8 @@ class DummySyntacticLayer():
     def get_person(self, idx):
         return idx < self.i, self.persons[idx]
 
-    def simulate(self, num_steps):
-        self.i += num_steps
+    def simulate(self, numSteps):
+        self.i += numSteps
 
         for p in self.persons:
-            p.get_older(num_steps)
+            p.get_older(numSteps)

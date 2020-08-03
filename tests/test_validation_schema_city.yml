@@ -1,0 +1,19 @@
+version: "1.0.0"
+
+oclass: city.City
+
+model:
+    city.City:
+        city.hasInhabitant:
+            city.Citizen:
+                cardinality: 1-2
+        city.hasPart:
+            city.Neighborhood:
+                cardinality: 1
+    
+    city.Neighborhood:
+        city.hasPart:
+            city.Street: 
+                cardinality: 1+
+
+display_value: city.City.name

@@ -1,3 +1,0 @@
-from osp.core.ontology.class_expression.class_expression import ClassExpression
-from osp.core.ontology.class_expression.operator_ce import OperatorClassExpression
-from osp.core.ontology.class_expression.relationship_ce import RelationshipClassExpression

@@ -6,10 +6,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.CRITICAL)
 
 try:
-    from osp.core import CITY
+    from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
-    CITY = Parser().parse("city")
+    from osp.core.namespaces import _namespace_registry
+    Parser(_namespace_registry._graph).parse("city")
+    _namespace_registry.update_namespaces()
+    from osp.core.namespaces import city
 
 
 class TestSimWrapperCity(unittest.TestCase):
@@ -22,27 +25,27 @@ class TestSimWrapperCity(unittest.TestCase):
         if working with this layer works as expected.
         """
         with SimDummySession() as session:
-            wrapper = CITY.CITY_SIM_WRAPPER(num_steps=1, session=session)
-            c = CITY.CITY(name="Freiburg")
-            p1 = CITY.PERSON(name="Hans", age=34)
-            p2 = CITY.PERSON(name="Renate", age=54)
+            wrapper = city.CitySimWrapper(numSteps=1, session=session)
+            c = city.City(name="Freiburg")
+            p1 = city.Person(name="Hans", age=34)
+            p2 = city.Person(name="Renate", age=54)
             cw, _, _ = wrapper.add(c, p1, p2)
 
             session.run()
 
             self.assertEqual(len(
-                wrapper.get(oclass=CITY.PERSON,
-                            rel=CITY.HAS_PART)), 1)
+                wrapper.get(oclass=city.Person,
+                            rel=city.hasPart)), 1)
             self.assertEqual(len(
-                cw.get(oclass=CITY.CITIZEN,
-                       rel=CITY.HAS_INHABITANT)), 1)
+                cw.get(oclass=city.Citizen,
+                       rel=city.hasInhabitant)), 1)
             self.assertEqual(wrapper.get(p2.uid).name, "Renate")
             self.assertEqual(wrapper.get(p2.uid).age, 55)
             self.assertEqual(cw.get(p1.uid).name, "Hans")
             self.assertEqual(cw.get(p1.uid).age, 35)
 
             session.run()
-            wrapper.add(CITY.PERSON(name="Peter"))
+            wrapper.add(city.Person(name="Peter"))
             self.assertRaises(RuntimeError, session.run)
 
 
