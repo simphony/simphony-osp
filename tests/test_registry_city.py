@@ -124,7 +124,7 @@ class TestRegistryCity(unittest.TestCase):
         self.maxDiff = 2000
         self.assertEqual(
             registry.filter_by_relationships(
-                city.isInhabitantOf
+                city.INVERSE_OF_hasInhabitant
             ),
             {p1.uid: p1, p2.uid: p2, p3.uid: p3}
         )
