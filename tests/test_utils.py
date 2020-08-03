@@ -40,7 +40,7 @@ CUDS_DICT = {
         "age": 23
     },
     "relationships": {
-        "city.isInhabitantOf": {str(uuid.UUID(int=1)): "city.City"},
+        "city.INVERSE_OF_hasInhabitant": {str(uuid.UUID(int=1)): "city.City"},
         "city.hasChild": {str(uuid.UUID(int=2)): "city.Person",
                           str(uuid.UUID(int=3)): "city.Person"}
     }
@@ -318,9 +318,9 @@ class TestUtils(unittest.TestCase):
             "name": "Umkirch"
         })
         self.assertEqual(c.oclass, city.PopulatedPlace)
-        self.assertEqual(p1._neighbors[city.isInhabitantOf],
+        self.assertEqual(p1._neighbors[city.INVERSE_OF_hasInhabitant],
                          {c.uid: city.PopulatedPlace})
-        self.assertEqual(p2._neighbors[city.isInhabitantOf],
+        self.assertEqual(p2._neighbors[city.INVERSE_OF_hasInhabitant],
                          {c.uid: city.PopulatedPlace})
 
     def test_check_arguments(self):
@@ -459,7 +459,7 @@ class TestUtils(unittest.TestCase):
     def test_find_relationships(self):
         """Test find by relationships"""
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
-        found = find_relationships(city.isInhabitantOf, c,
+        found = find_relationships(city.INVERSE_OF_hasInhabitant, c,
                                    cuba.relationship, False)
         self.assertEqual(set(found), {p1, p2, p3})
         self.assertEqual(len(found), 3)
@@ -493,13 +493,13 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(get_relationships_between(c, p),
                          {city.hasInhabitant})
         self.assertEqual(get_relationships_between(p, c),
-                         {city.isInhabitantOf})
+                         {city.INVERSE_OF_hasInhabitant})
         c.add(p, rel=city.hasWorker)
         self.assertEqual(get_relationships_between(c, p),
                          {city.hasInhabitant,
                           city.hasWorker})
         self.assertEqual(get_relationships_between(p, c),
-                         {city.isInhabitantOf,
+                         {city.INVERSE_OF_hasInhabitant,
                           city.worksIn})
 
     def test_get_neighbor_diff(self):

@@ -34,7 +34,7 @@ CUDS_DICT = {
         "age": 23
     },
     "relationships": {
-        "city.isInhabitantOf": {str(uuid.UUID(int=1)): "city.City"},
+        "city.INVERSE_OF_hasInhabitant": {str(uuid.UUID(int=1)): "city.City"},
         "city.hasChild": {str(uuid.UUID(int=2)): "city.Person",
                           str(uuid.UUID(int=3)): "city.Person"}
     }
@@ -118,7 +118,7 @@ SERIALIZED_BUFFERS3 = {
         "uid": "00000000-0000-0000-0000-000000000002",
         "attributes": {"name": "Peter", "age": 12},
         "relationships": {
-            "city.isInhabitantOf": {
+            "city.INVERSE_OF_hasInhabitant": {
                 "00000000-0000-0000-0000-000000000001": "city.City"}}}],
     "updated": [{
         "oclass": "city.City",
@@ -162,10 +162,11 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(cuds_object.age, 23)
             self.assertEqual(cuds_object.oclass, city.Citizen)
             self.assertEqual(set(cuds_object._neighbors.keys()),
-                             {city.isInhabitantOf,
+                             {city.INVERSE_OF_hasInhabitant,
                              city.hasChild})
-            self.assertEqual(cuds_object._neighbors[city.isInhabitantOf],
-                             {uuid.UUID(int=1): city.City})
+            self.assertEqual(
+                cuds_object._neighbors[city.INVERSE_OF_hasInhabitant],
+                {uuid.UUID(int=1): city.City})
             self.assertEqual(cuds_object._neighbors[city.hasChild],
                              {uuid.UUID(int=2): city.Person,
                              uuid.UUID(int=3): city.Person})
@@ -217,7 +218,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         c = city.City(name="Freiburg", uid=uuid.UUID(int=1))
         c1 = city.Person(uid=uuid.UUID(int=2))
         c2 = city.Person(uid=uuid.UUID(int=3))
-        p.add(c, rel=city.isInhabitantOf)
+        p.add(c, rel=city.INVERSE_OF_hasInhabitant)
         p.add(c1, c2, rel=city.hasChild)
         self.assertEqual(CUDS_DICT, serializable(p))
         self.assertEqual([CUDS_DICT], serializable([p]))

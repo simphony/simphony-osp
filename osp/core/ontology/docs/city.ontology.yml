@@ -20,11 +20,6 @@ ontology:
     characteristics:
     - transitive
 
-  isInhabitantOf:
-    subclass_of:
-    - city.isEnclosedBy
-    inverse: city.hasInhabitant
-
   isEnclosedBy:
     subclass_of:
     - cuba.passiveRelationship
@@ -38,7 +33,6 @@ ontology:
   hasInhabitant:
     subclass_of:
     - city.encloses
-    inverse: city.isInhabitantOf
   
   hasChild:
     subclass_of:
@@ -239,10 +233,6 @@ ontology:
   Citizen:
     subclass_of:
     - city.Person
-    - city.isInhabitantOf:
-        range: city.PopulatedPlace
-        cardinality: 0-1
-        exclusive: true
     - city.isMajorOf:
         range: city.City
         cardinality: 0-1

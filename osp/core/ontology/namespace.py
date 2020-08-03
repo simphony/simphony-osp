@@ -126,6 +126,22 @@ class OntologyNamespace():
         :return: The ontology entity
         :rtype: OntologyEntity
         """
+        try:
+            return self._do_get(name, _case_sensitive, _force_by_iri)
+        except KeyError as e:
+            if name.startswith("INVERSE_OF_"):
+                return self._do_get(name[11:], _case_sensitive,
+                                    _force_by_iri).inverse
+            raise e
+
+    def _do_get(self, name, _case_sensitive, _force_by_iri):
+        """Get an ontology entity from the registry by name.
+
+        :param name: The name of the ontology entity
+        :type name: str
+        :return: The ontology entity
+        :rtype: OntologyEntity
+        """
         if self._reference_by_label and not _force_by_iri:
             return self[name][0]
         iri_suffix = name if not _force_by_iri else _force_by_iri

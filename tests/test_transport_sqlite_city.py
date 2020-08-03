@@ -181,7 +181,7 @@ class TestTransportSqliteCity(unittest.TestCase):
                 {p3.uid: p3.oclass}
             )
             self.assertEqual(
-                p2w._neighbors[city.isInhabitantOf],
+                p2w._neighbors[city.INVERSE_OF_hasInhabitant],
                 {c.uid: c.oclass}
             )
 

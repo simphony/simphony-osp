@@ -142,7 +142,7 @@ class TestSqliteCity(unittest.TestCase):
                 {p3.uid: p3.oclass}
             )
             self.assertEqual(
-                p2w._neighbors[city.isInhabitantOf],
+                p2w._neighbors[city.INVERSE_OF_hasInhabitant],
                 {c.uid: c.oclass}
             )
 
@@ -347,8 +347,10 @@ def check_state(test_case, c, p1, p2, db=DB):
         test_case.assertEqual(result, {
             (str(c.uid), str(p1.uid), "city.hasInhabitant", "city.Citizen"),
             (str(c.uid), str(p2.uid), "city.hasInhabitant", "city.Citizen"),
-            (str(p1.uid), str(c.uid), "city.isInhabitantOf", "city.City"),
-            (str(p2.uid), str(c.uid), "city.isInhabitantOf", "city.City"),
+            (str(p1.uid), str(c.uid),
+             "city.INVERSE_OF_hasInhabitant", "city.City"),
+            (str(p2.uid), str(c.uid),
+             "city.INVERSE_OF_hasInhabitant", "city.City"),
             (str(c.uid), str(uuid.UUID(int=0)),
                 "city.isPartOf", "city.CityWrapper")
         })
