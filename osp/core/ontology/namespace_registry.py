@@ -76,12 +76,16 @@ class NamespaceRegistry():
                                      iri=self._namespaces[name])
         raise KeyError("Namespace %s not installed." % name)
 
-    def update_namespaces(self):
+    def update_namespaces(self, modules=[]):
         """Update the namespaces of the namespace registry from the
         namespaces of the graph."""
         self._namespaces = dict()
         for name, iri in self._graph.namespace_manager.namespaces():
             self._namespaces[name.lower()] = iri
+        for module in modules:
+            for namespace in self:
+                setattr(module, namespace.get_name().upper(), namespace)
+                setattr(module, namespace.get_name().lower(), namespace)
 
     def from_iri(self, iri):
         """Get an entity from IRI.
