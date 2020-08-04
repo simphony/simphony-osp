@@ -14,7 +14,7 @@ except ImportError:
     from osp.core.namespaces import _namespace_registry
     Parser(_namespace_registry._graph).parse("city")
     _namespace_registry.update_namespaces()
-    from osp.core.namespaces import city
+    city = _namespace_registry.city
 
 
 class TestAPICity(unittest.TestCase):

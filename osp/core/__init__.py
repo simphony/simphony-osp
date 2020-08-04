@@ -1,5 +1,7 @@
 import sys
 import logging
+import osp.core.namespaces
+from osp.core.namespaces import _namespace_registry
 
 logging.getLogger("rdflib").setLevel(logging.WARNING)
 
@@ -29,8 +31,16 @@ except ModuleNotFoundError:
 
 
 def __getattr__(name):
-    import osp.core.namespaces
     if name != "load_tests":
         logger.warning(f"osp.core.{name} is deprecated. "
                        f"Use osp.core.namespaces.{name} instead.")
     return getattr(osp.core.namespaces, name)
+
+
+if (sys.version_info.major, sys.version_info.minor) <= (3, 6):
+    logger.info("We recommend using a python version of at least 3.7")
+    logger.info(f"osp.core.<namespace> is deprecated. "
+                f"Use osp.core.namespaces.<namespace> instead.")
+    _namespace_registry.update_namespaces(modules=[
+        sys.modules[__name__], namespaces
+    ])
