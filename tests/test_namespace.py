@@ -113,24 +113,50 @@ class TestNamespaces(unittest.TestCase):
         self.assertEqual(r.namespace.get_name(), "city")
         self.assertEqual(r.name, "hasPart")
         from osp.core.namespaces import from_iri
-        c = from_iri(rdflib_cuba.Class)
-        self.assertIsInstance(c, OntologyClass)
-        self.assertEqual(c.namespace.get_name(), "cuba")
-        self.assertEqual(c.name, "Class")
+        import osp.core.namespaces
+        old_ns_reg = osp.core.namespaces._namespace_registry
+        try:
+            osp.core.namespaces._namespace_registry = self.namespace_registry
+            c = from_iri(rdflib_cuba.Class)
+            self.assertIsInstance(c, OntologyClass)
+            self.assertEqual(c.namespace.get_name(), "cuba")
+            self.assertEqual(c.name, "Class")
 
-        self.graph.add((
-            ns_iri,
-            rdflib_cuba._reference_by_label,
-            rdflib.Literal(True)
-        ))
-        c = self.namespace_registry.from_iri(city_iri)
-        self.assertIsInstance(c, OntologyClass)
-        self.assertEqual(c.namespace.get_name(), "city")
-        self.assertEqual(c.name, "City_T")
-        r = self.namespace_registry.from_iri(hasPart_iri)
-        self.assertIsInstance(r, OntologyRelationship)
-        self.assertEqual(r.namespace.get_name(), "city")
-        self.assertEqual(r.name, "hasPart_T")
+            self.graph.add((
+                ns_iri,
+                rdflib_cuba._reference_by_label,
+                rdflib.Literal(True)
+            ))
+            c = self.namespace_registry.from_iri(city_iri)
+            self.assertIsInstance(c, OntologyClass)
+            self.assertEqual(c.namespace.get_name(), "city")
+            self.assertEqual(c.name, "City_T")
+            r = self.namespace_registry.from_iri(hasPart_iri)
+            self.assertIsInstance(r, OntologyRelationship)
+            self.assertEqual(r.namespace.get_name(), "city")
+            self.assertEqual(r.name, "hasPart_T")
+
+            # undefined namespace
+            self.graph.add((
+                rdflib.URIRef("a/b#c"),
+                rdflib.RDF.type,
+                rdflib.OWL.Class
+            ))
+            self.graph.add((
+                rdflib.URIRef("d/e/f"),
+                rdflib.RDF.type,
+                rdflib.OWL.Class
+            ))
+            a = from_iri("a/b#c")
+            b = from_iri("d/e/f")
+            self.assertIsInstance(a, OntologyClass)
+            self.assertEqual(a.namespace.get_name(), "a/b#")
+            self.assertEqual(a.name, "c")
+            self.assertIsInstance(b, OntologyClass)
+            self.assertEqual(b.namespace.get_name(), "d/e/")
+            self.assertEqual(b.name, "f")
+        finally:
+            osp.core.namespaces._namespace_registry = old_ns_reg
 
     def test_namespace_registry_update_namespaces(self):
         self.graph.bind("a", rdflib.URIRef("aaa"))
@@ -295,6 +321,15 @@ class TestNamespaces(unittest.TestCase):
         namespace = self.namespace_registry.city
         self.assertIn("City", namespace)
         self.assertIn("hasPart", namespace)
+
+    def test_iter(self):
+        self.installer.install("city")
+        namespace = self.namespace_registry.city
+        entities = set(namespace)
+        self.assertIn(namespace.encloses, entities)
+        self.assertIn(namespace.City, entities)
+        self.assertIn(namespace.name, entities)
+        self.assertEqual(len(entities), 32)
 
 
 if __name__ == "__main__":

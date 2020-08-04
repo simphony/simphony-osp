@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 class NamespaceRegistry():
     def __init__(self):
+        # Do not instantiate you own namespace registry.
+        # Instead you can use osp.core.namespaces._namespace_registry.
         self._graph = rdflib.Graph()
         self._namespaces = dict()
 
@@ -25,7 +27,8 @@ class NamespaceRegistry():
         :rtype: Iterator[OntologyNamespace]
         """
         for namespace_name in self._namespaces:
-            yield self._get(namespace_name)
+            if namespace_name:
+                yield self._get(namespace_name)
 
     def __getattr__(self, name):
         try:
@@ -73,12 +76,16 @@ class NamespaceRegistry():
                                      iri=self._namespaces[name])
         raise KeyError("Namespace %s not installed." % name)
 
-    def update_namespaces(self):
+    def update_namespaces(self, modules=[]):
         """Update the namespaces of the namespace registry from the
         namespaces of the graph."""
         self._namespaces = dict()
         for name, iri in self._graph.namespace_manager.namespaces():
             self._namespaces[name.lower()] = iri
+        for module in modules:
+            for namespace in self:
+                setattr(module, namespace.get_name().upper(), namespace)
+                setattr(module, namespace.get_name().lower(), namespace)
 
     def from_iri(self, iri):
         """Get an entity from IRI.
@@ -89,17 +96,28 @@ class NamespaceRegistry():
         Returns:
             OntologyEntity: The OntologyEntity.
         """
-        for name, ns_iri in self._graph.namespace_manager.namespaces():
-            if str(iri).startswith(str(ns_iri)):
-                ns = OntologyNamespace(
-                    name=name,
-                    namespace_registry=self,
-                    iri=ns_iri
-                )
-                if ns._reference_by_label:
-                    return ns._get(None, _force_by_iri=iri[len(ns_iri):])
-                else:
-                    return ns._get(iri[len(ns_iri):])
+        for _name, _ns_iri in self._graph.namespace_manager.namespaces():
+            if str(iri).startswith(str(_ns_iri)) and _name:
+                name = _name
+                ns_iri = _ns_iri
+                break
+        else:
+            if "#" in str(iri):
+                ns_iri = str(iri).split("#")[0] + "#"
+            else:
+                ns_iri = "/".join(str(iri).split("/")[:-1]) + "/"
+            name = str(ns_iri)
+            ns_iri = rdflib.URIRef(ns_iri)
+
+        ns = OntologyNamespace(
+            name=name,
+            namespace_registry=self,
+            iri=ns_iri
+        )
+        if ns._reference_by_label:
+            return ns._get(None, _force_by_iri=iri[len(ns_iri):])
+        else:
+            return ns._get(iri[len(ns_iri):])
 
     def clear(self):
         """Clear the loaded Graph and load cuba only.

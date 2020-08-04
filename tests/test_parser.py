@@ -25,10 +25,15 @@ class TestParser(unittest.TestCase):
         self.parser = Parser(self.graph)
 
     def test_add_cuba_triples(self):
+        self.graph.add((rdflib.URIRef("has_part"), rdflib.RDF.type,
+                        rdflib.OWL.ObjectProperty))
+        self.graph.add((rdflib.URIRef("encloses"), rdflib.RDF.type,
+                        rdflib.OWL.ObjectProperty))
+        pre = set(self.graph)
         self.parser._add_cuba_triples([
             rdflib.URIRef("has_part"), rdflib.URIRef("encloses")
         ])
-        self.assertEqual(set(self.graph), {
+        self.assertEqual(set(self.graph) - pre, {
             (rdflib.URIRef("encloses"), rdflib.RDFS.subPropertyOf,
              rdflib_cuba.activeRelationship),
             (rdflib.URIRef("has_part"), rdflib.RDFS.subPropertyOf,
