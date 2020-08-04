@@ -129,7 +129,7 @@ class OntologyNamespace():
         try:
             return self._do_get(name, _case_sensitive, _force_by_iri)
         except KeyError as e:
-            if name.startswith("INVERSE_OF_"):
+            if name and name.startswith("INVERSE_OF_"):
                 return self._do_get(name[11:], _case_sensitive,
                                     _force_by_iri).inverse
             raise e
@@ -196,13 +196,20 @@ class OntologyNamespace():
                 f"looked for {alternative} and failed."
             ) from e
 
-    # def __iter__(self):  TODO
-    #     """Iterate over the ontology entities in the namespace.
+    def __iter__(self):
+        """Iterate over the ontology entities in the namespace.
 
-    #     :return: An iterator over the entities.
-    #     :rtype: Iterator[OntologyEntity]
-    #     """
-    #     return iter(self._entities.values())
+        :return: An iterator over the entities.
+        :rtype: Iterator[OntologyEntity]
+        """
+        types = [rdflib.OWL.DatatypeProperty,
+                 rdflib.OWL.ObjectProperty,
+                 rdflib.OWL.Class]
+        for t in types:
+            for s, _, _ in self._graph.triples((None, rdflib.RDF.type, t)):
+                if str(s).startswith(str(self._iri)):
+                    iri_suffix = str(s)[len(str(self._iri)):]
+                    yield self._get(name=None, _force_by_iri=iri_suffix)
 
     def __contains__(self, name):
         return bool(self._get(name))
