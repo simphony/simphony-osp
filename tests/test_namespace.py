@@ -158,7 +158,6 @@ class TestNamespaces(unittest.TestCase):
         finally:
             osp.core.namespaces._namespace_registry = old_ns_reg
 
-
     def test_namespace_registry_update_namespaces(self):
         self.graph.bind("a", rdflib.URIRef("aaa"))
         self.graph.bind("b", rdflib.URIRef("bbb"))

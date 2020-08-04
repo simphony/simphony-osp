@@ -287,7 +287,8 @@ class Parser():
             for ns in namespaces:
                 if s.startswith(ns):
                     pop = ns
-                    logger.debug(f"There exists an entity for namespace {ns}:\n\t{s, p, o}")
+                    logger.debug(f"There exists an entity for namespace {ns}:"
+                                 f"\n\t{s, p, o}")
             if pop:
                 namespaces.remove(pop)
             if not namespaces:
