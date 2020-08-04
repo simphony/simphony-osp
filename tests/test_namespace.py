@@ -322,6 +322,15 @@ class TestNamespaces(unittest.TestCase):
         self.assertIn("City", namespace)
         self.assertIn("hasPart", namespace)
 
+    def test_iter(self):
+        self.installer.install("city")
+        namespace = self.namespace_registry.city
+        entities = set(namespace)
+        self.assertIn(namespace.encloses, entities)
+        self.assertIn(namespace.City, entities)
+        self.assertIn(namespace.name, entities)
+        self.assertEqual(len(entities), 32)
+
 
 if __name__ == "__main__":
     unittest.main()
