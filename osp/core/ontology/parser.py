@@ -224,6 +224,7 @@ class Parser():
             default_rels[iri] = default_rel
             reference_styles[iri] = reference_style
 
+        self._check_namespaces()
         self._add_cuba_triples(active_rels)
         self._add_default_rel_triples(default_rels)
         self._add_reference_style_triples(reference_styles)
@@ -252,8 +253,14 @@ class Parser():
             active_rels (List[str]): The URIs of the active relationships.
         """
         for rel in active_rels:
+            iri = rdflib.URIRef(rel)
+            if (iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty) \
+                    not in self.graph:
+                raise ValueError(f"Specified relationship {rel} as "
+                                 f"active relationship, which is not "
+                                 f"a valid object property in the ontology.")
             self.graph.add(
-                (rdflib.URIRef(rel), rdflib.RDFS.subPropertyOf,
+                (iri, rdflib.RDFS.subPropertyOf,
                  rdflib_cuba.activeRelationship)
             )
 
@@ -271,3 +278,19 @@ class Parser():
                     rdflib_cuba._reference_by_label,
                     rdflib.Literal(True)
                 ))
+
+    def _check_namespaces(self):
+        namespaces = set(x for _, x in self.graph.namespaces()
+                         if not x.startswith("http://www.w3.org/"))
+        for s, p, o in self.graph:
+            pop = None
+            for ns in namespaces:
+                if s.startswith(ns):
+                    pop = ns
+                    logger.debug(f"There exists an entity for namespace {ns}:\n\t{s, p, o}")
+            if pop:
+                namespaces.remove(pop)
+            if not namespaces:
+                break
+        for namespace in namespaces:
+            logger.warning(f"There exists no entity for namespace {namespace}")
