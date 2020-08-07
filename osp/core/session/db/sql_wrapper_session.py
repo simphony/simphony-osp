@@ -308,20 +308,24 @@ class SqlWrapperSession(DbWrapperSession):
             # clear local datastructure
             from osp.core.namespaces import cuba
             self._reset_buffers(BufferContext.USER)
-            self._registry.get(self.root).remove(rel=cuba.relationship)
-            for uid in list(self._registry.keys()):
-                if uid != self.root:
-                    del self._registry[uid]
-            self._reset_buffers(BufferContext.USER)
+            root = self._registry.get(self.root)
 
-            # delete the data
-            for table_name in self._get_table_names(
-                    SqlWrapperSession.CUDS_PREFIX):
-                self._do_db_delete(table_name, None)
-            self._do_db_delete(self.RELATIONSHIP_TABLE, None)
-            self._do_db_delete(self.MASTER_TABLE, None)
-            self._initialize()
-            self._commit()
+            # if there is something to remove
+            if root.get(rel=cuba.relationship):
+                root.remove(rel=cuba.relationship)
+                for uid in list(self._registry.keys()):
+                    if uid != self.root:
+                        del self._registry[uid]
+                self._reset_buffers(BufferContext.USER)
+
+                # delete the data
+                for table_name in self._get_table_names(
+                        SqlWrapperSession.CUDS_PREFIX):
+                    self._do_db_delete(table_name, None)
+                self._do_db_delete(self.RELATIONSHIP_TABLE, None)
+                self._do_db_delete(self.MASTER_TABLE, None)
+                self._initialize()
+                self._commit()
         except Exception as e:
             self._rollback_transaction()
             raise e
