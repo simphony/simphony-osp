@@ -8,6 +8,8 @@ from osp.core.ontology import OntologyClass, OntologyRelationship, \
 
 logger = logging.getLogger(__name__)
 
+ONTOLOGY_INSTALLER = None
+
 
 class Ontology2Dot():
     """Utility for creating a dot and png representation of the

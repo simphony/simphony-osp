@@ -175,8 +175,8 @@ def run_from_terminal():
                     "YAML ontology using CamelCase"
     )
     parser.add_argument("input", type=Path, help="The input yaml file.")
-    parser.add_argument("-o", "--output", type=Path, required=False, default=None,
-                        help="The input yaml file.")
+    parser.add_argument("-o", "--output", type=Path, required=False,
+                        default=None, help="The input yaml file.")
     args = parser.parse_args()
 
     c = Yaml2CamelCaseConverter(args.input)
