@@ -202,7 +202,7 @@ ontology:
     subclass_of:
     - city.ArchitecturalStructure
     - city.hasPart:
-        range: city.Adress
+        range: city.Address
         cardinality: 1
         exclusive: false
     - city.hasPart:
@@ -233,10 +233,6 @@ ontology:
   Citizen:
     subclass_of:
     - city.Person
-    - city.isMajorOf:
-        range: city.City
-        cardinality: 0-1
-        exclusive: true
 
   age:
     subclass_of:

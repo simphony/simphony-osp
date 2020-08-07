@@ -2,7 +2,7 @@ import os
 import graphviz
 import argparse
 import logging
-from osp.core import ONTOLOGY_INSTALLER
+from osp.core.namespaces import _namespace_registry
 from osp.core.ontology import OntologyClass, OntologyRelationship, \
     OntologyAttribute
 
@@ -189,7 +189,7 @@ def run_from_terminal():
     namespaces = list()
     files = list()
     for x in args.to_plot:
-        if x in ONTOLOGY_INSTALLER.namespace_registry:
+        if x in _namespace_registry:
             namespaces.append(x)
             continue
         n = ONTOLOGY_INSTALLER._get_namespace(x)
