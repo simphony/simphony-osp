@@ -38,6 +38,10 @@ class Parser():
         file_path = self.get_file_path(file_path)
         with open(file_path, 'r') as f:
             yaml_doc = yaml.safe_load(f)
+            if yaml_doc is None:
+                raise SyntaxError(
+                    f"Empty format of file {file_path}"
+                )
             if YmlParser.is_yaml_ontology(yaml_doc):
                 YmlParser(self.graph).parse(file_path, yaml_doc)
             elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
@@ -89,6 +93,10 @@ class Parser():
             file_path = Parser.get_file_path(file_path_or_doc)
             with open(file_path, "r") as f:
                 yaml_doc = yaml.safe_load(f)
+                if yaml_doc is None:
+                    raise SyntaxError(
+                        f"Empty format of file {file_path_or_doc}"
+                    )
         if YmlParser.is_yaml_ontology(yaml_doc):
             return YmlParser.get_namespace_name(yaml_doc)
         elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
