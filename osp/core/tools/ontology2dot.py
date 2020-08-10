@@ -2,7 +2,8 @@ import os
 import graphviz
 import argparse
 import logging
-from osp.core import ONTOLOGY_INSTALLER
+from osp.core.namespaces import _namespace_registry
+from osp.core.ontology.parser import Parser
 from osp.core.ontology import OntologyClass, OntologyRelationship, \
     OntologyAttribute
 
@@ -31,7 +32,7 @@ class Ontology2Dot():
         self._namespaces = list()
         for namespace in namespaces:
             if isinstance(namespace, str):
-                namespace = ONTOLOGY_INSTALLER.namespace_registry[namespace]
+                namespace = _namespace_registry[namespace]
             self._namespaces.append(namespace)
         self._output_filename = output_filename
         self._visited = set()
@@ -106,7 +107,7 @@ class Ontology2Dot():
         :type oclass: OntologyClass
         """
         attr = ""
-        for key, value in oclass.get_attributes().items():
+        for key, value in oclass.attributes.items():
             attr += self.attribute.format(key.argname, value)
         label = self.label.format(str(oclass), attr)
         if oclass.namespace in self._namespaces:
@@ -123,8 +124,6 @@ class Ontology2Dot():
         :type rel: OntologyRelationship
         """
         attr = ""
-        for characteristic in rel.characteristics:
-            attr += self.attribute.format("", characteristic)
         label = self.label.format(str(rel), attr)
         if rel.namespace in self._namespaces:
             graph.node(str(rel), label=label,
@@ -187,18 +186,19 @@ def run_from_terminal():
     args = parser.parse_args()
 
     namespaces = list()
-    files = list()
+    parser = Parser(_namespace_registry._graph)
     for x in args.to_plot:
-        if x in ONTOLOGY_INSTALLER.namespace_registry:
+        if x in _namespace_registry:
             namespaces.append(x)
             continue
-        n = ONTOLOGY_INSTALLER._get_namespace(x)
-        if n in ONTOLOGY_INSTALLER.namespace_registry:
-            logger.warning("Using installed version of namespace %s" % n)
-            namespaces.append(ONTOLOGY_INSTALLER.namespace_registry[n])
-        else:
-            files.append(ONTOLOGY_INSTALLER.parser.get_filepath(x))
-    namespaces.extend(ONTOLOGY_INSTALLER.parse_files(files))
+        for n in Parser.get_namespace_names(x):
+            if n in _namespace_registry:
+                logger.warning("Using installed version of namespace %s" % n)
+                namespaces.append(_namespace_registry[n])
+            else:
+                parser.parse(x)
+                _namespace_registry.update_namespaces()
+                namespaces.append(_namespace_registry[n])
 
     # Convert the ontology to dot
     converter = Ontology2Dot(

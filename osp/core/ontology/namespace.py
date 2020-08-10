@@ -35,6 +35,13 @@ class OntologyNamespace():
     def __repr__(self):
         return "<%s: %s>" % (self._name, self._iri)
 
+    def __eq__(self, other):
+        return self._name == other._name and self._iri == other._iri \
+            and self._namespace_registry is other._namespace_registry
+
+    def __hash__(self):
+        return hash(str(self))
+
     def get_name(self):
         """Get the name of the namespace"""
         return self._name
