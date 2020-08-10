@@ -76,7 +76,7 @@ class Session(ABC):
         from osp.core.namespaces import cuba
         if cuds_object.session != self:
             cuds_object = next(self.load(cuds_object.uid))
-        if cuds_object.get():
+        if cuds_object.get(rel=cuba.relationship):
             cuds_object.remove(rel=cuba.relationship)
         del self._registry[cuds_object.uid]
         self._notify_delete(cuds_object)
