@@ -35,7 +35,8 @@ setup(
         'console_scripts': {
             'owl2yml = osp.core.tools.owl2yml:run_from_terminal',
             'pico = osp.core.pico:install_from_terminal',
-            'ontology2dot = osp.core.tools.ontology2dot:run_from_terminal'
+            'ontology2dot = osp.core.tools.ontology2dot:run_from_terminal',
+            'yaml2camelcase = osp.core.tools.yaml2camelcase:run_from_terminal'
         }
     },
     install_requires=[

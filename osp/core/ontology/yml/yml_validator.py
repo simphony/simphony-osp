@@ -17,7 +17,7 @@ namespace_name_regex = r"([a-zA-Z])([a-zA-Z]|[0-9]|_)*"
 namespace_name_pattern = re.compile(namespace_name_regex)
 entity_name_pattern = re.compile(r"^%s$" % entity_name_regex)
 qualified_entity_name_pattern = re.compile(
-    r"^%s.%s$" % (namespace_name_regex, entity_name_regex))
+    r"^%s\.%s$" % (namespace_name_regex, entity_name_regex))
 
 entity_common_keys = {
     DESCRIPTION_KEY: str,
