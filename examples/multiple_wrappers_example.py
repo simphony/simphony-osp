@@ -19,7 +19,7 @@ pwd = getpass("Password: ")
 db_name = input("Database name: ")
 host = input("Host: ")
 port = int(input("Port [5432]: ") or 5432)
-postgres_url = 'postgres://%s:%s@%s:%s/%s' % (user, pwd, host, port, db_name)
+postgres_url = 'postgresql://%s:%s@%s:%s/%s' % (user, pwd, host, port, db_name)
 
 # Let's build an EMMO compatible city!
 emmo_town = city.City(name='EMMO town')
