@@ -2,6 +2,7 @@ import requests
 import json
 import rdflib
 from osp.core.namespaces import cuba
+from osp.core.session.session import Session
 
 
 def branch(cuds_object, *args, rel=None):
@@ -35,13 +36,17 @@ def get_rdf_graph(session=None):
     Returns:
         rdflib.Graph: The resulting rdf Graph
     """
+    if session is not None:
+        if not isinstance(session, Session):
+            raise TypeError(f"""Invalid argument: {session}.
+         Function can only be called on (sub)classes of {Session}.""")
     from osp.core.cuds import Cuds
-    from osp.core import ONTOLOGY_NAMESPACE_REGISTRY
+    from osp.core.namespaces import _namespace_registry
     session = session or Cuds._session
     graph = rdflib.Graph()
     for triple in session.get_triples():
         graph.add(triple)
-    for namespace in ONTOLOGY_NAMESPACE_REGISTRY:
+    for namespace in _namespace_registry:
         for entity in namespace:
             for triple in entity.get_triples():
                 graph.add(triple)

@@ -4,6 +4,7 @@ import responses
 import uuid
 import os
 import osp.core
+import rdflib
 from osp.core.namespaces import cuba
 from osp.core.session.transport.transport_utils import serializable
 from osp.core.session.core_session import CoreSession
@@ -19,7 +20,7 @@ from osp.core.utils import (
     find_cuds_objects_by_attribute, post,
     get_relationships_between,
     get_neighbor_diff, change_oclass, branch, validate_tree_against_schema,
-    ConsistencyError, CardinalityError
+    ConsistencyError, CardinalityError, get_rdf_graph
 )
 from osp.core.cuds import Cuds
 
@@ -68,6 +69,21 @@ def get_test_city():
 
 
 class TestUtils(unittest.TestCase):
+
+    def test_get_rdf_graph(self):
+        with TestWrapperSession() as session:
+            wrapper = cuba.Wrapper(session=session)
+            c = city.City(name='freiburg', session=session)
+            wrapper.add(c, rel=cuba.activeRelationship)
+            graph = get_rdf_graph(c.session)
+            iri = rdflib.URIRef(
+                "http://www.osp-core.com/cuds" + "/#%s" % c.uid
+            )
+            self.assertTrue(iri in list(graph.subjects()))
+
+            # fail on invalid arguments
+            self.assertRaises(TypeError, get_rdf_graph, c)
+            self.assertRaises(TypeError, get_rdf_graph, 42)
 
     def test_validate_tree_against_schema(self):
         """Test validation of CUDS tree against schema.yml"""
