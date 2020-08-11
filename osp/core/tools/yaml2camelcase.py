@@ -42,7 +42,7 @@ class Yaml2CamelCaseConverter():
         self.doc[NAMESPACE_KEY] = self.namespace
         if REQUIREMENTS_KEY in self.doc:
             self.doc[REQUIREMENTS_KEY] = [x.lower()
-                                        for x in self.doc[REQUIREMENTS_KEY]]
+                                          for x in self.doc[REQUIREMENTS_KEY]]
         self.convert_nested_doc(self.onto_doc, pattern=entity_name_pattern)
 
     def convert_nested_doc(self, doc, pattern=qualified_entity_name_pattern):
