@@ -2,7 +2,6 @@ import requests
 import json
 import rdflib
 from osp.core.namespaces import cuba
-from osp.core.session.buffers import BufferContext
 
 
 def branch(cuds_object, *args, rel=None):
@@ -124,7 +123,7 @@ def serialize(cuds_object, rel=cuba.activeRelationship,
     return result
 
 
-def deserialize(json_doc, session=None, buffer_context=BufferContext.USER):
+def deserialize(json_doc, session=None, buffer_context=None):
     """Deserialize the given json objects (to CUDS).
     Will add the CUDS objects to the buffers.
 
@@ -143,9 +142,11 @@ def deserialize(json_doc, session=None, buffer_context=BufferContext.USER):
     from osp.core.cuds import Cuds
     from osp.core.session.transport.transport_utils import deserialize \
         as _deserialize
+    from osp.core.session.buffers import BufferContext
     if isinstance(json_doc, str):
         json_doc = json.loads(json_doc)
     session = session or Cuds._session
+    buffer_context = buffer_context or BufferContext.USER
     return _deserialize(
         json_obj=json_doc,
         session=session,
