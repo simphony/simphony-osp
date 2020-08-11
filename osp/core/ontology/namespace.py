@@ -35,6 +35,13 @@ class OntologyNamespace():
     def __repr__(self):
         return "<%s: %s>" % (self._name, self._iri)
 
+    def __eq__(self, other):
+        return self._name == other._name and self._iri == other._iri \
+            and self._namespace_registry is other._namespace_registry
+
+    def __hash__(self):
+        return hash(str(self))
+
     def get_name(self):
         """Get the name of the namespace"""
         return self._name
@@ -186,7 +193,9 @@ class OntologyNamespace():
                 f"{alternative} is referenced with '{name}'. "
                 f"Note that referencing entities will be case sensitive "
                 f"in future releases. Additionally, entity names defined "
-                f"in YAML ontology are no longer required to be ALL_CAPS."
+                f"in YAML ontology are no longer required to be ALL_CAPS. "
+                f"You can use the yaml2camelcase "
+                f"commandline tool to transform entity names to CamelCase."
             )
             return r
         except KeyError as e:

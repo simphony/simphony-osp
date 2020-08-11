@@ -141,6 +141,21 @@ class TestParser(unittest.TestCase):
         self.assertEqual(self.parser.get_identifier(YML_FILE), "parser_test")
         self.assertEqual(self.parser.get_identifier("parser_test"),
                          "parser_test")
+        self.assertEqual(self.parser.get_identifier("emmo"), "emmo")
+
+    def test_get_namespace_name(self):
+        self.assertEqual(self.parser.get_namespace_names(YML_DOC),
+                         ["parser_test"])
+        self.assertEqual(self.parser.get_namespace_names(YML_FILE),
+                         ["parser_test"])
+        self.assertEqual(self.parser.get_namespace_names("parser_test"),
+                         ["parser_test"])
+        self.assertEqual(self.parser.get_namespace_names("emmo"),
+                         ['mereotopology', 'physical', 'top', 'semiotics',
+                          'perceptual', 'reductionistic', 'holistic',
+                          'physicalistic', 'math', 'properties', 'materials',
+                          'metrology', 'models', 'manufacturing', 'isq',
+                          'siunits'])
 
     def test_get_requirements(self):
         self.assertEqual(self.parser.get_requirements(YML_DOC), set())

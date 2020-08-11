@@ -214,7 +214,9 @@ class YmlParser:
                 f"{current_entity}. "
                 f"Note that referencing entities will be case sensitive "
                 f"in future releases. Additionally, entity names defined "
-                f"in YAML ontology are no longer required to be ALL_CAPS."
+                f"in YAML ontology are no longer required to be ALL_CAPS. "
+                f"You can use the yaml2camelcase "
+                f"commandline tool to transform entity names to CamelCase."
             )
             return r
         except AttributeError as e:
