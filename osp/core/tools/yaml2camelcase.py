@@ -3,11 +3,12 @@ import yaml
 import logging
 import re
 import shutil
+import os
 from copy import deepcopy
 from pathlib import Path
 from osp.core.ontology.yml.yml_parser import YmlParser
 from osp.core.ontology.yml.yml_keywords import NAMESPACE_KEY, ONTOLOGY_KEY, \
-    SUPERCLASSES_KEY
+    SUPERCLASSES_KEY, REQUIREMENTS_KEY
 
 
 entity_name_regex = r"(_|[A-Z])([A-Z]|[0-9]|_)*"
@@ -35,10 +36,14 @@ class Yaml2CamelCaseConverter():
         self.onto_doc = self.doc[ONTOLOGY_KEY]
         self.orig_onto_doc = deepcopy(self.onto_doc)
         self.namespace = self.doc[NAMESPACE_KEY].lower()
+        self.ambiguity_resolution = dict()
 
     def convert(self):
         """Convert the yaml file to CamelCase"""
         self.doc[NAMESPACE_KEY] = self.namespace
+        if REQUIREMENTS_KEY in self.doc:
+            self.doc[REQUIREMENTS_KEY] = [x.lower()
+                                          for x in self.doc[REQUIREMENTS_KEY]]
         self.convert_nested_doc(self.onto_doc, pattern=entity_name_pattern)
 
     def convert_nested_doc(self, doc, pattern=qualified_entity_name_pattern):
@@ -84,7 +89,12 @@ class Yaml2CamelCaseConverter():
             output = self.file_path
         if output == self.file_path:
             logger.info(f"Backing up original file at {output}.orig")
-            shutil.copyfile(str(output), str(output) + ".orig")
+            orig_path = f"{output}.orig"
+            orig_counter = 0
+            while os.path.exists(orig_path):
+                orig_path = f"{output}.orig[{orig_counter}]"
+                orig_counter += 1
+            shutil.copyfile(str(output), orig_path)
 
         logger.info(f"Writing camel case file to {output}")
         with open(output, "w") as f:
@@ -121,8 +131,12 @@ class Yaml2CamelCaseConverter():
             if namespace.lower() == self.namespace:
                 x = self.get_first_letter_caps(name, internal=True)
                 return True if x is None and not internal else x
-            return input(f"Is {word} a ontology class?") \
+            if word in self.ambiguity_resolution:
+                return self.ambiguity_resolution[word]
+            ar = input(f"Is {word} a ontology class (y/n)? ") \
                 .lower().strip().startswith("y")
+            self.ambiguity_resolution[word] = ar
+            return ar
 
         # unqualified cases
         if word not in self.orig_onto_doc:
