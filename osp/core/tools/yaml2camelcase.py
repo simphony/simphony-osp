@@ -7,7 +7,7 @@ from copy import deepcopy
 from pathlib import Path
 from osp.core.ontology.yml.yml_parser import YmlParser
 from osp.core.ontology.yml.yml_keywords import NAMESPACE_KEY, ONTOLOGY_KEY, \
-    SUPERCLASSES_KEY
+    SUPERCLASSES_KEY, REQUIREMENTS_KEY
 
 
 entity_name_regex = r"(_|[A-Z])([A-Z]|[0-9]|_)*"
@@ -40,6 +40,9 @@ class Yaml2CamelCaseConverter():
     def convert(self):
         """Convert the yaml file to CamelCase"""
         self.doc[NAMESPACE_KEY] = self.namespace
+        if REQUIREMENTS_KEY in self.doc:
+            self.doc[REQUIREMENTS_KEY] = [x.lower()
+                                          for x in self.doc[REQUIREMENTS_KEY]]
         self.convert_nested_doc(self.onto_doc, pattern=entity_name_pattern)
 
     def convert_nested_doc(self, doc, pattern=qualified_entity_name_pattern):
