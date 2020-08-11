@@ -35,6 +35,7 @@ class Yaml2CamelCaseConverter():
         self.onto_doc = self.doc[ONTOLOGY_KEY]
         self.orig_onto_doc = deepcopy(self.onto_doc)
         self.namespace = self.doc[NAMESPACE_KEY].lower()
+        self.ambiguity_resolution = dict()
 
     def convert(self):
         """Convert the yaml file to CamelCase"""
@@ -121,8 +122,12 @@ class Yaml2CamelCaseConverter():
             if namespace.lower() == self.namespace:
                 x = self.get_first_letter_caps(name, internal=True)
                 return True if x is None and not internal else x
-            return input(f"Is {word} a ontology class?") \
+            if word in self.ambiguity_resolution:
+                return self.ambiguity_resolution[word]
+            ar = input(f"Is {word} a ontology class (y/n)? ") \
                 .lower().strip().startswith("y")
+            self.ambiguity_resolution[word] = ar
+            return ar
 
         # unqualified cases
         if word not in self.orig_onto_doc:
