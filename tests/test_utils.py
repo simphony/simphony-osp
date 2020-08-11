@@ -19,8 +19,9 @@ from osp.core.utils import (
     find_cuds_objects_by_attribute, post,
     get_relationships_between,
     get_neighbor_diff, change_oclass, branch, validate_tree_against_schema,
-    ConsistencyError, CardinalityError
+    ConsistencyError, CardinalityError, delete_cuds_object_recursively
 )
+from osp.core.session.buffers import BufferContext
 from osp.core.cuds import Cuds
 
 try:
@@ -604,3 +605,23 @@ class TestUtils(unittest.TestCase):
             "              uuid: %s" % s1.uid,
             "              (already printed)",
             ""]))
+
+    def test_delete_cuds_object_recursively(self):
+        with TestWrapperSession() as session:
+            wrapper = city.CityWrapper(session=session)
+            a = city.City(name='freiburg', session=session)
+            b = city.Citizen(name='peter', session=session)
+            branch(
+                wrapper,
+                branch(a, b, rel=city.hasInhabitant)
+            )
+            self.maxDiff = None
+            session._reset_buffers(BufferContext.USER)
+            delete_cuds_object_recursively(a)
+            self.assertEqual(session._buffers, [
+                [{}, {wrapper.uid: wrapper}, {a.uid: a, b.uid: b}],
+                [{}, {}, {}],
+            ])
+            self.assertEqual(wrapper.get(rel=cuba.relationship), [])
+            self.assertEqual(a.get(rel=cuba.relationship), [])
+            self.assertEqual(b.get(rel=cuba.relationship), [])
