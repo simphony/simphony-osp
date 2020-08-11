@@ -40,8 +40,9 @@ class Yaml2CamelCaseConverter():
     def convert(self):
         """Convert the yaml file to CamelCase"""
         self.doc[NAMESPACE_KEY] = self.namespace
-        self.doc[REQUIREMENTS_KEY] = [x.lower()
-                                      for x in self.doc[REQUIREMENTS_KEY]]
+        if REQUIREMENTS_KEY in self.doc:
+            self.doc[REQUIREMENTS_KEY] = [x.lower()
+                                        for x in self.doc[REQUIREMENTS_KEY]]
         self.convert_nested_doc(self.onto_doc, pattern=entity_name_pattern)
 
     def convert_nested_doc(self, doc, pattern=qualified_entity_name_pattern):
