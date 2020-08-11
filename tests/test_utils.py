@@ -4,6 +4,7 @@ import responses
 import uuid
 import os
 import osp.core
+import json
 from osp.core.namespaces import cuba
 from osp.core.session.transport.transport_utils import serializable
 from osp.core.session.core_session import CoreSession
@@ -19,7 +20,7 @@ from osp.core.utils import (
     find_cuds_objects_by_attribute, post,
     get_relationships_between,
     get_neighbor_diff, change_oclass, branch, validate_tree_against_schema,
-    ConsistencyError, CardinalityError
+    ConsistencyError, CardinalityError, serialize
 )
 from osp.core.cuds import Cuds
 
@@ -45,6 +46,21 @@ CUDS_DICT = {
                           str(uuid.UUID(int=3)): "city.Person"}
     }
 }
+
+CUDS_LIST = [
+    {"oclass": "city.City", "uid": str(uuid.UUID(int=1)),
+     "attributes": {"coordinates": [0, 0], "name": "Freiburg"},
+     "relationships": {
+         "city.hasPart": {str(uuid.UUID(int=2)): "city.Neighborhood"}}},
+    {"oclass": "city.Neighborhood", "uid": str(uuid.UUID(int=2)),
+     "attributes": {"coordinates": [0, 0], "name": "Littenweiler"},
+     "relationships": {"city.hasPart": {str(uuid.UUID(int=3)): "city.Street"},
+                       "city.isPartOf": {str(uuid.UUID(int=1)): "city.City"}}},
+    {"oclass": "city.Street", "uid": str(uuid.UUID(int=3)),
+     "attributes": {"coordinates": [0, 0], "name": "Schwarzwaldstraße"},
+     "relationships": {
+         "city.isPartOf": {str(uuid.UUID(int=2)): "city.Neighborhood"}}}
+]
 
 
 def get_test_city():
@@ -201,6 +217,31 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(result.is_a(city.Citizen))
         self.assertEqual(result.name, "Peter")
         self.assertEqual(result.age, 23)
+        result = deserialize([CUDS_DICT])
+        self.assertEqual(len(result), 1)
+        self.assertTrue(result[0].is_a(city.Citizen))
+        self.assertEqual(result[0].name, "Peter")
+        self.assertEqual(result[0].age, 23)
+        self.assertEqual(CUDS_LIST, serialize(deserialize(CUDS_LIST)[0],
+                         json_dumps=False))
+
+    def test_serialize(self):
+        c = branch(
+            city.City(name="Freiburg", uid=1),
+            branch(
+                city.Neighborhood(name="Littenweiler", uid=2),
+                city.Street(name="Schwarzwaldstraße", uid=3)
+            )
+        )
+        self.maxDiff = None
+        self.assertEqual(
+            json.loads(serialize(c)),
+            CUDS_LIST
+        )
+        self.assertEqual(
+            serialize(c, json_dumps=False),
+            CUDS_LIST
+        )
 
     def test_clone_cuds_object(self):
         """Test cloning of cuds"""
