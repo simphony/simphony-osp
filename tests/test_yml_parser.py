@@ -74,11 +74,15 @@ class TestYmlParser(unittest.TestCase):
              rdflib.RDFS.Datatype)})
 
     def test_check_default_rel(self):
-        self.parser._check_default_rel("relationshipB",
-                                       self.ontology_doc["relationshipB"])
+        self.parser._check_default_rel_flag_on_entity(
+            "relationshipB",
+            self.ontology_doc["relationshipB"]
+        )
         self.assertEqual(list(self.graph), [])
-        self.parser._check_default_rel("relationshipA",
-                                       self.ontology_doc["relationshipA"])
+        self.parser._check_default_rel_flag_on_entity(
+            "relationshipA",
+            self.ontology_doc["relationshipA"]
+        )
         self.assertEqual(set(self.graph), {(
             self.parser._get_iri(), rdflib_cuba._default_rel,
             self.parser._get_iri("relationshipA")

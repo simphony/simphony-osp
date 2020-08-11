@@ -48,6 +48,7 @@ format_description = {
         "!" + VERSION_KEY: re.compile(r"^\d+\.\d+(\.\d+)?$"),
         "!" + NAMESPACE_KEY: namespace_name_pattern,
         "!" + ONTOLOGY_KEY: {entity_name_pattern: "entity_def"},
+        DEFAULT_REL_KEY: qualified_entity_name_pattern,
         AUTHOR_KEY: str,
         REQUIREMENTS_KEY: [entity_name_pattern]
     },
