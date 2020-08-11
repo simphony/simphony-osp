@@ -806,7 +806,8 @@ class Cuds():
                     f"Note that you must match the case of the definition in "
                     f"the ontology in future releases. Additionally, entity "
                     f"names defined in YAML ontology are no longer required "
-                    f"to be ALL_CAPS."
+                    f"to be ALL_CAPS. You can use the yaml2camelcase "
+                    f"commandline tool to transform entity names to CamelCase."
                 )
                 return self._attr_values[name.upper()]
             else:
@@ -840,7 +841,8 @@ class Cuds():
                     f"Note that you must match the case of the definition in "
                     f"the ontology in future releases. Additionally, entity "
                     f"names defined in YAML ontology are no longer required "
-                    f"to be ALL_CAPS."
+                    f"to be ALL_CAPS. You can use the yaml2camelcase "
+                    f"commandline tool to transform entity names to CamelCase."
                 )
                 return self._attr_values[name.upper()]
             raise AttributeError(name)
