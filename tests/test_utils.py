@@ -95,11 +95,18 @@ class TestUtils(unittest.TestCase):
             c = city.City(name='freiburg', session=session)
             wrapper.add(c, rel=cuba.activeRelationship)
             graph = get_rdf_graph(c.session)
+
+            # cuds must be in the grap
             iri = rdflib.URIRef(
                 "http://www.osp-core.com/cuds/#%s" % c.uid
             )
-            self.assertTrue(iri in list(graph.subjects()))
-
+            subjects = list(graph.subjects())
+            self.assertTrue(iri in subjects)
+            # ontology entities must be in the graph
+            cuba_entity_iri = rdflib.URIRef(
+                "http://www.osp-core.com/cuba#Entity"
+            )
+            self.assertTrue(cuba_entity_iri in subjects)
             # fail on invalid arguments
             self.assertRaises(TypeError, get_rdf_graph, c)
             self.assertRaises(TypeError, get_rdf_graph, 42)

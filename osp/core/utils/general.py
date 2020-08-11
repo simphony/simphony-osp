@@ -65,14 +65,10 @@ def get_rdf_graph(session=None):
     from osp.core.cuds import Cuds
     from osp.core.namespaces import _namespace_registry
     session = session or Cuds._session
-    graph = rdflib.Graph()
+    cuds_graph = rdflib.Graph()
     for triple in session.get_triples():
-        graph.add(triple)
-    for namespace in _namespace_registry:
-        for entity in namespace:
-            for triple in entity.get_triples():
-                graph.add(triple)
-    return graph
+        cuds_graph.add(triple)
+    return cuds_graph + _namespace_registry._graph
 
 
 def post(url, cuds_object, max_depth=float("inf")):
