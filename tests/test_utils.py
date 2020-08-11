@@ -96,7 +96,7 @@ class TestUtils(unittest.TestCase):
             wrapper.add(c, rel=cuba.activeRelationship)
             graph = get_rdf_graph(c.session)
             iri = rdflib.URIRef(
-                "http://www.osp-core.com/cuds" + "/#%s" % c.uid
+                "http://www.osp-core.com/cuds/#%s" % c.uid
             )
             self.assertTrue(iri in list(graph.subjects()))
 

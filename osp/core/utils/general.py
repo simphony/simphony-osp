@@ -58,8 +58,10 @@ def get_rdf_graph(session=None):
     """
     if session is not None:
         if not isinstance(session, Session):
-            raise TypeError(f"""Invalid argument: {session}.
-         Function can only be called on (sub)classes of {Session}.""")
+            raise TypeError(
+                f"Invalid argument: {session}."
+                f"Function can only be called on (sub)classes of {Session}."""
+            )
     from osp.core.cuds import Cuds
     from osp.core.namespaces import _namespace_registry
     session = session or Cuds._session
