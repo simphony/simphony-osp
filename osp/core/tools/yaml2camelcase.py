@@ -3,6 +3,7 @@ import yaml
 import logging
 import re
 import shutil
+import os
 from copy import deepcopy
 from pathlib import Path
 from osp.core.ontology.yml.yml_parser import YmlParser
@@ -88,7 +89,12 @@ class Yaml2CamelCaseConverter():
             output = self.file_path
         if output == self.file_path:
             logger.info(f"Backing up original file at {output}.orig")
-            shutil.copyfile(str(output), str(output) + ".orig")
+            orig_path = f"{output}.orig"
+            orig_counter = 0
+            while os.path.exists(orig_path):
+                orig_path = f"{output}.orig[{orig_counter}]"
+                orig_counter += 1
+            shutil.copyfile(str(output), orig_path)
 
         logger.info(f"Writing camel case file to {output}")
         with open(output, "w") as f:
