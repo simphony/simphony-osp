@@ -523,7 +523,6 @@ class YmlParser:
         )
         return t
 
-
     # def _parse_rel_characteristics(self, entity):
     #     """Parse the characteristics of a relationship
 
