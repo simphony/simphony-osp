@@ -24,6 +24,26 @@ def branch(cuds_object, *args, rel=None):
     return cuds_object
 
 
+def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
+                                   max_depth=float("inf")):
+    """Delete a cuds object  and all the object inside of the container
+    of it.
+
+    Args:
+        cuds_object (Cuds): The Cuds object to recursively delete
+        max_depth (int, optional): The maximum depth of the recursion.
+            Defaults to float("inf").
+    """
+    from osp.core.utils.simple_search import find_cuds_object
+    cuds_objects = find_cuds_object(criterion=lambda x: True,
+                                    root=cuds_object,
+                                    rel=rel,
+                                    find_all=True,
+                                    max_depth=max_depth)
+    for obj in cuds_objects:
+        obj.session.delete_cuds_object(obj)
+
+
 def get_rdf_graph(session=None):
     """EXPERIMENTAL
     Get the RDF Graph from a session.
