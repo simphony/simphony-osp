@@ -222,7 +222,7 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(result[0].is_a(city.Citizen))
         self.assertEqual(result[0].name, "Peter")
         self.assertEqual(result[0].age, 23)
-        self.assertEqual(CUDS_LIST, serialize(deserialize(CUDS_LIST),
+        self.assertEqual(CUDS_LIST, serialize(deserialize(CUDS_LIST)[0],
                          json_dumps=False))
 
     def test_serialize(self):
