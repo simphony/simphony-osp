@@ -73,7 +73,7 @@ class TestYmlParser(unittest.TestCase):
             (rdflib_cuba["datatypes/VECTOR-INT-2-2"], rdflib.RDF.type,
              rdflib.RDFS.Datatype)})
 
-    def test_check_default_rel(self):
+    def test_check_default_rel_flag_on_entity(self):
         self.parser._check_default_rel_flag_on_entity(
             "relationshipB",
             self.ontology_doc["relationshipB"]

@@ -8,7 +8,7 @@ from osp.core.ontology.namespace_registry import NamespaceRegistry
 from osp.core.ontology.installation import OntologyInstallationManager
 from osp.core.ontology import OntologyClass, OntologyRelationship, \
     OntologyAttribute
-from osp.core import cuba
+from osp.core.namespaces import cuba
 
 CUBA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          "..", "osp", "core", "ontology", "docs", "cuba.ttl")
