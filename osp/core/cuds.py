@@ -764,8 +764,7 @@ class Cuds():
         Returns:
             URIRef: The IRI of the CUDS object with the given UUID.
         """
-        from osp.core import IRI_DOMAIN
-        return rdflib.URIRef(IRI_DOMAIN + "/#%s" % uid)
+        return rdflib.URIRef("http://www.osp-core.com/cuds/#%s" % uid)
 
     def __str__(self) -> str:
         """
