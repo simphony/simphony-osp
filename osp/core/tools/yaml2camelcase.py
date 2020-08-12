@@ -133,7 +133,7 @@ class Yaml2CamelCaseConverter():
                 return True if x is None and not internal else x
             if word in self.ambiguity_resolution:
                 return self.ambiguity_resolution[word]
-            ar = input(f"Is {word} a ontology class (y/n)? ") \
+            ar = input(f"Is {word} an ontology class (y/n)? ") \
                 .lower().strip().startswith("y")
             self.ambiguity_resolution[word] = ar
             return ar
