@@ -92,7 +92,7 @@ print("\nYou can instantiate CUDS objects using ontology classes")
 print(city.Citizen(name="Test Person", age=42))
 print("Take a look at api_example.py for a description of the CUDS API")
 
-print("\nYou can check if a CUDS object is an instace of a ontology class")
+print("\nYou can check if a CUDS object is an instace of an ontology class")
 print(city.Citizen(name="Test Person", age=42).is_a(city.Citizen))
 print(city.Citizen(name="Test Person", age=42).is_a(city.LivingBeing))
 
