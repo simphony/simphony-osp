@@ -143,8 +143,8 @@ def deserialize(json_doc, session=None, buffer_context=None,
             whether to return only the first element. The reason
             for this is that the result of serializing a single cuds
             object using `serialize()` is a list. Having this flag set to True,
-            the result of deserializing this list is again will be the input
-            to serialize, as expected.
+            the result of deserializing this list will be the input
+            CUDS object of serialize, as expected.
 
     Returns:
         Any: The deserialized data. Can be CUDS.
