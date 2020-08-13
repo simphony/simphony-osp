@@ -8,6 +8,7 @@ from osp.core.ontology.namespace_registry import NamespaceRegistry
 from osp.core.ontology.installation import OntologyInstallationManager
 from osp.core.ontology import OntologyClass, OntologyRelationship, \
     OntologyAttribute
+from osp.core.namespaces import cuba
 
 CUBA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          "..", "osp", "core", "ontology", "docs", "cuba.ttl")
@@ -312,9 +313,36 @@ class TestNamespaces(unittest.TestCase):
                          "<city: http://www.osp-core.com/city#>")
 
     def test_get_default_rel(self):
+        # default rel defined as flag in entity name
         self.installer.install("city")
         namespace = self.namespace_registry.city
         self.assertEqual(namespace.get_default_rel().name, "hasPart")
+
+        onto_def_rel = os.path.join(
+            os.path.dirname(__file__),
+            'default_rel_across_namespace_valid.yml'
+        )
+        self.installer.install(onto_def_rel)
+        namespace = self.namespace_registry.default_rel_test_namespace_valid
+        self.assertEqual(namespace.get_default_rel(), cuba.activeRelationship)
+
+        onto_def_rel = os.path.join(
+            os.path.dirname(__file__),
+            'default_rel_across_namespace_two_definitions.yml'
+        )
+        self.assertRaises(ValueError, self.installer.install, onto_def_rel)
+
+        onto_def_rel = os.path.join(
+            os.path.dirname(__file__),
+            'default_rel_across_namespace_uninstalled_entity.yml'
+        )
+        self.assertRaises(ValueError, self.installer.install, onto_def_rel)
+
+        onto_def_rel = os.path.join(
+            os.path.dirname(__file__),
+            'default_rel_across_namespace_uninstalled_namespace.yml'
+        )
+        self.assertRaises(ValueError, self.installer.install, onto_def_rel)
 
     def test_contains(self):
         self.installer.install("city")
