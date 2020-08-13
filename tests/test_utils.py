@@ -244,12 +244,16 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(result.name, "Peter")
         self.assertEqual(result.age, 23)
         result = deserialize([CUDS_DICT])
+        self.assertTrue(result.is_a(city.Citizen))
+        self.assertEqual(result.name, "Peter")
+        self.assertEqual(result.age, 23)
+        result = deserialize([CUDS_DICT], only_return_first_element=False)
         self.assertEqual(len(result), 1)
         self.assertTrue(result[0].is_a(city.Citizen))
         self.assertEqual(result[0].name, "Peter")
         self.assertEqual(result[0].age, 23)
-        self.assertEqual(CUDS_LIST, serialize(deserialize(CUDS_LIST)[0],
-                         json_dumps=False))
+        self.assertEqual(CUDS_LIST,
+                         json.loads(serialize(deserialize(CUDS_LIST))))
 
     def test_serialize(self):
         c = branch(
