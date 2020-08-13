@@ -126,7 +126,8 @@ def serialize(cuds_object, rel=cuba.activeRelationship,
     return result
 
 
-def deserialize(json_doc, session=None, buffer_context=None):
+def deserialize(json_doc, session=None, buffer_context=None,
+                only_return_first_element=True):
     """Deserialize the given json objects (to CUDS).
     Will add the CUDS objects to the buffers.
 
@@ -138,6 +139,12 @@ def deserialize(json_doc, session=None, buffer_context=None):
         buffer_context (BufferContext): Whether to add the objects to the
             buffers of the user or the engine. Default is equivalent of
             the user creating the CUDS objects by hand.
+        only_return_first_element (bool): When the json doc is a list,
+            whether to return only the first element. The reason
+            for this is that the result of serializing a single cuds
+            object using `serialize()` is a list. Having this flag set to True,
+            the result of deserializing this list is again will be the input
+            to serialize, as expected.
 
     Returns:
         Any: The deserialized data. Can be CUDS.
@@ -150,11 +157,14 @@ def deserialize(json_doc, session=None, buffer_context=None):
         json_doc = json.loads(json_doc)
     session = session or Cuds._session
     buffer_context = buffer_context or BufferContext.USER
-    return _deserialize(
+    deserialized = _deserialize(
         json_obj=json_doc,
         session=session,
         buffer_context=buffer_context
     )
+    if isinstance(deserialized, list) and only_return_first_element:
+        return deserialized[0]
+    return deserialized
 
 
 def remove_cuds_object(cuds_object):
