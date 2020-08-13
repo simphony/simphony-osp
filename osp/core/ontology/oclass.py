@@ -1,11 +1,3 @@
-# Copyright (c) 2018, Adham Hashibon and Materials Informatics Team
-# at Fraunhofer IWM.
-# All rights reserved.
-# Redistribution and use are limited to the scope agreed with the end user.
-# No parts of this software may be used outside of this context.
-# No redistribution is allowed without explicit written permission.
-
-
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.cuba import rdflib_cuba
 import logging
@@ -117,7 +109,8 @@ class OntologyClass(OntologyEntity):
                     f"Note that you must match the case of the definition in "
                     f"the ontology in future releases. Additionally, entity "
                     f"names defined in YAML ontology are no longer required "
-                    f"to be ALL_CAPS."
+                    f"to be ALL_CAPS. You can use the yaml2camelcase "
+                    f"commandline tool to transform entity names to CamelCase."
                 )
             else:
                 attributes[attribute] = default

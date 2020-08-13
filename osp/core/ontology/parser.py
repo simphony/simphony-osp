@@ -38,6 +38,10 @@ class Parser():
         file_path = self.get_file_path(file_path)
         with open(file_path, 'r') as f:
             yaml_doc = yaml.safe_load(f)
+            if yaml_doc is None:
+                raise SyntaxError(
+                    f"Empty format of file {file_path}"
+                )
             if YmlParser.is_yaml_ontology(yaml_doc):
                 YmlParser(self.graph).parse(file_path, yaml_doc)
             elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
@@ -89,10 +93,40 @@ class Parser():
             file_path = Parser.get_file_path(file_path_or_doc)
             with open(file_path, "r") as f:
                 yaml_doc = yaml.safe_load(f)
+                if yaml_doc is None:
+                    raise SyntaxError(
+                        f"Empty format of file {file_path_or_doc}"
+                    )
         if YmlParser.is_yaml_ontology(yaml_doc):
             return YmlParser.get_namespace_name(yaml_doc)
         elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
             return yaml_doc[IDENTIFIER_KEY].lower()
+        else:
+            raise SyntaxError(f"Invalid format of file {file_path_or_doc}")
+
+    @staticmethod
+    def get_namespace_names(file_path_or_doc):
+        """Get the names of namespaces of the given yaml doc or path to such.
+
+        Args:
+            file_path_or_doc (Union[Path, dict]): The YAML document or
+                a path to it
+
+        Raises:
+            SyntaxError: Invalid YAML format
+
+        Returns:
+            List[str]: TThe list of defined namespace names.
+        """
+        yaml_doc = file_path_or_doc
+        if isinstance(file_path_or_doc, str):
+            file_path = Parser.get_file_path(file_path_or_doc)
+            with open(file_path, "r") as f:
+                yaml_doc = yaml.safe_load(f)
+        if YmlParser.is_yaml_ontology(yaml_doc):
+            return [YmlParser.get_namespace_name(yaml_doc)]
+        elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
+            return [x.lower() for x in yaml_doc[NAMESPACES_KEY].keys()]
         else:
             raise SyntaxError(f"Invalid format of file {file_path_or_doc}")
 

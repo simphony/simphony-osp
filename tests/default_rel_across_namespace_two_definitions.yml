@@ -1,0 +1,13 @@
+---
+    version: "0.0.3"
+    
+    namespace: "default_rel_test_namespace_two_definitions"
+    default_rel: cuba.activeRelationship
+    ontology:
+      SomeEntity:
+        subclass_of:
+          - cuba.Entity
+      someRel:
+        subclass_of:
+          - cuba.activeRelationship
+        default_rel: true

@@ -4,6 +4,8 @@ import responses
 import uuid
 import os
 import osp.core
+import rdflib
+import json
 from osp.core.namespaces import cuba
 from osp.core.session.transport.transport_utils import serializable
 from osp.core.session.core_session import CoreSession
@@ -19,8 +21,11 @@ from osp.core.utils import (
     find_cuds_objects_by_attribute, post,
     get_relationships_between,
     get_neighbor_diff, change_oclass, branch, validate_tree_against_schema,
-    ConsistencyError, CardinalityError
+    ConsistencyError, CardinalityError, get_rdf_graph,
+    delete_cuds_object_recursively,
+    serialize
 )
+from osp.core.session.buffers import BufferContext
 from osp.core.cuds import Cuds
 
 try:
@@ -46,6 +51,21 @@ CUDS_DICT = {
     }
 }
 
+CUDS_LIST = [
+    {"oclass": "city.City", "uid": str(uuid.UUID(int=1)),
+     "attributes": {"coordinates": [0, 0], "name": "Freiburg"},
+     "relationships": {
+         "city.hasPart": {str(uuid.UUID(int=2)): "city.Neighborhood"}}},
+    {"oclass": "city.Neighborhood", "uid": str(uuid.UUID(int=2)),
+     "attributes": {"coordinates": [0, 0], "name": "Littenweiler"},
+     "relationships": {"city.hasPart": {str(uuid.UUID(int=3)): "city.Street"},
+                       "city.isPartOf": {str(uuid.UUID(int=1)): "city.City"}}},
+    {"oclass": "city.Street", "uid": str(uuid.UUID(int=3)),
+     "attributes": {"coordinates": [0, 0], "name": "Schwarzwaldstraße"},
+     "relationships": {
+         "city.isPartOf": {str(uuid.UUID(int=2)): "city.Neighborhood"}}}
+]
+
 
 def get_test_city():
     """helper function"""
@@ -68,6 +88,28 @@ def get_test_city():
 
 
 class TestUtils(unittest.TestCase):
+
+    def test_get_rdf_graph(self):
+        with TestWrapperSession() as session:
+            wrapper = cuba.Wrapper(session=session)
+            c = city.City(name='freiburg', session=session)
+            wrapper.add(c, rel=cuba.activeRelationship)
+            graph = get_rdf_graph(c.session)
+
+            # cuds must be in the grap
+            iri = rdflib.URIRef(
+                "http://www.osp-core.com/cuds/#%s" % c.uid
+            )
+            subjects = list(graph.subjects())
+            self.assertTrue(iri in subjects)
+            # ontology entities must be in the graph
+            cuba_entity_iri = rdflib.URIRef(
+                "http://www.osp-core.com/cuba#Entity"
+            )
+            self.assertTrue(cuba_entity_iri in subjects)
+            # fail on invalid arguments
+            self.assertRaises(TypeError, get_rdf_graph, c)
+            self.assertRaises(TypeError, get_rdf_graph, 42)
 
     def test_validate_tree_against_schema(self):
         """Test validation of CUDS tree against schema.yml"""
@@ -201,6 +243,35 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(result.is_a(city.Citizen))
         self.assertEqual(result.name, "Peter")
         self.assertEqual(result.age, 23)
+        result = deserialize([CUDS_DICT])
+        self.assertTrue(result.is_a(city.Citizen))
+        self.assertEqual(result.name, "Peter")
+        self.assertEqual(result.age, 23)
+        result = deserialize([CUDS_DICT], only_return_first_element=False)
+        self.assertEqual(len(result), 1)
+        self.assertTrue(result[0].is_a(city.Citizen))
+        self.assertEqual(result[0].name, "Peter")
+        self.assertEqual(result[0].age, 23)
+        self.assertEqual(CUDS_LIST,
+                         json.loads(serialize(deserialize(CUDS_LIST))))
+
+    def test_serialize(self):
+        c = branch(
+            city.City(name="Freiburg", uid=1),
+            branch(
+                city.Neighborhood(name="Littenweiler", uid=2),
+                city.Street(name="Schwarzwaldstraße", uid=3)
+            )
+        )
+        self.maxDiff = None
+        self.assertEqual(
+            json.loads(serialize(c)),
+            CUDS_LIST
+        )
+        self.assertEqual(
+            serialize(c, json_dumps=False),
+            CUDS_LIST
+        )
 
     def test_clone_cuds_object(self):
         """Test cloning of cuds"""
@@ -604,3 +675,23 @@ class TestUtils(unittest.TestCase):
             "              uuid: %s" % s1.uid,
             "              (already printed)",
             ""]))
+
+    def test_delete_cuds_object_recursively(self):
+        with TestWrapperSession() as session:
+            wrapper = city.CityWrapper(session=session)
+            a = city.City(name='freiburg', session=session)
+            b = city.Citizen(name='peter', session=session)
+            branch(
+                wrapper,
+                branch(a, b, rel=city.hasInhabitant)
+            )
+            self.maxDiff = None
+            session._reset_buffers(BufferContext.USER)
+            delete_cuds_object_recursively(a)
+            self.assertEqual(session._buffers, [
+                [{}, {wrapper.uid: wrapper}, {a.uid: a, b.uid: b}],
+                [{}, {}, {}],
+            ])
+            self.assertEqual(wrapper.get(rel=cuba.relationship), [])
+            self.assertEqual(a.get(rel=cuba.relationship), [])
+            self.assertEqual(b.get(rel=cuba.relationship), [])

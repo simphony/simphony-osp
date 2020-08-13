@@ -278,6 +278,16 @@ class TestSqliteCity(unittest.TestCase):
             self.assertNotIn(p3w.uid, session._registry)
 
     def test_clear_database(self):
+        # db is empty (no error occurs)
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            session._clear_database()
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            wrapper.session.commit()
+            session._clear_database()
+
+        # db is not empty
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")

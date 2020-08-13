@@ -87,12 +87,14 @@ class YmlParser:
             t = self._validate_entity(entity_name, entity_doc)
             types[entity_name] = t
 
+        self._assert_default_relationship_occurrence()
+        self._check_default_rel_definition_on_ontology()
         for entity_name, entity_doc in self._ontology_doc.items():
             # self._load_class_expressions(entity) TODO
             if types[entity_name] == "relationship":
                 self._set_inverse(entity_name, entity_doc)
             #     self._parse_rel_characteristics(entity_name, entity_doc) TODO
-                self._check_default_rel(entity_name, entity_doc)
+                self._check_default_rel_flag_on_entity(entity_name, entity_doc)
             elif types[entity_name] == "attribute":
                 self._set_datatype(entity_name, entity_doc)
 
@@ -214,7 +216,9 @@ class YmlParser:
                 f"{current_entity}. "
                 f"Note that referencing entities will be case sensitive "
                 f"in future releases. Additionally, entity names defined "
-                f"in YAML ontology are no longer required to be ALL_CAPS."
+                f"in YAML ontology are no longer required to be ALL_CAPS. "
+                f"You can use the yaml2camelcase "
+                f"commandline tool to transform entity names to CamelCase."
             )
             return r
         except AttributeError as e:
@@ -402,8 +406,54 @@ class YmlParser:
             (iri, rdflib.OWL.inverseOf, inverse_iri)
         )
 
-    def _check_default_rel(self, entity_name, entity_doc):
-        """Check if the given relationship the default
+    def _assert_default_relationship_occurrence(self):
+        """Assures that only one default relationship is defined in the yaml
+
+        :raises ValueError: If more than one definition is found.
+        """
+        occurrences = 0
+        if DEFAULT_REL_KEY in self._doc:
+            occurrences += 1
+        for entity_name, entity_doc in self._ontology_doc.items():
+            if DEFAULT_REL_KEY in entity_doc:
+                occurrences += 1
+        if occurrences > 1:
+            raise ValueError(
+                f"You have defined {occurrences} default relationships for "
+                f"namespace {self._namespace} although <= 1 are allowed."
+            )
+
+    def _check_default_rel_definition_on_ontology(self):
+        """Check if the given yaml defines
+        a default relationship, save that accordingly.
+        """
+        if DEFAULT_REL_KEY in self._doc:
+            namespace, entity_name = self._doc[DEFAULT_REL_KEY].split('.')
+
+            # defined relationship must be installed
+            from osp.core.namespaces import _namespace_registry
+            referred_namespace = _namespace_registry.get(namespace)
+            if not referred_namespace:
+                raise ValueError(
+                    f"The namespace {namespace} that you have defined for "
+                    f"the default relationship \"{entity_name}\" of "
+                    f"namespace \"{self._namespace}\" is not installed."
+                )
+            referred_entity = referred_namespace.get(entity_name)
+            if not referred_entity:
+                raise ValueError(
+                    f"The default relationship \"{entity_name}\"  from "
+                    f"\"{namespace}\" that you have defined for namespace "
+                    f"\"{self._namespace}\" is not installed."
+                )
+
+            self.graph.add(
+                (self._get_iri(), rdflib_cuba._default_rel,
+                 self._get_iri(namespace=namespace, entity_name=entity_name))
+            )
+
+    def _check_default_rel_flag_on_entity(self, entity_name, entity_doc):
+        """Check if the given relationship is the default
         When it is a default, save that accordingly.
 
         Args:
