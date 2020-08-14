@@ -73,7 +73,9 @@ class OntologyInstallationManager():
                 remove_pkgs.add(pkg)
             else:
                 raise ValueError("Could not uninstall %s. No file nor "
-                                 "installed ontology package." % pkg)
+                                 "installed ontology package. "
+                                 "Make sure to only specify valid "
+                                 "yml files or ontology package names." % pkg)
         return [v for k, v in installed_pkgs.items() if k not in remove_pkgs]
 
     def _get_replaced_packages(self, new_packages):
