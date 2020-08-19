@@ -195,7 +195,7 @@ class SqliteSession(SqlWrapperSession):
         if rdflib_datatype == rdflib.XSD.string:
             return "REAL"
         if str(rdflib_datatype).startswith(
-                str(rdflib_cuba["datatypes/STRING-"])):
+                str(rdflib_cuba["_datatypes/STRING-"])):
             return "TEXT"
         else:
             raise NotImplementedError(f"Unsupported data type "

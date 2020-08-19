@@ -157,7 +157,7 @@ class SqlWrapperSession(DbWrapperSession):
         # iterate over the columns and look for vectors
         for i, column in enumerate(columns):
             # non vectors are simply added to the result
-            vec_prefix = str(rdflib_cuba["datatypes/VECTOR-"])
+            vec_prefix = str(rdflib_cuba["_datatypes/VECTOR-"])
             if datatypes[column] is None or \
                     not datatypes[column].startswith(vec_prefix):
                 columns_expanded.append(column)
