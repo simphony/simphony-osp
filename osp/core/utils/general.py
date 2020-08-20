@@ -43,7 +43,7 @@ def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
         obj.session.delete_cuds_object(obj)
 
 
-def get_rdf_graph(session=None, skip_custom_datatypes=True):
+def get_rdf_graph(session=None, skip_custom_datatypes=False):
     """EXPERIMENTAL
     Get the RDF Graph from a session.
     If no session is, the core session will be used.
@@ -51,6 +51,8 @@ def get_rdf_graph(session=None, skip_custom_datatypes=True):
     Args:
         session (Session, optional): The session to compute the RDF Graph of.
             Defaults to None.
+        skip_custom_datatypes (bool): Whether triples concerining custom
+            datatypes should be skipped in export.
 
     Returns:
         rdflib.Graph: The resulting rdf Graph
