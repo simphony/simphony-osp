@@ -59,7 +59,7 @@ def install_from_terminal():
         elif args.command == "install":
             ontology_installer.install(*args.files)
         elif args.command == "uninstall":
-            if args.packages == ["*"]:
+            if args.packages == ['all']:
                 args.packages = all_packages
             ontology_installer.uninstall(*args.packages)
         elif args.command == "list":
