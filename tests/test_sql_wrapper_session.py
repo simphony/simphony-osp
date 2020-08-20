@@ -10,9 +10,9 @@ EXPANDED_COLS = ['1',
                  '3___0', '3___1', '3___2',
                  '3___3', '3___4', '3___5']
 EXPANDED_DTYPES = {'1': rdflib.XSD.integer,
-                   '2': rdflib_cuba["datatypes/VECTOR-2"],
+                   '2': rdflib_cuba["_datatypes/VECTOR-2"],
                    '2___0': rdflib.XSD.float, '2___1': rdflib.XSD.float,
-                   '3': rdflib_cuba["datatypes/VECTOR-2-3"],
+                   '3': rdflib_cuba["_datatypes/VECTOR-2-3"],
                    '3___0': rdflib.XSD.float, '3___1': rdflib.XSD.float,
                    '3___2': rdflib.XSD.float, '3___3': rdflib.XSD.float,
                    '3___4': rdflib.XSD.float, '3___5': rdflib.XSD.float}
@@ -26,8 +26,8 @@ class TestSqliteCity(unittest.TestCase):
         cols, dtypes, vals = SqlWrapperSession._expand_vector_cols(
             columns=["1", "2", "3"],
             datatypes={"1": rdflib.XSD.integer,
-                       "2": rdflib_cuba["datatypes/VECTOR-2"],
-                       "3": rdflib_cuba["datatypes/VECTOR-2-3"]},
+                       "2": rdflib_cuba["_datatypes/VECTOR-2"],
+                       "3": rdflib_cuba["_datatypes/VECTOR-2-3"]},
             values=VALS
         )
         self.assertEqual(cols, EXPANDED_COLS)
