@@ -2,7 +2,6 @@ import requests
 import json
 import rdflib
 from osp.core.namespaces import cuba
-from osp.core.session.session import Session
 
 
 def branch(cuds_object, *args, rel=None):
@@ -44,7 +43,7 @@ def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
         obj.session.delete_cuds_object(obj)
 
 
-def get_rdf_graph(session=None):
+def get_rdf_graph(session=None, skip_custom_datatypes=False):
     """EXPERIMENTAL
     Get the RDF Graph from a session.
     If no session is, the core session will be used.
@@ -52,10 +51,13 @@ def get_rdf_graph(session=None):
     Args:
         session (Session, optional): The session to compute the RDF Graph of.
             Defaults to None.
+        skip_custom_datatypes (bool): Whether triples concerining custom
+            datatypes should be skipped in export.
 
     Returns:
         rdflib.Graph: The resulting rdf Graph
     """
+    from osp.core.session.session import Session
     if session is not None:
         if not isinstance(session, Session):
             raise TypeError(
@@ -68,7 +70,33 @@ def get_rdf_graph(session=None):
     cuds_graph = rdflib.Graph()
     for triple in session.get_triples():
         cuds_graph.add(triple)
-    return cuds_graph + _namespace_registry._graph
+    result = cuds_graph + _namespace_registry._graph
+    if skip_custom_datatypes:
+        return result - get_custom_datatype_triples()
+    return result
+
+
+def get_custom_datatypes():
+    from osp.core.ontology.cuba import rdflib_cuba
+    from osp.core.namespaces import _namespace_registry
+    pattern = (None, rdflib.RDF.type, rdflib.RDFS.Datatype)
+    result = set()
+    for s, p, o in _namespace_registry._graph.triples(pattern):
+        if s in rdflib_cuba:
+            result.add(s)
+    return result
+
+
+def get_custom_datatype_triples():
+    custom_datatypes = get_custom_datatypes()
+    from osp.core.namespaces import _namespace_registry
+    result = rdflib.Graph()
+    for d in custom_datatypes:
+        result.add((d, rdflib.RDF.type, rdflib.RDFS.Datatype))
+        pattern = (None, rdflib.RDFS.range, d)
+        for s, p, o in _namespace_registry._graph.triples(pattern):
+            result.add((s, p, o))
+    return result
 
 
 def post(url, cuds_object, max_depth=float("inf")):
