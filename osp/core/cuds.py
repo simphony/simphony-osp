@@ -66,8 +66,10 @@ class Cuds():
             self._graph.add((
                 self.iri, k.iri, rdflib.Literal(k.convert_to_datatype(v))
             ))
+        self._graph.add((
+            self.iri, rdflib.RDF.type, oclass.iri
+        ))
         self._neighbors = NeighborDictRel({}, self)
-        self._oclass = oclass
         self.session._store(self)
         self._stored = True
 
@@ -87,9 +89,20 @@ class Cuds():
         return self._session
 
     @property
+    def oclasses(self):
+        """The ontology classes of this CUDS object"""
+        result = list()
+        for s, p, o in self._graph.triples((self.iri, rdflib.RDF.type, None)):
+            result.append(from_iri(o))
+        return result
+
+    @property
     def oclass(self):
         """The type of the cuds object"""
-        return self._oclass
+        oclasses = self.oclasses
+        if oclasses:
+            return oclasses[0]
+        return None
 
     def get_triples(self):
         """ Get the triples of the cuds object."""
@@ -110,7 +123,7 @@ class Cuds():
             self.session._notify_read(self)
         result = {}
         for s, p, o in self._graph.triples((self.iri, None, None)):
-            obj = from_iri(p)
+            obj = from_iri(p, raise_error=False)
             if isinstance(obj, OntologyAttribute):
                 result[obj] = o.toPython()
         return result
@@ -886,9 +899,7 @@ class Cuds():
         """
 
         state = {k: v for k, v in self.__dict__.items()
-                 if k not in {"_session", "_oclass", "_neighbors", "_stored",
-                              "_graph"}}
-        state["_oclass"] = (self.oclass.namespace._name, self._oclass.name)
+                 if k not in {"_session", "_neighbors", "_stored", "_graph"}}
         state["_neighbors"] = [
             (k.namespace._name, k.name, [
                 (uid, vv.namespace._name, vv.name)
@@ -908,9 +919,6 @@ class Cuds():
                 session. Contains the string of the OntologyClass.
         """
 
-        namespace, oclass = state["_oclass"]
-        oclass = _namespace_registry[namespace].get(oclass)
-        state["_oclass"] = oclass
         state["_session"] = None
         state["_neighbors"] = NeighborDictRel({
             _namespace_registry[ns].get(cl):

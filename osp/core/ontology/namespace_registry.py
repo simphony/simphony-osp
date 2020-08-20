@@ -80,7 +80,7 @@ class NamespaceRegistry():
                 setattr(module, namespace.get_name().upper(), namespace)
                 setattr(module, namespace.get_name().lower(), namespace)
 
-    def from_iri(self, iri):
+    def from_iri(self, iri, raise_error=True):
         """Get an entity from IRI.
 
         Args:
@@ -107,10 +107,15 @@ class NamespaceRegistry():
             namespace_registry=self,
             iri=ns_iri
         )
-        if ns._reference_by_label:
-            return ns._get(None, _force_by_iri=iri[len(ns_iri):])
-        else:
-            return ns._get(iri[len(ns_iri):])
+        try:
+            if ns._reference_by_label:
+                return ns._get(None, _force_by_iri=iri[len(ns_iri):])
+            else:
+                return ns._get(iri[len(ns_iri):])
+        except KeyError as e:
+            if raise_error:
+                raise e
+            return None
 
     def clear(self):
         """Clear the loaded Graph and load cuba only.
