@@ -122,7 +122,7 @@ class WrapperSession(Session):
             triple
             for cuds_object in find_cuds_object(lambda x: True,
                                                 self._registry.get(self.root),
-                                                cuba.Relationship,
+                                                cuba.relationship,
                                                 True)
             for triple in cuds_object.get_triples()
         ]
