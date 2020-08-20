@@ -91,7 +91,6 @@ def get_test_city():
 class TestUtils(unittest.TestCase):
 
     def test_get_rdf_graph(self):
-        from osp.core.namespaces import city
         with TestWrapperSession() as session:
             wrapper = cuba.Wrapper(session=session)
             c = city.City(name='freiburg', session=session)
