@@ -1,3 +1,4 @@
+import rdflib
 from copy import deepcopy
 from osp.core.neighbor_dict import NeighborDictTarget
 from osp.core.ontology.datatypes import convert_to
@@ -186,7 +187,9 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
 
     # update attributes
     attributes = new_oclass._get_attributes_values(kwargs, _force=_force)
-    cuds_object._attr_values = {k.argname: k.convert_to_datatype(v)
-                                for k, v in attributes.items()}
-    cuds_object._onto_attributes = {k.argname: k for k in attributes}
+    cuds_object._graph = rdflib.Graph()
+    for k, v in attributes.items():
+        cuds_object._graph.set((
+            cuds_object.iri, k.iri, rdflib.Literal(k.convert_to_datatype(v))
+        ))
     cuds_object.session._notify_update(cuds_object)

@@ -180,6 +180,13 @@ class TestOntologyEntity(unittest.TestCase):
              city.coordinates: [1, 1]}
         )
 
+    def test_get_attribute_by_argname(self):
+        self.assertEqual(city.City.get_attribute_by_argname("name"), city.name)
+        self.assertEqual(city.City.get_attribute_by_argname("coordinates"),
+                         city.coordinates)
+        self.assertEqual(city.City.get_attribute_by_argname("invalid"),
+                         None)
+
     def test_oclass_call(self):
         c = city.City(name="Freiburg")
         self.assertEqual(c.name, "Freiburg")

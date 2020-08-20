@@ -83,6 +83,30 @@ class OntologyClass(OntologyEntity):
                 return self.namespace._graph.value(bnode,
                                                    rdflib_cuba._default_value)
 
+    def get_attribute_by_argname(self, name):
+        """Get the attribute object with the argname of the object.
+
+        Args:
+            name (str): The argname of the attribute
+
+        Returns:
+            OntologyAttribute: The attribute
+        """
+        for attribute in self.attributes:
+            if attribute.argname == name:
+                return attribute
+            elif attribute.argname.lower() == name:
+                logger.warning(
+                    f"Attribute {attribute.argname} is referenced "
+                    f"with '{attribute.argname.lower()}'. "
+                    f"Note that you must match the case of the definition in "
+                    f"the ontology in future releases. Additionally, entity "
+                    f"names defined in YAML ontology are no longer required "
+                    f"to be ALL_CAPS. You can use the yaml2camelcase "
+                    f"commandline tool to transform entity names to CamelCase."
+                )
+                return attribute
+
     def _get_attributes_values(self, kwargs, _force):
         """Get the cuds object's attributes from the given kwargs.
         Combine defaults and given attribute attributes
