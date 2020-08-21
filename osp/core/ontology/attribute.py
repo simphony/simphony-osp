@@ -7,8 +7,8 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyAttribute(OntologyEntity):
-    def __init__(self, namespace, name, iri_suffix):
-        super().__init__(namespace, name, iri_suffix)
+    def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
+        super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
         logger.debug("Created ontology data property %s" % self)
 
     @property

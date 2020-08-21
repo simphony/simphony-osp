@@ -7,9 +7,9 @@ import osp.core
 import rdflib
 import json
 from osp.core.namespaces import cuba
+from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.session.transport.transport_utils import serializable
 from osp.core.session.core_session import CoreSession
-from .test_session_city import TestWrapperSession
 from osp.core.session.buffers import EngineContext
 from osp.core.utils import (
     clone_cuds_object,
@@ -23,10 +23,15 @@ from osp.core.utils import (
     get_neighbor_diff, change_oclass, branch, validate_tree_against_schema,
     ConsistencyError, CardinalityError, get_rdf_graph,
     delete_cuds_object_recursively,
-    serialize
+    serialize, get_custom_datatype_triples, get_custom_datatypes
 )
 from osp.core.session.buffers import BufferContext
 from osp.core.cuds import Cuds
+
+try:
+    from .test_session_city import TestWrapperSession
+except ImportError:
+    from test_session_city import TestWrapperSession
 
 try:
     from osp.core.namespaces import city
@@ -110,6 +115,27 @@ class TestUtils(unittest.TestCase):
             # fail on invalid arguments
             self.assertRaises(TypeError, get_rdf_graph, c)
             self.assertRaises(TypeError, get_rdf_graph, 42)
+
+            self.maxDiff = None
+            g2 = get_rdf_graph(c.session, True)
+            self.assertIn((city.coordinates.iri, rdflib.RDFS.range,
+                           rdflib_cuba["_datatypes/VECTOR-INT-2"]),
+                          set(graph - g2))
+            self.assertIn((rdflib_cuba["_datatypes/VECTOR-INT-2"],
+                           rdflib.RDF.type, rdflib.RDFS.Datatype),
+                          set(graph - g2))
+
+    def test_get_custom_datatypes(self):
+        self.assertIn(rdflib_cuba["_datatypes/VECTOR-INT-2"],
+                      get_custom_datatypes())
+        for elem in get_custom_datatypes():
+            self.assertIn(elem, rdflib_cuba)
+        self.assertIn((city.coordinates.iri, rdflib.RDFS.range,
+                       rdflib_cuba["_datatypes/VECTOR-INT-2"]),
+                      get_custom_datatype_triples())
+        self.assertIn((rdflib_cuba["_datatypes/VECTOR-INT-2"],
+                       rdflib.RDF.type, rdflib.RDFS.Datatype),
+                      get_custom_datatype_triples())
 
     def test_validate_tree_against_schema(self):
         """Test validation of CUDS tree against schema.yml"""
@@ -252,6 +278,7 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(result[0].is_a(city.Citizen))
         self.assertEqual(result[0].name, "Peter")
         self.assertEqual(result[0].age, 23)
+        self.maxDiff = None
         self.assertEqual(CUDS_LIST,
                          json.loads(serialize(deserialize(CUDS_LIST))))
 
@@ -695,3 +722,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(wrapper.get(rel=cuba.relationship), [])
             self.assertEqual(a.get(rel=cuba.relationship), [])
             self.assertEqual(b.get(rel=cuba.relationship), [])
+
+
+if __name__ == "__main__":
+    unittest.main()
