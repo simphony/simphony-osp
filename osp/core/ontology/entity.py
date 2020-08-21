@@ -7,27 +7,31 @@ logger = logging.getLogger(__name__)
 
 class OntologyEntity(ABC):
     @abstractmethod
-    def __init__(self, namespace, name, iri_suffix):
+    def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
         """Initialise the ontology entity
 
-        :param namespace: The namespace of the entity
-        :type namespace: OntologyNamespace
+        :param namespace_iri: The namespace of the entity
+        :type namespace_iri: URIRef
         :param name: The name of the entity
         :type name: str
         """
         self._name = name
         self._iri_suffix = iri_suffix
-        self._namespace = namespace
+        self._namespace_iri = namespace_iri
+        self._namespace_registry = namespace_registry
+
+    @property
+    def _namespace_name(self):
+        return self._namespace_registry._get_namespace_name_and_iri(
+            self.iri
+        )[0]
 
     def __str__(self):
-        return "%s.%s" % (self.namespace._name, self._name)
+        return "%s.%s" % (self._namespace_name, self._name)
 
     def __repr__(self):
-        return "<%s %s.%s>" % (
-            self.__class__.__name__,
-            self._namespace._name,
-            self._name
-        )
+        return "<%s %s.%s>" % (self.__class__.__name__,
+                               self._namespace_name, self._name)
 
     def __eq__(self, other):
         return isinstance(other, OntologyEntity) and self.iri == other.iri
@@ -40,16 +44,16 @@ class OntologyEntity(ABC):
     @property
     def iri(self):
         """Get the IRI of the Entity"""
-        return rdflib.URIRef(self._namespace.get_iri() + self._iri_suffix)
+        return rdflib.URIRef(self._namespace_iri + self._iri_suffix)
 
     @property
     def tblname(self):
-        return "%s___%s" % (self.namespace._name, self._iri_suffix)
+        return "%s___%s" % (self._namespace_name, self._iri_suffix)
 
     @property
     def namespace(self):
-        """Get the name of the entity"""
-        return self._namespace
+        """Get the namespace object of the entity"""
+        return self._namespace_registry.namespace_from_iri(self._namespace_iri)
 
     @property
     def direct_superclasses(self):

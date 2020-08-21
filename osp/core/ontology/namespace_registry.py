@@ -1,7 +1,11 @@
 import os
 import logging
 import rdflib
+from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.namespace import OntologyNamespace
+from osp.core.ontology.oclass import OntologyClass
+from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.ontology.attribute import OntologyAttribute
 
 logger = logging.getLogger(__name__)
 
@@ -80,37 +84,102 @@ class NamespaceRegistry():
                 setattr(module, namespace.get_name().upper(), namespace)
                 setattr(module, namespace.get_name().lower(), namespace)
 
-    def from_iri(self, iri):
+    def namespace_from_iri(self, ns_iri):
+        ns_name, ns_iri = self._get_namespace_name_and_iri(ns_iri)
+        if ns_name in self._namespaces:
+            return self._get(ns_name)
+        return OntologyNamespace(name=ns_name,
+                                 namespace_registry=self,
+                                 iri=ns_iri)
+
+    def from_iri(self, iri, raise_error=True,
+                 allow_types=frozenset({rdflib.OWL.DatatypeProperty,
+                                        rdflib.OWL.ObjectProperty,
+                                        rdflib.OWL.Class}),
+                 _name=None):
         """Get an entity from IRI.
 
         Args:
             iri (URIRef): The IRI of the entity.
+            raise_error(bool): Whether an error should be raised if IRI invalid
+            allow_types(bool): The owl types allowed to be returned.
 
         Returns:
             OntologyEntity: The OntologyEntity.
         """
+        iri = rdflib.URIRef(iri)
+        ns_name, ns_iri = self._get_namespace_name_and_iri(iri)
+        if _name is None:
+            _name = self._get_entity_name(iri, ns_iri)
+        iri_suffix = iri[len(ns_iri):]
+
+        kwargs = {"namespace_registry": self,
+                  "namespace_iri": ns_iri,
+                  "name": _name,
+                  "iri_suffix": iri_suffix}
+        for s, p, o in self._graph.triples((iri, rdflib.RDF.type, None)):
+            if o not in allow_types:
+                continue
+            if o == rdflib.OWL.DatatypeProperty:
+                # assert (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty)
+                #     in self._graph  # TODO allow non functional attributes
+                return OntologyAttribute(**kwargs)
+            if o == rdflib.OWL.ObjectProperty:
+                return OntologyRelationship(**kwargs)
+            if o == rdflib.OWL.Class:
+                return OntologyClass(**kwargs)
+        if raise_error:
+            raise KeyError(f"IRI {iri} not found in graph or not of any "
+                           f"type in the set {allow_types}")
+
+    def _get_namespace_name_and_iri(self, iri):
+        """Get the namespace name and namespace iri for an entity iri
+
+        Args:
+            iri (URIRef): The IRI for an entity or namespace
+
+        Returns:
+            Tuple[str, URIRef]: The name of the namespace and the IRI
+        """
         for _name, _ns_iri in self._graph.namespace_manager.namespaces():
             if str(iri).startswith(str(_ns_iri)) and _name:
-                name = _name
-                ns_iri = _ns_iri
-                break
-        else:
-            if "#" in str(iri):
-                ns_iri = str(iri).split("#")[0] + "#"
-            else:
-                ns_iri = "/".join(str(iri).split("/")[:-1]) + "/"
-            name = str(ns_iri)
-            ns_iri = rdflib.URIRef(ns_iri)
+                return _name, _ns_iri
 
-        ns = OntologyNamespace(
-            name=name,
-            namespace_registry=self,
-            iri=ns_iri
-        )
-        if ns._reference_by_label:
-            return ns._get(None, _force_by_iri=iri[len(ns_iri):])
+        if "#" in str(iri):
+            ns_iri = str(iri).split("#")[0] + "#"
         else:
-            return ns._get(iri[len(ns_iri):])
+            ns_iri = "/".join(str(iri).split("/")[:-1]) + "/"
+        return str(ns_iri), rdflib.URIRef(ns_iri)
+
+    def _get_reference_by_label(self, ns_iri):
+        """Check for given namespace iri whether the entities in this namespace
+        should be referenced by label when accessing them through python
+        code
+
+        Args:
+            ns_iri (URIRef): The IRI of the namespace
+
+        Returns:
+            bool: Whether entities should be referenced by label
+        """
+        return (
+            ns_iri, rdflib_cuba._reference_by_label, rdflib.Literal(True)
+        ) in self._graph
+
+    def _get_entity_name(self, entity_iri, ns_iri):
+        """Get the name of the given entity. The name depends whether
+        the namespace references the entities by label or iri suffix.
+
+        Args:
+            entity_iri (URIRef): The IRI of the entity
+            ns_iri (URIRef): The IRI of the namespace
+
+        Returns:
+            str: The name of the entity with the given IRI
+        """
+        if self._get_reference_by_label(ns_iri):
+            return self._graph.value(entity_iri, rdflib.RDFS.label).toPython()
+        return entity_iri[len(ns_iri):]
 
     def clear(self):
         """Clear the loaded Graph and load cuba only.
