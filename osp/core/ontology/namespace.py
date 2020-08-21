@@ -1,9 +1,6 @@
 import rdflib
 import logging
 
-from osp.core.ontology.oclass import OntologyClass
-from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
@@ -16,11 +13,9 @@ class OntologyNamespace():
         self._name = name
         self._namespace_registry = namespace_registry
         self._iri = rdflib.URIRef(str(iri))
-        self._label_cache = dict()
         self._default_rel = -1
-        self._reference_by_label = (
-            self._iri, rdflib_cuba._reference_by_label, rdflib.Literal(True)
-        ) in self._graph
+        self._reference_by_label = \
+            namespace_registry._get_reference_by_label(self._iri)
 
     def __str__(self):
         return "%s (%s)" % (self._name, self._iri)
@@ -82,8 +77,6 @@ class OntologyNamespace():
             label = rdflib.term.Literal(label, lang="en")
         if isinstance(label, tuple):
             label = rdflib.term.Literal(label[0], lang=label[1])
-        if label in self._label_cache:
-            return self._label_cache[label]
         result = list()
         for s, p, o in self._graph.triples((None, rdflib.RDFS.label, label)):
             if str(s).startswith(self._iri):  # TODO more efficient
@@ -94,7 +87,6 @@ class OntologyNamespace():
         if not result:
             raise KeyError("No element with label %s in namespace %s"
                            % (label, self))
-        self._label_cache[label] = result
         return result
 
     def __getstate__(self):
@@ -146,21 +138,10 @@ class OntologyNamespace():
             return self[name][0]
         iri_suffix = name if not _force_by_iri else _force_by_iri
         iri = rdflib.URIRef(str(self._iri) + iri_suffix)
-        if name is None and _force_by_iri:
-            name = str(self._graph.value(iri, rdflib.RDFS.label))
-        for s, p, o in self._graph.triples((iri, rdflib.RDF.type, None)):
-            if o == rdflib.OWL.DatatypeProperty:
-                # assert (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty)
-                #     in self._graph  # TODO allow non functional attributes
-                return OntologyAttribute(self, name, iri_suffix)
-            if o == rdflib.OWL.ObjectProperty:
-                return OntologyRelationship(self, name, iri_suffix)
-            if o == rdflib.OWL.Class:
-                return OntologyClass(self, name, iri_suffix)
-        if _case_sensitive:
-            raise KeyError(
-                f"Unknown entity '{name}' in namespace {self._name}"
-            )
+        try:
+            return self._namespace_registry.from_iri(iri, _name=name)
+        except ValueError:
+            return self._get_case_insensitive(name)
         return self._get_case_insensitive(name)
 
     def _get_case_insensitive(self, name):

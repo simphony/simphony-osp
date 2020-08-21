@@ -7,8 +7,8 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyClass(OntologyEntity):
-    def __init__(self, namespace, name, iri_suffix):
-        super().__init__(namespace, name, iri_suffix)
+    def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
+        super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
         logger.debug("Created ontology class %s" % self)
 
     @property
@@ -41,7 +41,7 @@ class OntologyClass(OntologyEntity):
         Returns:
             Dict[OntologyAttribute, str]: Mapping from attribute to default
         """
-        graph = self._namespace._graph
+        graph = self._namespace_registry._graph
         attributes = dict()
         # Case 1: domain of Datatype
         triple = (None, rdflib.RDFS.domain, iri)
@@ -49,7 +49,7 @@ class OntologyClass(OntologyEntity):
             triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
             if triple in graph \
                     and not isinstance(a_iri, rdflib.BNode):
-                a = self.namespace._namespace_registry.from_iri(a_iri)
+                a = self._namespace_registry.from_iri(a_iri)
                 attributes[a] = self._get_default(a_iri, iri)
 
         # Case 2: restrictions
@@ -60,7 +60,7 @@ class OntologyClass(OntologyEntity):
                 triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
                 if triple in graph \
                         and not isinstance(a_iri, rdflib.BNode):
-                    a = self.namespace._namespace_registry.from_iri(a_iri)
+                    a = self._namespace_registry.from_iri(a_iri)
                     attributes[a] = self._get_default(a_iri, iri)
         # TODO more cases
         return attributes
