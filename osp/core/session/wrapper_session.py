@@ -1,5 +1,6 @@
 import uuid
 import logging
+import rdflib
 from abc import abstractmethod
 from osp.core.session.session import Session
 from osp.core.session.result import returns_query_result
@@ -232,8 +233,8 @@ class WrapperSession(Session):
             self.refresh(cuds_object)
         if cuds_object.uid not in self._registry and cuds_object._stored:
             cuds_object._neighbors = dict()
-            cuds_object._attr_values = dict()
-            cuds_object._onto_attributes = dict()
+            cuds_object._graph = rdflib.Graph()
+            cuds_object._stored = False
 
     def _expire(self, uids):
         """Expire the given uids

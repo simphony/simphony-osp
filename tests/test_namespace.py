@@ -257,7 +257,6 @@ class TestNamespaces(unittest.TestCase):
 
         # reference by label
         namespace._reference_by_label = True
-        namespace._label_cache = dict()
         # dot
         self.assertIsInstance(namespace.City_T, OntologyClass)
         self.assertEqual(namespace.City_T.name, "City_T")
@@ -358,6 +357,79 @@ class TestNamespaces(unittest.TestCase):
         self.assertIn(namespace.City, entities)
         self.assertIn(namespace.name, entities)
         self.assertEqual(len(entities), 32)
+
+    def test_get_namespace_from_iri(self):
+        self.installer.install("city")
+        ns_iri = rdflib.URIRef("http://www.osp-core.com/city#")
+        namespace = self.namespace_registry.namespace_from_iri(ns_iri)
+        self.assertEqual(namespace.get_name(), "city")
+        self.assertEqual(namespace.get_iri(), ns_iri)
+        ns_iri = rdflib.URIRef("http://www.random_namespace.com#")
+        namespace = self.namespace_registry.namespace_from_iri(ns_iri)
+        self.assertEqual(namespace.get_name(),
+                         "http://www.random_namespace.com#")
+        self.assertEqual(namespace.get_iri(), ns_iri)
+
+    def test_get_namespace_name_and_iri(self):
+        self.installer.install("city")
+        self.assertEqual(
+            self.namespace_registry._get_namespace_name_and_iri(
+                rdflib.URIRef("http://www.osp-core.com/city#City")
+            ),
+            ("city", rdflib.URIRef("http://www.osp-core.com/city#"))
+        )
+        self.assertEqual(
+            self.namespace_registry._get_namespace_name_and_iri(
+                rdflib.URIRef("http://www.random_namespace.com#Bla")
+            ),
+            ("http://www.random_namespace.com#",
+             rdflib.URIRef("http://www.random_namespace.com#"))
+        )
+        self.assertEqual(
+            self.namespace_registry._get_namespace_name_and_iri(
+                rdflib.URIRef("http://www.random_namespace.com/Bla")
+            ),
+            ("http://www.random_namespace.com/",
+             rdflib.URIRef("http://www.random_namespace.com/"))
+        )
+
+    def test_get_reference_by_label(self):
+        self.installer.install("city")
+        ns_iri = rdflib.URIRef("http://www.osp-core.com/city#")
+        self.assertFalse(
+            self.namespace_registry._get_reference_by_label(ns_iri)
+        )
+
+        self.graph.add((
+            ns_iri,
+            rdflib_cuba._reference_by_label,
+            rdflib.Literal(True)
+        ))
+
+        self.assertTrue(
+            self.namespace_registry._get_reference_by_label(ns_iri)
+        )
+
+    def test_get_entity_name(self):
+        self.installer.install("city")
+        self.modify_labels()
+        ns_iri = rdflib.URIRef("http://www.osp-core.com/city#")
+        iri = rdflib.URIRef("http://www.osp-core.com/city#City")
+        self.assertEqual(
+            self.namespace_registry._get_entity_name(iri, ns_iri),
+            "City"
+        )
+
+        self.graph.add((
+            ns_iri,
+            rdflib_cuba._reference_by_label,
+            rdflib.Literal(True)
+        ))
+
+        self.assertEqual(
+            self.namespace_registry._get_entity_name(iri, ns_iri),
+            "City_T"
+        )
 
 
 if __name__ == "__main__":

@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyRelationship(OntologyEntity):
-    def __init__(self, namespace, name, iri_suffix):
-        super().__init__(namespace, name, iri_suffix)
+    def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
+        super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
         logger.debug("Create ontology object property %s" % self)
 
     @property
@@ -23,9 +23,9 @@ class OntologyRelationship(OntologyEntity):
         triple1 = (self.iri, rdflib.OWL.inverseOf, None)
         triple2 = (None, rdflib.OWL.inverseOf, self.iri)
         for _, _, o in self.namespace._graph.triples(triple1):
-            return self.namespace._namespace_registry.from_iri(o)
+            return self._namespace_registry.from_iri(o)
         for s, _, _ in self.namespace._graph.triples(triple2):
-            return self.namespace._namespace_registry.from_iri(s)
+            return self._namespace_registry.from_iri(s)
         return self._add_inverse()
 
     def _direct_superclasses(self):
@@ -80,4 +80,4 @@ class OntologyRelationship(OntologyEntity):
             self.namespace._graph.add((
                 o, rdflib.RDFS.subPropertyOf, superclass.inverse.iri
             ))
-        return self.namespace._namespace_registry.from_iri(o)
+        return self._namespace_registry.from_iri(o)
