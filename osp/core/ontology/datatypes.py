@@ -145,8 +145,8 @@ def get_python_datatype(rdf_datatype):
     """
     if rdf_datatype in RDF_DATATYPES:
         return RDF_DATATYPES[rdf_datatype]
-    str_prefix = str(rdflib_cuba["_datatypes/STRING-"])
-    vec_prefix = str(rdflib_cuba["_datatypes/VECTOR-"])
+    str_prefix = str(rdflib_cuba["datatypes/STRING-"])
+    vec_prefix = str(rdflib_cuba["datatypes/VECTOR-"])
     if str(rdf_datatype).startswith(str_prefix):
         maxsize = int(str(rdf_datatype)[len(str_prefix):])
         return (lambda x: to_string(x, maxsize=maxsize), str, np.dtype("str"))
@@ -223,7 +223,7 @@ def _add_string_datatype(graph, length):
     Returns:
         URIRef: The iri of the new datatype
     """
-    iri = rdflib_cuba[f"_datatypes/STRING-{length}"]
+    iri = rdflib_cuba[f"datatypes/STRING-{length}"]
     triple = (iri, rdflib.RDF.type, rdflib.RDFS.Datatype)
     if graph is None or triple in graph:
         return iri
@@ -246,7 +246,7 @@ def _add_vector_datatype(graph, shape, dtype):
         [type]: [description]
     """
     shape = list(map(int, shape))
-    iri = rdflib_cuba[f"_datatypes/VECTOR-{dtype}-"
+    iri = rdflib_cuba[f"datatypes/VECTOR-{dtype}-"
                       + "-".join(map(str, shape))]
     triple = (iri, rdflib.RDF.type, rdflib.RDFS.Datatype)
     if graph is None or triple in graph:

@@ -45,6 +45,7 @@ setup(
         "requests",
         "numpy",
         "graphviz",
+        "owlready2",
         "rdflib"
     ],
     setup_requires=[
@@ -53,6 +54,7 @@ setup(
         "requests",
         "numpy",
         "graphviz",
+        "owlready2",
         "rdflib"
     ]
 )

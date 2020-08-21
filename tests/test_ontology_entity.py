@@ -92,7 +92,7 @@ class TestOntologyEntity(unittest.TestCase):
             (city.coordinates.iri, rdflib.RDF.type,
              rdflib.OWL.FunctionalProperty),
             (city.coordinates.iri, rdflib.RDFS.range,
-             rdflib_cuba["_datatypes/VECTOR-INT-2"])
+             rdflib_cuba["datatypes/VECTOR-INT-2"])
         })
 
     def test_transitive_hull(self):
@@ -180,13 +180,6 @@ class TestOntologyEntity(unittest.TestCase):
              city.coordinates: [1, 1]}
         )
 
-    def test_get_attribute_by_argname(self):
-        self.assertEqual(city.City.get_attribute_by_argname("name"), city.name)
-        self.assertEqual(city.City.get_attribute_by_argname("coordinates"),
-                         city.coordinates)
-        self.assertEqual(city.City.get_attribute_by_argname("invalid"),
-                         None)
-
     def test_oclass_call(self):
         c = city.City(name="Freiburg")
         self.assertEqual(c.name, "Freiburg")
@@ -214,7 +207,7 @@ class TestOntologyEntity(unittest.TestCase):
     def test_attribute_datatype(self):
         self.assertEqual(city.name.datatype, None)
         self.assertEqual(city.coordinates.datatype,
-                         rdflib_cuba["_datatypes/VECTOR-INT-2"])
+                         rdflib_cuba["datatypes/VECTOR-INT-2"])
         self.assertEqual(cuba.attribute.datatype, None)
         self.assertEqual(city.name.convert_to_datatype("abc"), "abc")
         self.assertEqual(city.name.convert_to_datatype(12.3), "12.3")

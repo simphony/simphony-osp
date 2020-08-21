@@ -7,8 +7,8 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyClass(OntologyEntity):
-    def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
-        super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
+    def __init__(self, namespace, name, iri_suffix):
+        super().__init__(namespace, name, iri_suffix)
         logger.debug("Created ontology class %s" % self)
 
     @property
@@ -41,7 +41,7 @@ class OntologyClass(OntologyEntity):
         Returns:
             Dict[OntologyAttribute, str]: Mapping from attribute to default
         """
-        graph = self._namespace_registry._graph
+        graph = self._namespace._graph
         attributes = dict()
         # Case 1: domain of Datatype
         triple = (None, rdflib.RDFS.domain, iri)
@@ -49,7 +49,7 @@ class OntologyClass(OntologyEntity):
             triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
             if triple in graph \
                     and not isinstance(a_iri, rdflib.BNode):
-                a = self._namespace_registry.from_iri(a_iri)
+                a = self.namespace._namespace_registry.from_iri(a_iri)
                 attributes[a] = self._get_default(a_iri, iri)
 
         # Case 2: restrictions
@@ -60,7 +60,7 @@ class OntologyClass(OntologyEntity):
                 triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
                 if triple in graph \
                         and not isinstance(a_iri, rdflib.BNode):
-                    a = self._namespace_registry.from_iri(a_iri)
+                    a = self.namespace._namespace_registry.from_iri(a_iri)
                     attributes[a] = self._get_default(a_iri, iri)
         # TODO more cases
         return attributes
@@ -82,30 +82,6 @@ class OntologyClass(OntologyEntity):
             if x in self.namespace._graph:
                 return self.namespace._graph.value(bnode,
                                                    rdflib_cuba._default_value)
-
-    def get_attribute_by_argname(self, name):
-        """Get the attribute object with the argname of the object.
-
-        Args:
-            name (str): The argname of the attribute
-
-        Returns:
-            OntologyAttribute: The attribute
-        """
-        for attribute in self.attributes:
-            if attribute.argname == name:
-                return attribute
-            elif attribute.argname.lower() == name:
-                logger.warning(
-                    f"Attribute {attribute.argname} is referenced "
-                    f"with '{attribute.argname.lower()}'. "
-                    f"Note that you must match the case of the definition in "
-                    f"the ontology in future releases. Additionally, entity "
-                    f"names defined in YAML ontology are no longer required "
-                    f"to be ALL_CAPS. You can use the yaml2camelcase "
-                    f"commandline tool to transform entity names to CamelCase."
-                )
-                return attribute
 
     def _get_attributes_values(self, kwargs, _force):
         """Get the cuds object's attributes from the given kwargs.

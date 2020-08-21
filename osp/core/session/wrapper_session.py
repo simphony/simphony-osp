@@ -1,6 +1,5 @@
 import uuid
 import logging
-import rdflib
 from abc import abstractmethod
 from osp.core.session.session import Session
 from osp.core.session.result import returns_query_result
@@ -123,7 +122,7 @@ class WrapperSession(Session):
             triple
             for cuds_object in find_cuds_object(lambda x: True,
                                                 self._registry.get(self.root),
-                                                cuba.relationship,
+                                                cuba.Relationship,
                                                 True)
             for triple in cuds_object.get_triples()
         ]
@@ -233,8 +232,8 @@ class WrapperSession(Session):
             self.refresh(cuds_object)
         if cuds_object.uid not in self._registry and cuds_object._stored:
             cuds_object._neighbors = dict()
-            cuds_object._graph = rdflib.Graph()
-            cuds_object._stored = False
+            cuds_object._attr_values = dict()
+            cuds_object._onto_attributes = dict()
 
     def _expire(self, uids):
         """Expire the given uids

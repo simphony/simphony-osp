@@ -69,8 +69,8 @@ class TestYmlParser(unittest.TestCase):
         self.parser._set_datatype(x, self.ontology_doc[x])
         self.assertEqual(set(self.graph), {
             (self.parser._get_iri(x), rdflib.RDFS.range,
-             rdflib_cuba["_datatypes/VECTOR-INT-2-2"]),
-            (rdflib_cuba["_datatypes/VECTOR-INT-2-2"], rdflib.RDF.type,
+             rdflib_cuba["datatypes/VECTOR-INT-2-2"]),
+            (rdflib_cuba["datatypes/VECTOR-INT-2-2"], rdflib.RDF.type,
              rdflib.RDFS.Datatype)})
 
     def test_check_default_rel_flag_on_entity(self):

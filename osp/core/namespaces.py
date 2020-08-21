@@ -1,6 +1,5 @@
 import os as _os
 import logging as _logging
-import rdflib
 from osp.core.ontology.namespace_registry import NamespaceRegistry \
     as _NamespaceRegistry
 
@@ -26,11 +25,8 @@ def get_entity(name):
     return _namespace_registry._get(ns)._get(n)
 
 
-def from_iri(iri, raise_error=True,
-             allow_types=frozenset({rdflib.OWL.DatatypeProperty,
-                                    rdflib.OWL.ObjectProperty,
-                                    rdflib.OWL.Class})):
-    return _namespace_registry.from_iri(iri, raise_error, allow_types)
+def from_iri(iri):
+    return _namespace_registry.from_iri(iri)
 
 
 def __getattr__(name):

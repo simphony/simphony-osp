@@ -4,7 +4,6 @@ import rdflib
 import logging
 
 from typing import Union, List, Iterator, Dict, Any
-from osp.core.namespaces import from_iri
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
@@ -56,20 +55,16 @@ class Cuds():
             ValueError: Uid of zero is not allowed.
         """
         self._stored = False
-        self._session = session or Cuds._session
-        self._graph = rdflib.Graph()
+        self._attr_values = {k.argname: k.convert_to_datatype(v)
+                             for k, v in attributes.items()}
+        self._neighbors = NeighborDictRel({}, self)
+
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         if self.__uid.int == 0:
             raise ValueError("Invalid UUID")
-
-        for k, v in attributes.items():
-            self._graph.add((
-                self.iri, k.iri, rdflib.Literal(k.convert_to_datatype(v))
-            ))
-        self._graph.add((
-            self.iri, rdflib.RDF.type, oclass.iri
-        ))
-        self._neighbors = NeighborDictRel({}, self)
+        self._session = session or Cuds._session
+        self._onto_attributes = {k.argname: k for k in attributes}
+        self._oclass = oclass
         self.session._store(self)
         self._stored = True
 
@@ -89,20 +84,9 @@ class Cuds():
         return self._session
 
     @property
-    def oclasses(self):
-        """The ontology classes of this CUDS object"""
-        result = list()
-        for s, p, o in self._graph.triples((self.iri, rdflib.RDF.type, None)):
-            result.append(from_iri(o))
-        return result
-
-    @property
     def oclass(self):
         """The type of the cuds object"""
-        oclasses = self.oclasses
-        if oclasses:
-            return oclasses[0]
-        return None
+        return self._oclass
 
     def get_triples(self):
         """ Get the triples of the cuds object."""
@@ -119,13 +103,10 @@ class Cuds():
 
     def get_attributes(self):
         """Get the attributes as a dictionary"""
-        if self.session:
-            self.session._notify_read(self)
         result = {}
-        for s, p, o in self._graph.triples((self.iri, None, None)):
-            obj = from_iri(p, raise_error=False)
-            if isinstance(obj, OntologyAttribute):
-                result[obj] = o.toPython()
+        for attribute in self.oclass.attributes:
+            if hasattr(self, attribute.argname):
+                result[attribute] = getattr(self, attribute.argname)
         return result
 
     def is_a(self, oclass):
@@ -806,12 +787,7 @@ class Cuds():
         Returns:
             The value of the attribute: Any
         """
-        try:
-            attr = self.oclass.get_attribute_by_argname(name)
-            if self.session:
-                self.session._notify_read(self)
-            return self._graph.value(self.iri, attr.iri).toPython()
-        except AttributeError as e:
+        if name not in self._attr_values:
             if (  # check if user calls session's methods on wrapper
                 self.is_a(cuba.Wrapper)
                 and self._session is not None
@@ -823,7 +799,23 @@ class Cuds():
                     "its session '%s' instead." % (name, self, self._session)
                 )
                 return getattr(self._session, name)
-            raise AttributeError(name) from e
+            elif name.upper() in self._attr_values:
+                logger.warning(
+                    f"{name.upper()} is referenced with '{name}'. "
+                    f"Note that you must match the case of the definition in "
+                    f"the ontology in future releases. Additionally, entity "
+                    f"names defined in YAML ontology are no longer required "
+                    f"to be ALL_CAPS. You can use the yaml2camelcase "
+                    f"commandline tool to transform entity names to CamelCase."
+                )
+                return self._attr_values[name.upper()]
+            else:
+                raise AttributeError(name)
+        if self.session:
+            self.session._notify_read(self)
+        if name not in self._attr_values:
+            raise AttributeError(name)
+        return self._attr_values[name]
 
     def __setattr__(self, name, new_value):
         """
@@ -841,13 +833,24 @@ class Cuds():
         if name.startswith("_"):
             super().__setattr__(name, new_value)
             return
-        attr = self.oclass.get_attribute_by_argname(name)
+        if name not in self._attr_values:
+            if name.upper() in self._attr_values:
+                logger.warning(
+                    f"{name.upper()} is referenced with '{name}'. "
+                    f"Note that you must match the case of the definition in "
+                    f"the ontology in future releases. Additionally, entity "
+                    f"names defined in YAML ontology are no longer required "
+                    f"to be ALL_CAPS. You can use the yaml2camelcase "
+                    f"commandline tool to transform entity names to CamelCase."
+                )
+                return self._attr_values[name.upper()]
+            raise AttributeError(name)
         if self.session:
             self.session._notify_read(self)
-        self._graph.set((
-            self.iri, attr.iri,
-            rdflib.Literal(attr.convert_to_datatype(new_value))
-        ))
+        if name not in self._attr_values:
+            raise AttributeError(name)
+        self._attr_values[name] = \
+            self._onto_attributes[name].convert_to_datatype(new_value)
         if self.session:
             self.session._notify_update(self)
 
@@ -899,7 +902,9 @@ class Cuds():
         """
 
         state = {k: v for k, v in self.__dict__.items()
-                 if k not in {"_session", "_neighbors", "_stored", "_graph"}}
+                 if k not in {"_session", "_oclass", "_values",
+                              "_onto_attributes", "_stored"}}
+        state["_oclass"] = (self.oclass.namespace._name, self._oclass.name)
         state["_neighbors"] = [
             (k.namespace._name, k.name, [
                 (uid, vv.namespace._name, vv.name)
@@ -907,7 +912,8 @@ class Cuds():
             ])
             for k, v in self._neighbors.items()
         ]
-        state["_graph"] = list(self._graph.triples((self.iri, None, None)))
+        state["_onto_attributes"] = [(k, v.namespace._name, v.name)
+                                     for k, v in self._onto_attributes.items()]
         return state
 
     def __setstate__(self, state):
@@ -919,6 +925,9 @@ class Cuds():
                 session. Contains the string of the OntologyClass.
         """
 
+        namespace, oclass = state["_oclass"]
+        oclass = _namespace_registry[namespace].get(oclass)
+        state["_oclass"] = oclass
         state["_session"] = None
         state["_neighbors"] = NeighborDictRel({
             _namespace_registry[ns].get(cl):
@@ -928,9 +937,9 @@ class Cuds():
                 }, self, _namespace_registry[ns].get(cl))
             for ns, cl, v in state["_neighbors"]
         }, self)
-        g = rdflib.Graph()
-        for triple in state["_graph"]:
-            g.add(triple)
-        state["_graph"] = g
+        state["_onto_attributes"] = {
+            k: _namespace_registry[ns].get(cl)
+            for k, ns, cl in state["_onto_attributes"]
+        }
         state["_stored"] = False
         self.__dict__ = state
