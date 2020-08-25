@@ -63,7 +63,8 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
             + " |_Relationship %s:" % relationship
         sorted_elements = sorted(
             cuds_object.iter(rel=relationship, return_rel=True),
-            key=lambda x: str(x[0].oclass)
+            key=lambda x: (str(x[0].oclass), str(x[1]),
+                           x[0].name if hasattr(x[0], "name") else False)
         )
         for j, (element, rel) in enumerate(sorted_elements):
             if rel != relationship:
@@ -103,7 +104,9 @@ def _pp_values(cuds_object, indentation="\n          "):
     :rtype: [type]
     """
     result = []
-    for attribute, value in cuds_object.get_attributes().items():
+    sorted_attributes = sorted(cuds_object.get_attributes().items(),
+                               key=lambda x: (str(x[0]), str(x[1])))
+    for attribute, value in sorted_attributes:
         if attribute.argname != "name":
             result.append("%s: %s" % (attribute.argname, value))
     if result:

@@ -1,7 +1,10 @@
 import requests
 import json
 import rdflib
+import uuid
 from osp.core.namespaces import cuba
+
+CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds/#"
 
 
 def branch(cuds_object, *args, rel=None):
@@ -75,6 +78,29 @@ def get_rdf_graph(session=None, skip_custom_datatypes=False):
         return result - get_custom_datatype_triples()
     return result
 
+
+def iri_from_uid(uid):
+    """Transform a UUID to an IRI.
+
+    Args:
+        uid (UUID): The UUID to transform.
+
+    Returns:
+        URIRef: The IRI of the CUDS object with the given UUID.
+    """
+    return rdflib.URIRef(CUDS_IRI_PREFIX + str(uid))
+
+
+def uid_from_iri(iri):
+    """Transform an IRI to a UUID.
+
+    Args:
+        uid (UUID): The UUID to transform.
+
+    Returns:
+        URIRef: The IRI of the CUDS object with the given UUID.
+    """
+    return uuid.UUID(hex=str(iri)[len(CUDS_IRI_PREFIX):])
 
 def get_custom_datatypes():
     from osp.core.ontology.cuba import rdflib_cuba

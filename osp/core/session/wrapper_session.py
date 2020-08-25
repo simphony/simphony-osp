@@ -232,7 +232,7 @@ class WrapperSession(Session):
         if cuds_object.uid in self._expired:
             self.refresh(cuds_object)
         if cuds_object.uid not in self._registry and cuds_object._stored:
-            cuds_object._neighbors = dict()
+            cuds_object._rel_graph = rdflib.Graph()
             cuds_object._graph = rdflib.Graph()
             cuds_object._stored = False
 

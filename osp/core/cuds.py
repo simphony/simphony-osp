@@ -14,7 +14,7 @@ from osp.core.session.core_session import CoreSession
 from osp.core.session.session import Session
 from osp.core.neighbor_dict import NeighborDictRel, NeighborDictTarget
 from osp.core.utils import check_arguments, clone_cuds_object, \
-    create_from_cuds_object, get_neighbor_diff
+    create_from_cuds_object, get_neighbor_diff, iri_from_uid
 from osp.core.namespaces import cuba, _namespace_registry
 
 logger = logging.getLogger("osp.core")
@@ -58,6 +58,7 @@ class Cuds():
         self._stored = False
         self._session = session or Cuds._session
         self._graph = rdflib.Graph()
+        self._rel_graph = rdflib.Graph()
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         if self.__uid.int == 0:
             raise ValueError("Invalid UUID")
@@ -69,7 +70,6 @@ class Cuds():
         self._graph.add((
             self.iri, rdflib.RDF.type, oclass.iri
         ))
-        self._neighbors = NeighborDictRel({}, self)
         self.session._store(self)
         self._stored = True
 
@@ -81,7 +81,7 @@ class Cuds():
     @property
     def iri(self):
         """Get the IRI of the CUDS object"""
-        return self._iri_from_uid(self.uid)
+        return iri_from_uid(self.uid)
 
     @property
     def session(self):
@@ -104,10 +104,14 @@ class Cuds():
             return oclasses[0]
         return None
 
+    @property
+    def _neighbors(self):
+        return NeighborDictRel(self)
+
     def get_triples(self):
         """ Get the triples of the cuds object."""
         return [
-            (self.iri, relationship.iri, self._iri_from_uid(uid))
+            (self.iri, relationship.iri, iri_from_uid(uid))
             for uid, relationships in self._get(return_mapping=True)[1].items()
             for relationship in relationships
         ] + [
@@ -774,17 +778,6 @@ class Cuds():
     def _check_valid_add(self, to_add, rel):
         return True  # TODO
 
-    def _iri_from_uid(self, uid):
-        """Transform a UUID to an IRI.
-
-        Args:
-            uid (UUID): The UUID to trasnform.
-
-        Returns:
-            URIRef: The IRI of the CUDS object with the given UUID.
-        """
-        return rdflib.URIRef("http://www.osp-core.com/cuds/#%s" % uid)
-
     def __str__(self) -> str:
         """
         Get a human readable string.
@@ -899,15 +892,9 @@ class Cuds():
         """
 
         state = {k: v for k, v in self.__dict__.items()
-                 if k not in {"_session", "_neighbors", "_stored", "_graph"}}
-        state["_neighbors"] = [
-            (k.namespace._name, k.name, [
-                (uid, vv.namespace._name, vv.name)
-                for uid, vv in v.items()
-            ])
-            for k, v in self._neighbors.items()
-        ]
-        state["_graph"] = list(self._graph.triples((self.iri, None, None)))
+                 if k not in {"_session", "_stored", "_graph"}}
+        state["_graph"] = list(self._graph.triples((None, None, None)))
+        state["_rel_graph"] = list(self._rel_graph.triples((None, None, None)))
         return state
 
     def __setstate__(self, state):
@@ -920,17 +907,11 @@ class Cuds():
         """
 
         state["_session"] = None
-        state["_neighbors"] = NeighborDictRel({
-            _namespace_registry[ns].get(cl):
-                NeighborDictTarget({
-                    uid: _namespace_registry[ns2].get(cl2)
-                    for uid, ns2, cl2 in v
-                }, self, _namespace_registry[ns].get(cl))
-            for ns, cl, v in state["_neighbors"]
-        }, self)
-        g = rdflib.Graph()
+        g1, g2 = rdflib.Graph(), rdflib.Graph()
         for triple in state["_graph"]:
-            g.add(triple)
-        state["_graph"] = g
+            g1.add(triple)
+        for triple in state["_rel_graph"]:
+            g2.add(triple)
+        state["_graph"], state["_rel_graph"] = g1, g2
         state["_stored"] = False
         self.__dict__ = state
