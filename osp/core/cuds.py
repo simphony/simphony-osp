@@ -15,7 +15,7 @@ from osp.core.session.session import Session
 from osp.core.neighbor_dict import NeighborDictRel, NeighborDictTarget
 from osp.core.utils import check_arguments, clone_cuds_object, \
     create_from_cuds_object, get_neighbor_diff, iri_from_uid
-from osp.core.namespaces import cuba, _namespace_registry
+from osp.core.namespaces import cuba
 
 logger = logging.getLogger("osp.core")
 

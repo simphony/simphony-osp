@@ -102,6 +102,7 @@ def uid_from_iri(iri):
     """
     return uuid.UUID(hex=str(iri)[len(CUDS_IRI_PREFIX):])
 
+
 def get_custom_datatypes():
     from osp.core.ontology.cuba import rdflib_cuba
     from osp.core.namespaces import _namespace_registry
