@@ -83,7 +83,7 @@ class NeighborDict(ABC):
 
     @property
     def graph(self):
-        return self.cuds_object._rel_graph
+        return self.cuds_object._graph
 
     @abstractmethod
     def _delitem(self, key):
@@ -120,11 +120,11 @@ class NeighborDictRel(NeighborDict):
         return NeighborDictTarget({}, cuds_object=self.cuds_object, rel=rel)
 
     def __bool__(self):
-        try:
-            next(self.graph.triples((self.cuds_object.iri, None, None)))
-            return True
-        except StopIteration:
-            return False
+        for s, p, o in self.graph.triples((self.cuds_object.iri, None, None)):
+            if (p, rdflib.RDF.type, rdflib.OWL.ObjectProperty) in \
+                    _namespace_registry._graph:
+                return True
+        return False
 
     def _iter(self):
         predicates = set([

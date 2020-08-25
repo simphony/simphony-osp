@@ -50,9 +50,9 @@ CUDS_DICT = {
         "age": 23
     },
     "relationships": {
-        "city.INVERSE_OF_hasInhabitant": {str(uuid.UUID(int=1)): "city.City"},
-        "city.hasChild": {str(uuid.UUID(int=2)): "city.Person",
-                          str(uuid.UUID(int=3)): "city.Person"}
+        "city.INVERSE_OF_hasInhabitant": {str(uuid.UUID(int=2)): "city.City"},
+        "city.hasChild": {str(uuid.UUID(int=3)): "city.Person",
+                          str(uuid.UUID(int=4)): "city.Person"}
     }
 }
 

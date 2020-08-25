@@ -58,7 +58,6 @@ class Cuds():
         self._stored = False
         self._session = session or Cuds._session
         self._graph = rdflib.Graph()
-        self._rel_graph = rdflib.Graph()
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
         if self.__uid.int == 0:
             raise ValueError("Invalid UUID")
@@ -894,7 +893,6 @@ class Cuds():
         state = {k: v for k, v in self.__dict__.items()
                  if k not in {"_session", "_stored", "_graph"}}
         state["_graph"] = list(self._graph.triples((None, None, None)))
-        state["_rel_graph"] = list(self._rel_graph.triples((None, None, None)))
         return state
 
     def __setstate__(self, state):
@@ -907,11 +905,9 @@ class Cuds():
         """
 
         state["_session"] = None
-        g1, g2 = rdflib.Graph(), rdflib.Graph()
+        g = rdflib.Graph()
         for triple in state["_graph"]:
-            g1.add(triple)
-        for triple in state["_rel_graph"]:
-            g2.add(triple)
-        state["_graph"], state["_rel_graph"] = g1, g2
+            g.add(triple)
+        state["_graph"] = g
         state["_stored"] = False
         self.__dict__ = state
