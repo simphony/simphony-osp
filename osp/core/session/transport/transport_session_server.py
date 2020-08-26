@@ -15,9 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class TransportSessionServer():
-    """The TransportSession implements the transport layer. It consists of a
+    """The TransportSession implements the transport layer.
+
+    It consists of a
     client and a server. The server runs on the remote part and delegates each
-    request to the session it wraps."""
+    request to the session it wraps.
+    """
 
     def __init__(self, session_cls, host, port,
                  session_kwargs=None, file_destination=None,
@@ -57,11 +60,11 @@ class TransportSessionServer():
             os.mkdir(self._file_destination)
 
     def startListening(self):
-        """Start the server"""
+        """Start the server."""
         self.com_facility.startListening()
 
     def handle_disconnect(self, connection_id):
-        """A user has disconnected. Close and delete his session
+        """A user has disconnected. Close and delete his session.
 
         :param connection_id: The connection that has disconnected.
         :type connection_id: Hashable

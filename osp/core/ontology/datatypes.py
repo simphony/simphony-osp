@@ -49,7 +49,7 @@ def convert_from(x, rdf_datatype):
 
 
 def to_uuid(x):
-    """Convert given value to a UUID
+    """Convert given value to a UUID.
 
     Args:
         x (Any): The value to convert
@@ -132,7 +132,7 @@ RDF_DATATYPES = {
 
 
 def get_python_datatype(rdf_datatype):
-    """Get the python datatype for a given rdf datatype
+    """Get the python datatype for a given rdf datatype.
 
     Args:
         rdf_datatype (URIRef): The rdf datatype
@@ -168,7 +168,7 @@ YML_DATATYPES = {
 
 
 def get_rdflib_datatype(yml_datatype, graph=None):
-    """Get rdflib datatype from given YAML datatype
+    """Get rdflib datatype from given YAML datatype.
 
     Args:
         yml_datatype (str): YAMl datatype
@@ -190,7 +190,7 @@ def get_rdflib_datatype(yml_datatype, graph=None):
 
 
 def _parse_vector_args(args, return_yml_dtypes=False):
-    """Parse the YAML datatype description of a vector
+    """Parse the YAML datatype description of a vector.
 
     Args:
         args (str): The arguments of the vector
@@ -213,8 +213,7 @@ def _parse_vector_args(args, return_yml_dtypes=False):
 
 
 def _add_string_datatype(graph, length):
-    """Add a datatype to the graph refering to a string of a certian maximum
-    length,
+    """Add a custom string datatype to the graph refering.
 
     Args:
         graph (rdflib.Graph): The graph to add the datatype to
@@ -234,8 +233,7 @@ def _add_string_datatype(graph, length):
 
 
 def _add_vector_datatype(graph, shape, dtype):
-    """Add da datatype tp the graph for a vector with given element
-        datatype and shape
+    """Add custom vector datatype to the graph.
 
     Args:
         graph (rdflib.Graph): The graph to add the datatype to

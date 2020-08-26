@@ -21,7 +21,7 @@ class OntologyAttribute(OntologyEntity):
 
     @property
     def datatype(self):
-        """Get the datatype of the attribute
+        """Get the datatype of the attribute.
 
         Raises:
             RuntimeError: More than one datatype associated with the attribute.
@@ -44,7 +44,7 @@ class OntologyAttribute(OntologyEntity):
                            f" {datatypes}")
 
     def convert_to_datatype(self, value):
-        """Convert to the datatype of the value
+        """Convert to the datatype of the value.
 
         :param value: The value to convert
         :type value: Any
@@ -54,7 +54,7 @@ class OntologyAttribute(OntologyEntity):
         return convert_to(value, self.datatype)
 
     def convert_to_basic_type(self, value):
-        """Convert from the datatype of the value to a python basic type
+        """Convert from the datatype of the value to a python basic type.
 
         :param value: The value to convert
         :type value: Any

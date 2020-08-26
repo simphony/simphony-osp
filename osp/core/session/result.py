@@ -16,9 +16,7 @@ def returns_query_result(func):
 
 
 class QueryResult():
-    """
-    The result of a query in the session
-    """
+    """The result of a query in the session."""
 
     def __init__(self, session, result_iterator):
         self._iterator = EngineContextIterator(session, result_iterator)
@@ -39,7 +37,7 @@ class QueryResult():
         return other in self.all()
 
     def all(self):
-        """Returns all the elements in the result
+        """Returns all the elements in the result.
 
         :return: A list containing all elements in the result.
         :rtype: List[Cuds]
@@ -48,7 +46,7 @@ class QueryResult():
         return self._elements
 
     def first(self):
-        """Return the first element in the result
+        """Return the first element in the result.
 
         :return: The first element in the result
         :rtype: Cuds
@@ -62,6 +60,7 @@ class QueryResult():
 
     def one(self, raise_result_empty_error=True):
         """Get the first element in the result.
+
         Raise an error if
         1. The result contains more than one element
         2. The result does not contain any element

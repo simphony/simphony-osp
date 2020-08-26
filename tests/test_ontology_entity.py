@@ -1,3 +1,5 @@
+"""Test the OntologyEntity."""
+
 import unittest2 as unittest
 import rdflib
 import numpy as np
@@ -16,11 +18,15 @@ except ImportError:
 
 
 class TestOntologyEntity(unittest.TestCase):
+    """Test the OntologyEntity."""
+
     def test_str(self):
+        """Test conversion to string."""
         self.assertEqual(str(city.City), "city.City")
         self.assertEqual(repr(city.City), "<OntologyClass city.City>")
 
     def test_properties(self):
+        """Test the properties of the oclass."""
         self.assertEqual(
             city.City.iri,
             rdflib.term.URIRef('http://www.osp-core.com/city#City')
@@ -31,6 +37,7 @@ class TestOntologyEntity(unittest.TestCase):
         self.assertEqual(city.LivingBeing.description, "A being that lives")
 
     def test_subclass(self):
+        """Test the subclass method."""
         self.assertEqual(city.GeographicalPlace.subclasses, {
             city.GeographicalPlace, city.ArchitecturalStructure,
             city.PopulatedPlace, city.City, city.Neighborhood,
@@ -69,6 +76,7 @@ class TestOntologyEntity(unittest.TestCase):
         self.assertTrue(city.GeographicalPlace.is_superclass_of(city.City))
 
     def test_get_triples(self):
+        """Test the get_triples method."""
         self.assertEqual(set(city.City.get_triples()), {
             (city.City.iri, rdflib.RDFS.label, rdflib.term.Literal('City',
                                                                    lang='en')),
@@ -96,6 +104,7 @@ class TestOntologyEntity(unittest.TestCase):
         })
 
     def test_transitive_hull(self):
+        """Test the transitive_hull method."""
         self.assertEqual(set(
             city.PopulatedPlace._transitive_hull(rdflib.RDFS.subClassOf)),
             {city.GeographicalPlace, cuba.Class}
@@ -107,6 +116,7 @@ class TestOntologyEntity(unittest.TestCase):
         )
 
     def test_directly_connected(self):
+        """Test the _directly_connected method."""
         self.assertEqual(set(
             city.PopulatedPlace._directly_connected(rdflib.RDFS.subClassOf)),
             {city.GeographicalPlace}
@@ -118,6 +128,7 @@ class TestOntologyEntity(unittest.TestCase):
         )
 
     def test_oclass_attributes(self):
+        """Test the attributes of ontology classes."""
         self.assertEqual(city.City.attributes, {
             city.name: None,
             city.coordinates: rdflib.term.Literal('[0, 0]')
@@ -143,6 +154,7 @@ class TestOntologyEntity(unittest.TestCase):
         })
 
     def test_oclass_get_default(self):
+        """Test getting the default values of attributes."""
         self.assertEqual(city.City._get_default(city.name.iri, city.City.iri),
                          None)
         self.assertEqual(city.City._get_default(city.name.iri,
@@ -156,6 +168,7 @@ class TestOntologyEntity(unittest.TestCase):
                          rdflib.term.Literal('[0, 0]'))
 
     def test_get_attribute_values(self):
+        """Test getting the values of attributes."""
         self.assertRaises(TypeError, city.City._get_attributes_values,
                           kwargs={}, _force=False)
         self.assertRaises(TypeError, city.City._get_attributes_values,
@@ -179,6 +192,7 @@ class TestOntologyEntity(unittest.TestCase):
         )
 
     def test_get_attribute_by_argname(self):
+        """Test getting an attribute by the argument name."""
         self.assertEqual(city.City.get_attribute_by_argname("name"), city.name)
         self.assertEqual(city.City.get_attribute_by_argname("coordinates"),
                          city.coordinates)
@@ -186,6 +200,7 @@ class TestOntologyEntity(unittest.TestCase):
                          None)
 
     def test_oclass_call(self):
+        """Test calling an close to create CUDS."""
         c = city.City(name="Freiburg")
         self.assertEqual(c.name, "Freiburg")
         self.assertTrue(np.all(c.coordinates == np.array([0, 0])))
@@ -196,6 +211,7 @@ class TestOntologyEntity(unittest.TestCase):
         self.assertRaises(TypeError, city.City, name="Name", invalid="invalid")
 
     def test_rel_inverse(self):
+        """Test the inverse of relationships."""
         self.assertEqual(city.hasPart.inverse, city.isPartOf)
         self.assertEqual(city.isPartOf.inverse, city.hasPart)
         self.assertEqual(cuba.relationship.inverse, cuba.relationship)
@@ -210,6 +226,7 @@ class TestOntologyEntity(unittest.TestCase):
         self.assertEqual(city.INVERSE_OF_hasMajor.inverse, city.hasMajor)
 
     def test_attribute_datatype(self):
+        """Test the datatypes of the attributes."""
         self.assertEqual(city.name.datatype, None)
         self.assertEqual(city.coordinates.datatype,
                          rdflib_cuba["_datatypes/VECTOR-INT-2"])

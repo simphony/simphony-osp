@@ -135,7 +135,7 @@ class TestFiletransfer(unittest.TestCase):
             pass
 
     def test_move_files(self):
-        """Test moving the files"""
+        """Test moving the files."""
         with TransportSessionClient(SqliteSession, URI) as session:
             # Image path is full path
             wrapper = city.CityWrapper(session=session)
@@ -206,7 +206,7 @@ class TestFiletransfer(unittest.TestCase):
             self.assertEqual(result, list())
 
     def setup_buffers1(self, session):
-        """Helper fuction to set up the buffers for the methods below"""
+        """Helper fuction to set up the buffers for the methods below."""
         wrapper = city.CityWrapper(session=session)
         images = wrapper.add(
             city.Image(path=FILE_PATHS[0]),
@@ -221,7 +221,7 @@ class TestFiletransfer(unittest.TestCase):
         return images
 
     def test_serialize_buffers(self):
-        """Test correct handling of files when serializing the buffers"""
+        """Test correct handling of files when serializing the buffers."""
         # without providing target path
         with TransportSessionClient(SqliteSession, URI) as session:
             self.setup_buffers1(session)
@@ -249,7 +249,7 @@ class TestFiletransfer(unittest.TestCase):
             self.maxDiff = None
 
     def setup_buffers2(self, session):
-        """Helper function to setup the buffers for the methods below"""
+        """Helper function to setup the buffers for the methods below."""
         wrapper = city.CityWrapper(session=session, uid=42)
         images = wrapper.add(
             city.Image(path=FILE_PATHS[0], uid=1),
@@ -259,7 +259,7 @@ class TestFiletransfer(unittest.TestCase):
         return images
 
     def test_deserialize_buffers(self):
-        """Test correct file handling when deserializing buffers"""
+        """Test correct file handling when deserializing buffers."""
         with TransportSessionClient(SqliteSession, URI) as session:
             images = self.setup_buffers2(session)
             deserialize_buffers(session, buffer_context=BufferContext.USER,
@@ -281,7 +281,7 @@ class TestFiletransfer(unittest.TestCase):
                               deleted[uuid.UUID(int=2)], "path")
 
     def test_get_file_cuds(self):
-        """Test extracting the file cuds from a datatstructure"""
+        """Test extracting the file cuds from a datatstructure."""
         image1 = city.Image(path="x")
         image2 = city.Image(path="y")
         c = city.City(name="Freiburg")
@@ -295,7 +295,7 @@ class TestFiletransfer(unittest.TestCase):
         self.assertEqual(r, [image1, image2])
 
     def test_encode_files(self):
-        """Test encoding of files"""
+        """Test encoding of files."""
         result = encode_files(FILE_PATHS)
         self.maxDiff = None
         r = next(result)
@@ -338,7 +338,7 @@ class TestFiletransfer(unittest.TestCase):
         self.assertEqual(get_hash_dir(SERVER_DIR), HASHES)
 
     def test_upload(self):
-        """Test full upload routine"""
+        """Test full upload routine."""
         # with given file destination on client
         with TransportSessionClient(SqliteSession, URI,
                                     file_destination=CLIENT_DIR) as session:
@@ -368,7 +368,7 @@ class TestFiletransfer(unittest.TestCase):
             self.assertEqual(os.listdir(FILES_DIR), FILES)
 
     def test_download(self):
-        """Test full download routine"""
+        """Test full download routine."""
         with TransportSessionClient(SqliteSession, URI,
                                     file_destination=None) as session:
             images = self.setup_buffers1(session)
@@ -401,7 +401,7 @@ class TestFiletransfer(unittest.TestCase):
             )
 
     def test_hashes(self):
-        """Test the methods for computing hashes"""
+        """Test the methods for computing hashes."""
         self.assertEqual(get_hash_dir(FILES_DIR), HASHES)
         self.assertEqual(get_hash_dir(CLIENT_DIR), {})
         self.assertEqual(
@@ -415,7 +415,7 @@ class TestFiletransfer(unittest.TestCase):
         self.assertFalse(check_hash(FILE_PATHS[0], {}))
 
     def test_filter_files(self):
-        """Test filtering files based on hashes"""
+        """Test filtering files based on hashes."""
         self.assertEqual(filter_files(FILE_PATHS, HASHES), [])
         self.assertEqual(filter_files(FILE_PATHS, {}), FILE_PATHS)
         self.assertEqual(filter_files(FILE_PATHS + [__file__, "x"],
@@ -423,7 +423,7 @@ class TestFiletransfer(unittest.TestCase):
 
     @async_test
     async def test_serve(self):
-        """Test serve method of the server"""
+        """Test serve method of the server."""
         request = None
         response = []
 

@@ -1,3 +1,5 @@
+"""This file contains tests for the abstract simulation session."""
+
 from osp.wrappers.simdummy import SimDummySession
 import unittest2 as unittest
 import logging
@@ -16,14 +18,10 @@ except ImportError:
 
 
 class TestSimWrapperCity(unittest.TestCase):
-
-    def setUp(self):
-        pass
+    """Test simulation sessions with the city ontology."""
 
     def test_dummy_sim_wrapper(self):
-        """Create a dummy simulation syntactic layer + test
-        if working with this layer works as expected.
-        """
+        """Create a dummy simulation syntactic layer + test."""
         with SimDummySession() as session:
             wrapper = city.CitySimWrapper(numSteps=1, session=session)
             c = city.City(name="Freiburg")

@@ -10,7 +10,7 @@ LEN_FILES_HEADER = [5]  # num_blocks
 
 
 def decode_header(bytestring, lengths):
-    """Decode the header given as a string of bytes
+    """Decode the header given as a string of bytes.
 
     Args:
         bytestring (bytes): The encoded header
@@ -32,7 +32,7 @@ def decode_header(bytestring, lengths):
 
 
 def encode_header(elements, lengths):
-    """Encode the header to single array of bytes
+    """Encode the header to single array of bytes.
 
     Args:
         elements (Union[int, str]): The elements to encode. All but the last
@@ -104,7 +104,7 @@ async def join_message(websocket, num_blocks):
 
 
 def filter_files(files, file_hashes):
-    """Remove the files the receiver already has
+    """Remove the files the receiver already has.
 
     Args:
         files (List[path]): A list of paths to send.
@@ -127,6 +127,7 @@ def filter_files(files, file_hashes):
 
 def encode_files(files):
     """Encode the files to be sent to over the networks.
+
     Will send file in several blocks.
 
     Args:

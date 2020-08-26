@@ -1,3 +1,5 @@
+"""This file contains test for the registry using the city ontology."""
+
 import unittest2 as unittest
 from osp.core.namespaces import cuba
 from osp.core.cuds import Cuds
@@ -19,16 +21,16 @@ except ImportError:
 
 
 class TestRegistryCity(unittest.TestCase):
+    """Tests for the registry."""
 
     def setUp(self):
+        """Reset the core session."""
         from osp.core.cuds import Cuds
         from osp.core.session import CoreSession
         Cuds._session = CoreSession()
 
     def test_get_subtree(self):
-        """
-        Tests the get_subtree method.
-        """
+        """Tests the get_subtree method."""
         c = city.City(name="a city")
         p = city.Citizen()
         n = city.Neighborhood(name="a neighborhood")
@@ -51,7 +53,7 @@ class TestRegistryCity(unittest.TestCase):
             set([n, s]))
 
     def test_prune(self):
-        """Tests the pruning method"""
+        """Test the pruning method."""
         cities = list()
         for i in range(3):
             c = city.City(name="city %s" % i)
@@ -81,7 +83,7 @@ class TestRegistryCity(unittest.TestCase):
                  "street 0 0 1"]))
 
     def test_get_not_reachable(self):
-        """Tests the pruning method"""
+        """Test the pruning method."""
         cities = list()
         for i in range(3):
             c = city.City(name="city %s" % i)
@@ -111,6 +113,7 @@ class TestRegistryCity(unittest.TestCase):
             set(["neighborhood 0 0", "neighborhood 0 1", "city 0"]))
 
     def test_filter(self):
+        """Test the filter method."""
         registry = Cuds._session._registry
         registry.reset()
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
@@ -125,6 +128,7 @@ class TestRegistryCity(unittest.TestCase):
                                  s1.uid: s1})
 
     def test_filter_by_oclass(self):
+        """Test filtering by ontology class."""
         registry = Cuds._session._registry
         registry.reset()
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
@@ -142,6 +146,7 @@ class TestRegistryCity(unittest.TestCase):
         )
 
     def test_filter_by_attribute(self):
+        """Test filter_by_attribute method."""
         registry = Cuds._session._registry
         registry.reset()
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
@@ -155,6 +160,7 @@ class TestRegistryCity(unittest.TestCase):
         )
 
     def test_filter_by_relationship(self):
+        """Test filter_by_relationships."""
         registry = Cuds._session._registry
         registry.reset()
         c, p1, p2, p3, n1, n2, s1 = get_test_city()

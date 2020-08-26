@@ -1,3 +1,5 @@
+"""Test the abstract SqlWrapper session."""
+
 import unittest2 as unittest
 import numpy as np
 import rdflib
@@ -21,8 +23,10 @@ VALS = [100, np.array([1, 2]), np.array([[1, 2, 3], [2, 3, 4]])]
 
 
 class TestSqliteCity(unittest.TestCase):
+    """Test the sqlite wrapper with the City ontology."""
 
     def test_expand_vector_cols(self):
+        """Test the expand_vector_cols method."""
         cols, dtypes, vals = SqlWrapperSession._expand_vector_cols(
             columns=["1", "2", "3"],
             datatypes={"1": rdflib.XSD.integer,
@@ -35,6 +39,7 @@ class TestSqliteCity(unittest.TestCase):
         self.assertEqual(vals, EXPANDED_VALS)
 
     def test_contract_vector_values(self):
+        """Test the contract_vector_values method."""
         r = SqlWrapperSession._contract_vector_values(EXPANDED_COLS,
                                                       EXPANDED_DTYPES,
                                                       [EXPANDED_VALS])

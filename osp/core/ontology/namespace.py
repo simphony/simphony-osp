@@ -28,18 +28,20 @@ class OntologyNamespace():
             and self._namespace_registry is other._namespace_registry
 
     def __hash__(self):
+        """Compute a has value."""
         return hash(str(self))
 
     def get_name(self):
-        """Get the name of the namespace"""
+        """Get the name of the namespace."""
         return self._name
 
     @property
     def _graph(self):
+        """Return the graph of the namespace registry."""
         return self._namespace_registry._graph
 
     def get_default_rel(self):
-        """Get the default relationship of the namespace"""
+        """Get the default relationship of the namespace."""
         if self._default_rel == -1:
             self._default_rel = None
             for s, p, o in self._graph.triples((self._iri,
@@ -49,7 +51,7 @@ class OntologyNamespace():
         return self._default_rel
 
     def get_iri(self):
-        """Get the IRI of the namespace"""
+        """Get the IRI of the namespace."""
         return self._iri
 
     def __getattr__(self, name):

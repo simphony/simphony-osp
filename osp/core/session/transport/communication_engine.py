@@ -17,9 +17,12 @@ DEBUG_MAX = 1000
 
 
 class CommunicationEngineServer():
-    """The communication engine manages the connection between the remote and
+    """Server side of the CommunicationEngine.
+
+    The communication engine manages the connection between the remote and
     local side of the transport layer. The server will be executed on the
-    remote side."""
+    remote side.
+    """
 
     def __init__(self, host, port, handle_request, handle_disconnect,
                  **kwargs):
@@ -130,9 +133,12 @@ class CommunicationEngineServer():
 
 
 class CommunicationEngineClient():
-    """The communication engine manages the connection between the remote and
+    """Client side of the CommunicationEngine.
+
+    The communication engine manages the connection between the remote and
     local side of the transport layer. The client will be executed on the
-    local side."""
+    local side.
+    """
 
     def __init__(self, uri, handle_response, **kwargs):
         """Constructs the communication engine's client.
@@ -151,7 +157,7 @@ class CommunicationEngineClient():
         self.websocket = None
 
     def send(self, command, data, files=[]):
-        """Sends a request to the server.
+        """Send a request to the server.
 
         Args:
             command (str): The command to execute on the server.
@@ -165,7 +171,7 @@ class CommunicationEngineClient():
             self._request(command, data, files))
 
     def close(self):
-        """Close the connection to the server"""
+        """Close the connection to the server."""
         event_loop = asyncio.get_event_loop()
         event_loop.run_until_complete(self._close())
 
@@ -212,7 +218,7 @@ class CommunicationEngineClient():
             )
 
     def _encode(self, command, data, files):
-        """Encode the data to send to the server to bytes
+        """Encode the data to send to the server to bytes.
 
         Args:
             command (str): The command to execute.

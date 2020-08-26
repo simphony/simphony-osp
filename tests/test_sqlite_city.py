@@ -1,3 +1,5 @@
+"""Test the Sqlite Wrapper with the CITY ontology."""
+
 import os
 import uuid
 import unittest2 as unittest
@@ -17,11 +19,10 @@ DB = "test_sqlite.db"
 
 
 class TestSqliteCity(unittest.TestCase):
-
-    def setUp(self):
-        pass
+    """Test the sqlite wrapper with the city ontology."""
 
     def tearDown(self):
+        """Remove the database file."""
         if os.path.exists(DB):
             os.remove(DB)
 
@@ -58,7 +59,7 @@ class TestSqliteCity(unittest.TestCase):
         check_state(self, c, p1, p2)
 
     def test_delete(self):
-        """Test to delete cuds_objects from the sqlite table"""
+        """Test to delete cuds_objects from the sqlite table."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Georg")
@@ -147,6 +148,7 @@ class TestSqliteCity(unittest.TestCase):
             )
 
     def test_load_by_oclass(self):
+        """Test loading by oclass."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
@@ -177,6 +179,7 @@ class TestSqliteCity(unittest.TestCase):
             self.assertRaises(StopIteration, next, r)
 
     def test_expiring(self):
+        """Test expring CUDS objects."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
@@ -229,6 +232,7 @@ class TestSqliteCity(unittest.TestCase):
             self.assertNotIn(p3w.uid, session._registry)
 
     def test_refresh(self):
+        """Test refreshing CUDS objects."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
@@ -278,6 +282,7 @@ class TestSqliteCity(unittest.TestCase):
             self.assertNotIn(p3w.uid, session._registry)
 
     def test_clear_database(self):
+        """Test clearing the database."""
         # db is empty (no error occurs)
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
@@ -305,7 +310,7 @@ class TestSqliteCity(unittest.TestCase):
         check_db_cleared(self, DB)
 
     def test__sql_list_pattern(self):
-        """Test transformation of value lists to SQLite patterns"""
+        """Test transformation of value lists to SQLite patterns."""
         p, v = SqliteSession._sql_list_pattern("pre", [42, "yo", 1.2, "hey"])
         self.assertEqual(p, ":pre_0, :pre_1, :pre_2, :pre_3")
         self.assertEqual(v, {
@@ -374,6 +379,7 @@ def check_state(test_case, c, p1, p2, db=DB):
 
 
 def check_db_cleared(test_case, table):
+    """Check whether the database has been cleared successfully."""
     with sqlite3.connect(table) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM %s;"

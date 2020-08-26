@@ -19,13 +19,16 @@ logger = logging.getLogger(__name__)
 
 
 class TransportSessionClient(WrapperSession):
-    """The TransportSession implements the transport layer. It consists of a
+    """The TransportSession implements the transport layer.
+
+    It consists of a
     client and a server. The client is a WrapperSession, that wraps another
-    session that runs on the server. Each request will be sent to the server"""
+    session that runs on the server. Each request will be sent to the server
+    """
 
     def __init__(self, session_cls, uri, file_destination=None,
                  connect_kwargs=None, *args, **kwargs):
-        """Constructs the client of the transport session.
+        """Construct the client of the transport session.
 
         Args:
             session_cls (Session): The session class to wrap.
@@ -144,7 +147,7 @@ class TransportSessionClient(WrapperSession):
         return result
 
     def _parse_uri(self, uri):
-        """Parse the given uri and return uri, username, password
+        """Parse the given uri and return uri, username, password.
 
         Args:
             uri (str): The URI to parse

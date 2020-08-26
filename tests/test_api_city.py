@@ -18,12 +18,8 @@ except ImportError:
 
 
 class TestAPICity(unittest.TestCase):
-
-    def setUp(self):
-        pass
-
     def test_is_a(self):
-        """Test instance check"""
+        """Test instance check."""
         c = city.City(name="City")
         self.assertTrue(c.is_a(city.City))
         self.assertTrue(c.is_a(city.PopulatedPlace))
@@ -33,9 +29,7 @@ class TestAPICity(unittest.TestCase):
         self.assertFalse(c.is_a(city.Neighborhood))
 
     def test_creation(self):
-        """
-        Tests the instantiation and type of the objects
-        """
+        """Tests the instantiation and type of the objects."""
         self.assertRaises(TypeError, city.City, name="name",
                           coordinates=[1, 2], uid=0, unwanted="unwanted")
         self.assertRaises(TypeError, city.City)
@@ -50,25 +44,18 @@ class TestAPICity(unittest.TestCase):
         cuba.Wrapper(session=CoreSession())
 
     def test_uid(self):
-        """
-        Tests that the uid variable contains a UUID object
-        """
+        """Tests that the uid variable contains a UUID object."""
         c = city.City(name="a city")
         self.assertIsInstance(c.uid, uuid.UUID)
 
     def test_set_throws_exception(self):
-        """
-        Tests that setting a value for a key not in restricted
-        keys throws an exception.
-        """
+        """Thest that setting an invalid key throws an exception."""
         c = city.City(name="a city")
         self.assertRaises(ValueError, c._neighbors.__setitem__,
                           "not an allowed key", 15)
 
     def test_add(self):
-        """
-        Tests the standard, normal behavior of the add() method
-        """
+        """Tests the standard, normal behavior of the add() method."""
         c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
         p = city.Citizen()
@@ -84,11 +71,10 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(c.get(p.uid).uid, p.uid)
 
     def test_add_throws_exception(self):
-        """
-        Tests the add() method for unusual behaviors.
+        """Tests the add() method for unusual behaviors.
 
-         - Adding an object that is already there
-         - Adding an unsupported object
+        - Adding an object that is already there
+        - Adding an unsupported object
         """
         c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
@@ -98,7 +84,9 @@ class TestAPICity(unittest.TestCase):
         self.assertRaises(TypeError, c.add, "Not a CUDS objects")
 
     def test_recursive_add(self):
-        """Tests if add() works correctly if added cuds_object is from another session.
+        """Tests if add() works correctly.
+
+        In this test case the added cuds_object is from another session.
         """
         c = city.City(name="City")
         p1 = city.Citizen()
@@ -245,15 +233,14 @@ class TestAPICity(unittest.TestCase):
             set([p1w1.uid]))
 
     def test_get(self):
-        """
-        Tests the standard, normal behavior of the get() method.
+        """Tests the standard, normal behavior of the get() method.
 
-         - get()
-         - get(*uids)
-         - get(rel)
-         - get(oclass)
-         - get(*uids, rel)
-         - get(rel, oclass)
+        - get()
+        - get(*uids)
+        - get(rel)
+        - get(oclass)
+        - get(*uids, rel)
+        - get(rel, oclass)
         """
         c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
@@ -319,11 +306,10 @@ class TestAPICity(unittest.TestCase):
         ]))
 
     def test_get_throws_exception(self):
-        """
-        Tests the get() method for unusual behaviors.
+        """Tests the get() method for unusual behaviors.
 
-         - Getting with a wrong type
-         - Getting with a not allowed combination of arguments
+        - Getting with a wrong type
+        - Getting with a not allowed combination of arguments
         """
         c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
@@ -337,9 +323,7 @@ class TestAPICity(unittest.TestCase):
         self.assertRaises(ValueError, c.get, rel=city.Citizen)
 
     def test_update(self):
-        """
-        Tests the standard, normal behavior of the update() method.
-        """
+        """Tests the standard, normal behavior of the update() method."""
         c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
         new_n = create_from_cuds_object(n, CoreSession())
@@ -363,15 +347,14 @@ class TestAPICity(unittest.TestCase):
         self.assertRaises(ValueError, c.update, n)
 
     def test_remove(self):
-        """
-        Tests the standard, normal behavior of the remove() method.
+        """Tests the standard, normal behavior of the remove() method.
 
-         - remove()
-         - remove(*uids/DataContainers)
-         - remove(rel)
-         - remove(oclass)
-         - remove(rel, oclass)
-         - remove(*uids/DataContainers, rel)
+        - remove()
+        - remove(*uids/DataContainers)
+        - remove(rel)
+        - remove(oclass)
+        - remove(rel, oclass)
+        - remove(*uids/DataContainers, rel)
         """
         c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
@@ -438,12 +421,11 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(get_inverse, [])
 
     def test_remove_throws_exception(self):
-        """
-        Tests the remove() method for unusual behaviors.
+        """Tests the remove() method for unusual behaviors.
 
-         - Removing with a wrong key
-         - Removing something non-existent
-         - Removing with a not allowed argument combination
+        - Removing with a wrong key
+        - Removing something non-existent
+        - Removing with a not allowed argument combination
         """
         c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
@@ -464,10 +446,9 @@ class TestAPICity(unittest.TestCase):
                           oclass=city.Street)
 
     def test_update_throws_exception(self):
-        """
-        Tests the update() method for unusual behaviors.
+        """Tests the update() method for unusual behaviors.
 
-         - Update an element that wasn't added before
+        - Update an element that wasn't added before
         """
         c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
@@ -476,9 +457,7 @@ class TestAPICity(unittest.TestCase):
         self.assertRaises(ValueError, c.update, p)
 
     def test_iter(self):
-        """
-        Tests the iter() method when no ontology class is provided.
-        """
+        """Tests the iter() method when no ontology class is provided."""
         c = city.City(name="a city")
         n = city.Neighborhood(name="a neighborhood")
         p = city.Citizen(name="John Smith")
@@ -534,8 +513,9 @@ class TestAPICity(unittest.TestCase):
     #     Cuds.CUDS_SETTINGS["check_relationship_supported"] = True
 
     def test_recursive_store(self):
-        """Check if _recursive_store correctly stores cuds_objects recursively,
-        correcting dangling and one-way connections.
+        """Test if _recursive_store correctly stores cuds_objects correctly.
+
+        It should correct dangling and one-way connections.
         """
         c = city.City(name="Freiburg")
         with CoreSession() as session:
@@ -573,7 +553,9 @@ class TestAPICity(unittest.TestCase):
             self.assertEqual(p3w.get(rel=city.hasChild), [p4w])
 
     def test_fix_new_parents(self):
-        """Check that _fix_new_parent:
+        """Check _fix_new_parent.
+
+        Make sure the method:
         - Deletes connection to new parents not available in new session
         - Adds connection to new parents available in new session
         """
@@ -615,6 +597,7 @@ class TestAPICity(unittest.TestCase):
 
     def test_fix_old_neighbors(self):
         """Check if _fix_old_neighbors.
+
         - Deletes old children.
         - Adds connection to old parents.
         """
@@ -640,8 +623,7 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(wrapper.get(rel=city.hasPart), [c])
 
     def test_add_twice(self):
-        """ Test what happens if you add the same
-        object twice to a new session"""
+        """Test what happens if you add the same object twice."""
         p = city.Citizen(name="Ralf")
         c1 = city.City(name="Freiburg")
         c2 = city.City(name="Offenburg")

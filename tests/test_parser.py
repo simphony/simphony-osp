@@ -1,3 +1,5 @@
+"""Test the default parser used for parsing OWL ontologies."""
+
 import os
 import yaml
 import rdflib
@@ -20,11 +22,15 @@ with open(YML_FILE) as f:
 
 
 class TestParser(unittest.TestCase):
+    """Test the default parser used for parsing OWL ontologies."""
+
     def setUp(self):
+        """Set up Graph and Parser."""
         self.graph = rdflib.Graph()
         self.parser = Parser(self.graph)
 
     def test_add_cuba_triples(self):
+        """Test adding the cuba triples, like active relationships."""
         self.graph.add((rdflib.URIRef("has_part"), rdflib.RDF.type,
                         rdflib.OWL.ObjectProperty))
         self.graph.add((rdflib.URIRef("encloses"), rdflib.RDF.type,
@@ -41,6 +47,7 @@ class TestParser(unittest.TestCase):
         })
 
     def test_add_default_rel_triples(self):
+        """Test adding the default rel triples."""
         self.parser._add_default_rel_triples({
             "ns1": "has_part",
             "ns2": "encloses"
@@ -53,6 +60,7 @@ class TestParser(unittest.TestCase):
         })
 
     def test_parse_rdf(self):
+        """Test parsing an rdf file."""
         self.graph.parse(CUBA_FILE, format="ttl")
         len_cuba = len(self.graph)
         self.assertRaises(TypeError, self.parser._parse_rdf,
@@ -82,6 +90,7 @@ class TestParser(unittest.TestCase):
                       rdflib.URIRef("http://www.osp-core.com/parser_test#"))
 
     def test_parse_yml(self):
+        """Test parsing the yaml file."""
         invalid = dict(YML_DOC)
         invalid["identifier"] = "parser.test"
         self.assertRaises(ValueError, self.parser._parse_yml, invalid,
@@ -93,6 +102,7 @@ class TestParser(unittest.TestCase):
 
     @responses.activate
     def test_parse_yml_download(self):
+        """Test downloading owl ontologies."""
         def request_callback(request):
             headers = {'request-id': '728d329e-0e86-11e4-a748-0c84dc037c13'}
             return (200, headers, "TEST FILE CONTENT")
@@ -112,6 +122,7 @@ class TestParser(unittest.TestCase):
             self.assertEqual(f.read(), "TEST FILE CONTENT")
 
     def test_get_file_path(self):
+        """Test the get_file_path method."""
         self.assertEqual(self.parser.get_file_path("test/my_file.yml"),
                          "test/my_file.yml")
         self.assertEqual(
@@ -137,6 +148,7 @@ class TestParser(unittest.TestCase):
         )
 
     def test_get_identifier(self):
+        """Test the get_identifier method."""
         self.assertEqual(self.parser.get_identifier(YML_DOC), "parser_test")
         self.assertEqual(self.parser.get_identifier(YML_FILE), "parser_test")
         self.assertEqual(self.parser.get_identifier("parser_test"),
@@ -144,6 +156,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(self.parser.get_identifier("emmo"), "emmo")
 
     def test_get_namespace_name(self):
+        """Test the get_namespace_name method."""
         self.assertEqual(self.parser.get_namespace_names(YML_DOC),
                          ["parser_test"])
         self.assertEqual(self.parser.get_namespace_names(YML_FILE),
@@ -158,11 +171,13 @@ class TestParser(unittest.TestCase):
                           'siunits'])
 
     def test_get_requirements(self):
+        """Test the get_requirements() method."""
         self.assertEqual(self.parser.get_requirements(YML_DOC), set())
         self.assertEqual(self.parser.get_requirements(YML_FILE), set())
         self.assertEqual(self.parser.get_requirements("parser_test"), {"city"})
 
     def test_store(self):
+        """Test the store method."""
         self.parser.parse(YML_FILE)
         with tempfile.TemporaryDirectory() as destination:
             self.parser.store(destination)
@@ -180,6 +195,7 @@ class TestParser(unittest.TestCase):
                 isomorphic(g, self.parser._graphs["parser_test"]))
 
     def test_parse(self):
+        """Test the parse method."""
         self.parser.parse(YML_FILE)
         g1 = rdflib.Graph()
         g1.parse(CUBA_FILE, format="ttl")
@@ -198,6 +214,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(x, YML_DOC)
 
     def test_add_reference_style_triples(self):
+        """Test adding the reference style triples."""
         self.parser._add_reference_style_triples({
             "ns1": True,
             "ns2": False,

@@ -11,9 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class Ontology2Dot():
-    """Utility for creating a dot and png representation of the
-    entities defined in the ontology
-    """
+    """Utility for creating a dot and png representation of an ontology."""
+
     label = ("<<TABLE BORDER='0' CELLBORDER='0'>"
              "<TR><TD>{}</TD></TR>"
              "{}"
@@ -21,8 +20,7 @@ class Ontology2Dot():
     attribute = "<TR ALIGN='left'><TD>{}: {}</TD></TR>"
 
     def __init__(self, namespaces, output_filename, group=False):
-        """Constructor.
-        Initializes the graph.
+        """Initialize the graph.
 
         :param namespaces: The namespaces to print.
         :type namespaces: List[str]
@@ -41,7 +39,7 @@ class Ontology2Dot():
         self._graph = self._initialize_graph()
 
     def _initialize_graph(self):
-        """Initializes a directed graph with some default settings"""
+        """Initializes a directed graph with some default settings."""
         graph = graphviz.Digraph(format="png", name="ONTOLOGY")
         graph.node_attr['shape'] = 'rectangle'
         return graph
@@ -79,7 +77,7 @@ class Ontology2Dot():
             self._add_entity(entity)
 
     def _add_entity(self, entity):
-        """Add an entity to the graph
+        """Add an entity to the graph.
 
         :param entity: The entity to add
         :type entity: OntologyEntity
@@ -100,8 +98,7 @@ class Ontology2Dot():
             self._add_edge(str(entity), str(superclass), label="is_a")
 
     def _add_oclass(self, oclass, graph):
-        """
-        Adds a node to the graph.
+        """Adds a node to the graph.
 
         :param oclass: The ontology class to add
         :type oclass: OntologyClass
@@ -117,8 +114,7 @@ class Ontology2Dot():
             graph.node(str(oclass), label=label)
 
     def _add_relationship(self, rel, graph):
-        """
-        Adds a node to the graph.
+        """Adds a node to the graph.
 
         :param rel: The ontology class for the node
         :type rel: OntologyRelationship
@@ -137,8 +133,7 @@ class Ontology2Dot():
                            style="dashed", dir="none", label="inverse")
 
     def _add_attribute(self, attribute, graph):
-        """
-        Adds a node to the graph.
+        """Adds a node to the graph.
 
         :param rel: The ontology attribute to add
         :type rel: OntologyAttribute
@@ -153,6 +148,7 @@ class Ontology2Dot():
 
     def _add_edge(self, start, end, **kwargs):
         """Adds an edge between two nodes.
+
         Ignores the possible passive relationships returned by loops
 
         :param start: start node
@@ -166,7 +162,7 @@ class Ontology2Dot():
 
 
 def run_from_terminal():
-    """Run ontology2dot from the terminal"""
+    """Run ontology2dot from the terminal."""
     # Parse the user arguments
     parser = argparse.ArgumentParser(
         description="Convert an ontology in OWL format to "

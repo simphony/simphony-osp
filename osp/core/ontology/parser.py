@@ -30,7 +30,7 @@ class Parser():
         self._graphs = dict()
 
     def parse(self, file_path):
-        """Parse the given YAML files
+        """Parse the given YAML files.
 
         Args:
             file_path (str): path to the YAML file
@@ -160,7 +160,9 @@ class Parser():
 
     @staticmethod
     def get_file_path(file_identifier):
-        """Get the correct file path, for a given one, i.e. translate non
+        """Get the correct file path.
+
+        For a given one, i.e. translate non
         paths to osp/core/ontology/docs/*.yml
 
         Args:
@@ -185,7 +187,7 @@ class Parser():
         return b
 
     def _parse_yml(self, yaml_doc, file_path, f):
-        """Parse the owl files specified in the given YAML docs
+        """Parse the owl files specified in the given YAML docs.
 
         Args:
             yaml_doc (dict): Parsed YAML doc that specify
@@ -264,8 +266,9 @@ class Parser():
         self._add_reference_style_triples(reference_styles)
 
     def _add_default_rel_triples(self, default_rels):
-        """Add the triples to the graph that indicate the default
-        relationships per namespace.
+        """Add the triples to the graph that indicate the default rel.
+
+        The default rel is defined per namespace.
 
         Args:
             default_rels (Dict[str: str]): Mapping from namespace URI to
@@ -299,7 +302,8 @@ class Parser():
             )
 
     def _add_reference_style_triples(self, reference_styles):
-        """Add a triple to store how the user should reference the entities
+        """Add a triple to store how the user should reference the entities.
+
         (by entity or by iri suffix)
 
         Args:

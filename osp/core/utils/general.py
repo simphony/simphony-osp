@@ -8,8 +8,8 @@ CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds/#"
 
 
 def branch(cuds_object, *args, rel=None):
-    """
-    Like Cuds.add(), but returns the element you add to.
+    """Like Cuds.add(), but returns the element you add to.
+
     This makes it easier to create large CUDS structures.
 
     :param cuds_object: the object to add to
@@ -28,8 +28,7 @@ def branch(cuds_object, *args, rel=None):
 
 def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
                                    max_depth=float("inf")):
-    """Delete a cuds object  and all the object inside of the container
-    of it.
+    """Delete a cuds object  and all the object inside of the container of it.
 
     Args:
         cuds_object (Cuds): The Cuds object to recursively delete
@@ -47,7 +46,8 @@ def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
 
 
 def get_rdf_graph(session=None, skip_custom_datatypes=False):
-    """EXPERIMENTAL
+    """EXPERIMENTAL.
+
     Get the RDF Graph from a session.
     If no session is, the core session will be used.
 
@@ -127,8 +127,9 @@ def get_custom_datatype_triples():
 
 
 def post(url, cuds_object, max_depth=float("inf")):
-    """Will send the given CUDS object to the given URL. Will also send
-    the CUDS object in the container recursively.
+    """Will send the given CUDS object to the given URL.
+
+    Will also send the CUDS object in the container recursively.
 
     Args:
         url (string): The URL to send the CUDS object to
@@ -184,6 +185,7 @@ def serialize(cuds_object, rel=cuba.activeRelationship,
 def deserialize(json_doc, session=None, buffer_context=None,
                 only_return_first_element=True):
     """Deserialize the given json objects (to CUDS).
+
     Will add the CUDS objects to the buffers.
 
     Args:
@@ -223,8 +225,8 @@ def deserialize(json_doc, session=None, buffer_context=None,
 
 
 def remove_cuds_object(cuds_object):
-    """
-    Remove a cuds_object from the datastructure.
+    """Remove a cuds_object from the datastructure.
+
     Removes the relationships to all neighbors.
     To delete it from the registry you must call the
     sessions prune method afterwards.

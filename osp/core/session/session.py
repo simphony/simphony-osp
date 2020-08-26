@@ -5,8 +5,8 @@ from osp.core.session.result import returns_query_result
 
 
 class Session(ABC):
-    """
-    Abstract Base Class for all Sessions.
+    """Abstract Base Class for all Sessions.
+
     Defines the common standard API and sets the registry.
     """
 
@@ -30,6 +30,7 @@ class Session(ABC):
 
     def _store(self, cuds_object):
         """Store a copy of given cuds_object in the session.
+
         Return the stored object.
 
         :param cuds_object: The cuds_object to store.
@@ -61,6 +62,7 @@ class Session(ABC):
 
     def prune(self, rel=None):
         """Remove all elements not reachable from the sessions root.
+
         Only consider given relationship and its subclasses.
 
         :param rel: Only consider this relationship to calculate reachability.
@@ -71,8 +73,9 @@ class Session(ABC):
             self._delete_cuds_triples(d)
 
     def delete_cuds_object(self, cuds_object):
-        """Remove a CUDS object. Will (for now) not delete the cuds objects
-        contained.
+        """Remove a CUDS object.
+
+        Will not delete the cuds objects contained.
 
         Args:
             cuds_object (Cuds): The CUDS object to be deleted
@@ -85,6 +88,11 @@ class Session(ABC):
         self._delete_cuds_triples(cuds_object)
 
     def _delete_cuds_triples(self, cuds_object):
+        """Delete the triples of a given cuds object from the session's graph.
+
+        Args:
+            cuds_object (Cuds): The object to delete.
+        """
         del self._registry[cuds_object.uid]
         t = self.graph.value(cuds_object.iri, rdflib.RDF.type)
         self.graph.remove((cuds_object.iri, None, None))
@@ -94,8 +102,7 @@ class Session(ABC):
 
     @abstractmethod
     def _notify_delete(self, cuds_object):
-        """This method is called if some object from the registry is deleted
-        by the prune() method.
+        """Notify the session that some object has been delted.
 
         :param cuds_object: The cuds_object that has been deleted
         :type cuds_object: Cuds
@@ -104,7 +111,7 @@ class Session(ABC):
 
     @abstractmethod
     def _notify_update(self, cuds_object):
-        """This method is called if some object has been updated-
+        """Notify the session that some object has been updated.
 
         :param cuds_object: The cuds_object that has been updated.
         :type cuds_object: Cuds
@@ -112,11 +119,14 @@ class Session(ABC):
         pass
 
     def sync(self):
-        pass
+        """Synchronize sessions."""
+        pass  # TODO
 
     @abstractmethod
     def _notify_read(self, cuds_object):
-        """This method is called when the user accesses the attributes or the
+        """Notify the session that given cuds object has been read.
+
+        This method is called when the user accesses the attributes or the
         relationships of the cuds_object cuds_object.
 
         :param cuds_object: The cuds_object that has been accessed.

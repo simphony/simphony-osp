@@ -6,7 +6,7 @@ from osp.core.session.buffers import BufferContext, EngineContext
 
 
 class FileWrapperSession(WrapperSession):
-    """Abstract class for a File Wrapper Session"""
+    """Abstract class for a File Wrapper Session."""
 
     @consumes_buffers
     def save(self):
@@ -27,6 +27,7 @@ class FileWrapperSession(WrapperSession):
     @returns_query_result
     def load_by_oclass(self, oclass, update_registry=False):
         """Load cuds_object with given ontology class.
+
         Will also return cuds objects of subclasses of oclass.
 
         :param oclass: The ontology class to query for

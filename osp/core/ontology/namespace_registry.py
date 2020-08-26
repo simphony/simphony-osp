@@ -74,8 +74,10 @@ class NamespaceRegistry():
         raise KeyError("Namespace %s not installed." % name)
 
     def update_namespaces(self, modules=[]):
-        """Update the namespaces of the namespace registry from the
-        namespaces of the graph."""
+        """Update the namespaces of the namespace registry.
+
+        Use the namespaces of the graph for that.
+        """
         self._namespaces = dict()
         for name, iri in self._graph.namespace_manager.namespaces():
             self._namespaces[name.lower()] = iri
@@ -133,7 +135,7 @@ class NamespaceRegistry():
                            f"type in the set {allow_types}")
 
     def _get_namespace_name_and_iri(self, iri):
-        """Get the namespace name and namespace iri for an entity iri
+        """Get the namespace name and namespace iri for an entity iri.
 
         Args:
             iri (URIRef): The IRI for an entity or namespace
@@ -152,7 +154,9 @@ class NamespaceRegistry():
         return str(ns_iri), rdflib.URIRef(ns_iri)
 
     def _get_reference_by_label(self, ns_iri):
-        """Check for given namespace iri whether the entities in this namespace
+        """Check how entities in namespace should be referenced in code.
+
+        Check for given namespace iri whether the entities in this namespace
         should be referenced by label when accessing them through python
         code
 
@@ -167,7 +171,9 @@ class NamespaceRegistry():
         ) in self._graph
 
     def _get_entity_name(self, entity_iri, ns_iri):
-        """Get the name of the given entity. The name depends whether
+        """Get the name of the given entity.
+
+        The name depends whether
         the namespace references the entities by label or iri suffix.
 
         Args:
@@ -192,7 +198,7 @@ class NamespaceRegistry():
         return self._graph
 
     def store(self, path):
-        """Store the current graph to the given directory,
+        """Store the current graph to the given directory.
 
         Args:
             path (Path): Directory to store current graph in.
@@ -228,7 +234,7 @@ class NamespaceRegistry():
             self._load_cuba()
 
     def _load_cuba(self):
-        """Load the cuba namespace"""
+        """Load the cuba namespace."""
         path_cuba = os.path.join(os.path.dirname(__file__), "docs", "cuba.ttl")
         self._graph.parse(path_cuba, format="ttl")
         self._graph.bind("cuba",

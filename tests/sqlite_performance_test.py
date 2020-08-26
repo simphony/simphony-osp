@@ -70,18 +70,14 @@ class TestPerformance(unittest.TestCase):
             c = c.add(city.Street(name="", uid=next(uids)), rel=city.hasPart)
 
     def test_fill_db_one_commit(self):
-        """
-        Tests filling the db with lots of data with one commit
-        """
+        """Tests filling the db with lots of data with one commit."""
         if not RUN_PERFORMANCE_TEST:
             return
         print("Test filling database one commit")
         self.fill_db(self.w)
 
     def test_graph_walk(self):
-        """
-        Traverse the graph
-        """
+        """Traverse the graph."""
         if not RUN_PERFORMANCE_TEST:
             return
         print("Traverse db")

@@ -95,7 +95,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         check_state(self, c, p1, p2, db=DB)
 
     def test_delete(self):
-        """Test to delete cuds_objects from the sqlite table"""
+        """Test to delete cuds_objects from the sqlite table."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Georg")
@@ -114,8 +114,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         check_state(self, c, p1, p2, db=DB)
 
     def test_user_parameterize(self):
-        """Test that parameterizing the dataspace as
-        a client throws an error"""
+        """Test parameterizing the dataspace as a client."""
         with TransportSessionClient(
             DbWrapperSession,
             URI, path="dataspace.db"

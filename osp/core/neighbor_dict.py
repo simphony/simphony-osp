@@ -8,8 +8,9 @@ from osp.core.namespaces import from_iri, _namespace_registry
 
 
 class NeighborDict(ABC):
-    """A dictionary that notifies the session if
-    any update occurs. Used to map uids to ontology classes
+    """A dictionary that notifies the session on changes.
+
+    Used to map uids to ontology classes
     for each relationship.
     """
 

@@ -14,7 +14,7 @@ from osp.core.ontology.cuba import rdflib_cuba
 
 
 class SqlWrapperSession(DbWrapperSession):
-    """Abstract class for an SQL DB Wrapper Session"""
+    """Abstract class for an SQL DB Wrapper Session."""
 
     CUDS_PREFIX = "CUDS_"
     RELATIONSHIP_TABLE = "OSP_RELATIONSHIPS"
@@ -53,7 +53,7 @@ class SqlWrapperSession(DbWrapperSession):
     @abstractmethod
     def _db_create(self, table_name, columns, datatypes,
                    primary_key, foreign_key, indexes):
-        """Create a new table with the given name and columns
+        """Create a new table with the given name and columns.
 
         :param table_name: The name of the new table.
         :type table_name: str
@@ -122,7 +122,7 @@ class SqlWrapperSession(DbWrapperSession):
 
     @abstractmethod
     def _get_table_names(self, prefix):
-        """ Get all tables in the database with the given prefix.
+        """Get all tables in the database with the given prefix.
 
         :param prefix: Only return tables with the given prefix
         :type prefix: str
@@ -130,7 +130,9 @@ class SqlWrapperSession(DbWrapperSession):
 
     @staticmethod
     def _expand_vector_cols(columns, datatypes, values=None):
-        """SQL databases are not able to store vectors in general.
+        """Expand columns of vectors.
+
+        SQL databases are not able to store vectors in general.
         So we instead create a column for each element in the vector.
         Therefore we need generate the column descriptions for each of those
         columns.
@@ -182,8 +184,7 @@ class SqlWrapperSession(DbWrapperSession):
 
     @staticmethod
     def _contract_vector_values(columns, datatypes, rows):
-        """Contract the different values in a row of a database
-        corresponding vectors into one vector object.
+        """Contract vector values in a row of a database into one vector.
 
         :param columns: The expanded columns of the database
         :type columns: List[str]
@@ -231,6 +232,7 @@ class SqlWrapperSession(DbWrapperSession):
     def handle_vector_item(column, value, datatypes, temp_vec,
                            old_vector_datatype):
         """Check if a column corresponds to a vector.
+
         If it does, add it to the temp_vec list.
         Used during contract_vector_values
 
@@ -265,7 +267,7 @@ class SqlWrapperSession(DbWrapperSession):
                         primary_key, foreign_key, indexes)
 
     def _do_db_select(self, table_name, columns, condition, datatypes):
-        """Call db_select but consider vectors"""
+        """Call db_select but consider vectors."""
         columns, datatypes = self._expand_vector_cols(columns, datatypes)
         self._check_characters(table_name, columns, condition, datatypes)
         rows = self._db_select(table_name, columns, condition, datatypes)
@@ -273,7 +275,7 @@ class SqlWrapperSession(DbWrapperSession):
         yield from self._contract_vector_values(columns, datatypes, rows)
 
     def _do_db_insert(self, table_name, columns, values, datatypes):
-        """Call db_insert but expand vectors"""
+        """Call db_insert but expand vectors."""
         columns, datatypes, values = self._expand_vector_cols(columns,
                                                               datatypes,
                                                               values)
@@ -284,7 +286,7 @@ class SqlWrapperSession(DbWrapperSession):
 
     def _do_db_update(self, table_name, columns,
                       values, condition, datatypes):
-        """Call db_update but expand vectors"""
+        """Call db_update but expand vectors."""
         columns, datatypes, values = self._expand_vector_cols(columns,
                                                               datatypes,
                                                               values)
@@ -296,7 +298,7 @@ class SqlWrapperSession(DbWrapperSession):
                         values, condition, datatypes)
 
     def _do_db_delete(self, table_name, condition):
-        """Call _db_delete but expand vectors"""
+        """Call _db_delete but expand vectors."""
         self._check_characters(table_name, condition)
         self._db_delete(table_name, condition)
 
@@ -577,6 +579,7 @@ class SqlWrapperSession(DbWrapperSession):
 
     def _load_by_oclass(self, oclass, update_registry=False, uid=None):
         """Load the cuds_object with the given oclass (+ uid).
+
         If uid is None return all cuds_objects with given ontology class.
 
         :param oclass: The oclass of the cuds_object
@@ -722,7 +725,7 @@ class SqlWrapperSession(DbWrapperSession):
         return columns, datatypes
 
     def _check_characters(self, *to_check):
-        """Check if column or table names contain invalid characters
+        """Check if column or table names contain invalid characters.
 
         Raises:
             ValueError: Invalid character detected

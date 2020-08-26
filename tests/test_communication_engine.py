@@ -56,7 +56,7 @@ class TestCommunicationEngine(unittest.TestCase):
 
     @async_test
     async def test_serve(self):
-        """Test the serve method of the server"""
+        """Test the serve method of the server."""
         response = []
         disconnects = []
         connection_ids = []
@@ -105,7 +105,7 @@ class TestCommunicationEngine(unittest.TestCase):
 
     @async_test
     async def test_request(self):
-        """Test the request method of the client"""
+        """Test the request method of the client."""
         responses = []
         requests = []
         client = CommunicationEngineClient(

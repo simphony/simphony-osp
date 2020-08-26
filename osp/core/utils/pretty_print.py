@@ -3,9 +3,10 @@ from osp.core.namespaces import cuba
 
 
 def pretty_print(cuds_object, file=sys.stdout):
-    """
-    Prints the given cuds_object with the uuid, the type,
-    the ancestors and the description in a human readable way.
+    """Print the given cuds_object in a human readable way.
+
+    The uuid, the type, the ancestors and the description and the contents
+    is printed.
 
     :param cuds_object: container to be printed
     :type cuds_object: Cuds
@@ -26,9 +27,7 @@ def pretty_print(cuds_object, file=sys.stdout):
 
 
 def _pp_cuds_object_name(cuds_object, print_oclass=False):
-    """
-    Returns the name of the given element following the
-    pretty print format.
+    """Return the name of the given element following the pretty print format.
 
     :param cuds_object: element to be printed
     :return: string with the pretty printed text
@@ -43,9 +42,9 @@ def _pp_cuds_object_name(cuds_object, print_oclass=False):
 
 
 def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
-    """
-    Recursively formats the subelements from a cuds_object grouped
-        by ontology class.
+    """Recursively formats the subelements from a cuds_object.
+
+    The objects are grouped by ontology class.
 
     :param cuds_object: element to inspect
     :param level_indentation: common characters to left-pad the text
@@ -94,7 +93,7 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
 
 
 def _pp_values(cuds_object, indentation="\n          "):
-    """Print the attributes of a cuds object.
+    r"""Print the attributes of a cuds object.
 
     :param cuds_object: Print the values of this cuds object.
     :type cuds_object: Cuds

@@ -37,7 +37,7 @@ class SqliteSession(SqlWrapperSession):
 
     @staticmethod
     def _sql_list_pattern(prefix, values, join_pattern=True):
-        """Transform a list of values to corresponding pattern and value dict
+        """Transform a list of values to corresponding pattern and value dict.
 
         :param prefix: The prefix to use for the pattern
         :type prefix: str
@@ -138,7 +138,9 @@ class SqliteSession(SqlWrapperSession):
         return set([x[0] for x in tables if x[0].startswith(prefix)])
 
     def _get_condition_pattern(self, condition, prefix="cond"):
-        """Convert the given condition to a Sqlite condition pattern
+        """Convert the given condition.
+
+        It should be converted to a Sqlite condition pattern
         and the corresponding values.
 
         :param condition: The Condition

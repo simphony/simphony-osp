@@ -15,8 +15,7 @@ class Registry(dict):
         raise TypeError(message)
 
     def put(self, cuds_object):
-        """
-        Adds an object to the registry.
+        """Adds an object to the registry.
 
         :param cuds_object: The cuds_object to put in the registry
         :type cuds_object: Cuds
@@ -30,8 +29,7 @@ class Registry(dict):
             raise ValueError(message.format(cuds_object))
 
     def get(self, uid):
-        """
-        Returns the object corresponding to a given uuid.
+        """Returns the object corresponding to a given uuid.
 
         :param uid: uuid of the desired object
         :type uid: UUID
@@ -45,9 +43,9 @@ class Registry(dict):
             raise ValueError(message.format(uid))
 
     def get_subtree(self, root, rel=None, skip=None):
-        """Get all the elements in the subtree which is rooted
-        in the cuds_object element with the given uid.
-        Only consider the given relationship.
+        """Get all the elements in the subtree rooted at given root.
+
+        Only use the given relationship for traversal.
 
         :param root: The root of the subtree.
         :type root: Union[UUID, Cuds]
@@ -71,8 +69,7 @@ class Registry(dict):
         return subtree
 
     def prune(self, *roots, rel=None):
-        """Remove all elements in the registry that are not reachable from
-        the given roots by considering relationship rel.
+        """Remove all elements in the registry that are not reachable.
 
         :param roots: Remove all elements not reachable from these root
             elements.
@@ -90,8 +87,9 @@ class Registry(dict):
         return not_reachable
 
     def _get_not_reachable(self, *roots, rel=None):
-        """Get all elements in the registry that are not reachable from
-        the given roots by considering relationship rel.
+        """Get all elements in the registry that are not reachable.
+
+        Use the given rel for traversal.
 
         :param roots: Get all elements not reachable from these root
             elements.
@@ -115,13 +113,15 @@ class Registry(dict):
         return delete
 
     def reset(self):
-        """Delete the contents of the registry"""
+        """Delete the contents of the registry."""
         keys = set(self.keys())
         for key in keys:
             del self[key]
 
     def filter(self, criterion):
-        """Filter the registry. Return a dictionary that is
+        """Filter the registry.
+
+        Return a dictionary that is
         a subset of the registry. It contains only cuds objects
         that satisfy the given criterion.
 
@@ -150,7 +150,7 @@ class Registry(dict):
         return self.filter(lambda x: x.oclass == oclass)
 
     def filter_by_attribute(self, attribute, value):
-        """Filter by attribute and valie
+        """Filter by attribute and value.
 
         :param attribute: The attribute to look for
         :type attribute: str
@@ -165,7 +165,8 @@ class Registry(dict):
 
     def filter_by_relationships(self, relationship,
                                 consider_subrelationships=False):
-        """Filter the registry by relationships:
+        """Filter the registry by relationships.
+
         Return cuds objects containing the given relationship.
 
         :param relationship: The relationship to filter by.

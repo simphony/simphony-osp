@@ -1,8 +1,11 @@
+"""This file contains utility method used for searching in CUDS objects."""
+
+
 def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
                      current_depth=0, visited=None):
-    """
-    Recursively finds an element inside a container
-    by considering the given relationship.
+    """Recursively finds an element inside a container.
+
+    Use the given relationshipfor traversal.
 
     :param criterion: function that returns True on the Cuds object
         that is searched.
@@ -44,9 +47,9 @@ def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
 
 
 def find_cuds_object_by_uid(uid, root, rel):
-    """
-    Recursively finds an element with given uid inside a cuds object
-    by considering the given relationship.
+    """Recursively finds an element with given uid inside a cuds object.
+
+    Only use the given relationship for traversal.
 
     :param uid: The uid of the cuds_object that is searched.
     :type uid: UUID
@@ -66,9 +69,9 @@ def find_cuds_object_by_uid(uid, root, rel):
 
 
 def find_cuds_objects_by_oclass(oclass, root, rel):
-    """
-    Recursively finds an element with given oclass inside a cuds object
-    by considering the given relationship.
+    """Recursively finds an element with given oclass inside a cuds object.
+
+    Only use the given relationship for traversal.
 
     :param oclass: The oclass of the cuds_object that is searched.
     :type uid: OntologyClass
@@ -88,8 +91,9 @@ def find_cuds_objects_by_oclass(oclass, root, rel):
 
 
 def find_cuds_objects_by_attribute(attribute, value, root, rel):
-    """Recursively finds a cuds object by attribute and value by
-    only considering the given relationship.
+    """Recursively finds a cuds object by attribute and value.
+
+    Only the given relationship will be used for traversal.
 
     :param attribute: The attribute to look for
     :type attribute: str

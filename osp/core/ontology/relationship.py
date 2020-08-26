@@ -15,6 +15,7 @@ class OntologyRelationship(OntologyEntity):
     @property
     def inverse(self):
         """Get the inverse of this relationship.
+
         If it doesn't exist, add one to the graph.
 
         Returns:

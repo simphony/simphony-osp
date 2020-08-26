@@ -13,7 +13,7 @@ class OntologyClass(OntologyEntity):
 
     @property
     def attributes(self):
-        """Get all the attributes of this oclass
+        """Get all the attributes of this oclass.
 
         Returns:
             Dict[OntologyAttribute, str]: Mapping from attribute to default
@@ -25,7 +25,7 @@ class OntologyClass(OntologyEntity):
 
     @property
     def own_attributes(self):
-        """Get the non-inherited attributes of this oclass
+        """Get the non-inherited attributes of this oclass.
 
         Returns:
             Dict[OntologyAttribute, str]: Mapping from attribute to default
@@ -109,6 +109,7 @@ class OntologyClass(OntologyEntity):
 
     def _get_attributes_values(self, kwargs, _force):
         """Get the cuds object's attributes from the given kwargs.
+
         Combine defaults and given attribute attributes
 
         :param kwargs: The user specified keyword arguments
