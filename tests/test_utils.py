@@ -94,6 +94,11 @@ def get_test_city():
 
 class TestUtils(unittest.TestCase):
 
+    def setUp(self):
+        from osp.core.cuds import Cuds
+        from osp.core.session import CoreSession
+        Cuds._session = CoreSession()
+
     def test_get_rdf_graph(self):
         with TestWrapperSession() as session:
             wrapper = cuba.Wrapper(session=session)
@@ -279,6 +284,8 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(result[0].name, "Peter")
         self.assertEqual(result[0].age, 23)
         self.maxDiff = None
+
+        self.setUp()
         self.assertEqual(CUDS_LIST,
                          json.loads(serialize(deserialize(CUDS_LIST))))
 

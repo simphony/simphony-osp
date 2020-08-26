@@ -78,8 +78,8 @@ SERIALIZED_BUFFERS = (
     '{"00000000-0000-0000-0000-00000000002a": "city.CityWrapper"}}}], '
     '"deleted": [{"oclass": "city.Image", '
     '"uid": "00000000-0000-0000-0000-000000000002", '
-    '"attributes": {"path": "%s"}, "relationships": {}}], '
-    '"expired": []}' % (FILE_PATHS[2], FILE_PATHS[0], FILE_PATHS[1])
+    '"attributes": {}, "relationships": {}}], '
+    '"expired": []}' % (FILE_PATHS[2], FILE_PATHS[0])
 )
 
 

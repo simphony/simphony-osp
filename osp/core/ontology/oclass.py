@@ -140,13 +140,14 @@ class OntologyClass(OntologyEntity):
                 attributes[attribute] = default
 
         # Check validity of arguments
-        if not _force:
-            if kwargs:
-                raise TypeError("Unexpected keyword arguments: %s"
-                                % kwargs.keys())
-            missing = [k.argname for k, v in attributes.items() if v is None]
-            if missing:
-                raise TypeError("Missing keyword arguments: %s" % missing)
+        if _force:
+            return {k: v for k, v in attributes.items() if v is not None}
+        if kwargs:
+            raise TypeError("Unexpected keyword arguments: %s"
+                            % kwargs.keys())
+        missing = [k.argname for k, v in attributes.items() if v is None]
+        if missing:
+            raise TypeError("Missing keyword arguments: %s" % missing)
         return attributes
 
     def _direct_superclasses(self):

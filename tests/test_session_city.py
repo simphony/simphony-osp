@@ -83,6 +83,17 @@ class TestSessionCity(unittest.TestCase):
                     s = city.Street(name="street %s %s %s" % (i, j, k))
                     nw.add(s)
         w.remove(cities[1].uid, cities[2].uid)
+        expected_deletion = {
+            x.uid for x in session._registry.values()
+            if (
+                hasattr(x, "name")
+                and x.name in {
+                    "city 2", "neighborhood 2 0", "neighborhood 2 1",
+                    "street 2 0 0", "street 2 0 1", "street 2 1 0",
+                    "street 2 1 1", "city 1", "neighborhood 1 0",
+                    "neighborhood 1 1", "street 1 0 0", "street 1 0 1",
+                    "street 1 1 0", "street 1 1 1"
+                })}
         session.prune(rel=None)
         self.assertEqual(
             set(["wrapper" if k.is_a(cuba.Wrapper) else k.name
@@ -90,14 +101,7 @@ class TestSessionCity(unittest.TestCase):
             set(["city 0", "neighborhood 0 0", "neighborhood 0 1",
                  "street 0 0 0", "street 0 0 1", "street 0 1 0",
                  "street 0 1 1", "wrapper"]))
-        self.assertEqual(
-            set([d.name for d in deleted]),
-            set(["city 2", "neighborhood 2 0", "neighborhood 2 1",
-                 "street 2 0 0", "street 2 0 1", "street 2 1 0",
-                 "street 2 1 1", "city 1", "neighborhood 1 0",
-                 "neighborhood 1 1", "street 1 0 0", "street 1 0 1",
-                 "street 1 1 0", "street 1 1 1"])
-        )
+        self.assertEqual(set([d.uid for d in deleted]), expected_deletion)
 
     def test_buffers(self):
         """test if the buffers work correctly"""

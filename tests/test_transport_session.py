@@ -6,7 +6,6 @@ from osp.core.session.buffers import BufferContext, EngineContext, \
     BufferType
 from osp.core.utils import create_recycle
 from osp.core.session.wrapper_session import consumes_buffers
-from .test_session_city import TestWrapperSession
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
@@ -16,6 +15,11 @@ from osp.core.session.transport.transport_utils import (
     serialize_buffers, LOAD_COMMAND, INITIALIZE_COMMAND
 )
 from osp.core.utils import create_from_cuds_object
+
+try:
+    from .test_session_city import TestWrapperSession
+except ImportError:
+    from test_session_city import TestWrapperSession
 
 try:
     from osp.core.namespaces import city
@@ -151,6 +155,11 @@ SERIALIZED_BUFFERS3 = {
 
 
 class TestCommunicationEngineSharedFunctions(unittest.TestCase):
+
+    def setUp(self):
+        from osp.core.cuds import Cuds
+        from osp.core.session import CoreSession
+        Cuds._session = CoreSession()
 
     def testDeserialize(self):
         """Test transformation from normal dictionary to cuds"""
@@ -537,6 +546,12 @@ class TestCommunicationEngineClient(unittest.TestCase):
 
 
 class TestCommunicationEngineServer(unittest.TestCase):
+
+    def setUp(self):
+        from osp.core.cuds import Cuds
+        from osp.core.session import CoreSession
+        Cuds._session = CoreSession()
+
     def test_handle_disconnect(self):
         """Test the behavior when a user disconnects. """
         server = TransportSessionServer(TestWrapperSession, None, None)

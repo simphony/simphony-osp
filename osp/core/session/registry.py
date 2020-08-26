@@ -1,4 +1,7 @@
 from uuid import UUID
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Registry(dict):
@@ -68,7 +71,7 @@ class Registry(dict):
         return subtree
 
     def prune(self, *roots, rel=None):
-        """Remove all elements in the registry that are reachable from
+        """Remove all elements in the registry that are not reachable from
         the given roots by considering relationship rel.
 
         :param roots: Remove all elements not reachable from these root
@@ -77,6 +80,25 @@ class Registry(dict):
         :param rel: Only consider this relationship.
         :type rel: Relationship
         :return: The set of removed elements.
+        :rtype: List[Cuds]
+        """
+        logger.warning("Registry.prune() is deprecated. "
+                       "Use Session.prune() instead.")
+        not_reachable = self._get_not_reachable(*roots, rel=rel)
+        for x in not_reachable:
+            super().__delitem__(x.uid)
+        return not_reachable
+
+    def _get_not_reachable(self, *roots, rel=None):
+        """Get all elements in the registry that are not reachable from
+        the given roots by considering relationship rel.
+
+        :param roots: Get all elements not reachable from these root
+            elements.
+        :type root_uids: List[Union[UUID, Cuds]]
+        :param rel: Only consider this relationship.
+        :type rel: Relationship
+        :return: The set of non reachable elements.
         :rtype: List[Cuds]
         """
         # Get all reachable Cuds objects
@@ -90,10 +112,6 @@ class Registry(dict):
         for uid in self.keys():
             if uid not in reachable_uids:
                 delete.append(super().__getitem__(uid))
-
-        # remove the non-reachable ones
-        for cuds_object in delete:
-            super().__delitem__(cuds_object.uid)
         return delete
 
     def reset(self):

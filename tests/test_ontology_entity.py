@@ -163,12 +163,10 @@ class TestOntologyEntity(unittest.TestCase):
                           _force=False)
         self.assertEqual(city.City._get_attributes_values(kwargs={},
                                                           _force=True),
-                         {city.name: None,
-                          city.coordinates: rdflib.term.Literal('[0, 0]')})
+                         {city.coordinates: rdflib.term.Literal('[0, 0]')})
         self.assertEqual(city.City._get_attributes_values(kwargs={},
                                                           _force=True),
-                         {city.name: None,
-                          city.coordinates: rdflib.term.Literal('[0, 0]')})
+                         {city.coordinates: rdflib.term.Literal('[0, 0]')})
         self.assertEqual(city.City._get_attributes_values(
             kwargs={"name": "Freiburg"}, _force=True),
             {city.name: "Freiburg",

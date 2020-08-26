@@ -12,7 +12,7 @@ from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.datatypes import convert_to
 from osp.core.session.core_session import CoreSession
 from osp.core.session.session import Session
-from osp.core.neighbor_dict import NeighborDictRel, NeighborDictTarget
+from osp.core.neighbor_dict import NeighborDictRel
 from osp.core.utils import check_arguments, clone_cuds_object, \
     create_from_cuds_object, get_neighbor_diff, iri_from_uid
 from osp.core.namespaces import cuba
@@ -55,7 +55,6 @@ class Cuds():
         Raises:
             ValueError: Uid of zero is not allowed.
         """
-        self._stored = False
         self._session = session or Cuds._session
         self._graph = rdflib.Graph()
         self.__uid = uuid.uuid4() if uid is None else convert_to(uid, "UUID")
@@ -70,7 +69,6 @@ class Cuds():
             self.iri, rdflib.RDF.type, oclass.iri
         ))
         self.session._store(self)
-        self._stored = True
 
     @property
     def uid(self) -> uuid.UUID:
@@ -106,6 +104,10 @@ class Cuds():
     @property
     def _neighbors(self):
         return NeighborDictRel(self)
+
+    @property
+    def _stored(self):
+        return self._graph is self.session.graph
 
     def get_triples(self):
         """ Get the triples of the cuds object."""
@@ -507,8 +509,7 @@ class Cuds():
 
             # Add the inverse to the parent
             if inverse not in parent._neighbors:
-                parent._neighbors[inverse] = NeighborDictTarget({}, parent,
-                                                                inverse)
+                parent._neighbors[inverse] = {}
 
             parent._neighbors[inverse][new_cuds_object.uid] = \
                 new_cuds_object.oclass
@@ -542,8 +543,7 @@ class Cuds():
             # if neighbor is parent, add missing relationships
             else:
                 if relationship not in new_cuds_object._neighbors:
-                    new_cuds_object._neighbors[relationship] = \
-                        NeighborDictTarget({}, new_cuds_object, relationship)
+                    new_cuds_object._neighbors[relationship] = {}
                 for (uid, oclass), parent in \
                         zip(old_cuds_object._neighbors[relationship].items(),
                             neighbor._neighbors):
@@ -562,10 +562,7 @@ class Cuds():
         """
         # First element, create set
         if rel not in self._neighbors.keys():
-            self._neighbors[rel] = NeighborDictTarget(
-                {cuds_object.uid: cuds_object.oclass},
-                self, rel
-            )
+            self._neighbors[rel] = {cuds_object.uid: cuds_object.oclass}
         # Element not already there
         elif cuds_object.uid not in self._neighbors[rel]:
             self._neighbors[rel][cuds_object.uid] = cuds_object.oclass
@@ -891,7 +888,7 @@ class Cuds():
         """
 
         state = {k: v for k, v in self.__dict__.items()
-                 if k not in {"_session", "_stored", "_graph"}}
+                 if k not in {"_session", "_graph"}}
         state["_graph"] = list(self._graph.triples((None, None, None)))
         return state
 
@@ -909,5 +906,4 @@ class Cuds():
         for triple in state["_graph"]:
             g.add(triple)
         state["_graph"] = g
-        state["_stored"] = False
         self.__dict__ = state

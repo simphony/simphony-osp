@@ -73,7 +73,7 @@ class WrapperSession(Session):
             self._expire_neighour_diff(old_cuds_object, new_cuds_object, uids)
             if old_cuds_object is not None and new_cuds_object is None \
                     and uid in self._registry:
-                del self._registry[uid]
+                self._delete_cuds_triples(self._registry.get(uid))
             yield new_cuds_object
 
     def expire(self, *cuds_or_uids):
@@ -233,7 +233,6 @@ class WrapperSession(Session):
             self.refresh(cuds_object)
         if cuds_object.uid not in self._registry and cuds_object._stored:
             cuds_object._graph = rdflib.Graph()
-            cuds_object._stored = False
 
     def _expire(self, uids):
         """Expire the given uids

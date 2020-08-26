@@ -8,7 +8,6 @@ from osp.core.namespaces import get_entity, cuba
 from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
-from osp.core.neighbor_dict import NeighborDictTarget
 from osp.core.session.buffers import get_buffer_context_mngr
 
 logger = logging.getLogger(__name__)
@@ -101,7 +100,8 @@ def deserialize_buffers(session_obj, buffer_context, data,
                             buffer_context=buffer_context,
                             _force=(k == "deleted"))
             deserialized[k] = d
-            move_files(get_file_cuds(d), temp_directory, target_directory)
+            if k != "deleted":
+                move_files(get_file_cuds(d), temp_directory, target_directory)
         deleted = deserialized["deleted"] if "deleted" in deserialized else []
 
         for x in deleted:
@@ -318,9 +318,7 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
 
         for rel_name, obj_dict in relationships.items():
             rel = get_entity(rel_name)
-            cuds_object._neighbors[rel] = NeighborDictTarget(
-                dictionary={}, cuds_object=cuds_object, rel=rel
-            )
+            cuds_object._neighbors[rel] = {}
             for uid, target_name in obj_dict.items():
                 uid = convert_to(uid, "UUID")
                 target_oclass = get_entity(target_name)

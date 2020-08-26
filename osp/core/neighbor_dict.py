@@ -13,20 +13,10 @@ class NeighborDict(ABC):
     for each relationship.
     """
 
-    def __init__(self, dictionary, cuds_object, key_check, value_check):
+    def __init__(self, cuds_object, key_check, value_check):
         self.cuds_object = cuds_object
         self.key_check = key_check
         self.value_check = value_check
-
-        invalid_keys = [k for k in dictionary.keys()
-                        if not self.key_check(k)]
-        if invalid_keys:
-            raise ValueError("Invalid keys %s" % invalid_keys)
-        invalid_values = [v for v in dictionary.values()
-                          if not self.value_check(v)]
-
-        if invalid_values:
-            raise ValueError("Invalid values %s" % invalid_values)
 
     def __iter__(self):
         if self.cuds_object.session:
@@ -105,19 +95,20 @@ class NeighborDict(ABC):
 class NeighborDictRel(NeighborDict):
     def __init__(self, cuds_object):
         super().__init__(
-            {}, cuds_object,
+            cuds_object,
             key_check=lambda k: isinstance(k, OntologyRelationship),
-            value_check=lambda v: isinstance(v, NeighborDictTarget)
+            value_check=lambda v: isinstance(v, dict)
         )
 
     def _delitem(self, rel):
         self.graph.remove((self.cuds_object.iri, rel.iri, None))
 
     def _setitem(self, rel, target_dict):
-        target_dict._init()
+        x = NeighborDictTarget(cuds_object=self.cuds_object, rel=rel)
+        x._init(target_dict)
 
     def _getitem(self, rel):
-        return NeighborDictTarget({}, cuds_object=self.cuds_object, rel=rel)
+        return NeighborDictTarget(cuds_object=self.cuds_object, rel=rel)
 
     def __bool__(self):
         for s, p, o in self.graph.triples((self.cuds_object.iri, None, None)):
@@ -138,21 +129,17 @@ class NeighborDictRel(NeighborDict):
 
 
 class NeighborDictTarget(NeighborDict):
-    def __init__(self, dictionary, cuds_object, rel):
+    def __init__(self, cuds_object, rel):
         self.rel = rel
-        for uid, oclass in dictionary.items():
-            cuds_object._check_valid_add(oclass, rel)
         super().__init__(
-            dictionary, cuds_object,
+            cuds_object,
             key_check=lambda k: isinstance(k, uuid.UUID),
             value_check=lambda v: isinstance(v, OntologyClass)
         )
-        self.dictionary = dictionary
 
-    def _init(self):  # move __init__ arguments here
+    def _init(self, dictionary):  # move __init__ arguments here
         self.graph.remove((self.cuds_object.iri, self.rel.iri, None))
-        self.update(self.dictionary)
-        del self.dictionary
+        self.update(dictionary)
 
     def _delitem(self, uid):
         iri = iri_from_uid(uid)

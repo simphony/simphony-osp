@@ -8,7 +8,6 @@ from osp.core.ontology.datatypes import convert_to, convert_from, \
     _parse_vector_args
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from osp.core.session.db.conditions import EqualsCondition, AndCondition
-from osp.core.neighbor_dict import NeighborDictTarget
 from osp.core.namespaces import get_entity
 from osp.core.session.buffers import BufferContext
 from osp.core.ontology.cuba import rdflib_cuba
@@ -315,7 +314,7 @@ class SqlWrapperSession(DbWrapperSession):
                 root.remove(rel=cuba.relationship)
                 for uid in list(self._registry.keys()):
                     if uid != self.root:
-                        del self._registry[uid]
+                        self._delete_cuds_triples(self._registry.get(uid))
                 self._reset_buffers(BufferContext.USER)
 
                 # delete the data
@@ -662,18 +661,14 @@ class SqlWrapperSession(DbWrapperSession):
             rel = get_entity(name)
 
             if rel not in cuds_object._neighbors:
-                cuds_object._neighbors[rel] = NeighborDictTarget(
-                    {}, cuds_object, rel
-                )
+                cuds_object._neighbors[rel] = {}
 
             # Special case: target is root --> Add inverse to root
             if target == uuid.UUID(int=0):
                 root_obj = self._registry.get(self.root)
                 cuds_object._neighbors[rel][self.root] = root_obj.oclass
                 if rel.inverse not in root_obj._neighbors:
-                    root_obj._neighbors[rel.inverse] = NeighborDictTarget(
-                        {}, root_obj, rel.inverse
-                    )
+                    root_obj._neighbors[rel.inverse] = {}
                 root_obj._neighbors[rel.inverse][cuds_object.uid] = \
                     cuds_object.oclass
 

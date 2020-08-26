@@ -1,6 +1,5 @@
 import rdflib
 from copy import deepcopy
-from osp.core.neighbor_dict import NeighborDictTarget
 from osp.core.ontology.datatypes import convert_to
 from osp.core.utils.general import get_relationships_between
 from osp.core.namespaces import cuba
@@ -92,7 +91,6 @@ def clone_cuds_object(cuds_object):
     session = cuds_object._session
     clone = deepcopy(cuds_object)
     clone._session = session
-    clone._stored = False
     return clone
 
 
@@ -156,7 +154,7 @@ def create_from_cuds_object(cuds_object, session):
                            uid=cuds_object.uid,
                            fix_neighbors=False)
     for rel, target_dict in cuds_object._neighbors.items():
-        clone._neighbors[rel] = NeighborDictTarget(dict(), clone, rel)
+        clone._neighbors[rel] = {}
         for uid, target_oclass in target_dict.items():
             clone._neighbors[rel][uid] = target_oclass
     return clone
@@ -186,7 +184,7 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
 
     # update attributes
     attributes = new_oclass._get_attributes_values(kwargs, _force=_force)
-    cuds_object._graph = rdflib.Graph()
+    cuds_object._graph.remove((cuds_object.iri, None, None))
     cuds_object._graph.set((
         cuds_object.iri, rdflib.RDF.type, new_oclass.iri
     ))
