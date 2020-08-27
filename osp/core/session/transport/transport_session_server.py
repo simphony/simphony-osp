@@ -1,3 +1,10 @@
+"""The TransportSession implements the transport layer.
+
+It consists of a
+client and a server. The server runs on the remote part and delegates each
+request to the session it wraps.
+"""
+
 import os
 import json
 import logging

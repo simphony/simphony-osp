@@ -1,3 +1,5 @@
+"""Test CUDS2Dot."""
+
 # from osp.core.namespaces import city
 # from osp.core.utils.cuds2dot import Cuds2dot
 

@@ -1,3 +1,10 @@
+"""The TransportSession implements the transport layer.
+
+It consists of a
+client and a server. The client is a WrapperSession, that wraps another
+session that runs on the server. Each request will be sent to the server
+"""
+
 import os
 import json
 import logging
@@ -37,6 +44,8 @@ class TransportSessionClient(WrapperSession):
             connect_kwargs (dict[str, Any]): Will be passed to
                 websockets.connect. E.g. it is possible to pass an SSL context
                 with the ssl keyword.
+            kwargs (dict[str, Any]): Will be passed to the creation of the
+                session object.
         """
         self.session_cls = session_cls
         self.args = args
@@ -85,6 +94,7 @@ class TransportSessionClient(WrapperSession):
 
     # OVERRIDE
     def close(self):
+        """Remove the temporary directory and close the connection."""
         if self.__local_temp_dir:
             self.__local_temp_dir.cleanup()
         self._engine.close()
@@ -165,6 +175,18 @@ class TransportSessionClient(WrapperSession):
 
     # OVERRIDE
     def __getattr__(self, attr):
+        """Forward attribute calls to backend server.
+
+        Args:
+            attr (str): The attribute to get.
+
+        Raises:
+            AttributeError: The session in the backend doesn't have the
+                attribute.
+
+        Returns:
+            Callable: A Method that will trigger a request to the server.
+        """
         # Send each method call to the server.
         if not attr.startswith("_") and \
                 hasattr(self.session_cls, attr) and \
@@ -179,6 +201,7 @@ class TransportSessionClient(WrapperSession):
 
     # OVERRIDE
     def __str__(self):
+        """Convert the object to string."""
         return "TransportSessionClient connected to %s on %s" % (
             self.session_cls, self._engine.uri
         )

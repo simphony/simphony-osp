@@ -1,3 +1,5 @@
+"""Test the API of CUDS objects using the CITY ontology."""
+
 import unittest2 as unittest
 import uuid
 
@@ -18,6 +20,8 @@ except ImportError:
 
 
 class TestAPICity(unittest.TestCase):
+    """Test the API of CUDS objects using the CITY ontology."""
+
     def test_is_a(self):
         """Test instance check."""
         c = city.City(name="City")
@@ -165,6 +169,7 @@ class TestAPICity(unittest.TestCase):
             set(p4w._neighbors[city.isChildOf].keys()))
 
     def test_fix_neighbors(self):
+        """Test fixing the neighbors after replacing CUDS objects."""
         w1 = city.CityWrapper(session=CoreSession())
         w2 = city.CityWrapper(session=CoreSession())
 
@@ -637,6 +642,7 @@ class TestAPICity(unittest.TestCase):
                              {c1w, c2w})
 
     def test_get_attributes(self):
+        """Test getting the attributes of CUDS objects."""
         p = city.Citizen(name="Ralf")
         self.assertEqual(
             p.get_attributes(),
@@ -644,6 +650,7 @@ class TestAPICity(unittest.TestCase):
         )
 
     def test_add_multi_session(self):
+        """Test the add method in a comext of multiple sessions."""
         with CoreSession() as session:
             wrapper = cuba.Wrapper(session=session)
             aw = cuba.Class(session=session)

@@ -1,3 +1,5 @@
+"""Test file upload and download."""
+
 import os
 import sys
 import uuid
@@ -28,8 +30,7 @@ from osp.core.session.transport.communication_utils import (
 try:
     from .test_communication_engine import async_test, MockWebsocket
 except Exception:
-    def async_test(x):
-        pass
+    from test_communication_engine import async_test, MockWebsocket
 
 try:
     from osp.core.namespaces import city
@@ -84,10 +85,13 @@ SERIALIZED_BUFFERS = (
 
 
 class TestFiletransfer(unittest.TestCase):
+    """Test file upload and download."""
+
     SERVER_STARTED = False
 
     @classmethod
     def setUpClass(cls):
+        """Set up the server as a subprocess."""
         args = ["python3",
                 "tests/test_filetransfer.py",
                 "server"]
@@ -104,10 +108,12 @@ class TestFiletransfer(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        """Remove the database file."""
         TestFiletransfer.SERVER_STARTED.terminate()
         os.remove(DB)
 
     def tearDown(self):
+        """Remove temporary directories and clear the database."""
         shutil.rmtree(FILES_DIR)
         shutil.rmtree(CLIENT_DIR)
         shutil.rmtree(SERVER_DIR)
@@ -121,6 +127,7 @@ class TestFiletransfer(unittest.TestCase):
             conn.commit()
 
     def setUp(self):
+        """Set up some temporary directory and test files."""
         if not os.path.exists(FILES_DIR):
             os.mkdir(FILES_DIR)
         if not os.path.exists(CLIENT_DIR):
@@ -322,6 +329,7 @@ class TestFiletransfer(unittest.TestCase):
 
     @async_test
     async def test_receive_files(self):
+        """Test receiving files via file transfer."""
         ws = MockWebsocket(id=0, to_recv=[
             encode_header([2, FILES[0]], LEN_FILES_HEADER),
             ("0" * BLOCK_SIZE).encode("utf-8"),

@@ -1,3 +1,5 @@
+"""Test the installation procedure."""
+
 import os
 import unittest2 as unittest
 import tempfile
@@ -16,6 +18,8 @@ FILES = [
 
 
 class TestInstallation(unittest.TestCase):
+    """Test the installation procedure."""
+
     def setUp(self):
         """Set up some temporary directories."""
         self.tempdir = tempfile.TemporaryDirectory()

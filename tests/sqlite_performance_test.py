@@ -1,3 +1,5 @@
+"""Test the performance of the SQLite Wrapper."""
+
 # pip install pympler
 import gc
 import os
@@ -20,8 +22,10 @@ DB = "performance_test.db"
 
 
 class TestPerformance(unittest.TestCase):
+    """Test the performance of the SQLite Wrapper."""
 
     def setUp(self):
+        """Start the timer and fill the database."""
         if not RUN_PERFORMANCE_TEST:
             return
         self.iterations = 1000
@@ -35,6 +39,7 @@ class TestPerformance(unittest.TestCase):
         self.start = time.time()
 
     def tearDown(self):
+        """Remove database file and print the performance of the test."""
         if not RUN_PERFORMANCE_TEST:
             return
         self.stop = time.time()
@@ -50,6 +55,7 @@ class TestPerformance(unittest.TestCase):
             os.remove(DB)
 
     def fill_db(self, c, random_uid=True):
+        """Fill the database with data."""
         for i in range(self.iterations):
             j = i * 9
             uids = iter([None for i in range(9)])

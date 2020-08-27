@@ -1,3 +1,10 @@
+"""A Common Universal Data Structure.
+
+The CUDS object has attributes and is connected to other
+cuds objects via relationships. It is an ontology individual that
+can be used like a container.
+"""
+
 # from __future__ import annotations
 import uuid
 import rdflib

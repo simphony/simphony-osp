@@ -1,3 +1,5 @@
+"""A session to connect osp-core to a SQLite backend."""
+
 import sqlite3
 import rdflib
 from osp.core.ontology.cuba import rdflib_cuba
@@ -7,22 +9,37 @@ from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
 
 
 class SqliteSession(SqlWrapperSession):
+    """A session to connect osp-core to a SQLite backend.
+
+    This SQLite backend can be used to store CUDS in an SQLite database.
+    """
 
     def __init__(self, path, check_same_thread=True, **kwargs):
+        """Initialize the SqliteSession.
+
+        Args:
+            path (str): The path to the sqlite database file. Will be created
+                if it doesn't exist.
+            check_same_thread (bool, optional): Argument of sqlite.
+                Defaults to True.
+        """
         conn = sqlite3.connect(path,
                                isolation_level=None,
                                check_same_thread=check_same_thread)
         super().__init__(engine=conn, **kwargs)
 
     def __str__(self):
+        """Convert the Session to a static string."""
         return "Sqlite Wrapper Session"
 
     # OVERRIDE
     def close(self):
+        """Close the connection to the SQLite database."""
         self._engine.close()
 
     # OVERRIDE
     def _commit(self):
+        """Commit the data to the SQLite database."""
         self._engine.commit()
 
     # OVERRIDE

@@ -1,3 +1,8 @@
+"""A collection of utility method for osp-core.
+
+These are potantially useful for every user of SimPhoNy.
+"""
+
 import requests
 import json
 import rdflib
@@ -31,9 +36,11 @@ def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
     """Delete a cuds object  and all the object inside of the container of it.
 
     Args:
-        cuds_object (Cuds): The Cuds object to recursively delete
-        max_depth (int, optional): The maximum depth of the recursion.
-            Defaults to float("inf").
+        cuds_object (Cuds): The CUDS object to recursively delete.
+        rel (OntologyRelationship, optional): The relationship used for
+            traversal. Defaults to cuba.activeRelationship.
+        max_depth (int, optional):The maximum depth of the recursion.
+            Defaults to float("inf"). Defaults to float("inf").
     """
     from osp.core.utils.simple_search import find_cuds_object
     cuds_objects = find_cuds_object(criterion=lambda x: True,
@@ -104,6 +111,13 @@ def uid_from_iri(iri):
 
 
 def get_custom_datatypes():
+    """Get the set of all custom datatypes used in the ontology.
+
+    Custom datatypes are non standard ones, defined in the CUBA namespace.
+
+    Returns:
+        Set[rdflib.IRI]: The set of IRI of custom datatypes.
+    """
     from osp.core.ontology.cuba import rdflib_cuba
     from osp.core.namespaces import _namespace_registry
     pattern = (None, rdflib.RDF.type, rdflib.RDFS.Datatype)
@@ -115,6 +129,14 @@ def get_custom_datatypes():
 
 
 def get_custom_datatype_triples():
+    """Get the set of triples in the ontology that include custom datatypes.
+
+    Custom datatypes are non standard ones, defined in the CUBA namespace.
+
+    Returns:
+        rdflib.Graph: A graph containing all the triples concerning custom
+            datatypes.
+    """
     custom_datatypes = get_custom_datatypes()
     from osp.core.namespaces import _namespace_registry
     result = rdflib.Graph()

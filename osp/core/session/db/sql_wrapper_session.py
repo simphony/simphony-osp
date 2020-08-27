@@ -1,3 +1,5 @@
+"""An abstract session containing method useful for all SQL backends."""
+
 import uuid
 import rdflib
 from operator import mul

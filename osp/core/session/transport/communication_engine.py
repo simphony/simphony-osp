@@ -1,3 +1,10 @@
+"""Server side of the CommunicationEngine.
+
+The communication engine manages the connection between the remote and
+local side of the transport layer. The server will be executed on the
+remote side.
+"""
+
 import asyncio
 import websockets
 import logging
@@ -31,8 +38,9 @@ class CommunicationEngineServer():
         Args:
             host (str): The hostname.
             port (int): The port.
-            handle_request (Callable[str(command), str(data), UUID(user)]):
-            Handles the requests of the user.
+            handle_request (Callable): Handles the requests of the user.
+                Signature: command(str), data(str), temp_directory(str),
+                    user(UUID).
             handle_disconnect (Callable[UUID(user)]): Gets called when a
                 user disconnects.
             kwargs (dict[str, Any]): Will be passed to websockets.connect.

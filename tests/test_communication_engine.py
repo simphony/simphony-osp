@@ -1,3 +1,5 @@
+"""Test the communication engine."""
+
 import unittest2 as unittest
 import asyncio
 import websockets
@@ -10,6 +12,7 @@ from osp.core.session.transport.communication_utils import (
 
 
 def async_test(test):
+    """A decorator for testing asynchronous functions."""
     def decorate(self):
         event_loop = asyncio.get_event_loop()
         event_loop.run_until_complete(test(self))
@@ -17,31 +20,39 @@ def async_test(test):
 
 
 class MockWebsocket():
+    """A mock websocket for testing purposes."""
     def __init__(self, id, to_recv, sent_data):
+        """Initialize the MockWebsocket."""
         self.to_recv = to_recv
         self.iter = iter(to_recv)
         self.id = id
         self.sent_data = sent_data
 
     def reset(self):
+        """Reset the iterator."""
         self.iter = iter(self.to_recv)
 
     def __hash__(self):
+        """Make it hashable."""
         return self.id
 
     def __aiter__(self):
+        """Mock implementation of __aiter__ magic method."""
         return self
 
     async def __anext__(self):
+        """Mock implementation of __anext__ magic methods."""
         try:
             return next(self.iter)
         except StopIteration:
             raise StopAsyncIteration
 
     async def send(self, data):
+        """Mock implementation of send methods."""
         self.sent_data.append(data)
 
     async def recv(self):
+        """Mock implementation of recv method."""
         try:
             return next(self.iter)
         except StopIteration:
@@ -50,9 +61,7 @@ class MockWebsocket():
 
 
 class TestCommunicationEngine(unittest.TestCase):
-
-    def setUp(self):
-        pass
+    """Test the communication engine."""
 
     @async_test
     async def test_serve(self):

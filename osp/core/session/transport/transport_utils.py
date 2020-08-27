@@ -1,3 +1,5 @@
+"""Utilities used for the transport layer."""
+
 import json
 import uuid
 import os

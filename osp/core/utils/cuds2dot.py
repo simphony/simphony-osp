@@ -1,3 +1,5 @@
+"""Visualize a CUDS structure using graphviz."""
+
 import graphviz
 import logging
 from osp.core.namespaces import cuba

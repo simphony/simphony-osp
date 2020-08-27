@@ -1,3 +1,11 @@
+"""A dummy simulation session used for demonstrational and testing purposes.
+
+With each simulation step, the age of all person that are direct
+descendents of the Wrapper object will be increased by one.
+Each simulation step one person will move to the city and become
+an inhabitant.
+"""
+
 from osp.wrappers.simdummy import (
     DummySyntacticLayer, DummyPerson
 )
@@ -15,19 +23,37 @@ except ImportError:
 
 
 class SimDummySession(SimWrapperSession):
+    """A Dummy session for educational and testing purposes."""
     def __init__(self, **kwargs):
+        """Initialize the dummy session."""
         super().__init__(engine=DummySyntacticLayer(), **kwargs)
         self._person_map = dict()
 
     def __str__(self):
+        """Convert the dummy session to a string."""
         return "Dummy SimWrapperSession"
 
     # OVERRIDE
     def _run(self, root_cuds_object):
+        """Run the simulation.
+
+        Args:
+            root_cuds_object (Cuds): The wrapper object.
+        """
         self._engine.simulate(root_cuds_object.numSteps)
 
     # OVERRIDE
     def _load_from_backend(self, uids, expired=None):
+        """Load objects from the dummy backend.
+
+        Args:
+            uids (List[UUID]): Load the objects with the given UUIDs.
+            expired (Set[UUID], optional): A set of UUID that have been
+                marked as expired.. Defaults to None.
+
+        Yields:
+            Cuds: A loaded CUDS objects.
+        """
         # update the age of each person and delete persons that became citizens
         for uid in uids:
             root_cuds_object = self._registry.get(self.root)
@@ -45,6 +71,14 @@ class SimDummySession(SimWrapperSession):
                 yield None
 
     def _load_person(self, uid):
+        """Load the Person CUDS object with the given UUID from the backend..
+
+        Args:
+            uid (UUID): The UUID of the CUDS object to load.
+
+        Returns:
+            Cuds: The loaded Person CUDS object.
+        """
         person = self._registry.get(uid)
         idx = self._person_map[uid]
         person.age = self._engine.get_person(idx)[1].age
@@ -54,6 +88,14 @@ class SimDummySession(SimWrapperSession):
         return person
 
     def _load_city(self, uid):
+        """Load the City CUDS object with the given UUID from the backend.
+
+        Args:
+            uid (UUID): The UUID of the City CUDS object to load.
+
+        Returns:
+            Cuds: The loaded City CUDS object.
+        """
         c = self._registry.get(uid)
         inhabitant_uids = set(
             [x.uid for x in c.get(rel=city.hasInhabitant)]
@@ -64,12 +106,29 @@ class SimDummySession(SimWrapperSession):
         return c
 
     def _load_wrapper(self, uid):
+        """Load the Wrapper CUDS object.
+
+        Args:
+            uid (UUID): The UUID of the Wrapper
+
+        Returns:
+            Cuds: The loaded Wrapper object.
+        """
         wrapper = self._registry.get(uid)
         for person in wrapper.get(oclass=city.Person):
             self.refresh(person.uid)
         return wrapper
 
     def _check_convert_to_inhabitant(self, uid):
+        """Check whether a Person should be converted to an Inhabitant.
+
+        If the backend converted the Person with the given UUID to
+        an inhabitant, this method will change the ontology class
+        of the object.
+
+        Args:
+            uid (UUID): The UUID of the person to check.
+        """
         wrapper = self._registry.get(self.root)
         c = wrapper.get(oclass=city.City)[0]
         idx = self._person_map[uid]
@@ -84,6 +143,16 @@ class SimDummySession(SimWrapperSession):
 
     # OVERRIDE
     def _apply_added(self, root_obj, buffer):
+        """Apply the added buffer to the backend.
+
+        Args:
+            root_obj (Cuds): The Wrapper CUDS object.
+            buffer (dict[UUID, Cuds]): The added CUDS objects.
+
+        Raises:
+            RuntimeError: It is not allowed to add CUDS objects after
+                the simulation has been started.
+        """
         if self._ran and buffer:
             raise RuntimeError("Do not add cuds_objects "
                                "after running the simulation")
@@ -102,12 +171,32 @@ class SimDummySession(SimWrapperSession):
 
     # OVERRIDE
     def _apply_updated(self, root_obj, buffer):
+        """Apply the updated buffer to the backend.
+
+        Args:
+            root_obj (Cuds): The Wrapper Cuds object.
+            buffer (dict[UUID, CUDs]): The updated CUDS objects.
+
+        Raises:
+            RuntimeError: It is not allowed to update CUDS objects
+                after the simulation has been started.
+        """
         if self._ran and buffer:
             raise RuntimeError("Do not update cuds_objects after running "
                                + "the simulation")
 
     # OVERRIDE
     def _apply_deleted(self, root_obj, buffer):
+        """Apply the deleted buffer to the backend.
+
+        Args:
+            root_obj (Cuds): The Wrapper Cuds object.
+            buffer (dict[UUID, CUDS]): The deleted CUDS objects.
+
+        Raises:
+            RuntimeError: It is not allowed to delete CUDS objects
+                after the simulation has been started.
+        """
         if self._ran and buffer:
             raise RuntimeError("Do not delete cuds_objects after running "
                                + "the simulation")

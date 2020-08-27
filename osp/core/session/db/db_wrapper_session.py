@@ -1,3 +1,5 @@
+"""An abstract session containing method useful for all database backends."""
+
 from abc import abstractmethod
 from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
 from osp.core.session.result import returns_query_result

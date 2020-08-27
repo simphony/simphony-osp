@@ -1,3 +1,5 @@
+"""Visualize an ontology using graphviz."""
+
 import os
 import graphviz
 import argparse

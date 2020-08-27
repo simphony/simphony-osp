@@ -1,3 +1,5 @@
+"""Utilities useful for Wrapper developers."""
+
 import rdflib
 from copy import deepcopy
 from osp.core.ontology.datatypes import convert_to
@@ -7,7 +9,7 @@ from osp.core.namespaces import cuba
 
 # General utility methods
 def check_arguments(types, *args):
-    """Checks that the arguments provided are of the certain type(s).
+    """Check that the arguments provided are of the certain type(s).
 
     :param types: tuple with all the allowed types
     :type types: Union[Type, Tuple[Type]]
@@ -22,7 +24,7 @@ def check_arguments(types, *args):
 
 
 def format_class_name(name):
-    """Formats a string to CapWords.
+    """Format a string to CapWords.
 
     :param name: string to format
     :type name: str

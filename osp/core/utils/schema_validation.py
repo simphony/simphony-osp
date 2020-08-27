@@ -1,3 +1,5 @@
+"""Contains methods that check if CUDS objects satisfy a certain schema."""
+
 import yaml
 import logging
 
@@ -8,11 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 class ConsistencyError(Exception):
-    pass
+    """The given CUDS structure is inconsistent."""
 
 
 class CardinalityError(Exception):
-    pass
+    """A cardinality constraint is violated."""
 
 
 def validate_tree_against_schema(root_obj, schema_file):

@@ -1,3 +1,5 @@
+"""Utilities used in the communication in the transport layer."""
+
 import os
 import math
 import hashlib
@@ -159,6 +161,7 @@ async def receive_files(num_files, websocket, directory, file_hashes=None):
         num_files (int): The number of files to load.
         websocket (websocket): The websocket to load the files from.
         directory (path): The location to store the files.
+        file_hashes(dict[str, str]): Hashes of files of already received files.
     """
     if file_hashes is None:
         file_hashes = dict()

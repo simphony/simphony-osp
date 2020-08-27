@@ -1,3 +1,9 @@
+"""A script converting old ontologies to new ones.
+
+Old ontology typically have entity names in ALL_UPPERCASE.
+Newer ontology usually have entity names in CamelCase.
+"""
+
 import argparse
 import yaml
 import logging

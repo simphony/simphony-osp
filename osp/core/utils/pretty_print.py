@@ -1,3 +1,5 @@
+"""Utility functions for printing CUDS objects in a nice way."""
+
 import sys
 from osp.core.namespaces import cuba
 

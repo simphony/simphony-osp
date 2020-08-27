@@ -1,10 +1,14 @@
+"""Test the communication utils."""
+
 import unittest2 as unittest
 from osp.core.session.transport.communication_utils import (
     decode_header, encode_header, split_message, join_message)
 from .test_communication_engine import async_test, MockWebsocket
 
 
-class TestFiletransfer(unittest.TestCase):
+class TestCommunicationUtils(unittest.TestCase):
+    """Test the communication utils."""
+
     def test_decode_header(self):
         """Test decoding of the header."""
         self.assertEqual(list(decode_header(bytes([255, 255, 0]), [2, 1])),
