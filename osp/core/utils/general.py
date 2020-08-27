@@ -2,7 +2,6 @@ import requests
 import json
 import rdflib
 from osp.core.namespaces import cuba
-from osp.core.session.session import Session
 
 
 def branch(cuds_object, *args, rel=None):
@@ -56,6 +55,7 @@ def get_rdf_graph(session=None):
     Returns:
         rdflib.Graph: The resulting rdf Graph
     """
+    from osp.core.session.session import Session
     if session is not None:
         if not isinstance(session, Session):
             raise TypeError(
