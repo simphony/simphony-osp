@@ -38,10 +38,8 @@ class Session(ABC):
 
         Return the stored object.
 
-        :param cuds_object: The cuds_object to store.
-        :type cuds_object: Cuds
-        :return: The stored cuds_object.
-        :rtype: Cuds
+        Args:
+            cuds_object (Cuds): The cuds_object to store.
         """
         assert cuds_object.session == self
         self._registry.put(cuds_object)
@@ -54,10 +52,11 @@ class Session(ABC):
     def load(self, *uids):
         """Load the cuds_objects of the given uids.
 
-        :param uids: The uids of the cuds_objects to load.
-        :type uids: UUID
-        :return: The fetched Cuds objects.
-        :rtype: Iterator[Cuds]
+        Args:
+            *uids (UUID): The uids of the cuds_objects to load.
+
+        Yields:
+            Cuds: The fetched Cuds objects.
         """
         for uid in uids:
             try:
@@ -70,8 +69,9 @@ class Session(ABC):
 
         Only consider given relationship and its subclasses.
 
-        :param rel: Only consider this relationship to calculate reachability.
-        :type rel: Relationship
+        Args:
+            rel (Relationship, optional): Only consider this relationship to
+                calculate reachability.. Defaults to None.
         """
         deleted = self._registry._get_not_reachable(self.root, rel=rel)
         for d in deleted:
@@ -109,8 +109,8 @@ class Session(ABC):
     def _notify_delete(self, cuds_object):
         """Notify the session that some object has been delted.
 
-        :param cuds_object: The cuds_object that has been deleted
-        :type cuds_object: Cuds
+        Args:
+            cuds_object (Cuds): The cuds_object that has been deleted
         """
         pass
 
@@ -118,8 +118,8 @@ class Session(ABC):
     def _notify_update(self, cuds_object):
         """Notify the session that some object has been updated.
 
-        :param cuds_object: The cuds_object that has been updated.
-        :type cuds_object: Cuds
+        Args:
+            cuds_object (Cuds): The cuds_object that has been updated.
         """
         pass
 
@@ -134,7 +134,7 @@ class Session(ABC):
         This method is called when the user accesses the attributes or the
         relationships of the cuds_object cuds_object.
 
-        :param cuds_object: The cuds_object that has been accessed.
-        :type cuds_object: Cuds
+        Args:
+            cuds_object (Cuds): The cuds_object that has been accessed.
         """
         pass

@@ -10,8 +10,8 @@ def pretty_print(cuds_object, file=sys.stdout):
     The uuid, the type, the ancestors and the description and the contents
     is printed.
 
-    :param cuds_object: container to be printed
-    :type cuds_object: Cuds
+    Args:
+        cuds_object (Cuds): container to be printed
     """
     pp = _pp_cuds_object_name(cuds_object)
     pp += "\n  uuid: " + str(cuds_object.uid)
@@ -31,8 +31,11 @@ def pretty_print(cuds_object, file=sys.stdout):
 def _pp_cuds_object_name(cuds_object, print_oclass=False):
     """Return the name of the given element following the pretty print format.
 
-    :param cuds_object: element to be printed
-    :return: string with the pretty printed text
+    Args:
+        cuds_object (Cuds): element to be printed.
+
+    Returns:
+        String with the pretty printed text.
     """
     title = "Cuds object" if not print_oclass else "cuds object"
     oclass = (" %s " % cuds_object.oclass) if print_oclass else ""
@@ -48,9 +51,12 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
 
     The objects are grouped by ontology class.
 
-    :param cuds_object: element to inspect
-    :param level_indentation: common characters to left-pad the text
-    :return: string with the pretty printed text
+    Args:
+        cuds_object (Cuds): element to inspect.
+        level_indentation (str): common characters to left-pad the text.
+
+    Returns:
+        str: string with the pretty printed text
     """
     pp_sub = ""
     filtered_relationships = filter(
@@ -97,12 +103,13 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
 def _pp_values(cuds_object, indentation="\n          "):
     r"""Print the attributes of a cuds object.
 
-    :param cuds_object: Print the values of this cuds object.
-    :type cuds_object: Cuds
-    :param indentation: The indentation to prepend, defaults to "\n          "
-    :type indentation: str, optional
-    :return: The resulting string to print.
-    :rtype: [type]
+    Args:
+        cuds_object (Cuds): Print the values of this cuds object.
+        indentation (str): The indentation to prepend, defaults to
+            "\n          "
+
+    Returns:
+        str: The resulting string to print.
     """
     result = []
     sorted_attributes = sorted(cuds_object.get_attributes().items(),

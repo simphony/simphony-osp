@@ -7,20 +7,22 @@ def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
 
     Use the given relationshipfor traversal.
 
-    :param criterion: function that returns True on the Cuds object
-        that is searched.
-    :type criterion: Callable
-    :param root: Starting point of search
-    :type root: Cuds
-    :param rel: The relationship (incl. subrelationships) to consider
-    :type rel: Type[Relationship]
-    :param find_all: Whether to find all cuds_objects with satisfying
-        the criterion.
-    :type find_all: bool
-    :param max_depth: The maximum depth for the search.
-    :type max_depth: Union(float, int)
-    :return: the element if found
-    :rtype: Union[Cuds, List[Cuds]]
+    Args:
+        criterion (Callable): Function that returns True on the Cuds object
+            that is searched.
+        root (Cuds): Starting point of search
+        rel (OntologyRelationship): The relationship (incl. subrelationships)
+            to consider for traversal.
+        find_all (bool): Whether to find all cuds_objects satisfying
+            the criterion.
+        max_depth (int, optional): The maximum depth for the search.
+            Defaults to float("inf").
+        current_depth (int, optional): The current search depth. Defaults to 0.
+        visited (Set[UUID], optional): The set of UUIDs already visited.
+            Defaults to None.
+
+    Returns:
+        Union[Cuds, List[Cuds]]: The element(s) found.
     """
     visited = visited or set()
     visited.add(root.uid)
@@ -51,14 +53,14 @@ def find_cuds_object_by_uid(uid, root, rel):
 
     Only use the given relationship for traversal.
 
-    :param uid: The uid of the cuds_object that is searched.
-    :type uid: UUID
-    :param root: Starting point of search
-    :type root: Cuds
-    :param rel: The relationship (incl. subrelationships) to consider
-    :type rel: Type[Relationship]
-    :return: the element if found
-    :rtype: Cuds
+    Args:
+        uid (UUID): The uid of the cuds_object that is searched.
+        root (Cuds): Starting point of search.
+        rel (OntologyRelationship): The relationship (incl. subrelationships)
+            to consider.
+
+    Returns:
+        Cuds: The element found.
     """
     return find_cuds_object(
         criterion=lambda cuds_object: cuds_object.uid == uid,
@@ -73,14 +75,14 @@ def find_cuds_objects_by_oclass(oclass, root, rel):
 
     Only use the given relationship for traversal.
 
-    :param oclass: The oclass of the cuds_object that is searched.
-    :type uid: OntologyClass
-    :param root: Starting point of search
-    :type root: Cuds
-    :param rel: The relationship (incl. subrelationships) to consider
-    :type rel: Type[Relationship]
-    :return: The found suds objects.
-    :rtype: List[Cuds]
+    Args:
+        oclass (OntologyClass): The oclass of the cuds_object that is searched.
+        root (Cuds): Starting point of search.
+        rel (OntologyRelationship): The relationship (incl. subrelationships)
+            to consider for traversal.
+
+    Returns:
+        List[Cuds]: The elements found.
     """
     return find_cuds_object(
         criterion=lambda cuds_object: cuds_object.is_a(oclass),
@@ -95,16 +97,16 @@ def find_cuds_objects_by_attribute(attribute, value, root, rel):
 
     Only the given relationship will be used for traversal.
 
-    :param attribute: The attribute to look for
-    :type attribute: str
-    :param value: The corresponding value to filter by
-    :type value: Any
-    :param root: The root for the search
-    :type root: Cuds
-    :param rel: The relationship (+ subrelationships) to consider.
-    :type rel: Type[Relationship]
-    :return: The found cuds objects.
-    :rtype: List[Cuds]
+
+    Args:
+        attribute (str): The attribute to look for
+        value (Any): The corresponding value to filter by
+        root (Cuds): The root for the search.
+        rel (OntologyRelationship): The relationship (+ subrelationships) to
+            consider.
+
+    Returns:
+        List[Cuds]: The found cuds objects.
     """
     return find_cuds_object(
         criterion=(lambda cuds_object: hasattr(cuds_object, attribute)
@@ -118,14 +120,16 @@ def find_cuds_objects_by_attribute(attribute, value, root, rel):
 def find_relationships(find_rel, root, consider_rel, find_sub_rels=False):
     """Find the given relationship in the subtree of the given root.
 
-    :param find_rel: The relationship to find
-    :type find_rel: Type[Relationship]
-    :param root: Only consider the subgraph rooted in this root.
-    :type root: Cuds
-    :param consider_rel: Only consider these relationships when searching.
-    :type consider_rel: Type[Relationship]
-    :return: The cuds objects having the given relationship.
-    :rtype: List[Cuds]
+    Args:
+        find_rel (OntologyRelationship): The relationship to find.
+        root (Cuds): Only consider the subgraph rooted in this root.
+        consider_rel (OntologyRelationship): Only consider these relationships
+            when searching.
+        find_sub_rels (bool, optional): The cuds objects having the given
+            relationship.. Defaults to False.
+
+    Returns:
+        List[Cuds]: The cuds objects having the given relationship.
     """
     if find_sub_rels:
         def criterion(cuds_object):

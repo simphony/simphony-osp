@@ -16,7 +16,7 @@ from osp.core.session.buffers import EngineContext
 from osp.core.utils import (
     clone_cuds_object,
     create_recycle, create_from_cuds_object,
-    check_arguments, format_class_name, find_cuds_object,
+    check_arguments, find_cuds_object,
     find_cuds_object_by_uid, remove_cuds_object,
     pretty_print, deserialize,
     find_cuds_objects_by_oclass, find_relationships,
@@ -446,11 +446,6 @@ class TestUtils(unittest.TestCase):
         self.assertRaises(TypeError, check_arguments, (int, float), 1.2, "h")
         self.assertRaises(TypeError, check_arguments,
                           Cuds, city.City)
-
-    def test_format_class_name(self):
-        """Test class name formatting."""
-        self.assertEqual(format_class_name("what_is_going_on"),
-                         "WhatIsGoingOn")
 
     def test_find_cuds_object(self):
         """Test to find cuds objects by some criterion."""

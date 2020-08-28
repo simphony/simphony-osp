@@ -22,9 +22,11 @@ class Registry(dict):
     def put(self, cuds_object):
         """Add an object to the registry.
 
-        :param cuds_object: The cuds_object to put in the registry
-        :type cuds_object: Cuds
-        :raises ValueError: unsupported object provided (not a Cuds object)
+        Args:
+            cuds_object (Cuds):  The cuds_object to put in the registry.
+
+        Raises:
+            ValueError: Unsupported object provided (not a Cuds object).
         """
         from osp.core.cuds import Cuds
         if isinstance(cuds_object, Cuds):
@@ -36,10 +38,14 @@ class Registry(dict):
     def get(self, uid):
         """Return the object corresponding to a given uuid.
 
-        :param uid: uuid of the desired object
-        :type uid: UUID
-        :return: Cuds object with the uid
-        :raises ValueError: unsupported key provided (not a UUID object)
+        Args:
+            uid (UUID): The UUID of the desired object.
+
+        Raises:
+            ValueError: Unsupported key provided (not a UUID object).
+
+        Returns:
+            Cuds: Cuds object with the uid.
         """
         if isinstance(uid, UUID):
             return super().__getitem__(uid)
@@ -52,14 +58,16 @@ class Registry(dict):
 
         Only use the given relationship for traversal.
 
-        :param root: The root of the subtree.
-        :type root: Union[UUID, Cuds]
-        :param rel: The relationship to consider defaults to None
-        :type rel: Relationship, optional
-        :param skip: The elements to skip, defaults to None
-        :type skip: Set[Cuds], optional
-        :return: The set of elements in the subtree rooted in the given uid.
-        :rtype: Set[Cuds]
+        Args:
+            root (Union[UUID, Cuds]): The root of the subtree.
+            rel (Relationship, optional): The relationship used for traversal.
+                Defaults to None. Defaults to None.
+            skip (Set[Cuds], optional): The elements to skip. Defaults to None.
+                Defaults to None.
+
+        Returns:
+            Set[Cuds]: The set of elements in the subtree rooted in the given
+                uid.
         """
         from osp.core.cuds import Cuds
         skip = skip or set()
@@ -76,13 +84,12 @@ class Registry(dict):
     def prune(self, *roots, rel=None):
         """Remove all elements in the registry that are not reachable.
 
-        :param roots: Remove all elements not reachable from these root
-            elements.
-        :type root_uids: List[Union[UUID, Cuds]]
-        :param rel: Only consider this relationship.
-        :type rel: Relationship
-        :return: The set of removed elements.
-        :rtype: List[Cuds]
+        Args:
+            rel (Relationship, optional):Only consider this relationship.
+                Defaults to None.
+
+        Returns:
+            List[Cuds]: The set of removed elements.
         """
         logger.warning("Registry.prune() is deprecated. "
                        "Use Session.prune() instead.")
@@ -96,13 +103,14 @@ class Registry(dict):
 
         Use the given rel for traversal.
 
-        :param roots: Get all elements not reachable from these root
-            elements.
-        :type root_uids: List[Union[UUID, Cuds]]
-        :param rel: Only consider this relationship.
-        :type rel: Relationship
-        :return: The set of non reachable elements.
-        :rtype: List[Cuds]
+        Args:
+            *roots (Union[UUID, Cuds]): Get all elements not reachable from
+                these root elements.
+            rel (Relationship, optional): Only use this relationship for
+                traversal. Defaults to None.
+
+        Returns:
+            List[Cuds]: The set of non reachable elements.
         """
         # Get all reachable Cuds objects
         reachable = set()
@@ -130,12 +138,15 @@ class Registry(dict):
         a subset of the registry. It contains only cuds objects
         that satisfy the given criterion.
 
-        :param criterion: A function that decides whether a cuds object
-            should be returned. If the function returns True on a cuds object
-            it means the cuds object satisfies the criterion.
-        :type criterion: Callable[Cuds, bool]
-        :return: A dict contains the cuds objects satisfying the criterion.
-        :rtype: Dict[UUID, Cuds]
+        Args:
+            criterion (Callable[Cuds, bool]): A function that decides whether
+                a cuds object should be returned. If the function returns True
+                on a cuds object it means the cuds object satisfies the
+                criterion.
+
+        Returns:
+            Dict[UUID, Cuds]:  dict contains the cuds objects satisfying the
+                criterion.
         """
         result = dict()
         for uid, cuds_object in super().items():
@@ -144,26 +155,27 @@ class Registry(dict):
         return result
 
     def filter_by_oclass(self, oclass):
-        """Filter the registry by ontolgy class.
+        """Filter the registry by ontology class.
 
-        :param oclass: The oclass used for filtering.
-        :type oclass: OntologyClass
-        :return: A subset of the registry,
-            containing cuds objects with given ontology class.
-        :rtype: Dict[UUID, Cuds]
+        Args:
+            oclass (OntologyClass): The oclass used for filtering.
+
+        Returns:
+            Dict[UUID, Cuds]: A subset of the registry,
+                containing cuds objects with given ontology class.
         """
         return self.filter(lambda x: x.oclass == oclass)
 
     def filter_by_attribute(self, attribute, value):
         """Filter by attribute and value.
 
-        :param attribute: The attribute to look for
-        :type attribute: str
-        :param value: The corresponding value to look for
-        :type value: Any
-        :return: A subset of the registry,
-            containing cuds objects with given attribute and value.
-        :rtype: Dict[UUID, Cuds]
+        Args:
+            attribute (str): The attribute to look for.
+            value (Any): The corresponding value to look for.
+
+        Returns:
+            Dict[UUID, Cuds]: A subset of the registry,
+                containing cuds objects with given attribute and value.
         """
         return self.filter(lambda x: hasattr(x, attribute)
                            and getattr(x, attribute) == value)
@@ -174,15 +186,15 @@ class Registry(dict):
 
         Return cuds objects containing the given relationship.
 
-        :param relationship: The relationship to filter by.
-        :type relationship: Type[Relationship]
-        :param consider_subrelationships: Whether to return cuds objects
-            containing subrelationships of the given relationship,
-            defaults to False
-        :type consider_subrelationships: bool, optional
-        :return: A subset of the registry,
-            containing cuds objects with given relationship.
-        :rtype: Dict[UUID, Cuds]
+        Args:
+            relationship (OntologyRelationship): The relationship to filter by.
+            consider_subrelationships (bool, optional): Whether to return CUDS
+                objects containing subrelationships of the given relationship.
+                Defaults to False.
+
+        Returns:
+            Dict[UUID, Cuds]: A subset of the registry,
+                containing cuds objects with given relationship.
         """
         if consider_subrelationships:
             def criterion(cuds_object):

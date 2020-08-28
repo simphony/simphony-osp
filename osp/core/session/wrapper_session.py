@@ -116,10 +116,12 @@ class WrapperSession(Session):
         Expired objects will be reloaded lazily
         when attributed or relationships are accessed.
 
-        :param cuds_or_uids: The cuds_object or uids to expire
-        :type cuds_or_uids: Union[Cuds, UUID]
-        :return: The set of uids that became expired
-        :rtype: Set[UUID]
+        Args:
+            *cuds_or_uids (Union[Cuds, UUID]): The cuds_object or uids
+                to expire.
+
+        Returns:
+            Set[UUID]: The set of uids that became expired
         """
         uids = set()
         for c in cuds_or_uids:
@@ -135,8 +137,8 @@ class WrapperSession(Session):
         Expired objects will be reloaded lazily
         when attributed or relationships are accessed.
 
-        :return: The set of uids that became expired
-        :rtype: Set[UUID]
+        Returns:
+            Set[UUID]: The set of uids that became expired
         """
         return self._expire(set(self._registry.keys()))
 
@@ -145,8 +147,9 @@ class WrapperSession(Session):
 
         Load possibly updated data of cuds_object from the backend.
 
-        :param *cuds_or_uids: The cuds_object or uids to refresh
-        :type *cuds_or_uids: Union[Cuds, UUID]
+        Args:
+            *cuds_or_uids (Union[Cuds, UUID]): The cuds_object or uids to
+                refresh.
         """
         if not cuds_or_uids:
             return
@@ -192,8 +195,8 @@ class WrapperSession(Session):
     def _store(self, cuds_object):
         """Store the cuds_objects in the registry and add it to buffers.
 
-        :param cuds_object: The cuds_object to store.
-        :type cuds_object: Cuds
+        Args:
+            cuds_object (Cuds): The cuds_object to store.
         """
         from osp.core.namespaces import cuba
         # Check if root is wrapper and wrapper is root
@@ -227,9 +230,11 @@ class WrapperSession(Session):
     def _notify_update(self, cuds_object):
         """Add the updated cuds_object to the buffers.
 
-        :param cuds_object: The cuds_object that has been updated.
-        :type cuds_object: Cuds
-        :raises RuntimeError: The updated object has been deleted previously.
+        Args:
+            cuds_object (Cuds): The cuds_object that has been updated.
+
+        Raises:
+            RuntimeError: The updated object has been deleted previously.
         """
         logger.debug("Called notify_update on %s in %s" % (cuds_object, self))
         added, updated, deleted = self._buffers[self._current_context]
@@ -245,8 +250,8 @@ class WrapperSession(Session):
     def _notify_delete(self, cuds_object):
         """Add the deleted cuds_object to the buffers.
 
-        :param cuds_object: The cuds_object that has been deleted.
-        :type cuds_object: Cuds
+        Args:
+            cuds_object (Cuds): The cuds_object that has been deleted.
         """
         logger.debug("Called notify_delete on %s" % cuds_object)
         added, updated, deleted = self._buffers[self._current_context]
@@ -275,8 +280,8 @@ class WrapperSession(Session):
     def _expire(self, uids):
         """Expire the given uids.
 
-        :param uids: The uids to expire
-        :type uids: Set[UUID]
+        Args:
+            uids(Set[UUID]): The uids to expire.
         """
         not_expirable = uids & self._get_buffer_uids(BufferContext.USER)
         logger.debug("Expire %s in %s" % (uids, self))
@@ -292,10 +297,11 @@ class WrapperSession(Session):
     def _reset_buffers(self, context):
         """Reset the buffers.
 
-        :param context: Which buffers to reset
-        :type context: BufferContext
-        :return: Whether the buffers have been resetted.
-        :rtype: bool
+        Args:
+            context (BufferContext): Which buffers to reset
+
+        Returns:
+            bool: Whether the buffers have been resetted.
         """
         logger.debug("Reset buffers for %s in %s" % (context, self))
         self._buffers[context] = [0] * 3
@@ -306,10 +312,11 @@ class WrapperSession(Session):
     def _get_buffer_uids(self, context):
         """Get all the uids of CUDS objects in buffers.
 
-        :param context: Which buffers to consider
-        :type context: BufferContext
-        :return: The uids of cuds objects in buffers
-        :rtype: Set[UUID]
+        Args:
+            context (BufferContext): Which buffers to consider.
+
+        Return:
+            Set[UUID]: The uids of cuds objects in buffers
         """
         return (
             set(self._buffers[context][BufferType.ADDED].keys())
@@ -323,19 +330,21 @@ class WrapperSession(Session):
 
         Will update objects with same uid in the registry.
 
-        :param uids: List of uids to load
-        :type uids: List[UUID]
-        :param expired: Which of the cuds_objects are expired.
-        :type expired: Set[UUID]
+        Args:
+            uids (List[UUID]): List of uids to load.
+            expired (Set[UUID]): Which of the cuds_objects are expired.
         """
 
     def _get_next_missing(self, missing):
         """Get the next missing cuds object from the iterator.
 
-        :param missing: The iterator over loaded missing cuds objects.
-        :type missing: Iterator[Optional[Cuds]]
-        :return: The next loaded cuds object or None, if it doesn't exist
-        :rtype: Optional[Cuds]
+        Args:
+            missing (Iterator[Optional[Cuds]]): The iterator over loaded
+                missing cuds objects.
+
+        Return:
+            Optional[Cuds]: The next loaded cuds object or None, if it doesn't
+                exist.
         """
         try:
             cuds_object = next(missing)
@@ -346,12 +355,12 @@ class WrapperSession(Session):
     def _expire_neighour_diff(self, old_cuds_object, new_cuds_object, uids):
         """Expire outdated neighbors of the just loaded cuds object.
 
-        :param old_cuds_object: The old version of the cuds object
-        :type old_cuds_object: Optional[Cuds]
-        :param new_cuds_object: The just loaded version of the cuds object
-        :type new_cuds_object: Optional[Cuds]
-        :param uids: The uids that are loaded right now.
-        :type uids: List[UUID]
+        Args:
+            old_cuds_object (Optional[Cuds]): The old version of the cuds
+                object.
+            new_cuds_object (Optional[Cuds]): The just loaded version of the
+                cuds object.
+            uids (List[UUID]): The uids that are loaded right now.
         """
         if old_cuds_object:
             diff1 = get_neighbor_diff(new_cuds_object, old_cuds_object)
@@ -364,10 +373,11 @@ class WrapperSession(Session):
     def _get_old_cuds_object_clone(self, uid):
         """Get old version of expired cuds object from registry.
 
-        :param uid: The uid to get the old cuds object
-        :type uid: UUID
-        :return: A clone of the old cuds object
-        :rtype: Optional[Cuds]
+        Args:
+            uid (UUID): The uid to get the old cuds object.
+
+        Returns:
+            Optional[Cuds]: A clone of the old cuds object
         """
         clone = None
         if uid in self._registry:

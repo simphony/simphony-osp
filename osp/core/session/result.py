@@ -6,10 +6,11 @@ from osp.core.session.buffers import EngineContextIterator
 def returns_query_result(func):
     """Decorate methods that return an iterator of cuds objects.
 
-    :param func: The function to wrap.
-    :type func: Callable
-    :return: The wrapped function.
-    :rtype: Callable
+    Args:
+        func (Callable): The function to wrap.
+
+    Returns:
+        Callable: The wrapped function.
     """
     def f(session, *args, **kwargs):
         iterator = func(session, *args, **kwargs)
@@ -91,13 +92,16 @@ class QueryResult():
         1. The result contains more than one element
         2. The result does not contain any element
 
-        :param raise_result_empty_error: Whether to raise an error
-            if result is empty
-        :type  raise_result_empty_error: bool
-        :raises MultipleResultsError: The result consists of multiple elements
-        :raises ResultEmptyError: The result is empty
-        :return: The single element of the result
-        :rtype: Cuds
+        Args:
+            raise_result_empty_error (bool, optional): Whether to raise an
+                error if result is empty. Defaults to True.
+
+        Raises:
+            MultipleResultsError: The result consists of multiple elements.
+            ResultEmptyError: The result is empty.
+
+        Returns:
+            Cuds: The single element of the result
         """
         x = self.first()
         if len(self._elements) > 1:

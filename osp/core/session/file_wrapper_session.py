@@ -36,13 +36,16 @@ class FileWrapperSession(WrapperSession):
 
         Will also return cuds objects of subclasses of oclass.
 
-        :param oclass: The ontology class to query for
-        :type oclass: OntologyClass
-        :param update_registry: Whether to update cuds_objects which are
-            already present in the registry.
-        :type update_registry: bool
-        :return: The list of loaded cuds objects
-        :rtype: Iterator[Cuds]
+        Args:
+            oclass (OntologyClass): The ontology class to query for.
+            update_registry (bool, optional):  Whether to update cuds_objects
+                which are already present in the registry. Defaults to False.
+
+        Raises:
+            RuntimeError: Session not yet initialized.
+
+        Yields:
+            Cuds: The loaded CUDS objects.
         """
         if self.root is None:
             raise RuntimeError("This Session is not yet initialized. "
@@ -96,11 +99,13 @@ class FileWrapperSession(WrapperSession):
     def _load_by_oclass(self, oclass, update_registry=False):
         """Load the cuds_object with the given ontology class.
 
-        :param oclass: Load cuds objects with given ontology class
-        :type oclass: OntologyClass
-        :param update_registry: Whether to update cuds_objects already
-            which are already present in the registry.
-        :type update_registry: bool
-        :return: The loaded cuds_object.
-        :rtype: Cuds
+        Args:
+            oclass (OntologyClass): Load cuds objects with given ontology
+                class.
+            update_registry (bool, optional): Whether to update cuds_objects
+                already which are already present in the registry.
+                Defaults to False.
+
+        Returns:
+            Cuds: The loaded Cuds objects.
         """

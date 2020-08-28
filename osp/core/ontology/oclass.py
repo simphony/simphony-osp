@@ -126,12 +126,16 @@ class OntologyClass(OntologyEntity):
 
         Combine defaults and given attribute attributes
 
-        :param kwargs: The user specified keyword arguments
-        :type kwargs: Dict{str, Any}
-        :raises TypeError: Unexpected keyword argument
-        :raises TypeError: Missing keword argument
-        :return: The resulting attributes
-        :rtype: Dict[OntologyAttribute, Any]
+        Args:
+            kwargs (dict[str, Any]): The user specified keyword arguments
+            _force (bool): Skip checks.
+
+        Raises:
+            TypeError:  Unexpected keyword argument.
+            TypeError: Missing keword argument.
+
+        Returns:
+            [Dict[OntologyAttribute, Any]]: The resulting attributes.
         """
         kwargs = dict(kwargs)
         attributes = dict()
@@ -182,15 +186,19 @@ class OntologyClass(OntologyEntity):
     def __call__(self, uid=None, session=None, _force=False, **kwargs):
         """Create a Cuds object from this ontology class.
 
-        :param uid: The uid of the Cuds object. Should be set to None in most
-            cases. Then a new UUID is generated, defaults to None
-        :type uid: uuid.UUID, optional
-        :param session: The session to create the cuds object in,
-            defaults to None
-        :type session: Session, optional
-        :raises TypeError: Error occurred during instantiation.
-        :return: The created cuds object
-        :rtype: Cuds
+        Args:
+            uid (UUID, optional): The uid of the Cuds object.
+                Should be set to None in most cases.
+                Then a new UUID is generated, defaults to None.
+                Defaults to None.
+            session (Session, optional): The session to create the cuds object
+                in, defaults to None. Defaults to None.
+            _force (bool, optional): Skip validity checks. Defaults to False.
+
+        Raises:
+            TypeError: Error occurred during instantiation.
+        Returns:
+            Cuds: The created cuds object
         """
         from osp.core.cuds import Cuds
         from osp.core.namespaces import cuba

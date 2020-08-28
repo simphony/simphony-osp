@@ -113,16 +113,14 @@ class TransportSessionClient(WrapperSession):
     def _send(self, command, consume_buffers, *args, **kwargs):
         """Send the buffers and a command to the server.
 
-        :param command: The command to send
-        :type command: str
-        :param consume_buffers: Whether to send and consume the buffers
-        :type consume_buffers: bool
-        :param args: The arguments of the command.
-        :type args: Serializable
-        :param kwargs: The keyword arguments of the command.
-        :type kwargs: Serializable.
-        :return: The command's result.
-        :rtype: Serializable
+        Args:
+            command (str): The command to send
+            consume_buffers (bool): Whether to send and consume the buffers
+            args (Serializable): The arguments of the command.
+            kwargs (Serializable): The keyword arguments of the command.
+
+        Returns:
+            Serializable: The command's result.
         """
         arguments = {"args": args, "kwargs": kwargs}
         buffer_context = BufferContext.USER if consume_buffers else None
@@ -136,9 +134,12 @@ class TransportSessionClient(WrapperSession):
     def _receive(self, data, temp_directory):
         """Process the response of the server.
 
-        :param data: Receive changes made by the server (serialized buffers).
-        :type data: str
-        :raises RuntimeError: Error occurred on the server side
+        Args:
+            data (str): Receive changes made by the server
+                (serialized buffers).
+
+        Raises:
+            RuntimeError: Error occurred on the server side
         """
         if data.startswith("ERROR: "):
             raise RuntimeError("Error on Server side: %s" % data[7:])

@@ -11,28 +11,17 @@ from osp.core.namespaces import cuba
 def check_arguments(types, *args):
     """Check that the arguments provided are of the certain type(s).
 
-    :param types: tuple with all the allowed types
-    :type types: Union[Type, Tuple[Type]]
-    :param args: instances to check
-    :type args: Any
-    :raises TypeError: if the arguments are not of the correct type
+    Args:
+        types (Union[Type, Tuple[Type]]): tuple with all the allowed types
+        args (Any): instances to check
+
+    Raises:
+        TypeError: if the arguments are not of the correct type
     """
     for arg in args:
         if not isinstance(arg, types):
             message = '{!r} is not a correct object of allowed types {}'
             raise TypeError(message.format(arg, types))
-
-
-def format_class_name(name):
-    """Format a string to CapWords.
-
-    :param name: string to format
-    :type name: str
-    :return: string with the name in CapWords
-    :rtype: str
-    """
-    fixed_name = name.title().replace("_", "")
-    return fixed_name
 
 
 def get_neighbor_diff(cuds1, cuds2, mode="all"):
@@ -41,15 +30,16 @@ def get_neighbor_diff(cuds1, cuds2, mode="all"):
     Furthermore get the relationship the neighbors are connected with.
     Optionally filter the considered relationships.
 
-    :param cuds1: A Cuds object.
-    :type cuds1: Cuds
-    :param cuds2: A Cuds object.
-    :type cuds2: Cuds
-    :param mode: one of "all", "active", "non-active", whether to consider only
+    Args;
+        cuds1 (Cuds): A Cuds object.
+        cuds2 (Cuds): A Cuds object.
+        mode (str): one of "all", "active", "non-active", whether to consider
+            only.
         active or non-active relationships.
-    :type mode: str
-    :return: List of Tuples that contain the found uids and relationships.
-    :rtype: List[Tuple[UUID, Relationship]]
+
+    Returns:
+        List[Tuple[UUID, Relationship]]: List of Tuples that contain the found
+            uids and relationships.
     """
     allowed_modes = ["all", "active", "non-active"]
     if mode not in allowed_modes:
@@ -84,8 +74,8 @@ def get_neighbor_diff(cuds1, cuds2, mode="all"):
 def clone_cuds_object(cuds_object):
     """Avoid that the session gets copied.
 
-    :return: A copy of self with the same session
-    :rtype: Cuds
+    Returns:
+        Cuds: A copy of self with the same session.
     """
     if cuds_object is None:
         return None
@@ -102,19 +92,17 @@ def create_recycle(oclass, kwargs, session, uid,
     If cuds_object with same uid is already in the session,
     this object will be reused.
 
-    :param oclass: The OntologyClass of cuds_object to instantiate
-    :type oclass: Cuds
-    :param kwargs: The kwargs of the cuds_object
-    :type kwargs: Dict[str, Any]
-    :param session: The session of the new Cuds object
-    :type session: Session
-    :param uid: The uid of the new Cuds object
-    :type uid: UUID
-    :param fix_neighbors: Whether to remove the link from the old neighbors
-        to this cuds object, defaults to True
-    :type fix_neighbors: bool
-    :result: The created cuds object
-    :rtype: Cuds
+    Args:
+        oclass (Cuds): The OntologyClass of cuds_object to instantiate
+        kwargs (Dict[str, Any]): The kwargs of the cuds_object
+        session (Session): The session of the new Cuds object
+        uid (UUID): The uid of the new Cuds object
+        fix_neighbors (bool): Whether to remove the link from the old neighbors
+            to this cuds object, defaults to True
+        _force (bool): Skip sanity checks.
+
+    Returns:
+        Cuds: The created cuds object.
     """
     uid = convert_to(uid, "UUID")
     if hasattr(session, "_expired") and uid in session._expired:
@@ -139,14 +127,12 @@ def create_from_cuds_object(cuds_object, session):
 
     WARNING: Will not recursively copy children.
 
-    :param cuds_object: The cuds object to copy
-    :type cuds_object: Cuds
-    :param kwargs: The kwargs of the cuds_object
-    :type kwargs: Dict[str, Any]
-    :param session: The session of the new Cuds object
-    :type session: Session
-    :return: A copy of self with the given session.
-    :rtype: Cuds
+    Args:
+        cuds_object (Cuds): The cuds object to copy
+        session (Session): The session of the new Cuds object
+
+    Returns:
+        Cuds: A copy of self with the given session.
     """
     assert cuds_object.session is not session
     kwargs = {x.argname: getattr(cuds_object, x.argname)
@@ -168,15 +154,14 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
 
     Only allowed if cuds object does not have any neighbors.
 
-    :param cuds_object: The cuds object to change the oclass of
-    :type cuds_object: Cuds
-    :param new_oclass: The new oclass of the cuds object
-    :type new_oclass: OntologyClass
-    :param kwargs: The keyword arguments used to instantiate
-        cuds object of the new oclass
-    :type kwargs: Dict[str, Any]
-    :return: The cuds object with the changed oclass
-    :rtype: Cuds
+    Args:
+        cuds_object (Cuds): The cuds object to change the oclass of
+        new_oclass (OntologyClass): The new oclass of the cuds object
+        kwargs (Dict[str, Any]): The keyword arguments used to instantiate
+            cuds object of the new oclass.
+
+    Returns:
+        Cuds: The cuds object with the changed oclass
     """
     cuds_object.session._notify_read(cuds_object)
     # change oclass
