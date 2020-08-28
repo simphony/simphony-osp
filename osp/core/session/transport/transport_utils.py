@@ -305,8 +305,8 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
     Args:
         json_obj (Dict[str, Any]): The json object to convert to a Cuds object.
         session (Session): The session to add the cuds object to.
-        buffer_context (BufferContext): add the deserialized cuds objects to the
-            selected buffers
+        buffer_context (BufferContext): add the deserialized cuds objects to
+            the selected buffers.
 
     Returns:
         Cuds: The resulting cuds_object.
