@@ -87,10 +87,14 @@ class OntologyNamespace():
     def __getattr__(self, name):
         """Get an ontology entity from the registry by name.
 
-        :param name: The name of the ontology entity
-        :type name: str
-        :return: The ontology entity
-        :rtype: OntologyEntity
+        Args:
+            name (str): The name of the ontology entity
+
+        Raises:
+            AttributeError: Unknown name.
+
+        Returns:
+            OntologyEntity: The ontology entity
         """
         try:
             return self._get(name)
@@ -98,12 +102,16 @@ class OntologyNamespace():
             raise AttributeError(str(e)) from e
 
     def __getitem__(self, label):
-        """Get an ontology entity from the registry by name.
+        """Get an ontology entity from the registry by label.
 
-        :param label: The label of the ontology entity
-        :type label: str
-        :return: The ontology entity
-        :rtype: OntologyEntity
+        Args:
+            label (str): The label of the ontology entity.
+
+        Raises:
+            KeyError: Unknown label.
+
+        Returns:
+            OntologyEntity: The ontology entity.
         """
         if isinstance(label, str):
             label = rdflib.term.Literal(label, lang="en")
@@ -124,12 +132,14 @@ class OntologyNamespace():
     def get(self, name, fallback=None):
         """Get an ontology entity from the registry by name.
 
-        :param name: The name of the ontology entity
-        :type name: str
-        :param default: The value to return if it doesn't exist
-        :type default: Any
-        :return: The ontology entity
-        :rtype: OntologyEntity
+        Args:
+            name (str): The name of the ontology entity.
+            default (Any): The value to return if it doesn't exist.
+            fallback (Any): The fallback value, defaults to None..
+
+        Returns:
+            OntologyEntity: The ontology entity
+
         """
         try:
             return self._get(name)
@@ -139,10 +149,16 @@ class OntologyNamespace():
     def _get(self, name, _case_sensitive=False, _force_by_iri=False):
         """Get an ontology entity from the registry by name.
 
-        :param name: The name of the ontology entity
-        :type name: str
-        :return: The ontology entity
-        :rtype: OntologyEntity
+        Args:
+            name(str): The name of the ontology entity
+            _case_sensitive(bool): Name should be case sensitive,
+                defaults to False
+            _force_by_iri(bool):  Name is IRI suffix,
+                defaults to False
+
+        Returns:
+            OntologyEntity: The ontology entity
+
         """
         try:
             return self._do_get(name, _case_sensitive, _force_by_iri)
@@ -155,10 +171,14 @@ class OntologyNamespace():
     def _do_get(self, name, _case_sensitive, _force_by_iri):
         """Get an ontology entity from the registry by name.
 
-        :param name: The name of the ontology entity
-        :type name: str
-        :return: The ontology entity
-        :rtype: OntologyEntity
+        Args:
+            name(str): The name of the ontology entity
+            _case_sensitive: Name should be case sensitive,
+            _force_by_iri: Name is IRI suffix,
+
+        Returns:
+            OntologyEntity: The ontology entity
+
         """
         if self._reference_by_label and not _force_by_iri:
             return self[name][0]
@@ -174,13 +194,14 @@ class OntologyNamespace():
         """Get by trying alternative naming convention of given name.
 
         Args:
-            name (str): The name of the entity.
+            name(str): The name of the entity.
+
+        Returns:
+            OntologyEntity: The Entity to return
 
         Raises:
             KeyError: Reference to unknown entity.
 
-        Returns:
-            OntologyEntity: The Entity to return
         """
         alternative = alt(name, self._name == "cuba")
         if alternative is None:

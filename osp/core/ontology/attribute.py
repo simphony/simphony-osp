@@ -38,12 +38,12 @@ class OntologyAttribute(OntologyEntity):
     def datatype(self):
         """Get the datatype of the attribute.
 
-        Raises:
-            RuntimeError: More than one datatype associated with the attribute.
-            # TODO should be allowed
-
         Returns:
             URIRef: IRI of the datatype
+
+        Raises:
+            RuntimeError: More than one datatype associated with the attribute.
+                # TODO should be allowed
         """
         superclasses = self.superclasses
         datatypes = set()
@@ -61,20 +61,22 @@ class OntologyAttribute(OntologyEntity):
     def convert_to_datatype(self, value):
         """Convert to the datatype of the value.
 
-        :param value: The value to convert
-        :type value: Any
-        :return: The converted value
-        :rtype: Any
+        Args:
+            value(Any): The value to convert
+
+        Returns:
+            Any: The converted value
         """
         return convert_to(value, self.datatype)
 
     def convert_to_basic_type(self, value):
         """Convert from the datatype of the value to a python basic type.
 
-        :param value: The value to convert
-        :type value: Any
-                :return: The converted value
-        :rtype: Any
+        Args:
+            value(Any): The value to convert
+
+        Returns:
+            Any: The converted value
         """
         return convert_from(value, self.datatype)
 

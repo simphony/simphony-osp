@@ -14,10 +14,13 @@ class OntologyEntity(ABC):
     def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
         """Initialise the ontology entity.
 
-        :param namespace_iri: The namespace of the entity
-        :type namespace_iri: URIRef
-        :param name: The name of the entity
-        :type name: str
+        Args:
+            namespace_registry (OntologyNamespaceRegistry): The namespace
+                registry.
+            namespace_iri (rdflib.URIRef): The namespace of the entity
+            name (str): The name of the entity
+            iri_suffix (str): namespace_iri + iri_suffix is namespace of the
+                entity.
         """
         self._name = name
         self._iri_suffix = iri_suffix
@@ -62,7 +65,7 @@ class OntologyEntity(ABC):
 
     @property
     def tblname(self):
-        """The name used in storage backends to store instances."""
+        """Get the name used in storage backends to store instances."""
         return "%s___%s" % (self._namespace_name, self._iri_suffix)
 
     @property
@@ -74,8 +77,9 @@ class OntologyEntity(ABC):
     def direct_superclasses(self):
         """Get the direct superclass of the entity.
 
-        :return: The direct superclasses of the entity
-        :rtype: List[OntologyEntity]
+        Returns:
+            List[OntologyEntity]: The direct superclasses of the entity
+
         """
         return set(self._direct_superclasses())
 
@@ -83,8 +87,9 @@ class OntologyEntity(ABC):
     def direct_subclasses(self):
         """Get the direct subclasses of the entity.
 
-        :return: The direct subclasses of the entity
-        :rtype: Set[OntologyEntity]
+        Returns:
+            Set[OntologyEntity]: The direct subclasses of the entity
+
         """
         return set(self._direct_subclasses())
 
@@ -92,8 +97,9 @@ class OntologyEntity(ABC):
     def subclasses(self):
         """Get the subclasses of the entity.
 
-        :return: The direct subclasses of the entity
-        :rtype: Set[OntologyEntity]
+        Returns:
+            Set[OntologyEntity]: The direct subclasses of the entity
+
         """
         return set(self._subclasses())
 
@@ -101,8 +107,9 @@ class OntologyEntity(ABC):
     def superclasses(self):
         """Get the superclass of the entity.
 
-        :return: The direct superclasses of the entity
-        :rtype: Set[OntologyEntity]
+        Returns:
+            Set[OntologyEntity]: The direct superclasses of the entity
+
         """
         return set(self._superclasses())
 
@@ -110,8 +117,9 @@ class OntologyEntity(ABC):
     def description(self):
         """Get the description of the entity.
 
-        :return: The description of the entity
-        :rtype: str
+        Returns:
+            str: The description of the entity
+
         """
         desc = self.namespace._graph.value(
             self.iri, rdflib.RDFS.isDefinedBy, None)
@@ -130,7 +138,7 @@ class OntologyEntity(ABC):
             other (Entity): The other entity.
 
         Returns:
-            True: Whether self is a superclass of other.
+            bool: Whether self is a superclass of other.
         """
         return self in other.superclasses
 
@@ -141,7 +149,8 @@ class OntologyEntity(ABC):
             other (Entity): The other entity.
 
         Returns:
-            True: Whether self is a subclass of other.
+            bool: Whether self is a subclass of other.
+
         """
         return self in other.subclasses
 

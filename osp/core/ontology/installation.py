@@ -156,10 +156,14 @@ class OntologyInstallationManager():
     def _sort_for_installation(self, files):
         """Get the right order to install the files.
 
-        :param files: The list of file paths to sort.
-        :type files: List[str]
-        :return: The sorted list of file paths.
-        :rtype: List[str]
+        Args:
+            files (List[str]): The list of file paths to sort.
+
+        Raises:
+            RuntimeError: Unsatisfied requirements after installation.
+
+        Returns:
+            List[str]: The sorted list of file paths.
         """
         result = list()
         files = {Parser.get_identifier(f): f for f in files}

@@ -57,77 +57,65 @@ class SqlWrapperSession(DbWrapperSession):
                    primary_key, foreign_key, indexes):
         """Create a new table with the given name and columns.
 
-        :param table_name: The name of the new table.
-        :type table_name: str
-        :param columns: The name of the columns.
-        :type columns: List[str]
-        :param datatypes: Maps columns to datatypes specified in ontology.
-        :type columns: Dict[String, String]
-        :param primary_key: List of columns that belong to the primary key.
-        :type primary_key: List[str]
-        :param foreign_key: mapping from column to other tables column.
-        :type foreign_key: Dict[str, Tuple[str (table), str (column)]]
-        :param indexes: List of indexes. Each index is a list of column names
-            for which an index should be built.
-        :type indexes: List(str)
+        Args:
+            table_name(str): The name of the new table.
+            columns(List[str]): The name of the columns.
+            datatypes(Dict): Maps columns to datatypes specified in ontology.
+            primary_key(List[str]): List of columns that belong to the primary key.
+            foreign_key(Dict[str, Tuple[str (table), str (column)]]): mapping from column to other tables column.
+            indexes(List(str)): List of indexes. Each index is a list of column names
+                for which an index should be built.
         """
 
     @abstractmethod
     def _db_select(self, table_name, columns, condition, datatypes):
         """Get data from the table of the given names.
 
-        :param table_name: The name of the table.
-        :type table_name: str
-        :param columns: The names of the columns.
-        :type columns: List[str]
-        :param condition: A condition for filtering.
-        :type condition: str
-        :param rows: The rows fetched from the database
-        :rtype: Iterator[List[Any]]
+        Args:
+            table_name(str): The name of the table.
+            columns(List[str]): The names of the columns.
+            condition(Condition): A condition for filtering.
+            datatypes(Dict): Maps column names to datatypes.
         """
 
     @abstractmethod
     def _db_insert(self, table_name, columns, values, datatypes):
         """Insert data into the table with the given name.
 
-        :param table_name: The table name.
-        :type table_name: str
-        :param columns: The names of the columns.
-        :type columns: List[str]
-        :param values: The data to insert.
-        :type values: List[Any]
+        Args:
+           table_name(str): The table name.
+            columns(List[str]): The names of the columns.
+            values(List[Any]): The data to insert.
+            datatypes(Dict): Maps column names to datatypes.
         """
 
     @abstractmethod
     def _db_update(self, table_name, columns, values, condition, datatypes):
         """Update the data in the given table.
 
-        :param table_name: The name of the table.
-        :type table_name: str
-        :param columns: The names of the columns.
-        :type columns: List[str]
-        :param values: The new updated values.
-        :type values: List[Any]
-        :param condition: Only update rows that satisfy the condition.
-        :type condition: str
+        Args:
+            table_name(str): The name of the table.
+            columns(List[str]): The names of the columns.
+            values(List[Any]): The new updated values.
+            condition(str): Only update rows that satisfy the condition.
+            datatypes(Dict): Maps column names to datatypes.
         """
 
     @abstractmethod
     def _db_delete(self, table_name, condition):
         """Delete data from the given table.
 
-        :param table_name: The name of the table.
-        :type table_name: str
-        :param condition: Delete rows that satisfy the condition.
-        :type condition: str
+        Args:
+            table_name(str): The name of the table.
+            condition(str): Delete rows that satisfy the condition.
         """
 
     @abstractmethod
     def _get_table_names(self, prefix):
         """Get all tables in the database with the given prefix.
 
-        :param prefix: Only return tables with the given prefix
-        :type prefix: str
+        Args:
+            prefix(str): Only return tables with the given prefix
         """
 
     @staticmethod
@@ -143,15 +131,14 @@ class SqlWrapperSession(DbWrapperSession):
 
         This method expands the column description and the values, if given.
 
-        :param columns: The columns to expand.
-        :type columns: List[str]
-        :param datatypes: The datatypes for each column.
-            VECTORs will be expanded.
-        :type datatypes: Dict[str, str]
-        :param values: The values to expand, defaults to None
-        :type values: List[Any], optional
-        :return: The expanded columns, datatypes (and values, if given)
-        :rtype: Tuple[List[str], Dict[str, str], (List[Any])]
+        Args:
+            columns(List[str]): The columns to expand.
+            datatypes(Dict[str, str]): The datatypes for each column.
+        VECTORs will be expanded.
+            values(List[Any], optional, optional): The values to expand, defaults to None
+
+        Returns:
+            Tuple[List[str], Dict[str, str], (List[Any])]: The expanded columns, datatypes (and values, if given)
         """
         columns_expanded = list()
         datatypes_expanded = dict()
@@ -188,14 +175,14 @@ class SqlWrapperSession(DbWrapperSession):
     def _contract_vector_values(columns, datatypes, rows):
         """Contract vector values in a row of a database into one vector.
 
-        :param columns: The expanded columns of the database
-        :type columns: List[str]
-        :param datatypes: The datatype for each column
-        :type datatypes: dict
-        :param rows: The rows fetched from the database
-        :type rows: Iterator[List[Any]]
-        :returns: The rows with vectors being a single item in each row.
-        :rtype: Iterator[List[Any]]
+        Args:
+            columns(List[str]): The expanded columns of the database
+            datatypes(dict): The datatype for each column
+            rows(Iterator[List[Any]]): The rows fetched from the database
+
+        Returns:
+            Iterator[List[Any]]: The rows with vectors being a single item
+                in each row.
         """
         for row in rows:
             contracted_row = list()
@@ -238,19 +225,16 @@ class SqlWrapperSession(DbWrapperSession):
         If it does, add it to the temp_vec list.
         Used during contract_vector_values
 
-        :param column: The currect column to consider in the contraction
-        :type column: str
-        :param value: The value of the column
-        :type value: Any
-        :param datatypes: Maps a datatype to each column
-        :type datatypes: List
-        :param temp_vec: The elements of the current vector.
-        :type temp_vec: List[float]
-        :param old_vector_datatype: The vector datatype of the old iteration.
-        :type old_vector_datatype: str
-        :return: The new vector datatype and whether the current
-            column corresponds to a vector
-        :rtype: Tuple[str, bool]
+        Args:
+            column(str): The currect column to consider in the contraction
+            value(Any): The value of the column
+            datatypes(Dict): Maps a datatype to each column
+            temp_vec(List[float]): The elements of the current vector.
+            old_vector_datatype(str): The vector datatype of the old iteration.
+
+        Returns:
+            Tuple[str, bool]: The new vector datatype and whether the current
+                column corresponds to a vector.
         """
         vec_suffix = "___%s" % len(temp_vec)  # suffix of vector column
         if column.endswith(vec_suffix):
@@ -581,18 +565,19 @@ class SqlWrapperSession(DbWrapperSession):
 
     def _load_by_oclass(self, oclass, update_registry=False, uid=None):
         """Load the cuds_object with the given oclass (+ uid).
-
+        
         If uid is None return all cuds_objects with given ontology class.
 
-        :param oclass: The oclass of the cuds_object
-        :type oclass: OntologyClass
-        :param uid: The uid of the Cuds to load.
-        :type uid: UUID
-        :param update_registry: Whether to update cuds_objects already
-            present in the registry.
-        :type update_registry: bool
-        :return: The loaded cuds_object.
-        :rtype: Cuds
+        Args:
+            oclass(OntologyClass): The oclass of the cuds_object
+            uid(UUID, optional): The uid of the Cuds to load.
+                (Default value = None)
+            update_registry(bool, optional): Whether to update cuds_objects
+                already present in the registry. (Default value = False)
+
+        Returns:
+          Cuds: The loaded cuds_object.
+
         """
         # Check if oclass is given
         if (oclass is None and uid is not None) or (uid == uuid.UUID(int=0)):
@@ -642,10 +627,10 @@ class SqlWrapperSession(DbWrapperSession):
             yield cuds_object
 
     def _load_relationships(self, cuds_object):
-        """Adds the relationships in the db to the given cuds_objects.
+        """Add the relationships in the db to the given cuds_objects.
 
-        :param cuds_object: Adds the relationships to this cuds_object.s
-        :type cuds_object: Cuds
+        Args:
+            cuds_object(Cuds): Adds the relationships to this cuds_object.
         """
         # Fetch the data
         c = self._do_db_select(
@@ -684,10 +669,11 @@ class SqlWrapperSession(DbWrapperSession):
     def _get_oclass(self, uid):
         """Get the ontology class of the given uid from the database.
 
-        :param uid: Load the OntologyClass of this uis.
-        :type uid: UUID
-        :return: The ontology class.
-        :rtype: OntologyClass
+        Args:
+            uid(UUID): Load the OntologyClass of this uis.
+
+        Returns:
+            OntologyClass: The ontology class.
         """
         c = self._do_db_select(
             self.MASTER_TABLE,
@@ -704,12 +690,11 @@ class SqlWrapperSession(DbWrapperSession):
     def _convert_values(self, rows, columns, datatypes):
         """Convert the values in the database to the correct datatype.
 
-        :param rows: The rows of the database
-        :type rows: Iterator[Iterator[Any]]
-        :param columns: The corresponding columns
-        :type columns: List[str]
-        :param datatypes: Mapping from column to datatype
-        :type datatypes: Dict[str, str]
+        Args:
+            rows(Iterator[Iterator[Any]]): The rows of the database
+            columns(List[str]): The corresponding columns
+            datatypes(Dict[str, str]): Mapping from column to datatype
+
         """
         for row in rows:
             output = []
@@ -729,8 +714,12 @@ class SqlWrapperSession(DbWrapperSession):
     def _check_characters(self, *to_check):
         """Check if column or table names contain invalid characters.
 
+        Args:
+            *to_check: The names to check.
+
         Raises:
-            ValueError: Invalid character detected
+            ValueError: Invalid character detected.
+
         """
         forbidden_chars = [";", "\0", "\r", "\x08", "\x09", "\x1a", "\n",
                            "\r", "\"", "'", "`", "\\", "%"]
