@@ -1,3 +1,5 @@
+"""The parser used to parse OWL ontologies in RDF format."""
+
 import os
 import rdflib
 import logging
@@ -24,7 +26,15 @@ ALL_KEYS = set([
 
 
 class Parser():
+    """The parser used to parse OWL ontologies in RDF format."""
+
     def __init__(self, graph):
+        """Initialize the parser.
+
+        Args:
+            graph (rdflib.Graph): The graph to add the triples to.
+                might already contain some triples.
+        """
         self.graph = graph
         self._yaml_docs = list()
         self._graphs = dict()

@@ -1,4 +1,5 @@
-# this file exists for backwards compatibility reasons
+"""This file exists for backwards compatibility reasons."""
+
 from osp.core.ontology.cuba import rdflib_cuba
 
 

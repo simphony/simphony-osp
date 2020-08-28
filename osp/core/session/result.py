@@ -1,8 +1,10 @@
+"""Provide a nice API for query results."""
+
 from osp.core.session.buffers import EngineContextIterator
 
 
 def returns_query_result(func):
-    """Decorator to decorate methods that return an iterator of cuds objects.
+    """Decorate methods that return an iterator of cuds objects.
 
     :param func: The function to wrap.
     :type func: Callable
@@ -19,25 +21,49 @@ class QueryResult():
     """The result of a query in the session."""
 
     def __init__(self, session, result_iterator):
+        """Initialize the iterator.
+
+        Args:
+            session (Session): The session where the query was executed.
+            result_iterator (Iterator): An iterator over the results.
+        """
         self._iterator = EngineContextIterator(session, result_iterator)
         self._elements = list()
 
     def __iter__(self):
+        """Return an iterator over the results.
+
+        Yields:
+            Cuds: The objects in the result.
+        """
         yield from self._elements
         for x in self._iterator:
             self._elements.append(x)
             yield x
 
     def __next__(self):
+        """Get the next element in the result.
+
+        Returns:
+            Cuds: The next element.
+        """
         x = next(self._iterator)
         self._elements.append(x)
         return x
 
     def __contains__(self, other):
+        """Check if an object is part of this result.
+
+        Args:
+            other (Cuds): The object to check.
+
+        Returns:
+            bool: Whether the result contains the given object,
+        """
         return other in self.all()
 
     def all(self):
-        """Returns all the elements in the result.
+        """Return all the elements in the result.
 
         :return: A list containing all elements in the result.
         :rtype: List[Cuds]
@@ -90,8 +116,8 @@ class QueryResult():
 
 
 class ResultEmptyError(Exception):
-    pass
+    """The result is unexpectedly empty."""
 
 
 class MultipleResultsError(Exception):
-    pass
+    """Only a single result is expected, but there were multiple."""

@@ -1,3 +1,5 @@
+"""Abstract superclass of any entity in the ontology."""
+
 from abc import ABC, abstractmethod
 import rdflib
 import logging
@@ -6,6 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyEntity(ABC):
+    """Abstract superclass of any entity in the ontology."""
+
     @abstractmethod
     def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
         """Initialise the ontology entity.
@@ -27,13 +31,23 @@ class OntologyEntity(ABC):
         )[0]
 
     def __str__(self):
+        """Transform the entity into a human readable string."""
         return "%s.%s" % (self._namespace_name, self._name)
 
     def __repr__(self):
+        """Transform the entity into a string."""
         return "<%s %s.%s>" % (self.__class__.__name__,
                                self._namespace_name, self._name)
 
     def __eq__(self, other):
+        """Check whether two entities are the same.
+
+        Args:
+            other (OntologyEntity): The other entity.
+
+        Returns:
+            bool: Whether the two entities are the same.
+        """
         return isinstance(other, OntologyEntity) and self.iri == other.iri
 
     @property
@@ -110,9 +124,25 @@ class OntologyEntity(ABC):
         return self.namespace._graph.triples((self.iri, None, None))
 
     def is_superclass_of(self, other):
+        """Perform a superclass check.
+
+        Args:
+            other (Entity): The other entity.
+
+        Returns:
+            True: Whether self is a superclass of other.
+        """
         return self in other.superclasses
 
     def is_subclass_of(self, other):
+        """Perform a subclass check.
+
+        Args:
+            other (Entity): The other entity.
+
+        Returns:
+            True: Whether self is a subclass of other.
+        """
         return self in other.subclasses
 
     @abstractmethod
@@ -182,4 +212,5 @@ class OntologyEntity(ABC):
                 yield self.namespace._namespace_registry.from_iri(o)
 
     def __hash__(self):
+        """Make the entity hashable."""
         return hash(self.iri)

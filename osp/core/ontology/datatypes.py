@@ -1,3 +1,5 @@
+"""This module contains methods for datatype conversions."""
+
 import uuid
 import numpy as np
 import rdflib

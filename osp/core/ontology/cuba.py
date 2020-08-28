@@ -1,3 +1,5 @@
+"""This method contains an rdflib namespace for the CUBA namespace."""
+
 from rdflib.namespace import ClosedNamespace
 from rdflib import URIRef
 

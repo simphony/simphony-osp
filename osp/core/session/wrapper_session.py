@@ -1,3 +1,5 @@
+"""Abstract class that contains important method of a session with backend."""
+
 import uuid
 import logging
 import rdflib
@@ -13,6 +15,13 @@ logger = logging.getLogger(__name__)
 
 
 def consumes_buffers(func):
+    """Indicate that a session method consumes the buffers.
+
+    Should be used as a decorator.
+
+    Args:
+        func (Callable): The method to decorate.
+    """
     def f(session, *args, **kwargs):
         with EngineContext(session):
             func(session, *args, **kwargs)
@@ -21,6 +30,14 @@ def consumes_buffers(func):
 
 
 def check_consumes_buffers(func):
+    """Check whether a session method consumes the buffers or not.
+
+    Args:
+        func (Callable): The method to check
+
+    Returns:
+        bool: Whether the given method does consume the buffers.
+    """
     return hasattr(func, "does_consume_buffers") \
         and func.does_consume_buffers
 
@@ -32,6 +49,11 @@ class WrapperSession(Session):
     """
 
     def __init__(self, engine):
+        """Initialize the session.
+
+        Args:
+            engine (Any): The object that connects to the backend.
+        """
         super().__init__()
         self._engine = engine
         self._current_context = BufferContext.USER
@@ -43,11 +65,23 @@ class WrapperSession(Session):
 
     @abstractmethod
     def __str__(self):
-        pass
+        """Convert the session to string."""
 
     # OVERRIDE
     @returns_query_result
     def load(self, *uids):
+        """Load the CUDS object with the given uuid from the session.
+
+        If the object either does not exist on the Client side or is expired,
+        try to load it from the backend.
+
+        Raises:
+            RuntimeError: The Session is not yet initialized.
+                Add a Wrapper first.
+
+        Yields:
+            Cuds: The CUDS objects with the given UUID.
+        """
         if self.root is None:
             raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")

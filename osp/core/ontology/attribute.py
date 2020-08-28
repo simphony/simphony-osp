@@ -1,3 +1,5 @@
+"""An attribute defined in the ontology."""
+
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.datatypes import convert_from, convert_to
 import logging
@@ -7,16 +9,29 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyAttribute(OntologyEntity):
+    """An attribute defined in the ontology."""
+
     def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
+        """Initialize the ontology attribute.
+
+        Args:
+            namespace_registry (OntologyNamespaceRegistry): The namespace
+                registry where all namespaces are stored.
+            namespace_iri (rdflib.URIRef): The IRI of the namespace.
+            name (str): The name of the attribute.
+            iri_suffix (str): namespace_iri +  namespace_registry make up the
+                namespace of this entity.
+        """
         super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
         logger.debug("Created ontology data property %s" % self)
 
     @property
-    def name(self):
-        return super().name
-
-    @property
     def argname(self):
+        """Get the name of the attribute when used as an argument.
+
+        This name is used when construction a cuds object or accessing
+        the attributes of a CUDS object.
+        """
         return super().name
 
     @property

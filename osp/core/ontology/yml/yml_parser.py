@@ -1,3 +1,5 @@
+"""This file contains methods to parse a YAML ontology."""
+
 import os
 import logging
 import yaml
@@ -30,6 +32,12 @@ class YmlParser:
     """Class that parses a YAML ontology."""
 
     def __init__(self, graph):
+        """Initialize the YamlParser.
+
+        Args:
+            graph (rdflib.Graph): The graph where the triples should be added
+                to. Might contain already some tripes.
+        """
         self._doc = None
         self._ontology_doc = None
         self._namespace = None
@@ -39,10 +47,26 @@ class YmlParser:
 
     @staticmethod
     def is_yaml_ontology(doc):
+        """Check whether the given YAML document is a YAML ontology.
+
+        Args:
+            doc (dict): A loaded YAML document.
+
+        Returns:
+            bool: Whether the given document is a YAML ontology.
+        """
         return ONTOLOGY_KEY in doc and NAMESPACE_KEY in doc
 
     @staticmethod
     def get_namespace_name(doc):
+        """Get the namespace name defined by the given YAML ontology doc.
+
+        Args:
+            doc (dict): The document of the YAML ontology.
+
+        Returns:
+            str: The namespace name of the given YAML ontology document.
+        """
         return doc[NAMESPACE_KEY].lower()
 
     def parse(self, file_path, doc=None):

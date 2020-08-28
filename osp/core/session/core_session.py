@@ -1,10 +1,12 @@
-
+"""The core session used as default when no backend is connected."""
 from .session import Session
 
 
 class CoreSession(Session):
     """Core default session for all objects."""
+
     def __str__(self):
+        """Convert the core session object to string."""
         return "<CoreSession object>"
 
     # OVERRIDE

@@ -1,3 +1,5 @@
+"""Abstract Base Class for all Sessions."""
+
 import rdflib
 from abc import ABC, abstractmethod
 from osp.core.session.registry import Registry
@@ -11,22 +13,25 @@ class Session(ABC):
     """
 
     def __init__(self):
+        """Initialize the session."""
         self._registry = Registry()
         self.root = None
         self.graph = rdflib.Graph()
 
     def __enter__(self):
+        """Establish the connection to the backend."""
         return self
 
     def __exit__(self, *args):
+        """Close the connection to the backend."""
         self.close()
 
     def close(self):
-        pass
+        """Close the connection to the backend."""
 
     @abstractmethod
     def __str__(self):
-        pass
+        """Convert the session to string."""
 
     def _store(self, cuds_object):
         """Store a copy of given cuds_object in the session.

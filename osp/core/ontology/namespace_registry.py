@@ -1,3 +1,5 @@
+"""Stores all the loaded namespaces."""
+
 import os
 import logging
 import rdflib
@@ -11,9 +13,14 @@ logger = logging.getLogger(__name__)
 
 
 class NamespaceRegistry():
+    """Stores all the loaded namespaces."""
+
     def __init__(self):
-        # Do not instantiate you own namespace registry.
-        # Instead you can use osp.core.namespaces._namespace_registry.
+        """Initialize the namespace registry.
+
+        Do not instantiate you own namespace registry.
+        Instead you can use osp.core.namespaces._namespace_registry.
+        """
         self._graph = rdflib.Graph()
         self._namespaces = dict()
 
@@ -28,15 +35,40 @@ class NamespaceRegistry():
                 yield self._get(namespace_name)
 
     def __getattr__(self, name):
+        """Get a namespace object by name.
+
+        Args:
+            name (str): The name of a namespace.
+
+        Returns:
+            OntologyNamespace: The namespace object with the given name.
+        """
         try:
             return self._get(name)
         except KeyError as e:
             raise AttributeError(str(e)) from e
 
     def __getitem__(self, name):
+        """Get a namespace object by name.
+
+        Args:
+            name (str): The name of a namespace.
+
+        Returns:
+            OntologyNamespace: The namespace object with the given name.
+        """
         return self._get(name)
 
     def __contains__(self, other):
+        """Check if the given namespace name is loaded.
+
+        Args:
+            other (str): The name of a namespace.
+
+        Returns:
+            bool: Whether the given namespace is loaded in the namespace
+                registry.
+        """
         return other.lower() in self._namespaces.keys()
 
     def get(self, name, fallback=None):
@@ -87,6 +119,14 @@ class NamespaceRegistry():
                 setattr(module, namespace.get_name().lower(), namespace)
 
     def namespace_from_iri(self, ns_iri):
+        """Get a namespace object from the IRI of the namespace.
+
+        Args:
+            ns_iri (rdflib.URIRef): The IRI of the namespace.
+
+        Returns:
+            OntologyNamespace: The namespace with the given IRI.
+        """
         ns_name, ns_iri = self._get_namespace_name_and_iri(ns_iri)
         if ns_name in self._namespaces:
             return self._get(ns_name)

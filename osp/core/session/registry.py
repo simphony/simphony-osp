@@ -1,3 +1,5 @@
+"""The registry stores all local CUDS objects."""
+
 from uuid import UUID
 import logging
 
@@ -5,17 +7,20 @@ logger = logging.getLogger(__name__)
 
 
 class Registry(dict):
+    """A dictionary that contains all local CUDS objects."""
 
     def __setitem__(self, key, value):
+        """Enforce the use of put()."""
         message = 'Operation not supported.'
         raise TypeError(message)
 
     def __getitem__(self, key):
+        """Enforce the use of get()."""
         message = 'Operation not supported.'
         raise TypeError(message)
 
     def put(self, cuds_object):
-        """Adds an object to the registry.
+        """Add an object to the registry.
 
         :param cuds_object: The cuds_object to put in the registry
         :type cuds_object: Cuds
@@ -29,7 +34,7 @@ class Registry(dict):
             raise ValueError(message.format(cuds_object))
 
     def get(self, uid):
-        """Returns the object corresponding to a given uuid.
+        """Return the object corresponding to a given uuid.
 
         :param uid: uuid of the desired object
         :type uid: UUID

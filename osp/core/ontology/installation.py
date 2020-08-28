@@ -1,3 +1,5 @@
+"""This class handles the installation of ontologies."""
+
 import os
 import logging
 import shutil
@@ -8,12 +10,14 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyInstallationManager():
+    """This class handles the installation of ontologies."""
+
     def __init__(self, namespace_registry=None, path=None):
         """Initialize the installer.
 
         Args:
-            namespace_registry (OntologyNamespaceRegistry, optional):
-                A custom namespace registry.. Defaults to None.
+            namespace_registry (OntologyNamespaceRegistry, optional): A custom
+                namespace registry.. Defaults to None.
             path (str, optional): Installation destination. Defaults to None.
         """
         self.namespace_registry = namespace_registry

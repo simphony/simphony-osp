@@ -1,3 +1,5 @@
+"""A relationship defined in the ontology."""
+
 from osp.core.ontology.entity import OntologyEntity
 import logging
 import rdflib
@@ -8,7 +10,19 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyRelationship(OntologyEntity):
+    """A relationship defined in the ontology."""
+
     def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
+        """Initialize the ontology relationship.
+
+        Args:
+            namespace_registry (OntologyNamespaceRegistry): The namespace
+                registry where all namespaces are stored.
+            namespace_iri (rdflib.URIRef): The IRI of the namespace.
+            name (str): The name of the relationship.
+            iri_suffix (str): namespace_iri +  namespace_registry make up the
+                namespace of this entity.
+        """
         super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
         logger.debug("Create ontology object property %s" % self)
 

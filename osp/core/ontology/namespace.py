@@ -1,3 +1,6 @@
+"""A namespace in the ontology."""
+
+
 import rdflib
 import logging
 
@@ -9,7 +12,16 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyNamespace():
+    """A namespace in the ontology."""
+
     def __init__(self, name, namespace_registry, iri):
+        """Initialize the namespace.
+
+        Args:
+            name (str): The name of the namespace.
+            namespace_registry (OntologyNamespace): The namespace registry.
+            iri (rdflib.URIRef): The IRI of the namespace.
+        """
         self._name = name
         self._namespace_registry = namespace_registry
         self._iri = rdflib.URIRef(str(iri))
@@ -18,12 +30,30 @@ class OntologyNamespace():
             namespace_registry._get_reference_by_label(self._iri)
 
     def __str__(self):
+        """Transform the namespace to a human readable string.
+
+        Returns:
+            str: The resulting string.
+        """
         return "%s (%s)" % (self._name, self._iri)
 
     def __repr__(self):
+        """Transform the namespace to a string.
+
+        Returns:
+            str: The resulting string.
+        """
         return "<%s: %s>" % (self._name, self._iri)
 
     def __eq__(self, other):
+        """Check whether the two namespace objects are the same.
+
+        Args:
+            other (OntologyNamespace): The namespace to compare with.
+
+        Returns:
+            bool: Whether the given namespace is the same.
+        """
         return self._name == other._name and self._iri == other._iri \
             and self._namespace_registry is other._namespace_registry
 
@@ -90,12 +120,6 @@ class OntologyNamespace():
             raise KeyError("No element with label %s in namespace %s"
                            % (label, self))
         return result
-
-    def __getstate__(self):
-        return self.__dict__
-
-    def __setstate__(self, state):
-        self.__dict__ = state
 
     def get(self, name, fallback=None):
         """Get an ontology entity from the registry by name.
@@ -197,4 +221,12 @@ class OntologyNamespace():
                     yield self._get(name=None, _force_by_iri=iri_suffix)
 
     def __contains__(self, name):
+        """Check whether the given entity name is part of the namespace.
+
+        Args:
+            name (str): The name of an entity.
+
+        Returns:
+            bool: Whether the given entity name is part of the namespace.
+        """
         return bool(self._get(name))

@@ -1,3 +1,5 @@
+"""Validate the format of a YAML ontology file."""
+
 import re
 import logging
 
