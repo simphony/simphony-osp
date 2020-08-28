@@ -1,3 +1,5 @@
+"""Contains methods that check if CUDS objects satisfy a certain schema."""
+
 import yaml
 import logging
 
@@ -8,16 +10,18 @@ logger = logging.getLogger(__name__)
 
 
 class ConsistencyError(Exception):
-    pass
+    """The given CUDS structure is inconsistent."""
 
 
 class CardinalityError(Exception):
-    pass
+    """A cardinality constraint is violated."""
 
 
 def validate_tree_against_schema(root_obj, schema_file):
-    """Checks whether the CUDS tree that starts at root_obj
-    fulfills the cardinality constraints defined in the schema file.
+    """Test cardinality constraints on given CUDS tree.
+
+    The tree that starts at root_obj.
+    The constraints are defined in the schema file.
 
     :param root_obj: The root CUDS object of the tree
     :type root_obj: CUDS
@@ -26,7 +30,6 @@ def validate_tree_against_schema(root_obj, schema_file):
     :type schema_file: str
     :raises Exception: Tells the user which constraint was violated
     """
-
     logger.info("""Validating tree of root object {}
     against schema file {} ...""".format(root_obj.uid, schema_file))
 
@@ -128,7 +131,7 @@ def _interpret_cardinality_value_from_constraints(constraints):
 
 
 def _traverse_tree_and_group_all_objects_by_oclass(root_obj, result=None):
-    """Traverses the tree once and groups all objects by oclass
+    """Traverses the tree once and groups all objects by oclass.
 
     :param root_obj: The root object where to start the traversion
     :type root_obj: CUDS

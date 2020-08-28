@@ -1,3 +1,5 @@
+"""This file contains methods to parse a YAML ontology."""
+
 import os
 import logging
 import yaml
@@ -27,12 +29,15 @@ logger = logging.getLogger(__name__)
 
 
 class YmlParser:
-    """
-    Class that parses a YAML file and finds information about the entities
-    contained.
-    """
+    """Class that parses a YAML ontology."""
 
     def __init__(self, graph):
+        """Initialize the YamlParser.
+
+        Args:
+            graph (rdflib.Graph): The graph where the triples should be added
+                to. Might contain already some tripes.
+        """
         self._doc = None
         self._ontology_doc = None
         self._namespace = None
@@ -42,16 +47,30 @@ class YmlParser:
 
     @staticmethod
     def is_yaml_ontology(doc):
+        """Check whether the given YAML document is a YAML ontology.
+
+        Args:
+            doc (dict): A loaded YAML document.
+
+        Returns:
+            bool: Whether the given document is a YAML ontology.
+        """
         return ONTOLOGY_KEY in doc and NAMESPACE_KEY in doc
 
     @staticmethod
     def get_namespace_name(doc):
+        """Get the namespace name defined by the given YAML ontology doc.
+
+        Args:
+            doc (dict): The document of the YAML ontology.
+
+        Returns:
+            str: The namespace name of the given YAML ontology document.
+        """
         return doc[NAMESPACE_KEY].lower()
 
     def parse(self, file_path, doc=None):
-        """
-        Reads the YAML and extracts the dictionary with the CUDS.
-        """
+        """Read the YAML and extracts the dictionary with the CUDS."""
         logger.info("Parsing YAML ontology file %s" % file_path)
         self._doc = doc or self.get_doc(file_path)
         validate(self._doc,
@@ -67,7 +86,7 @@ class YmlParser:
 
     @staticmethod
     def get_doc(file_path):
-        """Parse the file path to yaml
+        """Parse the file path to yaml.
 
         :param file_path: The path to the file to parse.
         :type file_path: str
@@ -104,7 +123,7 @@ class YmlParser:
 
     @staticmethod
     def split_name(name):
-        """Split the name in namespace and entity name
+        """Split the name in namespace and entity name.
 
         Args:
             name (str): namespace.entity_name
@@ -123,7 +142,7 @@ class YmlParser:
                              % name) from e
 
     def _load_entity(self, entity_name, entity_doc):
-        """Load an entity into the registry
+        """Load an entity into the registry.
 
         :param entity_name: The name of the entity to load.
         :type entity_name: str
@@ -189,6 +208,7 @@ class YmlParser:
     def _get_iri_case_insensitive(self, entity_name, namespace,
                                   current_entity):
         """Try to get iri with alternative naming convention of entity.
+
         This method is for backwards compatibility only.
 
         Args:
@@ -309,7 +329,7 @@ class YmlParser:
     #             )
 
     def _add_attributes(self, entity_name, entity_doc):
-        """Add a attribute to an ontology class
+        """Add a attribute to an ontology class.
 
         Args:
             entity_name (str): The name of the entity to add attributes to.
@@ -407,7 +427,7 @@ class YmlParser:
         )
 
     def _assert_default_relationship_occurrence(self):
-        """Assures that only one default relationship is defined in the yaml
+        """Assures that only one default relationship is defined in the yaml.
 
         :raises ValueError: If more than one definition is found.
         """
@@ -424,8 +444,9 @@ class YmlParser:
             )
 
     def _check_default_rel_definition_on_ontology(self):
-        """Check if the given yaml defines
-        a default relationship, save that accordingly.
+        """Check if the given yaml defines a default relationship.
+
+        If yes, save that accordingly.
         """
         if DEFAULT_REL_KEY in self._doc:
             namespace, entity_name = self._doc[DEFAULT_REL_KEY].split('.')
@@ -453,7 +474,8 @@ class YmlParser:
             )
 
     def _check_default_rel_flag_on_entity(self, entity_name, entity_doc):
-        """Check if the given relationship is the default
+        """Check if the given relationship is the default.
+
         When it is a default, save that accordingly.
 
         Args:
@@ -489,6 +511,7 @@ class YmlParser:
 
     def _validate_entity(self, entity_name, entity_doc):
         """Validate the yaml definition of an entity.
+
         Will check for the special keywords of the different entity types.
 
         Args:

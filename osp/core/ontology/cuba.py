@@ -1,3 +1,5 @@
+"""This method contains an rdflib namespace for the CUBA namespace."""
+
 from rdflib.namespace import ClosedNamespace
 from rdflib import URIRef
 
@@ -21,9 +23,7 @@ DTYPE_PREFIXES = [
 
 
 class _CubaNamespace(ClosedNamespace):
-    """
-    Closed namespace for RDF terms
-    """
+    """Closed namespace for RDF terms."""
 
     def __init__(self):
         super(_CubaNamespace, self).__init__(

@@ -1,6 +1,7 @@
+"""Utilities useful for Wrapper developers."""
+
 import rdflib
 from copy import deepcopy
-from osp.core.neighbor_dict import NeighborDictTarget
 from osp.core.ontology.datatypes import convert_to
 from osp.core.utils.general import get_relationships_between
 from osp.core.namespaces import cuba
@@ -8,8 +9,7 @@ from osp.core.namespaces import cuba
 
 # General utility methods
 def check_arguments(types, *args):
-    """
-    Checks that the arguments provided are of the certain type(s).
+    """Check that the arguments provided are of the certain type(s).
 
     :param types: tuple with all the allowed types
     :type types: Union[Type, Tuple[Type]]
@@ -24,8 +24,7 @@ def check_arguments(types, *args):
 
 
 def format_class_name(name):
-    """
-    Formats a string to CapWords.
+    """Format a string to CapWords.
 
     :param name: string to format
     :type name: str
@@ -38,6 +37,7 @@ def format_class_name(name):
 
 def get_neighbor_diff(cuds1, cuds2, mode="all"):
     """Get the uids of neighbors of cuds1 which are no neighbors in cuds2.
+
     Furthermore get the relationship the neighbors are connected with.
     Optionally filter the considered relationships.
 
@@ -92,13 +92,13 @@ def clone_cuds_object(cuds_object):
     session = cuds_object._session
     clone = deepcopy(cuds_object)
     clone._session = session
-    clone._stored = False
     return clone
 
 
 def create_recycle(oclass, kwargs, session, uid,
                    fix_neighbors=True, _force=False):
     """Instantiate a cuds_object with a given session.
+
     If cuds_object with same uid is already in the session,
     this object will be reused.
 
@@ -136,6 +136,7 @@ def create_recycle(oclass, kwargs, session, uid,
 
 def create_from_cuds_object(cuds_object, session):
     """Create a copy of the given cuds_object in a different session.
+
     WARNING: Will not recursively copy children.
 
     :param cuds_object: The cuds object to copy
@@ -156,15 +157,16 @@ def create_from_cuds_object(cuds_object, session):
                            uid=cuds_object.uid,
                            fix_neighbors=False)
     for rel, target_dict in cuds_object._neighbors.items():
-        clone._neighbors[rel] = NeighborDictTarget(dict(), clone, rel)
+        clone._neighbors[rel] = {}
         for uid, target_oclass in target_dict.items():
             clone._neighbors[rel][uid] = target_oclass
     return clone
 
 
 def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
-    """Change the oclass of a cuds object. Only allowed if cuds object does
-    not have any neighbors.
+    """Change the oclass of a cuds object.
+
+    Only allowed if cuds object does not have any neighbors.
 
     :param cuds_object: The cuds object to change the oclass of
     :type cuds_object: Cuds
@@ -186,7 +188,7 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
 
     # update attributes
     attributes = new_oclass._get_attributes_values(kwargs, _force=_force)
-    cuds_object._graph = rdflib.Graph()
+    cuds_object._graph.remove((cuds_object.iri, None, None))
     cuds_object._graph.set((
         cuds_object.iri, rdflib.RDF.type, new_oclass.iri
     ))

@@ -1,3 +1,5 @@
+"""Utilities used for the transport layer."""
+
 import json
 import uuid
 import os
@@ -8,7 +10,6 @@ from osp.core.namespaces import get_entity, cuba
 from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
-from osp.core.neighbor_dict import NeighborDictTarget
 from osp.core.session.buffers import get_buffer_context_mngr
 
 logger = logging.getLogger(__name__)
@@ -63,7 +64,9 @@ def serialize_buffers(session_obj, buffer_context,
 
 def deserialize_buffers(session_obj, buffer_context, data,
                         temp_directory=None, target_directory=None):
-    """Deserialize serialized buffers, add them to the session and push them
+    """Deserialize serialized buffers.
+
+    Add them to the session and push them
     to the registry of the given session object.
     Returns the deserialization of everything but the buffers.
 
@@ -101,7 +104,8 @@ def deserialize_buffers(session_obj, buffer_context, data,
                             buffer_context=buffer_context,
                             _force=(k == "deleted"))
             deserialized[k] = d
-            move_files(get_file_cuds(d), temp_directory, target_directory)
+            if k != "deleted":
+                move_files(get_file_cuds(d), temp_directory, target_directory)
         deleted = deserialized["deleted"] if "deleted" in deserialized else []
 
         for x in deleted:
@@ -115,8 +119,7 @@ def deserialize_buffers(session_obj, buffer_context, data,
 
 
 def move_files(file_cuds, temp_directory, target_directory):
-    """Move the files associated with the given CUDS
-    from one directory to the other. Return all moved CUDS.
+    """Move the files associated with the given CUDS. Return all moved CUDS.
 
     Args:
         file_cuds (List[Cuds]): Cuds whose oclass is cuba.File
@@ -218,8 +221,10 @@ def deserialize(json_obj, session, buffer_context, _force=False):
 
 
 def serializable(obj):
-    """Make a cuds_object, a list of cuds_objects,
-    a uid or a list od uids json serializable.
+    """Make given object json serializable.
+
+    The object can be a cuds_object, a list of cuds_objects,
+    a uid or a list od uids.
 
     :param obj: The object to make serializable.
     :type obj: Union[Cuds, UUID, List[Cuds], List[UUID], None]
@@ -290,7 +295,7 @@ def _serializable(cuds_object):
 
 
 def _to_cuds_object(json_obj, session, buffer_context, _force=False):
-    """Transform a json serializable dict to a cuds_object
+    """Transform a json serializable dict to a cuds_object.
 
     :param json_obj: The json object to convert to a Cuds object
     :type json_obj: Dict[str, Any]
@@ -318,9 +323,7 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
 
         for rel_name, obj_dict in relationships.items():
             rel = get_entity(rel_name)
-            cuds_object._neighbors[rel] = NeighborDictTarget(
-                dictionary={}, cuds_object=cuds_object, rel=rel
-            )
+            cuds_object._neighbors[rel] = {}
             for uid, target_name in obj_dict.items():
                 uid = convert_to(uid, "UUID")
                 target_oclass = get_entity(target_name)
@@ -329,7 +332,7 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
 
 
 def get_hash_dir(directory_path):
-    """Get the has sums of all files in the given path
+    """Get the has sums of all files in the given path.
 
     Args:
         directory_path (path): The path to the directory
@@ -347,8 +350,9 @@ def get_hash_dir(directory_path):
 
 
 def check_hash(file_path, file_hashes):
-    """Check whether the hash of the given file is in the given dictionary of
-    hashes. If not, add it.
+    """Check whether the hash of the given file is in the given dictionary.
+
+    If not, add it.
 
     Args:
         file_path (path): The path to the file to check
@@ -369,7 +373,7 @@ def check_hash(file_path, file_hashes):
 
 
 def get_hash(file_path):
-    """Get the hash of the given file
+    """Get the hash of the given file.
 
     Args:
         file_path (path): A path to a file

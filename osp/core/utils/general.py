@@ -1,12 +1,20 @@
+"""A collection of utility method for osp-core.
+
+These are potantially useful for every user of SimPhoNy.
+"""
+
 import requests
 import json
 import rdflib
+import uuid
 from osp.core.namespaces import cuba
+
+CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds/#"
 
 
 def branch(cuds_object, *args, rel=None):
-    """
-    Like Cuds.add(), but returns the element you add to.
+    """Like Cuds.add(), but returns the element you add to.
+
     This makes it easier to create large CUDS structures.
 
     :param cuds_object: the object to add to
@@ -25,13 +33,14 @@ def branch(cuds_object, *args, rel=None):
 
 def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
                                    max_depth=float("inf")):
-    """Delete a cuds object  and all the object inside of the container
-    of it.
+    """Delete a cuds object  and all the object inside of the container of it.
 
     Args:
-        cuds_object (Cuds): The Cuds object to recursively delete
-        max_depth (int, optional): The maximum depth of the recursion.
-            Defaults to float("inf").
+        cuds_object (Cuds): The CUDS object to recursively delete.
+        rel (OntologyRelationship, optional): The relationship used for
+            traversal. Defaults to cuba.activeRelationship.
+        max_depth (int, optional):The maximum depth of the recursion.
+            Defaults to float("inf"). Defaults to float("inf").
     """
     from osp.core.utils.simple_search import find_cuds_object
     cuds_objects = find_cuds_object(criterion=lambda x: True,
@@ -44,7 +53,8 @@ def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
 
 
 def get_rdf_graph(session=None, skip_custom_datatypes=False):
-    """EXPERIMENTAL
+    """EXPERIMENTAL.
+
     Get the RDF Graph from a session.
     If no session is, the core session will be used.
 
@@ -76,7 +86,38 @@ def get_rdf_graph(session=None, skip_custom_datatypes=False):
     return result
 
 
+def iri_from_uid(uid):
+    """Transform a UUID to an IRI.
+
+    Args:
+        uid (UUID): The UUID to transform.
+
+    Returns:
+        URIRef: The IRI of the CUDS object with the given UUID.
+    """
+    return rdflib.URIRef(CUDS_IRI_PREFIX + str(uid))
+
+
+def uid_from_iri(iri):
+    """Transform an IRI to a UUID.
+
+    Args:
+        uid (UUID): The UUID to transform.
+
+    Returns:
+        URIRef: The IRI of the CUDS object with the given UUID.
+    """
+    return uuid.UUID(hex=str(iri)[len(CUDS_IRI_PREFIX):])
+
+
 def get_custom_datatypes():
+    """Get the set of all custom datatypes used in the ontology.
+
+    Custom datatypes are non standard ones, defined in the CUBA namespace.
+
+    Returns:
+        Set[rdflib.IRI]: The set of IRI of custom datatypes.
+    """
     from osp.core.ontology.cuba import rdflib_cuba
     from osp.core.namespaces import _namespace_registry
     pattern = (None, rdflib.RDF.type, rdflib.RDFS.Datatype)
@@ -88,6 +129,14 @@ def get_custom_datatypes():
 
 
 def get_custom_datatype_triples():
+    """Get the set of triples in the ontology that include custom datatypes.
+
+    Custom datatypes are non standard ones, defined in the CUBA namespace.
+
+    Returns:
+        rdflib.Graph: A graph containing all the triples concerning custom
+            datatypes.
+    """
     custom_datatypes = get_custom_datatypes()
     from osp.core.namespaces import _namespace_registry
     result = rdflib.Graph()
@@ -100,8 +149,9 @@ def get_custom_datatype_triples():
 
 
 def post(url, cuds_object, max_depth=float("inf")):
-    """Will send the given CUDS object to the given URL. Will also send
-    the CUDS object in the container recursively.
+    """Will send the given CUDS object to the given URL.
+
+    Will also send the CUDS object in the container recursively.
 
     Args:
         url (string): The URL to send the CUDS object to
@@ -157,6 +207,7 @@ def serialize(cuds_object, rel=cuba.activeRelationship,
 def deserialize(json_doc, session=None, buffer_context=None,
                 only_return_first_element=True):
     """Deserialize the given json objects (to CUDS).
+
     Will add the CUDS objects to the buffers.
 
     Args:
@@ -196,8 +247,8 @@ def deserialize(json_doc, session=None, buffer_context=None,
 
 
 def remove_cuds_object(cuds_object):
-    """
-    Remove a cuds_object from the datastructure.
+    """Remove a cuds_object from the datastructure.
+
     Removes the relationships to all neighbors.
     To delete it from the registry you must call the
     sessions prune method afterwards.

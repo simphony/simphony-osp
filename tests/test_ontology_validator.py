@@ -1,12 +1,15 @@
+"""Test the ontology validator."""
+
 import unittest2 as unittest
 import re
 from osp.core.ontology.yml.yml_validator import validate, _validate_format
 
 
 class TestOntologyValidator(unittest.TestCase):
-    def test_validate(self):
-        """Test the validate method"""
+    """Test the ontology validator."""
 
+    def test_validate(self):
+        """Test the validate method."""
         # pattern is string
         validate({"version": "0.0.1", "namespace": "test", "ontology": {}},
                  pattern="/")
@@ -31,8 +34,7 @@ class TestOntologyValidator(unittest.TestCase):
         self.assertRaises(ValueError, validate, {1: "MyTEst"}, {int: regex})
 
     def test_validate_format(self):
-        """Test the validate_format method"""
-
+        """Test the validate_format method."""
         # format is a dict
         regex = re.compile("^([A-Z][a-z0-9]+)+$")
         regex2 = re.compile("^[a-z]+(_[a-z0-9]+)*$")

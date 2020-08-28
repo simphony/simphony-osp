@@ -1,3 +1,5 @@
+"""Test session basic methods."""
+
 import unittest2 as unittest
 from osp.core.namespaces import cuba
 from osp.core.session.session import Session
@@ -15,12 +17,10 @@ except ImportError:
 
 
 class TestSessionCity(unittest.TestCase):
-
-    def setUp(self):
-        pass
+    """Test session basic methods."""
 
     def test_delete_cuds_object(self):
-        """Tests the pruning method"""
+        """Tests the pruning method."""
         with TestWrapperSession() as session:
             w = city.CityWrapper(session=session)
             cities = list()
@@ -43,9 +43,7 @@ class TestSessionCity(unittest.TestCase):
             self.assertRaises(AttributeError, getattr, cities[0], "name")
 
     def test_notify_update_call(self):
-        """
-        Tests if notify_update is called when Cuds objects are updated.
-        """
+        """Tests if notify_update is called when Cuds objects are updated."""
         updated = set()
         session = TestSession(notify_update=lambda x: updated.add(x))
         w = city.CityWrapper(session=session)
@@ -64,9 +62,7 @@ class TestSessionCity(unittest.TestCase):
         self.assertEqual(updated, set([c3, w]))
 
     def test_notify_delete_call(self):
-        """
-        Tests if notify_delete is called, when we call prune.
-        """
+        """Tests if notify_delete is called, when we call prune."""
         deleted = set()
         session = TestSession(notify_delete=lambda x: deleted.add(x))
         w = city.CityWrapper(session=session)
@@ -83,6 +79,17 @@ class TestSessionCity(unittest.TestCase):
                     s = city.Street(name="street %s %s %s" % (i, j, k))
                     nw.add(s)
         w.remove(cities[1].uid, cities[2].uid)
+        expected_deletion = {
+            x.uid for x in session._registry.values()
+            if (
+                hasattr(x, "name")
+                and x.name in {
+                    "city 2", "neighborhood 2 0", "neighborhood 2 1",
+                    "street 2 0 0", "street 2 0 1", "street 2 1 0",
+                    "street 2 1 1", "city 1", "neighborhood 1 0",
+                    "neighborhood 1 1", "street 1 0 0", "street 1 0 1",
+                    "street 1 1 0", "street 1 1 1"
+                })}
         session.prune(rel=None)
         self.assertEqual(
             set(["wrapper" if k.is_a(cuba.Wrapper) else k.name
@@ -90,17 +97,10 @@ class TestSessionCity(unittest.TestCase):
             set(["city 0", "neighborhood 0 0", "neighborhood 0 1",
                  "street 0 0 0", "street 0 0 1", "street 0 1 0",
                  "street 0 1 1", "wrapper"]))
-        self.assertEqual(
-            set([d.name for d in deleted]),
-            set(["city 2", "neighborhood 2 0", "neighborhood 2 1",
-                 "street 2 0 0", "street 2 0 1", "street 2 1 0",
-                 "street 2 1 1", "city 1", "neighborhood 1 0",
-                 "neighborhood 1 1", "street 1 0 0", "street 1 0 1",
-                 "street 1 1 0", "street 1 1 1"])
-        )
+        self.assertEqual(set([d.uid for d in deleted]), expected_deletion)
 
     def test_buffers(self):
-        """test if the buffers work correctly"""
+        """Test if the buffers work correctly."""
         session = TestWrapperSession()
         self.assertEqual(
             session._buffers,
@@ -210,43 +210,58 @@ class TestSessionCity(unittest.TestCase):
 
 
 class TestSession(Session):
+    """Session used for testing."""
+
     def __init__(self, notify_update=None, notify_delete=None):
+        """Initialize."""
         super().__init__()
         self.notify_update = notify_update
         self.notify_delete = notify_delete
 
     def __str__(self):
+        """Convert to string."""
         return ""
 
     def _notify_update(self, cuds_object):
+        """Notify when CUDS object has been updated."""
         if self.notify_update:
             self.notify_update(cuds_object)
 
     def _notify_delete(self, cuds_object):
+        """Notify when CUDS object has been deleted."""
         if self.notify_delete:
             self.notify_delete(cuds_object)
 
     def _notify_read(self, cuds_object):
+        """Notify when CUDS object has been read."""
         pass
 
 
 class TestWrapperSession(WrapperSession):
+    """Tests for abstract TestWrapperSession."""
+
     def __init__(self, *args, **kwargs):
+        """Initialize."""
         super().__init__(None, *args, **kwargs)
 
     def __str__(self):
+        """Convert to string."""
         return ""
 
     def _apply_added(self, root_obj, buffer):
+        """Apply added objects."""
         pass
 
     def _apply_deleted(self, root_obj, buffer):
+        """Apply deleted objects."""
         pass
 
     def _apply_updated(self, root_obj, buffer):
+        """Apply updated objects."""
         pass
 
     def _load_from_backend(self, uids, expired=None):
+        """Load data from backend."""
         yield from Session.load(self, *uids)
 
 

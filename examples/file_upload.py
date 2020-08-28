@@ -1,3 +1,5 @@
+"""An example explaining how to upload files using the transport layer."""
+
 import sys
 import logging
 from osp.wrappers.sqlite import SqliteSession

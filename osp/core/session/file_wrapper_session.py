@@ -1,3 +1,5 @@
+"""Abstract class for a File Wrapper Session."""
+
 from abc import abstractmethod
 from osp.core.session.wrapper_session import consumes_buffers
 from osp.core.session.wrapper_session import WrapperSession
@@ -6,11 +8,15 @@ from osp.core.session.buffers import BufferContext, EngineContext
 
 
 class FileWrapperSession(WrapperSession):
-    """Abstract class for a File Wrapper Session"""
+    """Abstract class for a File Wrapper Session.
+
+    A file wrapper session is a session that communicates with the backend
+    via files.
+    """
 
     @consumes_buffers
     def save(self):
-        """Saves the changes in the buffers to the file."""
+        """Save the changes in the buffers to the file."""
         self.log_buffer_status(BufferContext.USER)
         self._check_cardinalities()
         self._open()
@@ -27,6 +33,7 @@ class FileWrapperSession(WrapperSession):
     @returns_query_result
     def load_by_oclass(self, oclass, update_registry=False):
         """Load cuds_object with given ontology class.
+
         Will also return cuds objects of subclasses of oclass.
 
         :param oclass: The ontology class to query for

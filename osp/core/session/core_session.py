@@ -1,12 +1,12 @@
-
+"""The core session used as default when no backend is connected."""
 from .session import Session
 
 
 class CoreSession(Session):
-    """
-    Core default session for all objects.
-    """
+    """Core default session for all objects."""
+
     def __str__(self):
+        """Convert the core session object to string."""
         return "<CoreSession object>"
 
     # OVERRIDE
@@ -22,7 +22,7 @@ class CoreSession(Session):
         pass
 
     def get_triples(self):
-        """Get the triples in the core session"""
+        """Get the triples in the core session."""
         return [
             triple
             for uid, cuds_object in self._registry.items()

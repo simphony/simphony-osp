@@ -1,3 +1,5 @@
+"""Abstract class that contains important method of a session with backend."""
+
 import uuid
 import logging
 import rdflib
@@ -13,6 +15,13 @@ logger = logging.getLogger(__name__)
 
 
 def consumes_buffers(func):
+    """Indicate that a session method consumes the buffers.
+
+    Should be used as a decorator.
+
+    Args:
+        func (Callable): The method to decorate.
+    """
     def f(session, *args, **kwargs):
         with EngineContext(session):
             func(session, *args, **kwargs)
@@ -21,17 +30,30 @@ def consumes_buffers(func):
 
 
 def check_consumes_buffers(func):
+    """Check whether a session method consumes the buffers or not.
+
+    Args:
+        func (Callable): The method to check
+
+    Returns:
+        bool: Whether the given method does consume the buffers.
+    """
     return hasattr(func, "does_consume_buffers") \
         and func.does_consume_buffers
 
 
 class WrapperSession(Session):
-    """
-    Common class for all wrapper sessions.
+    """Common class for all wrapper sessions.
+
     Sets the engine and creates the sets with the changed elements
     """
 
     def __init__(self, engine):
+        """Initialize the session.
+
+        Args:
+            engine (Any): The object that connects to the backend.
+        """
         super().__init__()
         self._engine = engine
         self._current_context = BufferContext.USER
@@ -43,11 +65,23 @@ class WrapperSession(Session):
 
     @abstractmethod
     def __str__(self):
-        pass
+        """Convert the session to string."""
 
     # OVERRIDE
     @returns_query_result
     def load(self, *uids):
+        """Load the CUDS object with the given uuid from the session.
+
+        If the object either does not exist on the Client side or is expired,
+        try to load it from the backend.
+
+        Raises:
+            RuntimeError: The Session is not yet initialized.
+                Add a Wrapper first.
+
+        Yields:
+            Cuds: The CUDS objects with the given UUID.
+        """
         if self.root is None:
             raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")
@@ -73,11 +107,13 @@ class WrapperSession(Session):
             self._expire_neighour_diff(old_cuds_object, new_cuds_object, uids)
             if old_cuds_object is not None and new_cuds_object is None \
                     and uid in self._registry:
-                del self._registry[uid]
+                self._delete_cuds_triples(self._registry.get(uid))
             yield new_cuds_object
 
     def expire(self, *cuds_or_uids):
-        """Let cuds_objects expire. Expired objects will be reloaded lazily
+        """Let cuds_objects expire.
+
+        Expired objects will be reloaded lazily
         when attributed or relationships are accessed.
 
         :param cuds_or_uids: The cuds_object or uids to expire
@@ -95,6 +131,7 @@ class WrapperSession(Session):
 
     def expire_all(self):
         """Let all cuds_objects of the session expire.
+
         Expired objects will be reloaded lazily
         when attributed or relationships are accessed.
 
@@ -104,8 +141,9 @@ class WrapperSession(Session):
         return self._expire(set(self._registry.keys()))
 
     def refresh(self, *cuds_or_uids):
-        """Refresh cuds_objects. Load possibly data of cuds_object
-        from the backend.
+        """Refresh cuds_objects.
+
+        Load possibly updated data of cuds_object from the backend.
 
         :param *cuds_or_uids: The cuds_object or uids to refresh
         :type *cuds_or_uids: Union[Cuds, UUID]
@@ -116,7 +154,7 @@ class WrapperSession(Session):
         list(self.load(*self.expire(*cuds_or_uids)))
 
     def get_triples(self):
-        """Get the triples in the core session"""
+        """Get the triples in the core session."""
         from osp.core.utils import find_cuds_object
         from osp.core.utils import cuba
         return [
@@ -129,7 +167,7 @@ class WrapperSession(Session):
         ]
 
     def log_buffer_status(self, context):
-        """Log the current status of the buffers
+        """Log the current status of the buffers.
 
         Args:
             context (BufferContext): whether to print user or engine buffers
@@ -232,12 +270,10 @@ class WrapperSession(Session):
         if cuds_object.uid in self._expired:
             self.refresh(cuds_object)
         if cuds_object.uid not in self._registry and cuds_object._stored:
-            cuds_object._neighbors = dict()
             cuds_object._graph = rdflib.Graph()
-            cuds_object._stored = False
 
     def _expire(self, uids):
-        """Expire the given uids
+        """Expire the given uids.
 
         :param uids: The uids to expire
         :type uids: Set[UUID]
@@ -268,7 +304,7 @@ class WrapperSession(Session):
         self._buffers[context][BufferType.DELETED] = dict()
 
     def _get_buffer_uids(self, context):
-        """Get all the uids of CUDS objects in buffers
+        """Get all the uids of CUDS objects in buffers.
 
         :param context: Which buffers to consider
         :type context: BufferContext
@@ -284,6 +320,7 @@ class WrapperSession(Session):
     @abstractmethod
     def _load_from_backend(self, uids, expired=None):
         """Load cuds_object with given uids from the database.
+
         Will update objects with same uid in the registry.
 
         :param uids: List of uids to load
@@ -325,7 +362,7 @@ class WrapperSession(Session):
             self._expire(diff)
 
     def _get_old_cuds_object_clone(self, uid):
-        """Get old version of expired cuds object from registry
+        """Get old version of expired cuds object from registry.
 
         :param uid: The uid to get the old cuds object
         :type uid: UUID
@@ -340,6 +377,7 @@ class WrapperSession(Session):
     @staticmethod
     def handshake(username, connection_id):
         """Will be called on the server, before anything else.
+
         Result of this method will be fed into compute_auth() below,
         that will be executed by the client.
 
@@ -356,6 +394,7 @@ class WrapperSession(Session):
     @staticmethod
     def compute_auth(username, password, handshake):
         """Will be called on the client, after the handshake.
+
         This method should produce an object that is able to authenticate
         the user.
         The __init__() method of the session should have a keyword "auth",
@@ -374,8 +413,11 @@ class WrapperSession(Session):
         pass
 
     def _check_cardinalities(self):
-        """Check if the cardinalities specified in the ontology
-        are satisfied for the added and updated cuds_object."""
+        """Check if the cardinalities are satisfied.
+
+        The cardinalities are specified in the ontology and the checks are
+        performed on the added and updated CUDS objects.
+        """
         if self.root is None:
             raise RuntimeError(
                 "No wrapper defined for that session. Please instantiate a "

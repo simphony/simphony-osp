@@ -1,3 +1,5 @@
+"""A class defined in the ontology."""
+
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.cuba import rdflib_cuba
 import logging
@@ -7,13 +9,25 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyClass(OntologyEntity):
+    """A class defined in the ontology."""
+
     def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
+        """Initialize the ontology class.
+
+        Args:
+            namespace_registry (OntologyNamespaceRegistry): The namespace
+                registry where all namespaces are stored.
+            namespace_iri (rdflib.URIRef): The IRI of the namespace.
+            name (str): The name of the class.
+            iri_suffix (str): namespace_iri +  namespace_registry make up the
+                namespace of this entity.
+        """
         super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
         logger.debug("Created ontology class %s" % self)
 
     @property
     def attributes(self):
-        """Get all the attributes of this oclass
+        """Get all the attributes of this oclass.
 
         Returns:
             Dict[OntologyAttribute, str]: Mapping from attribute to default
@@ -25,7 +39,7 @@ class OntologyClass(OntologyEntity):
 
     @property
     def own_attributes(self):
-        """Get the non-inherited attributes of this oclass
+        """Get the non-inherited attributes of this oclass.
 
         Returns:
             Dict[OntologyAttribute, str]: Mapping from attribute to default
@@ -109,6 +123,7 @@ class OntologyClass(OntologyEntity):
 
     def _get_attributes_values(self, kwargs, _force):
         """Get the cuds object's attributes from the given kwargs.
+
         Combine defaults and given attribute attributes
 
         :param kwargs: The user specified keyword arguments
@@ -140,13 +155,14 @@ class OntologyClass(OntologyEntity):
                 attributes[attribute] = default
 
         # Check validity of arguments
-        if not _force:
-            if kwargs:
-                raise TypeError("Unexpected keyword arguments: %s"
-                                % kwargs.keys())
-            missing = [k.argname for k, v in attributes.items() if v is None]
-            if missing:
-                raise TypeError("Missing keyword arguments: %s" % missing)
+        if _force:
+            return {k: v for k, v in attributes.items() if v is not None}
+        if kwargs:
+            raise TypeError("Unexpected keyword arguments: %s"
+                            % kwargs.keys())
+        missing = [k.argname for k, v in attributes.items() if v is None]
+        if missing:
+            raise TypeError("Missing keyword arguments: %s" % missing)
         return attributes
 
     def _direct_superclasses(self):

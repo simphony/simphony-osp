@@ -1,3 +1,5 @@
+"""Visualize a CUDS structure using graphviz."""
+
 import graphviz
 import logging
 from osp.core.namespaces import cuba
@@ -6,9 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 class Cuds2dot():
-    """Utility for creating a dot and png representation of the objects
-    related to a given Cuds instance
-    """
+    """Utility for creating a dot and png representation of CUDS objects."""
+
     label = ("<<TABLE BORDER='0' CELLBORDER='0'>"
              "<TR><TD>{}</TD></TR>"
              "{}"
@@ -16,7 +17,8 @@ class Cuds2dot():
     attribute = "<TR ALIGN='left'><TD>{}: {}</TD></TR>"
 
     def __init__(self, root):
-        """Constructor.
+        """Initialize the class.
+
         Initializes the graph.
 
         :param root: root cuds_object to represent
@@ -28,7 +30,7 @@ class Cuds2dot():
         self._graph = self._initialize_graph()
 
     def _initialize_graph(self):
-        """Initializes a directed graph with some default settings"""
+        """Initialize a directed graph with some default settings."""
         graph = graphviz.Digraph(format='png', name=str(self._root.uid))
         # graph.node_attr['shape'] = 'circle'
         return graph
@@ -63,8 +65,7 @@ class Cuds2dot():
                 self._add_directly_related(cuds_object)
 
     def _add_node(self, cuds_object, uid):
-        """
-        Adds a node to the graph.
+        """Add a node to the graph.
 
         :param cuds_object: cuds_object of the node
         :type cuds_object: Cuds
@@ -87,7 +88,8 @@ class Cuds2dot():
             self._graph.node(uid, label=label)
 
     def _add_edge(self, start, end, relationship):
-        """Adds an edge between two nodes.
+        """Add an edge between two nodes.
+
         Ignores the possible passive relationships returned by loops
 
         :param start: start node
@@ -103,7 +105,7 @@ class Cuds2dot():
 
     @staticmethod
     def shorten_uid(uid):
-        """Shortens the string of a given uid
+        """Shortens the string of a given uid.
 
         :param uid: uuid to shorten
         :type uid: UUID

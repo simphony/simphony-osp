@@ -1,3 +1,5 @@
+"""For backwords compatibility reason."""
+
 import logging
 from osp.wrappers.sqlite.sqlite_session import SqliteSession as SqliteWrapperSession  # noqa: F401,E501
 

@@ -1,3 +1,5 @@
+"""Stores all the loaded namespaces."""
+
 import os
 import logging
 import rdflib
@@ -11,9 +13,14 @@ logger = logging.getLogger(__name__)
 
 
 class NamespaceRegistry():
+    """Stores all the loaded namespaces."""
+
     def __init__(self):
-        # Do not instantiate you own namespace registry.
-        # Instead you can use osp.core.namespaces._namespace_registry.
+        """Initialize the namespace registry.
+
+        Do not instantiate you own namespace registry.
+        Instead you can use osp.core.namespaces._namespace_registry.
+        """
         self._graph = rdflib.Graph()
         self._namespaces = dict()
 
@@ -28,15 +35,40 @@ class NamespaceRegistry():
                 yield self._get(namespace_name)
 
     def __getattr__(self, name):
+        """Get a namespace object by name.
+
+        Args:
+            name (str): The name of a namespace.
+
+        Returns:
+            OntologyNamespace: The namespace object with the given name.
+        """
         try:
             return self._get(name)
         except KeyError as e:
             raise AttributeError(str(e)) from e
 
     def __getitem__(self, name):
+        """Get a namespace object by name.
+
+        Args:
+            name (str): The name of a namespace.
+
+        Returns:
+            OntologyNamespace: The namespace object with the given name.
+        """
         return self._get(name)
 
     def __contains__(self, other):
+        """Check if the given namespace name is loaded.
+
+        Args:
+            other (str): The name of a namespace.
+
+        Returns:
+            bool: Whether the given namespace is loaded in the namespace
+                registry.
+        """
         return other.lower() in self._namespaces.keys()
 
     def get(self, name, fallback=None):
@@ -74,8 +106,10 @@ class NamespaceRegistry():
         raise KeyError("Namespace %s not installed." % name)
 
     def update_namespaces(self, modules=[]):
-        """Update the namespaces of the namespace registry from the
-        namespaces of the graph."""
+        """Update the namespaces of the namespace registry.
+
+        Use the namespaces of the graph for that.
+        """
         self._namespaces = dict()
         for name, iri in self._graph.namespace_manager.namespaces():
             self._namespaces[name.lower()] = iri
@@ -85,6 +119,14 @@ class NamespaceRegistry():
                 setattr(module, namespace.get_name().lower(), namespace)
 
     def namespace_from_iri(self, ns_iri):
+        """Get a namespace object from the IRI of the namespace.
+
+        Args:
+            ns_iri (rdflib.URIRef): The IRI of the namespace.
+
+        Returns:
+            OntologyNamespace: The namespace with the given IRI.
+        """
         ns_name, ns_iri = self._get_namespace_name_and_iri(ns_iri)
         if ns_name in self._namespaces:
             return self._get(ns_name)
@@ -133,7 +175,7 @@ class NamespaceRegistry():
                            f"type in the set {allow_types}")
 
     def _get_namespace_name_and_iri(self, iri):
-        """Get the namespace name and namespace iri for an entity iri
+        """Get the namespace name and namespace iri for an entity iri.
 
         Args:
             iri (URIRef): The IRI for an entity or namespace
@@ -152,7 +194,9 @@ class NamespaceRegistry():
         return str(ns_iri), rdflib.URIRef(ns_iri)
 
     def _get_reference_by_label(self, ns_iri):
-        """Check for given namespace iri whether the entities in this namespace
+        """Check how entities in namespace should be referenced in code.
+
+        Check for given namespace iri whether the entities in this namespace
         should be referenced by label when accessing them through python
         code
 
@@ -167,7 +211,9 @@ class NamespaceRegistry():
         ) in self._graph
 
     def _get_entity_name(self, entity_iri, ns_iri):
-        """Get the name of the given entity. The name depends whether
+        """Get the name of the given entity.
+
+        The name depends whether
         the namespace references the entities by label or iri suffix.
 
         Args:
@@ -192,7 +238,7 @@ class NamespaceRegistry():
         return self._graph
 
     def store(self, path):
-        """Store the current graph to the given directory,
+        """Store the current graph to the given directory.
 
         Args:
             path (Path): Directory to store current graph in.
@@ -228,7 +274,7 @@ class NamespaceRegistry():
             self._load_cuba()
 
     def _load_cuba(self):
-        """Load the cuba namespace"""
+        """Load the cuba namespace."""
         path_cuba = os.path.join(os.path.dirname(__file__), "docs", "cuba.ttl")
         self._graph.parse(path_cuba, format="ttl")
         self._graph.bind("cuba",

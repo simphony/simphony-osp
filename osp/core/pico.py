@@ -1,3 +1,5 @@
+"""Pico is a commandline tool used to install ontologies."""
+
 import argparse
 import logging
 from osp.core.ontology.installation import OntologyInstallationManager
@@ -6,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def install_from_terminal():
+    """Install ontologies from terminal."""
     # Parse the user arguments
     parser = argparse.ArgumentParser(
         description="Install and uninstall your ontologies."
