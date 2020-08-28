@@ -58,13 +58,15 @@ class SqlWrapperSession(DbWrapperSession):
         """Create a new table with the given name and columns.
 
         Args:
-            table_name(str): The name of the new table.
-            columns(List[str]): The name of the columns.
-            datatypes(Dict): Maps columns to datatypes specified in ontology.
-            primary_key(List[str]): List of columns that belong to the primary key.
-            foreign_key(Dict[str, Tuple[str (table), str (column)]]): mapping from column to other tables column.
-            indexes(List(str)): List of indexes. Each index is a list of column names
-                for which an index should be built.
+            table_name (str): The name of the new table.
+            columns (List[str]): The name of the columns.
+            datatypes (Dict): Maps columns to datatypes specified in ontology.
+            primary_key (List[str]): List of columns that belong to the
+                primary key.
+            foreign_key (Dict[str, Tuple[str (table), str (column)]]): mapping
+                from column to other tables column.
+            indexes (List(str)): List of indexes. Each index is a list of
+                column names for which an index should be built.
         """
 
     @abstractmethod
@@ -134,11 +136,13 @@ class SqlWrapperSession(DbWrapperSession):
         Args:
             columns(List[str]): The columns to expand.
             datatypes(Dict[str, str]): The datatypes for each column.
-        VECTORs will be expanded.
-            values(List[Any], optional, optional): The values to expand, defaults to None
+                VECTORs will be expanded.
+            values(List[Any], optional, optional): The values to expand,
+                defaults to None
 
         Returns:
-            Tuple[List[str], Dict[str, str], (List[Any])]: The expanded columns, datatypes (and values, if given)
+            Tuple[List[str], Dict[str, str], (List[Any])]: The expanded
+                columns, datatypes (and values, if given)
         """
         columns_expanded = list()
         datatypes_expanded = dict()
@@ -565,7 +569,7 @@ class SqlWrapperSession(DbWrapperSession):
 
     def _load_by_oclass(self, oclass, update_registry=False, uid=None):
         """Load the cuds_object with the given oclass (+ uid).
-        
+
         If uid is None return all cuds_objects with given ontology class.
 
         Args:
