@@ -211,6 +211,7 @@ class TestSessionCity(unittest.TestCase):
 
 class TestSession(Session):
     """Session used for testing."""
+
     def __init__(self, notify_update=None, notify_delete=None):
         """Initialize."""
         super().__init__()

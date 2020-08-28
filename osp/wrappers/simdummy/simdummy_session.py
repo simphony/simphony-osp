@@ -24,6 +24,7 @@ except ImportError:
 
 class SimDummySession(SimWrapperSession):
     """A Dummy session for educational and testing purposes."""
+
     def __init__(self, **kwargs):
         """Initialize the dummy session."""
         super().__init__(engine=DummySyntacticLayer(), **kwargs)

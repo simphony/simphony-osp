@@ -64,7 +64,7 @@ class CommunicationEngineServer():
         event_loop.run_forever()
 
     async def _serve(self, websocket, _):
-        """Waits for requests, compute responses and serve them to the user.
+        """Wait for requests, compute responses and serve them to the user.
 
         Args:
             websocket (Websocket): The websockets object.
@@ -149,7 +149,7 @@ class CommunicationEngineClient():
     """
 
     def __init__(self, uri, handle_response, **kwargs):
-        """Constructs the communication engine's client.
+        """Construct the communication engine's client.
 
         Args:
             uri (str): WebSocket URI.

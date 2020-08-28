@@ -30,7 +30,7 @@ class Cuds2dot():
         self._graph = self._initialize_graph()
 
     def _initialize_graph(self):
-        """Initializes a directed graph with some default settings."""
+        """Initialize a directed graph with some default settings."""
         graph = graphviz.Digraph(format='png', name=str(self._root.uid))
         # graph.node_attr['shape'] = 'circle'
         return graph
@@ -65,7 +65,7 @@ class Cuds2dot():
                 self._add_directly_related(cuds_object)
 
     def _add_node(self, cuds_object, uid):
-        """Adds a node to the graph.
+        """Add a node to the graph.
 
         :param cuds_object: cuds_object of the node
         :type cuds_object: Cuds
@@ -88,7 +88,7 @@ class Cuds2dot():
             self._graph.node(uid, label=label)
 
     def _add_edge(self, start, end, relationship):
-        """Adds an edge between two nodes.
+        """Add an edge between two nodes.
 
         Ignores the possible passive relationships returned by loops
 

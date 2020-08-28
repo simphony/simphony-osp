@@ -32,6 +32,7 @@ DB = "transport.db"
 
 class TestTransportSqliteCity(unittest.TestCase):
     """Test the sqlite wrapper."""
+
     SERVER_STARTED = False
 
     @classmethod

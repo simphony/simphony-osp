@@ -12,7 +12,7 @@ from osp.core.session.transport.communication_utils import (
 
 
 def async_test(test):
-    """A decorator for testing asynchronous functions."""
+    """Test asynchronous functions with this decorator."""
     def decorate(self):
         event_loop = asyncio.get_event_loop()
         event_loop.run_until_complete(test(self))
@@ -21,6 +21,7 @@ def async_test(test):
 
 class MockWebsocket():
     """A mock websocket for testing purposes."""
+
     def __init__(self, id, to_recv, sent_data):
         """Initialize the MockWebsocket."""
         self.to_recv = to_recv

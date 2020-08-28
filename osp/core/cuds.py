@@ -81,7 +81,7 @@ class Cuds():
 
     @property
     def uid(self) -> uuid.UUID:
-        """The uid of the cuds object."""
+        """Get he uid of the cuds object."""
         return self.__uid
 
     @property
@@ -91,12 +91,12 @@ class Cuds():
 
     @property
     def session(self):
-        """The session of the cuds object."""
+        """Get the session of the cuds object."""
         return self._session
 
     @property
     def oclasses(self):
-        """The ontology classes of this CUDS object."""
+        """Get the ontology classes of this CUDS object."""
         result = list()
         for s, p, o in self._graph.triples((self.iri, rdflib.RDF.type, None)):
             result.append(from_iri(o))
@@ -104,7 +104,7 @@ class Cuds():
 
     @property
     def oclass(self):
-        """The type of the cuds object."""
+        """Get the type of the cuds object."""
         oclasses = self.oclasses
         if oclasses:
             return oclasses[0]
@@ -854,7 +854,7 @@ class Cuds():
                                        hex(id(self.session)))
 
     def __hash__(self) -> int:
-        """Makes Cuds objects hashable.
+        """Make Cuds objects hashable.
 
         Use the hash of the uid of the object
 

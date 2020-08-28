@@ -86,7 +86,7 @@ class NeighborDict(ABC):
 
     @property
     def graph(self):
-        """The dictionary acts on this graph."""
+        """Get the graph this dictionary acts on."""
         return self.cuds_object._graph
 
     @abstractmethod

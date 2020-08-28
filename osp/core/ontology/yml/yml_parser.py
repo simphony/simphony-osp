@@ -70,7 +70,7 @@ class YmlParser:
         return doc[NAMESPACE_KEY].lower()
 
     def parse(self, file_path, doc=None):
-        """Reads the YAML and extracts the dictionary with the CUDS."""
+        """Read the YAML and extracts the dictionary with the CUDS."""
         logger.info("Parsing YAML ontology file %s" % file_path)
         self._doc = doc or self.get_doc(file_path)
         validate(self._doc,

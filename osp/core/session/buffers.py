@@ -54,6 +54,7 @@ class BufferContext(IntEnum):
 
 class EngineContext():
     """A context Manager used to switch to the Engine Buffer Context."""
+
     def __init__(self, session):
         """Initialize the Context Manager.
 

@@ -71,7 +71,7 @@ class TransportSessionServer():
         self.com_facility.startListening()
 
     def handle_disconnect(self, connection_id):
-        """A user has disconnected. Close and delete his session.
+        """Handle the disconnect of a user. Close and delete his session.
 
         :param connection_id: The connection that has disconnected.
         :type connection_id: Hashable

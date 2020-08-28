@@ -213,7 +213,7 @@ class TestFiletransfer(unittest.TestCase):
             self.assertEqual(result, list())
 
     def setup_buffers1(self, session):
-        """Helper fuction to set up the buffers for the methods below."""
+        """Set up the buffers for the tests below."""
         wrapper = city.CityWrapper(session=session)
         images = wrapper.add(
             city.Image(path=FILE_PATHS[0]),
@@ -256,7 +256,7 @@ class TestFiletransfer(unittest.TestCase):
             self.maxDiff = None
 
     def setup_buffers2(self, session):
-        """Helper function to setup the buffers for the methods below."""
+        """Set up the buffers for the tests below."""
         wrapper = city.CityWrapper(session=session, uid=42)
         images = wrapper.add(
             city.Image(path=FILE_PATHS[0], uid=1),
