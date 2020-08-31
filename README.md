@@ -20,27 +20,7 @@ www.simphony-project.eu)
 
 ## Installation
 
-The package requires python 3.7 or higher, installation is based on
-setuptools:
-
-```sh
-# build and install (recommended)
-pip install .
-
-# alternative
-python3 setup.py install
-```
-
-or:
-
-```sh
-# build for in-place development (recommended)
-pip install -e .
-
-
-# alternative
-python3 setup.py develop
-```
+See https://simphony.readthedocs.io/en/latest/getting_started.html#installation .
 
 ## Installation of ontologies
 
