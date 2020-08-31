@@ -17,15 +17,17 @@ def branch(cuds_object, *args, rel=None):
 
     This makes it easier to create large CUDS structures.
 
-    :param cuds_object: the object to add to
-    :type cuds_object: Cuds
-    :param args: object(s) to add
-    :type args: Cuds
-    :param rel: class of the relationship between the objects
-    :type rel: OntologyRelationship
-    :return: The first argument
-    :rtype: Cuds
-    :raises ValueError: adding an element already there
+    Args:
+        cuds_object (Cuds): the object to add to.
+        args (Cuds): object(s) to add
+        rel (OntologyRelationship): class of the relationship between the
+            objects.
+
+    Raises:
+        ValueError: adding an element already there.
+
+    Returns:
+        Cuds: The first argument.
     """
     cuds_object.add(*args, rel=rel)
     return cuds_object
@@ -253,7 +255,8 @@ def remove_cuds_object(cuds_object):
     To delete it from the registry you must call the
     sessions prune method afterwards.
 
-    :param cuds_object: The cuds_object to remove.
+    Args:
+        cuds_object (Cuds): The cuds_object to remove.
     """
     # Method does not allow deletion of the root element of a container
     for elem in cuds_object.iter(rel=cuba.relationship):
@@ -263,12 +266,13 @@ def remove_cuds_object(cuds_object):
 def get_relationships_between(subj, obj):
     """Get the set of relationships between two cuds objects.
 
-    :param subj: The subject
-    :type subj: Cuds
-    :param obj: The object
-    :type obj: Cuds
-    :return: The set of relationships between subject and object.
-    :rtype: Set[Type[Relationship]]
+    Args:
+        subj (Cuds): The subject
+        obj (Cuds): The object
+
+    Returns:
+        Set[OntologyRelationship]: The set of relationships between subject
+            and object.
     """
     result = set()
     for rel, obj_uids in subj._neighbors.items():

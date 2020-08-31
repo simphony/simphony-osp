@@ -56,15 +56,15 @@ class SqliteSession(SqlWrapperSession):
     def _sql_list_pattern(prefix, values, join_pattern=True):
         """Transform a list of values to corresponding pattern and value dict.
 
-        :param prefix: The prefix to use for the pattern
-        :type prefix: str
-        :param values: The list of values
-        :type values: List[Any]
-        :param join_pattern: Whether to join the pattern by a comma,
-            defaults to True
-        :type join_pattern: bool, optional
-        :return: The pattern and the value dict
-        :rtype: Tuple[str, Dict]
+        Args:
+            prefix (str): The prefix to use for the pattern
+            values (List[Any]): The list of values
+            join_pattern (bool): Whether to join the pattern by a comma,
+                defaults to True
+
+
+        Returns:
+            Tuple[str, Dict]: The pattern and the value dict.
         """
         pattern = [":%s_%s" % (prefix, i) for i in range(len(values))]
         if join_pattern:
@@ -160,11 +160,14 @@ class SqliteSession(SqlWrapperSession):
         It should be converted to a Sqlite condition pattern
         and the corresponding values.
 
-        :param condition: The Condition
-        :type condition: Uniton[AndCondition, EqualsCondition]
-        :raises NotImplementedError: Unknown condition type
-        :return: The resulting condition
-        :rtype: str
+        Args:
+            condition (Union[AndCondition, EqualsCondition]): The Condition.
+
+        Raises:
+            NotImplementedError: Unknown condition type
+
+        Returns:
+            str: The resulting condition
         """
         if condition is None:
             return "1", dict()
@@ -195,7 +198,7 @@ class SqliteSession(SqlWrapperSession):
     def _to_sqlite_datatype(self, rdflib_datatype):
         """Convert the given Cuds datatype to a datatype of sqlite.
 
-        :param rdflib_datatype: The given cuds_object datatype.
+            rdflib_datatype: The given cuds_object datatype.
         :type rdflib_datatype: URIRef
         :raises NotImplementedError: Unsupported datatype given.
         :return: A sqlite datatype.

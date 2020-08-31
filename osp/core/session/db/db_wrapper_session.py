@@ -34,13 +34,13 @@ class DbWrapperSession(WrapperSession):
 
         Will also return cuds objects of subclasses of oclass.
 
-        :param oclass: Load cuds objects with this ontology class
-        :type oclass: OntologyClass
-        :param update_registry: Whether to update cuds_objects which are
-            already present in the registry.
-        :type update_registry: bool
-        :return: The list of loaded cuds objects
-        :rtype: Iterator[Cuds]
+        Args:
+            oclass (OntologyClass): Load cuds objects with this ontology class
+            update_registry (bool): Whether to update cuds_objects which are
+                already present in the registry.
+
+        Yields:
+            Cuds: The list of loaded cuds objects
         """
         if self.root is None:
             raise RuntimeError("This Session is not yet initialized. "
@@ -109,13 +109,13 @@ class DbWrapperSession(WrapperSession):
     def _load_by_oclass(self, oclass, update_registry=False):
         """Load the cuds_object with the given ontology class.
 
-        :param oclass: The OntologyClass of the cuds objects
-        :type oclass: OntologyClass
-        :param update_registry: Whether to update cuds_objects already
-            which are already present in the registry.
-        :type update_registry: bool
-        :return: The loaded cuds_object.
-        :rtype: Cuds
+        Args:
+            oclass (OntologyClass): The OntologyClass of the cuds objects
+            update_registry (bool): Whether to update cuds_objects already
+                which are already present in the registry.
+
+        Returns:
+            Cuds: The loaded cuds_object.
         """
 
     @staticmethod

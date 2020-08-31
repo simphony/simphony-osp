@@ -78,13 +78,15 @@ format_description = {
 def validate(yaml_doc, pattern="/", context=""):
     """Check if the yaml doc matched the given pattern.
 
-    :param yaml_doc: The yaml doc to check
-    :type yaml_doc: Any
-    :param pattern: The pattern to match with the yaml doc, defaults to "/"
-    :type pattern: Any, optional
-    :param context: The current path in the yaml_doc, defaults to ""
-    :type context: str, optional
-    :raises ValueError: The YAML doc does not match
+    Args:
+        yaml_doc (dict): The yaml doc to check
+        pattern (Any, optional): The pattern to match with the yaml doc.
+            Defaults to "/".
+        context (str, optional): The current path in the yaml_doc.
+            Defaults to "".
+
+    Raises:
+        ValueError: The YAML doc does not match
     """
     logger.debug("Validate format of %s" % context)
     if pattern is None:
@@ -136,13 +138,13 @@ def validate(yaml_doc, pattern="/", context=""):
 def _validate_format(yaml_doc, format_desc, context):
     """Match the pattern with the given format description.
 
-    :param yaml_doc: The yaml doc to check
-    :type yaml_doc: Any
-    :param format_desc: The format description.
-    :type format_desc: Union[List, Dict]
-    :param context: The current path in the yaml doc.
-    :type context: str
-    :raises ValueError: The yaml doc does not match the format
+    Args:
+        yaml_doc (Any): The yaml doc to check
+        format_desc (Union[List, Dict]): The format description.
+        context (str): The current path in the yaml doc.
+
+    Raises:
+        ValueError: The yaml doc does not match the format
     """
     # format description is list -> one of its elements must match
     if isinstance(format_desc, list):

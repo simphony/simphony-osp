@@ -144,8 +144,10 @@ class YmlParser:
     def _load_entity(self, entity_name, entity_doc):
         """Load an entity into the registry.
 
-        :param entity_name: The name of the entity to load.
-        :type entity_name: str
+        Args:
+            entity_name(str): The name of the entity to load.
+            entity_doc(dict): The part of the YAML document that defines the
+                entity.
         """
         logger.debug("Parse entity definition for %s" % entity_name)
         iri = self._get_iri(entity_name)

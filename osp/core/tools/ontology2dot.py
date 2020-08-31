@@ -24,10 +24,9 @@ class Ontology2Dot():
     def __init__(self, namespaces, output_filename, group=False):
         """Initialize the graph.
 
-        :param namespaces: The namespaces to print.
-        :type namespaces: List[str]
-        :param output_filename: The path to save the resulting dot file
-        :type output_filename: str
+        Args:
+            namespaces (List[str]): The namespaces to print.
+            output_filename (str): The path to save the resulting dot file.
         """
         self._namespaces = list()
         for namespace in namespaces:
@@ -72,8 +71,8 @@ class Ontology2Dot():
     def _add_namespace(self, namespace):
         """Add the entities of the given namespace.
 
-        :param namespace: The entity to add
-        :type entity: OntologyEntity
+        Args:
+            namespace (OntologyEntity): The entity to add.
         """
         for entity in namespace:
             self._add_entity(entity)
@@ -81,8 +80,8 @@ class Ontology2Dot():
     def _add_entity(self, entity):
         """Add an entity to the graph.
 
-        :param entity: The entity to add
-        :type entity: OntologyEntity
+        Args:
+            entity: The entity to add.
         """
         if entity in self._visited:
             return
@@ -102,8 +101,8 @@ class Ontology2Dot():
     def _add_oclass(self, oclass, graph):
         """Add a node to the graph.
 
-        :param oclass: The ontology class to add
-        :type oclass: OntologyClass
+        Args:
+            oclass (OntologyClass): The ontology class to add
         """
         attr = ""
         for key, value in oclass.attributes.items():
@@ -118,8 +117,8 @@ class Ontology2Dot():
     def _add_relationship(self, rel, graph):
         """Add a node to the graph.
 
-        :param rel: The ontology class for the node
-        :type rel: OntologyRelationship
+        Args:
+            rel (OntologyRelationship): The ontology class for the node.
         """
         attr = ""
         label = self.label.format(str(rel), attr)
@@ -137,8 +136,8 @@ class Ontology2Dot():
     def _add_attribute(self, attribute, graph):
         """Add a node to the graph.
 
-        :param rel: The ontology attribute to add
-        :type rel: OntologyAttribute
+        Args:
+            rel (OntologyAttribute): The ontology attribute to add.
         """
         attr = self.attribute.format("datatype", attribute.datatype)
         label = self.label.format(str(attribute), attr)
@@ -153,12 +152,10 @@ class Ontology2Dot():
 
         Ignores the possible passive relationships returned by loops
 
-        :param start: start node
-        :type start: str
-        :param end: end node
-        :type end: str
-        :param label: The label of the edge
-        :type label: str
+        Args:
+            start (str): start node
+            end (str): end node
+            label (str): The label of the edge
         """
         self._graph.edge(start, end, **kwargs)
 

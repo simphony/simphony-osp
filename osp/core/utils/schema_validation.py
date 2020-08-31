@@ -23,12 +23,13 @@ def validate_tree_against_schema(root_obj, schema_file):
     The tree that starts at root_obj.
     The constraints are defined in the schema file.
 
-    :param root_obj: The root CUDS object of the tree
-    :type root_obj: CUDS
-    :param schema_file: The path to the schema file that \
-    defines the constraints
-    :type schema_file: str
-    :raises Exception: Tells the user which constraint was violated
+    Args:
+        root_obj (Cuds): The root CUDS object of the tree
+        schema_file (str): The path to the schema file that
+            defines the constraints
+
+    Raise:
+        Exception: Tells the user which constraint was violated
     """
     logger.info("""Validating tree of root object {}
     against schema file {} ...""".format(root_obj.uid, schema_file))
@@ -133,12 +134,12 @@ def _interpret_cardinality_value_from_constraints(constraints):
 def _traverse_tree_and_group_all_objects_by_oclass(root_obj, result=None):
     """Traverses the tree once and groups all objects by oclass.
 
-    :param root_obj: The root object where to start the traversion
-    :type root_obj: CUDS
-    :param result: The current results of the recursion, defaults to None
-    :type result: dict, optional
-    :return: All CUDS objects in the tree, grouped by oclass.
-    :rtype: dict
+    Args:
+        root_obj (Cuds): The root object where to start the traversal.
+        result (dict): The current results of the recursion, defaults to None
+
+    Returns:
+        dict: All CUDS objects in the tree, grouped by oclass.
     """
     if result is None:
         result = {str(root_obj.oclass): [root_obj]}
