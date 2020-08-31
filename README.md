@@ -20,54 +20,7 @@ www.simphony-project.eu)
 
 ## Installation
 
-The package requires python 3.7 or higher, installation is based on
-setuptools:
-
-```sh
-# build and install (recommended)
-pip install .
-
-# alternative
-python3 setup.py install
-```
-
-or:
-
-```sh
-# build for in-place development (recommended)
-pip install -e .
-
-
-# alternative
-python3 setup.py develop
-```
-
-## Installation of ontologies
-
-After you installed osp-core you can install your ontology namespaces. We provide the tool `pico`
-(**p**ico **i**nstalls **c**uds **o**ntologies) for that purpose. The following command
-installs the example city ontology namespace:
-
-```sh
-pico install city
-
-# If you have issues using pico directly, you can use
-python -m osp.core.pico install city
-```
-
-You can also install your own ontologies:
-
-```sh
-pico install path/to/your/ontology.yml
-```
-
-If you want to uninstall an ontology use the following command:
-
-```sh
-pico uninstall <namespace>  # e.g. city
-```
-
-If pico is not available after you install OSP core, try to restart your shell.
+See https://simphony.readthedocs.io/en/latest/getting_started.html#installation .
 
 ## Visualization of ontologies
 
