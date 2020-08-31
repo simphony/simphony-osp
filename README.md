@@ -22,33 +22,6 @@ www.simphony-project.eu)
 
 See https://simphony.readthedocs.io/en/latest/getting_started.html#installation .
 
-## Installation of ontologies
-
-After you installed osp-core you can install your ontology namespaces. We provide the tool `pico`
-(**p**ico **i**nstalls **c**uds **o**ntologies) for that purpose. The following command
-installs the example city ontology namespace:
-
-```sh
-pico install city
-
-# If you have issues using pico directly, you can use
-python -m osp.core.pico install city
-```
-
-You can also install your own ontologies:
-
-```sh
-pico install path/to/your/ontology.yml
-```
-
-If you want to uninstall an ontology use the following command:
-
-```sh
-pico uninstall <namespace>  # e.g. city
-```
-
-If pico is not available after you install OSP core, try to restart your shell.
-
 ## Visualization of ontologies
 
 We provide the tool `ontology2dot` to visualize your ontologies. You can visualize installed namespaces together with non-installed yaml files (requires Graphviz https://graphviz.gitlab.io/):
