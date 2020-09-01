@@ -197,6 +197,7 @@ class OntologyClass(OntologyEntity):
 
         Raises:
             TypeError: Error occurred during instantiation.
+
         Returns:
             Cuds: The created cuds object
         """

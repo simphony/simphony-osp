@@ -112,7 +112,6 @@ class Session(ABC):
         Args:
             cuds_object (Cuds): The cuds_object that has been deleted
         """
-        pass
 
     @abstractmethod
     def _notify_update(self, cuds_object):
@@ -121,11 +120,6 @@ class Session(ABC):
         Args:
             cuds_object (Cuds): The cuds_object that has been updated.
         """
-        pass
-
-    def sync(self):
-        """Synchronize sessions."""
-        pass  # TODO
 
     @abstractmethod
     def _notify_read(self, cuds_object):
@@ -137,4 +131,7 @@ class Session(ABC):
         Args:
             cuds_object (Cuds): The cuds_object that has been accessed.
         """
-        pass
+
+    @abstractmethod
+    def get_full_graph(self):
+        """Get the RDF Graph including objects only present in the backend."""

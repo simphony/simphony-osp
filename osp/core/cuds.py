@@ -120,16 +120,7 @@ class Cuds():
 
     def get_triples(self):
         """Get the triples of the cuds object."""
-        return [
-            (self.iri, relationship.iri, iri_from_uid(uid))
-            for uid, relationships in self._get(return_mapping=True)[1].items()
-            for relationship in relationships
-        ] + [
-            (self.iri, attribute.iri, rdflib.Literal(value))
-            for attribute, value in self.get_attributes().items()
-        ] + [
-            (self.iri, rdflib.RDF.type, self.oclass.iri)
-        ]
+        return self._graph.triples((self.iri, None, None))
 
     def get_attributes(self):
         """Get the attributes as a dictionary."""

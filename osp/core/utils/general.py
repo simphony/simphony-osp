@@ -79,10 +79,8 @@ def get_rdf_graph(session=None, skip_custom_datatypes=False):
     from osp.core.cuds import Cuds
     from osp.core.namespaces import _namespace_registry
     session = session or Cuds._session
-    cuds_graph = rdflib.Graph()
-    for triple in session.get_triples():
-        cuds_graph.add(triple)
-    result = cuds_graph + _namespace_registry._graph
+    cuds_graph = session.get_full_graph()
+    result = cuds_graph | _namespace_registry._graph
     if skip_custom_datatypes:
         return result - get_custom_datatype_triples()
     return result

@@ -233,7 +233,11 @@ class TestSession(Session):
             self.notify_delete(cuds_object)
 
     def _notify_read(self, cuds_object):
-        """Notify when CUDS object has been read."""
+        """Do nothing."""
+        pass
+
+    def get_full_graph(self):
+        """Not implemented."""
         pass
 
 

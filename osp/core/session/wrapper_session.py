@@ -156,18 +156,17 @@ class WrapperSession(Session):
         logger.debug("Refreshing %s in %s" % (list(cuds_or_uids), self))
         list(self.load(*self.expire(*cuds_or_uids)))
 
-    def get_triples(self):
+    def get_full_graph(self):
         """Get the triples in the core session."""
         from osp.core.utils import find_cuds_object
         from osp.core.utils import cuba
-        return [
-            triple
-            for cuds_object in find_cuds_object(lambda x: True,
-                                                self._registry.get(self.root),
-                                                cuba.relationship,
-                                                True)
-            for triple in cuds_object.get_triples()
-        ]
+
+        for cuds_object in find_cuds_object(lambda x: True,
+                                            self._registry.get(self.root),
+                                            cuba.relationship,
+                                            True):
+            pass
+        return self.graph
 
     def log_buffer_status(self, context):
         """Log the current status of the buffers.

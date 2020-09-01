@@ -11,7 +11,8 @@ def pretty_print(cuds_object, file=sys.stdout):
     is printed.
 
     Args:
-        cuds_object (Cuds): container to be printed
+        cuds_object (Cuds): container to be printed.
+        file (TextIOWrapper): The file to print to.
     """
     pp = _pp_cuds_object_name(cuds_object)
     pp += "\n  uuid: " + str(cuds_object.uid)

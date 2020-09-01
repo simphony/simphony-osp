@@ -27,6 +27,7 @@ class Ontology2Dot():
         Args:
             namespaces (List[str]): The namespaces to print.
             output_filename (str): The path to save the resulting dot file.
+            group (bool): Whether to group the entities by namespace.
         """
         self._namespaces = list()
         for namespace in namespaces:
@@ -102,7 +103,8 @@ class Ontology2Dot():
         """Add a node to the graph.
 
         Args:
-            oclass (OntologyClass): The ontology class to add
+            oclass (OntologyClass): The ontology class to add.
+            graph (graphviz.Digraph): The graphviz graph to add the node to.
         """
         attr = ""
         for key, value in oclass.attributes.items():
@@ -119,6 +121,7 @@ class Ontology2Dot():
 
         Args:
             rel (OntologyRelationship): The ontology class for the node.
+            graph (graphviz.Digraph): The graphviz graph to add the node to.
         """
         attr = ""
         label = self.label.format(str(rel), attr)
@@ -137,7 +140,8 @@ class Ontology2Dot():
         """Add a node to the graph.
 
         Args:
-            rel (OntologyAttribute): The ontology attribute to add.
+            attribute (OntologyAttribute): The ontology attribute to add.
+            graph (graphviz.Digraph): The graphviz graph to add the node to.
         """
         attr = self.attribute.format("datatype", attribute.datatype)
         label = self.label.format(str(attribute), attr)
