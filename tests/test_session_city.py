@@ -236,7 +236,7 @@ class TestSession(Session):
         """Do nothing."""
         pass
 
-    def get_full_graph(self):
+    def _get_full_graph(self):
         """Not implemented."""
         pass
 

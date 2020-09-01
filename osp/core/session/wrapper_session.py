@@ -156,7 +156,7 @@ class WrapperSession(Session):
         logger.debug("Refreshing %s in %s" % (list(cuds_or_uids), self))
         list(self.load(*self.expire(*cuds_or_uids)))
 
-    def get_full_graph(self):
+    def _get_full_graph(self):
         """Get the triples in the core session."""
         from osp.core.utils import find_cuds_object
         from osp.core.utils import cuba

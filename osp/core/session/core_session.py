@@ -21,6 +21,6 @@ class CoreSession(Session):
     def _notify_read(self, cuds_object):
         pass
 
-    def get_full_graph(self):
+    def _get_full_graph(self):
         """Get the triples in the core session."""
         return self.graph
