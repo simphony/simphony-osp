@@ -99,7 +99,9 @@ class Cuds():
         """Get the ontology classes of this CUDS object."""
         result = list()
         for s, p, o in self._graph.triples((self.iri, rdflib.RDF.type, None)):
-            result.append(from_iri(o))
+            r = from_iri(o, raise_error=False)
+            if r is not None:
+                result.append(r)
         return result
 
     @property

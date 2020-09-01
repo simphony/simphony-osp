@@ -43,7 +43,8 @@ class Session(ABC):
         """
         assert cuds_object.session == self
         self._registry.put(cuds_object)
-        self.graph |= cuds_object._graph
+        for t in cuds_object._graph:
+            self.graph.add(t)
         cuds_object._graph = self.graph
         if self.root is None:
             self.root = cuds_object.uid
@@ -144,7 +145,7 @@ class Session(ABC):
             clear (bool): Whether to clear the existing data.
         """
         from osp.core.utils import CUDS_IRI_PREFIX
-        self.graph = rdflib.Graph()
+        self.graph.remove((None, None, None))
         for s, p, o in graph:
             if str(s).startswith(CUDS_IRI_PREFIX):
                 self.graph.add((s, p, o))  # TODO update registry

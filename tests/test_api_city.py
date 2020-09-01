@@ -104,6 +104,11 @@ class TestAPICity(unittest.TestCase):
         self.assertIs(p1w.session, second_session)
         self.assertIsNot(c.session, second_session)
         self.assertIsNot(p1.session, second_session)
+        self.assertTrue(c._stored)
+        self.assertTrue(p1._stored)
+        self.assertTrue(w._stored)
+        self.assertTrue(cw._stored)
+        self.assertTrue(p1w._stored)
 
         p2 = city.Citizen()
         p3 = city.Citizen()

@@ -284,6 +284,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                 [{cn.uid: cn}, {ws1.uid: ws1}, {c.uid: c}],
                 [dict(), dict(), dict()]])
 
+        self.setUp()
+
         # buffer context engine
         with TestWrapperSession() as s1:
             ws1 = city.CityWrapper(session=s1, uid=123)
