@@ -43,7 +43,8 @@ class Session(ABC):
         """
         assert cuds_object.session == self
         self._registry.put(cuds_object)
-        self.graph |= cuds_object._graph
+        for t in cuds_object._graph:
+            self.graph.add(t)
         cuds_object._graph = self.graph
         if self.root is None:
             self.root = cuds_object.uid
@@ -112,7 +113,6 @@ class Session(ABC):
         Args:
             cuds_object (Cuds): The cuds_object that has been deleted
         """
-        pass
 
     @abstractmethod
     def _notify_update(self, cuds_object):
@@ -121,11 +121,6 @@ class Session(ABC):
         Args:
             cuds_object (Cuds): The cuds_object that has been updated.
         """
-        pass
-
-    def sync(self):
-        """Synchronize sessions."""
-        pass  # TODO
 
     @abstractmethod
     def _notify_read(self, cuds_object):
@@ -137,4 +132,20 @@ class Session(ABC):
         Args:
             cuds_object (Cuds): The cuds_object that has been accessed.
         """
-        pass
+
+    @abstractmethod
+    def _get_full_graph(self):
+        """Get the RDF Graph including objects only present in the backend."""
+
+    def _rdf_import(self, graph):
+        """Import an RDF graph. Clears the old data beforehand.
+
+        Args:
+            graph (rdflib.graph): The graph to import.
+            clear (bool): Whether to clear the existing data.
+        """
+        from osp.core.utils import CUDS_IRI_PREFIX
+        self.graph.remove((None, None, None))
+        for s, p, o in graph:
+            if str(s).startswith(CUDS_IRI_PREFIX):
+                self.graph.add((s, p, o))  # TODO update registry

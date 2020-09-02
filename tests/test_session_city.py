@@ -5,6 +5,7 @@ from osp.core.namespaces import cuba
 from osp.core.session.session import Session
 from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.buffers import BufferContext
+from osp.core.utils import branch, get_rdf_graph
 
 try:
     from osp.core.namespaces import city
@@ -131,6 +132,23 @@ class TestSessionCity(unittest.TestCase):
             [{cw2.uid: cw2}, {w.uid: w}, {cw.uid: cw}],
             [dict(), dict(), dict()]])
 
+    def test_rdf_import(self):
+        """Test the import of RDF data."""
+        with TestSession() as session:
+            w = branch(
+                city.CityWrapper(session=session),
+                branch(
+                    city.City(name="Freiburg"),
+                    city.Neighborhood(name="Littenweiler")
+                )
+            )
+            g = get_rdf_graph(session)
+            c = w.get(rel=city.hasPart)[0]
+            c.remove(rel=cuba.relationship)
+            session._rdf_import(g)
+            self.assertEqual(w.get(rel=city.hasPart), [c])
+            self.assertEqual(c.get(rel=city.hasPart)[0].name, "Littenweiler")
+
     # def test_parse_cardinality(self):
     #     """Test parsing cardinality from the ontology."""
     #     self.assertEqual(WrapperSession._parse_cardinality("*"),
@@ -233,8 +251,12 @@ class TestSession(Session):
             self.notify_delete(cuds_object)
 
     def _notify_read(self, cuds_object):
-        """Notify when CUDS object has been read."""
+        """Do nothing."""
         pass
+
+    def _get_full_graph(self):
+        """Get the graph."""
+        return self.graph
 
 
 class TestWrapperSession(WrapperSession):
