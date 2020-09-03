@@ -72,7 +72,8 @@ class Cuds():
 
         for k, v in attributes.items():
             self._graph.add((
-                self.iri, k.iri, rdflib.Literal(k.convert_to_datatype(v))
+                self.iri, k.iri, rdflib.Literal(k.convert_to_datatype(v),
+                                                datatype=k.datatype)
             ))
         self._graph.add((
             self.iri, rdflib.RDF.type, oclass.iri
@@ -831,7 +832,8 @@ class Cuds():
             self.session._notify_read(self)
         self._graph.set((
             self.iri, attr.iri,
-            rdflib.Literal(attr.convert_to_datatype(new_value))
+            rdflib.Literal(attr.convert_to_datatype(new_value),
+                           datatype=attr.datatype)
         ))
         if self.session:
             self.session._notify_update(self)

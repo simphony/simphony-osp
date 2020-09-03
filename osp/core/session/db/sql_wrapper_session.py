@@ -18,38 +18,41 @@ from osp.core.ontology.cuba import rdflib_cuba
 class SqlWrapperSession(DbWrapperSession):
     """Abstract class for an SQL DB Wrapper Session."""
 
-    CUDS_PREFIX = "CUDS_"
-    RELATIONSHIP_TABLE = "OSP_RELATIONSHIPS"
-    MASTER_TABLE = "OSP_MASTER"
+    NAMESPACES_TABLE = "OSP_NAMESPACES"
+    RELATIONSHIP_TABLE = "OSP_MASTER"
+    DATA_TABLE_PREFIX = "DATA_"
     COLUMNS = {
-        MASTER_TABLE: ["uid", "oclass", "first_level"],
-        RELATIONSHIP_TABLE: ["origin", "target", "name", "target_oclass"]
+        RELATIONSHIP_TABLE: ["s_ns", "s", "p_ns", "p", "o_ns", "o"],
+        NAMESPACES_TABLE: ["idx", "namespace"]
     }
     DATATYPES = {
-        MASTER_TABLE: {"uid": "UUID",
-                       "oclass": rdflib.XSD.string,
-                       "first_level": rdflib.XSD.boolean},
-        RELATIONSHIP_TABLE: {"origin": "UUID",
-                             "target": "UUID",
-                             "name": rdflib.XSD.string,
-                             "target_oclass": rdflib.XSD.string}
+        RELATIONSHIP_TABLE: {"s_ns": rdflib.XSD.integer,
+                             "s": "UUID",
+                             "p_ns": rdflib.XSD.integer,
+                             "p": rdflib.XSD.string,
+                             "o_ns": rdflib.XSD.integer,
+                             "o": rdflib.XSD.string},
+        NAMESPACES_TABLE: {"idx": rdflib.XSD.integer,
+                           "namespace": "UUID"}
     }
     PRIMARY_KEY = {
-        MASTER_TABLE: ["uid"],
-        RELATIONSHIP_TABLE: ["origin", "target", "name"]
+        RELATIONSHIP_TABLE: ["s_ns", "s", "p_ns", "p", "o_ns", "o"],
+        NAMESPACES_TABLE: ["idx"]
     }
     FOREIGN_KEY = {
-        MASTER_TABLE: {},
         RELATIONSHIP_TABLE: {
-            "origin": (MASTER_TABLE, "uid"),
-            "target": (MASTER_TABLE, "uid")
-        }
+            "s_ns": (NAMESPACES_TABLE, "idx"),
+            "p_ns": (NAMESPACES_TABLE, "idx"),
+            "o_ns": (NAMESPACES_TABLE, "idx"),
+        },
+        NAMESPACES_TABLE: {}
     }
     INDEXES = {
-        MASTER_TABLE: [
-            ["oclass"], ["first_level"]
+        NAMESPACES_TABLE: [
+            ["namespace"]
         ],
-        RELATIONSHIP_TABLE: [["origin"]]
+        RELATIONSHIP_TABLE: [["s_ns", "s", "p_ns", "p"],
+                             ["p_ns", "p", "o_ns", "o"]]
     }
 
     @abstractmethod
@@ -518,12 +521,12 @@ class SqlWrapperSession(DbWrapperSession):
     # OVERRIDE
     def _initialize(self):
         self._do_db_create(
-            table_name=self.MASTER_TABLE,
-            columns=self.COLUMNS[self.MASTER_TABLE],
-            datatypes=self.DATATYPES[self.MASTER_TABLE],
-            primary_key=self.PRIMARY_KEY[self.MASTER_TABLE],
-            foreign_key=self.FOREIGN_KEY[self.MASTER_TABLE],
-            indexes=self.INDEXES[self.MASTER_TABLE]
+            table_name=self.NAMESPACES_TABLE,
+            columns=self.COLUMNS[self.NAMESPACES_TABLE],
+            datatypes=self.DATATYPES[self.NAMESPACES_TABLE],
+            primary_key=self.PRIMARY_KEY[self.NAMESPACES_TABLE],
+            foreign_key=self.FOREIGN_KEY[self.NAMESPACES_TABLE],
+            indexes=self.INDEXES[self.NAMESPACES_TABLE]
         )
         self._do_db_create(
             table_name=self.RELATIONSHIP_TABLE,
@@ -533,26 +536,6 @@ class SqlWrapperSession(DbWrapperSession):
             foreign_key=self.FOREIGN_KEY[self.RELATIONSHIP_TABLE],
             indexes=self.INDEXES[self.RELATIONSHIP_TABLE]
         )
-        # Add the dummy root element if it doesn't exist.
-        # We do not want to store the actual root element since it will be
-        # created by the user for every connect (root is the wrapper).
-        # Adding it the dummy root here is necessary because other cuds
-        # objects can have relations with the root.
-        c = self._db_select(
-            table_name=self.MASTER_TABLE,
-            columns=["uid"],
-            condition=EqualsCondition(self.MASTER_TABLE,
-                                      "uid", str(uuid.UUID(int=0)),
-                                      rdflib.XSD.string),
-            datatypes=self.DATATYPES[self.MASTER_TABLE]
-        )
-        if len(list(c)) == 0:
-            self._db_insert(
-                table_name=self.MASTER_TABLE,
-                columns=self.COLUMNS[self.MASTER_TABLE],
-                values=[str(uuid.UUID(int=0)), "", False],
-                datatypes=self.DATATYPES[self.MASTER_TABLE]
-            )
 
     # OVERRIDE
     def _load_first_level(self):

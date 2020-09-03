@@ -179,6 +179,7 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
     ))
     for k, v in attributes.items():
         cuds_object._graph.set((
-            cuds_object.iri, k.iri, rdflib.Literal(k.convert_to_datatype(v))
+            cuds_object.iri, k.iri, rdflib.Literal(k.convert_to_datatype(v),
+                                                   datatype=k.datatype)
         ))
     cuds_object.session._notify_update(cuds_object)
