@@ -8,52 +8,182 @@ from abc import abstractmethod
 from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_to, convert_from, \
     _parse_vector_args
-from osp.core.session.db.db_wrapper_session import DbWrapperSession
+from osp.core.session.db.triplestore_wrapper_session import \
+    TripleStoreWrapperSession
 from osp.core.session.db.conditions import EqualsCondition, AndCondition
 from osp.core.namespaces import get_entity
 from osp.core.session.buffers import BufferContext
 from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology import OntologyRelationship
+from osp.core.utils import CUDS_IRI_PREFIX
 
 
-class SqlWrapperSession(DbWrapperSession):
+class SqlWrapperSession(TripleStoreWrapperSession):
     """Abstract class for an SQL DB Wrapper Session."""
 
+    ENTITIES_TABLE = "OSP_ENTITIES"
+    TYPES_TABLE = "OSP_TYPES"
     NAMESPACES_TABLE = "OSP_NAMESPACES"
-    RELATIONSHIP_TABLE = "OSP_MASTER"
+    RELATIONSHIP_TABLE = "OSP_RELATIONS"
     DATA_TABLE_PREFIX = "DATA_"
     COLUMNS = {
-        RELATIONSHIP_TABLE: ["s_ns", "s", "p_ns", "p", "o_ns", "o"],
-        NAMESPACES_TABLE: ["idx", "namespace"]
+        ENTITIES_TABLE: ["entity_idx", "ns_idx", "name"],
+        TYPES_TABLE: ["cuds_idx", "type_idx"],
+        RELATIONSHIP_TABLE: ["s", "p", "o"],
+        NAMESPACES_TABLE: ["ns_idx", "namespace"],
+        DATA_TABLE_PREFIX: ["s", "p"]
     }
     DATATYPES = {
-        RELATIONSHIP_TABLE: {"s_ns": rdflib.XSD.integer,
-                             "s": "UUID",
-                             "p_ns": rdflib.XSD.integer,
-                             "p": rdflib.XSD.string,
-                             "o_ns": rdflib.XSD.integer,
-                             "o": rdflib.XSD.string},
-        NAMESPACES_TABLE: {"idx": rdflib.XSD.integer,
-                           "namespace": "UUID"}
+        ENTITIES_TABLE: {
+            "entity_idx": rdflib.XSD.integer,
+            "ns_idx": rdflib.XSD.integer,
+            "name": rdflib.XSD.string
+        },
+        TYPES_TABLE: {
+            "cuds_idx": rdflib.XSD.integer,
+            "type_idx": rdflib.XSD.integer,
+        },
+        RELATIONSHIP_TABLE: {"s": rdflib.XSD.integer,
+                             "p": rdflib.XSD.integer,
+                             "o": rdflib.XSD.integer},
+        DATA_TABLE_PREFIX: {"s": rdflib.XSD.integer,
+                            "p": rdflib.XSD.integer},
+        NAMESPACES_TABLE: {"ns_idx": rdflib.XSD.integer,
+                           "namespace": rdflib.XSD.string}
     }
     PRIMARY_KEY = {
-        RELATIONSHIP_TABLE: ["s_ns", "s", "p_ns", "p", "o_ns", "o"],
-        NAMESPACES_TABLE: ["idx"]
+        ENTITIES_TABLE: ["entity_idx"],
+        TYPES_TABLE: ["cuds_idx", "type_idx"],
+        RELATIONSHIP_TABLE: ["s", "p", "o"],
+        DATA_TABLE_PREFIX: ["s", "p"],
+        NAMESPACES_TABLE: ["ns_idx"]
     }
     FOREIGN_KEY = {
+        ENTITIES_TABLE: {"ns_idx": (NAMESPACES_TABLE, "ns_idx")},
+        TYPES_TABLE: {
+            "cuds_idx": (ENTITIES_TABLE, "entity_idx"),
+            "type_idx": (ENTITIES_TABLE, "entity_idx")
+        },
         RELATIONSHIP_TABLE: {
-            "s_ns": (NAMESPACES_TABLE, "idx"),
-            "p_ns": (NAMESPACES_TABLE, "idx"),
-            "o_ns": (NAMESPACES_TABLE, "idx"),
+            "s": (ENTITIES_TABLE, "entity_idx"),
+            "p": (ENTITIES_TABLE, "entity_idx"),
+            "o": (ENTITIES_TABLE, "entity_idx"),
+        },
+        DATA_TABLE_PREFIX: {
+            "s": (ENTITIES_TABLE, "entity_idx"),
+            "p": (ENTITIES_TABLE, "entity_idx")
         },
         NAMESPACES_TABLE: {}
     }
     INDEXES = {
+        ENTITIES_TABLE: [["ns_idx", "name"]],
+        TYPES_TABLE: [["cuds_idx"], ["type_idx"]],
         NAMESPACES_TABLE: [
             ["namespace"]
         ],
-        RELATIONSHIP_TABLE: [["s_ns", "s", "p_ns", "p"],
-                             ["p_ns", "p", "o_ns", "o"]]
+        RELATIONSHIP_TABLE: [["s", "p"],
+                             ["p", "o"],
+                             ["o"]],
+        DATA_TABLE_PREFIX: [["s", "p"]]
     }
+
+    def _triples(self, pattern, table_name=None, columns=None, datatypes=None):
+        if table_name is columns is datatypes is None:
+            if pattern[1] is pattern[2] is None:
+                yield from self._triples_all_tables(pattern[0])
+                return
+            table_name, columns, datatypes = self._determine_table(pattern)
+        condition = self._get_conditions(pattern, table_name, datatypes)
+        c = self._do_db_select(
+            table_name=table_name,
+            columns=columns,
+            condition=condition,
+            datatypes=datatypes
+        )
+        yield from self._rows_to_triples(c, table_name, columns, datatypes)
+
+    def _triples_all_tables(self, s):
+        tables = [self.RELATIONSHIP_TABLE,
+                  *self._get_table_names(prefix=self.DATA_TABLE_PREFIX)]
+        for table_name in tables:
+            columns, datatypes = self._determine_columns(table_name)
+            yield from self._triples((s, None, None), table_name=table_name,
+                                     columns=columns, datatypes=datatypes)
+
+    def _add(self, *triples):
+        for triple in triples:
+            table_name, columns, datatypes = self._determine_table(triple)
+            values = self._get_values(triple, table_name,
+                                      columns, datatypes)
+            self._do_db_insert(
+                table_name=table_name,
+                columns=columns,
+                values=values,
+                datatypes=datatypes
+            )
+
+    def _determine_table(self, triple):
+        def data_table(datatype):
+            return (self._get_data_table_name(o.datatype),
+                    self.COLUMNS[self.DATA_TABLE_PREFIX] + ["o"],
+                    dict(**self.DATATYPES[self.DATA_TABLE_PREFIX],
+                         o=o.datatype))
+        rel_table = (self.RELATIONSHIP_TABLE,
+                     self.COLUMNS[self.RELATIONSHIP_TABLE],
+                     self.DATATYPES[self.RELATIONSHIP_TABLE])
+        s, p, o = triple
+
+        # object given
+        if isinstance(o, rdflib.URIRef):
+            return rel_table
+        if isinstance(o, rdflib.Literal) and o.datatype:
+            return data_table(o.datatype)
+        # predicate given
+        if p is not None:
+            from osp.core.namespaces import _from_iri
+            predicate = _from_iri(p)
+            if isinstance(predicate, OntologyRelationship):
+                return rel_table
+            return data_table(p.datatype)
+
+    def _get_conditions(self, triple, table_name, datatypes):
+        s, p, o = triple
+        conditions = []
+
+        if s is not None:
+            s_ns, s = self._split_namespace(s)
+            conditions.append(EqualsCondition(table_name, "s",
+                                              s, datatypes["s"]))
+
+        if p is not None:
+            p_ns, p = self._split_namespace(p)
+            conditions.append(EqualsCondition(table_name, "p",
+                                              p, datatypes["p"]))
+
+        if o is not None:
+            conditions.append(EqualsCondition(table_name, "o", o,
+                                              datatypes["o"]))
+        return AndCondition(*conditions)
+
+    def _split_namespace(self, iri):
+        from osp.core.namespaces import _namespace_registry
+        ns_iri = _namespace_registry._get_namespace_name_and_iri(iri)[1]
+        return self._ns_to_idx[ns_iri], rdflib.URIRef(iri[len(ns_iri):])
+
+    def _rows_to_triples(self, cursor, table_name, columns, datatypes):
+        for row in cursor:
+            s = rdflib.URIRef(self._idx_to_ns[row[0]] + row[1])
+            p = rdflib.URIRef(self._idx_to_ns[row[2]] + row[3])
+            if table_name == self.RELATIONSHIP_TABLE:
+                o = rdflib.URIRef(self._idx_to_ns[row[4]] + row[5])
+                yield s, p, o
+            yield s, p, rdflib.Literal(o, datatype=datatypes[columns[4]])
+
+    def _load_by_iri(self, iri):
+        raise NotImplementedError
+
+    def _remove(self, pattern):
+        raise NotImplementedError
 
     @abstractmethod
     def _db_create(self, table_name, columns, datatypes,
@@ -295,384 +425,74 @@ class SqlWrapperSession(DbWrapperSession):
         self._check_characters(table_name, condition)
         self._db_delete(table_name, condition)
 
-    def _clear_database(self):
-        """Delete the contents of every table."""
-        self._init_transaction()
-        try:
-            # clear local datastructure
-            from osp.core.namespaces import cuba
-            self._reset_buffers(BufferContext.USER)
-            root = self._registry.get(self.root)
+    # def _clear_database(self):
+    #     """Delete the contents of every table."""
+    #     self._init_transaction()
+    #     try:
+    #         # clear local datastructure
+    #         from osp.core.namespaces import cuba
+    #         self._reset_buffers(BufferContext.USER)
+    #         root = self._registry.get(self.root)
 
-            # if there is something to remove
-            if root.get(rel=cuba.relationship):
-                root.remove(rel=cuba.relationship)
-                for uid in list(self._registry.keys()):
-                    if uid != self.root:
-                        self._delete_cuds_triples(self._registry.get(uid))
-                self._reset_buffers(BufferContext.USER)
+    #         # if there is something to remove
+    #         if root.get(rel=cuba.relationship):
+    #             root.remove(rel=cuba.relationship)
+    #             for uid in list(self._registry.keys()):
+    #                 if uid != self.root:
+    #                     self._delete_cuds_triples(self._registry.get(uid))
+    #             self._reset_buffers(BufferContext.USER)
 
-                # delete the data
-                for table_name in self._get_table_names(
-                        SqlWrapperSession.CUDS_PREFIX):
-                    self._do_db_delete(table_name, None)
-                self._do_db_delete(self.RELATIONSHIP_TABLE, None)
-                self._do_db_delete(self.MASTER_TABLE, None)
-                self._initialize()
-                self._commit()
-        except Exception as e:
-            self._rollback_transaction()
-            raise e
+    #             # delete the data
+    #             for table_name in self._get_table_names(
+    #                     SqlWrapperSession.CUDS_PREFIX):
+    #                 self._do_db_delete(table_name, None)
+    #             self._do_db_delete(self.RELATIONSHIP_TABLE, None)
+    #             self._do_db_delete(self.MASTER_TABLE, None)
+    #             self._initialize()
+    #             self._commit()
+    #     except Exception as e:
+    #         self._rollback_transaction()
+    #         raise e
 
-    # OVERRIDE
-    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object, uids):
-        # do not expire if root is loaded
-        x = old_cuds_object or new_cuds_object
-        if x and x.uid != self.root:
-            super()._expire_neighour_diff(old_cuds_object, new_cuds_object,
-                                          uids)
+    def _default_create(self, table_name):
+        self._do_db_create(
+            table_name=table_name,
+            columns=self.COLUMNS[table_name],
+            datatypes=self.DATATYPES[table_name],
+            primary_key=self.PRIMARY_KEY[table_name],
+            foreign_key=self.FOREIGN_KEY[table_name],
+            indexes=self.INDEXES[table_name]
+        )
 
-    # OVERRIDE
-    def _apply_added(self, root_obj, buffer):
-        # Perform the SQL-Statements to add the elements
-        # in the buffers to the DB.
+    def _default_select(self, table_name, condition=None):
+        return self._do_db_select(
+            table_name=table_name,
+            columns=self.COLUMNS[table_name],
+            condition=condition,
+            datatypes=self.DATATYPES[table_name]
+        )
 
-        for added in buffer.values():
-            if added.uid == self.root:
-                continue
-
-            # Create tables
-            oclass = added.oclass
-            columns, datatypes = self._get_col_spec(oclass)
-            if columns:
-                self._do_db_create(
-                    table_name=self.CUDS_PREFIX + oclass.tblname,
-                    columns=columns,
-                    datatypes=datatypes,
-                    primary_key=["uid"],
-                    foreign_key={"uid": (self.MASTER_TABLE, "uid")},
-                    indexes=[]
-                )
-
-            # Add to master
-            is_first_level = any(self.root in uids
-                                 for uids in added._neighbors.values())
-            self._do_db_insert(
-                table_name=self.MASTER_TABLE,
-                columns=["uid", "oclass", "first_level"],
-                values=[added.uid, oclass, is_first_level],
-                datatypes=self.DATATYPES[self.MASTER_TABLE]
-            )
-
-            # Insert the items
-            if columns:
-                values = [getattr(added, attr) for attr in columns]
-                self._do_db_insert(
-                    table_name=self.CUDS_PREFIX + oclass.tblname,
-                    columns=columns,
-                    values=values,
-                    datatypes=datatypes
-                )
-
-        for added in buffer.values():
-            if added.uid == self.root:
-                continue
-
-            # Insert the relationships
-            for rel, neighbor_dict in added._neighbors.items():
-                for uid, target_oclass in neighbor_dict.items():
-                    target_uid = uid if uid != self.root else uuid.UUID(int=0)
-                    self._do_db_insert(
-                        self.RELATIONSHIP_TABLE,
-                        ["origin", "target", "name", "target_oclass"],
-                        [added.uid, target_uid,
-                         rel, target_oclass],
-                        self.DATATYPES[self.RELATIONSHIP_TABLE]
-                    )
-
-    # OVERRIDE
-    def _apply_updated(self, root_obj, buffer):
-        # Perform the SQL-Statements to update the elements
-        # in the buffers in the DB.
-        for updated in buffer.values():
-            if updated.uid == self.root:
-                continue
-
-            # Update the values
-            oclass = updated.oclass
-            columns, datatypes = self._get_col_spec(oclass)
-            if columns:
-                values = [getattr(updated, attr) for attr in columns]
-                self._do_db_update(
-                    table_name=self.CUDS_PREFIX + oclass.tblname,
-                    columns=columns,
-                    values=values,
-                    condition=EqualsCondition(
-                        table_name=self.CUDS_PREFIX + oclass.tblname,
-                        column="uid",
-                        value=updated.uid,
-                        datatype="UUID"
-                    ),
-                    datatypes=datatypes)
-
-            # Update the relationships
-            first_level = False
-            self._do_db_delete(
-                table_name=self.RELATIONSHIP_TABLE,
-                condition=EqualsCondition(
-                    table_name=self.RELATIONSHIP_TABLE,
-                    column="origin",
-                    value=updated.uid,
-                    datatype="UUID"
-                )
-            )
-            for rel, neighbor_dict in updated._neighbors.items():
-                for uid, target_oclass in neighbor_dict.items():
-                    first_level = first_level or uid == self.root
-                    target_uuid = uid if uid != self.root else uuid.UUID(int=0)
-                    self._do_db_insert(
-                        table_name=self.RELATIONSHIP_TABLE,
-                        columns=self.COLUMNS[self.RELATIONSHIP_TABLE],
-                        values=[updated.uid, target_uuid,
-                                rel, target_oclass],
-                        datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE]
-                    )
-
-            # update first_level flag
-            self._do_db_update(
-                table_name=self.MASTER_TABLE,
-                columns=["first_level"],
-                values=[first_level],
-                condition=EqualsCondition(self.MASTER_TABLE,
-                                          "uid", updated.uid, "UUID"),
-                datatypes=self.DATATYPES[self.MASTER_TABLE]
-            )
-
-    # OVERRIDE
-    def _apply_deleted(self, root_obj, buffer):
-        # Perform the SQL-Statements to delete the elements
-        # in the buffers in the DB.
-        for deleted in buffer.values():
-            if deleted.uid == self.root:
-                continue
-
-            # Update the values
-            oclass = deleted.oclass
-            columns, datatypes = self._get_col_spec(oclass)
-            if columns:
-                self._do_db_delete(
-                    table_name=self.CUDS_PREFIX + oclass.tblname,
-                    condition=EqualsCondition(
-                        table_name=self.CUDS_PREFIX + oclass.tblname,
-                        column="uid",
-                        value=deleted.uid,
-                        datatype="UUID"
-                    )
-                )
-            self._do_db_delete(
-                table_name=self.RELATIONSHIP_TABLE,
-                condition=EqualsCondition(
-                    table_name=self.RELATIONSHIP_TABLE,
-                    column="origin",
-                    value=deleted.uid,
-                    datatype="UUID"
-                )
-            )
-
-            self._do_db_delete(
-                table_name=self.RELATIONSHIP_TABLE,
-                condition=EqualsCondition(
-                    table_name=self.RELATIONSHIP_TABLE,
-                    column="target",
-                    value=deleted.uid,
-                    datatype="UUID"
-                )
-            )
-
-        for deleted in buffer.values():
-            self._do_db_delete(
-                table_name=self.MASTER_TABLE,
-                condition=EqualsCondition(
-                    table_name=self.MASTER_TABLE,
-                    column="uid",
-                    value=deleted.uid,
-                    datatype="UUID"
-                )
-            )
-
-    # OVERRIDE
-    def _load_from_backend(self, uids, expired=None):
-        for uid in uids:
-            if isinstance(uid, uuid.UUID):
-                oclass = self._get_oclass(uid)
-            elif isinstance(uid, tuple) and len(uid) == 2:
-                uid, oclass = uid
-            else:
-                raise ValueError("Invalid uid given %s" % uid)
-            if uid == self.root:  # root not stored explicitly in database
-                self._load_first_level()
-                yield self._registry.get(uid)
-                continue
-            loaded = list(self._load_by_oclass(oclass=oclass,
-                                               update_registry=True,
-                                               uid=uid))
-            yield loaded[0] if loaded else None
+    def _default_insert(self, table_name, values):
+        self._do_db_insert(
+            table_name=table_name,
+            columns=self.COLUMNS[table_name],
+            values=values,
+            datatypes=self.DATATYPES[table_name]
+        )
 
     # OVERRIDE
     def _initialize(self):
-        self._do_db_create(
-            table_name=self.NAMESPACES_TABLE,
-            columns=self.COLUMNS[self.NAMESPACES_TABLE],
-            datatypes=self.DATATYPES[self.NAMESPACES_TABLE],
-            primary_key=self.PRIMARY_KEY[self.NAMESPACES_TABLE],
-            foreign_key=self.FOREIGN_KEY[self.NAMESPACES_TABLE],
-            indexes=self.INDEXES[self.NAMESPACES_TABLE]
-        )
-        self._do_db_create(
-            table_name=self.RELATIONSHIP_TABLE,
-            columns=self.COLUMNS[self.RELATIONSHIP_TABLE],
-            datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE],
-            primary_key=self.PRIMARY_KEY[self.RELATIONSHIP_TABLE],
-            foreign_key=self.FOREIGN_KEY[self.RELATIONSHIP_TABLE],
-            indexes=self.INDEXES[self.RELATIONSHIP_TABLE]
-        )
-
-    # OVERRIDE
-    def _load_first_level(self):
-        c = self._do_db_select(
-            self.MASTER_TABLE,
-            ["uid", "oclass"],
-            EqualsCondition(self.MASTER_TABLE,
-                            "first_level", True, rdflib.XSD.boolean),
-            self.DATATYPES[self.MASTER_TABLE]
-        )
-        list(self._load_from_backend(
-            map(lambda x: (x[0], get_entity(x[1])), c)
-        ))
-
-    def _load_by_oclass(self, oclass, update_registry=False, uid=None):
-        """Load the cuds_object with the given oclass (+ uid).
-
-        If uid is None return all cuds_objects with given ontology class.
-
-        Args:
-            oclass(OntologyClass): The oclass of the cuds_object
-            uid(UUID, optional): The uid of the Cuds to load.
-                (Default value = None)
-            update_registry(bool, optional): Whether to update cuds_objects
-                already present in the registry. (Default value = False)
-
-        Returns:
-          Cuds: The loaded cuds_object.
-
-        """
-        # Check if oclass is given
-        if (oclass is None and uid is not None) or (uid == uuid.UUID(int=0)):
-            yield None  # uid given --> return iterator containing None
-        if oclass is None:
-            return  # uid not given --> return None
-
-        # Check if object in registry can be used
-        if not update_registry and uid is not None and uid in self._registry:
-            yield self._registry.get(uid)
-            return
-
-        # gather the data needed to fetch object from the database
-        tables = self._get_table_names(
-            prefix=(self.CUDS_PREFIX + oclass.tblname)
-        )
-        if not (self.CUDS_PREFIX + oclass.tblname) in tables:
-            return
-        condition = EqualsCondition(self.CUDS_PREFIX + oclass.tblname,
-                                    "uid", uid, "UUID") \
-            if uid else None
-
-        columns, datatypes = self._get_col_spec(oclass)
-
-        # fetch the data
-        c = self._do_db_select(
-            table_name=self.CUDS_PREFIX + oclass.tblname,
-            columns=columns,
-            condition=condition,
-            datatypes=datatypes
-        )
-
-        # transform into cuds object
-        for row in c:
-            kwargs = dict(zip(columns, row))
-            uid = convert_to(kwargs["uid"], "UUID")
-            del kwargs["uid"]
-            if not update_registry and uid in self._registry:
-                yield self._registry.get(uid)
-                continue
-            cuds_object = create_recycle(oclass=oclass,
-                                         kwargs=kwargs,
-                                         session=self,
-                                         uid=uid,
-                                         fix_neighbors=False)
-            self._load_relationships(cuds_object)
-            yield cuds_object
-
-    def _load_relationships(self, cuds_object):
-        """Add the relationships in the db to the given cuds_objects.
-
-        Args:
-            cuds_object(Cuds): Adds the relationships to this cuds_object.
-        """
-        # Fetch the data
-        c = self._do_db_select(
-            table_name=self.RELATIONSHIP_TABLE,
-            columns=["target", "name", "target_oclass"],
-            condition=EqualsCondition(
-                table_name=self.RELATIONSHIP_TABLE,
-                column="origin",
-                value=cuds_object.uid,
-                datatype="UUID"
-            ),
-            datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE]
-        )
-
-        # update the cuds object
-        for target, name, target_oclass in c:
-            target_oclass = get_entity(target_oclass)
-            rel = get_entity(name)
-
-            if rel not in cuds_object._neighbors:
-                cuds_object._neighbors[rel] = {}
-
-            # Special case: target is root --> Add inverse to root
-            if target == uuid.UUID(int=0):
-                root_obj = self._registry.get(self.root)
-                cuds_object._neighbors[rel][self.root] = root_obj.oclass
-                if rel.inverse not in root_obj._neighbors:
-                    root_obj._neighbors[rel.inverse] = {}
-                root_obj._neighbors[rel.inverse][cuds_object.uid] = \
-                    cuds_object.oclass
-
-            # Target is not root. Simply add the relationship
-            elif target != uuid.UUID(int=0):
-                cuds_object._neighbors[rel][target] = target_oclass
-
-    def _get_oclass(self, uid):
-        """Get the ontology class of the given uid from the database.
-
-        Args:
-            uid(UUID): Load the OntologyClass of this uis.
-
-        Returns:
-            OntologyClass: The ontology class.
-        """
-        c = self._do_db_select(
-            self.MASTER_TABLE,
-            ["oclass"],
-            EqualsCondition(self.MASTER_TABLE,
-                            "uid", uid,
-                            "UUID"),
-            self.DATATYPES[self.MASTER_TABLE])
-        try:
-            return get_entity(next(c)[0])
-        except StopIteration:
-            return None
+        self._default_create(self.ENTITIES_TABLE)
+        self._default_create(self.TYPES_TABLE)
+        self._default_create(self.NAMESPACES_TABLE)
+        self._default_create(self.RELATIONSHIP_TABLE)
+        self._idx_to_ns = dict(self._default_select(self.NAMESPACES_TABLE))
+        if not self._idx_to_ns:  # initialize table contents
+            self._default_insert(self.ENTITIES_TABLE,
+                                 [0, 0, uuid.UUID(int=0).hex])
+            self._default_insert(self.NAMESPACES_TABLE, [0, CUDS_IRI_PREFIX])
+            self._idx_to_ns = {0: rdflib.URIRef(CUDS_IRI_PREFIX)}
+        self._ns_to_idx = {v: k for k, v in self._idx_to_ns.items()}
 
     def _convert_values(self, rows, columns, datatypes):
         """Convert the values in the database to the correct datatype.

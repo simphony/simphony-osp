@@ -67,7 +67,7 @@ class DbWrapperSession(WrapperSession):
                     self._commit()
                 except Exception as e:
                     self._rollback_transaction()
-                    raise e
+                    raise type(e)(str(e)) from e
 
     def _commit(self):
         """Commit to the database."""
@@ -138,3 +138,11 @@ class DbWrapperSession(WrapperSession):
             the user.
         """
         return username, password
+
+    # OVERRIDE
+    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object, uids):
+        # do not expire if root is loaded
+        x = old_cuds_object or new_cuds_object
+        if x and x.uid != self.root:
+            super()._expire_neighour_diff(old_cuds_object, new_cuds_object,
+                                          uids)

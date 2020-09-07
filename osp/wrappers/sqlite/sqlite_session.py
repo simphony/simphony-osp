@@ -193,7 +193,7 @@ class SqliteSession(SqlWrapperSession):
                 pattern += sub_pattern
                 values.update(sub_values)
                 return pattern, values
-        raise NotImplementedError("Unsupported condition")
+        raise NotImplementedError(f"Unsupported condition {condition}")
 
     def _to_sqlite_datatype(self, rdflib_datatype):
         """Convert the given Cuds datatype to a datatype of sqlite.

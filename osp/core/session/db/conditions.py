@@ -26,4 +26,5 @@ class AndCondition():
 
     def __init__(self, *conditions):
         """Initialize the condition with several subconditions."""
+        assert all(isinstance(c, EqualsCondition) for c in conditions)
         self.conditions = conditions

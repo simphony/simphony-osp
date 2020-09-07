@@ -1,44 +1,44 @@
-# """Test the Sqlite Wrapper with the CITY ontology."""
+"""Test the Sqlite Wrapper with the CITY ontology."""
 
-# import os
-# import uuid
-# import unittest2 as unittest
-# import sqlite3
-# from osp.wrappers.sqlite import SqliteSession
+import os
+import uuid
+import unittest2 as unittest
+import sqlite3
+from osp.wrappers.sqlite import SqliteSession
 
-# try:
-#     from osp.core.namespaces import city
-# except ImportError:
-#     from osp.core.ontology import Parser
-#     from osp.core.namespaces import _namespace_registry
-#     Parser(_namespace_registry._graph).parse("city")
-#     _namespace_registry.update_namespaces()
-#     city = _namespace_registry.city
+try:
+    from osp.core.namespaces import city
+except ImportError:
+    from osp.core.ontology import Parser
+    from osp.core.namespaces import _namespace_registry
+    Parser(_namespace_registry._graph).parse("city")
+    _namespace_registry.update_namespaces()
+    city = _namespace_registry.city
 
-# DB = "test_sqlite.db"
+DB = "test_sqlite.db"
 
 
-# class TestSqliteCity(unittest.TestCase):
-#     """Test the sqlite wrapper with the city ontology."""
+class TestSqliteCity(unittest.TestCase):
+    """Test the sqlite wrapper with the city ontology."""
 
-#     def tearDown(self):
-#         """Remove the database file."""
-#         if os.path.exists(DB):
-#             os.remove(DB)
+    def tearDown(self):
+        """Remove the database file."""
+        if os.path.exists(DB):
+            os.remove(DB)
 
-#     def test_insert(self):
-#         """Test inserting in the sqlite table."""
-#         c = city.City(name="Freiburg")
-#         p1 = city.Citizen(name="Peter")
-#         p2 = city.Citizen(name="Georg")
-#         c.add(p1, p2, rel=city.hasInhabitant)
+    def test_insert(self):
+        """Test inserting in the sqlite table."""
+        c = city.City(name="Freiburg")
+        p1 = city.Citizen(name="Peter")
+        p2 = city.Citizen(name="Georg")
+        c.add(p1, p2, rel=city.hasInhabitant)
 
-#         with SqliteSession(DB) as session:
-#             wrapper = city.CityWrapper(session=session)
-#             wrapper.add(c)
-#             session.commit()
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            # wrapper.add(c)
+            wrapper.session.commit()
 
-#         check_state(self, c, p1, p2)
+        check_state(self, c, p1, p2)
 
 #     def test_update(self):
 #         """Test updating the sqlite table."""
@@ -342,40 +342,40 @@
 #                 session1.commit()
 
 
-# def check_state(test_case, c, p1, p2, db=DB):
-#     """Check if the sqlite tables are in the correct state."""
-#     with sqlite3.connect(db) as conn:
-#         cursor = conn.cursor()
-#         cursor.execute("SELECT uid, oclass, first_level FROM %s;"
-#                        % SqliteSession.MASTER_TABLE)
-#         result = set(cursor.fetchall())
-#         test_case.assertEqual(result, {
-#             (str(uuid.UUID(int=0)), "", 0),
-#             (str(c.uid), str(c.oclass), 1),
-#             (str(p1.uid), str(p1.oclass), 0),
-#             (str(p2.uid), str(p2.oclass), 0)
-#         })
+def check_state(test_case, c, p1, p2, db=DB):
+    """Check if the sqlite tables are in the correct state."""
+    with sqlite3.connect(db) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT uid, oclass, first_level FROM %s;"
+                       % SqliteSession.MASTER_TABLE)
+        result = set(cursor.fetchall())
+        test_case.assertEqual(result, {
+            (str(uuid.UUID(int=0)), "", 0),
+            (str(c.uid), str(c.oclass), 1),
+            (str(p1.uid), str(p1.oclass), 0),
+            (str(p2.uid), str(p2.oclass), 0)
+        })
 
-#         cursor.execute("SELECT origin, target, name, target_oclass FROM %s;"
-#                        % SqliteSession.RELATIONSHIP_TABLE)
-#         result = set(cursor.fetchall())
-#         test_case.assertEqual(result, {
-#             (str(c.uid), str(p1.uid), "city.hasInhabitant", "city.Citizen"),
-#             (str(c.uid), str(p2.uid), "city.hasInhabitant", "city.Citizen"),
-#             (str(p1.uid), str(c.uid),
-#              "city.INVERSE_OF_hasInhabitant", "city.City"),
-#             (str(p2.uid), str(c.uid),
-#              "city.INVERSE_OF_hasInhabitant", "city.City"),
-#             (str(c.uid), str(uuid.UUID(int=0)),
-#                 "city.isPartOf", "city.CityWrapper")
-#         })
+        cursor.execute("SELECT origin, target, name, target_oclass FROM %s;"
+                       % SqliteSession.RELATIONSHIP_TABLE)
+        result = set(cursor.fetchall())
+        test_case.assertEqual(result, {
+            (str(c.uid), str(p1.uid), "city.hasInhabitant", "city.Citizen"),
+            (str(c.uid), str(p2.uid), "city.hasInhabitant", "city.Citizen"),
+            (str(p1.uid), str(c.uid),
+             "city.INVERSE_OF_hasInhabitant", "city.City"),
+            (str(p2.uid), str(c.uid),
+             "city.INVERSE_OF_hasInhabitant", "city.City"),
+            (str(c.uid), str(uuid.UUID(int=0)),
+                "city.isPartOf", "city.CityWrapper")
+        })
 
-#         cursor.execute("SELECT uid, name, coordinates___0, coordinates___1 "
-#                        "FROM CUDS_city___City;")
-#         result = set(cursor.fetchall())
-#         test_case.assertEqual(result, {
-#             (str(c.uid), "Freiburg", 0, 0)
-#         })
+        cursor.execute("SELECT uid, name, coordinates___0, coordinates___1 "
+                       "FROM CUDS_city___City;")
+        result = set(cursor.fetchall())
+        test_case.assertEqual(result, {
+            (str(c.uid), "Freiburg", 0, 0)
+        })
 
 
 # def check_db_cleared(test_case, table):
@@ -395,5 +395,5 @@
 #         test_case.assertEqual(list(cursor), list())
 
 
-# if __name__ == '__main__':
-#     unittest.main()
+if __name__ == '__main__':
+    unittest.main()
