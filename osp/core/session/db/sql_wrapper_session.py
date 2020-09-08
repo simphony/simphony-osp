@@ -2,20 +2,18 @@
 
 import uuid
 import rdflib
-from operator import mul
-from functools import reduce
 from abc import abstractmethod
 from osp.core.utils import create_recycle
-from osp.core.ontology.datatypes import convert_to, convert_from, \
-    _parse_vector_args
+from osp.core.ontology.datatypes import convert_from
 from osp.core.session.db.triplestore_wrapper_session import \
     TripleStoreWrapperSession
-from osp.core.session.db.conditions import EqualsCondition, AndCondition
 from osp.core.namespaces import get_entity
 from osp.core.session.buffers import BufferContext
-from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology import OntologyRelationship
 from osp.core.utils import CUDS_IRI_PREFIX
+from osp.core.session.db.sql_util import SqlQuery, EqualsCondition, \
+    AndCondition, expand_vector_cols, \
+    contract_vector_values, expand_vector_condition, check_characters
 
 
 class SqlWrapperSession(TripleStoreWrapperSession):
@@ -27,7 +25,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
     RELATIONSHIP_TABLE = "OSP_RELATIONS"
     DATA_TABLE_PREFIX = "DATA_"
     COLUMNS = {
-        ENTITIES_TABLE: ["entity_idx", "ns_idx", "name"],
+        ENTITIES_TABLE: ["entity_idx", "ns_idx", "uid"],
         TYPES_TABLE: ["cuds_idx", "type_idx"],
         RELATIONSHIP_TABLE: ["s", "p", "o"],
         NAMESPACES_TABLE: ["ns_idx", "namespace"],
@@ -37,7 +35,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         ENTITIES_TABLE: {
             "entity_idx": rdflib.XSD.integer,
             "ns_idx": rdflib.XSD.integer,
-            "name": rdflib.XSD.string
+            "uid": "UUID"
         },
         TYPES_TABLE: {
             "cuds_idx": rdflib.XSD.integer,
@@ -76,7 +74,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         NAMESPACES_TABLE: {}
     }
     INDEXES = {
-        ENTITIES_TABLE: [["ns_idx", "name"]],
+        ENTITIES_TABLE: [["ns_idx", "uid"]],
         TYPES_TABLE: [["cuds_idx"], ["type_idx"]],
         NAMESPACES_TABLE: [
             ["namespace"]
@@ -203,14 +201,11 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         """
 
     @abstractmethod
-    def _db_select(self, table_name, columns, condition, datatypes):
+    def _db_select(self, query):
         """Get data from the table of the given names.
 
         Args:
-            table_name(str): The name of the table.
-            columns(List[str]): The names of the columns.
-            condition(Condition): A condition for filtering.
-            datatypes(Dict): Maps column names to datatypes.
+            query (SqlQuery): A object describing the SQL query.
         """
 
     @abstractmethod
@@ -253,206 +248,49 @@ class SqlWrapperSession(TripleStoreWrapperSession):
             prefix(str): Only return tables with the given prefix
         """
 
-    @staticmethod
-    def _expand_vector_cols(columns, datatypes, values=None):
-        """Expand columns of vectors.
-
-        SQL databases are not able to store vectors in general.
-        So we instead create a column for each element in the vector.
-        Therefore we need generate the column descriptions for each of those
-        columns.
-        During insertion, we need to transform the vectors
-        into their individual values.
-
-        This method expands the column description and the values, if given.
-
-        Args:
-            columns(List[str]): The columns to expand.
-            datatypes(Dict[str, str]): The datatypes for each column.
-                VECTORs will be expanded.
-            values(List[Any], optional, optional): The values to expand,
-                defaults to None
-
-        Returns:
-            Tuple[List[str], Dict[str, str], (List[Any])]: The expanded
-                columns, datatypes (and values, if given)
-        """
-        columns_expanded = list()
-        datatypes_expanded = dict()
-        values_expanded = list()
-
-        # iterate over the columns and look for vectors
-        for i, column in enumerate(columns):
-            # non vectors are simply added to the result
-            vec_prefix = str(rdflib_cuba["_datatypes/VECTOR-"])
-            if datatypes[column] is None or \
-                    not datatypes[column].startswith(vec_prefix):
-                columns_expanded.append(column)
-                datatypes_expanded[column] = datatypes[column]
-                if values:
-                    values_expanded.append(values[i])
-                continue
-
-            # create a column for each element in the vector
-            vector_args = datatypes[column][len(vec_prefix):].split("-")
-            datatype, shape = _parse_vector_args(vector_args)
-            size = reduce(mul, map(int, shape))
-            expanded_cols = ["%s___%s" % (column, x) for x in range(size)]
-            columns_expanded.extend(expanded_cols)
-            datatypes_expanded.update({c: datatype for c in expanded_cols})
-            datatypes_expanded[column] = datatypes[column]
-            if values:
-                values_expanded.extend(convert_from(values[i],
-                                                    datatypes[column]))
-        if values:
-            return columns_expanded, datatypes_expanded, values_expanded
-        return columns_expanded, datatypes_expanded
-
-    @staticmethod
-    def _contract_vector_values(columns, datatypes, rows):
-        """Contract vector values in a row of a database into one vector.
-
-        Args:
-            columns(List[str]): The expanded columns of the database
-            datatypes(dict): The datatype for each column
-            rows(Iterator[List[Any]]): The rows fetched from the database
-
-        Returns:
-            Iterator[List[Any]]: The rows with vectors being a single item
-                in each row.
-        """
-        for row in rows:
-            contracted_row = list()
-            temp_vec = list()  # collect the elements of the vectors here
-            vector_datatype = None
-
-            # iterate over the columns and look for vector columns
-            for column, value in zip(columns, row):
-                vector_datatype, is_vec_elem = SqlWrapperSession. \
-                    handle_vector_item(column, value, datatypes,
-                                       temp_vec, vector_datatype)
-                if is_vec_elem:
-                    continue
-
-                if temp_vec:  # add the vector to the result
-                    contracted_row.append(convert_to(temp_vec,
-                                                     vector_datatype))
-                    temp_vec = list()
-
-                vector_datatype, is_vec_elem = SqlWrapperSession. \
-                    handle_vector_item(column, value, datatypes,
-                                       temp_vec, vector_datatype)
-                if is_vec_elem:
-                    continue
-
-                # non vectors are simply added to the result
-                contracted_row.append(value)
-
-            if temp_vec:  # add the vector to the result
-                contracted_row.append(convert_to(temp_vec,
-                                                 vector_datatype))
-                temp_vec = list()
-            yield contracted_row
-
-    @staticmethod
-    def handle_vector_item(column, value, datatypes, temp_vec,
-                           old_vector_datatype):
-        """Check if a column corresponds to a vector.
-
-        If it does, add it to the temp_vec list.
-        Used during contract_vector_values
-
-        Args:
-            column(str): The currect column to consider in the contraction
-            value(Any): The value of the column
-            datatypes(Dict): Maps a datatype to each column
-            temp_vec(List[float]): The elements of the current vector.
-            old_vector_datatype(str): The vector datatype of the old iteration.
-
-        Returns:
-            Tuple[str, bool]: The new vector datatype and whether the current
-                column corresponds to a vector.
-        """
-        vec_suffix = "___%s" % len(temp_vec)  # suffix of vector column
-        if column.endswith(vec_suffix):
-            temp_vec.append(value)  # store the vector element
-            orig_col = column[:-len(vec_suffix)]
-            return datatypes[orig_col], True
-        return old_vector_datatype, False
-
     def _do_db_create(self, table_name, columns, datatypes,
                       primary_key, foreign_key, indexes):
         """Call db_create but expand the vectors first."""
-        columns, datatypes = self._expand_vector_cols(columns, datatypes)
-        self._check_characters(table_name, columns, datatypes,
+        columns, datatypes = expand_vector_cols(columns, datatypes)
+        check_characters(table_name, columns, datatypes,
                                primary_key, foreign_key, indexes)
         self._db_create(table_name, columns, datatypes,
                         primary_key, foreign_key, indexes)
 
-    def _do_db_select(self, table_name, columns, condition, datatypes):
+    def _do_db_select(self, query):
         """Call db_select but consider vectors."""
-        columns, datatypes = self._expand_vector_cols(columns, datatypes)
-        self._check_characters(table_name, columns, condition, datatypes)
-        rows = self._db_select(table_name, columns, condition, datatypes)
-        rows = self._convert_values(rows, columns, datatypes)
-        yield from self._contract_vector_values(columns, datatypes, rows)
+        rows = self._db_select(query)
+        yield from contract_vector_values(rows, query)
 
     def _do_db_insert(self, table_name, columns, values, datatypes):
         """Call db_insert but expand vectors."""
-        columns, datatypes, values = self._expand_vector_cols(columns,
-                                                              datatypes,
-                                                              values)
+        columns, datatypes, values = expand_vector_cols(columns,
+                                                        datatypes,
+                                                        values)
         values = [convert_from(v, datatypes.get(c))
                   for c, v in zip(columns, values)]
-        self._check_characters(table_name, columns, datatypes)
+        check_characters(table_name, columns, datatypes)
         self._db_insert(table_name, columns, values, datatypes)
 
     def _do_db_update(self, table_name, columns,
                       values, condition, datatypes):
         """Call db_update but expand vectors."""
-        columns, datatypes, values = self._expand_vector_cols(columns,
-                                                              datatypes,
-                                                              values)
+        columns, datatypes, values = expand_vector_cols(columns,
+                                                        datatypes,
+                                                        values)
+        condition = expand_vector_condition(condition)
         values = [convert_from(v, datatypes.get(c))
                   for c, v in zip(columns, values)]
-        self._check_characters(table_name, columns,
+        check_characters(table_name, columns,
                                condition, datatypes)
         self._db_update(table_name, columns,
                         values, condition, datatypes)
 
     def _do_db_delete(self, table_name, condition):
         """Call _db_delete but expand vectors."""
-        self._check_characters(table_name, condition)
+        check_characters(table_name, condition)
+        condition = expand_vector_condition(condition)
         self._db_delete(table_name, condition)
-
-    # def _clear_database(self):
-    #     """Delete the contents of every table."""
-    #     self._init_transaction()
-    #     try:
-    #         # clear local datastructure
-    #         from osp.core.namespaces import cuba
-    #         self._reset_buffers(BufferContext.USER)
-    #         root = self._registry.get(self.root)
-
-    #         # if there is something to remove
-    #         if root.get(rel=cuba.relationship):
-    #             root.remove(rel=cuba.relationship)
-    #             for uid in list(self._registry.keys()):
-    #                 if uid != self.root:
-    #                     self._delete_cuds_triples(self._registry.get(uid))
-    #             self._reset_buffers(BufferContext.USER)
-
-    #             # delete the data
-    #             for table_name in self._get_table_names(
-    #                     SqlWrapperSession.CUDS_PREFIX):
-    #                 self._do_db_delete(table_name, None)
-    #             self._do_db_delete(self.RELATIONSHIP_TABLE, None)
-    #             self._do_db_delete(self.MASTER_TABLE, None)
-    #             self._initialize()
-    #             self._commit()
-    #     except Exception as e:
-    #         self._rollback_transaction()
-    #         raise e
 
     def _default_create(self, table_name):
         self._do_db_create(
@@ -465,12 +303,12 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         )
 
     def _default_select(self, table_name, condition=None):
-        return self._do_db_select(
+        query = SqlQuery(
             table_name=table_name,
             columns=self.COLUMNS[table_name],
-            condition=condition,
             datatypes=self.DATATYPES[table_name]
-        )
+        ).where(condition)
+        return self._do_db_select(query)
 
     def _default_insert(self, table_name, values):
         self._do_db_insert(
@@ -494,64 +332,31 @@ class SqlWrapperSession(TripleStoreWrapperSession):
             self._idx_to_ns = {0: rdflib.URIRef(CUDS_IRI_PREFIX)}
         self._ns_to_idx = {v: k for k, v in self._idx_to_ns.items()}
 
-    def _convert_values(self, rows, columns, datatypes):
-        """Convert the values in the database to the correct datatype.
+    def _clear_database(self):
+        """Delete the contents of every table."""
+        self._init_transaction()
+        try:
+            # clear local datastructure
+            from osp.core.namespaces import cuba
+            self._reset_buffers(BufferContext.USER)
+            root = self._registry.get(self.root)
 
-        Args:
-            rows(Iterator[Iterator[Any]]): The rows of the database
-            columns(List[str]): The corresponding columns
-            datatypes(Dict[str, str]): Mapping from column to datatype
+            # if there is something to remove
+            if root.get(rel=cuba.relationship):
+                root.remove(rel=cuba.relationship)
+                for uid in list(self._registry.keys()):
+                    if uid != self.root:
+                        self._delete_cuds_triples(self._registry.get(uid))
+                self._reset_buffers(BufferContext.USER)
 
-        """
-        for row in rows:
-            output = []
-            for value, column in zip(row, columns):
-                output.append(
-                    convert_to(value, datatypes[column])
-                )
-            yield output
-
-    def _get_col_spec(self, oclass):
-        attributes = oclass.attributes
-        columns = [x.argname for x in attributes if x != "session"] + ["uid"]
-        datatypes = dict(uid="UUID", **{x.argname: x.datatype
-                                        for x in attributes if x != "session"})
-        return columns, datatypes
-
-    def _check_characters(self, *to_check):
-        """Check if column or table names contain invalid characters.
-
-        Args:
-            *to_check: The names to check.
-
-        Raises:
-            ValueError: Invalid character detected.
-
-        """
-        forbidden_chars = [";", "\0", "\r", "\x08", "\x09", "\x1a", "\n",
-                           "\r", "\"", "'", "`", "\\", "%"]
-        to_check = list(to_check)
-        str_to_check = str(to_check)
-        for c in forbidden_chars:
-            while to_check:
-                s = to_check.pop()
-                if isinstance(s, str):
-                    s = s.encode("utf-8", "strict").decode("utf-8")
-                    if c in s:
-                        raise ValueError(
-                            "Forbidden character %s [chr(%s)] in %s"
-                            % (c, ord(c), s)
-                        )
-                elif isinstance(s, (list, tuple)):
-                    to_check += list(s)
-                elif isinstance(s, dict):
-                    to_check += list(s.keys())
-                    to_check += list(s.values())
-                elif isinstance(s, AndCondition):
-                    to_check += list(s.conditions)
-                elif isinstance(s, EqualsCondition):
-                    to_check += [s.table_name, s.column, s.datatype]
-                elif s is None:
-                    pass
-                else:
-                    raise ValueError("%s - %s" % (s, str_to_check))
+                # delete the data
+                for table_name in self._get_table_names(
+                        SqlWrapperSession.CUDS_PREFIX):
+                    self._do_db_delete(table_name, None)
+                self._do_db_delete(self.RELATIONSHIP_TABLE, None)
+                self._do_db_delete(self.MASTER_TABLE, None)
+                self._initialize()
+                self._commit()
+        except Exception as e:
+            self._rollback_transaction()
+            raise e

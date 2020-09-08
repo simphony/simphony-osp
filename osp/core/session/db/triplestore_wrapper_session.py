@@ -46,7 +46,7 @@ class TripleStoreWrapperSession(DbWrapperSession):
                 yield self._registry.get(uid)
                 continue
                 iri = iri_from_uid(uid)
-            yield self._load_from_iri(iri, update_registry=True)
+            yield self._load_from_iri(iri)
 
     # OVERRIDE
     def _load_first_level(self):

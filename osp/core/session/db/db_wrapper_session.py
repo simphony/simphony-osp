@@ -63,7 +63,7 @@ class DbWrapperSession(WrapperSession):
                 self._init_transaction()
                 try:
                     self._initialize()
-                    self._load_first_level()
+                    # self._load_first_level() TODO
                     self._commit()
                 except Exception as e:
                     self._rollback_transaction()
