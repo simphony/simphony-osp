@@ -39,7 +39,7 @@ class TripleStoreWrapperSession(DbWrapperSession):
             self._remove((deleted.iri, None, None))
 
     # OVERRIDE
-    def _load_from_backend(self, uids, expired=None):
+    def _load_from_backend(self, *uids, expired=None):
         for uid in uids:
             if uid == self.root:  # root not stored explicitly in database
                 self._load_first_level()

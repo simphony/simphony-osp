@@ -12,30 +12,37 @@ from osp.core.session.buffers import BufferContext
 from osp.core.ontology import OntologyRelationship
 from osp.core.utils import CUDS_IRI_PREFIX
 from osp.core.session.db.sql_util import SqlQuery, EqualsCondition, \
-    AndCondition, expand_vector_cols, \
+    AndCondition, JoinCondition, expand_vector_cols, \
     contract_vector_values, expand_vector_condition, check_characters
 
 
 class SqlWrapperSession(TripleStoreWrapperSession):
     """Abstract class for an SQL DB Wrapper Session."""
 
+    TRIPLESTORE_COLUMNS = ["s", "p", "o"]
+    CUDS_TABLE = "OSP_CUDS"
     ENTITIES_TABLE = "OSP_ENTITIES"
     TYPES_TABLE = "OSP_TYPES"
     NAMESPACES_TABLE = "OSP_NAMESPACES"
     RELATIONSHIP_TABLE = "OSP_RELATIONS"
     DATA_TABLE_PREFIX = "DATA_"
     COLUMNS = {
-        ENTITIES_TABLE: ["entity_idx", "ns_idx", "uid"],
+        CUDS_TABLE: ["cuds_idx", "uid"],
+        ENTITIES_TABLE: ["entity_idx", "ns_idx", "name"],
         TYPES_TABLE: ["cuds_idx", "type_idx"],
-        RELATIONSHIP_TABLE: ["s", "p", "o"],
+        RELATIONSHIP_TABLE: TRIPLESTORE_COLUMNS,
         NAMESPACES_TABLE: ["ns_idx", "namespace"],
-        DATA_TABLE_PREFIX: ["s", "p"]
+        DATA_TABLE_PREFIX: TRIPLESTORE_COLUMNS
     }
     DATATYPES = {
+        CUDS_TABLE: {
+            "cuds_idx": rdflib.XSD.integer,
+            "uid": "UUID"
+        },
         ENTITIES_TABLE: {
             "entity_idx": rdflib.XSD.integer,
             "ns_idx": rdflib.XSD.integer,
-            "uid": "UUID"
+            "name": rdflib.XSD.string
         },
         TYPES_TABLE: {
             "cuds_idx": rdflib.XSD.integer,
@@ -50,6 +57,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
                            "namespace": rdflib.XSD.string}
     }
     PRIMARY_KEY = {
+        CUDS_TABLE: ["cuds_idx"],
         ENTITIES_TABLE: ["entity_idx"],
         TYPES_TABLE: ["cuds_idx", "type_idx"],
         RELATIONSHIP_TABLE: ["s", "p", "o"],
@@ -57,24 +65,26 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         NAMESPACES_TABLE: ["ns_idx"]
     }
     FOREIGN_KEY = {
+        CUDS_TABLE: {},
         ENTITIES_TABLE: {"ns_idx": (NAMESPACES_TABLE, "ns_idx")},
         TYPES_TABLE: {
-            "cuds_idx": (ENTITIES_TABLE, "entity_idx"),
+            "cuds_idx": (CUDS_TABLE, "cuds_idx"),
             "type_idx": (ENTITIES_TABLE, "entity_idx")
         },
         RELATIONSHIP_TABLE: {
-            "s": (ENTITIES_TABLE, "entity_idx"),
+            "s": (CUDS_TABLE, "cuds_idx"),
             "p": (ENTITIES_TABLE, "entity_idx"),
-            "o": (ENTITIES_TABLE, "entity_idx"),
+            "o": (CUDS_TABLE, "cuds_idx"),
         },
         DATA_TABLE_PREFIX: {
-            "s": (ENTITIES_TABLE, "entity_idx"),
+            "s": (CUDS_TABLE, "cuds_idx"),
             "p": (ENTITIES_TABLE, "entity_idx")
         },
         NAMESPACES_TABLE: {}
     }
     INDEXES = {
-        ENTITIES_TABLE: [["ns_idx", "uid"]],
+        CUDS_TABLE: [["uid"]],
+        ENTITIES_TABLE: [["ns_idx", "name"]],
         TYPES_TABLE: [["cuds_idx"], ["type_idx"]],
         NAMESPACES_TABLE: [
             ["namespace"]
@@ -85,49 +95,30 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         DATA_TABLE_PREFIX: [["s", "p"]]
     }
 
-    def _triples(self, pattern, table_name=None, columns=None, datatypes=None):
-        if table_name is columns is datatypes is None:
+    def _triples(self, pattern, table_name=None, datatypes=None):
+        if table_name is datatypes is None:
             if pattern[1] is pattern[2] is None:
                 yield from self._triples_all_tables(pattern[0])
                 return
-            table_name, columns, datatypes = self._determine_table(pattern)
-        condition = self._get_conditions(pattern, table_name, datatypes)
-        c = self._do_db_select(
-            table_name=table_name,
-            columns=columns,
-            condition=condition,
-            datatypes=datatypes
-        )
-        yield from self._rows_to_triples(c, table_name, columns, datatypes)
+            table_name, datatypes = self._determine_table(pattern)
+        q = self._construct_query(pattern, table_name, datatypes)
+        c = self._do_db_select(q)
+        yield from self._rows_to_triples(c, table_name, datatypes)
 
     def _triples_all_tables(self, s):
         tables = [self.RELATIONSHIP_TABLE,
                   *self._get_table_names(prefix=self.DATA_TABLE_PREFIX)]
         for table_name in tables:
-            columns, datatypes = self._determine_columns(table_name)
+            datatypes = self._determine_datatypes(table_name)
             yield from self._triples((s, None, None), table_name=table_name,
-                                     columns=columns, datatypes=datatypes)
-
-    def _add(self, *triples):
-        for triple in triples:
-            table_name, columns, datatypes = self._determine_table(triple)
-            values = self._get_values(triple, table_name,
-                                      columns, datatypes)
-            self._do_db_insert(
-                table_name=table_name,
-                columns=columns,
-                values=values,
-                datatypes=datatypes
-            )
+                                     datatypes=datatypes)
 
     def _determine_table(self, triple):
         def data_table(datatype):
             return (self._get_data_table_name(o.datatype),
-                    self.COLUMNS[self.DATA_TABLE_PREFIX] + ["o"],
                     dict(**self.DATATYPES[self.DATA_TABLE_PREFIX],
                          o=o.datatype))
         rel_table = (self.RELATIONSHIP_TABLE,
-                     self.COLUMNS[self.RELATIONSHIP_TABLE],
                      self.DATATYPES[self.RELATIONSHIP_TABLE])
         s, p, o = triple
 
@@ -144,41 +135,84 @@ class SqlWrapperSession(TripleStoreWrapperSession):
                 return rel_table
             return data_table(p.datatype)
 
-    def _get_conditions(self, triple, table_name, datatypes):
-        s, p, o = triple
+    def _determine_datatypes(self, table_name):
+        pass
+
+    def _construct_query(self, pattern, table_name, datatypes):
+        q = SqlQuery(table_name, [], {}).join(
+            self.CUDS_TABLE, columns=self.COLUMNS[self.CUDS_TABLE][1:],
+            datatypes=self.DATATYPES[self.CUDS_TABLE], alias="ts"
+        ).join(
+            self.ENTITIES_TABLE, columns=self.COLUMNS[self.ENTITIES_TABLE][1:],
+            datatypes=self.DATATYPES[self.ENTITIES_TABLE], alias="tp"
+        ).where(AndCondition(
+            JoinCondition(table_name, "s", "ts", "cuds_idx"),
+            JoinCondition(table_name, "p", "tp", "entity_idx")
+        ))
+
+        if table_name == self.RELATIONSHIP_TABLE:
+            q = q.join(
+                self.CUDS_TABLE, columns=self.COLUMNS[self.CUDS_TABLE][1:],
+                datatypes=self.DATATYPES[self.CUDS_TABLE], alias="to"
+            ).where(JoinCondition(table_name, "o", "to", "cuds_idx"))
+
+        q = q.where(self._get_conditions(pattern, table_name, datatypes["o"]))
+        return q
+
+    def _get_conditions(self, triple, table_name, object_datatype):
         conditions = []
+        s, p, o = triple
 
         if s is not None:
-            s_ns, s = self._split_namespace(s)
-            conditions.append(EqualsCondition(table_name, "s",
-                                              s, datatypes["s"]))
+            uid = self._split_namespace(s)
+            conditions += [EqualsCondition("ts", "uid", uid, "UUID")]
 
         if p is not None:
-            p_ns, p = self._split_namespace(p)
-            conditions.append(EqualsCondition(table_name, "p",
-                                              p, datatypes["p"]))
+            ns_idx, name = self._split_namespace(p)
+            conditions += [
+                EqualsCondition("tp", "ns_idx", ns_idx, rdflib.XSD.integer),
+                EqualsCondition("tp", "name", name, rdflib.XSD.string)
+            ]
 
-        if o is not None:
-            conditions.append(EqualsCondition(table_name, "o", o,
-                                              datatypes["o"]))
+        if o is not None and table_name == self.RELATIONSHIP_TABLE:
+            uid = self._split_namespace(o)
+            conditions += [EqualsCondition("to", "uid", uid, "UUID")]
+
+        elif o is not None:
+            conditions += [
+                EqualsCondition(table_name, "o", o, object_datatype)]
+
         return AndCondition(*conditions)
 
     def _split_namespace(self, iri):
+        if iri.startswith(CUDS_IRI_PREFIX):
+            return uuid.UUID(hex=iri[len(CUDS_IRI_PREFIX):])
         from osp.core.namespaces import _namespace_registry
         ns_iri = _namespace_registry._get_namespace_name_and_iri(iri)[1]
-        return self._ns_to_idx[ns_iri], rdflib.URIRef(iri[len(ns_iri):])
+        return self._ns_to_idx[ns_iri], str(iri[len(ns_iri):])
 
-    def _rows_to_triples(self, cursor, table_name, columns, datatypes):
+    def _rows_to_triples(self, cursor, table_name, datatypes):
         for row in cursor:
             s = rdflib.URIRef(self._idx_to_ns[row[0]] + row[1])
             p = rdflib.URIRef(self._idx_to_ns[row[2]] + row[3])
             if table_name == self.RELATIONSHIP_TABLE:
                 o = rdflib.URIRef(self._idx_to_ns[row[4]] + row[5])
                 yield s, p, o
-            yield s, p, rdflib.Literal(o, datatype=datatypes[columns[4]])
+            yield s, p, rdflib.Literal(o, datatype=datatypes["o"])
 
     def _load_by_iri(self, iri):
         raise NotImplementedError
+
+    def _add(self, *triples):
+        for triple in triples:
+            table_name, datatypes = self._determine_table(triple)
+            values = self._get_values(triple, table_name, datatypes)
+            self._do_db_insert(
+                table_name=table_name,
+                columns=self.TRIPLESTORE_COLUMNS,
+                values=values,
+                datatypes=datatypes
+            )
 
     def _remove(self, pattern):
         raise NotImplementedError
@@ -253,7 +287,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         """Call db_create but expand the vectors first."""
         columns, datatypes = expand_vector_cols(columns, datatypes)
         check_characters(table_name, columns, datatypes,
-                               primary_key, foreign_key, indexes)
+                         primary_key, foreign_key, indexes)
         self._db_create(table_name, columns, datatypes,
                         primary_key, foreign_key, indexes)
 
@@ -320,6 +354,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
 
     # OVERRIDE
     def _initialize(self):
+        self._default_create(self.CUDS_TABLE)
         self._default_create(self.ENTITIES_TABLE)
         self._default_create(self.TYPES_TABLE)
         self._default_create(self.NAMESPACES_TABLE)
@@ -328,7 +363,6 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         if not self._idx_to_ns:  # initialize table contents
             self._default_insert(self.ENTITIES_TABLE,
                                  [0, 0, uuid.UUID(int=0).hex])
-            self._default_insert(self.NAMESPACES_TABLE, [0, CUDS_IRI_PREFIX])
             self._idx_to_ns = {0: rdflib.URIRef(CUDS_IRI_PREFIX)}
         self._ns_to_idx = {v: k for k, v in self._idx_to_ns.items()}
 

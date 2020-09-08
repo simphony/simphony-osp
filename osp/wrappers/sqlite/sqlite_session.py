@@ -184,8 +184,8 @@ class SqliteSession(SqlWrapperSession):
             }
             return pattern, values
         if isinstance(condition, JoinCondition):
-            return f"`{condition.table1}`.`{condition.column1}` = " \
-                   f"`{condition.table2}`.`{condition.column2}`", {}
+            return f"`{condition.table_name1}`.`{condition.column1}` = " \
+                   f"`{condition.table_name2}`.`{condition.column2}`", {}
         if isinstance(condition, AndCondition):
             if not condition.conditions:
                 return "1", dict()

@@ -81,7 +81,7 @@ class EqualsCondition(Condition):
             value (Any): The value for that column.
             datatype (str): The datatype of the column.
         """
-        self.table_name = None
+        self.table_name = table_name
         self.column = column
         self.value = convert_from(value, datatype)
         self.datatype = datatype
@@ -142,6 +142,9 @@ def check_characters(*to_check):
                 to_check += list(s.conditions)
             elif isinstance(s, EqualsCondition):
                 to_check += [s.table_name, s.column, s.datatype]
+            elif isinstance(s, JoinCondition):
+                to_check += [s.table_name1, s.column1,
+                             s.table_name2, s.column2]
             elif s is None:
                 pass
             else:
