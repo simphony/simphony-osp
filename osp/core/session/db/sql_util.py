@@ -1,5 +1,6 @@
-"""Object to create backend independent filters for SQL queries."""
+"""Object to create backend independent queries, conditions and more."""
 
+import rdflib
 from operator import mul
 from osp.core.ontology.datatypes import convert_to, convert_from, \
     _parse_vector_args
@@ -66,7 +67,7 @@ class SqlQuery():
 
 
 class Condition():
-    pass
+    """The general condition class."""
 
 
 class EqualsCondition(Condition):
@@ -99,7 +100,7 @@ class JoinCondition(Condition):
 
 
 class AndCondition(Condition):
-    """An SQL AND consition."""
+    """An SQL AND condition."""
 
     def __init__(self, *conditions):
         """Initialize the condition with several subconditions."""
@@ -107,6 +108,34 @@ class AndCondition(Condition):
         if not all(isinstance(c, Condition) for c in conditions):
             raise ValueError(f"Invalid conditions: {conditions}")
         self.conditions = conditions
+
+
+def determine_datatype(table_name):
+    from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
+    prefix = SqlWrapperSession.DATA_TABLE_PREFIX
+
+    if table_name.startswith(prefix + "_OWL"):
+        return getattr(rdflib.OWL, table_name[len(prefix + "OWL_"):])
+    elif table_name.startswith(prefix + "_RDF"):
+        return getattr(rdflib.RDF, table_name[len(prefix + "RDF_"):])
+    elif table_name.startswith(prefix + "_RDFS"):
+        return getattr(rdflib.RDFS, table_name[len(prefix + "RDFS_"):])
+    else:
+        return getattr(rdflib_cuba, "_datatypes/" + table_name[len(prefix):])
+
+
+def get_data_table_name(datatype):
+    from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
+    prefix = SqlWrapperSession.DATA_TABLE_PREFIX
+    if datatype in rdflib.OWL:
+        return prefix + "OWL_" + datatype[len(str(rdflib.OWL)):]
+    if datatype in rdflib.RDF:
+        return prefix + "RDF_" + datatype[len(str(rdflib.RDF)):]
+    if datatype in rdflib.RDFS:
+        return prefix + "RDFS_" + datatype[len(str(rdflib.RDFS)):]
+    if datatype in rdflib_cuba:
+        return prefix + datatype[len(str(rdflib_cuba) + "_datatypes/"):]
+    raise NotImplementedError(f"Unsupported datatype {datatype}")
 
 
 def check_characters(*to_check):

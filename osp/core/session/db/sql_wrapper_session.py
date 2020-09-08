@@ -11,9 +11,11 @@ from osp.core.namespaces import get_entity
 from osp.core.session.buffers import BufferContext
 from osp.core.ontology import OntologyRelationship
 from osp.core.utils import CUDS_IRI_PREFIX
-from osp.core.session.db.sql_util import SqlQuery, EqualsCondition, \
-    AndCondition, JoinCondition, expand_vector_cols, \
-    contract_vector_values, expand_vector_condition, check_characters
+from osp.core.session.db.sql_util import (
+    SqlQuery, EqualsCondition, AndCondition, JoinCondition,
+    expand_vector_cols, contract_vector_values, expand_vector_condition,
+    check_characters, determine_datatype, get_data_table_name
+)
 
 
 class SqlWrapperSession(TripleStoreWrapperSession):
@@ -95,27 +97,27 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         DATA_TABLE_PREFIX: [["s", "p"]]
     }
 
-    def _triples(self, pattern, table_name=None, datatypes=None):
-        if table_name is datatypes is None:
+    def _triples(self, pattern, table_name=None, object_datatype=None):
+        if table_name is object_datatype is None:
             if pattern[1] is pattern[2] is None:
                 yield from self._triples_all_tables(pattern[0])
                 return
-            table_name, datatypes = self._determine_table(pattern)
-        q = self._construct_query(pattern, table_name, datatypes)
+            table_name, object_datatype = self._determine_table(pattern)
+        q = self._construct_query(pattern, table_name, object_datatype)
         c = self._do_db_select(q)
-        yield from self._rows_to_triples(c, table_name, datatypes)
+        yield from self._rows_to_triples(c, table_name, object_datatype)
 
     def _triples_all_tables(self, s):
         tables = [self.RELATIONSHIP_TABLE,
                   *self._get_table_names(prefix=self.DATA_TABLE_PREFIX)]
         for table_name in tables:
-            datatypes = self._determine_datatypes(table_name)
+            object_datatype = determine_datatype(table_name)
             yield from self._triples((s, None, None), table_name=table_name,
-                                     datatypes=datatypes)
+                                     object_datatype=object_datatype)
 
     def _determine_table(self, triple):
         def data_table(datatype):
-            return (self._get_data_table_name(o.datatype),
+            return (get_data_table_name(o.datatype),
                     dict(**self.DATATYPES[self.DATA_TABLE_PREFIX],
                          o=o.datatype))
         rel_table = (self.RELATIONSHIP_TABLE,
@@ -135,10 +137,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
                 return rel_table
             return data_table(p.datatype)
 
-    def _determine_datatypes(self, table_name):
-        pass
-
-    def _construct_query(self, pattern, table_name, datatypes):
+    def _construct_query(self, pattern, table_name, object_datatype):
         q = SqlQuery(table_name, [], {}).join(
             self.CUDS_TABLE, columns=self.COLUMNS[self.CUDS_TABLE][1:],
             datatypes=self.DATATYPES[self.CUDS_TABLE], alias="ts"
@@ -156,7 +155,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
                 datatypes=self.DATATYPES[self.CUDS_TABLE], alias="to"
             ).where(JoinCondition(table_name, "o", "to", "cuds_idx"))
 
-        q = q.where(self._get_conditions(pattern, table_name, datatypes["o"]))
+        q = q.where(self._get_conditions(pattern, table_name, object_datatype))
         return q
 
     def _get_conditions(self, triple, table_name, object_datatype):
@@ -191,17 +190,20 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         ns_iri = _namespace_registry._get_namespace_name_and_iri(iri)[1]
         return self._ns_to_idx[ns_iri], str(iri[len(ns_iri):])
 
-    def _rows_to_triples(self, cursor, table_name, datatypes):
+    def _rows_to_triples(self, cursor, table_name, object_datatype):
         for row in cursor:
             s = rdflib.URIRef(self._idx_to_ns[row[0]] + row[1])
             p = rdflib.URIRef(self._idx_to_ns[row[2]] + row[3])
             if table_name == self.RELATIONSHIP_TABLE:
                 o = rdflib.URIRef(self._idx_to_ns[row[4]] + row[5])
                 yield s, p, o
-            yield s, p, rdflib.Literal(o, datatype=datatypes["o"])
+            yield s, p, rdflib.Literal(o, datatype=object_datatype)
 
     def _load_by_iri(self, iri):
-        raise NotImplementedError
+        triples = list(self._triples((iri, None, None)))
+        if not triples:
+            return None
+        raise NotImplementedError(triples)
 
     def _add(self, *triples):
         for triple in triples:

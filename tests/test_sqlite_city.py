@@ -35,7 +35,7 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            # wrapper.add(c)  TODO
+            wrapper.add(c)
             wrapper.session.commit()
 
         # check_state(self, c, p1, p2)  TODO
