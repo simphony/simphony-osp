@@ -90,7 +90,7 @@ class SqliteSession(SqlWrapperSession):
 
     # OVERRIDE
     def _db_create(self, table_name, columns, datatypes,
-                   primary_key, foreign_key, indexes):
+                   primary_key, generate_pk, foreign_key, indexes):
         columns = [
             c if c not in datatypes
             else "`%s` `%s`" % (c, self._to_sqlite_datatype(datatypes[c]))

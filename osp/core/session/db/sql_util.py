@@ -127,13 +127,13 @@ def determine_datatype(table_name):
 def get_data_table_name(datatype):
     from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
     prefix = SqlWrapperSession.DATA_TABLE_PREFIX
-    if datatype in rdflib.OWL:
+    if datatype.startswith(str(rdflib.OWL)):
         return prefix + "OWL_" + datatype[len(str(rdflib.OWL)):]
-    if datatype in rdflib.RDF:
+    if datatype.startswith(str(rdflib.RDF)):
         return prefix + "RDF_" + datatype[len(str(rdflib.RDF)):]
-    if datatype in rdflib.RDFS:
+    if datatype.startswith(str(rdflib.RDFS)):
         return prefix + "RDFS_" + datatype[len(str(rdflib.RDFS)):]
-    if datatype in rdflib_cuba:
+    if datatype.startswith(str(rdflib_cuba) + "_datatypes/"):
         return prefix + datatype[len(str(rdflib_cuba) + "_datatypes/"):]
     raise NotImplementedError(f"Unsupported datatype {datatype}")
 
