@@ -147,8 +147,7 @@ def create_from_cuds_object(cuds_object, session):
     :rtype: Cuds
     """
     assert cuds_object.session is not session
-    kwargs = {x.argname: getattr(cuds_object, x.argname)
-              for x in cuds_object.oclass.attributes}
+    kwargs = {k.argname: v for k, v in cuds_object.get_attributes().items()}
     clone = create_recycle(oclass=cuds_object.oclass,
                            kwargs=kwargs,
                            session=session,

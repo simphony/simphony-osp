@@ -30,12 +30,14 @@ class OntologyAttribute(OntologyEntity):
         Returns:
             URIRef: IRI of the datatype
         """
+        blacklist = [rdflib.RDFS.Literal]
         superclasses = self.superclasses
         datatypes = set()
         for superclass in superclasses:
             triple = (superclass.iri, rdflib.RDFS.range, None)
             for _, _, o in self.namespace._graph.triples(triple):
-                datatypes.add(o)
+                if o not in blacklist:
+                    datatypes.add(o)
         if len(datatypes) == 1:
             return datatypes.pop()
         if len(datatypes) == 0:
@@ -72,9 +74,11 @@ class OntologyAttribute(OntologyEntity):
 
     def _superclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf)
+        yield from self._transitive_hull(
+            rdflib.RDFS.subPropertyOf, blacklist={rdflib.OWL.topDataProperty})
 
     def _subclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
-                                         inverse=True)
+        yield from self._transitive_hull(
+            rdflib.RDFS.subPropertyOf, inverse=True,
+            blacklist={rdflib.OWL.bottomDataProperty})

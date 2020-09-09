@@ -160,8 +160,9 @@ class NamespaceRegistry():
 
     def _load_cuba(self):
         """Load the cuba namespace"""
-        path_cuba = os.path.join(os.path.dirname(__file__), "docs", "cuba.ttl")
-        self._graph.parse(path_cuba, format="ttl")
+        for x in ["cuba"]:  #, "rdf", "rdfs", "owl"]:
+            path = os.path.join(os.path.dirname(__file__), "docs", x + ".ttl")
+            self._graph.parse(path, format="ttl")
         self._graph.bind("cuba",
                          rdflib.URIRef("http://www.osp-core.com/cuba#"))
         self.update_namespaces()

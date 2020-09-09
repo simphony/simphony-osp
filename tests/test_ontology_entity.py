@@ -5,6 +5,7 @@ import numpy as np
 from osp.core.namespaces import cuba
 from osp.core.ontology.cuba import rdflib_cuba
 
+from osp.core.namespaces import owl
 try:
     from osp.core.namespaces import city
 except ImportError:
@@ -98,7 +99,7 @@ class TestOntologyEntity(unittest.TestCase):
     def test_transitive_hull(self):
         self.assertEqual(set(
             city.PopulatedPlace._transitive_hull(rdflib.RDFS.subClassOf)),
-            {city.GeographicalPlace, cuba.Class}
+            {city.GeographicalPlace, cuba.Class, owl.Thing}
         )
         self.assertEqual(
             set(city.PopulatedPlace._transitive_hull(rdflib.RDFS.subClassOf,
@@ -119,27 +120,27 @@ class TestOntologyEntity(unittest.TestCase):
 
     def test_oclass_attributes(self):
         self.assertEqual(city.City.attributes, {
-            city.name: None,
-            city.coordinates: rdflib.term.Literal('[0, 0]')
+            city.name: (None, True),
+            city.coordinates: (rdflib.term.Literal('[0, 0]'), False)
         })
         self.assertEqual(city.City.own_attributes, {})
         self.assertEqual(city.GeographicalPlace.own_attributes, {
-            city.name: None,
+            city.name: (None, True),
         })
         self.assertEqual(city.LivingBeing.own_attributes, {
-            city.name: rdflib.term.Literal("John Smith"),
-            city.age: rdflib.term.Literal(25)
+            city.name: (rdflib.term.Literal("John Smith"), False),
+            city.age: (rdflib.term.Literal(25), False)
         })
         self.assertEqual(city.Person.attributes, {
-            city.name: rdflib.term.Literal("John Smith"),
-            city.age: rdflib.term.Literal(25)
+            city.name: (rdflib.term.Literal("John Smith"), False),
+            city.age: (rdflib.term.Literal(25), False)
         })
         self.assertEqual(city.PopulatedPlace.attributes, {
-            city.name: None,
-            city.coordinates: rdflib.term.Literal('[0, 0]')
+            city.name: (None, True),
+            city.coordinates: (rdflib.term.Literal('[0, 0]'), False)
         })
         self.assertEqual(city.GeographicalPlace.attributes, {
-            city.name: None,
+            city.name: (None, True),
         })
 
     def test_oclass_get_default(self):
@@ -163,12 +164,10 @@ class TestOntologyEntity(unittest.TestCase):
                           _force=False)
         self.assertEqual(city.City._get_attributes_values(kwargs={},
                                                           _force=True),
-                         {city.name: None,
-                          city.coordinates: rdflib.term.Literal('[0, 0]')})
+                         {city.coordinates: rdflib.term.Literal('[0, 0]')})
         self.assertEqual(city.City._get_attributes_values(kwargs={},
                                                           _force=True),
-                         {city.name: None,
-                          city.coordinates: rdflib.term.Literal('[0, 0]')})
+                         {city.coordinates: rdflib.term.Literal('[0, 0]')})
         self.assertEqual(city.City._get_attributes_values(
             kwargs={"name": "Freiburg"}, _force=True),
             {city.name: "Freiburg",

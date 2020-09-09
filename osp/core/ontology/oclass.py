@@ -43,25 +43,36 @@ class OntologyClass(OntologyEntity):
         """
         graph = self._namespace._graph
         attributes = dict()
+
+        blacklist = [rdflib.OWL.topDataProperty, rdflib.OWL.bottomDataProperty]
         # Case 1: domain of Datatype
         triple = (None, rdflib.RDFS.domain, iri)
         for a_iri, _, _ in self.namespace._graph.triples(triple):
             triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
-            if triple in graph \
-                    and not isinstance(a_iri, rdflib.BNode):
-                a = self.namespace._namespace_registry.from_iri(a_iri)
-                attributes[a] = self._get_default(a_iri, iri)
+            if triple not in graph or isinstance(a_iri, rdflib.BNode) \
+                    or a_iri in blacklist:
+                continue
+            a = self.namespace._namespace_registry.from_iri(a_iri)
+            default = self._get_default(a_iri, iri)
+            triple = (a_iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty)
+            obligatory = default is None and triple in graph
+            attributes[a] = (self._get_default(a_iri, iri), obligatory)
 
         # Case 2: restrictions
         triple = (iri, rdflib.RDFS.subClassOf, None)
         for _, _, o in self.namespace._graph.triples(triple):
-            if (o, rdflib.RDF.type, rdflib.OWL.Restriction) in graph:
-                a_iri = graph.value(o, rdflib.OWL.onProperty)
-                triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
-                if triple in graph \
-                        and not isinstance(a_iri, rdflib.BNode):
-                    a = self.namespace._namespace_registry.from_iri(a_iri)
-                    attributes[a] = self._get_default(a_iri, iri)
+            if (o, rdflib.RDF.type, rdflib.OWL.Restriction) not in graph:
+                continue
+            a_iri = graph.value(o, rdflib.OWL.onProperty)
+            triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
+            if triple not in graph or isinstance(a_iri, rdflib.BNode):
+                continue
+            a = self.namespace._namespace_registry.from_iri(a_iri)
+            default = self._get_default(a_iri, iri)
+            triple = (o, rdflib.OWL.someValuesFrom, None)
+            obligatory = default is None and triple in graph
+            attributes[a] = (self._get_default(a_iri, iri), obligatory)
+
         # TODO more cases
         return attributes
 
@@ -96,7 +107,7 @@ class OntologyClass(OntologyEntity):
         """
         kwargs = dict(kwargs)
         attributes = dict()
-        for attribute, default in self.attributes.items():
+        for attribute, (default, obligatory) in self.attributes.items():
             if attribute.argname in kwargs:
                 attributes[attribute] = kwargs[attribute.argname]
                 del kwargs[attribute.argname]
@@ -112,7 +123,9 @@ class OntologyClass(OntologyEntity):
                     f"to be ALL_CAPS. You can use the yaml2camelcase "
                     f"commandline tool to transform entity names to CamelCase."
                 )
-            else:
+            elif not _force and obligatory:
+                raise TypeError("Missing keyword argument: %s" % attribute)
+            elif default is not None:
                 attributes[attribute] = default
 
         # Check validity of arguments
@@ -120,9 +133,6 @@ class OntologyClass(OntologyEntity):
             if kwargs:
                 raise TypeError("Unexpected keyword arguments: %s"
                                 % kwargs.keys())
-            missing = [k.argname for k, v in attributes.items() if v is None]
-            if missing:
-                raise TypeError("Missing keyword arguments: %s" % missing)
         return attributes
 
     def _direct_superclasses(self):
@@ -133,11 +143,17 @@ class OntologyClass(OntologyEntity):
 
     def _superclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.RDFS.subClassOf)
+        yield from self._transitive_hull(
+            rdflib.RDFS.subClassOf,
+            blacklist={rdflib.OWL.Nothing, rdflib.OWL.Thing,
+                       rdflib.OWL.NamedIndividual})
 
     def _subclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.RDFS.subClassOf, inverse=True)
+        yield from self._transitive_hull(
+            rdflib.RDFS.subClassOf, inverse=True,
+            blacklist={rdflib.OWL.Nothing, rdflib.OWL.Thing,
+                       rdflib.OWL.NamedIndividual})
 
     def __call__(self, uid=None, session=None, _force=False, **kwargs):
         """Create a Cuds object from this ontology class.
