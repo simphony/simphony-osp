@@ -75,10 +75,13 @@ class OntologyAttribute(OntologyEntity):
     def _superclasses(self):
         yield self
         yield from self._transitive_hull(
-            rdflib.RDFS.subPropertyOf, blacklist={rdflib.OWL.topDataProperty})
+            rdflib.RDFS.subPropertyOf,
+            blacklist={rdflib.OWL.bottomDataProperty,
+                       rdflib.OWL.topDataProperty})
 
     def _subclasses(self):
         yield self
         yield from self._transitive_hull(
             rdflib.RDFS.subPropertyOf, inverse=True,
-            blacklist={rdflib.OWL.bottomDataProperty})
+            blacklist={rdflib.OWL.bottomDataProperty,
+                       rdflib.OWL.topDataProperty})

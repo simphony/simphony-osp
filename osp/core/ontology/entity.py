@@ -201,8 +201,11 @@ class OntologyEntity(ABC):
         triple = (self.iri, predicate_iri, None)
         if inverse:
             triple = (None, predicate_iri, self.iri)
+        if predicate_iri in [rdflib.RDFS.subClassOf,
+                             rdflib.RDFS.subPropertyOf]:
+            triple = self._special_cases(triple)
         for x in self.namespace._graph.triples(triple):
-            o = x[0 if inverse else 2]
+            o = x[0 if triple[0] is None else 2]
             if not isinstance(o, rdflib.BNode) \
                 and not str(o).startswith((str(rdflib.RDF),
                                            str(rdflib.RDFS),

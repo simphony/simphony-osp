@@ -18,7 +18,7 @@
             ns1:_default_value "DEFAULT_D" ] ;
     rdfs:subClassOf [ a ns2:Restriction ;
             ns2:onProperty <http://www.osp-core.com/parser_test#attributeA> ;
-            ns2:someValuesFrom xsd:string ],
+            ns2:cardinality "1"^^xsd:integer ],
         <http://www.osp-core.com/parser_test#ClassA>,
         <http://www.osp-core.com/parser_test#ClassB> .
 
@@ -26,7 +26,7 @@
     rdfs:label "ClassE"@en ;
     rdfs:subClassOf [ a ns2:Restriction ;
             ns2:onProperty <http://www.osp-core.com/parser_test#attributeA> ;
-            ns2:someValuesFrom xsd:string ],
+            ns2:cardinality "1"^^xsd:integer ],
         ns1:Class .
 
 <http://www.osp-core.com/parser_test#attributeC> a ns2:DatatypeProperty,
@@ -61,7 +61,7 @@
     rdfs:isDefinedBy "Class A"@en ;
     rdfs:subClassOf [ a ns2:Restriction ;
             ns2:onProperty <http://www.osp-core.com/parser_test#attributeA> ;
-            ns2:someValuesFrom xsd:string ],
+            ns2:cardinality "1"^^xsd:integer ],
         ns1:Class .
 
 <http://www.osp-core.com/parser_test#ClassB> a ns2:Class ;
@@ -70,7 +70,7 @@
             ns1:_default_value "DEFAULT_B" ] ;
     rdfs:subClassOf [ a ns2:Restriction ;
             ns2:onProperty <http://www.osp-core.com/parser_test#attributeA> ;
-            ns2:someValuesFrom xsd:string ],
+            ns2:cardinality "1"^^xsd:integer ],
         ns1:Class .
 
 <http://www.osp-core.com/parser_test#attributeB> a ns2:DatatypeProperty,

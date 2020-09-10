@@ -20,7 +20,10 @@ class OntologyClass(OntologyEntity):
         """
         attributes = dict()
         for superclass in self.superclasses:
-            attributes.update(self._get_attributes(superclass.iri))
+            for attr, v in self._get_attributes(superclass.iri).items():
+                x = attributes.get(attr, (None, None, None))
+                x = (x[0] or v[0], x[1] or v[1], x[2] or v[2])
+                attributes[attr] = x
         return attributes
 
     @property
@@ -56,7 +59,7 @@ class OntologyClass(OntologyEntity):
             default = self._get_default(a_iri, iri)
             triple = (a_iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty)
             obligatory = default is None and triple in graph
-            attributes[a] = (self._get_default(a_iri, iri), obligatory)
+            attributes[a] = (self._get_default(a_iri, iri), obligatory, None)
 
         # Case 2: restrictions
         triple = (iri, rdflib.RDFS.subClassOf, None)
@@ -69,12 +72,24 @@ class OntologyClass(OntologyEntity):
                 continue
             a = self.namespace._namespace_registry.from_iri(a_iri)
             default = self._get_default(a_iri, iri)
-            triple = (o, rdflib.OWL.someValuesFrom, None)
-            obligatory = default is None and triple in graph
-            attributes[a] = (self._get_default(a_iri, iri), obligatory)
+            dt, obligatory = self._get_datatype_for_restriction(o)
+            obligatory = default is None and obligatory
+            attributes[a] = (self._get_default(a_iri, iri), obligatory, dt)
 
         # TODO more cases
         return attributes
+
+    def _get_datatype_for_restriction(self, r):
+        obligatory = False
+        dt = None
+        g = self.namespace._graph
+
+        dt = g.value(r, rdflib.OWL.someValuesFrom)
+        obligatory = dt is not None
+        dt = dt or g.value(r, rdflib.OWL.allValuesFrom)
+        obligatory = obligatory or (r, rdflib.OWL.cardinality) != 0
+        obligatory = obligatory or (r, rdflib.OWL.minCardinality) != 0
+        return dt, obligatory
 
     def _get_default(self, attribute_iri, superclass_iri):
         """Get the default of the attribute with the given iri.
@@ -107,7 +122,7 @@ class OntologyClass(OntologyEntity):
         """
         kwargs = dict(kwargs)
         attributes = dict()
-        for attribute, (default, obligatory) in self.attributes.items():
+        for attribute, (default, obligatory, dt) in self.attributes.items():
             if attribute.argname in kwargs:
                 attributes[attribute] = kwargs[attribute.argname]
                 del kwargs[attribute.argname]

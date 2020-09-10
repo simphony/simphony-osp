@@ -56,7 +56,8 @@ class OntologyRelationship(OntologyEntity):
         yield self
         yield from self._transitive_hull(
             rdflib.RDFS.subPropertyOf,
-            blacklist={rdflib.OWL.topObjectProperty})
+            blacklist={rdflib.OWL.bottomObjectProperty,
+                       rdflib.OWL.topObjectProperty})
 
     def _subclasses(self):
         """Get all the subclasses of this relationship.
@@ -67,7 +68,8 @@ class OntologyRelationship(OntologyEntity):
         yield self
         yield from self._transitive_hull(
             rdflib.RDFS.subPropertyOf, inverse=True,
-            blacklist={rdflib.OWL.bottomObjectProperty})
+            blacklist={rdflib.OWL.bottomObjectProperty,
+                       rdflib.OWL.topObjectProperty})
 
     def _add_inverse(self):
         """Add the inverse of this relationship to the path.
