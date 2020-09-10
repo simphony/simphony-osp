@@ -1,3 +1,5 @@
+"""Test the API with the EMMO ontology."""
+
 import unittest2 as unittest
 import uuid
 
@@ -19,9 +21,7 @@ except ImportError:
 
 
 class TestAPIEmmo(unittest.TestCase):
-
-    def setUp(self):
-        pass
+    """Test the API with the EMMO ontology."""
 
     def test_is_a(self):
         """Test instance check."""
@@ -35,9 +35,7 @@ class TestAPIEmmo(unittest.TestCase):
         self.assertFalse(c.is_a(holistic.Process))
 
     def test_creation(self):
-        """
-        Tests the instantiation and type of the objects
-        """
+        """Test the instantiation and type of the objects."""
         self.assertRaises(TypeError, math.Real, hasNumericalData=1.2,
                           uid=0, unwanted="unwanted")
         self.assertRaises(TypeError, math.Real)
@@ -49,25 +47,18 @@ class TestAPIEmmo(unittest.TestCase):
         cuba.Wrapper(session=CoreSession())
 
     def test_uid(self):
-        """
-        Tests that the uid variable contains a UUID object
-        """
+        """Tests that the uid variable contains a UUID object."""
         c = holistic.Process()
         self.assertIsInstance(c.uid, uuid.UUID)
 
     def test_set_throws_exception(self):
-        """
-        Tests that setting a value for a key not in restricted
-        keys throws an exception.
-        """
+        """Test that setting a value for an invlid key throws an error."""
         c = holistic.Process()
         self.assertRaises(ValueError, c._neighbors.__setitem__,
                           "not an allowed key", 15)
 
     def test_add(self):
-        """
-        Tests the standard, normal behavior of the add() method
-        """
+        """Test the standard, normal behavior of the add() method."""
         p = holistic.Process()
         n = math.Real(hasNumericalData=1.2, hasSymbolData="1.2")
 
@@ -79,15 +70,14 @@ class TestAPIEmmo(unittest.TestCase):
         self.assertEqual(get_inverse, [p])
 
     def test_get(self):
-        """
-        Tests the standard, normal behavior of the get() method.
+        """Test the standard, normal behavior of the get() method.
 
-         - get()
-         - get(*uids)
-         - get(rel)
-         - get(oclass)
-         - get(*uids, rel)
-         - get(rel, oclass)
+        - get()
+        - get(*uids)
+        - get(rel)
+        - get(oclass)
+        - get(*uids, rel)
+        - get(rel, oclass)
         """
         p = holistic.Process()
         n = math.Real(hasNumericalData=1.2, hasSymbolData="1.2")
@@ -128,9 +118,7 @@ class TestAPIEmmo(unittest.TestCase):
         self.assertEqual(get_process, [])
 
     def test_update(self):
-        """
-        Tests the standard, normal behavior of the update() method.
-        """
+        """Test the standard, normal behavior of the update() method."""
         c = holistic.Process()
         n = math.Real(hasNumericalData=1.2, hasSymbolData="1.2")
         new_n = create_from_cuds_object(n, CoreSession())
@@ -151,15 +139,14 @@ class TestAPIEmmo(unittest.TestCase):
         self.assertRaises(ValueError, c.update, n)
 
     def test_remove(self):
-        """
-        Tests the standard, normal behavior of the remove() method.
+        """Test the standard, normal behavior of the remove() method.
 
-         - remove()
-         - remove(*uids/DataContainers)
-         - remove(rel)
-         - remove(oclass)
-         - remove(rel, oclass)
-         - remove(*uids/DataContainers, rel)
+        - remove()
+        - remove(*uids/DataContainers)
+        - remove(rel)
+        - remove(oclass)
+        - remove(rel, oclass)
+        - remove(*uids/DataContainers, rel)
         """
         c = holistic.Process()
         n = math.Integer(hasNumericalData=12, hasSymbolData="12")
@@ -226,9 +213,7 @@ class TestAPIEmmo(unittest.TestCase):
         self.assertEqual(get_inverse, [])
 
     def test_iter(self):
-        """
-        Tests the iter() method when no ontology class is provided.
-        """
+        """Test the iter() method when no ontology class is provided."""
         c = holistic.Process()
         n = math.Integer(hasNumericalData=12, hasSymbolData="12")
         p = math.Real(hasNumericalData=1.2, hasSymbolData="1.2")
@@ -240,6 +225,7 @@ class TestAPIEmmo(unittest.TestCase):
         self.assertEqual(elements, {n, p, q})
 
     def test_get_attributes(self):
+        """Test getting the attributes."""
         p = math.Real(hasNumericalData=1.2, hasSymbolData="1.2")
         self.assertEqual(
             p.get_attributes(),

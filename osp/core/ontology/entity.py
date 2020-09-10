@@ -195,6 +195,7 @@ class OntologyEntity(ABC):
 
     def _special_cases(self, triple):
         """Some supclass statements are often omitted in the ontology.
+
         Replace these with safer triple patterns.
 
         Args:
