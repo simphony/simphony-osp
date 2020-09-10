@@ -204,8 +204,8 @@ class TestNamespaces(unittest.TestCase):
                           "invalid")
         self.assertRaises(AttributeError, getattr, self.namespace_registry,
                           "invalid")
-        self.assertEqual([x.get_name() for x in self.namespace_registry], [
-                         'xml', 'rdf', 'rdfs', 'xsd', 'cuba', 'owl', 'city'])
+        self.assertEqual({x.get_name() for x in self.namespace_registry}, {
+                         'xml', 'rdf', 'rdfs', 'xsd', 'cuba', 'owl', 'city'})
 
     def modify_labels(self):
         """Modify the labels in the graph. Append a T.
