@@ -347,15 +347,14 @@ class YmlParser:
             attribute_iri (URIRef): The IRI of the attribute to add
             default (Any): The default value.
         """
-        datatype_iri = self.graph.value(attribute_iri, rdflib.RDFS.range) \
-            or rdflib.XSD.string
         bnode = rdflib.BNode()
         self.graph.add(
             (class_iri, rdflib.RDFS.subClassOf, bnode))
         self.graph.add(
             (bnode, rdflib.RDF.type, rdflib.OWL.Restriction))
         self.graph.add(
-            (bnode, rdflib.OWL.someValuesFrom, datatype_iri))
+            (bnode, rdflib.OWL.cardinality,
+             rdflib.Literal(1, datatype=rdflib.XSD.integer)))
         self.graph.add(
             (bnode, rdflib.OWL.onProperty, attribute_iri))
 

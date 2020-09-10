@@ -247,18 +247,20 @@ class Parser():
         self.graph.parse(rdf_file, format=file_format)
         default_rels = dict()
         reference_styles = dict()
+        namespace_iris = set()
         for namespace, iri in namespaces.items():
             if not (
                 iri.endswith("#") or iri.endswith("/")
             ):
                 iri += "#"
+            namespace_iris.add(iri)
             logger.info(f"You can now use `from osp.core.namespaces import "
                         f"{namespace}`.")
             self.graph.bind(namespace, rdflib.URIRef(iri))
             default_rels[iri] = default_rel
             reference_styles[iri] = reference_style
 
-        self._check_namespaces()
+        self._check_namespaces(namespace_iris)
         self._add_cuba_triples(active_rels)
         self._add_default_rel_triples(default_rels)
         self._add_reference_style_triples(reference_styles)
@@ -313,9 +315,8 @@ class Parser():
                     rdflib.Literal(True)
                 ))
 
-    def _check_namespaces(self):
-        namespaces = set(x for _, x in self.graph.namespaces()
-                         if not x.startswith("http://www.w3.org/"))
+    def _check_namespaces(self, namespace_iris):
+        namespaces = set(namespace_iris)
         for s, p, o in self.graph:
             pop = None
             for ns in namespaces:

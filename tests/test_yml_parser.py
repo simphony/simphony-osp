@@ -119,7 +119,8 @@ class TestYmlParser(unittest.TestCase):
             (bnode1, rdflib_cuba._default_value, rdflib.Literal("DEFAULT_A")),
             (bnode1, rdflib_cuba._default_attribute,
              self.parser._get_iri("attributeA")),
-            (bnode2, rdflib.OWL.someValuesFrom, rdflib.XSD.string),
+            (bnode2, rdflib.OWL.cardinality,
+             rdflib.Literal(1, datatype=rdflib.XSD.integer)),
             (bnode2, rdflib.RDF.type, rdflib.OWL.Restriction),
             (self.parser._get_iri("ClassA"), rdflib.RDFS.subClassOf, bnode2),
             (bnode2, rdflib.OWL.onProperty, self.parser._get_iri("attributeA"))
@@ -136,7 +137,8 @@ class TestYmlParser(unittest.TestCase):
         self.assertEqual(set(self.graph) - pre, {
             (bnode3, rdflib.OWL.onProperty,
              self.parser._get_iri("attributeA")),
-            (bnode3, rdflib.OWL.someValuesFrom, rdflib.XSD.string),
+            (bnode3, rdflib.OWL.cardinality,
+             rdflib.Literal(1, datatype=rdflib.XSD.integer)),
             (bnode3, rdflib.RDF.type, rdflib.OWL.Restriction),
             (self.parser._get_iri("ClassE"), rdflib.RDFS.subClassOf, bnode3)
         })

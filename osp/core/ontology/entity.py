@@ -126,55 +126,91 @@ class OntologyEntity(ABC):
     def _subclasses(self):
         pass
 
-    def _transitive_hull(self, predicate_iri, inverse=False):
+    def _transitive_hull(self, predicate_iri, inverse=False, blacklist=()):
         """Get all the entities connected with the given predicate.
 
         Args:
             predicate_iri (URIRef): The IRI of the predicate
             inverse (bool, optional): Use the inverse instead.
                 Defaults to False.
+            blacklist (collection): A collection of IRIs not to return.
 
         Yields:
             OntologyEntity: The connected entities
         """
-        result = {self.iri}
+        visited = {self.iri}
         frontier = {self.iri}
         while frontier:
             current = frontier.pop()
-            triple = (current, predicate_iri, None)
-            if inverse:
-                triple = (None, predicate_iri, current)
-            for x in self.namespace._graph.triples(triple):
-                o = x[0 if inverse else 2]
-                if o not in result and not isinstance(o, rdflib.BNode) \
-                    and not str(o).startswith((str(rdflib.RDF),
-                                               str(rdflib.RDFS),
-                                               str(rdflib.OWL))):
-                    frontier.add(o)
-                    result.add(o)
-                    yield self.namespace._namespace_registry.from_iri(o)
+            yield from self._directly_connected(predicate_iri=predicate_iri,
+                                                inverse=inverse,
+                                                blacklist=blacklist,
+                                                _frontier=frontier,
+                                                _visited=visited,
+                                                _iri=current)
 
-    def _directly_connected(self, predicate_iri, inverse=False):
+    def _special_cases(self, triple):
+        """Some supclass statements are often omitted in the ontology.
+        Replace these with safer triple patterns.
+
+        Args:
+            triple (Tuple[rdflib.term]): A triple pattern to possibly replace.
+
+        Returns:
+            triple (Tuple[rdflib.term]): Possibly replaced triple.
+        """
+        if triple == (None, rdflib.RDFS.subClassOf, rdflib.OWL.Thing):
+            return (None, rdflib.RDF.type, rdflib.OWL.Class)
+        if triple == (rdflib.OWL.Nothing, rdflib.RDFS.subClassOf, None):
+            return (None, rdflib.RDF.type, rdflib.OWL.Class)
+
+        if triple == (None, rdflib.RDFS.subPropertyOf,
+                      rdflib.OWL.topObjectProperty):
+            return (None, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
+        if triple == (rdflib.OWL.bottomObjectProperty,
+                      rdflib.RDFS.subPropertyOf, None):
+            return (None, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
+
+        if triple == (None, rdflib.RDFS.subPropertyOf,
+                      rdflib.OWL.topDataProperty):
+            return (None, rdflib.RDF.type, rdflib.OWL.DataProperty)
+        if triple == (rdflib.OWL.bottomDataProperty,
+                      rdflib.RDFS.subPropertyOf, None):
+            return (None, rdflib.RDF.type, rdflib.OWL.DataProperty)
+        return triple
+
+    def _directly_connected(self, predicate_iri, inverse=False, blacklist=(),
+                            _frontier=None, _visited=None, _iri=None):
         """Get all the entities directly connected with the given predicate.
 
         Args:
             predicate_iri (URIRef): The IRI of the predicate
             inverse (bool, optional): Use the inverse instead.
                 Defaults to False.
+            blacklist (collection): A collection of IRIs not to return.
+            Others: Helper for _transitive_hull method.
 
         Yields:
             OntologyEntity: The connected entities
         """
-        triple = (self.iri, predicate_iri, None)
+        triple = (_iri or self.iri, predicate_iri, None)
         if inverse:
-            triple = (None, predicate_iri, self.iri)
+            triple = (None, predicate_iri, _iri or self.iri)
+
+        if predicate_iri in [rdflib.RDFS.subClassOf,
+                             rdflib.RDFS.subPropertyOf]:
+            triple = self._special_cases(triple)
         for x in self.namespace._graph.triples(triple):
-            o = x[0 if inverse else 2]
-            if not isinstance(o, rdflib.BNode) \
-                and not str(o).startswith((str(rdflib.RDF),
-                                           str(rdflib.RDFS),
-                                           str(rdflib.OWL))):
-                yield self.namespace._namespace_registry.from_iri(o)
+            o = x[0 if triple[0] is None else 2]
+            if _visited and o in _visited:
+                continue
+            if not isinstance(o, rdflib.BNode):
+                if _visited is not None:
+                    _visited.add(o)
+                if _frontier is not None:
+                    _frontier.add(o)
+                if o not in blacklist:
+                    yield self.namespace._namespace_registry.from_iri(o)
 
     def __hash__(self):
         return hash(self.iri)
