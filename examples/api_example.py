@@ -1,3 +1,7 @@
+"""An example explaining the API of CUDS objects."""
+
+# Please install the city ontology: $pico install city
+
 # If you did not install the city ontology
 # (pico install city),
 # you have to execute these commands first:

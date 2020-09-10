@@ -1,3 +1,5 @@
+"""This file contains tests for the transport session."""
+
 import sys
 import subprocess
 import unittest2 as unittest
@@ -29,11 +31,13 @@ SERVER_STARTED = False
 
 
 class TestTransportSimWrapperCity(unittest.TestCase):
+    """Test the transport session with a simulation session."""
 
     SERVER_STARTED = False
 
     @classmethod
     def setUpClass(cls):
+        """Set up the server as a subprocess."""
         args = ["python",
                 "tests/test_transport_sim_wrapper.py",
                 "server"]
@@ -46,12 +50,11 @@ class TestTransportSimWrapperCity(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        """Shut down the server subprocess."""
         TestTransportSimWrapperCity.SERVER_STARTED.terminate()
 
     def test_dummy_sim_wrapper(self):
-        """Create a dummy simulation syntactic layer + test
-        if working with this layer works as expected.
-        """
+        """Create a dummy simulation syntactic layer + test it."""
         with TransportSessionClient(SimDummySession, URI) \
                 as session:
             wrapper = city.CitySimWrapper(numSteps=1, session=session)

@@ -1,14 +1,18 @@
+"""Utility functions for printing CUDS objects in a nice way."""
+
 import sys
 from osp.core.namespaces import cuba
 
 
 def pretty_print(cuds_object, file=sys.stdout):
-    """
-    Prints the given cuds_object with the uuid, the type,
-    the ancestors and the description in a human readable way.
+    """Print the given cuds_object in a human readable way.
 
-    :param cuds_object: container to be printed
-    :type cuds_object: Cuds
+    The uuid, the type, the ancestors and the description and the contents
+    is printed.
+
+    Args:
+        cuds_object (Cuds): container to be printed.
+        file (TextIOWrapper): The file to print to.
     """
     pp = _pp_cuds_object_name(cuds_object)
     pp += "\n  uuid: " + str(cuds_object.uid)
@@ -26,12 +30,13 @@ def pretty_print(cuds_object, file=sys.stdout):
 
 
 def _pp_cuds_object_name(cuds_object, print_oclass=False):
-    """
-    Returns the name of the given element following the
-    pretty print format.
+    """Return the name of the given element following the pretty print format.
 
-    :param cuds_object: element to be printed
-    :return: string with the pretty printed text
+    Args:
+        cuds_object (Cuds): element to be printed.
+
+    Returns:
+        String with the pretty printed text.
     """
     title = "Cuds object" if not print_oclass else "cuds object"
     oclass = (" %s " % cuds_object.oclass) if print_oclass else ""
@@ -43,13 +48,16 @@ def _pp_cuds_object_name(cuds_object, print_oclass=False):
 
 
 def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
-    """
-    Recursively formats the subelements from a cuds_object grouped
-        by ontology class.
+    """Recursively formats the subelements from a cuds_object.
 
-    :param cuds_object: element to inspect
-    :param level_indentation: common characters to left-pad the text
-    :return: string with the pretty printed text
+    The objects are grouped by ontology class.
+
+    Args:
+        cuds_object (Cuds): element to inspect.
+        level_indentation (str): common characters to left-pad the text.
+
+    Returns:
+        str: string with the pretty printed text
     """
     pp_sub = ""
     filtered_relationships = filter(
@@ -63,7 +71,8 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
             + " |_Relationship %s:" % relationship
         sorted_elements = sorted(
             cuds_object.iter(rel=relationship, return_rel=True),
-            key=lambda x: str(x[0].oclass)
+            key=lambda x: (str(x[0].oclass), str(x[1]),
+                           x[0].name if hasattr(x[0], "name") else False)
         )
         for j, (element, rel) in enumerate(sorted_elements):
             if rel != relationship:
@@ -93,17 +102,20 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
 
 
 def _pp_values(cuds_object, indentation="\n          "):
-    """Print the attributes of a cuds object.
+    r"""Print the attributes of a cuds object.
 
-    :param cuds_object: Print the values of this cuds object.
-    :type cuds_object: Cuds
-    :param indentation: The indentation to prepend, defaults to "\n          "
-    :type indentation: str, optional
-    :return: The resulting string to print.
-    :rtype: [type]
+    Args:
+        cuds_object (Cuds): Print the values of this cuds object.
+        indentation (str): The indentation to prepend, defaults to
+            "\n          "
+
+    Returns:
+        str: The resulting string to print.
     """
     result = []
-    for attribute, value in cuds_object.get_attributes().items():
+    sorted_attributes = sorted(cuds_object.get_attributes().items(),
+                               key=lambda x: (str(x[0]), str(x[1])))
+    for attribute, value in sorted_attributes:
         if attribute.argname != "name":
             result.append("%s: %s" % (attribute.argname, value))
     if result:

@@ -1,13 +1,16 @@
+"""Provide a nice API for query results."""
+
 from osp.core.session.buffers import EngineContextIterator
 
 
 def returns_query_result(func):
-    """Decorator to decorate methods that return an iterator of cuds objects.
+    """Decorate methods that return an iterator of cuds objects.
 
-    :param func: The function to wrap.
-    :type func: Callable
-    :return: The wrapped function.
-    :rtype: Callable
+    Args:
+        func (Callable): The function to wrap.
+
+    Returns:
+        Callable: The wrapped function.
     """
     def f(session, *args, **kwargs):
         iterator = func(session, *args, **kwargs)
@@ -16,30 +19,52 @@ def returns_query_result(func):
 
 
 class QueryResult():
-    """
-    The result of a query in the session
-    """
+    """The result of a query in the session."""
 
     def __init__(self, session, result_iterator):
+        """Initialize the iterator.
+
+        Args:
+            session (Session): The session where the query was executed.
+            result_iterator (Iterator): An iterator over the results.
+        """
         self._iterator = EngineContextIterator(session, result_iterator)
         self._elements = list()
 
     def __iter__(self):
+        """Return an iterator over the results.
+
+        Yields:
+            Cuds: The objects in the result.
+        """
         yield from self._elements
         for x in self._iterator:
             self._elements.append(x)
             yield x
 
     def __next__(self):
+        """Get the next element in the result.
+
+        Returns:
+            Cuds: The next element.
+        """
         x = next(self._iterator)
         self._elements.append(x)
         return x
 
     def __contains__(self, other):
+        """Check if an object is part of this result.
+
+        Args:
+            other (Cuds): The object to check.
+
+        Returns:
+            bool: Whether the result contains the given object,
+        """
         return other in self.all()
 
     def all(self):
-        """Returns all the elements in the result
+        """Return all the elements in the result.
 
         :return: A list containing all elements in the result.
         :rtype: List[Cuds]
@@ -48,7 +73,7 @@ class QueryResult():
         return self._elements
 
     def first(self):
-        """Return the first element in the result
+        """Return the first element in the result.
 
         :return: The first element in the result
         :rtype: Cuds
@@ -62,17 +87,21 @@ class QueryResult():
 
     def one(self, raise_result_empty_error=True):
         """Get the first element in the result.
+
         Raise an error if
         1. The result contains more than one element
         2. The result does not contain any element
 
-        :param raise_result_empty_error: Whether to raise an error
-            if result is empty
-        :type  raise_result_empty_error: bool
-        :raises MultipleResultsError: The result consists of multiple elements
-        :raises ResultEmptyError: The result is empty
-        :return: The single element of the result
-        :rtype: Cuds
+        Args:
+            raise_result_empty_error (bool, optional): Whether to raise an
+                error if result is empty. Defaults to True.
+
+        Raises:
+            MultipleResultsError: The result consists of multiple elements.
+            ResultEmptyError: The result is empty.
+
+        Returns:
+            Cuds: The single element of the result
         """
         x = self.first()
         if len(self._elements) > 1:
@@ -91,8 +120,8 @@ class QueryResult():
 
 
 class ResultEmptyError(Exception):
-    pass
+    """The result is unexpectedly empty."""
 
 
 class MultipleResultsError(Exception):
-    pass
+    """Only a single result is expected, but there were multiple."""

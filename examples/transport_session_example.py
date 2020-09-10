@@ -1,3 +1,7 @@
+"""An example explaining the use of the Transport session."""
+
+# Please install the city ontology: $pico install city
+
 import os
 import sys
 import subprocess

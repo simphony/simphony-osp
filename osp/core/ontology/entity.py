@@ -1,3 +1,5 @@
+"""Abstract superclass of any entity in the ontology."""
+
 from abc import ABC, abstractmethod
 import rdflib
 import logging
@@ -6,93 +8,118 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyEntity(ABC):
-    @abstractmethod
-    def __init__(self, namespace, name, iri_suffix):
-        """Initialise the ontology entity
+    """Abstract superclass of any entity in the ontology."""
 
-        :param namespace: The namespace of the entity
-        :type namespace: OntologyNamespace
-        :param name: The name of the entity
-        :type name: str
+    @abstractmethod
+    def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
+        """Initialise the ontology entity.
+
+        Args:
+            namespace_registry (OntologyNamespaceRegistry): The namespace
+                registry.
+            namespace_iri (rdflib.URIRef): The namespace of the entity
+            name (str): The name of the entity
+            iri_suffix (str): namespace_iri + iri_suffix is namespace of the
+                entity.
         """
         self._name = name
         self._iri_suffix = iri_suffix
-        self._namespace = namespace
+        self._namespace_iri = namespace_iri
+        self._namespace_registry = namespace_registry
+
+    @property
+    def _namespace_name(self):
+        return self._namespace_registry._get_namespace_name_and_iri(
+            self.iri
+        )[0]
 
     def __str__(self):
-        return "%s.%s" % (self.namespace._name, self._name)
+        """Transform the entity into a human readable string."""
+        return "%s.%s" % (self._namespace_name, self._name)
 
     def __repr__(self):
-        return "<%s %s.%s>" % (
-            self.__class__.__name__,
-            self._namespace._name,
-            self._name
-        )
+        """Transform the entity into a string."""
+        return "<%s %s.%s>" % (self.__class__.__name__,
+                               self._namespace_name, self._name)
 
     def __eq__(self, other):
+        """Check whether two entities are the same.
+
+        Args:
+            other (OntologyEntity): The other entity.
+
+        Returns:
+            bool: Whether the two entities are the same.
+        """
         return isinstance(other, OntologyEntity) and self.iri == other.iri
 
     @property
     def name(self):
-        """Get the name of the entity"""
+        """Get the name of the entity."""
         return self._name
 
     @property
     def iri(self):
-        """Get the IRI of the Entity"""
-        return rdflib.URIRef(self._namespace.get_iri() + self._iri_suffix)
+        """Get the IRI of the Entity."""
+        return rdflib.URIRef(self._namespace_iri + self._iri_suffix)
 
     @property
     def tblname(self):
-        return "%s___%s" % (self.namespace._name, self._iri_suffix)
+        """Get the name used in storage backends to store instances."""
+        return "%s___%s" % (self._namespace_name, self._iri_suffix)
 
     @property
     def namespace(self):
-        """Get the name of the entity"""
-        return self._namespace
+        """Get the namespace object of the entity."""
+        return self._namespace_registry.namespace_from_iri(self._namespace_iri)
 
     @property
     def direct_superclasses(self):
-        """Get the direct superclass of the entity
+        """Get the direct superclass of the entity.
 
-        :return: The direct superclasses of the entity
-        :rtype: List[OntologyEntity]
+        Returns:
+            List[OntologyEntity]: The direct superclasses of the entity
+
         """
         return set(self._direct_superclasses())
 
     @property
     def direct_subclasses(self):
-        """Get the direct subclasses of the entity
+        """Get the direct subclasses of the entity.
 
-        :return: The direct subclasses of the entity
-        :rtype: Set[OntologyEntity]
+        Returns:
+            Set[OntologyEntity]: The direct subclasses of the entity
+
         """
         return set(self._direct_subclasses())
 
     @property
     def subclasses(self):
-        """Get the subclasses of the entity
+        """Get the subclasses of the entity.
 
-        :return: The direct subclasses of the entity
-        :rtype: Set[OntologyEntity]
+        Returns:
+            Set[OntologyEntity]: The direct subclasses of the entity
+
         """
         return set(self._subclasses())
 
     @property
     def superclasses(self):
-        """Get the superclass of the entity
+        """Get the superclass of the entity.
 
-        :return: The direct superclasses of the entity
-        :rtype: Set[OntologyEntity]
+        Returns:
+            Set[OntologyEntity]: The direct superclasses of the entity
+
         """
         return set(self._superclasses())
 
     @property
     def description(self):
-        """Get the description of the entity
+        """Get the description of the entity.
 
-        :return: The description of the entity
-        :rtype: str
+        Returns:
+            str: The description of the entity
+
         """
         desc = self.namespace._graph.value(
             self.iri, rdflib.RDFS.isDefinedBy, None)
@@ -101,13 +128,30 @@ class OntologyEntity(ABC):
         return str(desc)
 
     def get_triples(self):
-        """ Get the triples of the entity """
+        """Get the triples of the entity."""
         return self.namespace._graph.triples((self.iri, None, None))
 
     def is_superclass_of(self, other):
+        """Perform a superclass check.
+
+        Args:
+            other (Entity): The other entity.
+
+        Returns:
+            bool: Whether self is a superclass of other.
+        """
         return self in other.superclasses
 
     def is_subclass_of(self, other):
+        """Perform a subclass check.
+
+        Args:
+            other (Entity): The other entity.
+
+        Returns:
+            bool: Whether self is a subclass of other.
+
+        """
         return self in other.subclasses
 
     @abstractmethod
@@ -213,4 +257,5 @@ class OntologyEntity(ABC):
                     yield self.namespace._namespace_registry.from_iri(o)
 
     def __hash__(self):
+        """Make the entity hashable."""
         return hash(self.iri)

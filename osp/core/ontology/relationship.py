@@ -1,3 +1,5 @@
+"""A relationship defined in the ontology."""
+
 from osp.core.ontology.entity import OntologyEntity
 import logging
 import rdflib
@@ -11,13 +13,26 @@ BLACKLIST = {rdflib.OWL.bottomObjectProperty,
 
 
 class OntologyRelationship(OntologyEntity):
-    def __init__(self, namespace, name, iri_suffix):
-        super().__init__(namespace, name, iri_suffix)
+    """A relationship defined in the ontology."""
+
+    def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
+        """Initialize the ontology relationship.
+
+        Args:
+            namespace_registry (OntologyNamespaceRegistry): The namespace
+                registry where all namespaces are stored.
+            namespace_iri (rdflib.URIRef): The IRI of the namespace.
+            name (str): The name of the relationship.
+            iri_suffix (str): namespace_iri +  namespace_registry make up the
+                namespace of this entity.
+        """
+        super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
         logger.debug("Create ontology object property %s" % self)
 
     @property
     def inverse(self):
         """Get the inverse of this relationship.
+
         If it doesn't exist, add one to the graph.
 
         Returns:
@@ -90,4 +105,4 @@ class OntologyRelationship(OntologyEntity):
             self.namespace._graph.add((
                 o, rdflib.RDFS.subPropertyOf, superclass.inverse.iri
             ))
-        return self.namespace._namespace_registry.from_iri(o)
+        return self._namespace_registry.from_iri(o)

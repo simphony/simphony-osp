@@ -1,3 +1,5 @@
+"""An abstract session containing method useful for all database backends."""
+
 from abc import abstractmethod
 from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
 from osp.core.session.result import returns_query_result
@@ -5,7 +7,7 @@ from osp.core.session.buffers import BufferContext, EngineContext
 
 
 class DbWrapperSession(WrapperSession):
-    """Abstract class for a DB Wrapper Session"""
+    """Abstract class for a DB Wrapper Session."""
 
     @consumes_buffers
     def commit(self):
@@ -29,15 +31,16 @@ class DbWrapperSession(WrapperSession):
     @returns_query_result
     def load_by_oclass(self, oclass, update_registry=False):
         """Load cuds_object with given OntologyClass.
+
         Will also return cuds objects of subclasses of oclass.
 
-        :param oclass: Load cuds objects with this ontology class
-        :type oclass: OntologyClass
-        :param update_registry: Whether to update cuds_objects which are
-            already present in the registry.
-        :type update_registry: bool
-        :return: The list of loaded cuds objects
-        :rtype: Iterator[Cuds]
+        Args:
+            oclass (OntologyClass): Load cuds objects with this ontology class
+            update_registry (bool): Whether to update cuds_objects which are
+                already present in the registry.
+
+        Yields:
+            Cuds: The list of loaded cuds objects
         """
         if self.root is None:
             raise RuntimeError("This Session is not yet initialized. "
@@ -47,6 +50,11 @@ class DbWrapperSession(WrapperSession):
                                             update_registry=update_registry)
 
     def _store(self, cuds_object):
+        """Store and object in the database.
+
+        Args:
+            cuds_object (Cuds): The Cuds object to add.
+        """
         initialize = self.root is None
         super()._store(cuds_object)
 
@@ -62,24 +70,24 @@ class DbWrapperSession(WrapperSession):
                     raise e
 
     def _commit(self):
-        """Commit to the database"""
+        """Commit to the database."""
         self._engine.commit()
 
     @abstractmethod
     def _initialize(self):
-        """se the database. Create missing tables etc."""
+        """Initialize the database. Create missing tables etc."""
 
     @abstractmethod
     def _apply_added(self, root_obj, buffer):
-        """Add the added cuds_objects to the engine"""
+        """Add the added cuds_objects to the engine."""
 
     @abstractmethod
     def _apply_updated(self, root_obj, buffer):
-        """Update the updated cuds_objects in the engine"""
+        """Update the updated cuds_objects in the engine."""
 
     @abstractmethod
     def _apply_deleted(self, root_obj, buffer):
-        """Delete the deleted cuds_objects from the engine"""
+        """Delete the deleted cuds_objects from the engine."""
 
     @abstractmethod
     def _load_first_level(self):
@@ -87,32 +95,33 @@ class DbWrapperSession(WrapperSession):
 
     @abstractmethod
     def _init_transaction(self):
-        """Initialize the transaction"""
+        """Initialize the transaction."""
 
     @abstractmethod
     def _rollback_transaction(self):
-        """Cancel the transaction"""
+        """Cancel the transaction."""
 
     @abstractmethod
     def close(self):
-        """Close the connection to the database"""
+        """Close the connection to the database."""
 
     @abstractmethod
     def _load_by_oclass(self, oclass, update_registry=False):
         """Load the cuds_object with the given ontology class.
 
-        :param oclass: The OntologyClass of the cuds objects
-        :type oclass: OntologyClass
-        :param update_registry: Whether to update cuds_objects already
-            which are already present in the registry.
-        :type update_registry: bool
-        :return: The loaded cuds_object.
-        :rtype: Cuds
+        Args:
+            oclass (OntologyClass): The OntologyClass of the cuds objects
+            update_registry (bool): Whether to update cuds_objects already
+                which are already present in the registry.
+
+        Returns:
+            Cuds: The loaded cuds_object.
         """
 
     @staticmethod
     def compute_auth(username, password, handshake):
         """Will be called on the client, after the handshake.
+
         This method should produce an object that is able to authenticate
         the user.
         The __init__() method of the session should have a keyword "auth",

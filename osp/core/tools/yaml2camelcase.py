@@ -1,3 +1,9 @@
+"""A script converting old ontologies to new ones.
+
+Old ontology typically have entity names in ALL_UPPERCASE.
+Newer ontology usually have entity names in CamelCase.
+"""
+
 import argparse
 import yaml
 import logging
@@ -21,12 +27,14 @@ logger = logging.getLogger(__name__)
 
 
 class Yaml2CamelCaseConverter():
-    """Tool that transforms a YAML ontologies with entity name in ALL_CAPS
-    to a YAML ontology in CamelCase.
+    """Tool that transforms entity names of  YAML ontologies.
+
+    Input: YAML with with entity name in ALL_CAPS
+    Output: YAML ontology in CamelCase.
     """
 
     def __init__(self, file_path):
-        """Initialize the converter
+        """Initialize the converter.
 
         Args:
             file_path (path): Path to the yaml file to convert
@@ -39,7 +47,7 @@ class Yaml2CamelCaseConverter():
         self.ambiguity_resolution = dict()
 
     def convert(self):
-        """Convert the yaml file to CamelCase"""
+        """Convert the yaml file to CamelCase."""
         self.doc[NAMESPACE_KEY] = self.namespace
         if REQUIREMENTS_KEY in self.doc:
             self.doc[REQUIREMENTS_KEY] = [x.lower()
@@ -47,7 +55,7 @@ class Yaml2CamelCaseConverter():
         self.convert_nested_doc(self.onto_doc, pattern=entity_name_pattern)
 
     def convert_nested_doc(self, doc, pattern=qualified_entity_name_pattern):
-        """Convert the document to CamelCase
+        """Convert the document to CamelCase.
 
         Args:
             doc (Any): The document to convert
@@ -84,7 +92,7 @@ class Yaml2CamelCaseConverter():
             doc.update(new)
 
     def store(self, output):
-        """Update the ontology on disc"""
+        """Update the ontology on disc."""
         if not output:
             output = self.file_path
         if output == self.file_path:
@@ -101,7 +109,7 @@ class Yaml2CamelCaseConverter():
             yaml.safe_dump(self.doc, f)
 
     def get_first_letter_caps(self, word, internal=False):
-        """Check whether a entity name should start with lower or uppercase
+        """Check whether a entity name should start with lower or uppercase.
 
         Args:
             word (str): The entity name to check
@@ -182,7 +190,7 @@ class Yaml2CamelCaseConverter():
 
 
 def run_from_terminal():
-    """Run yaml2camelcase from the terminal"""
+    """Run yaml2camelcase from the terminal."""
     # Parse the user arguments
     parser = argparse.ArgumentParser(
         description="Convert a YAML ontology with ALL_CAPS entity names to a "

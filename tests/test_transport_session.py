@@ -1,3 +1,4 @@
+"""This file contains tests for the transport session."""
 import unittest2 as unittest
 import uuid
 import json
@@ -6,7 +7,6 @@ from osp.core.session.buffers import BufferContext, EngineContext, \
     BufferType
 from osp.core.utils import create_recycle
 from osp.core.session.wrapper_session import consumes_buffers
-from .test_session_city import TestWrapperSession
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
@@ -16,6 +16,11 @@ from osp.core.session.transport.transport_utils import (
     serialize_buffers, LOAD_COMMAND, INITIALIZE_COMMAND
 )
 from osp.core.utils import create_from_cuds_object
+
+try:
+    from .test_session_city import TestWrapperSession
+except ImportError:
+    from test_session_city import TestWrapperSession
 
 try:
     from osp.core.namespaces import city
@@ -151,9 +156,16 @@ SERIALIZED_BUFFERS3 = {
 
 
 class TestCommunicationEngineSharedFunctions(unittest.TestCase):
+    """Test functions used in the both parts of the communication engine."""
+
+    def setUp(self):
+        """Reset the session."""
+        from osp.core.cuds import Cuds
+        from osp.core.session import CoreSession
+        Cuds._session = CoreSession()
 
     def testDeserialize(self):
-        """Test transformation from normal dictionary to cuds"""
+        """Test transformation from normal dictionary to cuds."""
         with TestWrapperSession() as session:
             city.CityWrapper(session=session)
             cuds_object = deserialize(CUDS_DICT, session, True)
@@ -211,7 +223,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                              [1, 1.2, "hallo"])
 
     def test_serializable(self):
-        """Test function to make Cuds objects json serializable"""
+        """Test function to make Cuds objects json serializable."""
         p = city.Citizen(age=23,
                          name="Peter",
                          uid=uuid.UUID(int=123))
@@ -237,6 +249,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                          serializable([1, 1.2, "hallo"]))
 
     def test_deserialize_buffers(self):
+        """Test de-serialization of buffers."""
         # buffer context user
         with TestWrapperSession() as s1:
             ws1 = city.CityWrapper(session=s1, uid=123)
@@ -270,6 +283,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(s1._buffers, [
                 [{cn.uid: cn}, {ws1.uid: ws1}, {c.uid: c}],
                 [dict(), dict(), dict()]])
+
+        self.setUp()
 
         # buffer context engine
         with TestWrapperSession() as s1:
@@ -308,7 +323,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                 [dict(), dict(), dict()]])
 
     def test_serialize_buffers(self):
-        """ Test if serialization of buffers work """
+        """Test if serialization of buffers works."""
         # no expiration
         with TestWrapperSession() as s1:
             ws1 = city.CityWrapper(session=s1, uid=123)
@@ -398,23 +413,45 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
 
 class MockEngine():
+    """A mock engine used for testing."""
+
     def __init__(self, on_send=None):
+        """Initialize the MckEngine.
+
+        Args:
+            on_send (Callable[str, str, Any], optional): A function to call
+                when send() is called.. Defaults to None.
+        """
         self.on_send = on_send
         self.uri = None
 
     def send(self, command, data, files=None):
+        """Save data and command, call on_send method.
+
+        Args:
+            command (str): The command to execute on the server side.
+            data (str): The data to send
+            files (List[str], optional): Paths to uploaded files.
+                Defaults to None.
+
+        Returns:
+            Any: The results of the on_send method.
+        """
         self._sent_command = command
         self._sent_data = data
         if self.on_send:
             return self.on_send(command, data)
 
     def close(self):
+        """Close the Mock engine."""
         pass
 
 
 class TestCommunicationEngineClient(unittest.TestCase):
+    """Tests for the client side of communication engine."""
+
     def test_load(self):
-        """ Test loading from server"""
+        """Test loading from server."""
         client = TransportSessionClient(TestWrapperSession, None)
         client.root = 1
         c1 = create_recycle(
@@ -459,7 +496,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client.close()
 
     def test_store(self):
-        """ Test storing of cuds_object. """
+        """Test storing of cuds_object."""
         client = TransportSessionClient(TestWrapperSession, None)
         client._engine = MockEngine()
 
@@ -494,7 +531,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client.close()
 
     def test_send(self):
-        """ Test sending data to the server """
+        """Test sending data to the server."""
         client = TransportSessionClient(TestWrapperSession, None)
         client._engine = MockEngine()
         client._send("command", True, "hello", bye="bye")
@@ -505,6 +542,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client.close()
 
     def test_receive(self):
+        """Test the receive method."""
         client = TransportSessionClient(TestWrapperSession, None)
         client._engine = MockEngine()
         w = city.CityWrapper(session=client)
@@ -521,6 +559,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client.close()
 
     def test_getattr(self):
+        """Test the __getatt__ magic method."""
         def command(*args, **kwargs):
             pass
         TestWrapperSession.command = consumes_buffers(command)
@@ -537,8 +576,16 @@ class TestCommunicationEngineClient(unittest.TestCase):
 
 
 class TestCommunicationEngineServer(unittest.TestCase):
+    """Test the server side of the communication engine."""
+
+    def setUp(self):
+        """Reset the session."""
+        from osp.core.cuds import Cuds
+        from osp.core.session import CoreSession
+        Cuds._session = CoreSession()
+
     def test_handle_disconnect(self):
-        """Test the behavior when a user disconnects. """
+        """Test the behavior when a user disconnects."""
         server = TransportSessionServer(TestWrapperSession, None, None)
         with TestWrapperSession() as s1:
             closed = False
@@ -553,7 +600,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
             self.assertEqual(server.session_objs, {"2": 123})
 
     def test_run_command(self):
-        """Test to run a command"""
+        """Test to run a command."""
         correct = False
 
         # command to be executed
@@ -587,7 +634,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
             self.assertEqual(result[1], [])
 
     def test_load_from_session(self):
-        """Test loading from the remote side"""
+        """Test loading from the remote side."""
         with TestWrapperSession() as s1:
             c = city.City(name="Freiburg", uid=1)
             w = city.CityWrapper(session=s1, uid=3)
@@ -606,7 +653,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
             self.assertEqual(result[1], [])
 
     def test_init_session(self):
-        """Test the initialization of the session on the remote side"""
+        """Test the initialization of the session on the remote side."""
         server = TransportSessionServer(TestWrapperSession, None, None)
         data = json.dumps({
             "args": [],
@@ -628,7 +675,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
                           connection_id="user1")
 
     def test_handle_request(self):
-        """Test if error message is returned when invalid command is given"""
+        """Test if error message is returned when invalid command is given."""
         def command(s, age, name):
             raise RuntimeError("Something went wrong: %s, %s" % (age, name))
         TestWrapperSession.command = command

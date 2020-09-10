@@ -1,3 +1,5 @@
+"""A class defined in the ontology."""
+
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.cuba import rdflib_cuba
 import logging
@@ -10,13 +12,25 @@ BLACKLIST = {rdflib.OWL.Nothing, rdflib.OWL.Thing,
 
 
 class OntologyClass(OntologyEntity):
-    def __init__(self, namespace, name, iri_suffix):
-        super().__init__(namespace, name, iri_suffix)
+    """A class defined in the ontology."""
+
+    def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
+        """Initialize the ontology class.
+
+        Args:
+            namespace_registry (OntologyNamespaceRegistry): The namespace
+                registry where all namespaces are stored.
+            namespace_iri (rdflib.URIRef): The IRI of the namespace.
+            name (str): The name of the class.
+            iri_suffix (str): namespace_iri +  namespace_registry make up the
+                namespace of this entity.
+        """
+        super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
         logger.debug("Created ontology class %s" % self)
 
     @property
     def attributes(self):
-        """Get all the attributes of this oclass
+        """Get all the attributes of this oclass.
 
         Returns:
             Dict[OntologyAttribute, str]: Mapping from attribute to default
@@ -31,7 +45,7 @@ class OntologyClass(OntologyEntity):
 
     @property
     def own_attributes(self):
-        """Get the non-inherited attributes of this oclass
+        """Get the non-inherited attributes of this oclass.
 
         Returns:
             Dict[OntologyAttribute, str]: Mapping from attribute to default
@@ -47,7 +61,7 @@ class OntologyClass(OntologyEntity):
         Returns:
             Dict[OntologyAttribute, str]: Mapping from attribute to default
         """
-        graph = self._namespace._graph
+        graph = self._namespace_registry._graph
         attributes = dict()
 
         blacklist = [rdflib.OWL.topDataProperty, rdflib.OWL.bottomDataProperty]
@@ -112,16 +126,45 @@ class OntologyClass(OntologyEntity):
                 return self.namespace._graph.value(bnode,
                                                    rdflib_cuba._default_value)
 
+    def get_attribute_by_argname(self, name):
+        """Get the attribute object with the argname of the object.
+
+        Args:
+            name (str): The argname of the attribute
+
+        Returns:
+            OntologyAttribute: The attribute
+        """
+        for attribute in self.attributes:
+            if attribute.argname == name:
+                return attribute
+            elif attribute.argname.lower() == name:
+                logger.warning(
+                    f"Attribute {attribute.argname} is referenced "
+                    f"with '{attribute.argname.lower()}'. "
+                    f"Note that you must match the case of the definition in "
+                    f"the ontology in future releases. Additionally, entity "
+                    f"names defined in YAML ontology are no longer required "
+                    f"to be ALL_CAPS. You can use the yaml2camelcase "
+                    f"commandline tool to transform entity names to CamelCase."
+                )
+                return attribute
+
     def _get_attributes_values(self, kwargs, _force):
         """Get the cuds object's attributes from the given kwargs.
+
         Combine defaults and given attribute attributes
 
-        :param kwargs: The user specified keyword arguments
-        :type kwargs: Dict{str, Any}
-        :raises TypeError: Unexpected keyword argument
-        :raises TypeError: Missing keword argument
-        :return: The resulting attributes
-        :rtype: Dict[OntologyAttribute, Any]
+        Args:
+            kwargs (dict[str, Any]): The user specified keyword arguments
+            _force (bool): Skip checks.
+
+        Raises:
+            TypeError:  Unexpected keyword argument.
+            TypeError: Missing keword argument.
+
+        Returns:
+            [Dict[OntologyAttribute, Any]]: The resulting attributes.
         """
         kwargs = dict(kwargs)
         attributes = dict()
@@ -147,10 +190,9 @@ class OntologyClass(OntologyEntity):
                 attributes[attribute] = default
 
         # Check validity of arguments
-        if not _force:
-            if kwargs:
-                raise TypeError("Unexpected keyword arguments: %s"
-                                % kwargs.keys())
+        if not _force and kwargs:
+            raise TypeError("Unexpected keyword arguments: %s"
+                            % kwargs.keys())
         return attributes
 
     def _direct_superclasses(self):
@@ -176,15 +218,20 @@ class OntologyClass(OntologyEntity):
     def __call__(self, uid=None, session=None, _force=False, **kwargs):
         """Create a Cuds object from this ontology class.
 
-        :param uid: The uid of the Cuds object. Should be set to None in most
-            cases. Then a new UUID is generated, defaults to None
-        :type uid: uuid.UUID, optional
-        :param session: The session to create the cuds object in,
-            defaults to None
-        :type session: Session, optional
-        :raises TypeError: Error occurred during instantiation.
-        :return: The created cuds object
-        :rtype: Cuds
+        Args:
+            uid (UUID, optional): The uid of the Cuds object.
+                Should be set to None in most cases.
+                Then a new UUID is generated, defaults to None.
+                Defaults to None.
+            session (Session, optional): The session to create the cuds object
+                in, defaults to None. Defaults to None.
+            _force (bool, optional): Skip validity checks. Defaults to False.
+
+        Raises:
+            TypeError: Error occurred during instantiation.
+
+        Returns:
+            Cuds: The created cuds object
         """
         from osp.core.cuds import Cuds
         from osp.core.namespaces import cuba

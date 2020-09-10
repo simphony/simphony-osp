@@ -1,3 +1,7 @@
+"""An example explaining the use of the pretty_print function."""
+
+# Please install the city ontology: $pico install city
+
 from osp.core.namespaces import city
 from osp.core.utils import pretty_print
 
