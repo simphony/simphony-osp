@@ -6,6 +6,9 @@ import rdflib
 logger = logging.getLogger(__name__)
 
 
+BLACKLIST = {rdflib.OWL.bottomDataProperty, rdflib.OWL.topDataProperty}
+
+
 class OntologyAttribute(OntologyEntity):
     def __init__(self, namespace, name, iri_suffix):
         super().__init__(namespace, name, iri_suffix)
@@ -66,22 +69,19 @@ class OntologyAttribute(OntologyEntity):
         return convert_from(value, self.datatype)
 
     def _direct_superclasses(self):
-        return self._directly_connected(rdflib.RDFS.subPropertyOf)
+        return self._directly_connected(rdflib.RDFS.subPropertyOf,
+                                        blacklist=BLACKLIST)
 
     def _direct_subclasses(self):
         return self._directly_connected(rdflib.RDFS.subPropertyOf,
-                                        inverse=True)
+                                        inverse=True, blacklist=BLACKLIST)
 
     def _superclasses(self):
         yield self
-        yield from self._transitive_hull(
-            rdflib.RDFS.subPropertyOf,
-            blacklist={rdflib.OWL.bottomDataProperty,
-                       rdflib.OWL.topDataProperty})
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
+                                         blacklist=BLACKLIST)
 
     def _subclasses(self):
         yield self
-        yield from self._transitive_hull(
-            rdflib.RDFS.subPropertyOf, inverse=True,
-            blacklist={rdflib.OWL.bottomDataProperty,
-                       rdflib.OWL.topDataProperty})
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
+                                         inverse=True, blacklist=BLACKLIST)

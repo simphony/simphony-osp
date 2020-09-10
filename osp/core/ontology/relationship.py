@@ -6,6 +6,9 @@ logger = logging.getLogger(__name__)
 
 # TODO characteristics
 
+BLACKLIST = {rdflib.OWL.bottomObjectProperty,
+             rdflib.OWL.topObjectProperty}
+
 
 class OntologyRelationship(OntologyEntity):
     def __init__(self, namespace, name, iri_suffix):
@@ -36,7 +39,8 @@ class OntologyRelationship(OntologyEntity):
         Returns:
             OntologyRelationship: The direct subrelationships
         """
-        return self._directly_connected(rdflib.RDFS.subPropertyOf)
+        return self._directly_connected(rdflib.RDFS.subPropertyOf,
+                                        blacklist=BLACKLIST)
 
     def _direct_subclasses(self):
         """Get all the direct subclasses of this relationship.
@@ -45,7 +49,7 @@ class OntologyRelationship(OntologyEntity):
             OntologyRelationship: The direct subrelationships
         """
         return self._directly_connected(rdflib.RDFS.subPropertyOf,
-                                        inverse=True)
+                                        inverse=True, blacklist=BLACKLIST)
 
     def _superclasses(self):
         """Get all the superclasses of this relationship.
@@ -54,10 +58,8 @@ class OntologyRelationship(OntologyEntity):
             OntologyRelationship: The superrelationships.
         """
         yield self
-        yield from self._transitive_hull(
-            rdflib.RDFS.subPropertyOf,
-            blacklist={rdflib.OWL.bottomObjectProperty,
-                       rdflib.OWL.topObjectProperty})
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
+                                         blacklist=BLACKLIST)
 
     def _subclasses(self):
         """Get all the subclasses of this relationship.
@@ -66,10 +68,8 @@ class OntologyRelationship(OntologyEntity):
             OntologyRelationship: The subrelationships.
         """
         yield self
-        yield from self._transitive_hull(
-            rdflib.RDFS.subPropertyOf, inverse=True,
-            blacklist={rdflib.OWL.bottomObjectProperty,
-                       rdflib.OWL.topObjectProperty})
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
+                                         inverse=True, blacklist=BLACKLIST)
 
     def _add_inverse(self):
         """Add the inverse of this relationship to the path.
