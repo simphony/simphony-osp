@@ -182,3 +182,36 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
                                                    datatype=k.datatype)
         ))
     cuds_object.session._notify_update(cuds_object)
+
+
+def create_from_triples(triples, type_triples_of_neighbors, session, fix_neighbors=True):
+    """Create a CUDS object from triples.
+
+    Args:
+        triples ([type]): [description]
+    """
+    from osp.core.utils import uid_from_iri
+    from osp.core.cuds import Cuds
+    if not triples:
+        return None
+    uid = uid_from_iri(next(iter(triples))[0])
+    if hasattr(session, "_expired") and uid in session._expired:
+        session._expired.remove(uid)
+
+    # recycle old object
+    if uid in session._registry:
+        cuds_object = session._registry.get(uid)
+        if fix_neighbors:
+            for rel in set(cuds_object._neighbors.keys()):
+                cuds_object.remove(rel=rel)
+        session.graph.remove((cuds_object.iri, None, None))
+    else:  # create new
+        cuds_object = Cuds(attributes={},
+                           oclass=None,
+                           session=session,
+                           uid=uid)
+
+    # add the triples
+    for triple in set(triples) | set(type_triples_of_neighbors):
+        session.graph.add(triple)
+    return cuds_object

@@ -8,6 +8,8 @@ from osp.core.ontology.cuba import rdflib_cuba
 from functools import reduce
 
 
+VEC_PREFIX = str(rdflib_cuba["_datatypes/VECTOR-"])
+
 class SqlQuery():
     """An sql query."""
 
@@ -114,12 +116,14 @@ def determine_datatype(table_name):
     from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
     prefix = SqlWrapperSession.DATA_TABLE_PREFIX
 
-    if table_name.startswith(prefix + "_OWL"):
+    if table_name.startswith(prefix + "OWL"):
         return getattr(rdflib.OWL, table_name[len(prefix + "OWL_"):])
-    elif table_name.startswith(prefix + "_RDF"):
+    elif table_name.startswith(prefix + "RDF"):
         return getattr(rdflib.RDF, table_name[len(prefix + "RDF_"):])
-    elif table_name.startswith(prefix + "_RDFS"):
+    elif table_name.startswith(prefix + "RDFS"):
         return getattr(rdflib.RDFS, table_name[len(prefix + "RDFS_"):])
+    elif table_name.startswith(prefix + "XSD"):
+        return getattr(rdflib.XSD, table_name[len(prefix + "XSD_"):])
     else:
         return getattr(rdflib_cuba, "_datatypes/" + table_name[len(prefix):])
 
@@ -127,6 +131,8 @@ def determine_datatype(table_name):
 def get_data_table_name(datatype):
     from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
     prefix = SqlWrapperSession.DATA_TABLE_PREFIX
+    if datatype.startswith(str(rdflib.XSD)):
+        return prefix + "XSD_" + datatype[len(str(rdflib.XSD)):]
     if datatype.startswith(str(rdflib.OWL)):
         return prefix + "OWL_" + datatype[len(str(rdflib.OWL)):]
     if datatype.startswith(str(rdflib.RDF)):
@@ -210,9 +216,9 @@ def expand_vector_cols(columns, datatypes, values=None):
     # iterate over the columns and look for vectors
     for i, column in enumerate(columns):
         # non vectors are simply added to the result
-        vec_prefix = str(rdflib_cuba["_datatypes/VECTOR-"])
+        VEC_PREFIX = str(rdflib_cuba["_datatypes/VECTOR-"])
         if datatypes[column] is None or \
-                not datatypes[column].startswith(vec_prefix):
+                not datatypes[column].startswith(VEC_PREFIX):
             columns_expanded.append(column)
             datatypes_expanded[column] = datatypes[column]
             if values:
@@ -220,7 +226,7 @@ def expand_vector_cols(columns, datatypes, values=None):
             continue
 
         # create a column for each element in the vector
-        vector_args = datatypes[column][len(vec_prefix):].split("-")
+        vector_args = datatypes[column][len(VEC_PREFIX):].split("-")
         datatype, shape = _parse_vector_args(vector_args)
         size = reduce(mul, map(int, shape))
         expanded_cols = ["%s___%s" % (column, x) for x in range(size)]
@@ -285,7 +291,26 @@ def contract_vector_values(rows, query):
 
 
 def expand_vector_condition(condition):
-    return condition  # TODO
+    if isinstance(condition, EqualsCondition) \
+            and condition.datatype.startswith(VEC_PREFIX):
+
+        vector_args = condition.datatype[len(VEC_PREFIX):].split("-")
+        datatype, shape = _parse_vector_args(vector_args)
+        size = reduce(mul, map(int, shape))
+        expanded_cols = ["%s___%s" % (condition.column, x)
+                         for x in range(size)]
+        return AndCondition(*[
+            EqualsCondition(table_name=condition.table_name,
+                            column=c, value=v, datatype=datatype)
+            for c, v in zip(expanded_cols, condition.value)
+        ])
+
+    elif isinstance(condition, AndCondition):
+        return AndCondition(*[
+            expand_vector_condition(c)
+            for c in condition.conditions
+        ])
+    return condition
 
 
 def handle_vector_item(column, value, datatypes, temp_vec,

@@ -96,11 +96,13 @@ class SqliteSession(SqlWrapperSession):
             else "`%s` `%s`" % (c, self._to_sqlite_datatype(datatypes[c]))
             for c in columns
         ]
-        constraints = [
-            "PRIMARY KEY(%s)" % ", ".join(
-                map(lambda x: "`%s`" % x, primary_key)
-            )
-        ]
+        constraints = []
+        if primary_key:
+            constraints += [
+                "PRIMARY KEY(%s)" % ", ".join(
+                    map(lambda x: "`%s`" % x, primary_key)
+                )
+            ]
         constraints += [
             "FOREIGN KEY(`%s`) REFERENCES `%s`(`%s`)" % (col, ref[0], ref[1])
             for col, ref in foreign_key.items()
@@ -127,6 +129,7 @@ class SqliteSession(SqlWrapperSession):
         )
         c = self._engine.cursor()
         c.execute(sql_pattern, val_values)
+        return c.lastrowid
 
     # OVERRIDE
     def _db_update(self, table_name, columns, values, condition, datatypes):

@@ -75,9 +75,10 @@ class Cuds():
                 self.iri, k.iri, rdflib.Literal(k.convert_to_datatype(v),
                                                 datatype=k.datatype)
             ))
-        self._graph.add((
-            self.iri, rdflib.RDF.type, oclass.iri
-        ))
+        if oclass:
+            self._graph.add((
+                self.iri, rdflib.RDF.type, oclass.iri
+            ))
         self.session._store(self)
 
     @property
