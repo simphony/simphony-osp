@@ -226,10 +226,7 @@ def expand_vector_cols(columns, datatypes, values=None):
             continue
 
         # create a column for each element in the vector
-        vector_args = datatypes[column][len(VEC_PREFIX):].split("-")
-        datatype, shape = _parse_vector_args(vector_args)
-        size = reduce(mul, map(int, shape))
-        expanded_cols = ["%s___%s" % (column, x) for x in range(size)]
+        expanded_cols, datatype = get_expanded_cols(column, datatypes[column])
         columns_expanded.extend(expanded_cols)
         datatypes_expanded.update({c: datatype for c in expanded_cols})
         datatypes_expanded[column] = datatypes[column]
@@ -294,11 +291,8 @@ def expand_vector_condition(condition):
     if isinstance(condition, EqualsCondition) \
             and condition.datatype.startswith(VEC_PREFIX):
 
-        vector_args = condition.datatype[len(VEC_PREFIX):].split("-")
-        datatype, shape = _parse_vector_args(vector_args)
-        size = reduce(mul, map(int, shape))
-        expanded_cols = ["%s___%s" % (condition.column, x)
-                         for x in range(size)]
+        expanded_cols, datatype = get_expanded_cols(condition.column,
+                                                    condition.datatype)
         return AndCondition(*[
             EqualsCondition(table_name=condition.table_name,
                             column=c, value=v, datatype=datatype)
@@ -311,6 +305,28 @@ def expand_vector_condition(condition):
             for c in condition.conditions
         ])
     return condition
+
+
+def get_expanded_cols(column, datatype):
+    """Get the expanded columns for the given column.
+
+    Args:
+        column (str): The column name to expand.
+        datatype (rdflib.URIRef): The datatype of the column.
+            Expand if it is a vector.
+
+    Returns:
+        Tuple[List[str], rdflib.URIRef]: ist of resulting columns and their
+            datatype,
+    """
+    if not datatype.startswith(VEC_PREFIX):
+        return [column], datatype
+    vector_args = datatype[len(VEC_PREFIX):].split("-")
+    datatype, shape = _parse_vector_args(vector_args)
+    size = reduce(mul, map(int, shape))
+    expanded_cols = ["%s___%s" % (column, x)
+                     for x in range(size)]
+    return expanded_cols, datatype
 
 
 def handle_vector_item(column, value, datatypes, temp_vec,
