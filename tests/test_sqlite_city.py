@@ -38,7 +38,7 @@ class TestSqliteCity(unittest.TestCase):
             wrapper.add(c)
             wrapper.session.commit()
 
-        # check_state(self, c, p1, p2)  TODO
+        check_state(self, c, p1, p2)
 
     def test_update(self):
         """Test updating the sqlite table."""
@@ -56,7 +56,7 @@ class TestSqliteCity(unittest.TestCase):
             cw.name = "Freiburg"
             session.commit()
 
-#         check_state(self, c, p1, p2)  TODO
+        check_state(self, c, p1, p2)
 
     def test_delete(self):
         """Test to delete cuds_objects from the sqlite table."""
@@ -320,62 +320,101 @@ class TestSqliteCity(unittest.TestCase):
 #             "pre_3": "hey"
 #         })
 
-#     def test_multiple_users(self):
-#         """Test what happens if multiple users access the database."""
-#         with SqliteSession(DB) as session1:
-#             wrapper1 = city.CityWrapper(session=session1)
-#             city1 = city.City(name="Freiburg")
-#             wrapper1.add(city1)
-#             session1.commit()
+    def test_multiple_users(self):
+        """Test what happens if multiple users access the database."""
+        with SqliteSession(DB) as session1:
+            wrapper1 = city.CityWrapper(session=session1)
+            city1 = city.City(name="Freiburg")
+            wrapper1.add(city1)
+            session1.commit()
 
-#             with SqliteSession(DB) as session2:
-#                 wrapper2 = city.CityWrapper(session=session2)
-#                 wrapper2.add(city.City(name="Offenburg"))
-#                 session2.commit()
+            with SqliteSession(DB) as session2:
+                wrapper2 = city.CityWrapper(session=session2)
+                wrapper2.add(city.City(name="Offenburg"))
+                session2.commit()
 
-#                 cw = wrapper1.add(city.City(name="Karlsruhe"))
-#                 self.assertEqual(session1._expired, set())
-#                 self.assertEqual(session1._buffers, [
-#                     [{cw.uid: cw}, {wrapper1.uid: wrapper1}, dict()],
-#                     [dict(), dict(), dict()]
-#                 ])
-#                 session1.commit()
+                cw = wrapper1.add(city.City(name="Karlsruhe"))
+                self.assertEqual(session1._expired, set())
+                self.assertEqual(session1._buffers, [
+                    [{cw.uid: cw}, {wrapper1.uid: wrapper1}, dict()],
+                    [dict(), dict(), dict()]
+                ])
+                session1.commit()
 
 
-# def check_state(test_case, c, p1, p2, db=DB):
-#     """Check if the sqlite tables are in the correct state."""
-#     with sqlite3.connect(db) as conn:
-#         cursor = conn.cursor()
-#         cursor.execute("SELECT uid, oclass, first_level FROM %s;"
-#                        % SqliteSession.MASTER_TABLE)
-#         result = set(cursor.fetchall())
-#         test_case.assertEqual(result, {
-#             (str(uuid.UUID(int=0)), "", 0),
-#             (str(c.uid), str(c.oclass), 1),
-#             (str(p1.uid), str(p1.oclass), 0),
-#             (str(p2.uid), str(p2.oclass), 0)
-#         })
+def check_state(test_case, c, p1, p2, db=DB):
+    """Check if the sqlite tables are in the correct state."""
+    with sqlite3.connect(db) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table';")
+        result = set(map(lambda x: x[0], cursor))
+        test_case.assertEqual(result, set([
+            "OSP_RELATIONS", "DATA_VECTOR-INT-2", "OSP_CUDS", "OSP_NAMESPACES",
+            "OSP_ENTITIES", "OSP_TYPES", "DATA_XSD_boolean", "DATA_XSD_float",
+            "DATA_XSD_integer", "DATA_XSD_string"]))
 
-#         cursor.execute("SELECT origin, target, name, target_oclass FROM %s;"
-#                        % SqliteSession.RELATIONSHIP_TABLE)
-#         result = set(cursor.fetchall())
-#         test_case.assertEqual(result, {
-#             (str(c.uid), str(p1.uid), "city.hasInhabitant", "city.Citizen"),
-#             (str(c.uid), str(p2.uid), "city.hasInhabitant", "city.Citizen"),
-#             (str(p1.uid), str(c.uid),
-#              "city.INVERSE_OF_hasInhabitant", "city.City"),
-#             (str(p2.uid), str(c.uid),
-#              "city.INVERSE_OF_hasInhabitant", "city.City"),
-#             (str(c.uid), str(uuid.UUID(int=0)),
-#                 "city.isPartOf", "city.CityWrapper")
-#         })
+        cursor.execute(
+            "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, `to`.`uid` "
+            "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `tp`, `%s` AS `to` "
+            "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`p`=`tp`.`entity_idx` "
+            "AND `x`.`o`=`to`.`cuds_idx`;"
+            % (SqliteSession.RELATIONSHIP_TABLE, SqliteSession.CUDS_TABLE,
+               SqliteSession.ENTITIES_TABLE, SqliteSession.CUDS_TABLE))
+        result = set(cursor.fetchall())
+        test_case.assertEqual(result, {
+            (str(c.uid), 1, "hasInhabitant", str(p1.uid)),
+            (str(c.uid), 1, "hasInhabitant", str(p2.uid)),
+            (str(p1.uid), 1, "INVERSE_OF_hasInhabitant", str(c.uid)),
+            (str(p2.uid), 1, "INVERSE_OF_hasInhabitant", str(c.uid)),
+            (str(c.uid), 1, "isPartOf", str(uuid.UUID(int=0)))
+        })
 
-#         cursor.execute("SELECT uid, name, coordinates___0, coordinates___1 "
-#                        "FROM CUDS_city___City;")
-#         result = set(cursor.fetchall())
-#         test_case.assertEqual(result, {
-#             (str(c.uid), "Freiburg", 0, 0)
-#         })
+        cursor.execute(
+            "SELECT `ns_idx`, `namespace` FROM `%s`;"
+            % SqliteSession.NAMESPACES_TABLE
+        )
+        result = set(cursor.fetchall())
+        test_case.assertEqual(result, {
+            (1, "http://www.osp-core.com/city#")
+        })
+
+        cursor.execute(
+            "SELECT `ts`.`uid`, `to`.`ns_idx`, `to`.`name` "
+            "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `to` "
+            "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`o`=`to`.`entity_idx`;"
+            % (SqliteSession.TYPES_TABLE, SqliteSession.CUDS_TABLE,
+               SqliteSession.ENTITIES_TABLE))
+        result = set(cursor.fetchall())
+        test_case.assertEqual(result, {
+            (str(c.uid), 1, 'City'),
+            (str(p1.uid), 1, 'Citizen'),
+            (str(p2.uid), 1, 'Citizen')
+        })
+
+        cursor.execute(
+            "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, `x`.`o` "
+            "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `tp` "
+            "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`p`=`tp`.`entity_idx` ;"
+            % ("DATA_XSD_string", SqliteSession.CUDS_TABLE,
+               SqliteSession.ENTITIES_TABLE))
+        result = set(cursor.fetchall())
+        test_case.assertEqual(result, {
+            (str(p1.uid), 1, 'name', 'Peter'),
+            (str(c.uid), 1, 'name', 'Freiburg'),
+            (str(p2.uid), 1, 'name', 'Georg')
+        })
+
+        cursor.execute(
+            "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, `x`.`o___0` , `x`.`o___1` "
+            "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `tp` "
+            "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`p`=`tp`.`entity_idx` ;"
+            % ("DATA_VECTOR-INT-2", SqliteSession.CUDS_TABLE,
+               SqliteSession.ENTITIES_TABLE))
+        result = set(cursor.fetchall())
+        test_case.assertEqual(result, {
+            (str(c.uid), 1, 'coordinates', 0, 0)
+        })
 
 
 # def check_db_cleared(test_case, table):
