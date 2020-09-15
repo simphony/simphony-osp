@@ -3,14 +3,12 @@
 import uuid
 import rdflib
 from abc import abstractmethod
-from osp.core.utils import create_recycle, create_from_triples
 from osp.core.ontology.datatypes import convert_from
 from osp.core.session.db.triplestore_wrapper_session import \
     TripleStoreWrapperSession
-from osp.core.namespaces import get_entity
 from osp.core.session.buffers import BufferContext
 from osp.core.ontology import OntologyRelationship
-from osp.core.utils import CUDS_IRI_PREFIX, iri_from_uid, uid_from_iri
+from osp.core.utils import CUDS_IRI_PREFIX, iri_from_uid
 from osp.core.session.db.sql_util import (
     SqlQuery, EqualsCondition, AndCondition, JoinCondition,
     expand_vector_cols, contract_vector_values, expand_vector_condition,
@@ -98,6 +96,8 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         DATA_TABLE_PREFIX: [["s", "p"]]
     }
 
+    # GET_TRIPLES
+
     def _triples(self, pattern):
         for q, t, dt in self._queries(pattern):
             c = self._do_db_select(q)
@@ -112,21 +112,22 @@ class SqlWrapperSession(TripleStoreWrapperSession):
                                              table_name=t,
                                              object_datatype=dt)
 
-    def _queries(self, pattern,
-                 table_name=None,
-                 object_datatype=None):
+    def _queries(self, pattern, table_name=None, object_datatype=None,
+                 mode="select"):
+        func = {"select": self._construct_query,
+                "delete": self._construct_remove_condition}
         if table_name is None:
             if pattern[1] is pattern[2] is None:
-                yield from self._queries_for_subject(pattern[0])
+                yield from self._queries_for_subject(pattern[0], mode=mode)
                 return
             table_name, object_datatype = self._determine_table(pattern)
 
         # Construct query
-        yield (self._construct_query(pattern, table_name, object_datatype),
+        yield (func[mode](pattern, table_name, object_datatype),
                table_name,
                object_datatype)
 
-    def _queries_for_subject(self, s, tables=None, exclude=()):
+    def _queries_for_subject(self, s, tables=None, exclude=(), mode="select"):
         tables = set(tables or [
             self.RELATIONSHIP_TABLE, self.TYPES_TABLE,
             *self._get_table_names(prefix=self.DATA_TABLE_PREFIX)]
@@ -138,7 +139,8 @@ class SqlWrapperSession(TripleStoreWrapperSession):
             yield from self._queries(
                 pattern=(s, None, None),
                 table_name=table_name,
-                object_datatype=object_datatype
+                object_datatype=object_datatype,
+                mode=mode
             )
 
     def _determine_table(self, triple):
@@ -264,7 +266,9 @@ class SqlWrapperSession(TripleStoreWrapperSession):
             else:
                 yield s, x, rdflib.Literal(row[3], datatype=object_datatype)
 
-    def _load_by_iri(self, iri):
+    # LOAD
+
+    def _load_triples_for_iri(self, iri):
         triples = set(
             self._triples_for_subject(iri, tables=(self.RELATIONSHIP_TABLE,))
         )
@@ -277,7 +281,9 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         triples |= set(
             self._triples_for_subject(iri, exclude=(self.RELATIONSHIP_TABLE,))
         )
-        return create_from_triples(triples, type_triples_of_neighbors, self)
+        return triples, type_triples_of_neighbors
+
+    # ADD
 
     def _add(self, *triples):
         for triple in triples:
@@ -337,42 +343,68 @@ class SqlWrapperSession(TripleStoreWrapperSession):
             datatypes=self.DATATYPES[self.ENTITIES_TABLE],
         )
 
-    def _remove(self, pattern):
-        queries = self._queries(pattern)
-        for q, t, dt in queries:
-            if t.startswith(self.DATA_TABLE_PREFIX):
-                datatypes = {"o": dt,
-                             **self.DATATYPES[self.DATA_TABLE_PREFIX]}
-                columns = self.COLUMNS[self.DATA_TABLE_PREFIX]
-            else:
-                datatypes = self.DATATYPES[t]
-                columns = self.COLUMNS[t]
-            columns, datatypes = expand_vector_cols(columns, datatypes)
-            q.datatypes = {t.lower(): datatypes}
-            for alias in q.tables.keys():
-                q._columns[alias] = []
-            q._columns[t.lower()] = columns
+    # REMOVE
 
-            c = self._do_db_select(q)  # TODO AVOID SELECT
-            for row in c:
-                conditions = [
-                    EqualsCondition(table_name=t, column="s", value=row[0],
-                                    datatype=rdflib.XSD.integer)
-                ]
-                if t == self.TYPES_TABLE:
-                    conditions += [
-                        EqualsCondition(table_name=t, column="o", value=row[1],
-                                        datatype=dt)
-                    ]
-                else:
-                    conditions += [
-                        EqualsCondition(table_name=t, column="p", value=row[1],
-                                        datatype=rdflib.XSD.integer),
-                        EqualsCondition(table_name=t, column="o", value=row[2],
-                                        datatype=dt)
-                    ]
-                self._do_db_delete(table_name=t,
-                                   condition=AndCondition(*conditions))
+    def _remove(self, pattern):
+        for c, t, _ in self._queries(pattern, mode="delete"):
+            c = self._do_db_delete(t, c)
+
+    def _construct_remove_condition(self, pattern, table, object_datatype):
+        conditions = list()
+        s, p, o = pattern
+        if s is not None:
+            s = self._get_cuds_idx(self._split_namespace(s))
+            conditions += [EqualsCondition(table, column="s", value=s,
+                                           datatype=rdflib.XSD.integer)]
+        if table == self.TYPES_TABLE:
+            if o is not None:
+                o = self._get_entity_idx(*self._split_namespace(o))
+                conditions += [EqualsCondition(table, column="o", value=o,
+                                               datatype=rdflib.XSD.integer)]
+            return AndCondition(*conditions)
+
+        if p is not None:
+            p = self._get_entity_idx(*self._split_namespace(p))
+            conditions += [EqualsCondition(table, column="p", value=p,
+                                           datatype=rdflib.XSD.integer)]
+
+        if o is not None:
+            o = o.toPython()
+            if table == self.RELATIONSHIP_TABLE:
+                o = self._get_cuds_idx(self._split_namespace(o))
+            conditions += [EqualsCondition(table, column="o", value=o,
+                                           datatype=object_datatype)]
+        return AndCondition(*conditions)
+
+    # INITIALIZE
+    # OVERRIDE
+
+    def _initialize(self):
+        self._default_create(self.CUDS_TABLE)
+        self._default_create(self.ENTITIES_TABLE)
+        self._default_create(self.TYPES_TABLE)
+        self._default_create(self.NAMESPACES_TABLE)
+        self._default_create(self.RELATIONSHIP_TABLE)
+        self._idx_to_ns = dict(self._default_select(self.NAMESPACES_TABLE))
+        self._ns_to_idx = {v: k for k, v in self._idx_to_ns.items()}
+
+        from osp.core.utils import get_custom_datatypes
+        datatypes = get_custom_datatypes() | {
+            rdflib.XSD.integer, rdflib.XSD.boolean, rdflib.XSD.float,
+            rdflib.XSD.string
+        }
+        for datatype in datatypes:
+            self._do_db_create(
+                table_name=get_data_table_name(
+                    datatype),
+                columns=self.TRIPLESTORE_COLUMNS,
+                datatypes={"o": datatype,
+                           **self.DATATYPES[self.DATA_TABLE_PREFIX]},
+                primary_key=self.PRIMARY_KEY[self.DATA_TABLE_PREFIX],
+                generate_pk=self.DATA_TABLE_PREFIX in self.GENERATE_PK,
+                foreign_key=self.FOREIGN_KEY[self.DATA_TABLE_PREFIX],
+                indexes=self.INDEXES[self.DATA_TABLE_PREFIX]
+            )
 
     @abstractmethod
     def _db_create(self, table_name, columns, datatypes,
@@ -516,34 +548,6 @@ class SqlWrapperSession(TripleStoreWrapperSession):
             values=values,
             datatypes=self.DATATYPES[table_name]
         )
-
-    # OVERRIDE
-    def _initialize(self):
-        self._default_create(self.CUDS_TABLE)
-        self._default_create(self.ENTITIES_TABLE)
-        self._default_create(self.TYPES_TABLE)
-        self._default_create(self.NAMESPACES_TABLE)
-        self._default_create(self.RELATIONSHIP_TABLE)
-        self._idx_to_ns = dict(self._default_select(self.NAMESPACES_TABLE))
-        self._ns_to_idx = {v: k for k, v in self._idx_to_ns.items()}
-
-        from osp.core.utils import get_custom_datatypes
-        datatypes = get_custom_datatypes() | {
-            rdflib.XSD.integer, rdflib.XSD.boolean, rdflib.XSD.float,
-            rdflib.XSD.string
-        }
-        for datatype in datatypes:
-            self._do_db_create(
-                table_name=get_data_table_name(
-                    datatype),
-                columns=self.TRIPLESTORE_COLUMNS,
-                datatypes={"o": datatype,
-                           **self.DATATYPES[self.DATA_TABLE_PREFIX]},
-                primary_key=self.PRIMARY_KEY[self.DATA_TABLE_PREFIX],
-                generate_pk=self.DATA_TABLE_PREFIX in self.GENERATE_PK,
-                foreign_key=self.FOREIGN_KEY[self.DATA_TABLE_PREFIX],
-                indexes=self.INDEXES[self.DATA_TABLE_PREFIX]
-            )
 
     def _clear_database(self):
         """Delete the contents of every table."""

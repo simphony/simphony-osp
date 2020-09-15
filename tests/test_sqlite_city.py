@@ -77,33 +77,33 @@ class TestSqliteCity(unittest.TestCase):
 
 #         check_state(self, c, p1, p2)
 
-    # def test_init(self):
-    #     """Test of first level of children are loaded automatically."""
-    #     c = city.City(name="Freiburg")
-    #     p1 = city.Citizen(name="Peter")
-    #     p2 = city.Citizen(name="Anna")
-    #     p3 = city.Citizen(name="Julia")
-    #     c.add(p1, p2, p3, rel=city.hasInhabitant)
-    #     p1.add(p3, rel=city.hasChild)
-    #     p2.add(p3, rel=city.hasChild)
+    def test_init(self):
+        """Test of first level of children are loaded automatically."""
+        c = city.City(name="Freiburg")
+        p1 = city.Citizen(name="Peter")
+        p2 = city.Citizen(name="Anna")
+        p3 = city.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=city.hasInhabitant)
+        p1.add(p3, rel=city.hasChild)
+        p2.add(p3, rel=city.hasChild)
 
-    #     with SqliteSession(DB) as session:
-    #         wrapper = city.CityWrapper(session=session)
-    #         wrapper.add(c)
-    #         session.commit()
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            wrapper.add(c)
+            session.commit()
 
-    #     with SqliteSession(DB) as session:
-    #         wrapper = city.CityWrapper(session=session)
-    #         self.assertEqual(set(session._registry.keys()),
-    #                          {c.uid, wrapper.uid})
-    #         self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
-    #         self.assertEqual(
-    #             session._registry.get(c.uid)._neighbors[city.hasInhabitant],
-    #             {p1.uid: p1.oclass, p2.uid: p2.oclass,
-    #              p3.uid: p3.oclass})
-    #         self.assertEqual(
-    #             session._registry.get(c.uid)._neighbors[city.isPartOf],
-    #             {wrapper.uid: wrapper.oclass})
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            self.assertEqual(set(session._registry.keys()),
+                             {c.uid, wrapper.uid})
+            self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
+            self.assertEqual(
+                session._registry.get(c.uid)._neighbors[city.hasInhabitant],
+                {p1.uid: p1.oclass, p2.uid: p2.oclass,
+                 p3.uid: p3.oclass})
+            self.assertEqual(
+                session._registry.get(c.uid)._neighbors[city.isPartOf],
+                {wrapper.uid: wrapper.oclass})
 
     # def test_load_missing(self):
     #     """Test if missing objects are loaded automatically."""

@@ -184,11 +184,15 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
     cuds_object.session._notify_update(cuds_object)
 
 
-def create_from_triples(triples, type_triples_of_neighbors, session, fix_neighbors=True):
+def create_from_triples(triples, neighbor_triples, session,
+                        fix_neighbors=True):
     """Create a CUDS object from triples.
 
     Args:
-        triples ([type]): [description]
+        triples (List[Tuple]): The list of triples of the CUDS object to
+            create.
+        neighbor_triples (List[Tuple]): A list of important triples of
+            neighbors, most importantly their types.
     """
     from osp.core.utils import uid_from_iri
     from osp.core.cuds import Cuds
@@ -212,6 +216,6 @@ def create_from_triples(triples, type_triples_of_neighbors, session, fix_neighbo
                            uid=uid)
 
     # add the triples
-    for triple in set(triples) | set(type_triples_of_neighbors):
+    for triple in set(triples) | set(neighbor_triples):
         session.graph.add(triple)
     return cuds_object
