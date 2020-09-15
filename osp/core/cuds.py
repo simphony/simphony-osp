@@ -312,7 +312,7 @@ class Cuds():
                                             return_mapping=True)
         if not relationship_mapping:
             raise RuntimeError("Did not remove any Cuds object, "
-                               + "because none matched your filter.")
+                               "because none matched your filter.")
         uid_relationships = list(relationship_mapping.items())
 
         # load all the neighbors to delete and remove inverse relationship

@@ -206,7 +206,8 @@ def create_from_triples(triples, neighbor_triples, session,
     if uid in session._registry:
         cuds_object = session._registry.get(uid)
         if fix_neighbors:
-            for rel in set(cuds_object._neighbors.keys()):
+            rels = set(cuds_object._neighbors.keys())
+            for rel in rels:
                 cuds_object.remove(rel=rel)
         session.graph.remove((cuds_object.iri, None, None))
     else:  # create new

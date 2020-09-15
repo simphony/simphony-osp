@@ -31,15 +31,13 @@ class FileWrapperSession(WrapperSession):
         self.expire_all()
 
     @returns_query_result
-    def load_by_oclass(self, oclass, update_registry=False):
+    def load_by_oclass(self, oclass):
         """Load cuds_object with given ontology class.
 
         Will also return cuds objects of subclasses of oclass.
 
         Args:
             oclass (OntologyClass): The ontology class to query for.
-            update_registry (bool, optional):  Whether to update cuds_objects
-                which are already present in the registry. Defaults to False.
 
         Raises:
             RuntimeError: Session not yet initialized.
@@ -51,8 +49,7 @@ class FileWrapperSession(WrapperSession):
             raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")
         for subclass in oclass.subclasses:
-            yield from self._load_by_oclass(subclass,
-                                            update_registry=update_registry)
+            yield from self._load_by_oclass(subclass)
 
     def _store(self, cuds_object):
         initialize = self.root is None
@@ -96,15 +93,12 @@ class FileWrapperSession(WrapperSession):
         """Load the first level of children of the root from the database."""
 
     @abstractmethod
-    def _load_by_oclass(self, oclass, update_registry=False):
+    def _load_by_oclass(self, oclass):
         """Load the cuds_object with the given ontology class.
 
         Args:
             oclass (OntologyClass): Load cuds objects with given ontology
                 class.
-            update_registry (bool, optional): Whether to update cuds_objects
-                already which are already present in the registry.
-                Defaults to False.
 
         Returns:
             Cuds: The loaded Cuds objects.

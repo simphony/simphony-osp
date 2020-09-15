@@ -120,7 +120,8 @@ class SqlWrapperSession(TripleStoreWrapperSession):
             if pattern[1] is pattern[2] is None:
                 yield from self._queries_for_subject(pattern[0], mode=mode)
                 return
-            table_name, object_datatype = self._determine_table(pattern)
+            table_name, datatypes = self._determine_table(pattern)
+            object_datatype = datatypes["o"]
 
         # Construct query
         yield (func[mode](pattern, table_name, object_datatype),
@@ -242,6 +243,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         return self._get_ns_idx(ns_iri), str(iri[len(ns_iri):])
 
     def _get_ns_idx(self, ns_iri):
+        ns_iri = str(ns_iri)
         if ns_iri in self._ns_to_idx:
             return self._ns_to_idx[ns_iri]
         x = self._do_db_insert(

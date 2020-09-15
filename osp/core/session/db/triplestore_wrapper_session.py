@@ -67,8 +67,7 @@ class TripleStoreWrapperSession(DbWrapperSession):
     def _load_by_oclass(self, oclass):
         uids = {
             uid_from_iri(s)
-            for oc in oclass.subclasses
-            for s, _, _ in self._triples((None, rdflib.RDF.type, oc.iri))
+            for s, _, _ in self._triples((None, rdflib.RDF.type, oclass.iri))
         }
         uids = {x if x != uuid.UUID(int=0) else self. root for x in uids}
         yield from self._load_from_backend(uids)
@@ -111,7 +110,8 @@ class TripleStoreWrapperSession(DbWrapperSession):
         return create_from_triples(
             triples=triples,
             neighbor_triples=neighbor_triples,
-            session=self
+            session=self,
+            fix_neighbors=False
         )
 
 
