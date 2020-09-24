@@ -59,4 +59,9 @@ cuba:Class a owl:Class ;
     rdfs:isDefinedBy "The root of the ontology." .
 
 
-
+cuba:Class rdfs:subClassOf owl:Thing .
+cuba:relationship rdfs:subPropertyOf owl:topObjectProperty .
+cuba:attribute rdfs:subPropertyOf owl:topDataProperty .
+owl:Thing rdfs:subClassOf cuba:Class .
+owl:topObjectProperty rdfs:subPropertyOf cuba:relationship .
+owl:topDataProperty rdfs:subPropertyOf cuba:attribute .

@@ -204,8 +204,8 @@ class TestNamespaces(unittest.TestCase):
                           "invalid")
         self.assertRaises(AttributeError, getattr, self.namespace_registry,
                           "invalid")
-        self.assertEqual([x.get_name() for x in self.namespace_registry], [
-                         'xml', 'rdf', 'rdfs', 'xsd', 'cuba', 'owl', 'city'])
+        self.assertEqual({x.get_name() for x in self.namespace_registry}, {
+                         'xml', 'rdf', 'rdfs', 'xsd', 'cuba', 'owl', 'city'})
 
     def modify_labels(self):
         """Modify the labels in the graph. Append a T.
@@ -216,7 +216,7 @@ class TestNamespaces(unittest.TestCase):
         for s, p, o in self.graph:
             if (
                 s.startswith("http://www.osp-core.com/city#")
-                and p == rdflib.RDFS.label
+                and p == rdflib.SKOS.prefLabel
             ):
                 triples.append((s, p, rdflib.Literal(f"{o}_T", lang="en")))
             else:

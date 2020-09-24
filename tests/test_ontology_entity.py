@@ -78,20 +78,20 @@ class TestOntologyEntity(unittest.TestCase):
     def test_get_triples(self):
         """Test the get_triples method."""
         self.assertEqual(set(city.City.get_triples()), {
-            (city.City.iri, rdflib.RDFS.label, rdflib.term.Literal('City',
-                                                                   lang='en')),
+            (city.City.iri, rdflib.SKOS.prefLabel,
+             rdflib.term.Literal('City', lang='en')),
             (city.City.iri, rdflib.RDFS.subClassOf, city.PopulatedPlace.iri),
             (city.City.iri, rdflib.RDF.type, rdflib.OWL.Class)
         })
         self.assertEqual(set(city.hasPart.get_triples()), {
-            (city.hasPart.iri, rdflib.RDFS.label,
+            (city.hasPart.iri, rdflib.SKOS.prefLabel,
              rdflib.term.Literal('hasPart', lang='en')),
             (city.hasPart.iri, rdflib.RDFS.subPropertyOf, city.encloses.iri),
             (city.hasPart.iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty),
             (city.hasPart.iri, rdflib.OWL.inverseOf, city.isPartOf.iri)
         })
         self.assertEqual(set(city.coordinates.get_triples()), {
-            (city.coordinates.iri, rdflib.RDFS.label,
+            (city.coordinates.iri, rdflib.SKOS.prefLabel,
              rdflib.term.Literal('coordinates', lang='en')),
             (city.coordinates.iri, rdflib.RDFS.subPropertyOf,
              cuba.attribute.iri),
@@ -106,7 +106,8 @@ class TestOntologyEntity(unittest.TestCase):
     def test_transitive_hull(self):
         """Test the transitive_hull method."""
         self.assertEqual(set(
-            city.PopulatedPlace._transitive_hull(rdflib.RDFS.subClassOf)),
+            city.PopulatedPlace._transitive_hull(
+                rdflib.RDFS.subClassOf, blacklist={rdflib.OWL.Thing})),
             {city.GeographicalPlace, cuba.Class}
         )
         self.assertEqual(
@@ -130,27 +131,28 @@ class TestOntologyEntity(unittest.TestCase):
     def test_oclass_attributes(self):
         """Test the attributes of ontology classes."""
         self.assertEqual(city.City.attributes, {
-            city.name: None,
-            city.coordinates: rdflib.term.Literal('[0, 0]')
+            city.name: (None, True, None),
+            city.coordinates: (rdflib.Literal('[0, 0]'), False, None),
         })
         self.assertEqual(city.City.own_attributes, {})
         self.assertEqual(city.GeographicalPlace.own_attributes, {
-            city.name: None,
+            city.name: (None, True, None),
         })
+        self.maxDiff = None
         self.assertEqual(city.LivingBeing.own_attributes, {
-            city.name: rdflib.term.Literal("John Smith"),
-            city.age: rdflib.term.Literal(25)
+            city.name: (rdflib.Literal("John Smith"), False, None),
+            city.age: (rdflib.Literal(25), False, None)
         })
         self.assertEqual(city.Person.attributes, {
-            city.name: rdflib.term.Literal("John Smith"),
-            city.age: rdflib.term.Literal(25)
+            city.name: (rdflib.Literal("John Smith"), False, None),
+            city.age: (rdflib.Literal(25), False, None)
         })
         self.assertEqual(city.PopulatedPlace.attributes, {
-            city.name: None,
-            city.coordinates: rdflib.term.Literal('[0, 0]')
+            city.name: (None, True, None),
+            city.coordinates: (rdflib.Literal('[0, 0]'), False, None)
         })
         self.assertEqual(city.GeographicalPlace.attributes, {
-            city.name: None,
+            city.name: (None, True, None),
         })
 
     def test_oclass_get_default(self):

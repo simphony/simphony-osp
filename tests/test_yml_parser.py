@@ -128,7 +128,8 @@ class TestYmlParser(unittest.TestCase):
             (bnode1, rdflib_cuba._default_value, rdflib.Literal("DEFAULT_A")),
             (bnode1, rdflib_cuba._default_attribute,
              self.parser._get_iri("attributeA")),
-            (bnode2, rdflib.OWL.someValuesFrom, rdflib.XSD.string),
+            (bnode2, rdflib.OWL.cardinality,
+             rdflib.Literal(1, datatype=rdflib.XSD.integer)),
             (bnode2, rdflib.RDF.type, rdflib.OWL.Restriction),
             (self.parser._get_iri("ClassA"), rdflib.RDFS.subClassOf, bnode2),
             (bnode2, rdflib.OWL.onProperty, self.parser._get_iri("attributeA"))
@@ -145,7 +146,8 @@ class TestYmlParser(unittest.TestCase):
         self.assertEqual(set(self.graph) - pre, {
             (bnode3, rdflib.OWL.onProperty,
              self.parser._get_iri("attributeA")),
-            (bnode3, rdflib.OWL.someValuesFrom, rdflib.XSD.string),
+            (bnode3, rdflib.OWL.cardinality,
+             rdflib.Literal(1, datatype=rdflib.XSD.integer)),
             (bnode3, rdflib.RDF.type, rdflib.OWL.Restriction),
             (self.parser._get_iri("ClassE"), rdflib.RDFS.subClassOf, bnode3)
         })
@@ -259,7 +261,8 @@ class TestYmlParser(unittest.TestCase):
             (iri, rdflib.RDFS.isDefinedBy,
              rdflib.term.Literal("Class A", lang="en")),
             (iri, rdflib.RDFS.subClassOf, rdflib_cuba.Class),
-            (iri, rdflib.RDFS.label, rdflib.term.Literal("ClassA", lang="en"))
+            (iri, rdflib.SKOS.prefLabel,
+             rdflib.term.Literal("ClassA", lang="en"))
         })
 
         # load relationship
@@ -271,7 +274,7 @@ class TestYmlParser(unittest.TestCase):
         self.assertEqual(set(self.graph) - pre, {
             (iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty),
             (iri, rdflib.RDFS.subPropertyOf, rdflib_cuba.activeRelationship),
-            (iri, rdflib.RDFS.label,
+            (iri, rdflib.SKOS.prefLabel,
              rdflib.term.Literal("relationshipA", lang="en"))
         })
 
@@ -285,7 +288,7 @@ class TestYmlParser(unittest.TestCase):
             (iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty),
             (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty),
             (iri, rdflib.RDFS.subPropertyOf, rdflib_cuba.attribute),
-            (iri, rdflib.RDFS.label,
+            (iri, rdflib.SKOS.prefLabel,
              rdflib.term.Literal("attributeA", lang="en"))
         })
 

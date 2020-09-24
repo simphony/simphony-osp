@@ -7,6 +7,9 @@ import rdflib
 
 logger = logging.getLogger(__name__)
 
+BLACKLIST = {rdflib.OWL.Nothing, rdflib.OWL.Thing,
+             rdflib.OWL.NamedIndividual}
+
 
 class OntologyClass(OntologyEntity):
     """A class defined in the ontology."""
@@ -34,7 +37,10 @@ class OntologyClass(OntologyEntity):
         """
         attributes = dict()
         for superclass in self.superclasses:
-            attributes.update(self._get_attributes(superclass.iri))
+            for attr, v in self._get_attributes(superclass.iri).items():
+                x = attributes.get(attr, (None, None, None))
+                x = (x[0] or v[0], x[1] or v[1], x[2] or v[2])
+                attributes[attr] = x
         return attributes
 
     @property
@@ -57,27 +63,48 @@ class OntologyClass(OntologyEntity):
         """
         graph = self._namespace_registry._graph
         attributes = dict()
+
+        blacklist = [rdflib.OWL.topDataProperty, rdflib.OWL.bottomDataProperty]
         # Case 1: domain of Datatype
         triple = (None, rdflib.RDFS.domain, iri)
         for a_iri, _, _ in self.namespace._graph.triples(triple):
             triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
-            if triple in graph \
-                    and not isinstance(a_iri, rdflib.BNode):
-                a = self._namespace_registry.from_iri(a_iri)
-                attributes[a] = self._get_default(a_iri, iri)
+            if triple not in graph or isinstance(a_iri, rdflib.BNode) \
+                    or a_iri in blacklist:
+                continue
+            a = self.namespace._namespace_registry.from_iri(a_iri)
+            default = self._get_default(a_iri, iri)
+            attributes[a] = (default, False, None)
 
         # Case 2: restrictions
         triple = (iri, rdflib.RDFS.subClassOf, None)
         for _, _, o in self.namespace._graph.triples(triple):
-            if (o, rdflib.RDF.type, rdflib.OWL.Restriction) in graph:
-                a_iri = graph.value(o, rdflib.OWL.onProperty)
-                triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
-                if triple in graph \
-                        and not isinstance(a_iri, rdflib.BNode):
-                    a = self._namespace_registry.from_iri(a_iri)
-                    attributes[a] = self._get_default(a_iri, iri)
+            if (o, rdflib.RDF.type, rdflib.OWL.Restriction) not in graph:
+                continue
+            a_iri = graph.value(o, rdflib.OWL.onProperty)
+            triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
+            if triple not in graph or isinstance(a_iri, rdflib.BNode):
+                continue
+            a = self.namespace._namespace_registry.from_iri(a_iri)
+            default = self._get_default(a_iri, iri)
+            dt, obligatory = self._get_datatype_for_restriction(o)
+            obligatory = default is None and obligatory
+            attributes[a] = (self._get_default(a_iri, iri), obligatory, dt)
+
         # TODO more cases
         return attributes
+
+    def _get_datatype_for_restriction(self, r):
+        obligatory = False
+        dt = None
+        g = self.namespace._graph
+
+        dt = g.value(r, rdflib.OWL.someValuesFrom)
+        obligatory = dt is not None
+        dt = dt or g.value(r, rdflib.OWL.allValuesFrom)
+        obligatory = obligatory or (r, rdflib.OWL.cardinality) != 0
+        obligatory = obligatory or (r, rdflib.OWL.minCardinality) != 0
+        return dt, obligatory
 
     def _get_default(self, attribute_iri, superclass_iri):
         """Get the default of the attribute with the given iri.
@@ -139,7 +166,7 @@ class OntologyClass(OntologyEntity):
         """
         kwargs = dict(kwargs)
         attributes = dict()
-        for attribute, default in self.attributes.items():
+        for attribute, (default, obligatory, dt) in self.attributes.items():
             if attribute.argname in kwargs:
                 attributes[attribute] = kwargs[attribute.argname]
                 del kwargs[attribute.argname]
@@ -155,33 +182,37 @@ class OntologyClass(OntologyEntity):
                     f"to be ALL_CAPS. You can use the yaml2camelcase "
                     f"commandline tool to transform entity names to CamelCase."
                 )
-            else:
+            elif not _force and obligatory:
+                raise TypeError("Missing keyword argument: %s" %
+                                attribute.argname)
+            elif default is not None:
                 attributes[attribute] = default
 
         # Check validity of arguments
-        if _force:
-            return {k: v for k, v in attributes.items() if v is not None}
-        if kwargs:
+        if not _force and kwargs:
             raise TypeError("Unexpected keyword arguments: %s"
                             % kwargs.keys())
-        missing = [k.argname for k, v in attributes.items() if v is None]
-        if missing:
-            raise TypeError("Missing keyword arguments: %s" % missing)
         return attributes
 
     def _direct_superclasses(self):
-        return self._directly_connected(rdflib.RDFS.subClassOf)
+        return self._directly_connected(rdflib.RDFS.subClassOf,
+                                        blacklist=BLACKLIST)
 
     def _direct_subclasses(self):
-        return self._directly_connected(rdflib.RDFS.subClassOf, inverse=True)
+        return self._directly_connected(rdflib.RDFS.subClassOf,
+                                        inverse=True, blacklist=BLACKLIST)
 
     def _superclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.RDFS.subClassOf)
+        yield from self._transitive_hull(
+            rdflib.RDFS.subClassOf,
+            blacklist=BLACKLIST)
 
     def _subclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.RDFS.subClassOf, inverse=True)
+        yield from self._transitive_hull(
+            rdflib.RDFS.subClassOf, inverse=True,
+            blacklist=BLACKLIST)
 
     def __call__(self, uid=None, session=None, _force=False, **kwargs):
         """Create a Cuds object from this ontology class.

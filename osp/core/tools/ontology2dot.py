@@ -108,7 +108,7 @@ class Ontology2Dot():
         """
         attr = ""
         for key, value in oclass.attributes.items():
-            attr += self.attribute.format(key.argname, value)
+            attr += self.attribute.format(key.argname, value[0])
         label = self.label.format(str(oclass), attr)
         if oclass.namespace in self._namespaces:
             graph.node(str(oclass), label=label,

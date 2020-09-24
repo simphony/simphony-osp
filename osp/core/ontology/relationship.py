@@ -8,6 +8,9 @@ logger = logging.getLogger(__name__)
 
 # TODO characteristics
 
+BLACKLIST = {rdflib.OWL.bottomObjectProperty,
+             rdflib.OWL.topObjectProperty}
+
 
 class OntologyRelationship(OntologyEntity):
     """A relationship defined in the ontology."""
@@ -38,9 +41,11 @@ class OntologyRelationship(OntologyEntity):
         triple1 = (self.iri, rdflib.OWL.inverseOf, None)
         triple2 = (None, rdflib.OWL.inverseOf, self.iri)
         for _, _, o in self.namespace._graph.triples(triple1):
-            return self._namespace_registry.from_iri(o)
+            if not isinstance(o, rdflib.BNode):
+                return self.namespace._namespace_registry.from_iri(o)
         for s, _, _ in self.namespace._graph.triples(triple2):
-            return self._namespace_registry.from_iri(s)
+            if not isinstance(s, rdflib.BNode):
+                return self.namespace._namespace_registry.from_iri(s)
         return self._add_inverse()
 
     def _direct_superclasses(self):
@@ -49,7 +54,8 @@ class OntologyRelationship(OntologyEntity):
         Returns:
             OntologyRelationship: The direct subrelationships
         """
-        return self._directly_connected(rdflib.RDFS.subPropertyOf)
+        return self._directly_connected(rdflib.RDFS.subPropertyOf,
+                                        blacklist=BLACKLIST)
 
     def _direct_subclasses(self):
         """Get all the direct subclasses of this relationship.
@@ -58,7 +64,7 @@ class OntologyRelationship(OntologyEntity):
             OntologyRelationship: The direct subrelationships
         """
         return self._directly_connected(rdflib.RDFS.subPropertyOf,
-                                        inverse=True)
+                                        inverse=True, blacklist=BLACKLIST)
 
     def _superclasses(self):
         """Get all the superclasses of this relationship.
@@ -67,7 +73,8 @@ class OntologyRelationship(OntologyEntity):
             OntologyRelationship: The superrelationships.
         """
         yield self
-        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf)
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
+                                         blacklist=BLACKLIST)
 
     def _subclasses(self):
         """Get all the subclasses of this relationship.
@@ -77,7 +84,7 @@ class OntologyRelationship(OntologyEntity):
         """
         yield self
         yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
-                                         inverse=True)
+                                         inverse=True, blacklist=BLACKLIST)
 
     def _add_inverse(self):
         """Add the inverse of this relationship to the path.
@@ -88,9 +95,12 @@ class OntologyRelationship(OntologyEntity):
         o = rdflib.URIRef(self.namespace.get_iri() + "INVERSE_OF_" + self.name)
         x = (self.iri, rdflib.OWL.inverseOf, o)
         y = (o, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
+        z = (o, rdflib.SKOS.prefLabel,
+             rdflib.Literal("INVERSE_OF_" + self.name, lang="en"))
 
         self.namespace._graph.add(x)
         self.namespace._graph.add(y)
+        self.namespace._graph.add(z)
         for superclass in self.direct_superclasses:
             self.namespace._graph.add((
                 o, rdflib.RDFS.subPropertyOf, superclass.inverse.iri
