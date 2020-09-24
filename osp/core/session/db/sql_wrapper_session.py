@@ -380,7 +380,6 @@ class SqlWrapperSession(TripleStoreWrapperSession):
 
     # INITIALIZE
     # OVERRIDE
-
     def _initialize(self):
         self._default_create(self.CUDS_TABLE)
         self._default_create(self.ENTITIES_TABLE)
@@ -560,22 +559,27 @@ class SqlWrapperSession(TripleStoreWrapperSession):
             self._reset_buffers(BufferContext.USER)
             root = self._registry.get(self.root)
 
-            # if there is something to remove
+            # Delete relationships of root.
             if root.get(rel=cuba.relationship):
                 root.remove(rel=cuba.relationship)
-                for uid in list(self._registry.keys()):
-                    if uid != self.root:
-                        self._delete_cuds_triples(self._registry.get(uid))
-                self._reset_buffers(BufferContext.USER)
 
-                # delete the data
-                for table_name in self._get_table_names(
-                        SqlWrapperSession.CUDS_PREFIX):
-                    self._do_db_delete(table_name, None)
-                self._do_db_delete(self.RELATIONSHIP_TABLE, None)
-                self._do_db_delete(self.MASTER_TABLE, None)
-                self._initialize()
-                self._commit()
+            for uid in list(self._registry.keys()):
+                if uid != self.root:
+                    self._delete_cuds_triples(self._registry.get(uid))
+            self._reset_buffers(BufferContext.USER)
+
+            # delete the data
+            for table_name in self._get_table_names(
+                    SqlWrapperSession.DATA_TABLE_PREFIX):
+                self._do_db_delete(table_name, None)
+            self._do_db_delete(self.CUDS_TABLE, None)
+            self._do_db_delete(self.ENTITIES_TABLE, None)
+            self._do_db_delete(self.TYPES_TABLE, None)
+            self._do_db_delete(self.NAMESPACES_TABLE, None)
+            self._do_db_delete(self.RELATIONSHIP_TABLE, None)
+
+            self._initialize()
+            self._commit()
         except Exception as e:
             self._rollback_transaction()
             raise e

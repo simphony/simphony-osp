@@ -281,33 +281,33 @@ class TestSqliteCity(unittest.TestCase):
             # self.assertFalse(hasattr(p3w, "name"))
             # self.assertNotIn(p3w.uid, session._registry)
 
-#     def test_clear_database(self):
-#         """Test clearing the database."""
-#         # db is empty (no error occurs)
-#         with SqliteSession(DB) as session:
-#             wrapper = city.CityWrapper(session=session)
-#             session._clear_database()
-#         with SqliteSession(DB) as session:
-#             wrapper = city.CityWrapper(session=session)
-#             wrapper.session.commit()
-#             session._clear_database()
+    def test_clear_database(self):
+        """Test clearing the database."""
+        # db is empty (no error occurs)
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            session._clear_database()
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            wrapper.session.commit()
+            session._clear_database()
 
-#         # db is not empty
-#         c = city.City(name="Freiburg")
-#         p1 = city.Citizen(name="Peter")
-#         p2 = city.Citizen(name="Anna")
-#         p3 = city.Citizen(name="Julia")
-#         c.add(p1, p2, p3, rel=city.hasInhabitant)
-#         p1.add(p3, rel=city.hasChild)
-#         p2.add(p3, rel=city.hasChild)
+        # db is not empty
+        c = city.City(name="Freiburg")
+        p1 = city.Citizen(name="Peter")
+        p2 = city.Citizen(name="Anna")
+        p3 = city.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=city.hasInhabitant)
+        p1.add(p3, rel=city.hasChild)
+        p2.add(p3, rel=city.hasChild)
 
-#         with SqliteSession(DB) as session:
-#             wrapper = city.CityWrapper(session=session)
-#             wrapper.add(c)
-#             session.commit()
-#             session._clear_database()
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            wrapper.add(c)
+            session.commit()
+            session._clear_database()
 
-#         check_db_cleared(self, DB)
+        check_db_cleared(self, DB)
 
 #     def test__sql_list_pattern(self):
 #         """Test transformation of value lists to SQLite patterns."""
@@ -417,21 +417,39 @@ def check_state(test_case, c, p1, p2, db=DB):
         })
 
 
-# def check_db_cleared(test_case, table):
-#     """Check whether the database has been cleared successfully."""
-#     with sqlite3.connect(table) as conn:
-#         cursor = conn.cursor()
-#         cursor.execute("SELECT * FROM %s;"
-#                        % SqliteSession.MASTER_TABLE)
-#         test_case.assertEqual(
-#             list(cursor), [('00000000-0000-0000-0000-000000000000', '', 0)])
-#         cursor.execute("SELECT * FROM %s;"
-#                        % SqliteSession.RELATIONSHIP_TABLE)
-#         test_case.assertEqual(list(cursor), list())
-#         cursor.execute("SELECT * FROM CUDS_city___Citizen")
-#         test_case.assertEqual(list(cursor), list())
-#         cursor.execute("SELECT * FROM CUDS_city___city")
-#         test_case.assertEqual(list(cursor), list())
+def check_db_cleared(test_case, db_file):
+    """Check whether the database has been cleared successfully."""
+    with sqlite3.connect(db_file) as conn:
+        cursor = conn.cursor()
+
+        cursor.execute(f"SELECT * FROM {SqliteSession.CUDS_TABLE};")
+        test_case.assertEqual(list(cursor), list())
+        cursor.execute(f"SELECT * FROM {SqliteSession.ENTITIES_TABLE};")
+        test_case.assertEqual(list(cursor), list())
+        cursor.execute(f"SELECT * FROM {SqliteSession.TYPES_TABLE};")
+        test_case.assertEqual(list(cursor), list())
+        cursor.execute(f"SELECT * FROM {SqliteSession.NAMESPACES_TABLE};")
+        test_case.assertEqual(list(cursor), list())
+        cursor.execute(f"SELECT * FROM {SqliteSession.RELATIONSHIP_TABLE};")
+        test_case.assertEqual(list(cursor), list())
+
+        # DATA TABLES
+        for table_name in SqliteSession._get_table_names(
+                None, SqliteSession.DATA_TABLE_PREFIX, cursor):
+            cursor.execute(f"SELECT * FROM `{table_name}`;")
+            test_case.assertEqual(list(cursor), list())
+
+        # cursor.execute("SELECT * FROM %s;"
+        #                % SqliteSession.MASTER_TABLE)
+        # test_case.assertEqual(
+        #     list(cursor), [('00000000-0000-0000-0000-000000000000', '', 0)])
+        # cursor.execute("SELECT * FROM %s;"
+        #                % SqliteSession.RELATIONSHIP_TABLE)
+        # test_case.assertEqual(list(cursor), list())
+        # cursor.execute("SELECT * FROM CUDS_city___Citizen")
+        # test_case.assertEqual(list(cursor), list())
+        # cursor.execute("SELECT * FROM CUDS_city___city")
+        # test_case.assertEqual(list(cursor), list())
 
 
 if __name__ == '__main__':

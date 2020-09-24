@@ -183,14 +183,8 @@ class OntologyClass(OntologyEntity):
                     f"commandline tool to transform entity names to CamelCase."
                 )
             elif not _force and obligatory:
-
-
-<< << << < HEAD
-                raise TypeError("Missing keyword argument: %s" % attribute)
-== == == =
                 raise TypeError("Missing keyword argument: %s" %
                                 attribute.argname)
->>>>>> > origin/v3.5.0-dev
             elif default is not None:
                 attributes[attribute] = default
 
