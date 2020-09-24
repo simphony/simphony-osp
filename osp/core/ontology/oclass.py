@@ -74,9 +74,7 @@ class OntologyClass(OntologyEntity):
                 continue
             a = self.namespace._namespace_registry.from_iri(a_iri)
             default = self._get_default(a_iri, iri)
-            triple = (a_iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty)
-            obligatory = default is None and triple in graph
-            attributes[a] = (self._get_default(a_iri, iri), obligatory, None)
+            attributes[a] = (default, False, None)
 
         # Case 2: restrictions
         triple = (iri, rdflib.RDFS.subClassOf, None)
@@ -185,7 +183,8 @@ class OntologyClass(OntologyEntity):
                     f"commandline tool to transform entity names to CamelCase."
                 )
             elif not _force and obligatory:
-                raise TypeError("Missing keyword argument: %s" % attribute)
+                raise TypeError("Missing keyword argument: %s" %
+                                attribute.argname)
             elif default is not None:
                 attributes[attribute] = default
 

@@ -224,7 +224,8 @@ class NamespaceRegistry():
             str: The name of the entity with the given IRI
         """
         if self._get_reference_by_label(ns_iri):
-            return self._graph.value(entity_iri, rdflib.RDFS.label).toPython()
+            return self._graph.value(entity_iri,
+                                     rdflib.SKOS.prefLabel).toPython()
         return entity_iri[len(ns_iri):]
 
     def clear(self):

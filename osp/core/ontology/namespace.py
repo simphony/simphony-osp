@@ -118,7 +118,8 @@ class OntologyNamespace():
         if isinstance(label, tuple):
             label = rdflib.term.Literal(label[0], lang=label[1])
         result = list()
-        for s, p, o in self._graph.triples((None, rdflib.RDFS.label, label)):
+        pattern = (None, rdflib.SKOS.prefLabel, label)
+        for s, p, o in self._graph.triples(pattern):
             if str(s).startswith(self._iri):  # TODO more efficient
                 name = str(s)[len(self._iri):]
                 result.append(
