@@ -216,7 +216,7 @@ class TestNamespaces(unittest.TestCase):
         for s, p, o in self.graph:
             if (
                 s.startswith("http://www.osp-core.com/city#")
-                and p == rdflib.RDFS.label
+                and p == rdflib.SKOS.prefLabel
             ):
                 triples.append((s, p, rdflib.Literal(f"{o}_T", lang="en")))
             else:

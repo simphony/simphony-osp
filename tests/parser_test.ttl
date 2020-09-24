@@ -4,16 +4,17 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 
 <http://www.osp-core.com/parser_test#> ns1:_default_rel <http://www.osp-core.com/parser_test#relationshipA> .
 
 <http://www.osp-core.com/parser_test#ClassC> a ns2:Class ;
-    rdfs:label "ClassC"@en ;
+    skos:prefLabel "ClassC"@en ;
     rdfs:subClassOf <http://www.osp-core.com/parser_test#ClassA>,
         <http://www.osp-core.com/parser_test#ClassB> .
 
 <http://www.osp-core.com/parser_test#ClassD> a ns2:Class ;
-    rdfs:label "ClassD"@en ;
+    skos:prefLabel "ClassD"@en ;
     ns1:_default [ ns1:_default_attribute <http://www.osp-core.com/parser_test#attributeA> ;
             ns1:_default_value "DEFAULT_D" ] ;
     rdfs:subClassOf [ a ns2:Restriction ;
@@ -23,7 +24,7 @@
         <http://www.osp-core.com/parser_test#ClassB> .
 
 <http://www.osp-core.com/parser_test#ClassE> a ns2:Class ;
-    rdfs:label "ClassE"@en ;
+    skos:prefLabel "ClassE"@en ;
     rdfs:subClassOf [ a ns2:Restriction ;
             ns2:onProperty <http://www.osp-core.com/parser_test#attributeA> ;
             ns2:cardinality "1"^^xsd:integer ],
@@ -31,31 +32,31 @@
 
 <http://www.osp-core.com/parser_test#attributeC> a ns2:DatatypeProperty,
         ns2:FunctionalProperty ;
-    rdfs:label "attributeC"@en ;
+    skos:prefLabel "attributeC"@en ;
     rdfs:subPropertyOf <http://www.osp-core.com/parser_test#attributeA>,
         <http://www.osp-core.com/parser_test#attributeB> .
 
 <http://www.osp-core.com/parser_test#attributeD> a ns2:DatatypeProperty,
         ns2:FunctionalProperty ;
-    rdfs:label "attributeD"@en ;
+    skos:prefLabel "attributeD"@en ;
     rdfs:range xsd:float ;
     rdfs:subPropertyOf <http://www.osp-core.com/parser_test#attributeA>,
         <http://www.osp-core.com/parser_test#attributeB> .
 
 <http://www.osp-core.com/parser_test#relationshipB> a ns2:ObjectProperty ;
-    rdfs:label "relationshipB"@en ;
+    skos:prefLabel "relationshipB"@en ;
     rdfs:subPropertyOf ns1:activeRelationship,
         <http://www.osp-core.com/parser_test#relationshipA> .
 
 <http://www.osp-core.com/parser_test#relationshipC> a ns2:ObjectProperty ;
-    rdfs:label "relationshipC"@en ;
+    skos:prefLabel "relationshipC"@en ;
     rdfs:subPropertyOf ns1:relationship ;
     ns2:inverseOf <http://www.osp-core.com/parser_test#relationshipA> .
 
 <http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2-2> a rdfs:Datatype .
 
 <http://www.osp-core.com/parser_test#ClassA> a ns2:Class ;
-    rdfs:label "ClassA"@en ;
+    skos:prefLabel "ClassA"@en ;
     ns1:_default [ ns1:_default_attribute <http://www.osp-core.com/parser_test#attributeA> ;
             ns1:_default_value "DEFAULT_A" ] ;
     rdfs:isDefinedBy "Class A"@en ;
@@ -65,7 +66,7 @@
         ns1:Class .
 
 <http://www.osp-core.com/parser_test#ClassB> a ns2:Class ;
-    rdfs:label "ClassB"@en ;
+    skos:prefLabel "ClassB"@en ;
     ns1:_default [ ns1:_default_attribute <http://www.osp-core.com/parser_test#attributeA> ;
             ns1:_default_value "DEFAULT_B" ] ;
     rdfs:subClassOf [ a ns2:Restriction ;
@@ -75,17 +76,17 @@
 
 <http://www.osp-core.com/parser_test#attributeB> a ns2:DatatypeProperty,
         ns2:FunctionalProperty ;
-    rdfs:label "attributeB"@en ;
+    skos:prefLabel "attributeB"@en ;
     rdfs:range <http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2-2> ;
     rdfs:subPropertyOf ns1:attribute .
 
 <http://www.osp-core.com/parser_test#relationshipA> a ns2:ObjectProperty ;
-    rdfs:label "relationshipA"@en ;
+    skos:prefLabel "relationshipA"@en ;
     rdfs:subPropertyOf ns1:activeRelationship .
 
 <http://www.osp-core.com/parser_test#attributeA> a ns2:DatatypeProperty,
         ns2:FunctionalProperty ;
-    rdfs:label "attributeA"@en ;
+    skos:prefLabel "attributeA"@en ;
     rdfs:range xsd:string ;
     rdfs:subPropertyOf ns1:attribute .
 

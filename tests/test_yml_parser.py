@@ -261,7 +261,8 @@ class TestYmlParser(unittest.TestCase):
             (iri, rdflib.RDFS.isDefinedBy,
              rdflib.term.Literal("Class A", lang="en")),
             (iri, rdflib.RDFS.subClassOf, rdflib_cuba.Class),
-            (iri, rdflib.RDFS.label, rdflib.term.Literal("ClassA", lang="en"))
+            (iri, rdflib.SKOS.prefLabel,
+             rdflib.term.Literal("ClassA", lang="en"))
         })
 
         # load relationship
@@ -273,7 +274,7 @@ class TestYmlParser(unittest.TestCase):
         self.assertEqual(set(self.graph) - pre, {
             (iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty),
             (iri, rdflib.RDFS.subPropertyOf, rdflib_cuba.activeRelationship),
-            (iri, rdflib.RDFS.label,
+            (iri, rdflib.SKOS.prefLabel,
              rdflib.term.Literal("relationshipA", lang="en"))
         })
 
@@ -287,7 +288,7 @@ class TestYmlParser(unittest.TestCase):
             (iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty),
             (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty),
             (iri, rdflib.RDFS.subPropertyOf, rdflib_cuba.attribute),
-            (iri, rdflib.RDFS.label,
+            (iri, rdflib.SKOS.prefLabel,
              rdflib.term.Literal("attributeA", lang="en"))
         })
 

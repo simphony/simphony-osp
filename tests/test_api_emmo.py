@@ -26,7 +26,7 @@ class TestAPIEmmo(unittest.TestCase):
     def test_is_a(self):
         """Test instance check."""
         # TODO update emmo
-        c = math.Real(hasNumericalData=12, hasSymbolData="12")
+        c = math.Real(hasNumericalData=12)
         self.assertTrue(c.is_a(math.Number))
         self.assertTrue(c.is_a(math.Numerical))
         self.assertTrue(c.is_a(cuba.Class))
@@ -41,8 +41,10 @@ class TestAPIEmmo(unittest.TestCase):
         self.assertRaises(TypeError, math.Real)
 
         r = math.Real(hasNumericalData=1.2, hasSymbolData="1.2")
+        r2 = math.Real(hasNumericalData=1.2)
         p = holistic.Process()
         self.assertEqual(r.oclass, math.Real)
+        self.assertEqual(r2.oclass, math.Real)
         self.assertEqual(p.oclass, holistic.Process)
         cuba.Wrapper(session=CoreSession())
 
@@ -60,7 +62,7 @@ class TestAPIEmmo(unittest.TestCase):
     def test_add(self):
         """Test the standard, normal behavior of the add() method."""
         p = holistic.Process()
-        n = math.Real(hasNumericalData=1.2, hasSymbolData="1.2")
+        n = math.Real(hasNumericalData=1.2)
 
         p.add(n)
         self.assertEqual(p.get(n.uid).uid, n.uid)
@@ -80,8 +82,8 @@ class TestAPIEmmo(unittest.TestCase):
         - get(rel, oclass)
         """
         p = holistic.Process()
-        n = math.Real(hasNumericalData=1.2, hasSymbolData="1.2")
-        i = math.Integer(hasNumericalData=42, hasSymbolData="42")
+        n = math.Real(hasNumericalData=1.2)
+        i = math.Integer(hasNumericalData=42)
         p.add(n)
         p.add(i, rel=mereotopology.hasProperPart)
 
@@ -120,9 +122,9 @@ class TestAPIEmmo(unittest.TestCase):
     def test_update(self):
         """Test the standard, normal behavior of the update() method."""
         c = holistic.Process()
-        n = math.Real(hasNumericalData=1.2, hasSymbolData="1.2")
+        n = math.Real(hasNumericalData=1.2)
         new_n = create_from_cuds_object(n, CoreSession())
-        new_s = math.Integer(hasNumericalData=42, hasSymbolData="42")
+        new_s = math.Integer(hasNumericalData=42)
         new_n.add(new_s)
         c.add(n)
 
@@ -149,9 +151,9 @@ class TestAPIEmmo(unittest.TestCase):
         - remove(*uids/DataContainers, rel)
         """
         c = holistic.Process()
-        n = math.Integer(hasNumericalData=12, hasSymbolData="12")
-        p = math.Real(hasNumericalData=1.2, hasSymbolData="1.2")
-        q = math.Real(hasNumericalData=4.2, hasSymbolData="4.2")
+        n = math.Integer(hasNumericalData=12)
+        p = math.Real(hasNumericalData=1.2)
+        q = math.Real(hasNumericalData=4.2)
         c.add(n)
         c.add(q, p, rel=mereotopology.hasProperPart)
 
@@ -215,8 +217,8 @@ class TestAPIEmmo(unittest.TestCase):
     def test_iter(self):
         """Test the iter() method when no ontology class is provided."""
         c = holistic.Process()
-        n = math.Integer(hasNumericalData=12, hasSymbolData="12")
-        p = math.Real(hasNumericalData=1.2, hasSymbolData="1.2")
+        n = math.Integer(hasNumericalData=12)
+        p = math.Real(hasNumericalData=1.2)
         q = holistic.Process()
         c.add(n)
         c.add(p, q, rel=mereotopology.hasProperPart)
@@ -226,11 +228,10 @@ class TestAPIEmmo(unittest.TestCase):
 
     def test_get_attributes(self):
         """Test getting the attributes."""
-        p = math.Real(hasNumericalData=1.2, hasSymbolData="1.2")
+        p = math.Real(hasNumericalData=1.2)
         self.assertEqual(
             p.get_attributes(),
-            {math.hasNumericalData: "1.2",  # TODO type conversion
-             perceptual.hasSymbolData: "1.2"}
+            {math.hasNumericalData: "1.2"}  # TODO type conversion
         )
 
 

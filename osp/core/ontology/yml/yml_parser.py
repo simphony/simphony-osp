@@ -156,7 +156,7 @@ class YmlParser:
                                          lang="en")
             self.graph.add((iri, rdflib.RDFS.isDefinedBy, description))
         label = rdflib.Literal(entity_name, lang="en")
-        self.graph.add((iri, rdflib.RDFS.label, label))
+        self.graph.add((iri, rdflib.SKOS.prefLabel, label))
         self._add_type_triple(entity_name, iri)
 
         # Parse superclasses
