@@ -371,7 +371,8 @@ def check_state(test_case, c, p1, p2, db=DB):
         })
 
         cursor.execute(
-            "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, `x`.`o___0` , `x`.`o___1` "
+            "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, "
+            "`x`.`o___0` , `x`.`o___1` "
             "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `tp` "
             "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`p`=`tp`.`entity_idx` ;"
             % ("DATA_VECTOR-INT-2", SqliteSession.CUDS_TABLE,

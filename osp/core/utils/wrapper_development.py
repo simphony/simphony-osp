@@ -193,6 +193,9 @@ def create_from_triples(triples, neighbor_triples, session,
             create.
         neighbor_triples (List[Tuple]): A list of important triples of
             neighbors, most importantly their types.
+        session (Session): The session to create the CUDS object in.
+        fix_neighbors (bool): Whether to remove the link from the old neighbors
+            to this cuds object, defaults to True.
     """
     from osp.core.utils import uid_from_iri
     from osp.core.cuds import Cuds

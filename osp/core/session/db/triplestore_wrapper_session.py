@@ -1,13 +1,15 @@
+"""A session connecting to a backend which stores the CUDS in triples."""
+
 import uuid
 import rdflib
 from osp.core.utils import create_from_triples
 from osp.core.utils import iri_from_uid, uid_from_iri, CUDS_IRI_PREFIX
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
-from osp.core.namespaces import from_iri
 from abc import abstractmethod
 
 
 class TripleStoreWrapperSession(DbWrapperSession):
+    """A session connecting to a backend which stores the CUDS in triples."""
 
     # OVERRIDE
     def _apply_added(self, root_obj, buffer):

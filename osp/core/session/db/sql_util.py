@@ -10,6 +10,7 @@ from functools import reduce
 
 VEC_PREFIX = str(rdflib_cuba["_datatypes/VECTOR-"])
 
+
 class SqlQuery():
     """An sql query."""
 
@@ -27,6 +28,7 @@ class SqlQuery():
 
     @property
     def columns(self):
+        """Return the columns that are selected."""
         for alias in self.order:
             for column in self._columns[alias]:
                 yield (alias, column)
@@ -113,6 +115,14 @@ class AndCondition(Condition):
 
 
 def determine_datatype(table_name):
+    """Determine the datatype of column o for the table with given table name.
+
+    Args:
+        table_name (str): The name of the data table.
+
+    Returns:
+        rdflib.URIRef: The datatype of the object column.
+    """
     from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
     prefix = SqlWrapperSession.DATA_TABLE_PREFIX
 
@@ -129,6 +139,17 @@ def determine_datatype(table_name):
 
 
 def get_data_table_name(datatype):
+    """Get the name of the table for the given datatype.
+
+    Args:
+        datatype (rdflib.URIRef): The datatype of the object column.
+
+    Raises:
+        NotImplementedError: The given datatype is not supported.
+
+    Returns:
+        str: The name of the table.
+    """
     from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
     prefix = SqlWrapperSession.DATA_TABLE_PREFIX
     if datatype.startswith(str(rdflib.XSD)):
@@ -155,7 +176,7 @@ def check_characters(*to_check):
 
     """
     forbidden_chars = [";", "\0", "\r", "\x08", "\x09", "\x1a", "\n",
-                        "\r", "\"", "'", "`", "\\", "%"]
+                       "\r", "\"", "'", "`", "\\", "%"]
     to_check = list(to_check)
     str_to_check = str(to_check)
     for c in forbidden_chars:
@@ -288,6 +309,14 @@ def contract_vector_values(rows, query):
 
 
 def expand_vector_condition(condition):
+    """Expand a condition on a vector to condition on multiple columns.
+
+    Args:
+        condition (Condition): A osp-core condition.
+
+    Returns:
+        Condition: The expanded OSP-core condition.
+    """
     if isinstance(condition, EqualsCondition) \
             and condition.datatype.startswith(VEC_PREFIX):
 
@@ -359,10 +388,11 @@ def convert_values(rows, query):
     """Convert the values in the database to the correct datatype.
 
     Args:
-        rows(Iterator[Iterator[Any]]): The rows of the database
-        columns(List[str]): The corresponding columns
-        datatypes(Dict[str, str]): Mapping from column to datatype
+        rows(Iterator[Iterator[Any]]): The rows of the database.
+        query(Query): The corresponding query.
 
+    Yields:
+        The rows with converted values.
     """
     for row in rows:
         output = []
