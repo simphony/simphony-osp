@@ -128,10 +128,16 @@ class SqliteSession(SqlWrapperSession):
             table_name, ", ".join(columns), val_pattern
         )
         c = self._engine.cursor()
-        c.execute(sql_pattern, val_values)
-        return c.lastrowid
+        try:
+            c.execute(sql_pattern, val_values)
+            return c.lastrowid
+        except sqlite3.IntegrityError as e:
+            if "UNIQUE constraint failed" in str(e):
+                return
+            raise e
 
     # OVERRIDE
+
     def _db_update(self, table_name, columns, values, condition, datatypes):
         cond_pattern, cond_values = self._get_condition_pattern(condition)
         val_pattern, val_values = self._sql_list_pattern("val", values, False)

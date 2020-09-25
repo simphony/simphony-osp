@@ -196,15 +196,17 @@ def create_from_triples(triples, neighbor_triples, session,
     """
     from osp.core.utils import uid_from_iri
     from osp.core.cuds import Cuds
+    triples = list(triples)
     if not triples:
         return None
-    uid = uid_from_iri(next(iter(triples))[0])
+    uid = uid_from_iri(triples[0][0])
     if hasattr(session, "_expired") and uid in session._expired:
         session._expired.remove(uid)
 
     # recycle old object
     if uid in session._registry:
         cuds_object = session._registry.get(uid)
+        cuds_object.session._notify_read(cuds_object)
         if fix_neighbors:
             rels = set(cuds_object._neighbors.keys())
             for rel in rels:
@@ -219,4 +221,5 @@ def create_from_triples(triples, neighbor_triples, session,
     # add the triples
     for triple in set(triples) | set(neighbor_triples):
         session.graph.add(triple)
+    cuds_object.session._notify_update(cuds_object)
     return cuds_object

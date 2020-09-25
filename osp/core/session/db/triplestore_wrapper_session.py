@@ -1,7 +1,7 @@
 import uuid
 import rdflib
 from osp.core.utils import create_from_triples
-from osp.core.utils import iri_from_uid, uid_from_iri
+from osp.core.utils import iri_from_uid, uid_from_iri, CUDS_IRI_PREFIX
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from osp.core.namespaces import from_iri
 from abc import abstractmethod
@@ -15,8 +15,6 @@ class TripleStoreWrapperSession(DbWrapperSession):
         # in the buffers to the DB.
 
         for added in buffer.values():
-            if added.uid == self.root:
-                continue
             triples = self._substitute_root_iri(added.get_triples())
             self._add(*triples)
 
@@ -25,10 +23,8 @@ class TripleStoreWrapperSession(DbWrapperSession):
         # Perform the SQL-Statements to update the elements
         # in the buffers in the DB.
         for updated in buffer.values():
-            if updated.uid == self.root:
-                continue
-
-            self._remove((updated.iri, None, None))
+            pattern = (updated.iri, None, None)
+            self._remove(next(self._substitute_root_iri([pattern])))
             triples = self._substitute_root_iri(updated.get_triples())
             self._add(*triples)
 
@@ -37,31 +33,28 @@ class TripleStoreWrapperSession(DbWrapperSession):
         # Perform the SQL-Statements to delete the elements
         # in the buffers in the DB.
         for deleted in buffer.values():
-            if deleted.uid == self.root:
-                continue
-
-            self._remove((deleted.iri, None, None))
+            pattern = (deleted.iri, None, None)
+            self._remove(next(self._substitute_root_iri([pattern])))
 
     # OVERRIDE
     def _load_from_backend(self, uids, expired=None):
         for uid in uids:
-            if uid == self.root:  # root not stored explicitly in database
-                self._load_first_level()
-                yield self._registry.get(uid)
-                continue
             iri = iri_from_uid(uid)
             yield self._load_by_iri(iri)
 
     # OVERRIDE
     def _load_first_level(self):
-        triple = (None, None, iri_from_uid(self.root))
+        triple = (iri_from_uid(self.root), None, None)
         triple = next(self._substitute_root_iri([triple]))
-        uids = {
-            uid_from_iri(s)
-            for s, p, o in self._triples(triple)
+        iris = {
+            o for s, p, o in self._triples(triple)
+            if isinstance(o, rdflib.URIRef)
+            and str(o).startswith(CUDS_IRI_PREFIX)
+            and uid_from_iri(o) != uuid.UUID(int=0)
         }
-        uids = {x if x != uuid.UUID(int=0) else self. root for x in uids}
-        list(self._load_from_backend(uids))
+        iris.add(iri_from_uid(self.root))
+        for iri in iris:
+            self._load_by_iri(iri)
 
     # OVERRIDE
     def _load_by_oclass(self, oclass):
@@ -80,6 +73,14 @@ class TripleStoreWrapperSession(DbWrapperSession):
                         and uid_from_iri(x) == self.root else x
                         for x in triple)
 
+    def _substitute_zero_iri(self, triples):
+        from osp.core.utils import CUDS_IRI_PREFIX
+        for triple in triples:
+            yield tuple(iri_from_uid(self.root)
+                        if x is not None and x.startswith(CUDS_IRI_PREFIX)
+                        and uid_from_iri(x) == uuid.UUID(int=0) else x
+                        for x in triple)
+
     def _load_by_iri(self, iri):
         """Load the CUDS object wit the given IRI.
 
@@ -91,21 +92,10 @@ class TripleStoreWrapperSession(DbWrapperSession):
         """
         if iri == iri_from_uid(self.root):
             iri = iri_from_uid(uuid.UUID(int=0))
-        _triples, type_triples_of_neighbors = self._load_triples_for_iri(iri)
-        triples, neighbor_triples = [], []
-        for s, p, o in _triples:
-            if o == iri_from_uid(uuid.UUID(int=0)):
-                triples.append((s, p, iri_from_uid(self.root)))
-                neighbor_triples.append((iri_from_uid(self.root),
-                                         from_iri(p).inverse.iri,
-                                         s))
-            else:
-                triples.append((s,p, o))
-        for s, p, o in type_triples_of_neighbors:
-            if s == iri_from_uid(uuid.UUID(int=0)):
-                neighbor_triples.append((iri_from_uid(self.root), p, o))
-            else:
-                neighbor_triples.append((s, p, o))
+        triples, neighbor_triples = self._load_triples_for_iri(iri)
+
+        triples = self._substitute_zero_iri(triples)
+        neighbor_triples = self._substitute_zero_iri(neighbor_triples)
 
         return create_from_triples(
             triples=triples,
@@ -113,7 +103,6 @@ class TripleStoreWrapperSession(DbWrapperSession):
             session=self,
             fix_neighbors=False
         )
-
 
     @abstractmethod
     def _triples(self, pattern):

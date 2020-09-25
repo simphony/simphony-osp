@@ -91,8 +91,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
             ["namespace"]
         ],
         RELATIONSHIP_TABLE: [["s", "p"],
-                             ["p", "o"],
-                             ["o"]],
+                             ["p", "o"]],
         DATA_TABLE_PREFIX: [["s", "p"]]
     }
 
