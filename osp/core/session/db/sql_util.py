@@ -6,6 +6,7 @@ from osp.core.ontology.datatypes import convert_to, convert_from, \
     _parse_vector_args
 from osp.core.ontology.cuba import rdflib_cuba
 from functools import reduce
+from copy import deepcopy
 
 
 VEC_PREFIX = str(rdflib_cuba["_datatypes/VECTOR-"])
@@ -35,7 +36,7 @@ class SqlQuery():
 
     def where(self, condition):
         """Filter the results."""
-        condition = expand_vector_condition(condition)
+        condition = expand_vector_condition(deepcopy(condition))
         check_characters(condition)
         if condition is None:
             return self
@@ -44,13 +45,13 @@ class SqlQuery():
             return self
         if isinstance(self.condition, AndCondition):
             if isinstance(condition, AndCondition):
-                self.condition.conditions += condition.conditions
+                self.condition.conditions |= condition.conditions
             else:
-                self.condition.conditions.append(condition)
+                self.condition.conditions.add(condition)
         else:
             if isinstance(condition, AndCondition):
-                condition.conditions.append(self.condition)
-                self.condition.conditions = condition
+                condition.conditions.add(self.condition)
+                self.condition = condition
             else:
                 self.condition = AndCondition(self.condition, condition)
         return self
@@ -91,6 +92,28 @@ class EqualsCondition(Condition):
         self.value = convert_from(value, datatype)
         self.datatype = datatype
 
+    def __eq__(self, other):
+        """Check if two conditions are equal.
+
+        Args:
+            other (Condition): The other condition.
+
+        Returns:
+            bool: Wether the two codnitions are equal.
+        """
+        return (
+            isinstance(other, type(self))
+            and self.table_name == other.table_name
+            and self.column == other.column
+            and self.value == other.value
+            and self.datatype == other.datatype
+        )
+
+    def __hash__(self):
+        """Compute hash."""
+        return hash(self.table_name + self.column
+                    + str(self.value) + str(self.datatype))
+
 
 class JoinCondition(Condition):
     """Join two tables with this condition."""
@@ -102,16 +125,54 @@ class JoinCondition(Condition):
         self.column1 = column1
         self.column2 = column2
 
+    def __eq__(self, other):
+        """Check if two conditions are equal.
+
+        Args:
+            other (Condition): The other condition.
+
+        Returns:
+            bool: Wether the two codnitions are equivalent.
+        """
+        return (
+            isinstance(other, type(self))
+            and self.table_name1 == other.table_name1
+            and self.table_name2 == other.table_name2
+            and self.column1 == other.column1
+            and self.column2 == other.column2
+        )
+
+    def __hash__(self):
+        """Compute hash."""
+        return hash(self.table_name1 + self.table_name2
+                    + self.column1 + self.column2)
+
 
 class AndCondition(Condition):
     """An SQL AND condition."""
 
     def __init__(self, *conditions):
         """Initialize the condition with several subconditions."""
-        conditions = [c for c in conditions if c is not None]
+        conditions = set(c for c in conditions if c is not None)
         if not all(isinstance(c, Condition) for c in conditions):
             raise ValueError(f"Invalid conditions: {conditions}")
         self.conditions = conditions
+
+    def __eq__(self, other):
+        """Check if two conditions are equal.
+
+        Args:
+            other (Condition): The other condition.
+
+        Returns:
+            bool: Wether the two codnitions are equivalent.
+        """
+        return isinstance(other, type(self)) \
+            and set(self.conditions) == set(other.conditions)
+
+    def __hash__(self):
+        """Compute hash."""
+        return hash("".join([hash(c) for c in self.conditions]))
 
 
 def determine_datatype(table_name):
@@ -126,13 +187,13 @@ def determine_datatype(table_name):
     from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
     prefix = SqlWrapperSession.DATA_TABLE_PREFIX
 
-    if table_name.startswith(prefix + "OWL"):
+    if table_name.startswith(prefix + "OWL_"):
         return getattr(rdflib.OWL, table_name[len(prefix + "OWL_"):])
-    elif table_name.startswith(prefix + "RDF"):
-        return getattr(rdflib.RDF, table_name[len(prefix + "RDF_"):])
-    elif table_name.startswith(prefix + "RDFS"):
+    elif table_name.startswith(prefix + "RDFS_"):
         return getattr(rdflib.RDFS, table_name[len(prefix + "RDFS_"):])
-    elif table_name.startswith(prefix + "XSD"):
+    elif table_name.startswith(prefix + "RDF_"):
+        return getattr(rdflib.RDF, table_name[len(prefix + "RDF_"):])
+    elif table_name.startswith(prefix + "XSD_"):
         return getattr(rdflib.XSD, table_name[len(prefix + "XSD_"):])
     else:
         return getattr(rdflib_cuba, "_datatypes/" + table_name[len(prefix):])
@@ -231,7 +292,7 @@ def expand_vector_cols(columns, datatypes, values=None):
             columns, datatypes (and values, if given)
     """
     columns_expanded = list()
-    datatypes_expanded = dict()
+    datatypes_expanded = dict(datatypes)
     values_expanded = list()
 
     # iterate over the columns and look for vectors
@@ -263,9 +324,8 @@ def contract_vector_values(rows, query):
     """Contract vector values in a row of a database into one vector.
 
     Args:
-        columns(List[str]): The expanded columns of the database
-        datatypes(dict): The datatype for each column
         rows(Iterator[List[Any]]): The rows fetched from the database
+        query(SqlQuery): The corresponding query-
 
     Returns:
         Iterator[List[Any]]: The rows with vectors being a single item
@@ -389,7 +449,7 @@ def convert_values(rows, query):
 
     Args:
         rows(Iterator[Iterator[Any]]): The rows of the database.
-        query(Query): The corresponding query.
+        query(SqlQuery): The corresponding query.
 
     Yields:
         The rows with converted values.
