@@ -114,7 +114,6 @@ class TripleStoreWrapperSession(DbWrapperSession):
             pattern (Tuple): A triple consisting of subject, predicate, object.
                 Each can be None.
         """
-        pass
 
     @abstractmethod
     def _add(self, *triples):
@@ -123,7 +122,6 @@ class TripleStoreWrapperSession(DbWrapperSession):
         Args:
             triples (Tuple): A tuple consisting of subject, predicate, object.
         """
-        pass
 
     @abstractmethod
     def _remove(self, pattern):
@@ -133,7 +131,6 @@ class TripleStoreWrapperSession(DbWrapperSession):
             pattern (Tuple): A triple consisting of subject, predicate, object.
                 Each can be None.
         """
-        pass
 
     @abstractmethod
     def _load_triples_for_iri(self, iri):
@@ -142,4 +139,3 @@ class TripleStoreWrapperSession(DbWrapperSession):
         Args:
             iri (Tuple): The IRI of the CUDS object to load the triples for.
         """
-        pass
