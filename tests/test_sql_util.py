@@ -7,7 +7,8 @@ from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.session.db.sql_util import (
     expand_vector_cols,
     contract_vector_values, SqlQuery, EqualsCondition, JoinCondition,
-    AndCondition, determine_datatype, get_data_table_name
+    AndCondition, determine_datatype, get_data_table_name, check_characters,
+    get_expanded_cols
 )
 
 COLS = ['1', '2', '3']
@@ -116,15 +117,48 @@ class TestSqlUtil(unittest.TestCase):
             get_data_table_name(rdflib_cuba["_datatypes/VECTOR-2-2"]),
             "DATA_VECTOR-2-2"
         )
+        self.assertRaises(NotImplementedError,
+                          get_data_table_name, rdflib.SKOS.prefLabel)
 
     def test_check_characters(self):
         """Test character check."""
+        c1 = EqualsCondition("c", "d", "e", rdflib.XSD.string)
+        c2 = EqualsCondition("c;", "d", "e", rdflib.XSD.string)
+        c3 = EqualsCondition("c", "d;", "e", rdflib.XSD.string)
+        c4 = JoinCondition("g", "h", "i", "j")
+        c5 = JoinCondition("g;", "h", "i", "j")
+        c6 = JoinCondition("g", "h;", "i", "j")
+        c7 = JoinCondition("g", "h", "i;", "j")
+        c8 = JoinCondition("g", "h", "i", "j;")
+        x = {"key": ["a", ("b", AndCondition(c1, c4))]}
+        x1 = {"key;": ["a", ("b", AndCondition(c1, c4))]}
+        x2 = {"key": ["a;", ("b", AndCondition(c1, c4))]}
+        x3 = {"key": ["a", ("b;", AndCondition(c1, c4))]}
+
+        x4 = {"key": ["a", ("b", AndCondition(c2, c4))]}
+        x5 = {"key": ["a", ("b", AndCondition(c3, c4))]}
+
+        x6 = {"key": ["a", ("b", AndCondition(c1, c5))]}
+        x7 = {"key": ["a", ("b", AndCondition(c1, c6))]}
+        x8 = {"key": ["a", ("b", AndCondition(c1, c7))]}
+        x9 = {"key": ["a", ("b", AndCondition(c1, c8))]}
+        check_characters(x)
+        self.assertRaises(ValueError, check_characters, x1)
+        self.assertRaises(ValueError, check_characters, x2)
+        self.assertRaises(ValueError, check_characters, x3)
+        self.assertRaises(ValueError, check_characters, x4)
+        self.assertRaises(ValueError, check_characters, x5)
+        self.assertRaises(ValueError, check_characters, x6)
+        self.assertRaises(ValueError, check_characters, x7)
+        self.assertRaises(ValueError, check_characters, x8)
+        self.assertRaises(ValueError, check_characters, x9)
 
     def test_get_expanded_cols(self):
         """Test getting the expanded columns."""
-
-    def test_handle_vector_item(self):
-        """Test handling an element of a vector in a query result row."""
+        x1 = get_expanded_cols("column", rdflib.XSD.string)
+        x2 = get_expanded_cols(COLS[2], DTYPES[COLS[2]])
+        self.assertEqual(x1, (["column"], rdflib.XSD.string))
+        self.assertEqual(x2, (EXPANDED_COLS[3:], rdflib.XSD.float))
 
     def test_expand_vector_cols(self):
         """Test the expand_vector_cols method."""
