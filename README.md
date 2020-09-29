@@ -1,6 +1,4 @@
-**docs build** [![Documentation Status](https://readthedocs.org/projects/simphony/badge/?version=latest)]
-
-(https://simphony.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/simphony/badge/?version=latest)](https://simphony.readthedocs.io/en/latest/?badge=latest)
 ![](https://github.com/simphony/osp-core/workflows/CI/badge.svg)
 
 # OSP core
