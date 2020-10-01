@@ -230,7 +230,8 @@ class SqlWrapperSession(TripleStoreWrapperSession):
 
         elif o is not None:
             conditions += [
-                EqualsCondition(table_name, "o", o, object_datatype)]
+                EqualsCondition(table_name, "o",
+                                o.toPython(), object_datatype)]
 
         return AndCondition(*conditions)
 
@@ -243,22 +244,25 @@ class SqlWrapperSession(TripleStoreWrapperSession):
 
     def _get_ns_idx(self, ns_iri):
         ns_iri = str(ns_iri)
-        if ns_iri in self._ns_to_idx:
-            return self._ns_to_idx[ns_iri]
-        x = self._do_db_insert(
-            table_name=self.NAMESPACES_TABLE,
-            columns=["namespace"],
-            values=[str(ns_iri)],
-            datatypes=self.DATATYPES[self.NAMESPACES_TABLE]
-        )
-        self._ns_to_idx[ns_iri] = x
-        self._idx_to_ns[x] = ns_iri
-        return x
+        if ns_iri not in self._ns_to_idx:
+            self._do_db_insert(
+                table_name=self.NAMESPACES_TABLE,
+                columns=["namespace"],
+                values=[str(ns_iri)],
+                datatypes=self.DATATYPES[self.NAMESPACES_TABLE]
+            )
+            self._load_namespace_indexes()
+        return self._ns_to_idx[ns_iri]
+
+    def _get_ns(self, ns_idx):
+        if ns_idx not in self._idx_to_ns:
+            self._load_namespace_indexes()
+        return self._idx_to_ns[ns_idx]
 
     def _rows_to_triples(self, cursor, table_name, object_datatype):
         for row in cursor:
             s = rdflib.URIRef(iri_from_uid(row[0]))
-            x = rdflib.URIRef(self._idx_to_ns[row[1]] + row[2])
+            x = rdflib.URIRef(self._get_ns(row[1]) + row[2])
             if table_name == self.TYPES_TABLE:
                 yield s, rdflib.RDF.type, x
             elif table_name == self.RELATIONSHIP_TABLE:
@@ -289,7 +293,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
     def _add(self, *triples):
         for triple in triples:
             table_name, datatypes = self._determine_table(triple)
-            values = self._get_values(triple, table_name, datatypes)
+            values = self._get_values(triple, table_name)
             columns = self.TRIPLESTORE_COLUMNS
             if table_name == self.TYPES_TABLE:
                 columns = self.COLUMNS[self.TYPES_TABLE]
@@ -300,7 +304,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
                 datatypes=datatypes
             )
 
-    def _get_values(self, triple, table_name, datatypes):
+    def _get_values(self, triple, table_name):
         s, p, o = triple
         s = self._get_cuds_idx(self._split_namespace(s))
         if table_name == self.TYPES_TABLE:
@@ -377,6 +381,10 @@ class SqlWrapperSession(TripleStoreWrapperSession):
                                            datatype=object_datatype)]
         return AndCondition(*conditions)
 
+    def _load_namespace_indexes(self):
+        self._idx_to_ns = dict(self._default_select(self.NAMESPACES_TABLE))
+        self._ns_to_idx = {v: k for k, v in self._idx_to_ns.items()}
+
     # INITIALIZE
     # OVERRIDE
     def _initialize(self):
@@ -385,8 +393,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         self._default_create(self.TYPES_TABLE)
         self._default_create(self.NAMESPACES_TABLE)
         self._default_create(self.RELATIONSHIP_TABLE)
-        self._idx_to_ns = dict(self._default_select(self.NAMESPACES_TABLE))
-        self._ns_to_idx = {v: k for k, v in self._idx_to_ns.items()}
+        self._load_namespace_indexes()
 
         from osp.core.utils import get_custom_datatypes
         datatypes = get_custom_datatypes() | {

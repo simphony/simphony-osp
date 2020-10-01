@@ -17,7 +17,7 @@ class SqlQuery():
 
     def __init__(self, table_name, columns, datatypes, alias=None):
         """Initialize the query."""
-        alias = (alias or table_name).lower()
+        alias = alias or table_name
         columns, datatypes = expand_vector_cols(columns, datatypes)
         check_characters(table_name, columns, datatypes, alias)
 
@@ -58,7 +58,7 @@ class SqlQuery():
 
     def join(self, table_name, columns, datatypes, alias=None):
         """Join with another table."""
-        alias = (alias or table_name).lower()
+        alias = alias or table_name
         columns, datatypes = expand_vector_cols(columns, datatypes)
         check_characters(table_name, columns, datatypes, alias)
 
@@ -172,7 +172,7 @@ class AndCondition(Condition):
 
     def __hash__(self):
         """Compute hash."""
-        return hash("".join([hash(c) for c in self.conditions]))
+        return hash("".join([str(hash(c)) for c in self.conditions]))
 
 
 def determine_datatype(table_name):
