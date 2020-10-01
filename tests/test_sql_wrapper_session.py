@@ -193,7 +193,7 @@ class TestSqlWrapperSession(unittest.TestCase):
         )
         self.assertEqual(len(r), 1)
         self.assertEqual(r[0][1:], ("DATA_VECTOR-INT-2",
-                                     rdflib_cuba["_datatypes/VECTOR-INT-2"]))
+                                    rdflib_cuba["_datatypes/VECTOR-INT-2"]))
         self.assertEqual(r[0][0]._columns, {
             "ts": ["uid"], "tp": ["ns_idx", "name"],
             "DATA_VECTOR-INT-2": ["o___0", "o___1"]})
@@ -224,7 +224,7 @@ class TestSqlWrapperSession(unittest.TestCase):
                    key=lambda x: x[1])
         self.assertEqual(len(r), 1)
         self.assertEqual(r[0][1:], ("DATA_VECTOR-INT-2",
-                                     rdflib_cuba["_datatypes/VECTOR-INT-2"]))
+                                    rdflib_cuba["_datatypes/VECTOR-INT-2"]))
         self.assertEqual(r[0][0]._columns, {
             "ts": ["uid"], "tp": ["ns_idx", "name"],
             "DATA_VECTOR-INT-2": ["o___0", "o___1"]})
@@ -371,8 +371,9 @@ class TestSqlWrapperSession(unittest.TestCase):
             (uuid.UUID(int=2), 1, "attribute", np.array([3, 4]))
         ])
         triples = list(
-            self.session._rows_to_triples(cursor, "DATA_VECTOR-INT-2",
-                                          rdflib_cuba["_datatypes/VECTOR-INT-2"])
+            self.session._rows_to_triples(
+                cursor, "DATA_VECTOR-INT-2",
+                rdflib_cuba["_datatypes/VECTOR-INT-2"])
         )
         self.assertEqual(triples, [
             (iri_from_uid(uuid.UUID(int=1)), city.coordinates.iri,
