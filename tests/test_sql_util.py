@@ -4,6 +4,7 @@ import unittest2 as unittest
 import numpy as np
 import rdflib
 from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
 from osp.core.session.db.sql_util import (
     expand_vector_cols,
     contract_vector_values, SqlQuery, EqualsCondition, JoinCondition,
@@ -28,6 +29,13 @@ EXPANDED_DTYPES = {'1': rdflib.XSD.integer,
                    '3___2': rdflib.XSD.float, '3___3': rdflib.XSD.float,
                    '3___4': rdflib.XSD.float, '3___5': rdflib.XSD.float}
 EXPANDED_VALS = [100, 1, 2, 1, 2, 3, 2, 3, 4]
+
+DATA_TABLE_PREFIX = SqlWrapperSession.DATA_TABLE_PREFIX
+
+
+def data_tbl(suffix):
+    """Prepend data table prefix."""
+    return DATA_TABLE_PREFIX + suffix
 
 
 class TestSqlUtil(unittest.TestCase):
@@ -92,30 +100,30 @@ class TestSqlUtil(unittest.TestCase):
 
     def test_determine_datatype(self):
         """Test determining the datatype of a table."""
-        self.assertEqual(determine_datatype("DATA_XSD_integer"),
+        self.assertEqual(determine_datatype(data_tbl("XSD_integer")),
                          rdflib.XSD.integer)
-        self.assertEqual(determine_datatype("DATA_OWL_rational"),
+        self.assertEqual(determine_datatype(data_tbl("OWL_rational")),
                          rdflib.OWL.rational)
-        self.assertEqual(determine_datatype("DATA_RDF_PlainLiteral"),
+        self.assertEqual(determine_datatype(data_tbl("RDF_PlainLiteral")),
                          rdflib.RDF.PlainLiteral)
-        self.assertEqual(determine_datatype("DATA_RDFS_Literal"),
+        self.assertEqual(determine_datatype(data_tbl("RDFS_Literal")),
                          rdflib.RDFS.Literal)
-        self.assertEqual(determine_datatype("DATA_VECTOR-2-2"),
+        self.assertEqual(determine_datatype(data_tbl("VECTOR-2-2")),
                          rdflib_cuba["_datatypes/VECTOR-2-2"])
 
     def test_get_data_table_name(self):
         """Test getting the name of a data table from data type."""
         self.assertEqual(get_data_table_name(rdflib.XSD.integer),
-                         "DATA_XSD_integer")
+                         data_tbl("XSD_integer"))
         self.assertEqual(get_data_table_name(rdflib.OWL.rational),
-                         "DATA_OWL_rational")
+                         data_tbl("OWL_rational"))
         self.assertEqual(get_data_table_name(rdflib.RDF.PlainLiteral),
-                         "DATA_RDF_PlainLiteral")
+                         data_tbl("RDF_PlainLiteral"))
         self.assertEqual(get_data_table_name(rdflib.RDFS.Literal),
-                         "DATA_RDFS_Literal")
+                         data_tbl("RDFS_Literal"))
         self.assertEqual(
             get_data_table_name(rdflib_cuba["_datatypes/VECTOR-2-2"]),
-            "DATA_VECTOR-2-2"
+            data_tbl("VECTOR-2-2")
         )
         self.assertRaises(NotImplementedError,
                           get_data_table_name, rdflib.SKOS.prefLabel)

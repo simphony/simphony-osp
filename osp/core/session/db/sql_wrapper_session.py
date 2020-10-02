@@ -20,12 +20,12 @@ class SqlWrapperSession(TripleStoreWrapperSession):
     """Abstract class for an SQL DB Wrapper Session."""
 
     TRIPLESTORE_COLUMNS = ["s", "p", "o"]
-    CUDS_TABLE = "OSP_CUDS"
-    ENTITIES_TABLE = "OSP_ENTITIES"
-    TYPES_TABLE = "OSP_TYPES"
-    NAMESPACES_TABLE = "OSP_NAMESPACES"
-    RELATIONSHIP_TABLE = "OSP_RELATIONS"
-    DATA_TABLE_PREFIX = "DATA_"
+    CUDS_TABLE = "OSP_V1_CUDS"
+    ENTITIES_TABLE = "OSP_V1_ENTITIES"
+    TYPES_TABLE = "OSP_V1_TYPES"
+    NAMESPACES_TABLE = "OSP_V1_NAMESPACES"
+    RELATIONSHIP_TABLE = "OSP_V1_RELATIONS"
+    DATA_TABLE_PREFIX = "DATA_V1_"
     COLUMNS = {
         CUDS_TABLE: ["cuds_idx", "uid"],
         ENTITIES_TABLE: ["entity_idx", "ns_idx", "name"],

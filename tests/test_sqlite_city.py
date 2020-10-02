@@ -17,6 +17,18 @@ except ImportError:
 
 DB = "test_sqlite.db"
 
+CUDS_TABLE = SqliteSession.CUDS_TABLE
+ENTITIES_TABLE = SqliteSession.ENTITIES_TABLE
+TYPES_TABLE = SqliteSession.TYPES_TABLE
+NAMESPACES_TABLE = SqliteSession.NAMESPACES_TABLE
+RELATIONSHIP_TABLE = SqliteSession.RELATIONSHIP_TABLE
+DATA_TABLE_PREFIX = SqliteSession.DATA_TABLE_PREFIX
+
+
+def data_tbl(suffix):
+    """Prepend data table prefix."""
+    return DATA_TABLE_PREFIX + suffix
+
 
 class TestSqliteCity(unittest.TestCase):
     """Test the sqlite wrapper with the city ontology."""
@@ -313,9 +325,10 @@ def check_state(test_case, c, p1, p2, db=DB):
             "SELECT name FROM sqlite_master WHERE type='table';")
         result = set(map(lambda x: x[0], cursor))
         test_case.assertEqual(result, set([
-            "OSP_RELATIONS", "DATA_VECTOR-INT-2", "OSP_CUDS", "OSP_NAMESPACES",
-            "OSP_ENTITIES", "OSP_TYPES", "DATA_XSD_boolean", "DATA_XSD_float",
-            "DATA_XSD_integer", "DATA_XSD_string"]))
+            RELATIONSHIP_TABLE, data_tbl("VECTOR-INT-2"), CUDS_TABLE,
+            NAMESPACES_TABLE, ENTITIES_TABLE, TYPES_TABLE,
+            data_tbl("XSD_boolean"), data_tbl("XSD_float"),
+            data_tbl("XSD_integer"), data_tbl("XSD_string")]))
 
         cursor.execute(
             "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, `to`.`uid` "
@@ -361,7 +374,7 @@ def check_state(test_case, c, p1, p2, db=DB):
             "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, `x`.`o` "
             "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `tp` "
             "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`p`=`tp`.`entity_idx` ;"
-            % ("DATA_XSD_string", SqliteSession.CUDS_TABLE,
+            % (data_tbl("XSD_string"), SqliteSession.CUDS_TABLE,
                SqliteSession.ENTITIES_TABLE))
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
@@ -375,7 +388,7 @@ def check_state(test_case, c, p1, p2, db=DB):
             "`x`.`o___0` , `x`.`o___1` "
             "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `tp` "
             "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`p`=`tp`.`entity_idx` ;"
-            % ("DATA_VECTOR-INT-2", SqliteSession.CUDS_TABLE,
+            % (data_tbl("VECTOR-INT-2"), SqliteSession.CUDS_TABLE,
                SqliteSession.ENTITIES_TABLE))
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
@@ -410,35 +423,29 @@ def update_db(db, c, p1, p2, p3):
     """Make some changes to the data in the database."""
     with sqlite3.connect(db) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT `uid`, `cuds_idx` FROM OSP_CUDS;")
+        cursor.execute(f"SELECT `uid`, `cuds_idx` FROM {CUDS_TABLE};")
         m = dict(map(lambda x: (uuid.UUID(hex=x[0]), x[1]), cursor))
-        cursor.execute("SELECT `name`, `entity_idx` "
-                       "FROM OSP_ENTITIES ;")
+        cursor.execute(f"SELECT `name`, `entity_idx` "
+                       f"FROM {ENTITIES_TABLE} ;")
         e = dict(cursor)
 
-        cursor.execute("UPDATE DATA_XSD_string SET o = 'Paris' "
-                       "WHERE s=%s AND p=%s;"
-                       % (m[c.uid], e["name"]))
-        cursor.execute("UPDATE DATA_XSD_string SET o = 'Maria' "
-                       "WHERE s=%s AND p=%s;"
-                       % (m[p1.uid], e["name"]))
-        cursor.execute("UPDATE DATA_XSD_string SET o = 'Jacob' "
-                       "WHERE s=%s AND p=%s;"
-                       % (m[p2.uid], e["name"]))
+        cursor.execute(f"UPDATE {data_tbl('XSD_string')} SET o = 'Paris' "
+                       f"WHERE s={m[c.uid]} AND p={e['name']};")
+        cursor.execute(f"UPDATE {data_tbl('XSD_string')} SET o = 'Maria' "
+                       f"WHERE s={m[p1.uid]} AND p={e['name']};")
+        cursor.execute(f"UPDATE {data_tbl('XSD_string')} SET o = 'Jacob' "
+                       f"WHERE s={m[p2.uid]} AND p={e['name']};")
 
-        cursor.execute("DELETE FROM %s "
-                       "WHERE s == '%s' OR o = '%s'"
-                       % (SqliteSession.RELATIONSHIP_TABLE,
-                          m[p2.uid], m[p2.uid]))
-        cursor.execute("DELETE FROM %s WHERE s == '%s' OR o = '%s'"
-                       % (SqliteSession.RELATIONSHIP_TABLE,
-                          m[p3.uid], m[p3.uid]))
-        cursor.execute("DELETE FROM DATA_XSD_string WHERE s == '%s'"
-                       % m[p3.uid])
-        cursor.execute("DELETE FROM DATA_XSD_integer WHERE s == '%s'"
-                       % m[p3.uid])
-        cursor.execute("DELETE FROM %s WHERE cuds_idx == '%s'"
-                       % (SqliteSession.CUDS_TABLE, m[p3.uid]))
+        cursor.execute(f"DELETE FROM {RELATIONSHIP_TABLE} "
+                       f"WHERE s == '{m[p2.uid]}' OR o = '{m[p2.uid]}'")
+        cursor.execute(f"DELETE FROM {RELATIONSHIP_TABLE} "
+                       f"WHERE s == '{m[p3.uid]}' OR o = '{m[p3.uid]}'")
+        cursor.execute(f"DELETE FROM {data_tbl('XSD_string')} "
+                       f"WHERE s == '{m[p3.uid]}'")
+        cursor.execute(f"DELETE FROM '{data_tbl('XSD_integer')}' "
+                       f"WHERE s == '{m[p3.uid]}'")
+        cursor.execute(f"DELETE FROM {CUDS_TABLE} "
+                       f"WHERE cuds_idx == '{m[p3.uid]}'")
         conn.commit()
 
 
