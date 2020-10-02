@@ -9,9 +9,11 @@ from osp.core.ontology.namespace_registry import NamespaceRegistry \
 _logger = _logging.getLogger(__name__)
 
 # load installed ontologies
+_osp_ontologies_dir = _os.environ.get("OSP_ONTOLOGIES_DIR") \
+    or _os.path.expanduser("~")
 _namespace_registry = _NamespaceRegistry()
 _path = _os.path.join(
-    _os.path.expanduser("~"),
+    _osp_ontologies_dir,
     ".osp_ontologies"
 )
 _os.makedirs(_path, exist_ok=True)
