@@ -1,9 +1,16 @@
 import sys
+import rdflib
 import logging
-import osp.core.namespaces
-from osp.core.namespaces import _namespace_registry
 
 logging.getLogger("rdflib").setLevel(logging.WARNING)
+
+try:
+    getattr(rdflib, "SKOS")
+except AttributeError:
+    rdflib.SKOS = rdflib.Namespace("http://www.w3.org/2004/02/skos/core#")
+
+from osp.core.namespaces import _namespace_registry
+import osp.core.namespaces
 
 # set up logging
 logger = logging.getLogger(__name__)
