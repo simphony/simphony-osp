@@ -38,11 +38,18 @@ class SqlMigrate():
         self.entities = {}
         self.cuds = {}
 
+        self._init_transaction()
         if self.session.root is None:
             cuba.Wrapper(session=self.session)
-        self.migrate_master_0_1()
-        self.migrate_relations_0_1()
-        self.migrate_data_0_1()
+       try:
+            self.migrate_master_0_1()
+            self.migrate_relations_0_1()
+            self.migrate_data_0_1()
+            self.delete_old_tables_0()
+            self._commit()
+        except Exception as e:
+            self._rollback_transaction()
+            raise e
 
     def migrate_master_0_1(self):
         """Migrate the OSP_MASTER table."""
@@ -87,7 +94,7 @@ class SqlMigrate():
         tables = self.session._get_table_names("CUDS_")
         for table in tables:
             oclass = get_entity(table[5:].replace("___", "."))
-            attributes, columns, datatypes = self.get_col_spec_0_1(oclass)
+            attributes, columns, datatypes = self.get_col_spec_0(oclass)
             self.migrate_data_table_0_1(table, columns, datatypes, attributes)
 
     def migrate_data_table_0_1(self, table, columns, datatypes, attributes):
@@ -142,13 +149,17 @@ class SqlMigrate():
             )
         return self.entities[entity_iri]
 
-    def get_col_spec_0_1(self, oclass):
+    def get_col_spec_0(self, oclass):
         """Get the columns specification of CUDS tables in schema v0."""
         attributes = list(oclass.attributes)
         columns = [x.argname for x in attributes] + ["uid"]
         datatypes = dict(uid="UUID", **{x.argname: x.datatype
                                         for x in attributes})
         return attributes, columns, datatypes
+
+    def delete_old_tables_0(self):
+        for table in self.tables:
+            self.session._drop_table(table)
 
     def no_migration(self):
         """Do nothing."""

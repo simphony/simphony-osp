@@ -469,7 +469,15 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         """
 
     @abstractmethod
-    def _db_delete(self, table_name, condition):
+    def _db_delete(self, table_name):
+        """Drop the entire table.
+
+        Args:
+            table_name(str): The name of the table.
+        """
+
+    @abstractmethod
+    def _drop_table(self, table_name, condition):
         """Delete data from the given table.
 
         Args:
