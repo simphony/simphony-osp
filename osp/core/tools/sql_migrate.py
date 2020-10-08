@@ -38,17 +38,17 @@ class SqlMigrate():
         self.entities = {}
         self.cuds = {}
 
-        self._init_transaction()
-        if self.session.root is None:
-            cuba.Wrapper(session=self.session)
-       try:
+        commit = self.session._commit  # avoid a commit during initialization.
+        self.session._commit = lambda: None
+        cuba.Wrapper(session=self.session)
+        try:
             self.migrate_master_0_1()
             self.migrate_relations_0_1()
             self.migrate_data_0_1()
             self.delete_old_tables_0()
-            self._commit()
+            commit()
         except Exception as e:
-            self._rollback_transaction()
+            self.session._rollback_transaction()
             raise e
 
     def migrate_master_0_1(self):
@@ -158,8 +158,9 @@ class SqlMigrate():
         return attributes, columns, datatypes
 
     def delete_old_tables_0(self):
+        """Delete the old tables of v0."""
         for table in self.tables:
-            self.session._drop_table(table)
+            self.session._do_db_drop(table)
 
     def no_migration(self):
         """Do nothing."""

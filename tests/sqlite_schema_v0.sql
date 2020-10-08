@@ -22,9 +22,9 @@ INSERT INTO CUDS_city___Citizen VALUES(25,'Peter','91065a12-947e-4a25-a9b3-eb4d8
 INSERT INTO CUDS_city___Citizen VALUES(25,'Hans','aab17a89-22ff-4ce8-a053-182b9b7161a4');
 INSERT INTO CUDS_city___Citizen VALUES(25,'Michel','931ee2d9-9d9c-4b55-8f0c-41b9f809765e');
 CREATE TABLE `CUDS_city___Neighborhood` (`name` `TEXT`, `coordinates___0` `INTEGER`, `coordinates___1` `INTEGER`, `uid` `TEXT`, PRIMARY KEY(`uid`), FOREIGN KEY(`uid`) REFERENCES `OSP_MASTER`(`uid`));
-INSERT INTO CUDS_city___Neighborhood VALUES('Zähringen',0,0,'cfedb6bc-5837-443d-8286-bba246a29934');
+INSERT INTO CUDS_city___Neighborhood VALUES('Zähringen',4,2,'cfedb6bc-5837-443d-8286-bba246a29934');
 CREATE TABLE `CUDS_city___Street` (`name` `TEXT`, `coordinates___0` `INTEGER`, `coordinates___1` `INTEGER`, `uid` `TEXT`, PRIMARY KEY(`uid`), FOREIGN KEY(`uid`) REFERENCES `OSP_MASTER`(`uid`));
-INSERT INTO CUDS_city___Street VALUES('Le street',0,0,'fde5cc98-2e14-4912-bbb4-7e07e3c89226');
+INSERT INTO CUDS_city___Street VALUES('Le street',1,3,'fde5cc98-2e14-4912-bbb4-7e07e3c89226');
 CREATE TABLE `CUDS_city___Building` (`name` `TEXT`, `uid` `TEXT`, PRIMARY KEY(`uid`), FOREIGN KEY(`uid`) REFERENCES `OSP_MASTER`(`uid`));
 INSERT INTO CUDS_city___Building VALUES('Theater','0c4a5cf9-a571-4337-99d5-9a0a5485f081');
 CREATE TABLE `CUDS_city___Address` (`postalCode` `INTEGER`, `number` `INTEGER`, `name` `TEXT`, `uid` `TEXT`, PRIMARY KEY(`uid`), FOREIGN KEY(`uid`) REFERENCES `OSP_MASTER`(`uid`));

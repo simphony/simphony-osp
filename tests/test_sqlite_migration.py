@@ -1,10 +1,10 @@
 """Test the Sqlite Wrapper with the CITY ontology."""
 
 import os
-import uuid
 import unittest2 as unittest
 import sqlite3
 from pathlib import Path
+from osp.wrappers.sqlite.migration import SqliteMigrate
 from osp.wrappers.sqlite import SqliteSession
 
 try:
@@ -27,12 +27,28 @@ class TestSqliteCity(unittest.TestCase):
         if os.path.exists(DB):
             os.remove(DB)
 
-    def test_migrate_0_1(self):
-        """Test migration from schema v0 to v1."""
-        with open(Path(__file__).parent / "sqlite_schema_v1.sql") as f:
+    def run_migration(self, schema_version):
+        """Load the data from the given schema version + run the migration."""
+        filename = f"sqlite_schema_v{schema_version}.sql"
+        with open(Path(__file__).parent / filename) as f:
             with sqlite3.connect(DB) as con:
                 con.executescript(f.read())
-        input("ok?")
+        m = SqliteMigrate(DB)
+        m.run()
+
+    def run_test(self):
+        """Test whether all data can be loaded correctly."""
+        with SqliteSession(DB) as session:
+            w = city.CityWrapper(session=session)
+            w.get()
+
+    def test_migrate_v0(self):
+        """Test migration from schema from v0."""
+        # load old schema and run migratio
+
+        # connect to db and check if
+        self.run_migration(0)
+        self.run_test()
 
 
 if __name__ == '__main__':

@@ -486,6 +486,9 @@ class MockSqlWrapperSession(SqlWrapperSession):
     def close(self, *args, **kwargs):
         """Do nothing."""
 
+    def _db_drop(self, table_name):
+        """Do nothing."""
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -137,7 +137,6 @@ class SqliteSession(SqlWrapperSession):
             raise e
 
     # OVERRIDE
-
     def _db_update(self, table_name, columns, values, condition, datatypes):
         cond_pattern, cond_values = self._get_condition_pattern(condition)
         val_pattern, val_values = self._sql_list_pattern("val", values, False)
@@ -158,6 +157,12 @@ class SqliteSession(SqlWrapperSession):
                        % (table_name, cond_pattern))
         c = self._engine.cursor()
         c.execute(sql_pattern, cond_values)
+
+    # OVERRIDE
+    def _db_drop(self, table_name):
+        sql_command = (f"DROP TABLE IF EXISTS {table_name}")
+        c = self._engine.cursor()
+        c.execute(sql_command)
 
     # OVERRIDE
     def _get_table_names(self, prefix, cursor=None):

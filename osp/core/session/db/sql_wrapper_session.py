@@ -477,12 +477,11 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         """
 
     @abstractmethod
-    def _drop_table(self, table_name, condition):
-        """Delete data from the given table.
+    def _db_drop(self, table_name):
+        """Drop the table with the given name.
 
         Args:
             table_name(str): The name of the table.
-            condition(str): Delete rows that satisfy the condition.
         """
 
     @abstractmethod
@@ -501,6 +500,11 @@ class SqlWrapperSession(TripleStoreWrapperSession):
                          primary_key, foreign_key, indexes)
         self._db_create(table_name, columns, datatypes,
                         primary_key, generate_pk, foreign_key, indexes)
+
+    def _do_db_drop(self, table_name):
+        """Call _db_drop but check the characters first."""
+        check_characters(table_name)
+        self._db_drop(table_name,)
 
     def _do_db_select(self, query):
         """Call db_select but consider vectors."""
