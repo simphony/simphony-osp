@@ -9,6 +9,7 @@ from osp.core.session.db.triplestore_wrapper_session import \
 from osp.core.session.buffers import BufferContext
 from osp.core.ontology import OntologyRelationship
 from osp.core.utils import CUDS_IRI_PREFIX, iri_from_uid
+from osp.core.session.db.sql_migrate import check_supported_schema_version
 from osp.core.session.db.sql_util import (
     SqlQuery, EqualsCondition, AndCondition, JoinCondition,
     expand_vector_cols, contract_vector_values, expand_vector_condition,
@@ -94,6 +95,8 @@ class SqlWrapperSession(TripleStoreWrapperSession):
                              ["p", "o"]],
         DATA_TABLE_PREFIX: [["s", "p"]]
     }
+
+    check_schema = check_supported_schema_version
 
     # GET_TRIPLES
 
@@ -388,6 +391,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
     # INITIALIZE
     # OVERRIDE
     def _initialize(self):
+        self.check_schema()
         self._default_create(self.CUDS_TABLE)
         self._default_create(self.ENTITIES_TABLE)
         self._default_create(self.TYPES_TABLE)

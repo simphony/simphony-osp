@@ -1,7 +1,7 @@
 """This file contains a tool for migrating from old to new database schemas."""
 
+import uuid
 import rdflib
-from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
 from osp.core.session.db.sql_util import SqlQuery
 from osp.core.namespaces import get_entity
 from osp.core.utils import iri_from_uid
@@ -15,16 +15,55 @@ versions = {
     "OSP_V1_CUDS": 1
 }
 
+supported_versions = [1]
+
+
+def detect_current_schema_version(tables):
+    """Detect the current sql schema.
+
+    Args:
+        tables (List[str]): A list of the existing table names-
+
+    Raises:
+        RuntimeError: Could not detect the version-
+
+    Returns:
+        int: The version of the current data schema.
+    """
+    if not tables:
+        return max(versions.values())
+    try:
+        return min(v for tbl, v in versions.items() if tbl in tables)
+    except ValueError:
+        raise RuntimeError("No valid data on database found. "
+                           "Either database is corrupt or it has been created "
+                           "with a newer version of osp-core")
+
+
+def check_supported_schema_version(sql_session):
+    """Raise an error if sql session has data in not-supported.
+
+    Args:
+        sql_session (): [description]
+
+    Raises:
+        RuntimeError: [description]
+    """
+    tables = sql_session._get_table_names("")
+    if detect_current_schema_version(tables) not in supported_versions:
+        raise RuntimeError("Please update your database by running "
+                           "$python -m osp.wrappers.<sql_module>.migrate")
+    return True
+
 
 class SqlMigrate():
     """Tool to migrate from old to new database schema."""
 
-    def __init__(self, sql_session: SqlWrapperSession):
+    def __init__(self, sql_session):
         """Initialize the migration tool."""
         self.session = sql_session
         self.tables = sql_session._get_table_names("")
-        self.version = min(v for tbl, v in versions.items()
-                           if tbl in self.tables)
+        self.version = detect_current_schema_version(self.tables)
         self.max_version = max(versions.values())
         self.procedure = SqlMigrate.procedures[self.version][self.max_version]
 
@@ -39,7 +78,8 @@ class SqlMigrate():
         self.cuds = {}
 
         commit = self.session._commit  # avoid a commit during initialization.
-        self.session._commit = lambda: None
+        self.session._commit = lambda: True
+        self.session.check_schema = lambda: True
         cuba.Wrapper(session=self.session)
         try:
             self.migrate_master_0_1()
@@ -88,6 +128,14 @@ class SqlMigrate():
                 "OSP_V1_RELATIONS", ["s", "p", "o"], [s, p, o],
                 {"s": INT, "p": INT, "o": INT}
             )
+
+            if target == uuid.UUID(int=0):
+                ns_idx = self.get_ns_idx_0_1(rel.inverse.namespace.get_iri())
+                p = self.get_entity_idx_0_1(ns_idx, rel.inverse)
+                self.session._do_db_insert(
+                    "OSP_V1_RELATIONS", ["s", "p", "o"], [o, p, s],
+                    {"s": INT, "p": INT, "o": INT}
+                )
 
     def migrate_data_0_1(self):
         """Migrate the data from v0 to v1."""

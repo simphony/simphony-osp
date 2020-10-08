@@ -4,7 +4,7 @@ import os
 import argparse
 import logging
 from osp.wrappers.sqlite import SqliteSession
-from osp.core.tools.sql_migrate import SqlMigrate
+from osp.core.session.db.sql_migrate import SqlMigrate
 
 logger = logging.getLogger(__name__)
 

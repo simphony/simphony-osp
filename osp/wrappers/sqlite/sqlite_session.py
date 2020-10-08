@@ -160,7 +160,7 @@ class SqliteSession(SqlWrapperSession):
 
     # OVERRIDE
     def _db_drop(self, table_name):
-        sql_command = (f"DROP TABLE IF EXISTS {table_name}")
+        sql_command = (f"DROP TABLE IF EXISTS `{table_name}`")
         c = self._engine.cursor()
         c.execute(sql_command)
 
