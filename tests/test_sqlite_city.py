@@ -88,7 +88,7 @@ class TestSqliteCity(unittest.TestCase):
             session.prune()
             session.commit()
 
-#         check_state(self, c, p1, p2)
+        check_state(self, c, p1, p2)
 
     def test_init(self):
         """Test of first level of children are loaded automatically."""
@@ -335,8 +335,8 @@ def check_state(test_case, c, p1, p2, db=DB):
             "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `tp`, `%s` AS `to` "
             "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`p`=`tp`.`entity_idx` "
             "AND `x`.`o`=`to`.`cuds_idx`;"
-            % (SqliteSession.RELATIONSHIP_TABLE, SqliteSession.CUDS_TABLE,
-               SqliteSession.ENTITIES_TABLE, SqliteSession.CUDS_TABLE))
+            % (RELATIONSHIP_TABLE, CUDS_TABLE,
+               ENTITIES_TABLE, CUDS_TABLE))
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
             (str(uuid.UUID(int=0)), 1, "hasPart", str(c.uid)),
@@ -349,7 +349,7 @@ def check_state(test_case, c, p1, p2, db=DB):
 
         cursor.execute(
             "SELECT `ns_idx`, `namespace` FROM `%s`;"
-            % SqliteSession.NAMESPACES_TABLE
+            % NAMESPACES_TABLE
         )
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
@@ -360,8 +360,7 @@ def check_state(test_case, c, p1, p2, db=DB):
             "SELECT `ts`.`uid`, `to`.`ns_idx`, `to`.`name` "
             "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `to` "
             "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`o`=`to`.`entity_idx`;"
-            % (SqliteSession.TYPES_TABLE, SqliteSession.CUDS_TABLE,
-               SqliteSession.ENTITIES_TABLE))
+            % (TYPES_TABLE, CUDS_TABLE, ENTITIES_TABLE))
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
             (str(c.uid), 1, 'City'),
@@ -374,8 +373,7 @@ def check_state(test_case, c, p1, p2, db=DB):
             "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, `x`.`o` "
             "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `tp` "
             "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`p`=`tp`.`entity_idx` ;"
-            % (data_tbl("XSD_string"), SqliteSession.CUDS_TABLE,
-               SqliteSession.ENTITIES_TABLE))
+            % (data_tbl("XSD_string"), CUDS_TABLE, ENTITIES_TABLE))
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
             (str(p1.uid), 1, 'name', 'Peter'),
@@ -388,8 +386,7 @@ def check_state(test_case, c, p1, p2, db=DB):
             "`x`.`o___0` , `x`.`o___1` "
             "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `tp` "
             "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`p`=`tp`.`entity_idx` ;"
-            % (data_tbl("VECTOR-INT-2"), SqliteSession.CUDS_TABLE,
-               SqliteSession.ENTITIES_TABLE))
+            % (data_tbl("VECTOR-INT-2"), CUDS_TABLE, ENTITIES_TABLE))
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
             (str(c.uid), 1, 'coordinates', 0, 0)
@@ -401,20 +398,20 @@ def check_db_cleared(test_case, db_file):
     with sqlite3.connect(db_file) as conn:
         cursor = conn.cursor()
 
-        cursor.execute(f"SELECT * FROM {SqliteSession.CUDS_TABLE};")
+        cursor.execute(f"SELECT * FROM {CUDS_TABLE};")
         test_case.assertEqual(list(cursor), list())
-        cursor.execute(f"SELECT * FROM {SqliteSession.ENTITIES_TABLE};")
+        cursor.execute(f"SELECT * FROM {ENTITIES_TABLE};")
         test_case.assertEqual(list(cursor), list())
-        cursor.execute(f"SELECT * FROM {SqliteSession.TYPES_TABLE};")
+        cursor.execute(f"SELECT * FROM {TYPES_TABLE};")
         test_case.assertEqual(list(cursor), list())
-        cursor.execute(f"SELECT * FROM {SqliteSession.NAMESPACES_TABLE};")
+        cursor.execute(f"SELECT * FROM {NAMESPACES_TABLE};")
         test_case.assertEqual(list(cursor), list())
-        cursor.execute(f"SELECT * FROM {SqliteSession.RELATIONSHIP_TABLE};")
+        cursor.execute(f"SELECT * FROM {RELATIONSHIP_TABLE};")
         test_case.assertEqual(list(cursor), list())
 
         # DATA TABLES
         for table_name in SqliteSession._get_table_names(
-                None, SqliteSession.DATA_TABLE_PREFIX, cursor):
+                None, DATA_TABLE_PREFIX, cursor):
             cursor.execute(f"SELECT * FROM `{table_name}`;")
             test_case.assertEqual(list(cursor), list())
 

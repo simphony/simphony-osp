@@ -392,10 +392,10 @@ class SqlWrapperSession(TripleStoreWrapperSession):
     # OVERRIDE
     def _initialize(self):
         self.check_schema()
+        self._default_create(self.NAMESPACES_TABLE)
         self._default_create(self.CUDS_TABLE)
         self._default_create(self.ENTITIES_TABLE)
         self._default_create(self.TYPES_TABLE)
-        self._default_create(self.NAMESPACES_TABLE)
         self._default_create(self.RELATIONSHIP_TABLE)
         self._load_namespace_indexes()
 
