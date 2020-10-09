@@ -410,8 +410,9 @@ def check_db_cleared(test_case, db_file):
         test_case.assertEqual(list(cursor), list())
 
         # DATA TABLES
-        for table_name in SqliteSession._get_table_names(
-                None, DATA_TABLE_PREFIX, cursor):
+        with SqliteSession(DB) as s:
+            table_names = s._get_table_names(DATA_TABLE_PREFIX)
+        for table_name in table_names:
             cursor.execute(f"SELECT * FROM `{table_name}`;")
             test_case.assertEqual(list(cursor), list())
 
