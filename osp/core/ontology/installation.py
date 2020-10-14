@@ -139,9 +139,11 @@ class OntologyInstallationManager():
                 installed.
         """
         graph = self.namespace_registry._graph
+        installed = set(self.get_installed_packages())
         if clear:
             graph = self.namespace_registry.clear()
-        files = self._sort_for_installation(filter_func(files))
+            installed = set()
+        files = self._sort_for_installation(filter_func(files), installed)
         parser = Parser(graph)
         for file in files:
             parser.parse(file)
@@ -153,7 +155,7 @@ class OntologyInstallationManager():
         parser.store(self.path)
         self.namespace_registry.store(self.path)
 
-    def _sort_for_installation(self, files):
+    def _sort_for_installation(self, files, installed):
         """Get the right order to install the files.
 
         Args:
@@ -169,7 +171,6 @@ class OntologyInstallationManager():
         files = {Parser.get_identifier(f): f for f in files}
         requirements = {n: Parser.get_requirements(f) for
                         n, f in files.items()}
-        installed = set(self.get_installed_packages())
 
         # order the files
         while requirements:
