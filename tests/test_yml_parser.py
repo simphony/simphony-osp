@@ -7,6 +7,7 @@ import logging
 from rdflib.compare import isomorphic
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.yml.yml_parser import YmlParser
+from osp.core.ontology.parser import Parser
 
 
 YML_FILE = os.path.join(
@@ -15,6 +16,8 @@ YML_FILE = os.path.join(
 )
 CUBA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          "..", "osp", "core", "ontology", "docs", "cuba.ttl")
+EMMO_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "..", "osp", "core", "ontology", "docs", "emmo.yml")
 RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "parser_test.ttl")
 
@@ -247,6 +250,13 @@ class TestYmlParser(unittest.TestCase):
                          rdflib.term.URIRef('http://www.osp-core.com/b#'))
         self.assertEqual(self.parser._get_iri(None, "b"),
                          rdflib.term.URIRef('http://www.osp-core.com/b#'))
+
+        Parser(self.graph).parse(EMMO_FILE)
+        self.assertEqual(
+            self.parser._get_iri("Molecule", "materials"),
+            rdflib.URIRef("http://emmo.info/emmo/middle/materials#"
+                          "EMMO_3397f270_dfc1_4500_8f6f_4d0d85ac5f71")
+        )
 
     def test_load_entity(self):
         """Test the load_entity method of the YAML parser."""

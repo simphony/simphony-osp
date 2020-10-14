@@ -132,13 +132,14 @@ class TestInstallation(unittest.TestCase):
                          {("city", o2), ("parser_test", o1)})
 
     def test_sort_for_installation(self):
-        """Test sorting namespaces for installation."""
-        r = self.installer._sort_for_installation(["city", "parser_test"])
+        r = self.installer._sort_for_installation(
+            ["city", "parser_test"], set())
         self.assertEqual(r, ["city", "parser_test"])
-        r = self.installer._sort_for_installation(["parser_test", "city"])
+        r = self.installer._sort_for_installation(
+            ["parser_test", "city"], set())
         self.assertEqual(r, ["city", "parser_test"])
         self.assertRaises(RuntimeError, self.installer._sort_for_installation,
-                          ["parser_test"])
+                          ["parser_test"], set())
 
     def test_pico_migrate(self):
         """Test migration of installed ontologies."""
