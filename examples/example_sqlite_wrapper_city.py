@@ -1,3 +1,7 @@
+"""An example explaining the use of the SQLite Wrapper."""
+
+# Please install the city ontology: $pico install city
+
 import os
 from osp.core.namespaces import city
 from osp.core.utils import pretty_print

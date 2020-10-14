@@ -1,12 +1,16 @@
+"""Test the communication utils."""
+
 import unittest2 as unittest
 from osp.core.session.transport.communication_utils import (
     decode_header, encode_header, split_message, join_message)
 from .test_communication_engine import async_test, MockWebsocket
 
 
-class TestFiletransfer(unittest.TestCase):
+class TestCommunicationUtils(unittest.TestCase):
+    """Test the communication utils."""
+
     def test_decode_header(self):
-        """Test decoding of the header"""
+        """Test decoding of the header."""
         self.assertEqual(list(decode_header(bytes([255, 255, 0]), [2, 1])),
                          [65535, 0])
         self.assertEqual(list(decode_header(bytes([42, 24]) + b"abc", [1, 1])),
@@ -15,7 +19,7 @@ class TestFiletransfer(unittest.TestCase):
                           decode_header(bytes([255]), [2]))
 
     def test_encode_header(self):
-        """Test encoding of headers"""
+        """Test encoding of headers."""
         self.assertEqual(encode_header([65535, 24, "abc"], [2, 2]),
                          bytes([255, 255, 0, 24]) + b"abc")
         self.assertEqual(encode_header([65535, 24], [2, 2]),
@@ -28,7 +32,7 @@ class TestFiletransfer(unittest.TestCase):
                           [22, 65535, 24, 22], [2, 2])
 
     def test_split_message(self):
-        """Test splitting messages"""
+        """Test splitting messages."""
         num_blocks, gen = split_message("abcdefgh", 2)
         self.assertEqual(num_blocks, 4)
         self.assertEqual(list(gen), [b"ab", b"cd", b"ef", b"gh"])
@@ -38,7 +42,7 @@ class TestFiletransfer(unittest.TestCase):
 
     @async_test
     async def test_join_messages(self):
-        """Test joining messages"""
+        """Test joining messages."""
         ws = MockWebsocket(0, to_recv=[b"ab", b"cd", b"ef", b"gh"],
                            sent_data=[])
         self.assertEqual(await join_message(websocket=ws, num_blocks=4),

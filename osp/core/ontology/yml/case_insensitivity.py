@@ -1,9 +1,11 @@
-# this file exists for backwards compatibility reasons
+"""This file exists for backwards compatibility reasons."""
+
 from osp.core.ontology.cuba import rdflib_cuba
 
 
 def get_case_insensitive_alternative(name, is_cuba):
     """Get an alternative naming convention for the given name.
+
     Allows backwards compatibility.
 
     Args:

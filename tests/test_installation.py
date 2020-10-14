@@ -1,3 +1,5 @@
+"""Test the installation procedure."""
+
 import os
 import unittest2 as unittest
 import tempfile
@@ -16,7 +18,10 @@ FILES = [
 
 
 class TestInstallation(unittest.TestCase):
+    """Test the installation procedure."""
+
     def setUp(self):
+        """Set up some temporary directories."""
         self.tempdir = tempfile.TemporaryDirectory()
         self.namespace_registry = NamespaceRegistry()
         self.namespace_registry._load_cuba()
@@ -26,9 +31,14 @@ class TestInstallation(unittest.TestCase):
         )
 
     def tearDown(self):
+        """Clean up temporary directories."""
         self.tempdir.cleanup()
 
     def copy_files(self):
+        """Copy installed files.
+
+        Helper method.
+        """
         p1 = os.path.join(self.tempdir.name, os.path.basename(FILES[0]))
         p2 = os.path.join(self.tempdir.name, os.path.basename(FILES[1]))
         shutil.copyfile(FILES[0], p1)
@@ -36,6 +46,7 @@ class TestInstallation(unittest.TestCase):
         return p1, p2
 
     def test_do_install(self):
+        """Test performing the installation."""
         # clear False
         self.installer._install(FILES + ["invalid"], lambda x: x[:-1],
                                 clear=False)
@@ -76,12 +87,14 @@ class TestInstallation(unittest.TestCase):
                           lines)
 
     def test_get_new_packages(self):
+        """Test getting new packages that need to be installed."""
         o1, o2 = self.copy_files()
         self.assertEqual(self.installer._get_new_packages(FILES), set())
         os.remove(o1)
         self.assertEqual(self.installer._get_new_packages(FILES), {FILES[0]})
 
     def test_get_replaced_packages(self):
+        """Test packages to install after installation with overwrite."""
         o1, o2 = self.copy_files()
         self.assertEqual(
             set(self.installer._get_replaced_packages([FILES[0]])),
@@ -91,6 +104,7 @@ class TestInstallation(unittest.TestCase):
                           self.installer._get_replaced_packages, ["invalid"])
 
     def test_get_remaining_packages(self):
+        """Test getting the remaining packages after un-installation."""
         o1, o2 = self.copy_files()
         self.assertRaises(
             ValueError, self.installer._get_remaining_packages,
@@ -109,6 +123,7 @@ class TestInstallation(unittest.TestCase):
                           FILES)
 
     def test_get_installed_packages(self):
+        """Test getting the packages currently installed."""
         o1, o2 = self.copy_files()
         open(os.path.join(self.tempdir.name, "o3.xml"), "w").close()
         self.assertEqual(self.installer.get_installed_packages(),
@@ -117,14 +132,18 @@ class TestInstallation(unittest.TestCase):
                          {("city", o2), ("parser_test", o1)})
 
     def test_sort_for_installation(self):
-        r = self.installer._sort_for_installation(["city", "parser_test"])
+        """Test sorting the packages to install by requirements."""
+        r = self.installer._sort_for_installation(
+            ["city", "parser_test"], set())
         self.assertEqual(r, ["city", "parser_test"])
-        r = self.installer._sort_for_installation(["parser_test", "city"])
+        r = self.installer._sort_for_installation(
+            ["parser_test", "city"], set())
         self.assertEqual(r, ["city", "parser_test"])
         self.assertRaises(RuntimeError, self.installer._sort_for_installation,
-                          ["parser_test"])
+                          ["parser_test"], set())
 
     def test_pico_migrate(self):
+        """Test migration of installed ontologies."""
         path = os.path.join(self.tempdir.name, ".osp_ontologies")
         yml_dir = os.path.join(path, "yml", "installed")
         os.makedirs(os.path.join(path, "yml", "installed"))

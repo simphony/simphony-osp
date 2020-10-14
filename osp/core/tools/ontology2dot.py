@@ -1,3 +1,5 @@
+"""Visualize an ontology using graphviz."""
+
 import os
 import graphviz
 import argparse
@@ -11,9 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 class Ontology2Dot():
-    """Utility for creating a dot and png representation of the
-    entities defined in the ontology
-    """
+    """Utility for creating a dot and png representation of an ontology."""
+
     label = ("<<TABLE BORDER='0' CELLBORDER='0'>"
              "<TR><TD>{}</TD></TR>"
              "{}"
@@ -21,13 +22,12 @@ class Ontology2Dot():
     attribute = "<TR ALIGN='left'><TD>{}: {}</TD></TR>"
 
     def __init__(self, namespaces, output_filename, group=False):
-        """Constructor.
-        Initializes the graph.
+        """Initialize the graph.
 
-        :param namespaces: The namespaces to print.
-        :type namespaces: List[str]
-        :param output_filename: The path to save the resulting dot file
-        :type output_filename: str
+        Args:
+            namespaces (List[str]): The namespaces to print.
+            output_filename (str): The path to save the resulting dot file.
+            group (bool): Whether to group the entities by namespace.
         """
         self._namespaces = list()
         for namespace in namespaces:
@@ -41,7 +41,7 @@ class Ontology2Dot():
         self._graph = self._initialize_graph()
 
     def _initialize_graph(self):
-        """Initializes a directed graph with some default settings"""
+        """Initialize a directed graph with some default settings."""
         graph = graphviz.Digraph(format="png", name="ONTOLOGY")
         graph.node_attr['shape'] = 'rectangle'
         return graph
@@ -72,17 +72,17 @@ class Ontology2Dot():
     def _add_namespace(self, namespace):
         """Add the entities of the given namespace.
 
-        :param namespace: The entity to add
-        :type entity: OntologyEntity
+        Args:
+            namespace (OntologyEntity): The entity to add.
         """
         for entity in namespace:
             self._add_entity(entity)
 
     def _add_entity(self, entity):
-        """Add an entity to the graph
+        """Add an entity to the graph.
 
-        :param entity: The entity to add
-        :type entity: OntologyEntity
+        Args:
+            entity: The entity to add.
         """
         if entity in self._visited:
             return
@@ -100,11 +100,11 @@ class Ontology2Dot():
             self._add_edge(str(entity), str(superclass), label="is_a")
 
     def _add_oclass(self, oclass, graph):
-        """
-        Adds a node to the graph.
+        """Add a node to the graph.
 
-        :param oclass: The ontology class to add
-        :type oclass: OntologyClass
+        Args:
+            oclass (OntologyClass): The ontology class to add.
+            graph (graphviz.Digraph): The graphviz graph to add the node to.
         """
         attr = ""
         for key, value in oclass.attributes.items():
@@ -117,11 +117,11 @@ class Ontology2Dot():
             graph.node(str(oclass), label=label)
 
     def _add_relationship(self, rel, graph):
-        """
-        Adds a node to the graph.
+        """Add a node to the graph.
 
-        :param rel: The ontology class for the node
-        :type rel: OntologyRelationship
+        Args:
+            rel (OntologyRelationship): The ontology class for the node.
+            graph (graphviz.Digraph): The graphviz graph to add the node to.
         """
         attr = ""
         label = self.label.format(str(rel), attr)
@@ -137,11 +137,11 @@ class Ontology2Dot():
                            style="dashed", dir="none", label="inverse")
 
     def _add_attribute(self, attribute, graph):
-        """
-        Adds a node to the graph.
+        """Add a node to the graph.
 
-        :param rel: The ontology attribute to add
-        :type rel: OntologyAttribute
+        Args:
+            attribute (OntologyAttribute): The ontology attribute to add.
+            graph (graphviz.Digraph): The graphviz graph to add the node to.
         """
         attr = self.attribute.format("datatype", attribute.datatype)
         label = self.label.format(str(attribute), attr)
@@ -152,21 +152,20 @@ class Ontology2Dot():
             graph.node(str(attribute), label=label)
 
     def _add_edge(self, start, end, **kwargs):
-        """Adds an edge between two nodes.
+        """Add an edge between two nodes.
+
         Ignores the possible passive relationships returned by loops
 
-        :param start: start node
-        :type start: str
-        :param end: end node
-        :type end: str
-        :param label: The label of the edge
-        :type label: str
+        Args:
+            start (str): start node
+            end (str): end node
+            label (str): The label of the edge
         """
         self._graph.edge(start, end, **kwargs)
 
 
 def run_from_terminal():
-    """Run ontology2dot from the terminal"""
+    """Run ontology2dot from the terminal."""
     # Parse the user arguments
     parser = argparse.ArgumentParser(
         description="Convert an ontology in OWL format to "

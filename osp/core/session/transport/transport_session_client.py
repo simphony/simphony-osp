@@ -1,3 +1,10 @@
+"""The TransportSession implements the transport layer.
+
+It consists of a
+client and a server. The client is a WrapperSession, that wraps another
+session that runs on the server. Each request will be sent to the server
+"""
+
 import os
 import json
 import logging
@@ -19,13 +26,16 @@ logger = logging.getLogger(__name__)
 
 
 class TransportSessionClient(WrapperSession):
-    """The TransportSession implements the transport layer. It consists of a
+    """The TransportSession implements the transport layer.
+
+    It consists of a
     client and a server. The client is a WrapperSession, that wraps another
-    session that runs on the server. Each request will be sent to the server"""
+    session that runs on the server. Each request will be sent to the server
+    """
 
     def __init__(self, session_cls, uri, file_destination=None,
                  connect_kwargs=None, *args, **kwargs):
-        """Constructs the client of the transport session.
+        """Construct the client of the transport session.
 
         Args:
             session_cls (Session): The session class to wrap.
@@ -34,6 +44,8 @@ class TransportSessionClient(WrapperSession):
             connect_kwargs (dict[str, Any]): Will be passed to
                 websockets.connect. E.g. it is possible to pass an SSL context
                 with the ssl keyword.
+            kwargs (dict[str, Any]): Will be passed to the creation of the
+                session object.
         """
         self.session_cls = session_cls
         self.args = args
@@ -82,6 +94,7 @@ class TransportSessionClient(WrapperSession):
 
     # OVERRIDE
     def close(self):
+        """Remove the temporary directory and close the connection."""
         if self.__local_temp_dir:
             self.__local_temp_dir.cleanup()
         self._engine.close()
@@ -100,16 +113,14 @@ class TransportSessionClient(WrapperSession):
     def _send(self, command, consume_buffers, *args, **kwargs):
         """Send the buffers and a command to the server.
 
-        :param command: The command to send
-        :type command: str
-        :param consume_buffers: Whether to send and consume the buffers
-        :type consume_buffers: bool
-        :param args: The arguments of the command.
-        :type args: Serializable
-        :param kwargs: The keyword arguments of the command.
-        :type kwargs: Serializable.
-        :return: The command's result.
-        :rtype: Serializable
+        Args:
+            command (str): The command to send
+            consume_buffers (bool): Whether to send and consume the buffers
+            args (Serializable): The arguments of the command.
+            kwargs (Serializable): The keyword arguments of the command.
+
+        Returns:
+            Serializable: The command's result.
         """
         arguments = {"args": args, "kwargs": kwargs}
         buffer_context = BufferContext.USER if consume_buffers else None
@@ -123,9 +134,12 @@ class TransportSessionClient(WrapperSession):
     def _receive(self, data, temp_directory):
         """Process the response of the server.
 
-        :param data: Receive changes made by the server (serialized buffers).
-        :type data: str
-        :raises RuntimeError: Error occurred on the server side
+        Args:
+            data (str): Receive changes made by the server
+                (serialized buffers).
+
+        Raises:
+            RuntimeError: Error occurred on the server side
         """
         if data.startswith("ERROR: "):
             raise RuntimeError("Error on Server side: %s" % data[7:])
@@ -144,7 +158,7 @@ class TransportSessionClient(WrapperSession):
         return result
 
     def _parse_uri(self, uri):
-        """Parse the given uri and return uri, username, password
+        """Parse the given uri and return uri, username, password.
 
         Args:
             uri (str): The URI to parse
@@ -162,6 +176,18 @@ class TransportSessionClient(WrapperSession):
 
     # OVERRIDE
     def __getattr__(self, attr):
+        """Forward attribute calls to backend server.
+
+        Args:
+            attr (str): The attribute to get.
+
+        Raises:
+            AttributeError: The session in the backend doesn't have the
+                attribute.
+
+        Returns:
+            Callable: A Method that will trigger a request to the server.
+        """
         # Send each method call to the server.
         if not attr.startswith("_") and \
                 hasattr(self.session_cls, attr) and \
@@ -176,6 +202,7 @@ class TransportSessionClient(WrapperSession):
 
     # OVERRIDE
     def __str__(self):
+        """Convert the object to string."""
         return "TransportSessionClient connected to %s on %s" % (
             self.session_cls, self._engine.uri
         )

@@ -1,3 +1,5 @@
+"""Test the dataspace wrapper."""
+
 import os
 import sys
 import subprocess
@@ -32,27 +34,32 @@ URI = f"ws://{HOST}:{PORT}"
 DB = "dataspace.db"
 
 
-class TestTransportSqliteCity(unittest.TestCase):
+class TestDataspaceWrapper(unittest.TestCase):
+    """Test the DataspaceWrapper."""
+
     SERVER_STARTED = False
 
     @classmethod
     def setUpClass(cls):
+        """Set up the server as a subprocess."""
         args = ["python",
                 "tests/test_dataspace_wrapper.py",
                 "server"]
         p = subprocess.Popen(args, stdout=subprocess.PIPE)
 
-        TestTransportSqliteCity.SERVER_STARTED = p
+        TestDataspaceWrapper.SERVER_STARTED = p
         for line in p.stdout:
             if b"ready\n" == line:
                 break
 
     @classmethod
     def tearDownClass(cls):
-        TestTransportSqliteCity.SERVER_STARTED.terminate()
+        """Remove the database file."""
+        TestDataspaceWrapper.SERVER_STARTED.terminate()
         os.remove(DB)
 
     def tearDown(self):
+        """Clear the database."""
         with sqlite3.connect(DB) as conn:
             c = conn.cursor()
             tables = c.execute("SELECT name FROM sqlite_master "
@@ -95,7 +102,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         check_state(self, c, p1, p2, db=DB)
 
     def test_delete(self):
-        """Test to delete cuds_objects from the sqlite table"""
+        """Test to delete cuds_objects from the sqlite table."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Georg")
@@ -114,8 +121,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         check_state(self, c, p1, p2, db=DB)
 
     def test_user_parameterize(self):
-        """Test that parameterizing the dataspace as
-        a client throws an error"""
+        """Test parameterizing the dataspace as a client."""
         with TransportSessionClient(
             DbWrapperSession,
             URI, path="dataspace.db"

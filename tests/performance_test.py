@@ -1,3 +1,5 @@
+"""Test the performance of basic API calls."""
+
 # pip install pympler
 import gc
 from pympler import asizeof
@@ -18,8 +20,10 @@ RUN_PERFORMANCE_TEST = False
 
 
 class TestPerformance(unittest.TestCase):
+    """Test the performance of basic API calls."""
 
     def setUp(self):
+        """Start the timer."""
         if not RUN_PERFORMANCE_TEST:
             return
         self.iterations = 100000
@@ -42,6 +46,7 @@ class TestPerformance(unittest.TestCase):
         self.start = time.time()
 
     def tearDown(self):
+        """Stop the timer and print the results."""
         if not RUN_PERFORMANCE_TEST:
             return
         self.stop = time.time()
@@ -57,9 +62,7 @@ class TestPerformance(unittest.TestCase):
         gc.collect()
 
     def test_creation(self):
-        """
-        Tests the instantiation and type of the objects
-        """
+        """Test the instantiation and type of the objects."""
         if not RUN_PERFORMANCE_TEST:
             return
         print("Test cuds object creation")
@@ -67,9 +70,7 @@ class TestPerformance(unittest.TestCase):
             city.Citizen(name='citizen ' + str(i))
 
     def test_add_default(self):
-        """
-        Tests the instantiation and type of the objects
-        """
+        """Test the instantiation and type of the objects."""
         if not RUN_PERFORMANCE_TEST:
             return
         print("Test adding with the default relationship")
@@ -78,9 +79,7 @@ class TestPerformance(unittest.TestCase):
                 name='neighborhood ' + str(i)))
 
     def test_add_rel(self):
-        """
-        Tests the instantiation and type of the objects
-        """
+        """Test the instantiation and type of the objects."""
         if not RUN_PERFORMANCE_TEST:
             return
         print("Test adding with a general relationship")
@@ -89,6 +88,7 @@ class TestPerformance(unittest.TestCase):
                        rel=city.hasInhabitant)
 
     def test_get_by_oclass(self):
+        """Test performance of getting by oclass."""
         if not RUN_PERFORMANCE_TEST:
             return
         print("Test get by oclass")
@@ -96,6 +96,7 @@ class TestPerformance(unittest.TestCase):
             self.c.get(oclass=city.Street)
 
     def test_get_by_uid(self):
+        """Test the performance of getting by UUID."""
         if not RUN_PERFORMANCE_TEST:
             return
         print("Test get by uid")
@@ -104,6 +105,7 @@ class TestPerformance(unittest.TestCase):
             self.c.get(*uids)
 
     def test_get_by_rel(self):
+        """Test the performance of getting by relationship."""
         if not RUN_PERFORMANCE_TEST:
             return
         print("Test get by relationship")

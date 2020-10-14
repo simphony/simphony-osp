@@ -1,3 +1,4 @@
+"""This file contains tests for the Sqlite Wrapper using the City ontology."""
 import os
 import sys
 import subprocess
@@ -30,10 +31,13 @@ DB = "transport.db"
 
 
 class TestTransportSqliteCity(unittest.TestCase):
+    """Test the sqlite wrapper."""
+
     SERVER_STARTED = False
 
     @classmethod
     def setUpClass(cls):
+        """Set up the server as a subprocess."""
         args = ["python",
                 "tests/test_transport_sqlite_city.py",
                 "server"]
@@ -46,10 +50,12 @@ class TestTransportSqliteCity(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        """Remove DB files and shut down the server subprocess."""
         TestTransportSqliteCity.SERVER_STARTED.terminate()
         os.remove(DB)
 
     def tearDown(self):
+        """Delete table contents."""
         with sqlite3.connect(DB) as conn:
             c = conn.cursor()
             tables = c.execute("SELECT name FROM sqlite_master "
@@ -94,7 +100,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         check_state(self, c, p1, p2, db=DB)
 
     def test_delete(self):
-        """Test to delete cuds_objects from the sqlite table"""
+        """Test to delete cuds_objects from the sqlite table."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Georg")
@@ -186,7 +192,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             )
 
     def test_expiring(self):
-        """Test expiring with transport + db session"""
+        """Test expiring with transport + db session."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
@@ -237,7 +243,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             self.assertNotIn(p3w.uid, session._registry)
 
     def test_load_by_oclass(self):
-        """Load elements by ontology class via transport + db session"""
+        """Load elements by ontology class via transport + db session."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
@@ -262,6 +268,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             self.assertEqual(set(r), {p1, p2, p3})
 
     def test_refresh(self):
+        """Test refreshing CUDS objects."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")

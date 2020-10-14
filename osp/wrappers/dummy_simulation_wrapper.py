@@ -1,3 +1,5 @@
+"""For backwords compatibility reason."""
+
 import logging
 from osp.wrappers.simdummy import SimDummySession as DummySimWrapperSession  # noqa: F401,E501
 

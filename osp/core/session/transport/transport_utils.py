@@ -1,3 +1,5 @@
+"""Utilities used for the transport layer."""
+
 import json
 import uuid
 import os
@@ -8,7 +10,6 @@ from osp.core.namespaces import get_entity, cuba
 from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
-from osp.core.neighbor_dict import NeighborDictTarget
 from osp.core.session.buffers import get_buffer_context_mngr
 
 logger = logging.getLogger(__name__)
@@ -22,19 +23,18 @@ def serialize_buffers(session_obj, buffer_context,
                       additional_items=None, target_directory=None):
     """Serialize the buffers and additional items.
 
-    :param session_obj: Serialize the buffers of this session object.
-    :type session_obj: Session
-    :param buffer_context: Which buffers to serialize
-    :type buffer_context: BufferContext
-    :param additional_items: Additional items to be added
-        to the serialized json object, defaults to None
-    :type additional_items: Dict[str, Any], optional
-    :param target_directory: Where to move the files of the files cuds to
-        serialize. If None, do not move them and return all the files
-        corresponding to file cuds in the buffers.
-    :type target_directory: path
-    :return: The serialized buffers and the list of corresponding files
-    :rtype: str, List[path]
+    Args:
+        session_obj (Session): Serialize the buffers of this session object.
+        buffer_context (BufferContext): Which buffers to serialize
+        additional_items (Dict[str, Any]): Additional items to be added
+            to the serialized json object, defaults to None
+        target_directory (Path): Where to move the files of the files cuds to
+            serialize. If None, do not move them and return all the files
+            corresponding to file cuds in the buffers.
+
+    Returns:
+        str, List[path]: The serialized buffers and the list of corresponding
+            files.
     """
     result = dict()
     files = list()
@@ -63,26 +63,25 @@ def serialize_buffers(session_obj, buffer_context,
 
 def deserialize_buffers(session_obj, buffer_context, data,
                         temp_directory=None, target_directory=None):
-    """Deserialize serialized buffers, add them to the session and push them
+    """Deserialize serialized buffers.
+
+    Add them to the session and push them
     to the registry of the given session object.
     Returns the deserialization of everything but the buffers.
 
-    :param session_obj: The session object to load the buffers into.
-    :type session_obj: Session
-    :param buffer_context: add the deserialized cuds objects to the
-        selected buffers
-    :type buffer_context: BufferContext
-    :param data: Serialized buffers
-    :type data: str
-    :param temp_directory: Where the files are stored of the to file cuds to
-        deserialize are stored. If None, file cuds are assumed to have the
-        full path.
-    :type temp_directory: path
-    :param target_directory: Where to move the files.
+    Args:
+        session_obj (Session): The session object to load the buffers into.
+        buffer_context (BufferContext): add the deserialized cuds objects to
+            the selected buffers
+        data (str): Serialized buffers
+        temp_directory (Path): Where the files are stored of the to file cuds
+            to deserialize are stored. If None, file cuds are assumed to have
+            the full path.
+        target_directory (Path): Where to move the files.
         If None, do not move them.
-    :type target_directory:
-    :return: Everything in data, that were not part of the buffers.
-    :rtype: Dict[str, Any]
+
+    Returns:
+        Dict[str, Any]: Everything in data, that were not part of the buffers.
     """
     with get_buffer_context_mngr(session_obj, buffer_context):
         data = json.loads(data)
@@ -116,8 +115,7 @@ def deserialize_buffers(session_obj, buffer_context, data,
 
 
 def move_files(file_cuds, temp_directory, target_directory):
-    """Move the files associated with the given CUDS
-    from one directory to the other. Return all moved CUDS.
+    """Move the files associated with the given CUDS. Return all moved CUDS.
 
     Args:
         file_cuds (List[Cuds]): Cuds whose oclass is cuba.File
@@ -180,16 +178,19 @@ def move_files(file_cuds, temp_directory, target_directory):
 def deserialize(json_obj, session, buffer_context, _force=False):
     """Deserialize a json object, instantiate the Cuds object in there.
 
-    :param json_obj: The json object do deserialize.
-    :type json_obj: Union[Dict, List, str, None]
-    :param session: When creating a cuds_object, use this session.
-    :type session: Session
-    :param buffer_context: add the deserialized cuds objects to the
-        selected buffers
-    :type buffer_context: BufferContext
-    :raises ValueError: The json object could not be deserialized.
-    :return: The deserialized object
-    :rtype: Union[Cuds, UUID, List[Cuds], List[UUID], None]
+    Args:
+        json_obj (Union[Dict, List, str, None]): The json object to
+            deserialize.
+        session (Session): When creating a cuds_object, use this session.
+        buffer_context (BufferContext): add the deserialized cuds objects to
+            the selected buffers.
+
+    Raises:
+        ValueError: The json object could not be deserialized.
+
+    Returns:
+        Union[Cuds, UUID, List[Cuds], List[UUID], None]: The deserialized
+            object.
     """
     if json_obj is None:
         return None
@@ -219,14 +220,20 @@ def deserialize(json_obj, session, buffer_context, _force=False):
 
 
 def serializable(obj):
-    """Make a cuds_object, a list of cuds_objects,
-    a uid or a list od uids json serializable.
+    """Make given object json serializable.
 
-    :param obj: The object to make serializable.
-    :type obj: Union[Cuds, UUID, List[Cuds], List[UUID], None]
-    :raises ValueError: Given object could not be made serializable
-    :return: The serializable object.
-    :rtype: Union[Dict, List, str, None]
+    The object can be a cuds_object, a list of cuds_objects,
+    a uid or a list od uids.
+
+    Args:
+        obj (Union[Cuds, UUID, List[Cuds], List[UUID], None]): The object to
+            make serializable.
+
+    Raises:
+        ValueError: Given object could not be made serializable.
+
+    Return:
+        Union[Dict, List, str, None]: The serializable object.
     """
     from osp.core.cuds import Cuds
     if obj is None:
@@ -251,10 +258,12 @@ def serializable(obj):
 def get_file_cuds(obj):
     """Get the file cuds out of cuds_object, or list of cuds_objects.
 
-    :param obj: The object to check for fie cuds..
-    :type obj: Union[Cuds, UUID, List[Cuds], List[UUID], None]
-    :return: The list of file cuds
-    :rtype: List[Cuds]
+    Args:
+        obj (Union[Cuds, UUID, List[Cuds], List[UUID], None]): The object to
+            check for fie cuds..
+
+    Returns:
+        List[Cuds]: The list of file cuds
     """
     from osp.core.cuds import Cuds
 
@@ -271,8 +280,8 @@ def get_file_cuds(obj):
 def _serializable(cuds_object):
     """Make a cuds_object json serializable.
 
-    :return: The cuds_object to make serializable.
-    :rtype: Cuds
+    Returns:
+        Cuds: The cuds_object to make serializable.
     """
     result = {"oclass": str(cuds_object.oclass),
               "uid": convert_from(cuds_object.uid, "UUID"),
@@ -291,17 +300,16 @@ def _serializable(cuds_object):
 
 
 def _to_cuds_object(json_obj, session, buffer_context, _force=False):
-    """Transform a json serializable dict to a cuds_object
+    """Transform a json serializable dict to a cuds_object.
 
-    :param json_obj: The json object to convert to a Cuds object
-    :type json_obj: Dict[str, Any]
-    :param session: The session to add the cuds object to.
-    :type session: Session
-    :param buffer_context: add the deserialized cuds objects to the
-        selected buffers
-    :type buffer_context: BufferContext
-    :return: The resulting cuds_object.
-    :rtype: Cuds
+    Args:
+        json_obj (Dict[str, Any]): The json object to convert to a Cuds object.
+        session (Session): The session to add the cuds object to.
+        buffer_context (BufferContext): add the deserialized cuds objects to
+            the selected buffers.
+
+    Returns:
+        Cuds: The resulting cuds_object.
     """
     if buffer_context is None:
         raise ValueError("Not allowed to deserialize CUDS object "
@@ -319,9 +327,7 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
 
         for rel_name, obj_dict in relationships.items():
             rel = get_entity(rel_name)
-            cuds_object._neighbors[rel] = NeighborDictTarget(
-                dictionary={}, cuds_object=cuds_object, rel=rel
-            )
+            cuds_object._neighbors[rel] = {}
             for uid, target_name in obj_dict.items():
                 uid = convert_to(uid, "UUID")
                 target_oclass = get_entity(target_name)
@@ -330,7 +336,7 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
 
 
 def get_hash_dir(directory_path):
-    """Get the has sums of all files in the given path
+    """Get the has sums of all files in the given path.
 
     Args:
         directory_path (path): The path to the directory
@@ -348,8 +354,9 @@ def get_hash_dir(directory_path):
 
 
 def check_hash(file_path, file_hashes):
-    """Check whether the hash of the given file is in the given dictionary of
-    hashes. If not, add it.
+    """Check whether the hash of the given file is in the given dictionary.
+
+    If not, add it.
 
     Args:
         file_path (path): The path to the file to check
@@ -370,7 +377,7 @@ def check_hash(file_path, file_hashes):
 
 
 def get_hash(file_path):
-    """Get the hash of the given file
+    """Get the hash of the given file.
 
     Args:
         file_path (path): A path to a file

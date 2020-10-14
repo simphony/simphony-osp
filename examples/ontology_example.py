@@ -1,9 +1,6 @@
-# If you did not install the city ontology
-# (pico install city),
-# you have to execute these commands first:
-# from osp.core import Parser
-# p = Parser()
-# p.parse("city")
+"""An example explaining how to access an installed ontology."""
+
+# Please install the city ontology: $pico install city
 
 from osp.core.namespaces import city  # This imports the namespace city
 

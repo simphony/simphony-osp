@@ -1,14 +1,15 @@
+"""Test methods that ensure backwards compatibility to old ontologies."""
+
 import unittest2 as unittest
 from osp.core.ontology.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
 
 
-class TestAPICity(unittest.TestCase):
-
-    def setUp(self):
-        pass
+class TestCaseInsensitivity(unittest.TestCase):
+    """Test methods that ensure backwards compatibility to old ontologies."""
 
     def test_get_case_insensitive_alternative(self):
+        """Test the method for getting a case insensitive alternative."""
         self.assertIsNone(alt("activeRelationship", True))
         self.assertEqual(alt("ActiveRelationship", True), "activeRelationship")
         self.assertEqual(alt("ACTIVE_RELATIONSHIP", True),
