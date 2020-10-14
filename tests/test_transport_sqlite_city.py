@@ -11,9 +11,9 @@ from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
 
 try:
-    from tests.test_sqlite_city import check_state
+    from tests.test_sqlite_city import check_state, update_db
 except ImportError:
-    from test_sqlite_city import check_state
+    from test_sqlite_city import check_state, update_db
 
 try:
     from osp.core.namespaces import city
@@ -62,7 +62,7 @@ class TestTransportSqliteCity(unittest.TestCase):
                                + "WHERE type='table';")
             tables = list(tables)
             for table in tables:
-                c.execute("DELETE FROM %s;" % table[0])
+                c.execute("DELETE FROM `%s`;" % table[0])
             conn.commit()
 
     def test_insert(self):
@@ -139,6 +139,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             wrapper = city.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
                              {c.uid, wrapper.uid})
+
             self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(
                 session._registry.get(c.uid)._neighbors[city.hasInhabitant],
@@ -211,27 +212,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             # p1w is no longer expired after the following assert
             self.assertEqual(p1w.name, "Peter")
 
-            with sqlite3.connect(DB) as conn:
-                cursor = conn.cursor()
-                cursor.execute("UPDATE CUDS_city___city SET name = 'Paris' "
-                               "WHERE uid='%s';" % (c.uid))
-                cursor.execute("UPDATE CUDS_city___CITIZEN SET name = 'Maria' "
-                               "WHERE uid='%s';" % (p1.uid))
-                cursor.execute("DELETE FROM %s "
-                               "WHERE origin == '%s' OR target = '%s'"
-                               % (SqliteSession.RELATIONSHIP_TABLE,
-                                  p2.uid, p2.uid))
-                cursor.execute("DELETE FROM %s "
-                               "WHERE origin == '%s' OR target = '%s'"
-                               % (SqliteSession.RELATIONSHIP_TABLE,
-                                  p3.uid, p3.uid))
-                cursor.execute("DELETE FROM CUDS_city___CITIZEN "
-                               "WHERE uid == '%s'"
-                               % p3.uid)
-                cursor.execute("DELETE FROM %s "
-                               "WHERE uid == '%s'"
-                               % (SqliteSession.MASTER_TABLE, p3.uid))
-                conn.commit()
+            update_db(DB, c, p1, p2, p3)
 
             self.assertEqual(cw.name, "Paris")
             self.assertEqual(p1w.name, "Peter")
@@ -290,27 +271,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             self.assertEqual(p3w.name, "Julia")
             self.assertEqual(session._expired, {wrapper.uid})
 
-            with sqlite3.connect(DB) as conn:
-                cursor = conn.cursor()
-                cursor.execute("UPDATE CUDS_city___city SET name = 'Paris' "
-                               "WHERE uid='%s';" % (c.uid))
-                cursor.execute("UPDATE CUDS_city___CITIZEN SET name = 'Maria' "
-                               "WHERE uid='%s';" % (p1.uid))
-                cursor.execute("DELETE FROM %s "
-                               "WHERE origin == '%s' OR target = '%s'"
-                               % (SqliteSession.RELATIONSHIP_TABLE,
-                                  p2.uid, p2.uid))
-                cursor.execute("DELETE FROM %s "
-                               "WHERE origin == '%s' OR target = '%s'"
-                               % (SqliteSession.RELATIONSHIP_TABLE,
-                                  p3.uid, p3.uid))
-                cursor.execute("DELETE FROM CUDS_city___CITIZEN "
-                               "WHERE uid == '%s'"
-                               % p3.uid)
-                cursor.execute("DELETE FROM %s "
-                               "WHERE uid == '%s'"
-                               % (SqliteSession.MASTER_TABLE, p3.uid))
-                conn.commit()
+            update_db(DB, c, p1, p2, p3)
 
             session.refresh(cw, p1w, p2w, p3w)
             self.assertEqual(cw.name, "Paris")

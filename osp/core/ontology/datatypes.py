@@ -106,6 +106,8 @@ def to_vector(x, np_dtype, shape):
         np.ndarray: The converted value
     """
     if isinstance(x, rdflib.Literal):
+        if isinstance(x.toPython(), np.ndarray):
+            return x.toPython()
         x = ast.literal_eval(str(x))
     x = np.array(x, dtype=np_dtype)
     return x.reshape([int(x) for x in shape])

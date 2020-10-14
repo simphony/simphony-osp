@@ -3,8 +3,8 @@
 import sqlite3
 import rdflib
 from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.session.db.conditions import (EqualsCondition,
-                                            AndCondition)
+from osp.core.session.db.sql_util import EqualsCondition, AndCondition, \
+    JoinCondition
 from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
 
 
@@ -75,11 +75,14 @@ class SqliteSession(SqlWrapperSession):
         return pattern, values
 
     # OVERRIDE
-    def _db_select(self, table_name, columns, condition, datatypes):
-        cond_pattern, cond_values = self._get_condition_pattern(condition)
-        columns = map(lambda x: "`%s`" % x, columns)
-        sql_pattern = "SELECT %s FROM `%s` WHERE %s;" % (  # nosec
-            ", ".join(columns), table_name, cond_pattern
+    def _db_select(self, query):
+        cond_pattern, cond_values = self._get_condition_pattern(
+            query.condition)
+        columns = ["`%s`.`%s`" % (a, c) for a, c in query.columns]
+        tables = ["`%s` AS `%s`" % (t, a)
+                  for a, t in query.tables.items()]
+        sql_pattern = "SELECT %s FROM %s WHERE %s;" % (  # nosec
+            ", ".join(columns), ", ".join(tables), cond_pattern
         )
         c = self._engine.cursor()
         c.execute(sql_pattern, cond_values)
@@ -87,17 +90,19 @@ class SqliteSession(SqlWrapperSession):
 
     # OVERRIDE
     def _db_create(self, table_name, columns, datatypes,
-                   primary_key, foreign_key, indexes):
+                   primary_key, generate_pk, foreign_key, indexes):
         columns = [
             c if c not in datatypes
             else "`%s` `%s`" % (c, self._to_sqlite_datatype(datatypes[c]))
             for c in columns
         ]
-        constraints = [
-            "PRIMARY KEY(%s)" % ", ".join(
-                map(lambda x: "`%s`" % x, primary_key)
-            )
-        ]
+        constraints = []
+        if primary_key:
+            constraints += [
+                "PRIMARY KEY(%s)" % ", ".join(
+                    map(lambda x: "`%s`" % x, primary_key)
+                )
+            ]
         constraints += [
             "FOREIGN KEY(`%s`) REFERENCES `%s`(`%s`)" % (col, ref[0], ref[1])
             for col, ref in foreign_key.items()
@@ -123,7 +128,13 @@ class SqliteSession(SqlWrapperSession):
             table_name, ", ".join(columns), val_pattern
         )
         c = self._engine.cursor()
-        c.execute(sql_pattern, val_values)
+        try:
+            c.execute(sql_pattern, val_values)
+            return c.lastrowid
+        except sqlite3.IntegrityError as e:
+            if "UNIQUE constraint failed" in str(e):
+                return
+            raise e
 
     # OVERRIDE
     def _db_update(self, table_name, columns, values, condition, datatypes):
@@ -146,6 +157,12 @@ class SqliteSession(SqlWrapperSession):
                        % (table_name, cond_pattern))
         c = self._engine.cursor()
         c.execute(sql_pattern, cond_values)
+
+    # OVERRIDE
+    def _db_drop(self, table_name):
+        sql_command = (f"DROP TABLE IF EXISTS `{table_name}`")
+        c = self._engine.cursor()
+        c.execute(sql_command)
 
     # OVERRIDE
     def _get_table_names(self, prefix):
@@ -180,7 +197,12 @@ class SqliteSession(SqlWrapperSession):
                 "%s_value" % prefix: value
             }
             return pattern, values
+        if isinstance(condition, JoinCondition):
+            return f"`{condition.table_name1}`.`{condition.column1}` = " \
+                   f"`{condition.table_name2}`.`{condition.column2}`", {}
         if isinstance(condition, AndCondition):
+            if not condition.conditions:
+                return "1", dict()
             pattern = ""
             values = dict()
             for i, sub_condition in enumerate(condition.conditions):
@@ -192,8 +214,8 @@ class SqliteSession(SqlWrapperSession):
                 )
                 pattern += sub_pattern
                 values.update(sub_values)
-                return pattern, values
-        raise NotImplementedError("Unsupported condition")
+            return pattern, values
+        raise NotImplementedError(f"Unsupported condition {condition}")
 
     def _to_sqlite_datatype(self, rdflib_datatype):
         """Convert the given Cuds datatype to a datatype of sqlite.

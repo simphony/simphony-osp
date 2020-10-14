@@ -66,7 +66,7 @@ class TestDataspaceWrapper(unittest.TestCase):
                                + "WHERE type='table';")
             tables = list(tables)
             for table in tables:
-                c.execute("DELETE FROM %s;" % table[0])
+                c.execute("DELETE FROM `%s`;" % table[0])
             conn.commit()
 
     def test_insert(self):
