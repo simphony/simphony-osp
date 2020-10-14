@@ -132,6 +132,7 @@ class TestInstallation(unittest.TestCase):
                          {("city", o2), ("parser_test", o1)})
 
     def test_sort_for_installation(self):
+        """Test sorting the packages to install by requirements."""
         r = self.installer._sort_for_installation(
             ["city", "parser_test"], set())
         self.assertEqual(r, ["city", "parser_test"])
