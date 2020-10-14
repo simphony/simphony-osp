@@ -186,23 +186,30 @@ class YmlParser:
         namespace = namespace or self._namespace
         namespace = namespace.lower()
         entity_name = entity_name or ""
-        try:
+        try:  # Namespace already in graph?
             ns_iri = next(iri for name, iri in self.graph.namespaces()
                           if name == namespace)
         except StopIteration:
             ns_iri = rdflib.URIRef(
                 f"http://www.osp-core.com/{namespace}#"
             )
+
+        if not entity_name:
+            return ns_iri
+
+        iri = ns_iri + entity_name
+        # in case of reference by label (EMMO)
         if (ns_iri, rdflib_cuba._reference_by_label, rdflib.Literal(True)) \
                 in self.graph:
             literal = rdflib.Literal(entity_name, lang="en")
-            iri = next(s for s, p, o in self.graph.triples(
-                (None, rdflib.SKOS.prefLabel, literal)
-            ) if s.startswith(ns_iri))
-        else:
-            iri = ns_iri + entity_name
-        if not entity_name:
-            return iri
+            try:
+                iri = next(s for s, p, o in self.graph.triples(
+                    (None, rdflib.SKOS.prefLabel, literal)
+                ) if s.startswith(ns_iri))
+            except StopIteration:
+                pass
+
+        # check if constructed iri exists
         if ((
             namespace == self._namespace
             and entity_name not in self._ontology_doc
