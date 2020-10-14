@@ -165,9 +165,21 @@ class YmlParser:
         namespace = namespace or self._namespace
         namespace = namespace.lower()
         entity_name = entity_name or ""
-        iri = rdflib.URIRef(
-            f"http://www.osp-core.com/{namespace}#{entity_name}"
-        )
+        try:
+            ns_iri = next(iri for name, iri in self.graph.namespaces()
+                          if name == namespace)
+        except StopIteration:
+            ns_iri = rdflib.URIRef(
+                f"http://www.osp-core.com/{namespace}#"
+            )
+        if (ns_iri, rdflib_cuba._reference_by_label, rdflib.Literal(True)) \
+                in self.graph:
+            literal = rdflib.Literal(entity_name, lang="en")
+            iri = next(s for s, p, o in self.graph.triples(
+                (None, rdflib.RDFS.label, literal)
+            ) if s.startswith(ns_iri))
+        else:
+            iri = ns_iri + entity_name
         if not entity_name:
             return iri
         if ((
