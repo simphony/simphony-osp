@@ -6,6 +6,7 @@ import logging
 import yaml
 import requests
 import tempfile
+from xml.sax._exceptions import SAXParseException
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.yml.yml_parser import YmlParser
 
@@ -19,9 +20,10 @@ DEFAULT_REL_KEY = "default_relationship"
 FILE_FORMAT_KEY = "format"
 REQUIREMENTS_KEY = "requirements"
 REFERENCE_STYLE_KEY = "reference_by_label"
+FILE_HANDLER_KEY = "file"
 ALL_KEYS = set([
     RDF_FILE_KEY, NAMESPACES_KEY, ACTIVE_REL_KEY, DEFAULT_REL_KEY,
-    IDENTIFIER_KEY, FILE_FORMAT_KEY, REFERENCE_STYLE_KEY
+    IDENTIFIER_KEY, FILE_FORMAT_KEY, REFERENCE_STYLE_KEY, FILE_HANDLER_KEY
 ])
 
 
@@ -56,8 +58,8 @@ class Parser():
                 YmlParser(self.graph).parse(file_path, yaml_doc)
             elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
                 s = "-" + os.path.basename(file_path).split(".")[0]
-                with tempfile.NamedTemporaryFile(mode="wt", suffix=s) as f:
-                    self._parse_rdf(**self._parse_yml(yaml_doc, file_path, f))
+                with tempfile.NamedTemporaryFile(mode="wb+", suffix=s) as f:
+                    self._parse_rdf(**self._parse_yml(yaml_doc, file_path, f), file=f)
             else:
                 raise SyntaxError(f"Invalid format of file {file_path}")
             self._yaml_docs.append(yaml_doc)
@@ -219,7 +221,7 @@ class Parser():
                 .content.decode("utf-8")
             content = content.replace("xml:lang=\"unibo.it\"",
                                       "xml:lang=\"en\"")
-            f.write(content)
+            f.write(content.encode("utf-8"))
             yaml_doc[RDF_FILE_KEY] = f.name
             return yaml_doc
 
@@ -237,6 +239,7 @@ class Parser():
         # parse input kwargs
         try:
             rdf_file = kwargs[RDF_FILE_KEY]
+            f = kwargs[FILE_HANDLER_KEY]
             namespaces = kwargs[NAMESPACES_KEY]
             identifier = kwargs[IDENTIFIER_KEY]
             active_rels = kwargs.get(ACTIVE_REL_KEY, [])
@@ -255,8 +258,13 @@ class Parser():
         # parse the files
         logger.info("Parsing %s" % rdf_file)
         self._graphs[identifier] = rdflib.Graph()
-        self._graphs[identifier].parse(rdf_file, format=file_format)
-        self.graph.parse(rdf_file, format=file_format)
+        f.seek(0)
+        try:
+            self._graphs[identifier].parse(f, format=file_format)
+        except SAXParseException:
+            self._graphs[identifier].parse(rdf_file, format=file_format)
+        for triple in self._graphs[identifier]:
+            self.graph.add(triple)
         default_rels = dict()
         reference_styles = dict()
         namespace_iris = set()
