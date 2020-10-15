@@ -122,9 +122,14 @@ class Cuds():
     def _stored(self):
         return self._graph is self.session.graph
 
-    def get_triples(self):
+    def get_triples(self, include_neighbor_types=False):
         """Get the triples of the cuds object."""
-        return self._graph.triples((self.iri, None, None))
+        result = set(self._graph.triples((self.iri, None, None)))
+        if not include_neighbor_types:
+            return result
+        for s, p, o in result:
+            result |= self._graph.triples((o, rdflib.RDF.type, None))
+        return result
 
     def get_attributes(self):
         """Get the attributes as a dictionary."""

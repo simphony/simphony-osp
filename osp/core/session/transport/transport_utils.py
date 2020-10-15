@@ -6,11 +6,13 @@ import os
 import shutil
 import logging
 import hashlib
+import rdflib
 from osp.core.namespaces import get_entity, cuba
 from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.buffers import get_buffer_context_mngr
+from osp.core.utils import create_from_triples
 
 logger = logging.getLogger(__name__)
 
@@ -277,26 +279,17 @@ def get_file_cuds(obj):
     return [y for x in obj for y in get_file_cuds(x)]
 
 
-def _serializable(cuds_object):
+def _serializable(cuds_object, graph=None):
     """Make a cuds_object json serializable.
 
     Returns:
         Cuds: The cuds_object to make serializable.
     """
-    result = {"oclass": str(cuds_object.oclass),
-              "uid": convert_from(cuds_object.uid, "UUID"),
-              "attributes": dict(),
-              "relationships": dict()}
-    for attribute, value in cuds_object.get_attributes().items():
-        result["attributes"][attribute.argname] = convert_from(
-            value, attribute.datatype
-        )
-    for rel in cuds_object._neighbors:
-        result["relationships"][str(rel)] = {
-            convert_from(uid, "UUID"): str(oclass)
-            for uid, oclass in cuds_object._neighbors[rel].items()
-        }
-    return result
+    g = rdflib.Graph()
+    for s, p, o in cuds_object.get_triples():
+        g.add(s, p, o)
+        for n in cuds_object._g(p, rdflib.RDF.type, None)
+    return g.serialize(format="json-ld").encode("utf-8")
 
 
 def _to_cuds_object(json_obj, session, buffer_context, _force=False):
@@ -315,24 +308,12 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
         raise ValueError("Not allowed to deserialize CUDS object "
                          "with undefined buffer_context")
     with get_buffer_context_mngr(session, buffer_context):
-        oclass = get_entity(json_obj["oclass"])
-        attributes = json_obj["attributes"]
-        relationships = json_obj["relationships"]
-        cuds_object = create_recycle(oclass=oclass,
-                                     kwargs=attributes,
-                                     session=session,
-                                     uid=json_obj["uid"],
-                                     fix_neighbors=False,
-                                     _force=_force)
-
-        for rel_name, obj_dict in relationships.items():
-            rel = get_entity(rel_name)
-            cuds_object._neighbors[rel] = {}
-            for uid, target_name in obj_dict.items():
-                uid = convert_to(uid, "UUID")
-                target_oclass = get_entity(target_name)
-                cuds_object._neighbors[rel][uid] = target_oclass
-        return cuds_object
+        g = rdflib.Graph()
+        g.parse(json_obj, format="json-ld")
+        triples = set(g)
+        cuds = create_from_triples(triples, set(), session,
+                                   fix_neighbors=False)
+        return cuds
 
 
 def get_hash_dir(directory_path):
