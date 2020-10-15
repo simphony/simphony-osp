@@ -59,7 +59,8 @@ class Parser():
             elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
                 s = "-" + os.path.basename(file_path).split(".")[0]
                 with tempfile.NamedTemporaryFile(mode="wb+", suffix=s) as f:
-                    self._parse_rdf(**self._parse_yml(yaml_doc, file_path, f), file=f)
+                    self._parse_rdf(**self._parse_yml(yaml_doc, file_path, f),
+                                    file=f)
             else:
                 raise SyntaxError(f"Invalid format of file {file_path}")
             self._yaml_docs.append(yaml_doc)
@@ -259,9 +260,9 @@ class Parser():
         logger.info("Parsing %s" % rdf_file)
         self._graphs[identifier] = rdflib.Graph()
         f.seek(0)
-        try:
+        if os.stat(f.name).st_size > 0:
             self._graphs[identifier].parse(f, format=file_format)
-        except SAXParseException:
+        else:
             self._graphs[identifier].parse(rdf_file, format=file_format)
         for triple in self._graphs[identifier]:
             self.graph.add(triple)

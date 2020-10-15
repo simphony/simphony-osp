@@ -103,7 +103,7 @@ class TestFiletransfer(unittest.TestCase):
 
         TestFiletransfer.SERVER_STARTED = p
         for line in p.stdout:
-            if b"ready\n" == line:
+            if b"ready" in line:
                 break
 
     @classmethod
@@ -467,7 +467,8 @@ class TestFiletransfer(unittest.TestCase):
         self.assertEqual(filename, FILES[2])
         self.assertEqual(request[0], "test")
         self.assertEqual(request[1], "data")
-        self.assertTrue(request[2].startswith("/tmp/tmp"))
+        if os.name == "posix":
+            self.assertTrue(request[2].startswith("/tmp/tmp"))
         self.assertTrue(isinstance(request[3], uuid.UUID))
 
 

@@ -148,7 +148,7 @@ class TestTransportAuth(unittest.TestCase):
                              stdout=subprocess.PIPE)
         TestTransportAuth.SERVER_STARTED.append(p)
         for line in p.stdout:
-            if b"ready\n" == line:
+            if b"ready" in line:
                 break
 
         args[-1] = "server2"
@@ -156,7 +156,7 @@ class TestTransportAuth(unittest.TestCase):
                              stdout=subprocess.PIPE)
         TestTransportAuth.SERVER_STARTED.append(p)
         for line in p.stdout:
-            if b"ready\n" == line:
+            if b"ready" in line:
                 break
 
     @classmethod
