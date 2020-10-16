@@ -29,6 +29,7 @@ class TestYaml2CamelCase(unittest.TestCase):
         converter = Yaml2CamelCaseConverter(caps)
         converter.convert()
         with tempfile.NamedTemporaryFile("wt") as f:
+            f.close()
             converter.store(f.name)
 
             with open(f.name, "rt") as f2:

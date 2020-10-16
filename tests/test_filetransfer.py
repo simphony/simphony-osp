@@ -7,6 +7,7 @@ import subprocess
 import unittest2 as unittest
 import sqlite3
 import shutil
+import json
 from osp.core.session.transport.transport_utils import (
     move_files, serialize_buffers, deserialize_buffers, get_file_cuds)
 from osp.core.session.transport.communication_engine import \
@@ -46,9 +47,12 @@ PORT = 8645
 URI = f"ws://{HOST}:{PORT}"
 DB = "filetransfer.db"
 
-FILES_DIR = os.path.join(os.path.dirname(__file__), "filetransfer_files")
-CLIENT_DIR = os.path.join(os.path.dirname(__file__), "filetransfer_client")
-SERVER_DIR = os.path.join(os.path.dirname(__file__), "filetransfer_server")
+FILES_DIR = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "filetransfer_files"))
+CLIENT_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "filetransfer_client"))
+SERVER_DIR = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "filetransfer_server"))
 FILES = ["f0", "f1.jpg", "f2.tar.gz"]
 FILE_PATHS = [os.path.join(FILES_DIR, file) for file in FILES]
 HASHES = {
@@ -64,7 +68,7 @@ HASHES = {
 SERIALIZED_BUFFERS = (
     '{"added": [{"oclass": "city.Image", '
     '"uid": "00000000-0000-0000-0000-000000000003", '
-    '"attributes": {"path": "%s"}, '
+    '"attributes": {"path": %s}, '
     '"relationships": {"city.isPartOf": '
     '{"00000000-0000-0000-0000-00000000002a": "city.CityWrapper"}}}], '
     '"updated": [{"oclass": "city.CityWrapper", '
@@ -74,13 +78,13 @@ SERIALIZED_BUFFERS = (
     '{"00000000-0000-0000-0000-000000000001": "city.Image", '
     '"00000000-0000-0000-0000-000000000003": "city.Image"}}}, '
     '{"oclass": "city.Image", "uid": "00000000-0000-0000-0000-000000000001", '
-    '"attributes": {"path": "%s"}, '
+    '"attributes": {"path": %s}, '
     '"relationships": {"city.isPartOf": '
     '{"00000000-0000-0000-0000-00000000002a": "city.CityWrapper"}}}], '
     '"deleted": [{"oclass": "city.Image", '
     '"uid": "00000000-0000-0000-0000-000000000002", '
     '"attributes": {}, "relationships": {}}], '
-    '"expired": []}' % (FILE_PATHS[2], FILE_PATHS[0])
+    '"expired": []}' % (json.dumps(FILE_PATHS[2]), json.dumps(FILE_PATHS[0]))
 )
 
 
@@ -92,14 +96,11 @@ class TestFiletransfer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up the server as a subprocess."""
-        args = ["python3",
+        args = ["python",
                 "tests/test_filetransfer.py",
                 "server"]
-        try:
-            p = subprocess.Popen(args, stdout=subprocess.PIPE)
-        except FileNotFoundError:
-            args[0] = "python"
-            p = subprocess.Popen(args)
+        p = subprocess.Popen(
+            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         TestFiletransfer.SERVER_STARTED = p
         for line in p.stdout:

@@ -5,6 +5,7 @@ import sys
 import subprocess
 import unittest2 as unittest
 import hashlib
+import time
 from osp.wrappers.sqlite import SqliteSession
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
@@ -165,7 +166,12 @@ class TestTransportAuth(unittest.TestCase):
         for p in TestTransportAuth.SERVER_STARTED:
             p.terminate()
         TestTransportAuth.OUTPUT_FILE.close()
-        os.remove("output_test_auth")
+        while True:
+            try:
+                os.remove("output_test_auth")
+                break
+            except PermissionError:
+                pass
 
     def test_auth(self):
         """Test authentication."""
