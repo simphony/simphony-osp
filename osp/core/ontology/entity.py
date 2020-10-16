@@ -255,7 +255,10 @@ class OntologyEntity(ABC):
                 if _frontier is not None:
                     _frontier.add(o)
                 if o not in blacklist:
-                    yield self.namespace._namespace_registry.from_iri(o)
+                    x = self.namespace._namespace_registry.from_iri(
+                        o, raise_error=False)
+                    if x:
+                        yield x
 
     def __hash__(self):
         """Make the entity hashable."""

@@ -148,7 +148,7 @@ class TestTransportAuth(unittest.TestCase):
                              stdout=subprocess.PIPE)
         TestTransportAuth.SERVER_STARTED.append(p)
         for line in p.stdout:
-            if b"ready\n" == line:
+            if b"ready" in line:
                 break
 
         args[-1] = "server2"
@@ -156,7 +156,7 @@ class TestTransportAuth(unittest.TestCase):
                              stdout=subprocess.PIPE)
         TestTransportAuth.SERVER_STARTED.append(p)
         for line in p.stdout:
-            if b"ready\n" == line:
+            if b"ready" in line:
                 break
 
     @classmethod
@@ -165,7 +165,12 @@ class TestTransportAuth(unittest.TestCase):
         for p in TestTransportAuth.SERVER_STARTED:
             p.terminate()
         TestTransportAuth.OUTPUT_FILE.close()
-        os.remove("output_test_auth")
+        while True:
+            try:
+                os.remove("output_test_auth")
+                break
+            except PermissionError:
+                pass
 
     def test_auth(self):
         """Test authentication."""
