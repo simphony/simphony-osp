@@ -37,7 +37,7 @@ class TestAPIfoaf(unittest.TestCase):
         self.assertEqual(b.get(rel=foaf.knows), [a])
 
     def test_throw_exception(self):
-        """Test some exceptions.""" 
+        """Test some exceptions."""
         c = foaf.Person()
         c.age = 20
         # self.assertRaises(AttributeError, c.__setattr__, "age", "2.2")
