@@ -80,7 +80,7 @@ class OntologyRelationship(OntologyEntity):
         o = rdflib.URIRef(self.namespace.get_iri() + "INVERSE_OF_" + self.name)
         x = (self.iri, rdflib.OWL.inverseOf, o)
         y = (o, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
-        z = (o, rdflib.RDFS.label, rdflib.Literal("INVERSE_OF_" + self.name,
+        z = (o, rdflib.SKOS.prefLabel, rdflib.Literal("INVERSE_OF_" + self.name,
                                                   lang="en"))
 
         self.namespace._graph.add(x)

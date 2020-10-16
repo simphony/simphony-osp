@@ -71,20 +71,20 @@ class TestOntologyEntity(unittest.TestCase):
 
     def test_get_triples(self):
         self.assertEqual(set(city.City.get_triples()), {
-            (city.City.iri, rdflib.RDFS.label, rdflib.term.Literal('City',
+            (city.City.iri, rdflib.SKOS.prefLabel, rdflib.term.Literal('City',
                                                                    lang='en')),
             (city.City.iri, rdflib.RDFS.subClassOf, city.PopulatedPlace.iri),
             (city.City.iri, rdflib.RDF.type, rdflib.OWL.Class)
         })
         self.assertEqual(set(city.hasPart.get_triples()), {
-            (city.hasPart.iri, rdflib.RDFS.label,
+            (city.hasPart.iri, rdflib.SKOS.prefLabel,
              rdflib.term.Literal('hasPart', lang='en')),
             (city.hasPart.iri, rdflib.RDFS.subPropertyOf, city.encloses.iri),
             (city.hasPart.iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty),
             (city.hasPart.iri, rdflib.OWL.inverseOf, city.isPartOf.iri)
         })
         self.assertEqual(set(city.coordinates.get_triples()), {
-            (city.coordinates.iri, rdflib.RDFS.label,
+            (city.coordinates.iri, rdflib.SKOS.prefLabel,
              rdflib.term.Literal('coordinates', lang='en')),
             (city.coordinates.iri, rdflib.RDFS.subPropertyOf,
              cuba.attribute.iri),

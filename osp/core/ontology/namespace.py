@@ -85,7 +85,7 @@ class OntologyNamespace():
         if label in self._label_cache:
             return self._label_cache[label]
         result = list()
-        for s, p, o in self._graph.triples((None, rdflib.RDFS.label, label)):
+        for s, p, o in self._graph.triples((None, rdflib.SKOS.prefLabel, label)):
             if str(s).startswith(self._iri):  # TODO more efficient
                 name = str(s)[len(self._iri):]
                 result.append(
@@ -147,7 +147,7 @@ class OntologyNamespace():
         iri_suffix = name if not _force_by_iri else _force_by_iri
         iri = rdflib.URIRef(str(self._iri) + iri_suffix)
         if name is None and _force_by_iri:
-            name = str(self._graph.value(iri, rdflib.RDFS.label))
+            name = str(self._graph.value(iri, rdflib.SKOS.prefLabel))
         for s, p, o in self._graph.triples((iri, rdflib.RDF.type, None)):
             if o == rdflib.OWL.DatatypeProperty:
                 # assert (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty)

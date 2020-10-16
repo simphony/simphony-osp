@@ -135,7 +135,7 @@ class YmlParser:
                                          lang="en")
             self.graph.add((iri, rdflib.RDFS.isDefinedBy, description))
         label = rdflib.Literal(entity_name, lang="en")
-        self.graph.add((iri, rdflib.RDFS.label, label))
+        self.graph.add((iri, rdflib.SKOS.prefLabel, label))
         self._add_type_triple(entity_name, iri)
 
         # Parse superclasses
@@ -183,7 +183,7 @@ class YmlParser:
             literal = rdflib.Literal(entity_name, lang="en")
             try:
                 iri = next(s for s, p, o in self.graph.triples(
-                    (None, rdflib.RDFS.label, literal)
+                    (None, rdflib.SKOS.prefLabel, literal)
                 ) if s.startswith(ns_iri))
             except StopIteration:
                 pass
