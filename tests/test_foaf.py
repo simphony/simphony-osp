@@ -3,10 +3,6 @@
 import unittest2 as unittest
 import uuid
 
-from osp.core.utils import clone_cuds_object, create_from_cuds_object, \
-    get_neighbor_diff
-from osp.core.session.core_session import CoreSession
-from osp.core.cuds import Cuds
 from osp.core.namespaces import cuba
 
 try:

@@ -6,7 +6,6 @@ import logging
 import yaml
 import requests
 import tempfile
-from xml.sax._exceptions import SAXParseException
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.yml.yml_parser import YmlParser
 

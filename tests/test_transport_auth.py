@@ -5,7 +5,6 @@ import sys
 import subprocess
 import unittest2 as unittest
 import hashlib
-import time
 from osp.wrappers.sqlite import SqliteSession
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
