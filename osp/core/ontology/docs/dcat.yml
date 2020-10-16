@@ -1,0 +1,7 @@
+---
+identifier: dcat2
+ontology_file: https://www.w3.org/ns/dcat2.rdf
+reference_by_label: False
+namespaces: 
+    dcat2: http://www.w3.org/ns/dcat#
+active_relationships: [] 
