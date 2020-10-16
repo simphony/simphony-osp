@@ -25,20 +25,23 @@ class TestAPIfoaf(unittest.TestCase):
         self.assertTrue(c.is_a(cuba.Class))
 
     def test_uid(self):
-        """Tests that the uid variable contains a UUID object."""
+        """Test that the uid variable contains a UUID object."""
         c = foaf.Person()
         self.assertIsInstance(c.uid, uuid.UUID)
 
     def test_relations(self):
+        """Test some relationships."""
         a = foaf.Person()
         b = foaf.Person()
         b.add(a, rel=foaf.knows)
         self.assertEqual(b.get(rel=foaf.knows), [a])
 
     def test_throw_exception(self):
+        """Test some exceptions.""" 
         c = foaf.Person()
         c.age = 20
-        """self.assertRaises(AttributeError, c.__setattr__, "age", "2.2")"""
+        # self.assertRaises(AttributeError, c.__setattr__, "age", "2.2")
+
 
 if __name__ == '__main__':
     unittest.main()
