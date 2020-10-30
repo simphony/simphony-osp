@@ -29,15 +29,13 @@ class DbWrapperSession(WrapperSession):
         self.expire_all()
 
     @returns_query_result
-    def load_by_oclass(self, oclass, update_registry=False):
+    def load_by_oclass(self, oclass):
         """Load cuds_object with given OntologyClass.
 
         Will also return cuds objects of subclasses of oclass.
 
         Args:
-            oclass (OntologyClass): Load cuds objects with this ontology class
-            update_registry (bool): Whether to update cuds_objects which are
-                already present in the registry.
+            oclass (OntologyClass): Load cuds objects with this ontology class.
 
         Yields:
             Cuds: The list of loaded cuds objects
@@ -46,8 +44,7 @@ class DbWrapperSession(WrapperSession):
             raise RuntimeError("This Session is not yet initialized. "
                                "Add it to a wrapper first.")
         for subclass in oclass.subclasses:
-            yield from self._load_by_oclass(subclass,
-                                            update_registry=update_registry)
+            yield from self._load_by_oclass(subclass)
 
     def _store(self, cuds_object):
         """Store and object in the database.
@@ -67,7 +64,7 @@ class DbWrapperSession(WrapperSession):
                     self._commit()
                 except Exception as e:
                     self._rollback_transaction()
-                    raise e
+                    raise type(e)(str(e)) from e
 
     def _commit(self):
         """Commit to the database."""
@@ -106,13 +103,11 @@ class DbWrapperSession(WrapperSession):
         """Close the connection to the database."""
 
     @abstractmethod
-    def _load_by_oclass(self, oclass, update_registry=False):
+    def _load_by_oclass(self, oclass):
         """Load the cuds_object with the given ontology class.
 
         Args:
-            oclass (OntologyClass): The OntologyClass of the cuds objects
-            update_registry (bool): Whether to update cuds_objects already
-                which are already present in the registry.
+            oclass (OntologyClass): The OntologyClass of the cuds objects.
 
         Returns:
             Cuds: The loaded cuds_object.
@@ -138,3 +133,11 @@ class DbWrapperSession(WrapperSession):
             the user.
         """
         return username, password
+
+    # OVERRIDE
+    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object, uids):
+        # do not expire if root is loaded
+        x = old_cuds_object or new_cuds_object
+        if x and x.uid != self.root:
+            super()._expire_neighour_diff(old_cuds_object, new_cuds_object,
+                                          uids)

@@ -72,11 +72,13 @@ class Cuds():
 
         for k, v in attributes.items():
             self._graph.add((
-                self.iri, k.iri, rdflib.Literal(k.convert_to_datatype(v))
+                self.iri, k.iri, rdflib.Literal(k.convert_to_datatype(v),
+                                                datatype=k.datatype)
             ))
-        self._graph.add((
-            self.iri, rdflib.RDF.type, oclass.iri
-        ))
+        if oclass:
+            self._graph.add((
+                self.iri, rdflib.RDF.type, oclass.iri
+            ))
         self.session._store(self)
 
     @property
@@ -310,7 +312,7 @@ class Cuds():
                                             return_mapping=True)
         if not relationship_mapping:
             raise RuntimeError("Did not remove any Cuds object, "
-                               + "because none matched your filter.")
+                               "because none matched your filter.")
         uid_relationships = list(relationship_mapping.items())
 
         # load all the neighbors to delete and remove inverse relationship
@@ -831,7 +833,8 @@ class Cuds():
             self.session._notify_read(self)
         self._graph.set((
             self.iri, attr.iri,
-            rdflib.Literal(attr.convert_to_datatype(new_value))
+            rdflib.Literal(attr.convert_to_datatype(new_value),
+                           datatype=attr.datatype)
         ))
         if self.session:
             self.session._notify_update(self)
