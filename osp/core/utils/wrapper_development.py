@@ -104,8 +104,9 @@ def create_recycle(oclass, kwargs, session, uid,
     Returns:
         Cuds: The created cuds object.
     """
+    from osp.core.session.wrapper_session import WrapperSession
     uid = convert_to(uid, "UUID")
-    if hasattr(session, "_expired") and uid in session._expired:
+    if isinstance(session, WrapperSession) and uid in session._expired:
         session._expired.remove(uid)
 
     # recycle old object
@@ -199,11 +200,12 @@ def create_from_triples(triples, neighbor_triples, session,
     """
     from osp.core.utils import uid_from_iri
     from osp.core.cuds import Cuds
+    from osp.core.session.wrapper_session import WrapperSession
     triples = list(triples)
     if not triples:
         return None
     uid = uid_from_iri(triples[0][0])
-    if hasattr(session, "_expired") and uid in session._expired:
+    if isinstance(session, WrapperSession) and uid in session._expired:
         session._expired.remove(uid)
 
     # recycle old object
@@ -224,5 +226,7 @@ def create_from_triples(triples, neighbor_triples, session,
     # add the triples
     for triple in set(triples) | set(neighbor_triples):
         session.graph.add(triple)
+    if isinstance(session, WrapperSession):
+        session._store_checks(cuds_object)
     cuds_object.session._notify_update(cuds_object)
     return cuds_object

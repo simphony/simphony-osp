@@ -1,5 +1,6 @@
 """Utilities used for the transport layer."""
 
+import io
 import json
 import uuid
 import os
@@ -7,18 +8,32 @@ import shutil
 import logging
 import hashlib
 import rdflib
+from rdflib_jsonld.serializer import from_rdf as json_from_rdf, \
+    PLAIN_LITERAL_TYPES
+from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.namespaces import get_entity, cuba
-from osp.core.utils import create_recycle
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.buffers import get_buffer_context_mngr
-from osp.core.utils import create_from_triples
+from osp.core.utils import create_from_triples, get_custom_datatypes
 
 logger = logging.getLogger(__name__)
 
 INITIALIZE_COMMAND = "_init"
 LOAD_COMMAND = "_load"
 HANDSHAKE_COMMAND = "_handshake"
+
+serialization_initialized = False
+
+
+def initialize_serialization():
+    """Initialize some serialization settings."""
+    global serialization_initialized
+    if not serialization_initialized:
+        for datatype in get_custom_datatypes():
+            if "VECTOR" in datatype.toPython():
+                PLAIN_LITERAL_TYPES.add(datatype)
+    serialization_initialized = True
 
 
 def serialize_buffers(session_obj, buffer_context,
@@ -198,17 +213,14 @@ def deserialize(json_obj, session, buffer_context, _force=False):
         return None
     if isinstance(json_obj, (str, int, float)):
         return json_obj
+    if isinstance(json_obj, list) \
+            and json_obj and isinstance(json_obj[0], dict) \
+            and "@id" in json_obj[0]:
+        return _to_cuds_object(json_obj, session, buffer_context,
+                               _force=_force)
     if isinstance(json_obj, list):
         return [deserialize(x, session, buffer_context, _force=_force)
                 for x in json_obj]
-    if isinstance(json_obj, dict) \
-            and "oclass" in json_obj \
-            and "uid" in json_obj \
-            and "attributes" in json_obj \
-            and "relationships" in json_obj:
-        cuds = _to_cuds_object(json_obj, session, buffer_context,
-                               _force=_force)
-        return cuds
     if isinstance(json_obj, dict) \
             and set(["UUID"]) == set(json_obj.keys()):
         return convert_to(json_obj["UUID"], "UUID")
@@ -238,6 +250,7 @@ def serializable(obj):
         Union[Dict, List, str, None]: The serializable object.
     """
     from osp.core.cuds import Cuds
+    initialize_serialization()
     if obj is None:
         return obj
     if isinstance(obj, (str, int, float)):
@@ -279,17 +292,23 @@ def get_file_cuds(obj):
     return [y for x in obj for y in get_file_cuds(x)]
 
 
-def _serializable(cuds_object, graph=None):
-    """Make a cuds_object json serializable.
+def _serializable(cuds_object):
+    """Make CUDS object json serializable using JSON-LD.
+
+    Args:
+        cuds_object ([type]): The CUDS object to make serializable.
 
     Returns:
-        Cuds: The cuds_object to make serializable.
+        List[Dict]: []
     """
+    # TODO send all triples of all CUDS to send in one json-ld document
     g = rdflib.Graph()
-    for s, p, o in cuds_object.get_triples():
-        g.add(s, p, o)
-        for n in cuds_object._g(p, rdflib.RDF.type, None)
-    return g.serialize(format="json-ld").encode("utf-8")
+    for s, p, o in cuds_object.get_triples(include_neighbor_types=True):
+        if isinstance(o, rdflib.Literal):
+            o = rdflib.Literal(convert_from(o.toPython(), o.datatype),
+                               datatype=o.datatype, lang=o.language)
+        g.add((s, p, o))
+    return json_from_rdf(g, use_native_types=True)  # TODO compact
 
 
 def _to_cuds_object(json_obj, session, buffer_context, _force=False):
@@ -308,10 +327,23 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
         raise ValueError("Not allowed to deserialize CUDS object "
                          "with undefined buffer_context")
     with get_buffer_context_mngr(session, buffer_context):
-        g = rdflib.Graph()
-        g.parse(json_obj, format="json-ld")
-        triples = set(g)
-        cuds = create_from_triples(triples, set(), session,
+        g = json_to_rdf(json_obj, rdflib.Graph())
+        try:
+            this_s = next(s for s, p, _ in g if p != rdflib.RDF.type)
+        except StopIteration:
+            this_s = next(s for s, p, _ in g)
+
+        triples, neighbor_triples = set(), set()
+        for s, p, o in g:
+            if s == this_s:
+                if isinstance(o, rdflib.Literal):  # datatype conversion
+                    o = rdflib.Literal(convert_to(o.toPython(), o.datatype),
+                                       datatype=o.datatype, lang=o.language)
+                triples.add((s, p, o))
+            else:
+                neighbor_triples.add((s, p, o))
+
+        cuds = create_from_triples(triples, neighbor_triples, session,
                                    fix_neighbors=False)
         return cuds
 

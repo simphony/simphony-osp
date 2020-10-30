@@ -44,34 +44,61 @@ except ImportError:
     _namespace_registry.update_namespaces()
     city = _namespace_registry.city
 
-CUDS_DICT = {
-    "oclass": "city.Citizen",
-    "uid": str(uuid.UUID(int=1)),
-    "attributes": {
-        "name": "Peter",
-        "age": 23
-    },
-    "relationships": {
-        "city.INVERSE_OF_hasInhabitant": {str(uuid.UUID(int=2)): "city.City"},
-        "city.hasChild": {str(uuid.UUID(int=3)): "city.Person",
-                          str(uuid.UUID(int=4)): "city.Person"}
-    }
-}
 
-CUDS_LIST = [
-    {"oclass": "city.City", "uid": str(uuid.UUID(int=1)),
-     "attributes": {"coordinates": [0, 0], "name": "Freiburg"},
-     "relationships": {
-         "city.hasPart": {str(uuid.UUID(int=2)): "city.Neighborhood"}}},
-    {"oclass": "city.Neighborhood", "uid": str(uuid.UUID(int=2)),
-     "attributes": {"coordinates": [0, 0], "name": "Littenweiler"},
-     "relationships": {"city.hasPart": {str(uuid.UUID(int=3)): "city.Street"},
-                       "city.isPartOf": {str(uuid.UUID(int=1)): "city.City"}}},
-    {"oclass": "city.Street", "uid": str(uuid.UUID(int=3)),
-     "attributes": {"coordinates": [0, 0], "name": "Schwarzwaldstraße"},
-     "relationships": {
-         "city.isPartOf": {str(uuid.UUID(int=2)): "city.Neighborhood"}}}
-]
+PRFX = 'http://www.osp-core.com/cuds/#00000000-0000-0000-0000-0000000000'
+CUDS_DICT = [{
+    '@id': PRFX + "01",
+    '@type': ['http://www.osp-core.com/city#City']
+}, {
+    '@id': PRFX + "03",
+    '@type': ['http://www.osp-core.com/city#Person']
+}, {
+    '@id': PRFX + "02",
+    '@type': ['http://www.osp-core.com/city#Person']
+}, {
+    '@id': PRFX + "7b",
+    '@type': ['http://www.osp-core.com/city#Citizen'],
+    'http://www.osp-core.com/city#INVERSE_OF_hasInhabitant': [
+        {'@id': PRFX + "01"}],
+    'http://www.osp-core.com/city#age': [{'@value': 23}],
+    'http://www.osp-core.com/city#hasChild': [
+        {'@id': PRFX + "02"},
+        {'@id': PRFX + "03"}],
+    'http://www.osp-core.com/city#name': [{'@value': 'Peter'}]
+}]
+
+CUDS_LIST = [[
+    {"@id": PRFX + "01",
+     "http://www.osp-core.com/city#name": [{"@value": "Freiburg"}],
+     "http://www.osp-core.com/city#coordinates": [{"@value": [0, 0]}],
+     "@type": ["http://www.osp-core.com/city#City"],
+     "http://www.osp-core.com/city#hasPart": [
+         {"@id": PRFX + "02"}]},
+    {"@id": PRFX + "02",
+     "@type": ["http://www.osp-core.com/city#Neighborhood"]}
+], [
+    {"@id": PRFX + "01",
+     "@type": ["http://www.osp-core.com/city#City"]},
+    {"@id": PRFX + "02",
+     "http://www.osp-core.com/city#hasPart": [
+         {"@id": PRFX + "03"}],
+     "@type": ["http://www.osp-core.com/city#Neighborhood"],
+     "http://www.osp-core.com/city#coordinates": [{"@value": [0, 0]}],
+     "http://www.osp-core.com/city#name": [{"@value": "Littenweiler"}],
+     "http://www.osp-core.com/city#isPartOf": [
+         {"@id": PRFX + "01"}]},
+    {"@id": PRFX + "03",
+     "@type": ["http://www.osp-core.com/city#Street"]}
+], [
+    {"@id": PRFX + "02",
+     "@type": ["http://www.osp-core.com/city#Neighborhood"]},
+    {"@id": PRFX + "03",
+     "http://www.osp-core.com/city#coordinates": [{"@value": [0, 0]}],
+     "http://www.osp-core.com/city#isPartOf": [
+         {"@id": PRFX + "02"}],
+     "@type": ["http://www.osp-core.com/city#Street"],
+     "http://www.osp-core.com/city#name": [{"@value": "Schwarzwaldstraße"}]}
+]]
 
 
 def get_test_city():

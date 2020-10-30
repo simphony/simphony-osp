@@ -2,6 +2,8 @@
 import unittest2 as unittest
 import uuid
 import json
+import rdflib
+from rdflib.compare import isomorphic
 from copy import deepcopy
 from osp.core.session.buffers import BufferContext, EngineContext, \
     BufferType
@@ -31,128 +33,128 @@ except ImportError:
     _namespace_registry.update_namespaces()
     city = _namespace_registry.city
 
-CUDS_DICT = {
-    "oclass": "city.Citizen",
-    "uid": str(uuid.UUID(int=123)),
-    "attributes": {
-        "name": "Peter",
-        "age": 23
-    },
-    "relationships": {
-        "city.INVERSE_OF_hasInhabitant": {str(uuid.UUID(int=1)): "city.City"},
-        "city.hasChild": {str(uuid.UUID(int=2)): "city.Person",
-                          str(uuid.UUID(int=3)): "city.Person"}
-    }
-}
+PRFX = 'http://www.osp-core.com/cuds/#00000000-0000-0000-0000-0000000000'
+CUDS_DICT = [{
+    '@id': PRFX + "01",
+    '@type': ['http://www.osp-core.com/city#City']
+}, {
+    '@id': PRFX + "03",
+    '@type': ['http://www.osp-core.com/city#Person']
+}, {
+    '@id': PRFX + "02",
+    '@type': ['http://www.osp-core.com/city#Person']
+}, {
+    '@id': PRFX + "7b",
+    '@type': ['http://www.osp-core.com/city#Citizen'],
+    'http://www.osp-core.com/city#INVERSE_OF_hasInhabitant': [
+        {'@id': PRFX + "01"}],
+    'http://www.osp-core.com/city#age': [{'@value': 23}],
+    'http://www.osp-core.com/city#hasChild': [
+        {'@id': PRFX + "02"},
+        {'@id': PRFX + "03"}],
+    'http://www.osp-core.com/city#name': [{'@value': 'Peter'}]
+}]
 
-ROOT_DICT = {
-    "oclass": "city.CityWrapper",
-    "uid": str(uuid.UUID(int=43)),
-    "attributes": {},
-    "relationships": {
-        "city.hasPart": {str(uuid.UUID(int=1)): "city.City"}
-    }
-}
+ROOT_DICT = [{
+    '@id': PRFX + "01",
+    '@type': ['http://www.osp-core.com/city#City']
+}, {
+    '@id': PRFX + "2b",
+    '@type': ['http://www.osp-core.com/city#CityWrapper'],
+    'http://www.osp-core.com/city#hasPart': [
+        {'@id': PRFX + "01"}],
+}]
 
 SERIALIZED_BUFFERS = {
-    "added": [{
-        "oclass": "city.City",
-        "uid": "00000000-0000-0000-0000-000000000002",
-        "attributes": {"name": "Paris",
-                       "coordinates": [0, 0]},
-        "relationships": {
-            "city.isPartOf": {
-                "00000000-0000-0000-0000-00000000007b": "city.CityWrapper"}}}],
-    "updated": [{
-        "oclass": "city.CityWrapper",
-        "uid": "00000000-0000-0000-0000-00000000007b",
-        "attributes": {},
-        "relationships": {
-            "city.hasPart":
-                {"00000000-0000-0000-0000-000000000002":
-                 "city.City"}}}],
-    "deleted": [{
-        "oclass": "city.City",
-        "uid": "00000000-0000-0000-0000-000000000001",
-        "attributes": {},
-        "relationships": {}}],
-    "expired": [],
-    "args": [42],
-    "kwargs": {"name": "London"}
-}
+    "added": [[
+        {"@id": PRFX + "7b",
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]},
+        {"@id": PRFX + "02",
+         "http://www.osp-core.com/city#isPartOf": [
+             {"@id": PRFX + "7b"}],
+         "http://www.osp-core.com/city#coordinates": [
+             {"@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2",
+              "@value": "[0 0]"}],  # TODO correct serialization of vector
+         "http://www.osp-core.com/city#name": [{"@value": "Paris"}],
+         "@type": ["http://www.osp-core.com/city#City"]}
+    ]], "updated": [[
+        {"@id": PRFX + "7b",
+         "http://www.osp-core.com/city#hasPart": [{
+             "@id": PRFX + "02"}],
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]},
+        {"@id": PRFX + "02",
+         "@type": ["http://www.osp-core.com/city#City"]}
+    ]], "deleted": [[
+        {"@id": PRFX + "01",
+         "@type": ["http://www.osp-core.com/city#City"]}
+    ]], "expired": [], "args": [42], "kwargs": {"name": "London"}}
 
-SERIALIZED_BUFFERS_EXPIRED = {
-    "added": [{
-        "oclass": "city.City",
-        "uid": "00000000-0000-0000-0000-000000000002",
-        "attributes": {"name": "Paris",
-                       "coordinates": [0, 0]},
-        "relationships": {
-            "city.isPartOf": {
-                "00000000-0000-0000-0000-00000000007b": "city.CityWrapper"}}}],
-    "updated": [{
-        "oclass": "city.CityWrapper",
-        "uid": "00000000-0000-0000-0000-00000000007b",
-        "attributes": {},
-        "relationships": {
-            "city.hasPart": {
-                "00000000-0000-0000-0000-000000000002": "city.City"}}}],
-    "deleted": [{
-        "oclass": "city.City",
-        "uid": "00000000-0000-0000-0000-000000000001",
-        "attributes": {},
-        "relationships": {}}],
-    "expired": [{"UUID": "00000000-0000-0000-0000-000000000003"}],
-    "args": [42],
-    "kwargs": {"name": "London"}
-}
+SERIALIZED_BUFFERS_EXPIRED = deepcopy(SERIALIZED_BUFFERS)
+SERIALIZED_BUFFERS_EXPIRED["expired"] = [
+    {"UUID": "00000000-0000-0000-0000-000000000003"}
+]
 
 SERIALIZED_BUFFERS2 = {
-    "added": [{
-        "oclass": "city.City",
-        "uid": "00000000-0000-0000-0000-00000000002a",
-        "attributes": {"name": "London",
-                       "coordinates": [0, 0]},
-        "relationships": {}}],
+    "added": [[
+        {"@id": PRFX + "2a",
+         "http://www.osp-core.com/city#coordinates": [
+             {"@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2",
+              "@value": "[0 0]"}],
+         "http://www.osp-core.com/city#name": [{"@value": "London"}],
+         "@type": ["http://www.osp-core.com/city#City"]}]],
     "updated": [], "deleted": [], "expired": []
 }
 
 SERIALIZED_BUFFERS3 = {
-    "added": [{
-        "oclass": "city.Citizen",
-        "uid": "00000000-0000-0000-0000-000000000002",
-        "attributes": {"name": "Peter", "age": 12},
-        "relationships": {
-            "city.INVERSE_OF_hasInhabitant": {
-                "00000000-0000-0000-0000-000000000001": "city.City"}}}],
-    "updated": [{
-        "oclass": "city.City",
-        "uid": "00000000-0000-0000-0000-000000000001",
-        "attributes": {"name": "Freiburg",
-                       "coordinates": [0, 0]},
-        "relationships": {
-            "city.isPartOf": {
-                "00000000-0000-0000-0000-000000000003": "city.CityWrapper"},
-            "city.hasInhabitant": {
-                "00000000-0000-0000-0000-000000000002": "city.Citizen"}}}],
-    "deleted": [], "expired": [],
-    "result": [{
-        "oclass": "city.City",
-        "uid": "00000000-0000-0000-0000-000000000001",
-        "attributes": {"name": "Freiburg",
-                       "coordinates": [0, 0]},
-        "relationships": {
-            "city.isPartOf": {
-                "00000000-0000-0000-0000-000000000003": "city.CityWrapper"},
-            "city.hasInhabitant": {
-                "00000000-0000-0000-0000-000000000002": "city.Citizen"}}}, {
-        "oclass": "city.CityWrapper",
-        "uid": "00000000-0000-0000-0000-000000000003",
-        "attributes": {},
-        "relationships": {
-            "city.hasPart": {
-                "00000000-0000-0000-0000-000000000001": "city.City"}}}]
-}
+    "added": [[
+        {"@id": PRFX + "01",
+         "@type": ["http://www.osp-core.com/city#City"]},
+        {"@id": PRFX + "02",
+         "http://www.osp-core.com/city#age": [
+             {"@type": "http://www.w3.org/2001/XMLSchema#integer",
+              "@value": "12"}],
+         "http://www.osp-core.com/city#INVERSE_OF_hasInhabitant": [
+             {"@id": PRFX + "01"}],
+         "http://www.osp-core.com/city#name": [{"@value": "Peter"}],
+         "@type": ["http://www.osp-core.com/city#Citizen"]}]],
+    "updated": [[
+        {"@id": PRFX + "02",
+         "@type": ["http://www.osp-core.com/city#Citizen"]},
+        {"@id": PRFX + "01",
+         "http://www.osp-core.com/city#hasInhabitant": [
+             {"@id": PRFX + "02"}],
+         "http://www.osp-core.com/city#isPartOf": [
+             {"@id": PRFX + "03"}],
+         "@type": ["http://www.osp-core.com/city#City"],
+         "http://www.osp-core.com/city#name": [{"@value": "Freiburg"}],
+         "http://www.osp-core.com/city#coordinates": [
+             {"@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2",
+              "@value": "[0 0]"}]},
+        {"@id": PRFX + "03",
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]}]],
+    "deleted": [], "expired": [], "result": [[
+        {"@id": PRFX + "02",
+         "@type": ["http://www.osp-core.com/city#Citizen"]},
+        {"@id": PRFX + "01",
+         "http://www.osp-core.com/city#name": [{"@value": "Freiburg"}],
+         "http://www.osp-core.com/city#hasInhabitant": [
+             {"@id": PRFX + "02"}],
+         "http://www.osp-core.com/city#coordinates": [
+             {"@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2",
+              "@value": "[0 0]"}],
+         "@type": ["http://www.osp-core.com/city#City"],
+         "http://www.osp-core.com/city#isPartOf": [
+             {"@id": PRFX + "03"}]},
+        {"@id": PRFX + "03",
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]}
+    ], [
+        {"@id": PRFX + "01",
+         "@type": ["http://www.osp-core.com/city#City"]},
+        {"@id": PRFX + "03",
+         "http://www.osp-core.com/city#hasPart": [
+             {"@id": PRFX + "01"}],
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]}
+    ]]}
 
 
 class TestCommunicationEngineSharedFunctions(unittest.TestCase):
@@ -175,29 +177,18 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(cuds_object.oclass, city.Citizen)
             self.assertEqual(set(cuds_object._neighbors.keys()),
                              {city.INVERSE_OF_hasInhabitant,
-                             city.hasChild})
+                              city.hasChild})
             self.assertEqual(
                 cuds_object._neighbors[city.INVERSE_OF_hasInhabitant],
                 {uuid.UUID(int=1): city.City})
             self.assertEqual(cuds_object._neighbors[city.hasChild],
                              {uuid.UUID(int=2): city.Person,
-                             uuid.UUID(int=3): city.Person})
+                              uuid.UUID(int=3): city.Person})
 
             invalid_oclass = deepcopy(CUDS_DICT)
-            invalid_oclass["oclass"] = "INVALID_OCLASS"
-            self.assertRaises(ValueError, deserialize,
-                              invalid_oclass, session, True)
-
-            invalid_attribute = deepcopy(CUDS_DICT)
-            invalid_attribute["attributes"]["invalid_attr"] = 0
+            invalid_oclass[-1]["@type"] = ["http://invalid.com/invalid"]
             self.assertRaises(TypeError, deserialize,
-                              invalid_attribute, session, True)
-
-            invalid_rel = deepcopy(CUDS_DICT)
-            invalid_rel["relationships"]["IS_INHABITANT_OF"] = {
-                str(uuid.UUID(int=1)): "Person"}
-            self.assertRaises(ValueError, deserialize,
-                              invalid_rel, session, True)
+                              invalid_oclass, session, True)
 
             self.assertEqual(deserialize(None, session, True), None)
             self.assertEqual(deserialize([None, None], session, True),

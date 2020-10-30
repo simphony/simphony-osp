@@ -7,6 +7,7 @@ import subprocess
 import unittest2 as unittest
 import sqlite3
 import shutil
+import json
 from osp.core.session.transport.transport_utils import (
     move_files, serialize_buffers, deserialize_buffers, get_file_cuds)
 from osp.core.session.transport.communication_engine import \
@@ -61,27 +62,41 @@ HASHES = {
 }
 
 
-SERIALIZED_BUFFERS = (
-    '{"added": [{"oclass": "city.Image", '
-    '"uid": "00000000-0000-0000-0000-000000000003", '
-    '"attributes": {"path": "%s"}, '
-    '"relationships": {"city.isPartOf": '
-    '{"00000000-0000-0000-0000-00000000002a": "city.CityWrapper"}}}], '
-    '"updated": [{"oclass": "city.CityWrapper", '
-    '"uid": "00000000-0000-0000-0000-00000000002a", '
-    '"attributes": {}, '
-    '"relationships": {"city.hasPart": '
-    '{"00000000-0000-0000-0000-000000000001": "city.Image", '
-    '"00000000-0000-0000-0000-000000000003": "city.Image"}}}, '
-    '{"oclass": "city.Image", "uid": "00000000-0000-0000-0000-000000000001", '
-    '"attributes": {"path": "%s"}, '
-    '"relationships": {"city.isPartOf": '
-    '{"00000000-0000-0000-0000-00000000002a": "city.CityWrapper"}}}], '
-    '"deleted": [{"oclass": "city.Image", '
-    '"uid": "00000000-0000-0000-0000-000000000002", '
-    '"attributes": {}, "relationships": {}}], '
-    '"expired": []}' % (FILE_PATHS[2], FILE_PATHS[0])
-)
+PRFX = 'http://www.osp-core.com/cuds/#00000000-0000-0000-0000-0000000000'
+SERIALIZED_BUFFERS = json.dumps({
+    "added": [[
+        {"@id": PRFX + "2a",
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]},
+        {"@id": PRFX + "03",
+         "http://www.osp-core.com/city#isPartOf": [
+             {"@id": PRFX + "2a"}],
+         "http://www.osp-core.com/cuba#path": [
+             {"@type": "http://www.w3.org/2001/XMLSchema#string",
+              "@value": FILE_PATHS[2]}],
+         "@type": ["http://www.osp-core.com/city#Image"]}
+    ]], "updated": [[
+        {"@id": PRFX + "2a",
+         "http://www.osp-core.com/city#hasPart": [
+             {"@id": PRFX + "01"}, {"@id": PRFX + "03"}],
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]},
+        {"@id": PRFX + "01",
+         "@type": ["http://www.osp-core.com/city#Image"]},
+        {"@id": PRFX + "03",
+         "@type": ["http://www.osp-core.com/city#Image"]}
+    ], [
+        {"@id": PRFX + "2a",
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]},
+        {"@id": PRFX + "01",
+         "http://www.osp-core.com/city#isPartOf": [
+             {"@id": PRFX + "2a"}],
+         "http://www.osp-core.com/cuba#path": [
+             {"@type": "http://www.w3.org/2001/XMLSchema#string",
+              "@value": FILE_PATHS[0]}],
+         "@type": ["http://www.osp-core.com/city#Image"]}
+    ]], "deleted": [[
+        {"@id": PRFX + "02",
+         "@type": ["http://www.osp-core.com/city#Image"]}
+    ]], "expired": []})
 
 
 class TestFiletransfer(unittest.TestCase):

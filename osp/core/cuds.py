@@ -124,12 +124,13 @@ class Cuds():
 
     def get_triples(self, include_neighbor_types=False):
         """Get the triples of the cuds object."""
-        result = set(self._graph.triples((self.iri, None, None)))
-        if not include_neighbor_types:
-            return result
-        for s, p, o in result:
-            result |= self._graph.triples((o, rdflib.RDF.type, None))
-        return result
+        o_set = set()
+        for s, p, o in self._graph.triples((self.iri, None, None)):
+            yield s, p, o
+            o_set.add(o)
+        if include_neighbor_types:
+            for o in o_set:
+                yield from self._graph.triples((o, rdflib.RDF.type, None))
 
     def get_attributes(self):
         """Get the attributes as a dictionary."""

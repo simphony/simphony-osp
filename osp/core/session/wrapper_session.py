@@ -190,6 +190,19 @@ class WrapperSession(Session):
         logger.info(singular if len(deleted) == 1 else plural,
                     len(deleted), "deleted from", self)
 
+    def _store_checks(self, cuds_object):
+        # Check if root is wrapper and wrapper is root
+        from osp.core.namespaces import cuba
+        if cuds_object.is_a(cuba.Wrapper) and self.root is not None \
+                and self.root != cuds_object.uid:
+            raise RuntimeError("Only one wrapper is allowed per session")
+
+        if not cuds_object.is_a(cuba.Wrapper) and self.root is None:
+            raise RuntimeError("Please add a wrapper to the session first")
+
+        if cuds_object.oclass is None:
+            raise TypeError(f"No oclass associated with {cuds_object}!")
+
     # OVERRIDE
     def _store(self, cuds_object):
         """Store the cuds_objects in the registry and add it to buffers.
@@ -197,13 +210,8 @@ class WrapperSession(Session):
         Args:
             cuds_object (Cuds): The cuds_object to store.
         """
-        from osp.core.namespaces import cuba
-        # Check if root is wrapper and wrapper is root
-        if cuds_object.is_a(cuba.Wrapper) and self.root is not None:
-            raise RuntimeError("Only one wrapper is allowed per session")
-
-        if not cuds_object.is_a(cuba.Wrapper) and self.root is None:
-            raise RuntimeError("Please add a wrapper to the session first")
+        if cuds_object.oclass:
+            self._store_checks(cuds_object)
 
         # update buffers
         logger.debug("Called store on %s in %s" % (cuds_object, self))
@@ -307,6 +315,7 @@ class WrapperSession(Session):
         self._buffers[context][BufferType.ADDED] = dict()
         self._buffers[context][BufferType.UPDATED] = dict()
         self._buffers[context][BufferType.DELETED] = dict()
+        # TODO only buffers for added and deleted triples.
 
     def _get_buffer_uids(self, context):
         """Get all the uids of CUDS objects in buffers.
