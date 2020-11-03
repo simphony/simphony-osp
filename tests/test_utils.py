@@ -3,7 +3,6 @@
 import io
 import unittest
 import responses
-import uuid
 import os
 import osp.core
 import rdflib
@@ -32,8 +31,10 @@ from osp.core.cuds import Cuds
 
 try:
     from .test_session_city import TestWrapperSession
+    from .test_transport_session import assertJsonLdEqual
 except ImportError:
     from test_session_city import TestWrapperSession
+    from test_transport_session import assertJsonLdEqual
 
 try:
     from osp.core.namespaces import city
@@ -70,7 +71,9 @@ CUDS_DICT = [{
 CUDS_LIST = [[
     {"@id": PRFX + "01",
      "http://www.osp-core.com/city#name": [{"@value": "Freiburg"}],
-     "http://www.osp-core.com/city#coordinates": [{"@value": [0, 0]}],
+     "http://www.osp-core.com/city#coordinates": [{
+         "@value": "[0, 0]",
+         "@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2"}],
      "@type": ["http://www.osp-core.com/city#City"],
      "http://www.osp-core.com/city#hasPart": [
          {"@id": PRFX + "02"}]},
@@ -83,7 +86,9 @@ CUDS_LIST = [[
      "http://www.osp-core.com/city#hasPart": [
          {"@id": PRFX + "03"}],
      "@type": ["http://www.osp-core.com/city#Neighborhood"],
-     "http://www.osp-core.com/city#coordinates": [{"@value": [0, 0]}],
+     "http://www.osp-core.com/city#coordinates": [{
+         "@value": "[0, 0]",
+         "@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2"}],
      "http://www.osp-core.com/city#name": [{"@value": "Littenweiler"}],
      "http://www.osp-core.com/city#isPartOf": [
          {"@id": PRFX + "01"}]},
@@ -93,7 +98,9 @@ CUDS_LIST = [[
     {"@id": PRFX + "02",
      "@type": ["http://www.osp-core.com/city#Neighborhood"]},
     {"@id": PRFX + "03",
-     "http://www.osp-core.com/city#coordinates": [{"@value": [0, 0]}],
+     "http://www.osp-core.com/city#coordinates": [{
+         "@value": "[0, 0]",
+         "@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2"}],
      "http://www.osp-core.com/city#isPartOf": [
          {"@id": PRFX + "02"}],
      "@type": ["http://www.osp-core.com/city#Street"],
@@ -291,17 +298,11 @@ class TestUtils(unittest.TestCase):
         response = post('http://dsms.com', c)
 
         serialized = serializable([c, p1, p2, p3, n1, n2, s1])
-        for x in response.json():
-            i = serialized.index(x)
-            del serialized[i]
-        self.assertEqual(serialized, list())
+        assertJsonLdEqual(self, serialized, response.json())
 
         response = post('http://dsms.com', c, max_depth=1)
         serialized = serializable([c, p1, p2, p3, n1, n2])
-        for x in response.json():
-            i = serialized.index(x)
-            del serialized[i]
-        self.assertEqual(serialized, list())
+        assertJsonLdEqual(self, serialized, response.json())
 
     def test_deserialize(self):
         """Test the deserialize function."""
@@ -321,8 +322,8 @@ class TestUtils(unittest.TestCase):
         self.maxDiff = None
 
         self.setUp()
-        self.assertEqual(CUDS_LIST,
-                         json.loads(serialize(deserialize(CUDS_LIST))))
+        assertJsonLdEqual(self, CUDS_LIST,
+                          json.loads(serialize(deserialize(CUDS_LIST))))
 
     def test_serialize(self):
         """Test the serialize function."""
@@ -334,11 +335,13 @@ class TestUtils(unittest.TestCase):
             )
         )
         self.maxDiff = None
-        self.assertEqual(
+        assertJsonLdEqual(
+            self,
             json.loads(serialize(c)),
             CUDS_LIST
         )
-        self.assertEqual(
+        assertJsonLdEqual(
+            self,
             serialize(c, json_dumps=False),
             CUDS_LIST
         )
@@ -441,7 +444,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(c.name, "Freiburg")
             self.assertEqual(len(c.get(rel=cuba.relationship)), 1)
             self.assertEqual(c._neighbors[city.hasInhabitant],
-                             {y.uid: city.Citizen})
+                             {y.uid: [city.Citizen]})
             self.assertEqual(set(default_session._registry.keys()),
                              {a.uid, x.uid, y.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
@@ -460,9 +463,9 @@ class TestUtils(unittest.TestCase):
         })
         self.assertEqual(c.oclass, city.PopulatedPlace)
         self.assertEqual(p1._neighbors[city.INVERSE_OF_hasInhabitant],
-                         {c.uid: city.PopulatedPlace})
+                         {c.uid: [city.PopulatedPlace]})
         self.assertEqual(p2._neighbors[city.INVERSE_OF_hasInhabitant],
-                         {c.uid: city.PopulatedPlace})
+                         {c.uid: [city.PopulatedPlace]})
 
     def test_check_arguments(self):
         """Test checking of arguments."""

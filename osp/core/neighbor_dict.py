@@ -166,7 +166,10 @@ class NeighborDictTarget(NeighborDict):
         super().__init__(
             cuds_object,
             key_check=lambda k: isinstance(k, uuid.UUID),
-            value_check=lambda v: isinstance(v, OntologyClass)
+            value_check=lambda v: (
+                isinstance(v, list)
+                and all(isinstance(x, OntologyClass) for x in v)
+            )
         )
 
     def _init(self, dictionary):
@@ -179,21 +182,25 @@ class NeighborDictTarget(NeighborDict):
         iri = iri_from_uid(uid)
         self.graph.remove((self.cuds_object.iri, self.rel.iri, iri))
 
-    def _setitem(self, uid, oclass):
+    def _setitem(self, uid, oclasses):
         """Add the UUID of a related CUDS object to the dictionary.
 
         Also add the oclass of the related CUDS object.
         """
         iri = iri_from_uid(uid)
-        self.cuds_object._check_valid_add(oclass, self.rel)
+        self.cuds_object._check_valid_add(oclasses, self.rel)
         self.graph.add((self.cuds_object.iri, self.rel.iri, iri))
-        self.graph.set((iri, rdflib.RDF.type, oclass.iri))
+        for oclass in oclasses:
+            self.graph.add((iri, rdflib.RDF.type, oclass.iri))
 
     def _getitem(self, uid):
         """Get the oclass of the object with the given UUID."""
         iri = iri_from_uid(uid)
         if (self.cuds_object.iri, self.rel.iri, iri) in self.graph:
-            return from_iri(self.graph.value(iri, rdflib.RDF.type))
+            result = list()
+            for _, _, o in self.graph.triples((iri, rdflib.RDF.type, None)):
+                result.append(from_iri(o))
+            return result
         raise KeyError(uid)
 
     def _iter(self):

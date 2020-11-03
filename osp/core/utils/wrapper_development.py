@@ -169,12 +169,12 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
         for neighbor in cuds_object.get(rel=cuba.relationship):
             for rel in get_relationships_between(cuds_object, neighbor):
                 neighbor._neighbors[rel.inverse][cuds_object.uid] = \
-                    new_oclass
+                    [new_oclass]
 
     # update attributes
     attributes = new_oclass._get_attributes_values(kwargs, _force=_force)
     cuds_object._graph.remove((cuds_object.iri, None, None))
-    cuds_object._graph.set((
+    cuds_object._graph.add((
         cuds_object.iri, rdflib.RDF.type, new_oclass.iri
     ))
     for k, v in attributes.items():

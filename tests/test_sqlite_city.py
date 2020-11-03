@@ -112,11 +112,11 @@ class TestSqliteCity(unittest.TestCase):
             self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(
                 session._registry.get(c.uid)._neighbors[city.hasInhabitant],
-                {p1.uid: p1.oclass, p2.uid: p2.oclass,
-                 p3.uid: p3.oclass})
+                {p1.uid: p1.oclasses, p2.uid: p2.oclasses,
+                 p3.uid: p3.oclasses})
             self.assertEqual(
                 session._registry.get(c.uid)._neighbors[city.isPartOf],
-                {wrapper.uid: wrapper.oclass})
+                {wrapper.uid: wrapper.oclasses})
 
     def test_load_missing(self):
         """Test if missing objects are loaded automatically."""
@@ -149,15 +149,15 @@ class TestSqliteCity(unittest.TestCase):
             self.assertEqual(p3w.name, "Julia")
             self.assertEqual(
                 p3w._neighbors[city.isChildOf],
-                {p1.uid: p1.oclass, p2.uid: p2.oclass}
+                {p1.uid: p1.oclasses, p2.uid: p2.oclasses}
             )
             self.assertEqual(
                 p2w._neighbors[city.hasChild],
-                {p3.uid: p3.oclass}
+                {p3.uid: p3.oclasses}
             )
             self.assertEqual(
                 p2w._neighbors[city.INVERSE_OF_hasInhabitant],
-                {c.uid: c.oclass}
+                {c.uid: c.oclasses}
             )
 
     def test_load_by_oclass(self):

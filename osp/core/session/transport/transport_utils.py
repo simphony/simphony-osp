@@ -1,6 +1,5 @@
 """Utilities used for the transport layer."""
 
-import io
 import json
 import uuid
 import os
@@ -8,14 +7,15 @@ import shutil
 import logging
 import hashlib
 import rdflib
-from rdflib_jsonld.serializer import from_rdf as json_from_rdf, \
-    PLAIN_LITERAL_TYPES
+import ast
+from rdflib_jsonld.serializer import from_rdf as json_from_rdf
 from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.namespaces import get_entity, cuba
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.buffers import get_buffer_context_mngr
-from osp.core.utils import create_from_triples, get_custom_datatypes
+from osp.core.utils import create_from_triples
+from osp.core.ontology.cuba import rdflib_cuba
 
 logger = logging.getLogger(__name__)
 
@@ -24,16 +24,6 @@ LOAD_COMMAND = "_load"
 HANDSHAKE_COMMAND = "_handshake"
 
 serialization_initialized = False
-
-
-def initialize_serialization():
-    """Initialize some serialization settings."""
-    global serialization_initialized
-    if not serialization_initialized:
-        for datatype in get_custom_datatypes():
-            if "VECTOR" in datatype.toPython():
-                PLAIN_LITERAL_TYPES.add(datatype)
-    serialization_initialized = True
 
 
 def serialize_buffers(session_obj, buffer_context,
@@ -250,7 +240,6 @@ def serializable(obj):
         Union[Dict, List, str, None]: The serializable object.
     """
     from osp.core.cuds import Cuds
-    initialize_serialization()
     if obj is None:
         return obj
     if isinstance(obj, (str, int, float)):
@@ -308,7 +297,7 @@ def _serializable(cuds_object):
             o = rdflib.Literal(convert_from(o.toPython(), o.datatype),
                                datatype=o.datatype, lang=o.language)
         g.add((s, p, o))
-    return json_from_rdf(g, use_native_types=True)  # TODO compact
+    return json_from_rdf(g)  # TODO compact
 
 
 def _to_cuds_object(json_obj, session, buffer_context, _force=False):
@@ -336,9 +325,14 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
         triples, neighbor_triples = set(), set()
         for s, p, o in g:
             if s == this_s:
-                if isinstance(o, rdflib.Literal):  # datatype conversion
-                    o = rdflib.Literal(convert_to(o.toPython(), o.datatype),
-                                       datatype=o.datatype, lang=o.language)
+                # datatype conversion
+                if isinstance(o, rdflib.Literal) \
+                        and o.datatype and o.datatype in rdflib_cuba \
+                        and "VECTOR" in o.datatype.toPython():
+                    o = rdflib.Literal(
+                        convert_to(ast.literal_eval(o.toPython()), o.datatype),
+                        datatype=o.datatype, lang=o.language
+                    )
                 triples.add((s, p, o))
             else:
                 neighbor_triples.add((s, p, o))

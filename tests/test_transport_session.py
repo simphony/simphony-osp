@@ -18,6 +18,7 @@ from osp.core.session.transport.transport_utils import (
     serialize_buffers, LOAD_COMMAND, INITIALIZE_COMMAND
 )
 from osp.core.utils import create_from_cuds_object
+from rdflib_jsonld.parser import to_rdf as json_to_rdf
 
 try:
     from .test_session_city import TestWrapperSession
@@ -74,7 +75,7 @@ SERIALIZED_BUFFERS = {
              {"@id": PRFX + "7b"}],
          "http://www.osp-core.com/city#coordinates": [
              {"@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2",
-              "@value": "[0 0]"}],  # TODO correct serialization of vector
+              "@value": "[0, 0]"}],  # TODO correct serialization of vector
          "http://www.osp-core.com/city#name": [{"@value": "Paris"}],
          "@type": ["http://www.osp-core.com/city#City"]}
     ]], "updated": [[
@@ -99,7 +100,7 @@ SERIALIZED_BUFFERS2 = {
         {"@id": PRFX + "2a",
          "http://www.osp-core.com/city#coordinates": [
              {"@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2",
-              "@value": "[0 0]"}],
+              "@value": "[0, 0]"}],
          "http://www.osp-core.com/city#name": [{"@value": "London"}],
          "@type": ["http://www.osp-core.com/city#City"]}]],
     "updated": [], "deleted": [], "expired": []
@@ -129,7 +130,7 @@ SERIALIZED_BUFFERS3 = {
          "http://www.osp-core.com/city#name": [{"@value": "Freiburg"}],
          "http://www.osp-core.com/city#coordinates": [
              {"@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2",
-              "@value": "[0 0]"}]},
+              "@value": "[0, 0]"}]},
         {"@id": PRFX + "03",
          "@type": ["http://www.osp-core.com/city#CityWrapper"]}]],
     "deleted": [], "expired": [], "result": [[
@@ -141,7 +142,7 @@ SERIALIZED_BUFFERS3 = {
              {"@id": PRFX + "02"}],
          "http://www.osp-core.com/city#coordinates": [
              {"@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2",
-              "@value": "[0 0]"}],
+              "@value": "[0, 0]"}],
          "@type": ["http://www.osp-core.com/city#City"],
          "http://www.osp-core.com/city#isPartOf": [
              {"@id": PRFX + "03"}]},
@@ -155,6 +156,41 @@ SERIALIZED_BUFFERS3 = {
              {"@id": PRFX + "01"}],
          "@type": ["http://www.osp-core.com/city#CityWrapper"]}
     ]]}
+
+
+INIT_DATA = {
+    "args": [], "kwargs": {},
+    "root": [{
+        "@id": PRFX + "01",
+        "@type": ["http://www.osp-core.com/city#CityWrapper"]}],
+    "hashes": {}, "auth": None}
+
+
+def jsonLdEqual(a, b):
+    """Check if to JSON documents containing JSON LD are equal."""
+    if isinstance(a, dict) and isinstance(b, dict) and a.keys() == b.keys():
+        return all(jsonLdEqual(a[k], b[k]) for k in a.keys())
+    elif a and isinstance(a, list) and isinstance(a[0], dict) \
+            and "@id" in a[0]:
+        return isomorphic(json_to_rdf(a, rdflib.Graph()),
+                          json_to_rdf(b, rdflib.Graph()))
+    elif a and isinstance(a, list) and isinstance(a[0], list) \
+            and isinstance(a[0][0], dict) and "@id" in a[0][0]:
+        graph_a, graph_b = rdflib.Graph(), rdflib.Graph()
+        for x in a:
+            json_to_rdf(x, graph_a)
+        for x in b:
+            json_to_rdf(x, graph_b)
+        return isomorphic(graph_a, graph_b)
+    elif isinstance(a, list) and isinstance(b, list) and len(a) == len(b):
+        return all(jsonLdEqual(aa, bb) for aa, bb in zip(a, b))
+    else:
+        return a == b
+
+
+def assertJsonLdEqual(test_case, a, b):
+    """Check if to JSON documents containing JSON LD are equal."""
+    test_case.assertTrue(jsonLdEqual(a, b))
 
 
 class TestCommunicationEngineSharedFunctions(unittest.TestCase):
@@ -180,10 +216,10 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                               city.hasChild})
             self.assertEqual(
                 cuds_object._neighbors[city.INVERSE_OF_hasInhabitant],
-                {uuid.UUID(int=1): city.City})
+                {uuid.UUID(int=1): [city.City]})
             self.assertEqual(cuds_object._neighbors[city.hasChild],
-                             {uuid.UUID(int=2): city.Person,
-                              uuid.UUID(int=3): city.Person})
+                             {uuid.UUID(int=2): [city.Person],
+                              uuid.UUID(int=3): [city.Person]})
 
             invalid_oclass = deepcopy(CUDS_DICT)
             invalid_oclass[-1]["@type"] = ["http://invalid.com/invalid"]
@@ -223,21 +259,25 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         c2 = city.Person(uid=uuid.UUID(int=3))
         p.add(c, rel=city.INVERSE_OF_hasInhabitant)
         p.add(c1, c2, rel=city.hasChild)
-        self.assertEqual(CUDS_DICT, serializable(p))
-        self.assertEqual([CUDS_DICT], serializable([p]))
-        self.assertEqual(None, serializable(None))
-        self.assertEqual([None, None], serializable([None, None]))
-        self.assertEqual({"UUID": "00000000-0000-0000-0000-000000000001"},
-                         serializable(uuid.UUID(int=1)))
-        self.assertEqual([{"UUID": "00000000-0000-0000-0000-000000000001"},
-                          {"UUID": "00000000-0000-0000-0000-000000000002"}],
-                         serializable([uuid.UUID(int=1), uuid.UUID(int=2)]))
-        self.assertEqual({"ENTITY": "city.Citizen"},
-                         serializable(city.Citizen))
-        self.assertEqual([{"ENTITY": "city.Citizen"}, {"ENTITY": "city.City"}],
-                         serializable([city.Citizen, city.City]))
-        self.assertEqual([1, 1.2, "hallo"],
-                         serializable([1, 1.2, "hallo"]))
+        assertJsonLdEqual(self, CUDS_DICT, serializable(p))
+        assertJsonLdEqual(self, [CUDS_DICT], serializable([p]))
+        assertJsonLdEqual(self, None, serializable(None))
+        assertJsonLdEqual(self, [None, None], serializable([None, None]))
+        assertJsonLdEqual(
+            self, {"UUID": "00000000-0000-0000-0000-000000000001"},
+            serializable(uuid.UUID(int=1))
+        )
+        assertJsonLdEqual(self, [
+            {"UUID": "00000000-0000-0000-0000-000000000001"},
+            {"UUID": "00000000-0000-0000-0000-000000000002"}],
+            serializable([uuid.UUID(int=1), uuid.UUID(int=2)]))
+        assertJsonLdEqual(self, {"ENTITY": "city.Citizen"},
+                          serializable(city.Citizen))
+        assertJsonLdEqual(self, [
+            {"ENTITY": "city.Citizen"}, {"ENTITY": "city.City"}],
+            serializable([city.Citizen, city.City]))
+        assertJsonLdEqual(self, [1, 1.2, "hallo"],
+                          serializable([1, 1.2, "hallo"]))
 
     def test_deserialize_buffers(self):
         """Test de-serialization of buffers."""
@@ -265,10 +305,10 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
             self.assertEqual(ws1._neighbors[city.hasPart],
-                             {cn.uid: city.City})
+                             {cn.uid: [city.City]})
             self.assertEqual(set(ws1._neighbors.keys()), {city.hasPart})
             self.assertEqual(cn._neighbors[city.isPartOf],
-                             {ws1.uid: city.CityWrapper})
+                             {ws1.uid: [city.CityWrapper]})
             self.assertEqual(set(cn._neighbors.keys()), {city.isPartOf})
             self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
             self.assertEqual(s1._buffers, [
@@ -303,10 +343,10 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
             self.assertEqual(ws1._neighbors[city.hasPart],
-                             {cn.uid: city.City})
+                             {cn.uid: [city.City]})
             self.assertEqual(set(ws1._neighbors.keys()), {city.hasPart})
             self.assertEqual(cn._neighbors[city.isPartOf],
-                             {ws1.uid: city.CityWrapper})
+                             {ws1.uid: [city.CityWrapper]})
             self.assertEqual(set(cn._neighbors.keys()), {city.isPartOf})
             self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
             self.assertEqual(s1._buffers, [
@@ -345,7 +385,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                     "args": [42], "kwargs": {"name": "London"}
                 }
             )
-            self.assertEqual(json.loads(result[0]), SERIALIZED_BUFFERS)
+            assertJsonLdEqual(self, json.loads(result[0]), SERIALIZED_BUFFERS)
             self.assertEqual(result[1], [])
             self.assertEqual(s1._buffers, [
                 [dict(), dict(), dict()],
@@ -388,7 +428,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                 buffer_context=BufferContext.USER,
                 additional_items={"args": [42],
                                   "kwargs": {"name": "London"}})
-            self.assertEqual(
+            assertJsonLdEqual(
+                self,
                 SERIALIZED_BUFFERS_EXPIRED,
                 json.loads(result[0])
             )
@@ -498,12 +539,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
                             session=client,
                             fix_neighbors=False)  # store will be called here
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
-        self.assertEqual(client._engine._sent_data, (
-            '{"args": [], "kwargs": {}, '
-            '"root": {"oclass": "city.CityWrapper", '
-            '"uid": "00000000-0000-0000-0000-000000000001", '
-            '"attributes": {}, '
-            '"relationships": {}}, "hashes": {}, "auth": null}'))
+        assertJsonLdEqual(self, json.loads(client._engine._sent_data),
+                          INIT_DATA)
         self.assertEqual(set(client._registry.keys()), {c1.uid})
 
         # second item
@@ -640,7 +677,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
                 result = server._load_from_session(
                     '{"uids": [{"UUID": 1}, {"UUID": 3}]}', "user")
             self.maxDiff = None
-            self.assertEqual(json.loads(result[0]), SERIALIZED_BUFFERS3)
+            assertJsonLdEqual(self, json.loads(result[0]), SERIALIZED_BUFFERS3)
             self.assertEqual(result[1], [])
 
     def test_init_session(self):
