@@ -9,6 +9,9 @@ logger = logging.getLogger(__name__)
 class Registry(dict):
     """A dictionary that contains all local CUDS objects."""
 
+    # TODO let the registry act on the graph only.
+    # Don't maintain this separate dict.
+
     def __setitem__(self, key, value):
         """Enforce the use of put()."""
         message = 'Operation not supported.'

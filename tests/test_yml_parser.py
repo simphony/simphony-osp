@@ -270,7 +270,7 @@ class TestYmlParser(unittest.TestCase):
             (iri, rdflib.RDF.type, rdflib.OWL.Class),
             (iri, rdflib.RDFS.isDefinedBy,
              rdflib.term.Literal("Class A", lang="en")),
-            (iri, rdflib.RDFS.subClassOf, rdflib_cuba.Class),
+            (iri, rdflib.RDFS.subClassOf, rdflib_cuba.Entity),
             (iri, rdflib.SKOS.prefLabel,
              rdflib.term.Literal("ClassA", lang="en"))
         })

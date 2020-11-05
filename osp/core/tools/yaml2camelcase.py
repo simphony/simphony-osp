@@ -66,7 +66,7 @@ class Yaml2CamelCaseConverter():
             new = list()
             for elem in doc:
                 if elem == "CUBA.ENTITY":
-                    new.append("cuba.Class")
+                    new.append("cuba.Entity")
                 elif isinstance(elem, str) and pattern.match(elem):
                     new.append(self.toCamelCase(elem))
                 else:
@@ -82,7 +82,7 @@ class Yaml2CamelCaseConverter():
                     new[self.toCamelCase(key)] = value
                     self.convert_nested_doc(value)
                 elif value == "CUBA.ENTITY":
-                    new[key] = "cuba.Class"
+                    new[key] = "cuba.Entity"
                 elif isinstance(value, str) and pattern.match(value):
                     new[key] = self.toCamelCase(value)
                 else:

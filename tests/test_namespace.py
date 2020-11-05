@@ -104,10 +104,10 @@ class TestNamespaces(unittest.TestCase):
         hasPart_iri = ns_iri + "hasPart"
         self.modify_labels()
 
-        c = self.namespace_registry.from_iri(rdflib_cuba.Class)
+        c = self.namespace_registry.from_iri(rdflib_cuba.Entity)
         self.assertIsInstance(c, OntologyClass)
         self.assertEqual(c.namespace.get_name(), "cuba")
-        self.assertEqual(c.name, "Class")
+        self.assertEqual(c.name, "Entity")
         r = self.namespace_registry.from_iri(rdflib_cuba.relationship)
         self.assertIsInstance(r, OntologyRelationship)
         self.assertEqual(r.namespace.get_name(), "cuba")
@@ -129,10 +129,10 @@ class TestNamespaces(unittest.TestCase):
         old_ns_reg = osp.core.namespaces._namespace_registry
         try:
             osp.core.namespaces._namespace_registry = self.namespace_registry
-            c = from_iri(rdflib_cuba.Class)
+            c = from_iri(rdflib_cuba.Entity)
             self.assertIsInstance(c, OntologyClass)
             self.assertEqual(c.namespace.get_name(), "cuba")
-            self.assertEqual(c.name, "Class")
+            self.assertEqual(c.name, "Entity")
 
             self.graph.add((
                 ns_iri,

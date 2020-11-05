@@ -44,13 +44,13 @@ class TestOntologyEntity(unittest.TestCase):
             city.Street, city.Building
         })
         self.assertEqual(city.GeographicalPlace.superclasses, {
-            cuba.Class, city.GeographicalPlace
+            cuba.Entity, city.GeographicalPlace
         })
         self.assertEqual(city.GeographicalPlace.direct_subclasses, {
             city.PopulatedPlace, city.ArchitecturalStructure
         })
         self.assertEqual(city.GeographicalPlace.direct_superclasses, {
-            cuba.Class
+            cuba.Entity
         })
         self.assertEqual(city.hasPart.subclasses, {
             city.hasPart, city.hasMajor, city.hasChild, city.hasWorker
@@ -108,7 +108,7 @@ class TestOntologyEntity(unittest.TestCase):
         self.assertEqual(set(
             city.PopulatedPlace._transitive_hull(
                 rdflib.RDFS.subClassOf, blacklist={rdflib.OWL.Thing})),
-            {city.GeographicalPlace, cuba.Class}
+            {city.GeographicalPlace, cuba.Entity}
         )
         self.assertEqual(
             set(city.PopulatedPlace._transitive_hull(rdflib.RDFS.subClassOf,

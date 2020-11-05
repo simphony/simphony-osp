@@ -1,7 +1,4 @@
-#
-# pattern:
-#
-# file/directory   user
-#
+# follows the same pattern as .gitignore files
+# file/mask username1/email1 ... usernameN/emailN
 
 * @urbanmatthias @aaronAB1993 @yoavnash @pablo-de-andres

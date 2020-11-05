@@ -3,8 +3,6 @@
 import unittest2 as unittest
 import uuid
 
-from osp.core.namespaces import cuba
-
 try:
     from osp.core.namespaces import foaf
 except ImportError:
@@ -22,7 +20,6 @@ class TestAPIfoaf(unittest.TestCase):
         """Test creation of objectes are possible."""
         c = foaf.Person()
         self.assertTrue(c.is_a(foaf.Person))
-        self.assertTrue(c.is_a(cuba.Class))
 
     def test_uid(self):
         """Test that the uid variable contains a UUID object."""

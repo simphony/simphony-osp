@@ -122,9 +122,15 @@ class Cuds():
     def _stored(self):
         return self._graph is self.session.graph
 
-    def get_triples(self):
+    def get_triples(self, include_neighbor_types=False):
         """Get the triples of the cuds object."""
-        return self._graph.triples((self.iri, None, None))
+        o_set = set()
+        for s, p, o in self._graph.triples((self.iri, None, None)):
+            yield s, p, o
+            o_set.add(o)
+        if include_neighbor_types:
+            for o in o_set:
+                yield from self._graph.triples((o, rdflib.RDF.type, None))
 
     def get_attributes(self):
         """Get the attributes as a dictionary."""
@@ -147,7 +153,7 @@ class Cuds():
         Returns:
             bool: Whether the CUDS object is an instance of the given oclass.
         """
-        return self.oclass in oclass.subclasses
+        return any(oc in oclass.subclasses for oc in self.oclasses)
 
     def add(self,
             *args: "Cuds",
@@ -518,7 +524,7 @@ class Cuds():
                 parent._neighbors[inverse] = {}
 
             parent._neighbors[inverse][new_cuds_object.uid] = \
-                new_cuds_object.oclass
+                new_cuds_object.oclasses
 
     @staticmethod
     def _fix_old_neighbors(new_cuds_object, old_cuds_object, old_neighbors,
@@ -550,11 +556,12 @@ class Cuds():
             else:
                 if relationship not in new_cuds_object._neighbors:
                     new_cuds_object._neighbors[relationship] = {}
-                for (uid, oclass), parent in \
+                for (uid, oclasses), parent in \
                         zip(old_cuds_object._neighbors[relationship].items(),
                             neighbor._neighbors):
                     if parent is not None:
-                        new_cuds_object._neighbors[relationship][uid] = oclass
+                        new_cuds_object._neighbors[relationship][uid] = \
+                            oclasses
 
     def _add_direct(self, cuds_object, rel):
         """Add an cuds_object with a specific relationship.
@@ -566,10 +573,10 @@ class Cuds():
         """
         # First element, create set
         if rel not in self._neighbors.keys():
-            self._neighbors[rel] = {cuds_object.uid: cuds_object.oclass}
+            self._neighbors[rel] = {cuds_object.uid: cuds_object.oclasses}
         # Element not already there
         elif cuds_object.uid not in self._neighbors[rel]:
-            self._neighbors[rel][cuds_object.uid] = cuds_object.oclass
+            self._neighbors[rel][cuds_object.uid] = cuds_object.oclasses
 
     def _add_inverse(self, cuds_object, rel):
         """Add the inverse relationship from self to cuds_object.
@@ -716,8 +723,9 @@ class Cuds():
 
             # Collect all uids who are object of the current relationship.
             # Possibly filter by OntologyClass.
-            for uid, target_class in self._neighbors[relationship].items():
-                if oclass is None or target_class.is_subclass_of(oclass):
+            for uid, target_classes in self._neighbors[relationship].items():
+                if oclass is None or any(t.is_subclass_of(oclass)
+                                         for t in target_classes):
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
                     relationship_mapping[uid].add(relationship)

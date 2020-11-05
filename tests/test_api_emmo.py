@@ -29,7 +29,6 @@ class TestAPIEmmo(unittest.TestCase):
         c = math.Real(hasNumericalData=12)
         self.assertTrue(c.is_a(math.Number))
         self.assertTrue(c.is_a(math.Numerical))
-        self.assertTrue(c.is_a(cuba.Class))
         self.assertFalse(c.is_a(cuba.relationship))
         self.assertFalse(c.is_a(math.Integer))
         self.assertFalse(c.is_a(holistic.Process))

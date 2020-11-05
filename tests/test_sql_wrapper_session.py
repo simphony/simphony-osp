@@ -371,16 +371,16 @@ class TestSqlWrapperSession(unittest.TestCase):
 
         # types table
         cursor = iter([
-            (uuid.UUID(int=1), 2, "City"), (uuid.UUID(int=2), 1, "Class")
+            (uuid.UUID(int=1), 2, "City"), (uuid.UUID(int=2), 1, "Entity")
         ])
         triples = list(
             self.session._rows_to_triples(cursor, TYPES_TABLE,
                                           rdflib.XSD.integer)
         )
-        self.assertEqual(triples, [
+        self.assertEqual(sorted(triples), sorted([
             (iri_from_uid(uuid.UUID(int=1)), rdflib.RDF.type, city.City.iri),
-            (iri_from_uid(uuid.UUID(int=2)), rdflib.RDF.type, cuba.Class.iri)
-        ])
+            (iri_from_uid(uuid.UUID(int=2)), rdflib.RDF.type, cuba.Entity.iri)
+        ]))
 
         # data table
         cursor = iter([

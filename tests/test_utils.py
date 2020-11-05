@@ -3,7 +3,6 @@
 import io
 import unittest
 import responses
-import uuid
 import os
 import osp.core
 import rdflib
@@ -32,8 +31,10 @@ from osp.core.cuds import Cuds
 
 try:
     from .test_session_city import TestWrapperSession
+    from .test_transport_session import assertJsonLdEqual
 except ImportError:
     from test_session_city import TestWrapperSession
+    from test_transport_session import assertJsonLdEqual
 
 try:
     from osp.core.namespaces import city
@@ -44,34 +45,67 @@ except ImportError:
     _namespace_registry.update_namespaces()
     city = _namespace_registry.city
 
-CUDS_DICT = {
-    "oclass": "city.Citizen",
-    "uid": str(uuid.UUID(int=1)),
-    "attributes": {
-        "name": "Peter",
-        "age": 23
-    },
-    "relationships": {
-        "city.INVERSE_OF_hasInhabitant": {str(uuid.UUID(int=2)): "city.City"},
-        "city.hasChild": {str(uuid.UUID(int=3)): "city.Person",
-                          str(uuid.UUID(int=4)): "city.Person"}
-    }
-}
 
-CUDS_LIST = [
-    {"oclass": "city.City", "uid": str(uuid.UUID(int=1)),
-     "attributes": {"coordinates": [0, 0], "name": "Freiburg"},
-     "relationships": {
-         "city.hasPart": {str(uuid.UUID(int=2)): "city.Neighborhood"}}},
-    {"oclass": "city.Neighborhood", "uid": str(uuid.UUID(int=2)),
-     "attributes": {"coordinates": [0, 0], "name": "Littenweiler"},
-     "relationships": {"city.hasPart": {str(uuid.UUID(int=3)): "city.Street"},
-                       "city.isPartOf": {str(uuid.UUID(int=1)): "city.City"}}},
-    {"oclass": "city.Street", "uid": str(uuid.UUID(int=3)),
-     "attributes": {"coordinates": [0, 0], "name": "Schwarzwaldstraße"},
-     "relationships": {
-         "city.isPartOf": {str(uuid.UUID(int=2)): "city.Neighborhood"}}}
-]
+PRFX = 'http://www.osp-core.com/cuds/#00000000-0000-0000-0000-0000000000'
+CUDS_DICT = [{
+    '@id': PRFX + "01",
+    '@type': ['http://www.osp-core.com/city#City']
+}, {
+    '@id': PRFX + "03",
+    '@type': ['http://www.osp-core.com/city#Person']
+}, {
+    '@id': PRFX + "02",
+    '@type': ['http://www.osp-core.com/city#Person']
+}, {
+    '@id': PRFX + "7b",
+    '@type': ['http://www.osp-core.com/city#Citizen'],
+    'http://www.osp-core.com/city#INVERSE_OF_hasInhabitant': [
+        {'@id': PRFX + "01"}],
+    'http://www.osp-core.com/city#age': [{'@value': 23}],
+    'http://www.osp-core.com/city#hasChild': [
+        {'@id': PRFX + "02"},
+        {'@id': PRFX + "03"}],
+    'http://www.osp-core.com/city#name': [{'@value': 'Peter'}]
+}]
+
+CUDS_LIST = [[
+    {"@id": PRFX + "01",
+     "http://www.osp-core.com/city#name": [{"@value": "Freiburg"}],
+     "http://www.osp-core.com/city#coordinates": [{
+         "@value": "[0, 0]",
+         "@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2"}],
+     "@type": ["http://www.osp-core.com/city#City"],
+     "http://www.osp-core.com/city#hasPart": [
+         {"@id": PRFX + "02"}]},
+    {"@id": PRFX + "02",
+     "@type": ["http://www.osp-core.com/city#Neighborhood"]}
+], [
+    {"@id": PRFX + "01",
+     "@type": ["http://www.osp-core.com/city#City"]},
+    {"@id": PRFX + "02",
+     "http://www.osp-core.com/city#hasPart": [
+         {"@id": PRFX + "03"}],
+     "@type": ["http://www.osp-core.com/city#Neighborhood"],
+     "http://www.osp-core.com/city#coordinates": [{
+         "@value": "[0, 0]",
+         "@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2"}],
+     "http://www.osp-core.com/city#name": [{"@value": "Littenweiler"}],
+     "http://www.osp-core.com/city#isPartOf": [
+         {"@id": PRFX + "01"}]},
+    {"@id": PRFX + "03",
+     "@type": ["http://www.osp-core.com/city#Street"]}
+], [
+    {"@id": PRFX + "02",
+     "@type": ["http://www.osp-core.com/city#Neighborhood"]},
+    {"@id": PRFX + "03",
+     "http://www.osp-core.com/city#coordinates": [{
+         "@value": "[0, 0]",
+         "@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2"}],
+     "http://www.osp-core.com/city#isPartOf": [
+         {"@id": PRFX + "02"}],
+     "@type": ["http://www.osp-core.com/city#Street"],
+     "http://www.osp-core.com/city#name": [{"@value": "Schwarzwaldstraße"}]}
+]]
 
 
 def get_test_city():
@@ -264,17 +298,11 @@ class TestUtils(unittest.TestCase):
         response = post('http://dsms.com', c)
 
         serialized = serializable([c, p1, p2, p3, n1, n2, s1])
-        for x in response.json():
-            i = serialized.index(x)
-            del serialized[i]
-        self.assertEqual(serialized, list())
+        assertJsonLdEqual(self, serialized, response.json())
 
         response = post('http://dsms.com', c, max_depth=1)
         serialized = serializable([c, p1, p2, p3, n1, n2])
-        for x in response.json():
-            i = serialized.index(x)
-            del serialized[i]
-        self.assertEqual(serialized, list())
+        assertJsonLdEqual(self, serialized, response.json())
 
     def test_deserialize(self):
         """Test the deserialize function."""
@@ -294,8 +322,8 @@ class TestUtils(unittest.TestCase):
         self.maxDiff = None
 
         self.setUp()
-        self.assertEqual(CUDS_LIST,
-                         json.loads(serialize(deserialize(CUDS_LIST))))
+        assertJsonLdEqual(self, CUDS_LIST,
+                          json.loads(serialize(deserialize(CUDS_LIST))))
 
     def test_serialize(self):
         """Test the serialize function."""
@@ -307,11 +335,13 @@ class TestUtils(unittest.TestCase):
             )
         )
         self.maxDiff = None
-        self.assertEqual(
+        assertJsonLdEqual(
+            self,
             json.loads(serialize(c)),
             CUDS_LIST
         )
-        self.assertEqual(
+        assertJsonLdEqual(
+            self,
             serialize(c, json_dumps=False),
             CUDS_LIST
         )
@@ -414,7 +444,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(c.name, "Freiburg")
             self.assertEqual(len(c.get(rel=cuba.relationship)), 1)
             self.assertEqual(c._neighbors[city.hasInhabitant],
-                             {y.uid: city.Citizen})
+                             {y.uid: [city.Citizen]})
             self.assertEqual(set(default_session._registry.keys()),
                              {a.uid, x.uid, y.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
@@ -433,9 +463,9 @@ class TestUtils(unittest.TestCase):
         })
         self.assertEqual(c.oclass, city.PopulatedPlace)
         self.assertEqual(p1._neighbors[city.INVERSE_OF_hasInhabitant],
-                         {c.uid: city.PopulatedPlace})
+                         {c.uid: [city.PopulatedPlace]})
         self.assertEqual(p2._neighbors[city.INVERSE_OF_hasInhabitant],
-                         {c.uid: city.PopulatedPlace})
+                         {c.uid: [city.PopulatedPlace]})
 
     def test_check_arguments(self):
         """Test checking of arguments."""
@@ -546,7 +576,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(find_cuds_objects_by_oclass(
             city.Street, c, cuba.activeRelationship),
             [s1])
-        found = find_cuds_objects_by_oclass(cuba.Class,
+        found = find_cuds_objects_by_oclass(cuba.Entity,
                                             c, cuba.relationship)
         self.assertEqual(set(found), {c, p1, p2, p3, n1, n2, s1})
 
@@ -662,7 +692,7 @@ class TestUtils(unittest.TestCase):
             "  uuid: %s" % c.uid,
             "  type: city.City",
             "  superclasses: city.City, city.GeographicalPlace, "
-            + "city.PopulatedPlace, cuba.Class",
+            + "city.PopulatedPlace, cuba.Entity",
             "  values: coordinates: [1 2]",
             "  description: ",
             "    To Be Determined",
