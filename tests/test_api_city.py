@@ -27,7 +27,7 @@ class TestAPICity(unittest.TestCase):
         c = city.City(name="City")
         self.assertTrue(c.is_a(city.City))
         self.assertTrue(c.is_a(city.PopulatedPlace))
-        self.assertTrue(c.is_a(cuba.Class))
+        self.assertTrue(c.is_a(cuba.Entity))
         self.assertFalse(c.is_a(cuba.relationship))
         self.assertFalse(c.is_a(city.Citizen))
         self.assertFalse(c.is_a(city.Neighborhood))
@@ -658,9 +658,9 @@ class TestAPICity(unittest.TestCase):
         """Test the add method in a comext of multiple sessions."""
         with CoreSession() as session:
             wrapper = cuba.Wrapper(session=session)
-            aw = cuba.Class(session=session)
-            b = cuba.Class()
-            c = cuba.Class()
+            aw = cuba.Entity(session=session)
+            b = cuba.Entity()
+            c = cuba.Entity()
             bw = aw.add(b, rel=cuba.activeRelationship)
             c.add(b, rel=cuba.activeRelationship)
             wrapper.add(c, rel=cuba.activeRelationship)

@@ -576,7 +576,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(find_cuds_objects_by_oclass(
             city.Street, c, cuba.activeRelationship),
             [s1])
-        found = find_cuds_objects_by_oclass(cuba.Class,
+        found = find_cuds_objects_by_oclass(cuba.Entity,
                                             c, cuba.relationship)
         self.assertEqual(set(found), {c, p1, p2, p3, n1, n2, s1})
 
@@ -692,7 +692,7 @@ class TestUtils(unittest.TestCase):
             "  uuid: %s" % c.uid,
             "  type: city.City",
             "  superclasses: city.City, city.GeographicalPlace, "
-            + "city.PopulatedPlace, cuba.Class",
+            + "city.PopulatedPlace, cuba.Entity",
             "  values: coordinates: [1 2]",
             "  description: ",
             "    To Be Determined",

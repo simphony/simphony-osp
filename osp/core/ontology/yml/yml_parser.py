@@ -307,7 +307,10 @@ class YmlParser:
             superclass_iri = self._get_iri(name, namespace, entity_name)
             triple = (superclass_iri, rdflib.RDF.type, None)
             for _, _, o in self.graph.triples(triple):
-                types.add(o)
+                if o in {rdflib.OWL.Class, rdflib.OWL.ObjectProperty,
+                         rdflib.OWL.DatatypeProperty,
+                         rdflib.OWL.FunctionalProperty}:
+                    types.add(o)
 
             if namespace == self._namespace:
                 queue += [self.split_name(x)

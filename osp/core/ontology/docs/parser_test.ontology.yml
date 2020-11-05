@@ -12,14 +12,14 @@ ontology:
     attributes:
       parser_test.attributeA: DEFAULT_A
     subclass_of: 
-    - cuba.Class
+    - cuba.Entity
     description: "Class A"
   
   ClassB:
     attributes:
       parser_test.attributeA: DEFAULT_B
     subclass_of:
-    - cuba.Class
+    - cuba.Entity
 
   ClassC:
     subclass_of:
@@ -37,7 +37,7 @@ ontology:
     attributes:
       parser_test.attributeA:
     subclass_of: 
-    - cuba.Class
+    - cuba.Entity
 
   attributeA:
     datatype: STRING
