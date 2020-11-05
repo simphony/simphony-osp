@@ -43,7 +43,7 @@ class TestAPIEmmo(unittest.TestCase):
         r2 = math.Real(hasNumericalData=1.2)
         p = holistic.Process()
         self.assertEqual(r.oclass, math.Real)
-        self.assertEqual(r2.oclass, math.Real)r
+        self.assertEqual(r2.oclass, math.Real)
         self.assertEqual(p.oclass, holistic.Process)
         cuba.Wrapper(session=CoreSession())
 
