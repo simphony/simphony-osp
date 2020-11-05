@@ -3,6 +3,7 @@
 @prefix ns3: <http://www.w3.org/2004/02/skos/core#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 
 <http://www.osp-core.com/parser_test#> ns2:_default_rel <http://www.osp-core.com/parser_test#relationshipA> .
 
