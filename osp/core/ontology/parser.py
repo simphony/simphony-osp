@@ -1,3 +1,5 @@
+"""The parser used to parse OWL ontologies in RDF format."""
+
 import os
 import rdflib
 import logging
@@ -17,20 +19,29 @@ DEFAULT_REL_KEY = "default_relationship"
 FILE_FORMAT_KEY = "format"
 REQUIREMENTS_KEY = "requirements"
 REFERENCE_STYLE_KEY = "reference_by_label"
+FILE_HANDLER_KEY = "file"
 ALL_KEYS = set([
     RDF_FILE_KEY, NAMESPACES_KEY, ACTIVE_REL_KEY, DEFAULT_REL_KEY,
-    IDENTIFIER_KEY, FILE_FORMAT_KEY, REFERENCE_STYLE_KEY
+    IDENTIFIER_KEY, FILE_FORMAT_KEY, REFERENCE_STYLE_KEY, FILE_HANDLER_KEY
 ])
 
 
 class Parser():
+    """The parser used to parse OWL ontologies in RDF format."""
+
     def __init__(self, graph):
+        """Initialize the parser.
+
+        Args:
+            graph (rdflib.Graph): The graph to add the triples to.
+                might already contain some triples.
+        """
         self.graph = graph
         self._yaml_docs = list()
         self._graphs = dict()
 
     def parse(self, file_path):
-        """Parse the given YAML files
+        """Parse the given YAML files.
 
         Args:
             file_path (str): path to the YAML file
@@ -46,8 +57,9 @@ class Parser():
                 YmlParser(self.graph).parse(file_path, yaml_doc)
             elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
                 s = "-" + os.path.basename(file_path).split(".")[0]
-                with tempfile.NamedTemporaryFile(mode="wt", suffix=s) as f:
-                    self._parse_rdf(**self._parse_yml(yaml_doc, file_path, f))
+                with tempfile.NamedTemporaryFile(mode="wb+", suffix=s) as f:
+                    self._parse_rdf(**self._parse_yml(yaml_doc, file_path, f),
+                                    file=f)
             else:
                 raise SyntaxError(f"Invalid format of file {file_path}")
             self._yaml_docs.append(yaml_doc)
@@ -160,7 +172,9 @@ class Parser():
 
     @staticmethod
     def get_file_path(file_identifier):
-        """Get the correct file path, for a given one, i.e. translate non
+        """Get the correct file path.
+
+        For a given one, i.e. translate non
         paths to osp/core/ontology/docs/*.yml
 
         Args:
@@ -185,7 +199,7 @@ class Parser():
         return b
 
     def _parse_yml(self, yaml_doc, file_path, f):
-        """Parse the owl files specified in the given YAML docs
+        """Parse the owl files specified in the given YAML docs.
 
         Args:
             yaml_doc (dict): Parsed YAML doc that specify
@@ -207,7 +221,7 @@ class Parser():
                 .content.decode("utf-8")
             content = content.replace("xml:lang=\"unibo.it\"",
                                       "xml:lang=\"en\"")
-            f.write(content)
+            f.write(content.encode("utf-8"))
             yaml_doc[RDF_FILE_KEY] = f.name
             return yaml_doc
 
@@ -225,6 +239,7 @@ class Parser():
         # parse input kwargs
         try:
             rdf_file = kwargs[RDF_FILE_KEY]
+            f = kwargs[FILE_HANDLER_KEY]
             namespaces = kwargs[NAMESPACES_KEY]
             identifier = kwargs[IDENTIFIER_KEY]
             active_rels = kwargs.get(ACTIVE_REL_KEY, [])
@@ -243,8 +258,13 @@ class Parser():
         # parse the files
         logger.info("Parsing %s" % rdf_file)
         self._graphs[identifier] = rdflib.Graph()
-        self._graphs[identifier].parse(rdf_file, format=file_format)
-        self.graph.parse(rdf_file, format=file_format)
+        f.seek(0)
+        if os.stat(f.name).st_size > 0:
+            self._graphs[identifier].parse(f, format=file_format)
+        else:
+            self._graphs[identifier].parse(rdf_file, format=file_format)
+        for triple in self._graphs[identifier]:
+            self.graph.add(triple)
         default_rels = dict()
         reference_styles = dict()
         namespace_iris = set()
@@ -266,8 +286,9 @@ class Parser():
         self._add_reference_style_triples(reference_styles)
 
     def _add_default_rel_triples(self, default_rels):
-        """Add the triples to the graph that indicate the default
-        relationships per namespace.
+        """Add the triples to the graph that indicate the default rel.
+
+        The default rel is defined per namespace.
 
         Args:
             default_rels (Dict[str: str]): Mapping from namespace URI to
@@ -301,7 +322,8 @@ class Parser():
             )
 
     def _add_reference_style_triples(self, reference_styles):
-        """Add a triple to store how the user should reference the entities
+        """Add a triple to store how the user should reference the entities.
+
         (by entity or by iri suffix)
 
         Args:

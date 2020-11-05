@@ -1,3 +1,5 @@
+"""An attribute defined in the ontology."""
+
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.datatypes import convert_from, convert_to
 import logging
@@ -10,28 +12,41 @@ BLACKLIST = {rdflib.OWL.bottomDataProperty, rdflib.OWL.topDataProperty}
 
 
 class OntologyAttribute(OntologyEntity):
-    def __init__(self, namespace, name, iri_suffix):
-        super().__init__(namespace, name, iri_suffix)
+    """An attribute defined in the ontology."""
+
+    def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
+        """Initialize the ontology attribute.
+
+        Args:
+            namespace_registry (OntologyNamespaceRegistry): The namespace
+                registry where all namespaces are stored.
+            namespace_iri (rdflib.URIRef): The IRI of the namespace.
+            name (str): The name of the attribute.
+            iri_suffix (str): namespace_iri +  namespace_registry make up the
+                namespace of this entity.
+        """
+        super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
         logger.debug("Created ontology data property %s" % self)
 
     @property
-    def name(self):
-        return super().name
-
-    @property
     def argname(self):
+        """Get the name of the attribute when used as an argument.
+
+        This name is used when construction a cuds object or accessing
+        the attributes of a CUDS object.
+        """
         return super().name
 
     @property
     def datatype(self):
-        """Get the datatype of the attribute
-
-        Raises:
-            RuntimeError: More than one datatype associated with the attribute.
-            # TODO should be allowed
+        """Get the datatype of the attribute.
 
         Returns:
             URIRef: IRI of the datatype
+
+        Raises:
+            RuntimeError: More than one datatype associated with the attribute.
+                # TODO should be allowed
         """
         blacklist = [rdflib.RDFS.Literal]
         superclasses = self.superclasses
@@ -49,22 +64,24 @@ class OntologyAttribute(OntologyEntity):
                            f" {datatypes}")
 
     def convert_to_datatype(self, value):
-        """Convert to the datatype of the value
+        """Convert to the datatype of the value.
 
-        :param value: The value to convert
-        :type value: Any
-        :return: The converted value
-        :rtype: Any
+        Args:
+            value(Any): The value to convert
+
+        Returns:
+            Any: The converted value
         """
         return convert_to(value, self.datatype)
 
     def convert_to_basic_type(self, value):
-        """Convert from the datatype of the value to a python basic type
+        """Convert from the datatype of the value to a python basic type.
 
-        :param value: The value to convert
-        :type value: Any
-                :return: The converted value
-        :rtype: Any
+        Args:
+            value(Any): The value to convert
+
+        Returns:
+            Any: The converted value
         """
         return convert_from(value, self.datatype)
 

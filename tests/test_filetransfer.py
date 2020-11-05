@@ -1,3 +1,5 @@
+"""Test file upload and download."""
+
 import os
 import sys
 import uuid
@@ -5,6 +7,7 @@ import subprocess
 import unittest2 as unittest
 import sqlite3
 import shutil
+import json
 from osp.core.session.transport.transport_utils import (
     move_files, serialize_buffers, deserialize_buffers, get_file_cuds)
 from osp.core.session.transport.communication_engine import \
@@ -28,8 +31,7 @@ from osp.core.session.transport.communication_utils import (
 try:
     from .test_communication_engine import async_test, MockWebsocket
 except Exception:
-    def async_test(x):
-        pass
+    from test_communication_engine import async_test, MockWebsocket
 
 try:
     from osp.core.namespaces import city
@@ -45,9 +47,12 @@ PORT = 8645
 URI = f"ws://{HOST}:{PORT}"
 DB = "filetransfer.db"
 
-FILES_DIR = os.path.join(os.path.dirname(__file__), "filetransfer_files")
-CLIENT_DIR = os.path.join(os.path.dirname(__file__), "filetransfer_client")
-SERVER_DIR = os.path.join(os.path.dirname(__file__), "filetransfer_server")
+FILES_DIR = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "filetransfer_files"))
+CLIENT_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "filetransfer_client"))
+SERVER_DIR = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "filetransfer_server"))
 FILES = ["f0", "f1.jpg", "f2.tar.gz"]
 FILE_PATHS = [os.path.join(FILES_DIR, file) for file in FILES]
 HASHES = {
@@ -60,54 +65,70 @@ HASHES = {
 }
 
 
-SERIALIZED_BUFFERS = (
-    '{"added": [{"oclass": "city.Image", '
-    '"uid": "00000000-0000-0000-0000-000000000003", '
-    '"attributes": {"path": "%s"}, '
-    '"relationships": {"city.isPartOf": '
-    '{"00000000-0000-0000-0000-00000000002a": "city.CityWrapper"}}}], '
-    '"updated": [{"oclass": "city.CityWrapper", '
-    '"uid": "00000000-0000-0000-0000-00000000002a", '
-    '"attributes": {}, '
-    '"relationships": {"city.hasPart": '
-    '{"00000000-0000-0000-0000-000000000001": "city.Image", '
-    '"00000000-0000-0000-0000-000000000003": "city.Image"}}}, '
-    '{"oclass": "city.Image", "uid": "00000000-0000-0000-0000-000000000001", '
-    '"attributes": {"path": "%s"}, '
-    '"relationships": {"city.isPartOf": '
-    '{"00000000-0000-0000-0000-00000000002a": "city.CityWrapper"}}}], '
-    '"deleted": [{"oclass": "city.Image", '
-    '"uid": "00000000-0000-0000-0000-000000000002", '
-    '"attributes": {"path": "%s"}, "relationships": {}}], '
-    '"expired": []}' % (FILE_PATHS[2], FILE_PATHS[0], FILE_PATHS[1])
-)
+PRFX = 'http://www.osp-core.com/cuds/#00000000-0000-0000-0000-0000000000'
+SERIALIZED_BUFFERS = json.dumps({
+    "added": [[
+        {"@id": PRFX + "2a",
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]},
+        {"@id": PRFX + "03",
+         "http://www.osp-core.com/city#isPartOf": [
+             {"@id": PRFX + "2a"}],
+         "http://www.osp-core.com/cuba#path": [
+             {"@type": "http://www.w3.org/2001/XMLSchema#string",
+              "@value": FILE_PATHS[2]}],
+         "@type": ["http://www.osp-core.com/city#Image"]}
+    ]], "updated": [[
+        {"@id": PRFX + "2a",
+         "http://www.osp-core.com/city#hasPart": [
+             {"@id": PRFX + "01"}, {"@id": PRFX + "03"}],
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]},
+        {"@id": PRFX + "01",
+         "@type": ["http://www.osp-core.com/city#Image"]},
+        {"@id": PRFX + "03",
+         "@type": ["http://www.osp-core.com/city#Image"]}
+    ], [
+        {"@id": PRFX + "2a",
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]},
+        {"@id": PRFX + "01",
+         "http://www.osp-core.com/city#isPartOf": [
+             {"@id": PRFX + "2a"}],
+         "http://www.osp-core.com/cuba#path": [
+             {"@type": "http://www.w3.org/2001/XMLSchema#string",
+              "@value": FILE_PATHS[0]}],
+         "@type": ["http://www.osp-core.com/city#Image"]}
+    ]], "deleted": [[
+        {"@id": PRFX + "02",
+         "@type": ["http://www.osp-core.com/city#Image"]}
+    ]], "expired": []})
 
 
 class TestFiletransfer(unittest.TestCase):
+    """Test file upload and download."""
+
     SERVER_STARTED = False
 
     @classmethod
     def setUpClass(cls):
-        args = ["python3",
+        """Set up the server as a subprocess."""
+        args = ["python",
                 "tests/test_filetransfer.py",
                 "server"]
-        try:
-            p = subprocess.Popen(args, stdout=subprocess.PIPE)
-        except FileNotFoundError:
-            args[0] = "python"
-            p = subprocess.Popen(args)
+        p = subprocess.Popen(
+            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         TestFiletransfer.SERVER_STARTED = p
         for line in p.stdout:
-            if b"ready\n" == line:
+            if b"ready" in line:
                 break
 
     @classmethod
     def tearDownClass(cls):
+        """Remove the database file."""
         TestFiletransfer.SERVER_STARTED.terminate()
         os.remove(DB)
 
     def tearDown(self):
+        """Remove temporary directories and clear the database."""
         shutil.rmtree(FILES_DIR)
         shutil.rmtree(CLIENT_DIR)
         shutil.rmtree(SERVER_DIR)
@@ -117,10 +138,11 @@ class TestFiletransfer(unittest.TestCase):
                                + "WHERE type='table';")
             tables = list(tables)
             for table in tables:
-                c.execute("DELETE FROM %s;" % table[0])
+                c.execute("DELETE FROM `%s`;" % table[0])
             conn.commit()
 
     def setUp(self):
+        """Set up some temporary directory and test files."""
         if not os.path.exists(FILES_DIR):
             os.mkdir(FILES_DIR)
         if not os.path.exists(CLIENT_DIR):
@@ -135,7 +157,7 @@ class TestFiletransfer(unittest.TestCase):
             pass
 
     def test_move_files(self):
-        """Test moving the files"""
+        """Test moving the files."""
         with TransportSessionClient(SqliteSession, URI) as session:
             # Image path is full path
             wrapper = city.CityWrapper(session=session)
@@ -206,7 +228,7 @@ class TestFiletransfer(unittest.TestCase):
             self.assertEqual(result, list())
 
     def setup_buffers1(self, session):
-        """Helper fuction to set up the buffers for the methods below"""
+        """Set up the buffers for the tests below."""
         wrapper = city.CityWrapper(session=session)
         images = wrapper.add(
             city.Image(path=FILE_PATHS[0]),
@@ -221,7 +243,7 @@ class TestFiletransfer(unittest.TestCase):
         return images
 
     def test_serialize_buffers(self):
-        """Test correct handling of files when serializing the buffers"""
+        """Test correct handling of files when serializing the buffers."""
         # without providing target path
         with TransportSessionClient(SqliteSession, URI) as session:
             self.setup_buffers1(session)
@@ -249,7 +271,7 @@ class TestFiletransfer(unittest.TestCase):
             self.maxDiff = None
 
     def setup_buffers2(self, session):
-        """Helper function to setup the buffers for the methods below"""
+        """Set up the buffers for the tests below."""
         wrapper = city.CityWrapper(session=session, uid=42)
         images = wrapper.add(
             city.Image(path=FILE_PATHS[0], uid=1),
@@ -259,7 +281,7 @@ class TestFiletransfer(unittest.TestCase):
         return images
 
     def test_deserialize_buffers(self):
-        """Test correct file handling when deserializing buffers"""
+        """Test correct file handling when deserializing buffers."""
         with TransportSessionClient(SqliteSession, URI) as session:
             images = self.setup_buffers2(session)
             deserialize_buffers(session, buffer_context=BufferContext.USER,
@@ -281,7 +303,7 @@ class TestFiletransfer(unittest.TestCase):
                               deleted[uuid.UUID(int=2)], "path")
 
     def test_get_file_cuds(self):
-        """Test extracting the file cuds from a datatstructure"""
+        """Test extracting the file cuds from a datatstructure."""
         image1 = city.Image(path="x")
         image2 = city.Image(path="y")
         c = city.City(name="Freiburg")
@@ -295,7 +317,7 @@ class TestFiletransfer(unittest.TestCase):
         self.assertEqual(r, [image1, image2])
 
     def test_encode_files(self):
-        """Test encoding of files"""
+        """Test encoding of files."""
         result = encode_files(FILE_PATHS)
         self.maxDiff = None
         r = next(result)
@@ -322,6 +344,7 @@ class TestFiletransfer(unittest.TestCase):
 
     @async_test
     async def test_receive_files(self):
+        """Test receiving files via file transfer."""
         ws = MockWebsocket(id=0, to_recv=[
             encode_header([2, FILES[0]], LEN_FILES_HEADER),
             ("0" * BLOCK_SIZE).encode("utf-8"),
@@ -338,7 +361,7 @@ class TestFiletransfer(unittest.TestCase):
         self.assertEqual(get_hash_dir(SERVER_DIR), HASHES)
 
     def test_upload(self):
-        """Test full upload routine"""
+        """Test full upload routine."""
         # with given file destination on client
         with TransportSessionClient(SqliteSession, URI,
                                     file_destination=CLIENT_DIR) as session:
@@ -368,7 +391,7 @@ class TestFiletransfer(unittest.TestCase):
             self.assertEqual(os.listdir(FILES_DIR), FILES)
 
     def test_download(self):
-        """Test full download routine"""
+        """Test full download routine."""
         with TransportSessionClient(SqliteSession, URI,
                                     file_destination=None) as session:
             images = self.setup_buffers1(session)
@@ -401,7 +424,7 @@ class TestFiletransfer(unittest.TestCase):
             )
 
     def test_hashes(self):
-        """Test the methods for computing hashes"""
+        """Test the methods for computing hashes."""
         self.assertEqual(get_hash_dir(FILES_DIR), HASHES)
         self.assertEqual(get_hash_dir(CLIENT_DIR), {})
         self.assertEqual(
@@ -415,15 +438,15 @@ class TestFiletransfer(unittest.TestCase):
         self.assertFalse(check_hash(FILE_PATHS[0], {}))
 
     def test_filter_files(self):
-        """Test filtering files based on hashes"""
+        """Test filtering files based on hashes."""
         self.assertEqual(filter_files(FILE_PATHS, HASHES), [])
         self.assertEqual(filter_files(FILE_PATHS, {}), FILE_PATHS)
         self.assertEqual(filter_files(FILE_PATHS + [__file__, "x"],
-                         dict(HASHES)), [__file__])
+                                      dict(HASHES)), [__file__])
 
     @async_test
     async def test_serve(self):
-        """Test serve method of the server"""
+        """Test serve method of the server."""
         request = None
         response = []
 
@@ -459,7 +482,8 @@ class TestFiletransfer(unittest.TestCase):
         self.assertEqual(filename, FILES[2])
         self.assertEqual(request[0], "test")
         self.assertEqual(request[1], "data")
-        self.assertTrue(request[2].startswith("/tmp/tmp"))
+        if os.name == "posix":
+            self.assertTrue(request[2].startswith("/tmp/tmp"))
         self.assertTrue(isinstance(request[3], uuid.UUID))
 
 

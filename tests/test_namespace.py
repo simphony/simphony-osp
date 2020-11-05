@@ -1,3 +1,5 @@
+"""Test namespace registry and namespaces."""
+
 import os
 import unittest2 as unittest
 import tempfile
@@ -17,7 +19,10 @@ RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 
 
 class TestNamespaces(unittest.TestCase):
+    """Test namespace registry and namespaces."""
+
     def setUp(self):
+        """Set up some temporary directories."""
         self.tempdir = tempfile.TemporaryDirectory()
         self.namespace_registry = NamespaceRegistry()
         self.namespace_registry._load_cuba()
@@ -28,9 +33,11 @@ class TestNamespaces(unittest.TestCase):
         self.graph = self.namespace_registry._graph
 
     def tearDown(self):
+        """Clean up all temporary directories."""
         self.tempdir.cleanup()
 
     def test_namespace_registry_load_cuba(self):
+        """Test loading the CUBA namespace."""
         g = rdflib.Graph()
         g.parse(CUBA_FILE, format="ttl")
         self.assertTrue(isomorphic(g, self.graph))
@@ -39,6 +46,7 @@ class TestNamespaces(unittest.TestCase):
                          rdflib.URIRef("http://www.osp-core.com/cuba#"))
 
     def test_namespace_registry_store(self):
+        """Test storing loaded namespaces."""
         self.graph.parse(RDF_FILE, format="ttl")
         self.graph.bind("parser_test",
                         rdflib.URIRef("http://www.osp-core.com/parser_test#"))
@@ -60,6 +68,7 @@ class TestNamespaces(unittest.TestCase):
                           lines)
 
     def test_namespace_registry_load(self):
+        """Test loading an installed namespaces."""
         # no graph.xml found
         self.namespace_registry.clear()
         self.namespace_registry.load(self.tempdir.name)
@@ -82,21 +91,23 @@ class TestNamespaces(unittest.TestCase):
         self.assertIn("parser_test", nr)
 
     def test_namespace_registry_clear(self):
+        """Test clearing a namespace registry."""
         self.namespace_registry.clear()
         self.assertIsNot(self.namespace_registry._graph, self.graph)
         self.assertTrue(isomorphic(self.namespace_registry._graph, self.graph))
 
     def test_namespace_registry_from_iri(self):
+        """Test getting namespaces from iri."""
         self.installer.install("city")
         ns_iri = rdflib.URIRef("http://www.osp-core.com/city#")
         city_iri = ns_iri + "City"
         hasPart_iri = ns_iri + "hasPart"
         self.modify_labels()
 
-        c = self.namespace_registry.from_iri(rdflib_cuba.Class)
+        c = self.namespace_registry.from_iri(rdflib_cuba.Entity)
         self.assertIsInstance(c, OntologyClass)
         self.assertEqual(c.namespace.get_name(), "cuba")
-        self.assertEqual(c.name, "Class")
+        self.assertEqual(c.name, "Entity")
         r = self.namespace_registry.from_iri(rdflib_cuba.relationship)
         self.assertIsInstance(r, OntologyRelationship)
         self.assertEqual(r.namespace.get_name(), "cuba")
@@ -118,10 +129,10 @@ class TestNamespaces(unittest.TestCase):
         old_ns_reg = osp.core.namespaces._namespace_registry
         try:
             osp.core.namespaces._namespace_registry = self.namespace_registry
-            c = from_iri(rdflib_cuba.Class)
+            c = from_iri(rdflib_cuba.Entity)
             self.assertIsInstance(c, OntologyClass)
             self.assertEqual(c.namespace.get_name(), "cuba")
-            self.assertEqual(c.name, "Class")
+            self.assertEqual(c.name, "Entity")
 
             self.graph.add((
                 ns_iri,
@@ -160,6 +171,7 @@ class TestNamespaces(unittest.TestCase):
             osp.core.namespaces._namespace_registry = old_ns_reg
 
     def test_namespace_registry_update_namespaces(self):
+        """Test updateing the namespaces."""
         self.graph.bind("a", rdflib.URIRef("aaa"))
         self.graph.bind("b", rdflib.URIRef("bbb"))
         self.graph.bind("c", rdflib.URIRef("ccc"))
@@ -175,6 +187,7 @@ class TestNamespaces(unittest.TestCase):
                          rdflib.URIRef("ccc"))
 
     def test_namespace_registry_get(self):
+        """Test getting namsepaces from namespace registry."""
         self.installer.install("city")
         self.assertIn("city", self.namespace_registry)
         self.assertEqual(self.namespace_registry._get("city").get_name(),
@@ -195,6 +208,10 @@ class TestNamespaces(unittest.TestCase):
                          'xml', 'rdf', 'rdfs', 'xsd', 'cuba', 'owl', 'city'})
 
     def modify_labels(self):
+        """Modify the labels in the graph. Append a T.
+
+        Helper method.
+        """
         triples = list()
         for s, p, o in self.graph:
             if (
@@ -209,6 +226,7 @@ class TestNamespaces(unittest.TestCase):
             self.graph.add(t)
 
     def test_namespace_get(self):
+        """Test getting entities from namespace."""
         self.installer.install("city")
         self.modify_labels()
         namespace = self.namespace_registry.city
@@ -257,7 +275,6 @@ class TestNamespaces(unittest.TestCase):
 
         # reference by label
         namespace._reference_by_label = True
-        namespace._label_cache = dict()
         # dot
         self.assertIsInstance(namespace.City_T, OntologyClass)
         self.assertEqual(namespace.City_T.name, "City_T")
@@ -305,6 +322,7 @@ class TestNamespaces(unittest.TestCase):
         self.assertEqual(namespace.get("coordinates"), None)
 
     def test_namespace_str(self):
+        """Test converting namespace object to string."""
         self.installer.install("city")
         namespace = self.namespace_registry.city
         self.assertEqual(str(namespace),
@@ -313,6 +331,7 @@ class TestNamespaces(unittest.TestCase):
                          "<city: http://www.osp-core.com/city#>")
 
     def test_get_default_rel(self):
+        """Test getting the default relationship."""
         # default rel defined as flag in entity name
         self.installer.install("city")
         namespace = self.namespace_registry.city
@@ -345,12 +364,14 @@ class TestNamespaces(unittest.TestCase):
         self.assertRaises(ValueError, self.installer.install, onto_def_rel)
 
     def test_contains(self):
+        """Test containment."""
         self.installer.install("city")
         namespace = self.namespace_registry.city
         self.assertIn("City", namespace)
         self.assertIn("hasPart", namespace)
 
     def test_iter(self):
+        """Test the __iter__() magic method."""
         self.installer.install("city")
         namespace = self.namespace_registry.city
         entities = set(namespace)
@@ -358,6 +379,83 @@ class TestNamespaces(unittest.TestCase):
         self.assertIn(namespace.City, entities)
         self.assertIn(namespace.name, entities)
         self.assertEqual(len(entities), 32)
+
+    def test_get_namespace_from_iri(self):
+        """Test getting namespace object from IRI."""
+        self.installer.install("city")
+        ns_iri = rdflib.URIRef("http://www.osp-core.com/city#")
+        namespace = self.namespace_registry.namespace_from_iri(ns_iri)
+        self.assertEqual(namespace.get_name(), "city")
+        self.assertEqual(namespace.get_iri(), ns_iri)
+        ns_iri = rdflib.URIRef("http://www.random_namespace.com#")
+        namespace = self.namespace_registry.namespace_from_iri(ns_iri)
+        self.assertEqual(namespace.get_name(),
+                         "http://www.random_namespace.com#")
+        self.assertEqual(namespace.get_iri(), ns_iri)
+
+    def test_get_namespace_name_and_iri(self):
+        """Test getting namespace name and IRI."""
+        self.installer.install("city")
+        self.assertEqual(
+            self.namespace_registry._get_namespace_name_and_iri(
+                rdflib.URIRef("http://www.osp-core.com/city#City")
+            ),
+            ("city", rdflib.URIRef("http://www.osp-core.com/city#"))
+        )
+        self.assertEqual(
+            self.namespace_registry._get_namespace_name_and_iri(
+                rdflib.URIRef("http://www.random_namespace.com#Bla")
+            ),
+            ("http://www.random_namespace.com#",
+             rdflib.URIRef("http://www.random_namespace.com#"))
+        )
+        self.assertEqual(
+            self.namespace_registry._get_namespace_name_and_iri(
+                rdflib.URIRef("http://www.random_namespace.com/Bla")
+            ),
+            ("http://www.random_namespace.com/",
+             rdflib.URIRef("http://www.random_namespace.com/"))
+        )
+
+    def test_get_reference_by_label(self):
+        """Test getting the reference style."""
+        self.installer.install("city")
+        ns_iri = rdflib.URIRef("http://www.osp-core.com/city#")
+        self.assertFalse(
+            self.namespace_registry._get_reference_by_label(ns_iri)
+        )
+
+        self.graph.add((
+            ns_iri,
+            rdflib_cuba._reference_by_label,
+            rdflib.Literal(True)
+        ))
+
+        self.assertTrue(
+            self.namespace_registry._get_reference_by_label(ns_iri)
+        )
+
+    def test_get_entity_name(self):
+        """Test getting the name of an entity."""
+        self.installer.install("city")
+        self.modify_labels()
+        ns_iri = rdflib.URIRef("http://www.osp-core.com/city#")
+        iri = rdflib.URIRef("http://www.osp-core.com/city#City")
+        self.assertEqual(
+            self.namespace_registry._get_entity_name(iri, ns_iri),
+            "City"
+        )
+
+        self.graph.add((
+            ns_iri,
+            rdflib_cuba._reference_by_label,
+            rdflib.Literal(True)
+        ))
+
+        self.assertEqual(
+            self.namespace_registry._get_entity_name(iri, ns_iri),
+            "City_T"
+        )
 
 
 if __name__ == "__main__":

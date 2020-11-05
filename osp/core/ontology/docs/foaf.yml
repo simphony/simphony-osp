@@ -1,0 +1,7 @@
+---
+identifier: foaf
+ontology_file: http://xmlns.com/foaf/spec/index.rdf
+reference_by_label: False
+namespaces: 
+    foaf: "http://xmlns.com/foaf/0.1/"
+active_relationships: [] 

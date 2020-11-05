@@ -1,3 +1,4 @@
+"""This file contains tests for the Sqlite Wrapper using the City ontology."""
 import os
 import sys
 import subprocess
@@ -10,9 +11,9 @@ from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
 
 try:
-    from tests.test_sqlite_city import check_state
+    from tests.test_sqlite_city import check_state, update_db
 except ImportError:
-    from test_sqlite_city import check_state
+    from test_sqlite_city import check_state, update_db
 
 try:
     from osp.core.namespaces import city
@@ -30,10 +31,13 @@ DB = "transport.db"
 
 
 class TestTransportSqliteCity(unittest.TestCase):
+    """Test the sqlite wrapper."""
+
     SERVER_STARTED = False
 
     @classmethod
     def setUpClass(cls):
+        """Set up the server as a subprocess."""
         args = ["python",
                 "tests/test_transport_sqlite_city.py",
                 "server"]
@@ -41,22 +45,24 @@ class TestTransportSqliteCity(unittest.TestCase):
 
         TestTransportSqliteCity.SERVER_STARTED = p
         for line in p.stdout:
-            if b"ready\n" == line:
+            if b"ready" in line:
                 break
 
     @classmethod
     def tearDownClass(cls):
+        """Remove DB files and shut down the server subprocess."""
         TestTransportSqliteCity.SERVER_STARTED.terminate()
         os.remove(DB)
 
     def tearDown(self):
+        """Delete table contents."""
         with sqlite3.connect(DB) as conn:
             c = conn.cursor()
             tables = c.execute("SELECT name FROM sqlite_master "
                                + "WHERE type='table';")
             tables = list(tables)
             for table in tables:
-                c.execute("DELETE FROM %s;" % table[0])
+                c.execute("DELETE FROM `%s`;" % table[0])
             conn.commit()
 
     def test_insert(self):
@@ -94,7 +100,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         check_state(self, c, p1, p2, db=DB)
 
     def test_delete(self):
-        """Test to delete cuds_objects from the sqlite table"""
+        """Test to delete cuds_objects from the sqlite table."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Georg")
@@ -133,14 +139,15 @@ class TestTransportSqliteCity(unittest.TestCase):
             wrapper = city.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
                              {c.uid, wrapper.uid})
+
             self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(
                 session._registry.get(c.uid)._neighbors[city.hasInhabitant],
-                {p1.uid: p1.oclass, p2.uid: p2.oclass,
-                 p3.uid: p3.oclass})
+                {p1.uid: p1.oclasses, p2.uid: p2.oclasses,
+                 p3.uid: p3.oclasses})
             self.assertEqual(
                 session._registry.get(c.uid)._neighbors[city.isPartOf],
-                {wrapper.uid: wrapper.oclass})
+                {wrapper.uid: wrapper.oclasses})
 
     def test_load_missing(self):
         """Test if missing objects are loaded automatically."""
@@ -174,19 +181,19 @@ class TestTransportSqliteCity(unittest.TestCase):
             self.assertEqual(p3w.name, "Julia")
             self.assertEqual(
                 p3w._neighbors[city.isChildOf],
-                {p1.uid: p1.oclass, p2.uid: p2.oclass}
+                {p1.uid: p1.oclasses, p2.uid: p2.oclasses}
             )
             self.assertEqual(
                 p2w._neighbors[city.hasChild],
-                {p3.uid: p3.oclass}
+                {p3.uid: p3.oclasses}
             )
             self.assertEqual(
                 p2w._neighbors[city.INVERSE_OF_hasInhabitant],
-                {c.uid: c.oclass}
+                {c.uid: c.oclasses}
             )
 
     def test_expiring(self):
-        """Test expiring with transport + db session"""
+        """Test expiring with transport + db session."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
@@ -205,27 +212,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             # p1w is no longer expired after the following assert
             self.assertEqual(p1w.name, "Peter")
 
-            with sqlite3.connect(DB) as conn:
-                cursor = conn.cursor()
-                cursor.execute("UPDATE CUDS_city___city SET name = 'Paris' "
-                               "WHERE uid='%s';" % (c.uid))
-                cursor.execute("UPDATE CUDS_city___CITIZEN SET name = 'Maria' "
-                               "WHERE uid='%s';" % (p1.uid))
-                cursor.execute("DELETE FROM %s "
-                               "WHERE origin == '%s' OR target = '%s'"
-                               % (SqliteSession.RELATIONSHIP_TABLE,
-                                  p2.uid, p2.uid))
-                cursor.execute("DELETE FROM %s "
-                               "WHERE origin == '%s' OR target = '%s'"
-                               % (SqliteSession.RELATIONSHIP_TABLE,
-                                  p3.uid, p3.uid))
-                cursor.execute("DELETE FROM CUDS_city___CITIZEN "
-                               "WHERE uid == '%s'"
-                               % p3.uid)
-                cursor.execute("DELETE FROM %s "
-                               "WHERE uid == '%s'"
-                               % (SqliteSession.MASTER_TABLE, p3.uid))
-                conn.commit()
+            update_db(DB, c, p1, p2, p3)
 
             self.assertEqual(cw.name, "Paris")
             self.assertEqual(p1w.name, "Peter")
@@ -237,7 +224,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             self.assertNotIn(p3w.uid, session._registry)
 
     def test_load_by_oclass(self):
-        """Load elements by ontology class via transport + db session"""
+        """Load elements by ontology class via transport + db session."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
@@ -262,6 +249,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             self.assertEqual(set(r), {p1, p2, p3})
 
     def test_refresh(self):
+        """Test refreshing CUDS objects."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
@@ -283,27 +271,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             self.assertEqual(p3w.name, "Julia")
             self.assertEqual(session._expired, {wrapper.uid})
 
-            with sqlite3.connect(DB) as conn:
-                cursor = conn.cursor()
-                cursor.execute("UPDATE CUDS_city___city SET name = 'Paris' "
-                               "WHERE uid='%s';" % (c.uid))
-                cursor.execute("UPDATE CUDS_city___CITIZEN SET name = 'Maria' "
-                               "WHERE uid='%s';" % (p1.uid))
-                cursor.execute("DELETE FROM %s "
-                               "WHERE origin == '%s' OR target = '%s'"
-                               % (SqliteSession.RELATIONSHIP_TABLE,
-                                  p2.uid, p2.uid))
-                cursor.execute("DELETE FROM %s "
-                               "WHERE origin == '%s' OR target = '%s'"
-                               % (SqliteSession.RELATIONSHIP_TABLE,
-                                  p3.uid, p3.uid))
-                cursor.execute("DELETE FROM CUDS_city___CITIZEN "
-                               "WHERE uid == '%s'"
-                               % p3.uid)
-                cursor.execute("DELETE FROM %s "
-                               "WHERE uid == '%s'"
-                               % (SqliteSession.MASTER_TABLE, p3.uid))
-                conn.commit()
+            update_db(DB, c, p1, p2, p3)
 
             session.refresh(cw, p1w, p2w, p3w)
             self.assertEqual(cw.name, "Paris")

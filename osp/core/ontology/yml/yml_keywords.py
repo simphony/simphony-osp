@@ -1,3 +1,5 @@
+"""This file contains keywords that occur in the YAML ontology."""
+
 VERSION_KEY = "version"
 AUTHOR_KEY = "author"
 ONTOLOGY_KEY = "ontology"

@@ -1,3 +1,5 @@
+"""Test the performance of the SQLite Wrapper."""
+
 # pip install pympler
 import gc
 import os
@@ -20,8 +22,10 @@ DB = "performance_test.db"
 
 
 class TestPerformance(unittest.TestCase):
+    """Test the performance of the SQLite Wrapper."""
 
     def setUp(self):
+        """Start the timer and fill the database."""
         if not RUN_PERFORMANCE_TEST:
             return
         self.iterations = 1000
@@ -35,6 +39,7 @@ class TestPerformance(unittest.TestCase):
         self.start = time.time()
 
     def tearDown(self):
+        """Remove database file and print the performance of the test."""
         if not RUN_PERFORMANCE_TEST:
             return
         self.stop = time.time()
@@ -50,6 +55,7 @@ class TestPerformance(unittest.TestCase):
             os.remove(DB)
 
     def fill_db(self, c, random_uid=True):
+        """Fill the database with data."""
         for i in range(self.iterations):
             j = i * 9
             uids = iter([None for i in range(9)])
@@ -70,18 +76,14 @@ class TestPerformance(unittest.TestCase):
             c = c.add(city.Street(name="", uid=next(uids)), rel=city.hasPart)
 
     def test_fill_db_one_commit(self):
-        """
-        Tests filling the db with lots of data with one commit
-        """
+        """Tests filling the db with lots of data with one commit."""
         if not RUN_PERFORMANCE_TEST:
             return
         print("Test filling database one commit")
         self.fill_db(self.w)
 
     def test_graph_walk(self):
-        """
-        Traverse the graph
-        """
+        """Traverse the graph."""
         if not RUN_PERFORMANCE_TEST:
             return
         print("Traverse db")

@@ -1,3 +1,5 @@
+"""Install osp-core."""
+
 import os
 from setuptools import setup, find_packages
 from packageinfo import VERSION, NAME
@@ -9,10 +11,11 @@ with open('README.md', 'r') as readme:
 
 with open("packageinfo.py", "r") as packageinfo:
     with open(os.path.join("osp", "core", "packageinfo.py"), "w") as f:
-        print("# DO NOT MODIFY", file=f)
         for line in packageinfo:
             print(line, file=f, end="")
-        print("# DO NOT MODIFY", file=f)
+        for i in range(10):
+            print("# DO NOT MODIFY. Modify the file in the repository's root.",
+                  file=f)
 
 
 # main setup configuration class
@@ -45,8 +48,8 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "owlready2",
-        "rdflib"
+        "rdflib",
+        "rdflib-jsonld"
     ],
     setup_requires=[
         "PyYaml",
@@ -54,7 +57,7 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "owlready2",
-        "rdflib"
+        "rdflib",
+        "rdflib-jsonld"
     ]
 )

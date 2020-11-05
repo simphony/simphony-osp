@@ -1,3 +1,5 @@
+"""This test contains test for authentication in transport session."""
+
 import os
 import sys
 import subprocess
@@ -29,12 +31,23 @@ DB = "transport.db"
 
 
 class AuthSession(SqliteSession):
+    """Session used for testing authentication."""
+
     DB_SALT = "salt"
     DB_PW_HASH = hashlib.sha256(
         ("correct" + DB_SALT).encode("utf-8")).hexdigest()
     CONN_SALTS = dict()
 
     def __init__(self, *args, connection_id, auth, **kwargs):
+        """Initialize the class.
+
+        Args:
+            connection_id (str): An identifier for thr
+            auth (Any): An object used for authentication.
+
+        Raises:
+            PermissionError: Permission denied.
+        """
         username, auth_string_user = auth
         conn_salt = AuthSession.CONN_SALTS[connection_id]
         auth_string_server = (
@@ -48,6 +61,15 @@ class AuthSession(SqliteSession):
 
     @staticmethod
     def handshake(username, connection_id):
+        """Compute salt used to make authentication more secure.
+
+        Args:
+            username (str): The username.
+            connection_id (str): An identifier for the connection.
+
+        Returns:
+            List[str]: Salts.
+        """
         x = (str(username) + str(connection_id)).encode("utf-8")
         conn_salt = hashlib.sha256(x).hexdigest()
         AuthSession.CONN_SALTS[connection_id] = conn_salt
@@ -55,6 +77,16 @@ class AuthSession(SqliteSession):
 
     @staticmethod
     def compute_auth(username, password, handshake):
+        """Compute string used for authentication.
+
+        Args:
+            username (str): The username.
+            password (str): The password.
+            handshake (Any): The result of the handshake method.
+
+        Returns:
+            List[str]: The username and password.
+        """
         conn_salt, db_salt = handshake
         salted_pw = (password + db_salt).encode("utf-8")
         pwd_hash = hashlib.sha256(salted_pw).hexdigest()  # that's in the db
@@ -63,10 +95,21 @@ class AuthSession(SqliteSession):
 
 
 class SimpleAuthSession(SqliteSession):
+    """A simple session for testing authentication."""
+
     DB_USERNAME = "username"
     DB_PASSWORD = "correct"
 
     def __init__(self, *args, connection_id, auth, **kwargs):
+        """Initialize the class.
+
+        Args:
+            connection_id (str): An identifier for thr
+            auth (Any): An object used for authentication.
+
+        Raises:
+            PermissionError: Permission denied.
+        """
         username, password = auth
         if username != SimpleAuthSession.DB_USERNAME \
                 or SimpleAuthSession.DB_PASSWORD != password:
@@ -75,15 +118,28 @@ class SimpleAuthSession(SqliteSession):
 
     @staticmethod
     def compute_auth(username, password, handshake):
+        """Compute string used for authentication.
+
+        Args:
+            username (str): The username.
+            password (str): The password.
+            handshake (Any): The result of the handshake method.
+
+        Returns:
+            List[str]: The username and password.
+        """
         return [username, password]
 
 
 class TestTransportAuth(unittest.TestCase):
+    """Test the authentication mechanism."""
+
     SERVER_STARTED = []
     OUTPUT_FILE = None
 
     @classmethod
     def setUpClass(cls):
+        """Set up the servers as subprocesses."""
         args = ["python",
                 "tests/test_transport_auth.py",
                 "server1"]
@@ -92,7 +148,7 @@ class TestTransportAuth(unittest.TestCase):
                              stdout=subprocess.PIPE)
         TestTransportAuth.SERVER_STARTED.append(p)
         for line in p.stdout:
-            if b"ready\n" == line:
+            if b"ready" in line:
                 break
 
         args[-1] = "server2"
@@ -100,15 +156,21 @@ class TestTransportAuth(unittest.TestCase):
                              stdout=subprocess.PIPE)
         TestTransportAuth.SERVER_STARTED.append(p)
         for line in p.stdout:
-            if b"ready\n" == line:
+            if b"ready" in line:
                 break
 
     @classmethod
     def tearDownClass(cls):
+        """Close files and shut down the server subprocess."""
         for p in TestTransportAuth.SERVER_STARTED:
             p.terminate()
         TestTransportAuth.OUTPUT_FILE.close()
-        os.remove("output_test_auth")
+        while True:
+            try:
+                os.remove("output_test_auth")
+                break
+            except PermissionError:
+                pass
 
     def test_auth(self):
         """Test authentication."""

@@ -1,20 +1,21 @@
+"""Test the utility functions."""
+
 import io
 import unittest
 import responses
-import uuid
 import os
 import osp.core
 import rdflib
 import json
 from osp.core.namespaces import cuba
+from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.session.transport.transport_utils import serializable
 from osp.core.session.core_session import CoreSession
-from .test_session_city import TestWrapperSession
 from osp.core.session.buffers import EngineContext
 from osp.core.utils import (
     clone_cuds_object,
     create_recycle, create_from_cuds_object,
-    check_arguments, format_class_name, find_cuds_object,
+    check_arguments, find_cuds_object,
     find_cuds_object_by_uid, remove_cuds_object,
     pretty_print, deserialize,
     find_cuds_objects_by_oclass, find_relationships,
@@ -23,10 +24,17 @@ from osp.core.utils import (
     get_neighbor_diff, change_oclass, branch, validate_tree_against_schema,
     ConsistencyError, CardinalityError, get_rdf_graph,
     delete_cuds_object_recursively,
-    serialize
+    serialize, get_custom_datatype_triples, get_custom_datatypes
 )
 from osp.core.session.buffers import BufferContext
 from osp.core.cuds import Cuds
+
+try:
+    from .test_session_city import TestWrapperSession
+    from .test_transport_session import assertJsonLdEqual
+except ImportError:
+    from test_session_city import TestWrapperSession
+    from test_transport_session import assertJsonLdEqual
 
 try:
     from osp.core.namespaces import city
@@ -37,38 +45,71 @@ except ImportError:
     _namespace_registry.update_namespaces()
     city = _namespace_registry.city
 
-CUDS_DICT = {
-    "oclass": "city.Citizen",
-    "uid": str(uuid.UUID(int=1)),
-    "attributes": {
-        "name": "Peter",
-        "age": 23
-    },
-    "relationships": {
-        "city.INVERSE_OF_hasInhabitant": {str(uuid.UUID(int=1)): "city.City"},
-        "city.hasChild": {str(uuid.UUID(int=2)): "city.Person",
-                          str(uuid.UUID(int=3)): "city.Person"}
-    }
-}
 
-CUDS_LIST = [
-    {"oclass": "city.City", "uid": str(uuid.UUID(int=1)),
-     "attributes": {"coordinates": [0, 0], "name": "Freiburg"},
-     "relationships": {
-         "city.hasPart": {str(uuid.UUID(int=2)): "city.Neighborhood"}}},
-    {"oclass": "city.Neighborhood", "uid": str(uuid.UUID(int=2)),
-     "attributes": {"coordinates": [0, 0], "name": "Littenweiler"},
-     "relationships": {"city.hasPart": {str(uuid.UUID(int=3)): "city.Street"},
-                       "city.isPartOf": {str(uuid.UUID(int=1)): "city.City"}}},
-    {"oclass": "city.Street", "uid": str(uuid.UUID(int=3)),
-     "attributes": {"coordinates": [0, 0], "name": "Schwarzwaldstraße"},
-     "relationships": {
-         "city.isPartOf": {str(uuid.UUID(int=2)): "city.Neighborhood"}}}
-]
+PRFX = 'http://www.osp-core.com/cuds/#00000000-0000-0000-0000-0000000000'
+CUDS_DICT = [{
+    '@id': PRFX + "01",
+    '@type': ['http://www.osp-core.com/city#City']
+}, {
+    '@id': PRFX + "03",
+    '@type': ['http://www.osp-core.com/city#Person']
+}, {
+    '@id': PRFX + "02",
+    '@type': ['http://www.osp-core.com/city#Person']
+}, {
+    '@id': PRFX + "7b",
+    '@type': ['http://www.osp-core.com/city#Citizen'],
+    'http://www.osp-core.com/city#INVERSE_OF_hasInhabitant': [
+        {'@id': PRFX + "01"}],
+    'http://www.osp-core.com/city#age': [{'@value': 23}],
+    'http://www.osp-core.com/city#hasChild': [
+        {'@id': PRFX + "02"},
+        {'@id': PRFX + "03"}],
+    'http://www.osp-core.com/city#name': [{'@value': 'Peter'}]
+}]
+
+CUDS_LIST = [[
+    {"@id": PRFX + "01",
+     "http://www.osp-core.com/city#name": [{"@value": "Freiburg"}],
+     "http://www.osp-core.com/city#coordinates": [{
+         "@value": "[0, 0]",
+         "@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2"}],
+     "@type": ["http://www.osp-core.com/city#City"],
+     "http://www.osp-core.com/city#hasPart": [
+         {"@id": PRFX + "02"}]},
+    {"@id": PRFX + "02",
+     "@type": ["http://www.osp-core.com/city#Neighborhood"]}
+], [
+    {"@id": PRFX + "01",
+     "@type": ["http://www.osp-core.com/city#City"]},
+    {"@id": PRFX + "02",
+     "http://www.osp-core.com/city#hasPart": [
+         {"@id": PRFX + "03"}],
+     "@type": ["http://www.osp-core.com/city#Neighborhood"],
+     "http://www.osp-core.com/city#coordinates": [{
+         "@value": "[0, 0]",
+         "@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2"}],
+     "http://www.osp-core.com/city#name": [{"@value": "Littenweiler"}],
+     "http://www.osp-core.com/city#isPartOf": [
+         {"@id": PRFX + "01"}]},
+    {"@id": PRFX + "03",
+     "@type": ["http://www.osp-core.com/city#Street"]}
+], [
+    {"@id": PRFX + "02",
+     "@type": ["http://www.osp-core.com/city#Neighborhood"]},
+    {"@id": PRFX + "03",
+     "http://www.osp-core.com/city#coordinates": [{
+         "@value": "[0, 0]",
+         "@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2"}],
+     "http://www.osp-core.com/city#isPartOf": [
+         {"@id": PRFX + "02"}],
+     "@type": ["http://www.osp-core.com/city#Street"],
+     "http://www.osp-core.com/city#name": [{"@value": "Schwarzwaldstraße"}]}
+]]
 
 
 def get_test_city():
-    """helper function"""
+    """Set up a test City for the tests."""
     c = city.City(name="Freiburg", coordinates=[1, 2])
     p1 = city.Citizen(name="Rainer")
     p2 = city.Citizen(name="Carlos")
@@ -88,8 +129,16 @@ def get_test_city():
 
 
 class TestUtils(unittest.TestCase):
+    """Test the utility functions."""
+
+    def setUp(self):
+        """Set up the testcases: Reset the session."""
+        from osp.core.cuds import Cuds
+        from osp.core.session import CoreSession
+        Cuds._session = CoreSession()
 
     def test_get_rdf_graph(self):
+        """Test the get_rdf_graph function."""
         with TestWrapperSession() as session:
             wrapper = cuba.Wrapper(session=session)
             c = city.City(name='freiburg', session=session)
@@ -111,8 +160,30 @@ class TestUtils(unittest.TestCase):
             self.assertRaises(TypeError, get_rdf_graph, c)
             self.assertRaises(TypeError, get_rdf_graph, 42)
 
+            self.maxDiff = None
+            g2 = get_rdf_graph(c.session, True)
+            self.assertIn((city.coordinates.iri, rdflib.RDFS.range,
+                           rdflib_cuba["_datatypes/VECTOR-INT-2"]),
+                          set(graph - g2))
+            self.assertIn((rdflib_cuba["_datatypes/VECTOR-INT-2"],
+                           rdflib.RDF.type, rdflib.RDFS.Datatype),
+                          set(graph - g2))
+
+    def test_get_custom_datatypes(self):
+        """Test the get_custom_datatypes function."""
+        self.assertIn(rdflib_cuba["_datatypes/VECTOR-INT-2"],
+                      get_custom_datatypes())
+        for elem in get_custom_datatypes():
+            self.assertIn(elem, rdflib_cuba)
+        self.assertIn((city.coordinates.iri, rdflib.RDFS.range,
+                       rdflib_cuba["_datatypes/VECTOR-INT-2"]),
+                      get_custom_datatype_triples())
+        self.assertIn((rdflib_cuba["_datatypes/VECTOR-INT-2"],
+                       rdflib.RDF.type, rdflib.RDFS.Datatype),
+                      get_custom_datatype_triples())
+
     def test_validate_tree_against_schema(self):
-        """Test validation of CUDS tree against schema.yml"""
+        """Test validation of CUDS tree against schema.yml."""
         schema_file = os.path.join(
             os.path.dirname(__file__),
             'test_validation_schema_city.yml'
@@ -191,6 +262,7 @@ class TestUtils(unittest.TestCase):
         )
 
     def test_branch(self):
+        """Test the branch function."""
         x = branch(
             branch(
                 city.City(name="Freiburg"),
@@ -211,7 +283,7 @@ class TestUtils(unittest.TestCase):
 
     @responses.activate
     def test_post(self):
-        """Test sending a cuds object to the server"""
+        """Test sending a cuds object to the server."""
         def request_callback(request):
             headers = {'request-id': '728d329e-0e86-11e4-a748-0c84dc037c13'}
             return (200, headers, request.body)
@@ -226,19 +298,14 @@ class TestUtils(unittest.TestCase):
         response = post('http://dsms.com', c)
 
         serialized = serializable([c, p1, p2, p3, n1, n2, s1])
-        for x in response.json():
-            i = serialized.index(x)
-            del serialized[i]
-        self.assertEqual(serialized, list())
+        assertJsonLdEqual(self, serialized, response.json())
 
         response = post('http://dsms.com', c, max_depth=1)
         serialized = serializable([c, p1, p2, p3, n1, n2])
-        for x in response.json():
-            i = serialized.index(x)
-            del serialized[i]
-        self.assertEqual(serialized, list())
+        assertJsonLdEqual(self, serialized, response.json())
 
     def test_deserialize(self):
+        """Test the deserialize function."""
         result = deserialize(CUDS_DICT)
         self.assertTrue(result.is_a(city.Citizen))
         self.assertEqual(result.name, "Peter")
@@ -252,10 +319,14 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(result[0].is_a(city.Citizen))
         self.assertEqual(result[0].name, "Peter")
         self.assertEqual(result[0].age, 23)
-        self.assertEqual(CUDS_LIST,
-                         json.loads(serialize(deserialize(CUDS_LIST))))
+        self.maxDiff = None
+
+        self.setUp()
+        assertJsonLdEqual(self, CUDS_LIST,
+                          json.loads(serialize(deserialize(CUDS_LIST))))
 
     def test_serialize(self):
+        """Test the serialize function."""
         c = branch(
             city.City(name="Freiburg", uid=1),
             branch(
@@ -264,17 +335,19 @@ class TestUtils(unittest.TestCase):
             )
         )
         self.maxDiff = None
-        self.assertEqual(
+        assertJsonLdEqual(
+            self,
             json.loads(serialize(c)),
             CUDS_LIST
         )
-        self.assertEqual(
+        assertJsonLdEqual(
+            self,
             serialize(c, json_dumps=False),
             CUDS_LIST
         )
 
     def test_clone_cuds_object(self):
-        """Test cloning of cuds"""
+        """Test cloning of cuds."""
         a = city.City(name="Freiburg")
         with CoreSession() as session:
             w = city.CityWrapper(session=session)
@@ -287,7 +360,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(clone.name, "Freiburg")
 
     def test_create_recycle(self):
-        """Test creation of cuds_objects for different session"""
+        """Test creation of cuds_objects for different session."""
         default_session = CoreSession()
         osp.core.cuds.Cuds._session = default_session
         a = city.City(name="Freiburg")
@@ -341,7 +414,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(x.get(rel=cuba.relationship), [])
 
     def test_create_from_cuds_object(self):
-        """Test copying cuds_objects to different session"""
+        """Test copying cuds_objects to different session."""
         default_session = CoreSession()
         Cuds._session = default_session
         a = city.City(name="Freiburg")
@@ -371,7 +444,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(c.name, "Freiburg")
             self.assertEqual(len(c.get(rel=cuba.relationship)), 1)
             self.assertEqual(c._neighbors[city.hasInhabitant],
-                             {y.uid: city.Citizen})
+                             {y.uid: [city.Citizen]})
             self.assertEqual(set(default_session._registry.keys()),
                              {a.uid, x.uid, y.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
@@ -380,7 +453,7 @@ class TestUtils(unittest.TestCase):
                 [dict(), dict(), dict()]])
 
     def test_change_oclass(self):
-        """Check utility method to change oclass"""
+        """Check utility method to change oclass."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Tim")
         p2 = city.Citizen(name="Tom")
@@ -390,12 +463,12 @@ class TestUtils(unittest.TestCase):
         })
         self.assertEqual(c.oclass, city.PopulatedPlace)
         self.assertEqual(p1._neighbors[city.INVERSE_OF_hasInhabitant],
-                         {c.uid: city.PopulatedPlace})
+                         {c.uid: [city.PopulatedPlace]})
         self.assertEqual(p2._neighbors[city.INVERSE_OF_hasInhabitant],
-                         {c.uid: city.PopulatedPlace})
+                         {c.uid: [city.PopulatedPlace]})
 
     def test_check_arguments(self):
-        """ Test checking of arguments """
+        """Test checking of arguments."""
         check_arguments(str, "hello", "bye")
         check_arguments((int, float), 1, 1.2, 5.9, 2)
         check_arguments(Cuds, city.City(name="Freiburg"))
@@ -404,13 +477,8 @@ class TestUtils(unittest.TestCase):
         self.assertRaises(TypeError, check_arguments,
                           Cuds, city.City)
 
-    def test_format_class_name(self):
-        """Test class name formatting"""
-        self.assertEqual(format_class_name("what_is_going_on"),
-                         "WhatIsGoingOn")
-
     def test_find_cuds_object(self):
-        """ Test to find cuds objects by some criterion """
+        """Test to find cuds objects by some criterion."""
         def find_maria(x):
             return hasattr(x, "name") and x.name == "Maria"
 
@@ -444,7 +512,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(set(all_found), {c, p1, p2, n1, n2})
 
     def test_find_cuds_object_by_uid(self):
-        """ Test to find a cuds object by uid in given subtree """
+        """Test to find a cuds object by uid in given subtree."""
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertIs(find_cuds_object_by_uid(
             c.uid, c, cuba.activeRelationship), c)
@@ -490,7 +558,7 @@ class TestUtils(unittest.TestCase):
             s1.uid, n1, cuba.activeRelationship), s1)
 
     def test_find_cuds_objects_by_oclass(self):
-        """ Test find by cuba key """
+        """Test find by cuba key."""
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertEqual(find_cuds_objects_by_oclass(
             city.City, c, cuba.activeRelationship),
@@ -508,11 +576,12 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(find_cuds_objects_by_oclass(
             city.Street, c, cuba.activeRelationship),
             [s1])
-        found = find_cuds_objects_by_oclass(cuba.Class,
+        found = find_cuds_objects_by_oclass(cuba.Entity,
                                             c, cuba.relationship)
         self.assertEqual(set(found), {c, p1, p2, p3, n1, n2, s1})
 
     def test_find_cuds_objects_by_attribute(self):
+        """Test the find_cuds_objects_by_attribute method."""
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         self.assertEqual(
             find_cuds_objects_by_attribute("name", "Maria", c,
@@ -528,7 +597,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(found, [])
 
     def test_find_relationships(self):
-        """Test find by relationships"""
+        """Test find by relationships."""
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         found = find_relationships(city.INVERSE_OF_hasInhabitant, c,
                                    cuba.relationship, False)
@@ -543,7 +612,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(set(found), {n1, n2, s1})
 
     def test_remove_cuds_object(self):
-        """Test removeing cuds from datastructure"""
+        """Test removing cuds from datastructure."""
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         remove_cuds_object(p3)
         self.assertEqual(p3.get(rel=cuba.relationship), [])
@@ -555,7 +624,7 @@ class TestUtils(unittest.TestCase):
         self.assertNotIn(p3, s1.get(rel=cuba.relationship))
 
     def test_get_relationships_between(self):
-        """ Test get the relationship between two cuds entities"""
+        """Test the get_the_relationship_between two cuds entities."""
         c = city.City(name="Freiburg")
         p = city.Citizen(name="Peter")
         self.assertEqual(get_relationships_between(c, p), set())
@@ -574,9 +643,7 @@ class TestUtils(unittest.TestCase):
                           city.worksIn})
 
     def test_get_neighbor_diff(self):
-        """Check if get_neighbor_diff can compute the difference
-        of neighbors between to objects.
-        """
+        """Test get_neighbor_diff method."""
         c1 = city.City(name="Paris")
         c2 = city.City(name="Berlin")
         c3 = city.City(name="London")
@@ -625,7 +692,7 @@ class TestUtils(unittest.TestCase):
             "  uuid: %s" % c.uid,
             "  type: city.City",
             "  superclasses: city.City, city.GeographicalPlace, "
-            + "city.PopulatedPlace, cuba.Class",
+            + "city.PopulatedPlace, cuba.Entity",
             "  values: coordinates: [1 2]",
             "  description: ",
             "    To Be Determined",
@@ -635,27 +702,27 @@ class TestUtils(unittest.TestCase):
             "   |    uuid: %s" % px.uid,
             "   |    age: 25",
             "   |_Relationship city.hasInhabitant:",
-            "   | -  city.Citizen cuds object named <Rainer>:",
-            "   | .  uuid: %s" % p1.uid,
-            "   | .  age: 25",
-            "   | .   |_Relationship city.hasChild:",
-            "   | .     -  city.Citizen cuds object named <Maria>:",
-            "   | .        uuid: %s" % p3.uid,
-            "   | .        age: 25",
             "   | -  city.Citizen cuds object named <Carlos>:",
             "   | .  uuid: %s" % p2.uid,
             "   | .  age: 25",
             "   | .   |_Relationship city.hasChild:",
             "   | .     -  city.Citizen cuds object named <Maria>:",
             "   | .        uuid: %s" % p3.uid,
-            "   | .        (already printed)",
+            "   | .        age: 25",
             "   | -  city.Citizen cuds object named <Maria>:",
-            "   |    uuid: %s" % p3.uid,
-            "   |    (already printed)",
+            "   | .  uuid: %s" % p3.uid,
+            "   | .  (already printed)",
+            "   | -  city.Citizen cuds object named <Rainer>:",
+            "   |    uuid: %s" % p1.uid,
+            "   |    age: 25",
+            "   |     |_Relationship city.hasChild:",
+            "   |       -  city.Citizen cuds object named <Maria>:",
+            "   |          uuid: %s" % p3.uid,
+            "   |          (already printed)",
             "   |_Relationship city.hasPart:",
-            "     -  city.Neighborhood cuds object named <Zähringen>:",
-            "     .  uuid: %s" % n1.uid,
-            "     .  coordinates: [2 3]",
+            "     -  city.Neighborhood cuds object named <St. Georgen>:",
+            "     .  uuid: %s" % n2.uid,
+            "     .  coordinates: [3 4]",
             "     .   |_Relationship city.hasPart:",
             "     .     -  city.Street cuds object named <Lange Straße>:",
             "     .        uuid: %s" % s1.uid,
@@ -667,9 +734,9 @@ class TestUtils(unittest.TestCase):
             "     .           -  city.Citizen cuds object named <Maria>:",
             "     .              uuid: %s" % p3.uid,
             "     .              (already printed)",
-            "     -  city.Neighborhood cuds object named <St. Georgen>:",
-            "        uuid: %s" % n2.uid,
-            "        coordinates: [3 4]",
+            "     -  city.Neighborhood cuds object named <Zähringen>:",
+            "        uuid: %s" % n1.uid,
+            "        coordinates: [2 3]",
             "         |_Relationship city.hasPart:",
             "           -  city.Street cuds object named <Lange Straße>:",
             "              uuid: %s" % s1.uid,
@@ -677,6 +744,7 @@ class TestUtils(unittest.TestCase):
             ""]))
 
     def test_delete_cuds_object_recursively(self):
+        """Test the delete_cuds_object_recursively function."""
         with TestWrapperSession() as session:
             wrapper = city.CityWrapper(session=session)
             a = city.City(name='freiburg', session=session)
@@ -695,3 +763,7 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(wrapper.get(rel=cuba.relationship), [])
             self.assertEqual(a.get(rel=cuba.relationship), [])
             self.assertEqual(b.get(rel=cuba.relationship), [])
+
+
+if __name__ == "__main__":
+    unittest.main()

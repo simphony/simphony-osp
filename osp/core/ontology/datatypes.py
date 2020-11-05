@@ -1,3 +1,5 @@
+"""This module contains methods for datatype conversions."""
+
 import uuid
 import numpy as np
 import rdflib
@@ -49,7 +51,7 @@ def convert_from(x, rdf_datatype):
 
 
 def to_uuid(x):
-    """Convert given value to a UUID
+    """Convert given value to a UUID.
 
     Args:
         x (Any): The value to convert
@@ -104,6 +106,8 @@ def to_vector(x, np_dtype, shape):
         np.ndarray: The converted value
     """
     if isinstance(x, rdflib.Literal):
+        if isinstance(x.toPython(), np.ndarray):
+            return x.toPython()
         x = ast.literal_eval(str(x))
     x = np.array(x, dtype=np_dtype)
     return x.reshape([int(x) for x in shape])
@@ -132,7 +136,7 @@ RDF_DATATYPES = {
 
 
 def get_python_datatype(rdf_datatype):
-    """Get the python datatype for a given rdf datatype
+    """Get the python datatype for a given rdf datatype.
 
     Args:
         rdf_datatype (URIRef): The rdf datatype
@@ -145,8 +149,8 @@ def get_python_datatype(rdf_datatype):
     """
     if rdf_datatype in RDF_DATATYPES:
         return RDF_DATATYPES[rdf_datatype]
-    str_prefix = str(rdflib_cuba["datatypes/STRING-"])
-    vec_prefix = str(rdflib_cuba["datatypes/VECTOR-"])
+    str_prefix = str(rdflib_cuba["_datatypes/STRING-"])
+    vec_prefix = str(rdflib_cuba["_datatypes/VECTOR-"])
     if str(rdf_datatype).startswith(str_prefix):
         maxsize = int(str(rdf_datatype)[len(str_prefix):])
         return (lambda x: to_string(x, maxsize=maxsize), str, np.dtype("str"))
@@ -168,7 +172,7 @@ YML_DATATYPES = {
 
 
 def get_rdflib_datatype(yml_datatype, graph=None):
-    """Get rdflib datatype from given YAML datatype
+    """Get rdflib datatype from given YAML datatype.
 
     Args:
         yml_datatype (str): YAMl datatype
@@ -190,7 +194,7 @@ def get_rdflib_datatype(yml_datatype, graph=None):
 
 
 def _parse_vector_args(args, return_yml_dtypes=False):
-    """Parse the YAML datatype description of a vector
+    """Parse the YAML datatype description of a vector.
 
     Args:
         args (str): The arguments of the vector
@@ -213,8 +217,7 @@ def _parse_vector_args(args, return_yml_dtypes=False):
 
 
 def _add_string_datatype(graph, length):
-    """Add a datatype to the graph refering to a string of a certian maximum
-    length,
+    """Add a custom string datatype to the graph refering.
 
     Args:
         graph (rdflib.Graph): The graph to add the datatype to
@@ -223,7 +226,7 @@ def _add_string_datatype(graph, length):
     Returns:
         URIRef: The iri of the new datatype
     """
-    iri = rdflib_cuba[f"datatypes/STRING-{length}"]
+    iri = rdflib_cuba[f"_datatypes/STRING-{length}"]
     triple = (iri, rdflib.RDF.type, rdflib.RDFS.Datatype)
     if graph is None or triple in graph:
         return iri
@@ -234,8 +237,7 @@ def _add_string_datatype(graph, length):
 
 
 def _add_vector_datatype(graph, shape, dtype):
-    """Add da datatype tp the graph for a vector with given element
-        datatype and shape
+    """Add custom vector datatype to the graph.
 
     Args:
         graph (rdflib.Graph): The graph to add the datatype to
@@ -246,7 +248,7 @@ def _add_vector_datatype(graph, shape, dtype):
         [type]: [description]
     """
     shape = list(map(int, shape))
-    iri = rdflib_cuba[f"datatypes/VECTOR-{dtype}-"
+    iri = rdflib_cuba[f"_datatypes/VECTOR-{dtype}-"
                       + "-".join(map(str, shape))]
     triple = (iri, rdflib.RDF.type, rdflib.RDFS.Datatype)
     if graph is None or triple in graph:

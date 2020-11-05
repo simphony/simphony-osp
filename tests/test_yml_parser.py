@@ -1,3 +1,4 @@
+"""This file provides the unittest for the YAML parser."""
 import os
 import yaml
 import rdflib
@@ -22,7 +23,10 @@ RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 
 
 class TestYmlParser(unittest.TestCase):
+    """Test cases for YAML parser."""
+
     def setUp(self):
+        """Set up the test."""
         with open(YML_FILE, "r") as f:
             self.yml_doc = yaml.safe_load(f)
         self.ontology_doc = self.yml_doc["ontology"]
@@ -34,6 +38,7 @@ class TestYmlParser(unittest.TestCase):
         self.parser._file_path = YML_FILE
 
     def test_validate_entity(self):
+        """Test the validate_entity."""
         # everything should be fine
         for x, t, r in (
                 ("relationshipB", rdflib.OWL.ObjectProperty, "relationship"),
@@ -57,6 +62,7 @@ class TestYmlParser(unittest.TestCase):
                               x, self.ontology_doc[x])
 
     def test_set_datatype(self):
+        """Test the set_datatype method of the YAML parser."""
         for x, t in (("attributeA", rdflib.XSD.string),
                      ("attributeD", rdflib.XSD.float)):
             self.parser._set_datatype(x, self.ontology_doc[x])
@@ -72,11 +78,12 @@ class TestYmlParser(unittest.TestCase):
         self.parser._set_datatype(x, self.ontology_doc[x])
         self.assertEqual(set(self.graph), {
             (self.parser._get_iri(x), rdflib.RDFS.range,
-             rdflib_cuba["datatypes/VECTOR-INT-2-2"]),
-            (rdflib_cuba["datatypes/VECTOR-INT-2-2"], rdflib.RDF.type,
+             rdflib_cuba["_datatypes/VECTOR-INT-2-2"]),
+            (rdflib_cuba["_datatypes/VECTOR-INT-2-2"], rdflib.RDF.type,
              rdflib.RDFS.Datatype)})
 
     def test_check_default_rel_flag_on_entity(self):
+        """Test the check_default_rel_flag_on_entity method."""
         self.parser._check_default_rel_flag_on_entity(
             "relationshipB",
             self.ontology_doc["relationshipB"]
@@ -92,6 +99,7 @@ class TestYmlParser(unittest.TestCase):
         )})
 
     def test_set_inverse(self):
+        """Test the set_inverse method of the YAML parser."""
         self.parser._set_inverse("relationshipA",
                                  self.ontology_doc["relationshipA"])
         self.parser._set_inverse("relationshipB",
@@ -105,6 +113,7 @@ class TestYmlParser(unittest.TestCase):
         )])
 
     def test_add_attributes(self):
+        """Test the add_attributes method of the YAML parser."""
         self.graph.parse(CUBA_FILE, format="ttl")
         self.assertRaises(ValueError, self.parser._add_attributes,
                           "ClassA", self.ontology_doc["ClassA"])
@@ -147,6 +156,7 @@ class TestYmlParser(unittest.TestCase):
         })
 
     def test_add_type_triple(self):
+        """Test the add_tyüe_triple method of the YAML parser.."""
         iri = self.parser._get_iri("ClassA")
         self.assertRaises(AttributeError, self.parser._add_type_triple,
                           "ClassA", iri)
@@ -183,6 +193,7 @@ class TestYmlParser(unittest.TestCase):
         })
 
     def test_add_superclass(self):
+        """Test the add_superclass method of the YAML parser."""
         iri = self.parser._get_iri("ClassD")
         self.assertRaises(AttributeError, self.parser._add_superclass,
                           "ClassD", iri, "parser_test.Invalid")
@@ -199,6 +210,7 @@ class TestYmlParser(unittest.TestCase):
                                     "parser_test.attributeA")
 
     def test_get_iri(self):
+        """Test the get_iri method of the YAML parser."""
         logging.getLogger(
             "osp.core.ontology.yml.yml_parser"
         ).addFilter(lambda record: False)
@@ -247,6 +259,7 @@ class TestYmlParser(unittest.TestCase):
         )
 
     def test_load_entity(self):
+        """Test the load_entity method of the YAML parser."""
         # load class
         name = "ClassA"
         self.graph.parse(CUBA_FILE, format="ttl")
@@ -257,8 +270,9 @@ class TestYmlParser(unittest.TestCase):
             (iri, rdflib.RDF.type, rdflib.OWL.Class),
             (iri, rdflib.RDFS.isDefinedBy,
              rdflib.term.Literal("Class A", lang="en")),
-            (iri, rdflib.RDFS.subClassOf, rdflib_cuba.Class),
-            (iri, rdflib.SKOS.prefLabel, rdflib.term.Literal("ClassA", lang="en"))
+            (iri, rdflib.RDFS.subClassOf, rdflib_cuba.Entity),
+            (iri, rdflib.SKOS.prefLabel,
+             rdflib.term.Literal("ClassA", lang="en"))
         })
 
         # load relationship
@@ -289,11 +303,13 @@ class TestYmlParser(unittest.TestCase):
         })
 
     def test_split_name(self):
+        """Test the split_name method of the YAML parser."""
         self.assertEqual(("a", "B"), self.parser.split_name("A.B"))
         self.assertEqual(("a", "b"), self.parser.split_name("a.b"))
         self.assertRaises(ValueError, self.parser.split_name, "B")
 
     def test_parse_ontology(self):
+        """Test the _parse_ontology method of the YAML Parser."""
         self.graph.parse(CUBA_FILE, format="ttl")
         pre = set(self.graph)
         self.parser._parse_ontology()
@@ -305,6 +321,7 @@ class TestYmlParser(unittest.TestCase):
         self.assertTrue(isomorphic(test_graph1, test_graph2))
 
     def test_parse(self):
+        """Test the parse method of the YAML parser."""
         self.graph.parse(CUBA_FILE, format="ttl")
         self.parser = YmlParser(self.graph)
         pre = set(self.graph)

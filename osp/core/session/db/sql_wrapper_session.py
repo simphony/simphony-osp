@@ -1,305 +1,576 @@
+"""An abstract session containing method useful for all SQL backends."""
+
 import uuid
 import rdflib
-from operator import mul
-from functools import reduce
 from abc import abstractmethod
-from osp.core.utils import create_recycle
-from osp.core.ontology.datatypes import convert_to, convert_from, \
-    _parse_vector_args
-from osp.core.session.db.db_wrapper_session import DbWrapperSession
-from osp.core.session.db.conditions import EqualsCondition, AndCondition
-from osp.core.neighbor_dict import NeighborDictTarget
-from osp.core.namespaces import get_entity
+from osp.core.ontology.datatypes import convert_from
+from osp.core.session.db.triplestore_wrapper_session import \
+    TripleStoreWrapperSession
 from osp.core.session.buffers import BufferContext
-from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology import OntologyRelationship
+from osp.core.utils import CUDS_IRI_PREFIX, iri_from_uid
+from osp.core.session.db.sql_migrate import check_supported_schema_version
+from osp.core.session.db.sql_util import (
+    SqlQuery, EqualsCondition, AndCondition, JoinCondition,
+    expand_vector_cols, contract_vector_values, expand_vector_condition,
+    check_characters, determine_datatype, get_data_table_name
+)
 
 
-class SqlWrapperSession(DbWrapperSession):
-    """Abstract class for an SQL DB Wrapper Session"""
+class SqlWrapperSession(TripleStoreWrapperSession):
+    """Abstract class for an SQL DB Wrapper Session."""
 
-    CUDS_PREFIX = "CUDS_"
-    RELATIONSHIP_TABLE = "OSP_RELATIONSHIPS"
-    MASTER_TABLE = "OSP_MASTER"
+    TRIPLESTORE_COLUMNS = ["s", "p", "o"]
+    CUDS_TABLE = "OSP_V1_CUDS"
+    ENTITIES_TABLE = "OSP_V1_ENTITIES"
+    TYPES_TABLE = "OSP_V1_TYPES"
+    NAMESPACES_TABLE = "OSP_V1_NAMESPACES"
+    RELATIONSHIP_TABLE = "OSP_V1_RELATIONS"
+    DATA_TABLE_PREFIX = "DATA_V1_"
     COLUMNS = {
-        MASTER_TABLE: ["uid", "oclass", "first_level"],
-        RELATIONSHIP_TABLE: ["origin", "target", "name", "target_oclass"]
+        CUDS_TABLE: ["cuds_idx", "uid"],
+        ENTITIES_TABLE: ["entity_idx", "ns_idx", "name"],
+        TYPES_TABLE: ["s", "o"],
+        RELATIONSHIP_TABLE: TRIPLESTORE_COLUMNS,
+        NAMESPACES_TABLE: ["ns_idx", "namespace"],
+        DATA_TABLE_PREFIX: TRIPLESTORE_COLUMNS
     }
     DATATYPES = {
-        MASTER_TABLE: {"uid": "UUID",
-                       "oclass": rdflib.XSD.string,
-                       "first_level": rdflib.XSD.boolean},
-        RELATIONSHIP_TABLE: {"origin": "UUID",
-                             "target": "UUID",
-                             "name": rdflib.XSD.string,
-                             "target_oclass": rdflib.XSD.string}
+        CUDS_TABLE: {
+            "cuds_idx": rdflib.XSD.integer,
+            "uid": "UUID"
+        },
+        ENTITIES_TABLE: {
+            "entity_idx": rdflib.XSD.integer,
+            "ns_idx": rdflib.XSD.integer,
+            "name": rdflib.XSD.string
+        },
+        TYPES_TABLE: {
+            "s": rdflib.XSD.integer,
+            "o": rdflib.XSD.integer,
+        },
+        RELATIONSHIP_TABLE: {"s": rdflib.XSD.integer,
+                             "p": rdflib.XSD.integer,
+                             "o": rdflib.XSD.integer},
+        DATA_TABLE_PREFIX: {"s": rdflib.XSD.integer,
+                            "p": rdflib.XSD.integer},
+        NAMESPACES_TABLE: {"ns_idx": rdflib.XSD.integer,
+                           "namespace": rdflib.XSD.string}
     }
     PRIMARY_KEY = {
-        MASTER_TABLE: ["uid"],
-        RELATIONSHIP_TABLE: ["origin", "target", "name"]
+        CUDS_TABLE: ["cuds_idx"],
+        ENTITIES_TABLE: ["entity_idx"],
+        TYPES_TABLE: ["s", "o"],
+        RELATIONSHIP_TABLE: TRIPLESTORE_COLUMNS,
+        DATA_TABLE_PREFIX: [],  # TODO TRIPLESTORE_COLUMNS,
+        NAMESPACES_TABLE: ["ns_idx"]
     }
+    GENERATE_PK = {CUDS_TABLE, ENTITIES_TABLE, NAMESPACES_TABLE}
     FOREIGN_KEY = {
-        MASTER_TABLE: {},
+        CUDS_TABLE: {},
+        ENTITIES_TABLE: {"ns_idx": (NAMESPACES_TABLE, "ns_idx")},
+        TYPES_TABLE: {
+            "s": (CUDS_TABLE, "cuds_idx"),
+            "o": (ENTITIES_TABLE, "entity_idx")
+        },
         RELATIONSHIP_TABLE: {
-            "origin": (MASTER_TABLE, "uid"),
-            "target": (MASTER_TABLE, "uid")
-        }
+            "s": (CUDS_TABLE, "cuds_idx"),
+            "p": (ENTITIES_TABLE, "entity_idx"),
+            "o": (CUDS_TABLE, "cuds_idx"),
+        },
+        DATA_TABLE_PREFIX: {
+            "s": (CUDS_TABLE, "cuds_idx"),
+            "p": (ENTITIES_TABLE, "entity_idx")
+        },
+        NAMESPACES_TABLE: {}
     }
     INDEXES = {
-        MASTER_TABLE: [
-            ["oclass"], ["first_level"]
+        CUDS_TABLE: [["uid"]],
+        ENTITIES_TABLE: [["ns_idx", "name"]],
+        TYPES_TABLE: [["s"], ["o"]],
+        NAMESPACES_TABLE: [
+            ["namespace"]
         ],
-        RELATIONSHIP_TABLE: [["origin"]]
+        RELATIONSHIP_TABLE: [["s", "p"],
+                             ["p", "o"]],
+        DATA_TABLE_PREFIX: [["s", "p"]]
     }
+
+    check_schema = check_supported_schema_version
+
+    # GET_TRIPLES
+
+    def _triples(self, pattern):
+        for q, t, dt in self._queries(pattern):
+            c = self._do_db_select(q)
+            yield from self._rows_to_triples(cursor=c,
+                                             table_name=t,
+                                             object_datatype=dt)
+
+    def _triples_for_subject(self, iri, tables=None, exclude=()):
+        for q, t, dt in self._queries_for_subject(iri, tables, exclude):
+            c = self._do_db_select(q)
+            yield from self._rows_to_triples(cursor=c,
+                                             table_name=t,
+                                             object_datatype=dt)
+
+    def _queries(self, pattern, table_name=None, object_datatype=None,
+                 mode="select"):
+        func = {"select": self._construct_query,
+                "delete": self._construct_remove_condition}
+        if table_name is None:
+            if pattern[1] is pattern[2] is None:
+                yield from self._queries_for_subject(pattern[0], mode=mode)
+                return
+            table_name, datatypes = self._determine_table(pattern)
+            object_datatype = datatypes["o"]
+
+        # Construct query
+        yield (func[mode](pattern, table_name, object_datatype),
+               table_name,
+               object_datatype)
+
+    def _queries_for_subject(self, s, tables=None, exclude=(), mode="select"):
+        tables = set(tables or [
+            self.RELATIONSHIP_TABLE, self.TYPES_TABLE,
+            *self._get_table_names(prefix=self.DATA_TABLE_PREFIX)]
+        ) - set(exclude)
+        for table_name in tables:
+            object_datatype = rdflib.XSD.integer
+            if table_name.startswith(self.DATA_TABLE_PREFIX):
+                object_datatype = determine_datatype(table_name)
+            yield from self._queries(
+                pattern=(s, None, None),
+                table_name=table_name,
+                object_datatype=object_datatype,
+                mode=mode
+            )
+
+    def _determine_table(self, triple):
+        def data_table(datatype):
+            return (get_data_table_name(datatype),
+                    dict(**self.DATATYPES[self.DATA_TABLE_PREFIX],
+                         o=datatype))
+        rel_table = (self.RELATIONSHIP_TABLE,
+                     self.DATATYPES[self.RELATIONSHIP_TABLE])
+        types_table = (self.TYPES_TABLE, self.DATATYPES[self.TYPES_TABLE])
+        s, p, o = triple
+
+        # object given
+        if isinstance(o, rdflib.URIRef) and str(o).startswith(CUDS_IRI_PREFIX):
+            return rel_table
+        if isinstance(o, rdflib.URIRef):
+            return types_table
+        if isinstance(o, rdflib.Literal) and o.datatype:
+            return data_table(o.datatype)
+        # predicate given
+        if p == rdflib.RDF.type:
+            return types_table
+        if p is not None:
+            from osp.core.namespaces import from_iri
+            predicate = from_iri(p)
+            if isinstance(predicate, OntologyRelationship):
+                return rel_table
+            return data_table(predicate.datatype or rdflib.XSD.string)
+
+    def _construct_query(self, pattern, table_name, object_datatype):
+        q = SqlQuery(
+            self.CUDS_TABLE, columns=self.COLUMNS[self.CUDS_TABLE][1:],
+            datatypes=self.DATATYPES[self.CUDS_TABLE], alias="ts"
+        ).where(JoinCondition(table_name, "s", "ts", "cuds_idx"))
+
+        if table_name != self.TYPES_TABLE:
+            q = q.join(
+                self.ENTITIES_TABLE,
+                columns=self.COLUMNS[self.ENTITIES_TABLE][1:],
+                datatypes=self.DATATYPES[self.ENTITIES_TABLE], alias="tp"
+            ).where(JoinCondition(table_name, "p", "tp", "entity_idx"))
+        else:
+            q = q.join(
+                self.ENTITIES_TABLE,
+                columns=self.COLUMNS[self.ENTITIES_TABLE][1:],
+                datatypes=self.DATATYPES[self.ENTITIES_TABLE], alias="to"
+            ).where(JoinCondition(table_name, "o", "to", "entity_idx"))
+
+        if table_name == self.RELATIONSHIP_TABLE:
+            q = q.join(
+                self.CUDS_TABLE, columns=self.COLUMNS[self.CUDS_TABLE][1:],
+                datatypes=self.DATATYPES[self.CUDS_TABLE], alias="to"
+            ).where(JoinCondition(table_name, "o", "to", "cuds_idx"))
+
+        cols, dtypes = [], {}
+        if table_name.startswith(self.DATA_TABLE_PREFIX):
+            cols, dtypes = ["o"], {"o": object_datatype}
+        q = q.join(table_name, cols, dtypes)
+        q = q.where(self._get_conditions(pattern, table_name, object_datatype))
+        return q
+
+    def _get_conditions(self, triple, table_name, object_datatype):
+        conditions = []
+        s, p, o = triple
+
+        if s is not None:
+            uid = self._split_namespace(s)
+            conditions += [EqualsCondition("ts", "uid", uid, "UUID")]
+
+        if p is not None and table_name != self.TYPES_TABLE:
+            ns_idx, name = self._split_namespace(p)
+            conditions += [
+                EqualsCondition("tp", "ns_idx", ns_idx, rdflib.XSD.integer),
+                EqualsCondition("tp", "name", name, rdflib.XSD.string)
+            ]
+
+        if o is not None and table_name == self.RELATIONSHIP_TABLE:
+            uid = self._split_namespace(o)
+            conditions += [EqualsCondition("to", "uid", uid, "UUID")]
+
+        elif o is not None and table_name == self.TYPES_TABLE:
+            ns_idx, name = self._split_namespace(o)
+            conditions += [
+                EqualsCondition("to", "ns_idx", ns_idx, rdflib.XSD.integer),
+                EqualsCondition("to", "name", name, rdflib.XSD.string)
+            ]
+
+        elif o is not None:
+            conditions += [
+                EqualsCondition(table_name, "o",
+                                o.toPython(), object_datatype)]
+
+        return AndCondition(*conditions)
+
+    def _split_namespace(self, iri):
+        if iri.startswith(CUDS_IRI_PREFIX):
+            return uuid.UUID(hex=iri[len(CUDS_IRI_PREFIX):])
+        from osp.core.namespaces import _namespace_registry
+        ns_iri = _namespace_registry._get_namespace_name_and_iri(iri)[1]
+        return self._get_ns_idx(ns_iri), str(iri[len(ns_iri):])
+
+    def _get_ns_idx(self, ns_iri):
+        ns_iri = str(ns_iri)
+        if ns_iri not in self._ns_to_idx:
+            self._do_db_insert(
+                table_name=self.NAMESPACES_TABLE,
+                columns=["namespace"],
+                values=[str(ns_iri)],
+                datatypes=self.DATATYPES[self.NAMESPACES_TABLE]
+            )
+            self._load_namespace_indexes()
+        return self._ns_to_idx[ns_iri]
+
+    def _get_ns(self, ns_idx):
+        if ns_idx not in self._idx_to_ns:
+            self._load_namespace_indexes()
+        return self._idx_to_ns[ns_idx]
+
+    def _rows_to_triples(self, cursor, table_name, object_datatype):
+        for row in cursor:
+            s = rdflib.URIRef(iri_from_uid(row[0]))
+            x = rdflib.URIRef(self._get_ns(row[1]) + row[2])
+            if table_name == self.TYPES_TABLE:
+                yield s, rdflib.RDF.type, x
+            elif table_name == self.RELATIONSHIP_TABLE:
+                o = rdflib.URIRef(iri_from_uid(row[3]))
+                yield s, x, o
+            else:
+                yield s, x, rdflib.Literal(row[3], datatype=object_datatype)
+
+    # LOAD
+
+    def _load_triples_for_iri(self, iri):
+        triples = set(
+            self._triples_for_subject(iri, tables=(self.RELATIONSHIP_TABLE,))
+        )
+        type_triples_of_neighbors = set()
+        for s, p, o in triples:
+            type_triples_of_neighbors |= set(
+                self._triples((o, rdflib.RDF.type, None))
+            )
+
+        triples |= set(
+            self._triples_for_subject(iri, exclude=(self.RELATIONSHIP_TABLE,))
+        )
+        return triples, type_triples_of_neighbors
+
+    # ADD
+
+    def _add(self, *triples):
+        for triple in triples:
+            table_name, datatypes = self._determine_table(triple)
+            values = self._get_values(triple, table_name)
+            columns = self.TRIPLESTORE_COLUMNS
+            if table_name == self.TYPES_TABLE:
+                columns = self.COLUMNS[self.TYPES_TABLE]
+            self._do_db_insert(
+                table_name=table_name,
+                columns=columns,
+                values=values,
+                datatypes=datatypes
+            )
+
+    def _get_values(self, triple, table_name):
+        s, p, o = triple
+        s = self._get_cuds_idx(self._split_namespace(s))
+        if table_name == self.TYPES_TABLE:
+            return s, self._get_entity_idx(*self._split_namespace(o))
+        p = self._get_entity_idx(*self._split_namespace(p))
+        o = o.toPython()
+        if table_name == self.RELATIONSHIP_TABLE:
+            o = self._get_cuds_idx(self._split_namespace(o))
+        return s, p, o
+
+    def _get_cuds_idx(self, uid):
+        c = self._default_select(
+            self.CUDS_TABLE, condition=EqualsCondition(
+                self.CUDS_TABLE, "uid", uid, datatype="UUID"
+            )
+        )
+        for cuds_idx, uid in c:
+            return cuds_idx
+        return self._do_db_insert(
+            table_name=self.CUDS_TABLE,
+            columns=["uid"],
+            values=[uid],
+            datatypes=self.DATATYPES[self.CUDS_TABLE],
+        )
+
+    def _get_entity_idx(self, ns_idx, name):
+        c = self._default_select(
+            self.ENTITIES_TABLE, condition=AndCondition(
+                EqualsCondition(self.ENTITIES_TABLE, "ns_idx", ns_idx,
+                                datatype=rdflib.XSD.integer),
+                EqualsCondition(self.ENTITIES_TABLE, "name", name,
+                                datatype=rdflib.XSD.string)
+            )
+        )
+        for entity_idx, ns_idx, name in c:
+            return entity_idx
+        return self._do_db_insert(
+            table_name=self.ENTITIES_TABLE,
+            columns=["ns_idx", "name"],
+            values=[ns_idx, name],
+            datatypes=self.DATATYPES[self.ENTITIES_TABLE],
+        )
+
+    # REMOVE
+
+    def _remove(self, pattern):
+        for c, t, _ in self._queries(pattern, mode="delete"):
+            c = self._do_db_delete(t, c)
+
+    def _construct_remove_condition(self, pattern, table, object_datatype):
+        conditions = list()
+        s, p, o = pattern
+        if s is not None:
+            s = self._get_cuds_idx(self._split_namespace(s))
+            conditions += [EqualsCondition(table, column="s", value=s,
+                                           datatype=rdflib.XSD.integer)]
+        if table == self.TYPES_TABLE:
+            if o is not None:
+                o = self._get_entity_idx(*self._split_namespace(o))
+                conditions += [EqualsCondition(table, column="o", value=o,
+                                               datatype=rdflib.XSD.integer)]
+            return AndCondition(*conditions)
+
+        if p is not None:
+            p = self._get_entity_idx(*self._split_namespace(p))
+            conditions += [EqualsCondition(table, column="p", value=p,
+                                           datatype=rdflib.XSD.integer)]
+
+        if o is not None:
+            o = o.toPython()
+            if table == self.RELATIONSHIP_TABLE:
+                o = self._get_cuds_idx(self._split_namespace(o))
+            conditions += [EqualsCondition(table, column="o", value=o,
+                                           datatype=object_datatype)]
+        return AndCondition(*conditions)
+
+    def _load_namespace_indexes(self):
+        self._idx_to_ns = dict(self._default_select(self.NAMESPACES_TABLE))
+        self._ns_to_idx = {v: k for k, v in self._idx_to_ns.items()}
+
+    # INITIALIZE
+    # OVERRIDE
+    def _initialize(self):
+        self.check_schema()
+        self._default_create(self.NAMESPACES_TABLE)
+        self._default_create(self.CUDS_TABLE)
+        self._default_create(self.ENTITIES_TABLE)
+        self._default_create(self.TYPES_TABLE)
+        self._default_create(self.RELATIONSHIP_TABLE)
+        self._load_namespace_indexes()
+
+        from osp.core.utils import get_custom_datatypes
+        datatypes = get_custom_datatypes() | {
+            rdflib.XSD.integer, rdflib.XSD.boolean, rdflib.XSD.float,
+            rdflib.XSD.string
+        }
+        for datatype in datatypes:
+            self._do_db_create(
+                table_name=get_data_table_name(
+                    datatype),
+                columns=self.TRIPLESTORE_COLUMNS,
+                datatypes={"o": datatype,
+                           **self.DATATYPES[self.DATA_TABLE_PREFIX]},
+                primary_key=self.PRIMARY_KEY[self.DATA_TABLE_PREFIX],
+                generate_pk=self.DATA_TABLE_PREFIX in self.GENERATE_PK,
+                foreign_key=self.FOREIGN_KEY[self.DATA_TABLE_PREFIX],
+                indexes=self.INDEXES[self.DATA_TABLE_PREFIX]
+            )
 
     @abstractmethod
     def _db_create(self, table_name, columns, datatypes,
-                   primary_key, foreign_key, indexes):
-        """Create a new table with the given name and columns
+                   primary_key, generate_pk, foreign_key, indexes):
+        """Create a new table with the given name and columns.
 
-        :param table_name: The name of the new table.
-        :type table_name: str
-        :param columns: The name of the columns.
-        :type columns: List[str]
-        :param datatypes: Maps columns to datatypes specified in ontology.
-        :type columns: Dict[String, String]
-        :param primary_key: List of columns that belong to the primary key.
-        :type primary_key: List[str]
-        :param foreign_key: mapping from column to other tables column.
-        :type foreign_key: Dict[str, Tuple[str (table), str (column)]]
-        :param indexes: List of indexes. Each index is a list of column names
-            for which an index should be built.
-        :type indexes: List(str)
+        Args:
+            table_name (str): The name of the new table.
+            columns (List[str]): The name of the columns.
+            datatypes (Dict): Maps columns to datatypes specified in ontology.
+            primary_key (List[str]): List of columns that belong to the
+                primary key.
+            foreign_key (Dict[str, Tuple[str (table), str (column)]]): mapping
+                from column to other tables column.
+            generate_pk (bool): Whether primary key should be automatically
+                generated by the database
+                (e.g. be an automatically incrementing integer).
+            indexes (List(str)): List of indexes. Each index is a list of
+                column names for which an index should be built.
         """
 
     @abstractmethod
-    def _db_select(self, table_name, columns, condition, datatypes):
+    def _db_select(self, query):
         """Get data from the table of the given names.
 
-        :param table_name: The name of the table.
-        :type table_name: str
-        :param columns: The names of the columns.
-        :type columns: List[str]
-        :param condition: A condition for filtering.
-        :type condition: str
-        :param rows: The rows fetched from the database
-        :rtype: Iterator[List[Any]]
+        Args:
+            query (SqlQuery): A object describing the SQL query.
         """
 
     @abstractmethod
     def _db_insert(self, table_name, columns, values, datatypes):
         """Insert data into the table with the given name.
 
-        :param table_name: The table name.
-        :type table_name: str
-        :param columns: The names of the columns.
-        :type columns: List[str]
-        :param values: The data to insert.
-        :type values: List[Any]
+        Args:
+            table_name(str): The table name.
+            columns(List[str]): The names of the columns.
+            values(List[Any]): The data to insert.
+            datatypes(Dict): Maps column names to datatypes.
+
+        Returns:
+            The auto-generated primary key of the inserted row,
+            if such exists.
         """
 
     @abstractmethod
     def _db_update(self, table_name, columns, values, condition, datatypes):
         """Update the data in the given table.
 
-        :param table_name: The name of the table.
-        :type table_name: str
-        :param columns: The names of the columns.
-        :type columns: List[str]
-        :param values: The new updated values.
-        :type values: List[Any]
-        :param condition: Only update rows that satisfy the condition.
-        :type condition: str
+        Args:
+            table_name(str): The name of the table.
+            columns(List[str]): The names of the columns.
+            values(List[Any]): The new updated values.
+            condition(str): Only update rows that satisfy the condition.
+            datatypes(Dict): Maps column names to datatypes.
         """
 
     @abstractmethod
-    def _db_delete(self, table_name, condition):
-        """Delete data from the given table.
+    def _db_delete(self, table_name):
+        """Drop the entire table.
 
-        :param table_name: The name of the table.
-        :type table_name: str
-        :param condition: Delete rows that satisfy the condition.
-        :type condition: str
+        Args:
+            table_name(str): The name of the table.
+        """
+
+    @abstractmethod
+    def _db_drop(self, table_name):
+        """Drop the table with the given name.
+
+        Args:
+            table_name(str): The name of the table.
         """
 
     @abstractmethod
     def _get_table_names(self, prefix):
-        """ Get all tables in the database with the given prefix.
+        """Get all tables in the database with the given prefix.
 
-        :param prefix: Only return tables with the given prefix
-        :type prefix: str
+        Args:
+            prefix(str): Only return tables with the given prefix
         """
-
-    @staticmethod
-    def _expand_vector_cols(columns, datatypes, values=None):
-        """SQL databases are not able to store vectors in general.
-        So we instead create a column for each element in the vector.
-        Therefore we need generate the column descriptions for each of those
-        columns.
-        During insertion, we need to transform the vectors
-        into their individual values.
-
-        This method expands the column description and the values, if given.
-
-        :param columns: The columns to expand.
-        :type columns: List[str]
-        :param datatypes: The datatypes for each column.
-            VECTORs will be expanded.
-        :type datatypes: Dict[str, str]
-        :param values: The values to expand, defaults to None
-        :type values: List[Any], optional
-        :return: The expanded columns, datatypes (and values, if given)
-        :rtype: Tuple[List[str], Dict[str, str], (List[Any])]
-        """
-        columns_expanded = list()
-        datatypes_expanded = dict()
-        values_expanded = list()
-
-        # iterate over the columns and look for vectors
-        for i, column in enumerate(columns):
-            # non vectors are simply added to the result
-            vec_prefix = str(rdflib_cuba["datatypes/VECTOR-"])
-            if datatypes[column] is None or \
-                    not datatypes[column].startswith(vec_prefix):
-                columns_expanded.append(column)
-                datatypes_expanded[column] = datatypes[column]
-                if values:
-                    values_expanded.append(values[i])
-                continue
-
-            # create a column for each element in the vector
-            vector_args = datatypes[column][len(vec_prefix):].split("-")
-            datatype, shape = _parse_vector_args(vector_args)
-            size = reduce(mul, map(int, shape))
-            expanded_cols = ["%s___%s" % (column, x) for x in range(size)]
-            columns_expanded.extend(expanded_cols)
-            datatypes_expanded.update({c: datatype for c in expanded_cols})
-            datatypes_expanded[column] = datatypes[column]
-            if values:
-                values_expanded.extend(convert_from(values[i],
-                                                    datatypes[column]))
-        if values:
-            return columns_expanded, datatypes_expanded, values_expanded
-        return columns_expanded, datatypes_expanded
-
-    @staticmethod
-    def _contract_vector_values(columns, datatypes, rows):
-        """Contract the different values in a row of a database
-        corresponding vectors into one vector object.
-
-        :param columns: The expanded columns of the database
-        :type columns: List[str]
-        :param datatypes: The datatype for each column
-        :type datatypes: dict
-        :param rows: The rows fetched from the database
-        :type rows: Iterator[List[Any]]
-        :returns: The rows with vectors being a single item in each row.
-        :rtype: Iterator[List[Any]]
-        """
-        for row in rows:
-            contracted_row = list()
-            temp_vec = list()  # collect the elements of the vectors here
-            vector_datatype = None
-
-            # iterate over the columns and look for vector columns
-            for column, value in zip(columns, row):
-                vector_datatype, is_vec_elem = SqlWrapperSession. \
-                    handle_vector_item(column, value, datatypes,
-                                       temp_vec, vector_datatype)
-                if is_vec_elem:
-                    continue
-
-                if temp_vec:  # add the vector to the result
-                    contracted_row.append(convert_to(temp_vec,
-                                                     vector_datatype))
-                    temp_vec = list()
-
-                vector_datatype, is_vec_elem = SqlWrapperSession. \
-                    handle_vector_item(column, value, datatypes,
-                                       temp_vec, vector_datatype)
-                if is_vec_elem:
-                    continue
-
-                # non vectors are simply added to the result
-                contracted_row.append(value)
-
-            if temp_vec:  # add the vector to the result
-                contracted_row.append(convert_to(temp_vec,
-                                                 vector_datatype))
-                temp_vec = list()
-            yield contracted_row
-
-    @staticmethod
-    def handle_vector_item(column, value, datatypes, temp_vec,
-                           old_vector_datatype):
-        """Check if a column corresponds to a vector.
-        If it does, add it to the temp_vec list.
-        Used during contract_vector_values
-
-        :param column: The currect column to consider in the contraction
-        :type column: str
-        :param value: The value of the column
-        :type value: Any
-        :param datatypes: Maps a datatype to each column
-        :type datatypes: List
-        :param temp_vec: The elements of the current vector.
-        :type temp_vec: List[float]
-        :param old_vector_datatype: The vector datatype of the old iteration.
-        :type old_vector_datatype: str
-        :return: The new vector datatype and whether the current
-            column corresponds to a vector
-        :rtype: Tuple[str, bool]
-        """
-        vec_suffix = "___%s" % len(temp_vec)  # suffix of vector column
-        if column.endswith(vec_suffix):
-            temp_vec.append(value)  # store the vector element
-            orig_col = column[:-len(vec_suffix)]
-            return datatypes[orig_col], True
-        return old_vector_datatype, False
 
     def _do_db_create(self, table_name, columns, datatypes,
-                      primary_key, foreign_key, indexes):
+                      primary_key, generate_pk, foreign_key, indexes):
         """Call db_create but expand the vectors first."""
-        columns, datatypes = self._expand_vector_cols(columns, datatypes)
-        self._check_characters(table_name, columns, datatypes,
-                               primary_key, foreign_key, indexes)
+        columns, datatypes = expand_vector_cols(columns, datatypes)
+        check_characters(table_name, columns, datatypes,
+                         primary_key, foreign_key, indexes)
         self._db_create(table_name, columns, datatypes,
-                        primary_key, foreign_key, indexes)
+                        primary_key, generate_pk, foreign_key, indexes)
 
-    def _do_db_select(self, table_name, columns, condition, datatypes):
-        """Call db_select but consider vectors"""
-        columns, datatypes = self._expand_vector_cols(columns, datatypes)
-        self._check_characters(table_name, columns, condition, datatypes)
-        rows = self._db_select(table_name, columns, condition, datatypes)
-        rows = self._convert_values(rows, columns, datatypes)
-        yield from self._contract_vector_values(columns, datatypes, rows)
+    def _do_db_drop(self, table_name):
+        """Call _db_drop but check the characters first."""
+        check_characters(table_name)
+        self._db_drop(table_name,)
+
+    def _do_db_select(self, query):
+        """Call db_select but consider vectors."""
+        rows = self._db_select(query)
+        yield from contract_vector_values(rows, query)
 
     def _do_db_insert(self, table_name, columns, values, datatypes):
-        """Call db_insert but expand vectors"""
-        columns, datatypes, values = self._expand_vector_cols(columns,
-                                                              datatypes,
-                                                              values)
+        """Call db_insert but expand vectors."""
+        columns, datatypes, values = expand_vector_cols(columns,
+                                                        datatypes,
+                                                        values)
         values = [convert_from(v, datatypes.get(c))
                   for c, v in zip(columns, values)]
-        self._check_characters(table_name, columns, datatypes)
-        self._db_insert(table_name, columns, values, datatypes)
+        check_characters(table_name, columns, datatypes)
+        return self._db_insert(table_name, columns, values, datatypes)
 
     def _do_db_update(self, table_name, columns,
                       values, condition, datatypes):
-        """Call db_update but expand vectors"""
-        columns, datatypes, values = self._expand_vector_cols(columns,
-                                                              datatypes,
-                                                              values)
+        """Call db_update but expand vectors."""
+        columns, datatypes, values = expand_vector_cols(columns,
+                                                        datatypes,
+                                                        values)
+        condition = expand_vector_condition(condition)
         values = [convert_from(v, datatypes.get(c))
                   for c, v in zip(columns, values)]
-        self._check_characters(table_name, columns,
-                               condition, datatypes)
+        check_characters(table_name, columns,
+                         condition, datatypes)
         self._db_update(table_name, columns,
                         values, condition, datatypes)
 
     def _do_db_delete(self, table_name, condition):
-        """Call _db_delete but expand vectors"""
-        self._check_characters(table_name, condition)
+        """Call _db_delete but expand vectors."""
+        check_characters(table_name, condition)
+        condition = expand_vector_condition(condition)
         self._db_delete(table_name, condition)
+
+    def _default_create(self, table_name):
+        self._do_db_create(
+            table_name=table_name,
+            columns=self.COLUMNS[table_name],
+            datatypes=self.DATATYPES[table_name],
+            primary_key=self.PRIMARY_KEY[table_name],
+            generate_pk=table_name in self.GENERATE_PK,
+            foreign_key=self.FOREIGN_KEY[table_name],
+            indexes=self.INDEXES[table_name]
+        )
+
+    def _default_select(self, table_name, condition=None):
+        query = SqlQuery(
+            table_name=table_name,
+            columns=self.COLUMNS[table_name],
+            datatypes=self.DATATYPES[table_name]
+        ).where(condition)
+        return self._do_db_select(query)
+
+    def _default_insert(self, table_name, values):
+        self._do_db_insert(
+            table_name=table_name,
+            columns=self.COLUMNS[table_name],
+            values=values,
+            datatypes=self.DATATYPES[table_name]
+        )
 
     def _clear_database(self):
         """Delete the contents of every table."""
@@ -310,452 +581,27 @@ class SqlWrapperSession(DbWrapperSession):
             self._reset_buffers(BufferContext.USER)
             root = self._registry.get(self.root)
 
-            # if there is something to remove
+            # Delete relationships of root.
             if root.get(rel=cuba.relationship):
                 root.remove(rel=cuba.relationship)
-                for uid in list(self._registry.keys()):
-                    if uid != self.root:
-                        del self._registry[uid]
-                self._reset_buffers(BufferContext.USER)
 
-                # delete the data
-                for table_name in self._get_table_names(
-                        SqlWrapperSession.CUDS_PREFIX):
-                    self._do_db_delete(table_name, None)
-                self._do_db_delete(self.RELATIONSHIP_TABLE, None)
-                self._do_db_delete(self.MASTER_TABLE, None)
-                self._initialize()
-                self._commit()
+            for uid in list(self._registry.keys()):
+                if uid != self.root:
+                    self._delete_cuds_triples(self._registry.get(uid))
+            self._reset_buffers(BufferContext.USER)
+
+            # delete the data
+            for table_name in self._get_table_names(
+                    SqlWrapperSession.DATA_TABLE_PREFIX):
+                self._do_db_delete(table_name, None)
+            self._do_db_delete(self.CUDS_TABLE, None)
+            self._do_db_delete(self.ENTITIES_TABLE, None)
+            self._do_db_delete(self.TYPES_TABLE, None)
+            self._do_db_delete(self.NAMESPACES_TABLE, None)
+            self._do_db_delete(self.RELATIONSHIP_TABLE, None)
+
+            self._initialize()
+            self._commit()
         except Exception as e:
             self._rollback_transaction()
             raise e
-
-    # OVERRIDE
-    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object, uids):
-        # do not expire if root is loaded
-        x = old_cuds_object or new_cuds_object
-        if x and x.uid != self.root:
-            super()._expire_neighour_diff(old_cuds_object, new_cuds_object,
-                                          uids)
-
-    # OVERRIDE
-    def _apply_added(self, root_obj, buffer):
-        # Perform the SQL-Statements to add the elements
-        # in the buffers to the DB.
-
-        for added in buffer.values():
-            if added.uid == self.root:
-                continue
-
-            # Create tables
-            oclass = added.oclass
-            columns, datatypes = self._get_col_spec(oclass)
-            if columns:
-                self._do_db_create(
-                    table_name=self.CUDS_PREFIX + oclass.tblname,
-                    columns=columns,
-                    datatypes=datatypes,
-                    primary_key=["uid"],
-                    foreign_key={"uid": (self.MASTER_TABLE, "uid")},
-                    indexes=[]
-                )
-
-            # Add to master
-            is_first_level = any(self.root in uids
-                                 for uids in added._neighbors.values())
-            self._do_db_insert(
-                table_name=self.MASTER_TABLE,
-                columns=["uid", "oclass", "first_level"],
-                values=[added.uid, oclass, is_first_level],
-                datatypes=self.DATATYPES[self.MASTER_TABLE]
-            )
-
-            # Insert the items
-            if columns:
-                values = [getattr(added, attr) for attr in columns]
-                self._do_db_insert(
-                    table_name=self.CUDS_PREFIX + oclass.tblname,
-                    columns=columns,
-                    values=values,
-                    datatypes=datatypes
-                )
-
-        for added in buffer.values():
-            if added.uid == self.root:
-                continue
-
-            # Insert the relationships
-            for rel, neighbor_dict in added._neighbors.items():
-                for uid, target_oclass in neighbor_dict.items():
-                    target_uid = uid if uid != self.root else uuid.UUID(int=0)
-                    self._do_db_insert(
-                        self.RELATIONSHIP_TABLE,
-                        ["origin", "target", "name", "target_oclass"],
-                        [added.uid, target_uid,
-                         rel, target_oclass],
-                        self.DATATYPES[self.RELATIONSHIP_TABLE]
-                    )
-
-    # OVERRIDE
-    def _apply_updated(self, root_obj, buffer):
-        # Perform the SQL-Statements to update the elements
-        # in the buffers in the DB.
-        for updated in buffer.values():
-            if updated.uid == self.root:
-                continue
-
-            # Update the values
-            oclass = updated.oclass
-            columns, datatypes = self._get_col_spec(oclass)
-            if columns:
-                values = [getattr(updated, attr) for attr in columns]
-                self._do_db_update(
-                    table_name=self.CUDS_PREFIX + oclass.tblname,
-                    columns=columns,
-                    values=values,
-                    condition=EqualsCondition(
-                        table_name=self.CUDS_PREFIX + oclass.tblname,
-                        column="uid",
-                        value=updated.uid,
-                        datatype="UUID"
-                    ),
-                    datatypes=datatypes)
-
-            # Update the relationships
-            first_level = False
-            self._do_db_delete(
-                table_name=self.RELATIONSHIP_TABLE,
-                condition=EqualsCondition(
-                    table_name=self.RELATIONSHIP_TABLE,
-                    column="origin",
-                    value=updated.uid,
-                    datatype="UUID"
-                )
-            )
-            for rel, neighbor_dict in updated._neighbors.items():
-                for uid, target_oclass in neighbor_dict.items():
-                    first_level = first_level or uid == self.root
-                    target_uuid = uid if uid != self.root else uuid.UUID(int=0)
-                    self._do_db_insert(
-                        table_name=self.RELATIONSHIP_TABLE,
-                        columns=self.COLUMNS[self.RELATIONSHIP_TABLE],
-                        values=[updated.uid, target_uuid,
-                                rel, target_oclass],
-                        datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE]
-                    )
-
-            # update first_level flag
-            self._do_db_update(
-                table_name=self.MASTER_TABLE,
-                columns=["first_level"],
-                values=[first_level],
-                condition=EqualsCondition(self.MASTER_TABLE,
-                                          "uid", updated.uid, "UUID"),
-                datatypes=self.DATATYPES[self.MASTER_TABLE]
-            )
-
-    # OVERRIDE
-    def _apply_deleted(self, root_obj, buffer):
-        # Perform the SQL-Statements to delete the elements
-        # in the buffers in the DB.
-        for deleted in buffer.values():
-            if deleted.uid == self.root:
-                continue
-
-            # Update the values
-            oclass = deleted.oclass
-            columns, datatypes = self._get_col_spec(oclass)
-            if columns:
-                self._do_db_delete(
-                    table_name=self.CUDS_PREFIX + oclass.tblname,
-                    condition=EqualsCondition(
-                        table_name=self.CUDS_PREFIX + oclass.tblname,
-                        column="uid",
-                        value=deleted.uid,
-                        datatype="UUID"
-                    )
-                )
-            self._do_db_delete(
-                table_name=self.RELATIONSHIP_TABLE,
-                condition=EqualsCondition(
-                    table_name=self.RELATIONSHIP_TABLE,
-                    column="origin",
-                    value=deleted.uid,
-                    datatype="UUID"
-                )
-            )
-
-            self._do_db_delete(
-                table_name=self.RELATIONSHIP_TABLE,
-                condition=EqualsCondition(
-                    table_name=self.RELATIONSHIP_TABLE,
-                    column="target",
-                    value=deleted.uid,
-                    datatype="UUID"
-                )
-            )
-
-        for deleted in buffer.values():
-            self._do_db_delete(
-                table_name=self.MASTER_TABLE,
-                condition=EqualsCondition(
-                    table_name=self.MASTER_TABLE,
-                    column="uid",
-                    value=deleted.uid,
-                    datatype="UUID"
-                )
-            )
-
-    # OVERRIDE
-    def _load_from_backend(self, uids, expired=None):
-        for uid in uids:
-            if isinstance(uid, uuid.UUID):
-                oclass = self._get_oclass(uid)
-            elif isinstance(uid, tuple) and len(uid) == 2:
-                uid, oclass = uid
-            else:
-                raise ValueError("Invalid uid given %s" % uid)
-            if uid == self.root:  # root not stored explicitly in database
-                self._load_first_level()
-                yield self._registry.get(uid)
-                continue
-            loaded = list(self._load_by_oclass(oclass=oclass,
-                                               update_registry=True,
-                                               uid=uid))
-            yield loaded[0] if loaded else None
-
-    # OVERRIDE
-    def _initialize(self):
-        self._do_db_create(
-            table_name=self.MASTER_TABLE,
-            columns=self.COLUMNS[self.MASTER_TABLE],
-            datatypes=self.DATATYPES[self.MASTER_TABLE],
-            primary_key=self.PRIMARY_KEY[self.MASTER_TABLE],
-            foreign_key=self.FOREIGN_KEY[self.MASTER_TABLE],
-            indexes=self.INDEXES[self.MASTER_TABLE]
-        )
-        self._do_db_create(
-            table_name=self.RELATIONSHIP_TABLE,
-            columns=self.COLUMNS[self.RELATIONSHIP_TABLE],
-            datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE],
-            primary_key=self.PRIMARY_KEY[self.RELATIONSHIP_TABLE],
-            foreign_key=self.FOREIGN_KEY[self.RELATIONSHIP_TABLE],
-            indexes=self.INDEXES[self.RELATIONSHIP_TABLE]
-        )
-        # Add the dummy root element if it doesn't exist.
-        # We do not want to store the actual root element since it will be
-        # created by the user for every connect (root is the wrapper).
-        # Adding it the dummy root here is necessary because other cuds
-        # objects can have relations with the root.
-        c = self._db_select(
-            table_name=self.MASTER_TABLE,
-            columns=["uid"],
-            condition=EqualsCondition(self.MASTER_TABLE,
-                                      "uid", str(uuid.UUID(int=0)),
-                                      rdflib.XSD.string),
-            datatypes=self.DATATYPES[self.MASTER_TABLE]
-        )
-        if len(list(c)) == 0:
-            self._db_insert(
-                table_name=self.MASTER_TABLE,
-                columns=self.COLUMNS[self.MASTER_TABLE],
-                values=[str(uuid.UUID(int=0)), "", False],
-                datatypes=self.DATATYPES[self.MASTER_TABLE]
-            )
-
-    # OVERRIDE
-    def _load_first_level(self):
-        c = self._do_db_select(
-            self.MASTER_TABLE,
-            ["uid", "oclass"],
-            EqualsCondition(self.MASTER_TABLE,
-                            "first_level", True, rdflib.XSD.boolean),
-            self.DATATYPES[self.MASTER_TABLE]
-        )
-        list(self._load_from_backend(
-            map(lambda x: (x[0], get_entity(x[1])), c)
-        ))
-
-    def _load_by_oclass(self, oclass, update_registry=False, uid=None):
-        """Load the cuds_object with the given oclass (+ uid).
-        If uid is None return all cuds_objects with given ontology class.
-
-        :param oclass: The oclass of the cuds_object
-        :type oclass: OntologyClass
-        :param uid: The uid of the Cuds to load.
-        :type uid: UUID
-        :param update_registry: Whether to update cuds_objects already
-            present in the registry.
-        :type update_registry: bool
-        :return: The loaded cuds_object.
-        :rtype: Cuds
-        """
-        # Check if oclass is given
-        if (oclass is None and uid is not None) or (uid == uuid.UUID(int=0)):
-            yield None  # uid given --> return iterator containing None
-        if oclass is None:
-            return  # uid not given --> return None
-
-        # Check if object in registry can be used
-        if not update_registry and uid is not None and uid in self._registry:
-            yield self._registry.get(uid)
-            return
-
-        # gather the data needed to fetch object from the database
-        tables = self._get_table_names(
-            prefix=(self.CUDS_PREFIX + oclass.tblname)
-        )
-        if not (self.CUDS_PREFIX + oclass.tblname) in tables:
-            return
-        condition = EqualsCondition(self.CUDS_PREFIX + oclass.tblname,
-                                    "uid", uid, "UUID") \
-            if uid else None
-
-        columns, datatypes = self._get_col_spec(oclass)
-
-        # fetch the data
-        c = self._do_db_select(
-            table_name=self.CUDS_PREFIX + oclass.tblname,
-            columns=columns,
-            condition=condition,
-            datatypes=datatypes
-        )
-
-        # transform into cuds object
-        for row in c:
-            kwargs = dict(zip(columns, row))
-            uid = convert_to(kwargs["uid"], "UUID")
-            del kwargs["uid"]
-            if not update_registry and uid in self._registry:
-                yield self._registry.get(uid)
-                continue
-            cuds_object = create_recycle(oclass=oclass,
-                                         kwargs=kwargs,
-                                         session=self,
-                                         uid=uid,
-                                         fix_neighbors=False)
-            self._load_relationships(cuds_object)
-            yield cuds_object
-
-    def _load_relationships(self, cuds_object):
-        """Adds the relationships in the db to the given cuds_objects.
-
-        :param cuds_object: Adds the relationships to this cuds_object.s
-        :type cuds_object: Cuds
-        """
-        # Fetch the data
-        c = self._do_db_select(
-            table_name=self.RELATIONSHIP_TABLE,
-            columns=["target", "name", "target_oclass"],
-            condition=EqualsCondition(
-                table_name=self.RELATIONSHIP_TABLE,
-                column="origin",
-                value=cuds_object.uid,
-                datatype="UUID"
-            ),
-            datatypes=self.DATATYPES[self.RELATIONSHIP_TABLE]
-        )
-
-        # update the cuds object
-        for target, name, target_oclass in c:
-            target_oclass = get_entity(target_oclass)
-            rel = get_entity(name)
-
-            if rel not in cuds_object._neighbors:
-                cuds_object._neighbors[rel] = NeighborDictTarget(
-                    {}, cuds_object, rel
-                )
-
-            # Special case: target is root --> Add inverse to root
-            if target == uuid.UUID(int=0):
-                root_obj = self._registry.get(self.root)
-                cuds_object._neighbors[rel][self.root] = root_obj.oclass
-                if rel.inverse not in root_obj._neighbors:
-                    root_obj._neighbors[rel.inverse] = NeighborDictTarget(
-                        {}, root_obj, rel.inverse
-                    )
-                root_obj._neighbors[rel.inverse][cuds_object.uid] = \
-                    cuds_object.oclass
-
-            # Target is not root. Simply add the relationship
-            elif target != uuid.UUID(int=0):
-                cuds_object._neighbors[rel][target] = target_oclass
-
-    def _get_oclass(self, uid):
-        """Get the ontology class of the given uid from the database.
-
-        :param uid: Load the OntologyClass of this uis.
-        :type uid: UUID
-        :return: The ontology class.
-        :rtype: OntologyClass
-        """
-        c = self._do_db_select(
-            self.MASTER_TABLE,
-            ["oclass"],
-            EqualsCondition(self.MASTER_TABLE,
-                            "uid", uid,
-                            "UUID"),
-            self.DATATYPES[self.MASTER_TABLE])
-        try:
-            return get_entity(next(c)[0])
-        except StopIteration:
-            return None
-
-    def _convert_values(self, rows, columns, datatypes):
-        """Convert the values in the database to the correct datatype.
-
-        :param rows: The rows of the database
-        :type rows: Iterator[Iterator[Any]]
-        :param columns: The corresponding columns
-        :type columns: List[str]
-        :param datatypes: Mapping from column to datatype
-        :type datatypes: Dict[str, str]
-        """
-        for row in rows:
-            output = []
-            for value, column in zip(row, columns):
-                output.append(
-                    convert_to(value, datatypes[column])
-                )
-            yield output
-
-    def _get_col_spec(self, oclass):
-        attributes = oclass.attributes
-        columns = [x.argname for x in attributes if x != "session"] + ["uid"]
-        datatypes = dict(uid="UUID", **{x.argname: x.datatype
-                                        for x in attributes if x != "session"})
-        return columns, datatypes
-
-    def _check_characters(self, *to_check):
-        """Check if column or table names contain invalid characters
-
-        Raises:
-            ValueError: Invalid character detected
-        """
-        forbidden_chars = [";", "\0", "\r", "\x08", "\x09", "\x1a", "\n",
-                           "\r", "\"", "'", "`", "\\", "%"]
-        to_check = list(to_check)
-        str_to_check = str(to_check)
-        for c in forbidden_chars:
-            while to_check:
-                s = to_check.pop()
-                if isinstance(s, str):
-                    s = s.encode("utf-8", "strict").decode("utf-8")
-                    if c in s:
-                        raise ValueError(
-                            "Forbidden character %s [chr(%s)] in %s"
-                            % (c, ord(c), s)
-                        )
-                elif isinstance(s, (list, tuple)):
-                    to_check += list(s)
-                elif isinstance(s, dict):
-                    to_check += list(s.keys())
-                    to_check += list(s.values())
-                elif isinstance(s, AndCondition):
-                    to_check += list(s.conditions)
-                elif isinstance(s, EqualsCondition):
-                    to_check += [s.table_name, s.column, s.datatype]
-                elif s is None:
-                    pass
-                else:
-                    raise ValueError("%s - %s" % (s, str_to_check))

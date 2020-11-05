@@ -1,12 +1,14 @@
+"""This file contains tests for the transport session."""
 import unittest2 as unittest
 import uuid
 import json
+import rdflib
+from rdflib.compare import isomorphic
 from copy import deepcopy
 from osp.core.session.buffers import BufferContext, EngineContext, \
     BufferType
 from osp.core.utils import create_recycle
 from osp.core.session.wrapper_session import consumes_buffers
-from .test_session_city import TestWrapperSession
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
@@ -16,6 +18,12 @@ from osp.core.session.transport.transport_utils import (
     serialize_buffers, LOAD_COMMAND, INITIALIZE_COMMAND
 )
 from osp.core.utils import create_from_cuds_object
+from rdflib_jsonld.parser import to_rdf as json_to_rdf
+
+try:
+    from .test_session_city import TestWrapperSession
+except ImportError:
+    from test_session_city import TestWrapperSession
 
 try:
     from osp.core.namespaces import city
@@ -26,134 +34,176 @@ except ImportError:
     _namespace_registry.update_namespaces()
     city = _namespace_registry.city
 
-CUDS_DICT = {
-    "oclass": "city.Citizen",
-    "uid": str(uuid.UUID(int=123)),
-    "attributes": {
-        "name": "Peter",
-        "age": 23
-    },
-    "relationships": {
-        "city.INVERSE_OF_hasInhabitant": {str(uuid.UUID(int=1)): "city.City"},
-        "city.hasChild": {str(uuid.UUID(int=2)): "city.Person",
-                          str(uuid.UUID(int=3)): "city.Person"}
-    }
-}
+PRFX = 'http://www.osp-core.com/cuds/#00000000-0000-0000-0000-0000000000'
+CUDS_DICT = [{
+    '@id': PRFX + "01",
+    '@type': ['http://www.osp-core.com/city#City']
+}, {
+    '@id': PRFX + "03",
+    '@type': ['http://www.osp-core.com/city#Person']
+}, {
+    '@id': PRFX + "02",
+    '@type': ['http://www.osp-core.com/city#Person']
+}, {
+    '@id': PRFX + "7b",
+    '@type': ['http://www.osp-core.com/city#Citizen'],
+    'http://www.osp-core.com/city#INVERSE_OF_hasInhabitant': [
+        {'@id': PRFX + "01"}],
+    'http://www.osp-core.com/city#age': [{'@value': 23}],
+    'http://www.osp-core.com/city#hasChild': [
+        {'@id': PRFX + "02"},
+        {'@id': PRFX + "03"}],
+    'http://www.osp-core.com/city#name': [{'@value': 'Peter'}]
+}]
 
-ROOT_DICT = {
-    "oclass": "city.CityWrapper",
-    "uid": str(uuid.UUID(int=43)),
-    "attributes": {},
-    "relationships": {
-        "city.hasPart": {str(uuid.UUID(int=1)): "city.City"}
-    }
-}
+ROOT_DICT = [{
+    '@id': PRFX + "01",
+    '@type': ['http://www.osp-core.com/city#City']
+}, {
+    '@id': PRFX + "2b",
+    '@type': ['http://www.osp-core.com/city#CityWrapper'],
+    'http://www.osp-core.com/city#hasPart': [
+        {'@id': PRFX + "01"}],
+}]
 
 SERIALIZED_BUFFERS = {
-    "added": [{
-        "oclass": "city.City",
-        "uid": "00000000-0000-0000-0000-000000000002",
-        "attributes": {"name": "Paris",
-                       "coordinates": [0, 0]},
-        "relationships": {
-            "city.isPartOf": {
-                "00000000-0000-0000-0000-00000000007b": "city.CityWrapper"}}}],
-    "updated": [{
-        "oclass": "city.CityWrapper",
-        "uid": "00000000-0000-0000-0000-00000000007b",
-        "attributes": {},
-        "relationships": {
-            "city.hasPart":
-                {"00000000-0000-0000-0000-000000000002":
-                 "city.City"}}}],
-    "deleted": [{
-        "oclass": "city.City",
-        "uid": "00000000-0000-0000-0000-000000000001",
-        "attributes": {},
-        "relationships": {}}],
-    "expired": [],
-    "args": [42],
-    "kwargs": {"name": "London"}
-}
+    "added": [[
+        {"@id": PRFX + "7b",
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]},
+        {"@id": PRFX + "02",
+         "http://www.osp-core.com/city#isPartOf": [
+             {"@id": PRFX + "7b"}],
+         "http://www.osp-core.com/city#coordinates": [
+             {"@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2",
+              "@value": "[0, 0]"}],  # TODO correct serialization of vector
+         "http://www.osp-core.com/city#name": [{"@value": "Paris"}],
+         "@type": ["http://www.osp-core.com/city#City"]}
+    ]], "updated": [[
+        {"@id": PRFX + "7b",
+         "http://www.osp-core.com/city#hasPart": [{
+             "@id": PRFX + "02"}],
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]},
+        {"@id": PRFX + "02",
+         "@type": ["http://www.osp-core.com/city#City"]}
+    ]], "deleted": [[
+        {"@id": PRFX + "01",
+         "@type": ["http://www.osp-core.com/city#City"]}
+    ]], "expired": [], "args": [42], "kwargs": {"name": "London"}}
 
-SERIALIZED_BUFFERS_EXPIRED = {
-    "added": [{
-        "oclass": "city.City",
-        "uid": "00000000-0000-0000-0000-000000000002",
-        "attributes": {"name": "Paris",
-                       "coordinates": [0, 0]},
-        "relationships": {
-            "city.isPartOf": {
-                "00000000-0000-0000-0000-00000000007b": "city.CityWrapper"}}}],
-    "updated": [{
-        "oclass": "city.CityWrapper",
-        "uid": "00000000-0000-0000-0000-00000000007b",
-        "attributes": {},
-        "relationships": {
-            "city.hasPart": {
-                "00000000-0000-0000-0000-000000000002": "city.City"}}}],
-    "deleted": [{
-        "oclass": "city.City",
-        "uid": "00000000-0000-0000-0000-000000000001",
-        "attributes": {},
-        "relationships": {}}],
-    "expired": [{"UUID": "00000000-0000-0000-0000-000000000003"}],
-    "args": [42],
-    "kwargs": {"name": "London"}
-}
+SERIALIZED_BUFFERS_EXPIRED = deepcopy(SERIALIZED_BUFFERS)
+SERIALIZED_BUFFERS_EXPIRED["expired"] = [
+    {"UUID": "00000000-0000-0000-0000-000000000003"}
+]
 
 SERIALIZED_BUFFERS2 = {
-    "added": [{
-        "oclass": "city.City",
-        "uid": "00000000-0000-0000-0000-00000000002a",
-        "attributes": {"name": "London",
-                       "coordinates": [0, 0]},
-        "relationships": {}}],
+    "added": [[
+        {"@id": PRFX + "2a",
+         "http://www.osp-core.com/city#coordinates": [
+             {"@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2",
+              "@value": "[0, 0]"}],
+         "http://www.osp-core.com/city#name": [{"@value": "London"}],
+         "@type": ["http://www.osp-core.com/city#City"]}]],
     "updated": [], "deleted": [], "expired": []
 }
 
 SERIALIZED_BUFFERS3 = {
-    "added": [{
-        "oclass": "city.Citizen",
-        "uid": "00000000-0000-0000-0000-000000000002",
-        "attributes": {"name": "Peter", "age": 12},
-        "relationships": {
-            "city.INVERSE_OF_hasInhabitant": {
-                "00000000-0000-0000-0000-000000000001": "city.City"}}}],
-    "updated": [{
-        "oclass": "city.City",
-        "uid": "00000000-0000-0000-0000-000000000001",
-        "attributes": {"name": "Freiburg",
-                       "coordinates": [0, 0]},
-        "relationships": {
-            "city.isPartOf": {
-                "00000000-0000-0000-0000-000000000003": "city.CityWrapper"},
-            "city.hasInhabitant": {
-                "00000000-0000-0000-0000-000000000002": "city.Citizen"}}}],
-    "deleted": [], "expired": [],
-    "result": [{
-        "oclass": "city.City",
-        "uid": "00000000-0000-0000-0000-000000000001",
-        "attributes": {"name": "Freiburg",
-                       "coordinates": [0, 0]},
-        "relationships": {
-            "city.isPartOf": {
-                "00000000-0000-0000-0000-000000000003": "city.CityWrapper"},
-            "city.hasInhabitant": {
-                "00000000-0000-0000-0000-000000000002": "city.Citizen"}}}, {
-        "oclass": "city.CityWrapper",
-        "uid": "00000000-0000-0000-0000-000000000003",
-        "attributes": {},
-        "relationships": {
-            "city.hasPart": {
-                "00000000-0000-0000-0000-000000000001": "city.City"}}}]
-}
+    "added": [[
+        {"@id": PRFX + "01",
+         "@type": ["http://www.osp-core.com/city#City"]},
+        {"@id": PRFX + "02",
+         "http://www.osp-core.com/city#age": [
+             {"@type": "http://www.w3.org/2001/XMLSchema#integer",
+              "@value": "12"}],
+         "http://www.osp-core.com/city#INVERSE_OF_hasInhabitant": [
+             {"@id": PRFX + "01"}],
+         "http://www.osp-core.com/city#name": [{"@value": "Peter"}],
+         "@type": ["http://www.osp-core.com/city#Citizen"]}]],
+    "updated": [[
+        {"@id": PRFX + "02",
+         "@type": ["http://www.osp-core.com/city#Citizen"]},
+        {"@id": PRFX + "01",
+         "http://www.osp-core.com/city#hasInhabitant": [
+             {"@id": PRFX + "02"}],
+         "http://www.osp-core.com/city#isPartOf": [
+             {"@id": PRFX + "03"}],
+         "@type": ["http://www.osp-core.com/city#City"],
+         "http://www.osp-core.com/city#name": [{"@value": "Freiburg"}],
+         "http://www.osp-core.com/city#coordinates": [
+             {"@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2",
+              "@value": "[0, 0]"}]},
+        {"@id": PRFX + "03",
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]}]],
+    "deleted": [], "expired": [], "result": [[
+        {"@id": PRFX + "02",
+         "@type": ["http://www.osp-core.com/city#Citizen"]},
+        {"@id": PRFX + "01",
+         "http://www.osp-core.com/city#name": [{"@value": "Freiburg"}],
+         "http://www.osp-core.com/city#hasInhabitant": [
+             {"@id": PRFX + "02"}],
+         "http://www.osp-core.com/city#coordinates": [
+             {"@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2",
+              "@value": "[0, 0]"}],
+         "@type": ["http://www.osp-core.com/city#City"],
+         "http://www.osp-core.com/city#isPartOf": [
+             {"@id": PRFX + "03"}]},
+        {"@id": PRFX + "03",
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]}
+    ], [
+        {"@id": PRFX + "01",
+         "@type": ["http://www.osp-core.com/city#City"]},
+        {"@id": PRFX + "03",
+         "http://www.osp-core.com/city#hasPart": [
+             {"@id": PRFX + "01"}],
+         "@type": ["http://www.osp-core.com/city#CityWrapper"]}
+    ]]}
+
+
+INIT_DATA = {
+    "args": [], "kwargs": {},
+    "root": [{
+        "@id": PRFX + "01",
+        "@type": ["http://www.osp-core.com/city#CityWrapper"]}],
+    "hashes": {}, "auth": None}
+
+
+def jsonLdEqual(a, b):
+    """Check if to JSON documents containing JSON LD are equal."""
+    if isinstance(a, dict) and isinstance(b, dict) and a.keys() == b.keys():
+        return all(jsonLdEqual(a[k], b[k]) for k in a.keys())
+    elif a and isinstance(a, list) and isinstance(a[0], dict) \
+            and "@id" in a[0]:
+        return isomorphic(json_to_rdf(a, rdflib.Graph()),
+                          json_to_rdf(b, rdflib.Graph()))
+    elif a and isinstance(a, list) and isinstance(a[0], list) \
+            and isinstance(a[0][0], dict) and "@id" in a[0][0]:
+        graph_a, graph_b = rdflib.Graph(), rdflib.Graph()
+        for x in a:
+            json_to_rdf(x, graph_a)
+        for x in b:
+            json_to_rdf(x, graph_b)
+        return isomorphic(graph_a, graph_b)
+    elif isinstance(a, list) and isinstance(b, list) and len(a) == len(b):
+        return all(jsonLdEqual(aa, bb) for aa, bb in zip(a, b))
+    else:
+        return a == b
+
+
+def assertJsonLdEqual(test_case, a, b):
+    """Check if to JSON documents containing JSON LD are equal."""
+    test_case.assertTrue(jsonLdEqual(a, b))
 
 
 class TestCommunicationEngineSharedFunctions(unittest.TestCase):
+    """Test functions used in the both parts of the communication engine."""
+
+    def setUp(self):
+        """Reset the session."""
+        from osp.core.cuds import Cuds
+        from osp.core.session import CoreSession
+        Cuds._session = CoreSession()
 
     def testDeserialize(self):
-        """Test transformation from normal dictionary to cuds"""
+        """Test transformation from normal dictionary to cuds."""
         with TestWrapperSession() as session:
             city.CityWrapper(session=session)
             cuds_object = deserialize(CUDS_DICT, session, True)
@@ -163,29 +213,18 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(cuds_object.oclass, city.Citizen)
             self.assertEqual(set(cuds_object._neighbors.keys()),
                              {city.INVERSE_OF_hasInhabitant,
-                             city.hasChild})
+                              city.hasChild})
             self.assertEqual(
                 cuds_object._neighbors[city.INVERSE_OF_hasInhabitant],
-                {uuid.UUID(int=1): city.City})
+                {uuid.UUID(int=1): [city.City]})
             self.assertEqual(cuds_object._neighbors[city.hasChild],
-                             {uuid.UUID(int=2): city.Person,
-                             uuid.UUID(int=3): city.Person})
+                             {uuid.UUID(int=2): [city.Person],
+                              uuid.UUID(int=3): [city.Person]})
 
             invalid_oclass = deepcopy(CUDS_DICT)
-            invalid_oclass["oclass"] = "INVALID_OCLASS"
-            self.assertRaises(ValueError, deserialize,
-                              invalid_oclass, session, True)
-
-            invalid_attribute = deepcopy(CUDS_DICT)
-            invalid_attribute["attributes"]["invalid_attr"] = 0
+            invalid_oclass[-1]["@type"] = ["http://invalid.com/invalid"]
             self.assertRaises(TypeError, deserialize,
-                              invalid_attribute, session, True)
-
-            invalid_rel = deepcopy(CUDS_DICT)
-            invalid_rel["relationships"]["IS_INHABITANT_OF"] = {
-                str(uuid.UUID(int=1)): "Person"}
-            self.assertRaises(ValueError, deserialize,
-                              invalid_rel, session, True)
+                              invalid_oclass, session, True)
 
             self.assertEqual(deserialize(None, session, True), None)
             self.assertEqual(deserialize([None, None], session, True),
@@ -211,7 +250,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                              [1, 1.2, "hallo"])
 
     def test_serializable(self):
-        """Test function to make Cuds objects json serializable"""
+        """Test function to make Cuds objects json serializable."""
         p = city.Citizen(age=23,
                          name="Peter",
                          uid=uuid.UUID(int=123))
@@ -220,23 +259,28 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         c2 = city.Person(uid=uuid.UUID(int=3))
         p.add(c, rel=city.INVERSE_OF_hasInhabitant)
         p.add(c1, c2, rel=city.hasChild)
-        self.assertEqual(CUDS_DICT, serializable(p))
-        self.assertEqual([CUDS_DICT], serializable([p]))
-        self.assertEqual(None, serializable(None))
-        self.assertEqual([None, None], serializable([None, None]))
-        self.assertEqual({"UUID": "00000000-0000-0000-0000-000000000001"},
-                         serializable(uuid.UUID(int=1)))
-        self.assertEqual([{"UUID": "00000000-0000-0000-0000-000000000001"},
-                          {"UUID": "00000000-0000-0000-0000-000000000002"}],
-                         serializable([uuid.UUID(int=1), uuid.UUID(int=2)]))
-        self.assertEqual({"ENTITY": "city.Citizen"},
-                         serializable(city.Citizen))
-        self.assertEqual([{"ENTITY": "city.Citizen"}, {"ENTITY": "city.City"}],
-                         serializable([city.Citizen, city.City]))
-        self.assertEqual([1, 1.2, "hallo"],
-                         serializable([1, 1.2, "hallo"]))
+        assertJsonLdEqual(self, CUDS_DICT, serializable(p))
+        assertJsonLdEqual(self, [CUDS_DICT], serializable([p]))
+        assertJsonLdEqual(self, None, serializable(None))
+        assertJsonLdEqual(self, [None, None], serializable([None, None]))
+        assertJsonLdEqual(
+            self, {"UUID": "00000000-0000-0000-0000-000000000001"},
+            serializable(uuid.UUID(int=1))
+        )
+        assertJsonLdEqual(self, [
+            {"UUID": "00000000-0000-0000-0000-000000000001"},
+            {"UUID": "00000000-0000-0000-0000-000000000002"}],
+            serializable([uuid.UUID(int=1), uuid.UUID(int=2)]))
+        assertJsonLdEqual(self, {"ENTITY": "city.Citizen"},
+                          serializable(city.Citizen))
+        assertJsonLdEqual(self, [
+            {"ENTITY": "city.Citizen"}, {"ENTITY": "city.City"}],
+            serializable([city.Citizen, city.City]))
+        assertJsonLdEqual(self, [1, 1.2, "hallo"],
+                          serializable([1, 1.2, "hallo"]))
 
     def test_deserialize_buffers(self):
+        """Test de-serialization of buffers."""
         # buffer context user
         with TestWrapperSession() as s1:
             ws1 = city.CityWrapper(session=s1, uid=123)
@@ -261,15 +305,17 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
             self.assertEqual(ws1._neighbors[city.hasPart],
-                             {cn.uid: city.City})
+                             {cn.uid: [city.City]})
             self.assertEqual(set(ws1._neighbors.keys()), {city.hasPart})
             self.assertEqual(cn._neighbors[city.isPartOf],
-                             {ws1.uid: city.CityWrapper})
+                             {ws1.uid: [city.CityWrapper]})
             self.assertEqual(set(cn._neighbors.keys()), {city.isPartOf})
             self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
             self.assertEqual(s1._buffers, [
                 [{cn.uid: cn}, {ws1.uid: ws1}, {c.uid: c}],
                 [dict(), dict(), dict()]])
+
+        self.setUp()
 
         # buffer context engine
         with TestWrapperSession() as s1:
@@ -297,10 +343,10 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
             self.assertEqual(ws1._neighbors[city.hasPart],
-                             {cn.uid: city.City})
+                             {cn.uid: [city.City]})
             self.assertEqual(set(ws1._neighbors.keys()), {city.hasPart})
             self.assertEqual(cn._neighbors[city.isPartOf],
-                             {ws1.uid: city.CityWrapper})
+                             {ws1.uid: [city.CityWrapper]})
             self.assertEqual(set(cn._neighbors.keys()), {city.isPartOf})
             self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
             self.assertEqual(s1._buffers, [
@@ -308,7 +354,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                 [dict(), dict(), dict()]])
 
     def test_serialize_buffers(self):
-        """ Test if serialization of buffers work """
+        """Test if serialization of buffers works."""
         # no expiration
         with TestWrapperSession() as s1:
             ws1 = city.CityWrapper(session=s1, uid=123)
@@ -339,7 +385,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                     "args": [42], "kwargs": {"name": "London"}
                 }
             )
-            self.assertEqual(json.loads(result[0]), SERIALIZED_BUFFERS)
+            assertJsonLdEqual(self, json.loads(result[0]), SERIALIZED_BUFFERS)
             self.assertEqual(result[1], [])
             self.assertEqual(s1._buffers, [
                 [dict(), dict(), dict()],
@@ -382,7 +428,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                 buffer_context=BufferContext.USER,
                 additional_items={"args": [42],
                                   "kwargs": {"name": "London"}})
-            self.assertEqual(
+            assertJsonLdEqual(
+                self,
                 SERIALIZED_BUFFERS_EXPIRED,
                 json.loads(result[0])
             )
@@ -398,23 +445,45 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
 
 class MockEngine():
+    """A mock engine used for testing."""
+
     def __init__(self, on_send=None):
+        """Initialize the MckEngine.
+
+        Args:
+            on_send (Callable[str, str, Any], optional): A function to call
+                when send() is called.. Defaults to None.
+        """
         self.on_send = on_send
         self.uri = None
 
     def send(self, command, data, files=None):
+        """Save data and command, call on_send method.
+
+        Args:
+            command (str): The command to execute on the server side.
+            data (str): The data to send
+            files (List[str], optional): Paths to uploaded files.
+                Defaults to None.
+
+        Returns:
+            Any: The results of the on_send method.
+        """
         self._sent_command = command
         self._sent_data = data
         if self.on_send:
             return self.on_send(command, data)
 
     def close(self):
+        """Close the Mock engine."""
         pass
 
 
 class TestCommunicationEngineClient(unittest.TestCase):
+    """Tests for the client side of communication engine."""
+
     def test_load(self):
-        """ Test loading from server"""
+        """Test loading from server."""
         client = TransportSessionClient(TestWrapperSession, None)
         client.root = 1
         c1 = create_recycle(
@@ -459,7 +528,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client.close()
 
     def test_store(self):
-        """ Test storing of cuds_object. """
+        """Test storing of cuds_object."""
         client = TransportSessionClient(TestWrapperSession, None)
         client._engine = MockEngine()
 
@@ -470,12 +539,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
                             session=client,
                             fix_neighbors=False)  # store will be called here
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
-        self.assertEqual(client._engine._sent_data, (
-            '{"args": [], "kwargs": {}, '
-            '"root": {"oclass": "city.CityWrapper", '
-            '"uid": "00000000-0000-0000-0000-000000000001", '
-            '"attributes": {}, '
-            '"relationships": {}}, "hashes": {}, "auth": null}'))
+        assertJsonLdEqual(self, json.loads(client._engine._sent_data),
+                          INIT_DATA)
         self.assertEqual(set(client._registry.keys()), {c1.uid})
 
         # second item
@@ -494,7 +559,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client.close()
 
     def test_send(self):
-        """ Test sending data to the server """
+        """Test sending data to the server."""
         client = TransportSessionClient(TestWrapperSession, None)
         client._engine = MockEngine()
         client._send("command", True, "hello", bye="bye")
@@ -505,6 +570,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client.close()
 
     def test_receive(self):
+        """Test the receive method."""
         client = TransportSessionClient(TestWrapperSession, None)
         client._engine = MockEngine()
         w = city.CityWrapper(session=client)
@@ -521,6 +587,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         client.close()
 
     def test_getattr(self):
+        """Test the __getatt__ magic method."""
         def command(*args, **kwargs):
             pass
         TestWrapperSession.command = consumes_buffers(command)
@@ -537,8 +604,16 @@ class TestCommunicationEngineClient(unittest.TestCase):
 
 
 class TestCommunicationEngineServer(unittest.TestCase):
+    """Test the server side of the communication engine."""
+
+    def setUp(self):
+        """Reset the session."""
+        from osp.core.cuds import Cuds
+        from osp.core.session import CoreSession
+        Cuds._session = CoreSession()
+
     def test_handle_disconnect(self):
-        """Test the behavior when a user disconnects. """
+        """Test the behavior when a user disconnects."""
         server = TransportSessionServer(TestWrapperSession, None, None)
         with TestWrapperSession() as s1:
             closed = False
@@ -553,7 +628,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
             self.assertEqual(server.session_objs, {"2": 123})
 
     def test_run_command(self):
-        """Test to run a command"""
+        """Test to run a command."""
         correct = False
 
         # command to be executed
@@ -587,7 +662,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
             self.assertEqual(result[1], [])
 
     def test_load_from_session(self):
-        """Test loading from the remote side"""
+        """Test loading from the remote side."""
         with TestWrapperSession() as s1:
             c = city.City(name="Freiburg", uid=1)
             w = city.CityWrapper(session=s1, uid=3)
@@ -602,11 +677,11 @@ class TestCommunicationEngineServer(unittest.TestCase):
                 result = server._load_from_session(
                     '{"uids": [{"UUID": 1}, {"UUID": 3}]}', "user")
             self.maxDiff = None
-            self.assertEqual(json.loads(result[0]), SERIALIZED_BUFFERS3)
+            assertJsonLdEqual(self, json.loads(result[0]), SERIALIZED_BUFFERS3)
             self.assertEqual(result[1], [])
 
     def test_init_session(self):
-        """Test the initialization of the session on the remote side"""
+        """Test the initialization of the session on the remote side."""
         server = TransportSessionServer(TestWrapperSession, None, None)
         data = json.dumps({
             "args": [],
@@ -628,7 +703,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
                           connection_id="user1")
 
     def test_handle_request(self):
-        """Test if error message is returned when invalid command is given"""
+        """Test if error message is returned when invalid command is given."""
         def command(s, age, name):
             raise RuntimeError("Something went wrong: %s, %s" % (age, name))
         TestWrapperSession.command = command

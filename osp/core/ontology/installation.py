@@ -1,3 +1,5 @@
+"""This class handles the installation of ontologies."""
+
 import os
 import logging
 import shutil
@@ -8,7 +10,16 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyInstallationManager():
+    """This class handles the installation of ontologies."""
+
     def __init__(self, namespace_registry=None, path=None):
+        """Initialize the installer.
+
+        Args:
+            namespace_registry (OntologyNamespaceRegistry, optional): A custom
+                namespace registry.. Defaults to None.
+            path (str, optional): Installation destination. Defaults to None.
+        """
         self.namespace_registry = namespace_registry
         self.path = path
         if self.path is None:
@@ -19,22 +30,22 @@ class OntologyInstallationManager():
             self.namespace_registry = namespaces._namespace_registry
 
     def install(self, *files):
-        """Install given packages. Skip already installed ones"""
+        """Install given packages. Skip already installed ones."""
         self._install(files, self._get_new_packages, False)
         logger.info("Installation successful")
 
     def uninstall(self, *files_or_namespaces):
-        """Uninstall given packages"""
+        """Uninstall given packages."""
         self._install(files_or_namespaces, self._get_remaining_packages, True)
         logger.info("Uninstallation successful")
 
     def install_overwrite(self, *files):
-        """Install packages and overwrite already installed ones"""
+        """Install packages and overwrite already installed ones."""
         self._install(files, self._get_replaced_packages, True)
         logger.info("Installation successful")
 
     def get_installed_packages(self, return_path=False):
-        """Get the list of installed packages
+        """Get the list of installed packages.
 
         Args:
             return_path (bool, optional): Whether to return the path to the
@@ -52,7 +63,9 @@ class OntologyInstallationManager():
         return set(result)
 
     def _get_remaining_packages(self, remove_packages):
-        """Get list of packages that remain after given list of packages
+        """Get package paths to install.
+
+        Get list of packages that remain after given list of packages
         have been removed.
 
         Args:
@@ -79,7 +92,9 @@ class OntologyInstallationManager():
         return [v for k, v in installed_pkgs.items() if k not in remove_pkgs]
 
     def _get_replaced_packages(self, new_packages):
-        """Get the package paths that by replacing the package paths of
+        """Get package paths to install.
+
+        Get the package paths that by replacing the package paths of
         already installed packages with new packages,
 
         Args:
@@ -114,7 +129,7 @@ class OntologyInstallationManager():
         return result
 
     def _install(self, files, filter_func, clear):
-        """Install the ontology
+        """Install the ontology.
 
         Args:
             files (List[str]): The ontology files to install
@@ -143,10 +158,14 @@ class OntologyInstallationManager():
     def _sort_for_installation(self, files, installed):
         """Get the right order to install the files.
 
-        :param files: The list of file paths to sort.
-        :type files: List[str]
-        :return: The sorted list of file paths.
-        :rtype: List[str]
+        Args:
+            files (List[str]): The list of file paths to sort.
+
+        Raises:
+            RuntimeError: Unsatisfied requirements after installation.
+
+        Returns:
+            List[str]: The sorted list of file paths.
         """
         result = list()
         files = {Parser.get_identifier(f): f for f in files}
