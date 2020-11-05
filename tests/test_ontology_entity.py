@@ -7,6 +7,7 @@ import numpy as np
 from osp.core.namespaces import cuba
 from osp.core.ontology.cuba import rdflib_cuba
 
+from osp.core.namespaces import owl
 try:
     from osp.core.namespaces import city
 except ImportError:
