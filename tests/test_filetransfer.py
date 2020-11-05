@@ -47,9 +47,12 @@ PORT = 8645
 URI = f"ws://{HOST}:{PORT}"
 DB = "filetransfer.db"
 
-FILES_DIR = os.path.join(os.path.dirname(__file__), "filetransfer_files")
-CLIENT_DIR = os.path.join(os.path.dirname(__file__), "filetransfer_client")
-SERVER_DIR = os.path.join(os.path.dirname(__file__), "filetransfer_server")
+FILES_DIR = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "filetransfer_files"))
+CLIENT_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "filetransfer_client"))
+SERVER_DIR = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "filetransfer_server"))
 FILES = ["f0", "f1.jpg", "f2.tar.gz"]
 FILE_PATHS = [os.path.join(FILES_DIR, file) for file in FILES]
 HASHES = {
@@ -107,18 +110,15 @@ class TestFiletransfer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up the server as a subprocess."""
-        args = ["python3",
+        args = ["python",
                 "tests/test_filetransfer.py",
                 "server"]
-        try:
-            p = subprocess.Popen(args, stdout=subprocess.PIPE)
-        except FileNotFoundError:
-            args[0] = "python"
-            p = subprocess.Popen(args)
+        p = subprocess.Popen(
+            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         TestFiletransfer.SERVER_STARTED = p
         for line in p.stdout:
-            if b"ready\n" == line:
+            if b"ready" in line:
                 break
 
     @classmethod
@@ -442,7 +442,7 @@ class TestFiletransfer(unittest.TestCase):
         self.assertEqual(filter_files(FILE_PATHS, HASHES), [])
         self.assertEqual(filter_files(FILE_PATHS, {}), FILE_PATHS)
         self.assertEqual(filter_files(FILE_PATHS + [__file__, "x"],
-                         dict(HASHES)), [__file__])
+                                      dict(HASHES)), [__file__])
 
     @async_test
     async def test_serve(self):
@@ -482,7 +482,8 @@ class TestFiletransfer(unittest.TestCase):
         self.assertEqual(filename, FILES[2])
         self.assertEqual(request[0], "test")
         self.assertEqual(request[1], "data")
-        self.assertTrue(request[2].startswith("/tmp/tmp"))
+        if os.name == "posix":
+            self.assertTrue(request[2].startswith("/tmp/tmp"))
         self.assertTrue(isinstance(request[3], uuid.UUID))
 
 

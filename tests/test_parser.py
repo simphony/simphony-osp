@@ -72,14 +72,16 @@ class TestParser(unittest.TestCase):
         self.assertRaises(TypeError, self.parser._parse_rdf,
                           ontology_file=RDF_FILE, namespaces={},
                           identifier="x", invalid=True)
-        self.parser._parse_rdf(
-            identifier="parser_test",
-            ontology_file=RDF_FILE,
-            namespaces={
-                "parser_test": "http://www.osp-core.com/parser_test"
-            },
-            format="ttl"
-        )
+        with tempfile.NamedTemporaryFile() as f:
+            self.parser._parse_rdf(
+                identifier="parser_test",
+                ontology_file=RDF_FILE,
+                namespaces={
+                    "parser_test": "http://www.osp-core.com/parser_test"
+                },
+                format="ttl",
+                file=f
+            )
         rdf = rdflib.Graph()
         rdf.parse(RDF_FILE, format="ttl")
         self.assertEqual(len(self.graph), len(rdf) + len_cuba)
@@ -95,10 +97,16 @@ class TestParser(unittest.TestCase):
         invalid["identifier"] = "parser.test"
         self.assertRaises(ValueError, self.parser._parse_yml, invalid,
                           "/a/b/c/parser_test.yml", None)
-        result = self.parser._parse_yml(dict(YML_DOC),
-                                        "/a/b/c/parser_test.yml", None)
-        self.assertEqual(result["ontology_file"],
-                         "/a/b/c/parser_test.ttl")
+        if os.name == "posix":
+            result = self.parser._parse_yml(dict(YML_DOC),
+                                            "/a/b/c/parser_test.yml", None)
+            self.assertEqual(result["ontology_file"],
+                             "/a/b/c/parser_test.ttl")
+        else:
+            result = self.parser._parse_yml(dict(YML_DOC),
+                                            "C:\\a\\b\\parser_test.yml", None)
+            self.assertEqual(result["ontology_file"],
+                             "C:\\a\\b\\parser_test.ttl")
 
     @responses.activate
     def test_parse_yml_download(self):
@@ -115,36 +123,36 @@ class TestParser(unittest.TestCase):
         )
         doc = dict(YML_DOC)
         doc["ontology_file"] = url
-        with tempfile.NamedTemporaryFile(mode="w+t") as f:
+        with tempfile.NamedTemporaryFile(mode="wb+") as f:
             r = self.parser._parse_yml(doc, "/a/b/c/parser_test.yml", f)
             self.assertEqual(r["ontology_file"], f.name)
             f.seek(0)
-            self.assertEqual(f.read(), "TEST FILE CONTENT")
+            self.assertEqual(f.read(), b"TEST FILE CONTENT")
 
     def test_get_file_path(self):
         """Test the get_file_path method."""
         self.assertEqual(self.parser.get_file_path("test/my_file.yml"),
                          "test/my_file.yml")
         self.assertEqual(
-            self.parser.get_file_path("my_file"),
+            self.parser.get_file_path("my_file").lower(),
             os.path.abspath(os.path.relpath(os.path.join(
                 os.path.dirname(__file__), "..", "osp", "core", "ontology",
                 "docs", "my_file.yml"
-            )))
+            ))).lower()
         )
         self.assertEqual(
-            self.parser.get_file_path("emmo"),
+            self.parser.get_file_path("emmo").lower(),
             os.path.abspath(os.path.relpath(os.path.join(
                 os.path.dirname(__file__), "..", "osp", "core", "ontology",
                 "docs", "emmo.yml"
-            )))
+            ))).lower()
         )
         self.assertEqual(
-            self.parser.get_file_path("city"),
+            self.parser.get_file_path("city").lower(),
             os.path.abspath(os.path.relpath(os.path.join(
                 os.path.dirname(__file__), "..", "osp", "core", "ontology",
                 "docs", "city.ontology.yml"
-            )))
+            ))).lower()
         )
 
     def test_get_identifier(self):
@@ -206,9 +214,10 @@ class TestParser(unittest.TestCase):
         self.assertTrue(self.parser._graphs["parser_test"], [g1])
         self.assertEqual(len(self.parser._yaml_docs), 1)
         self.assertEqual(
-            self.parser._yaml_docs[0]["ontology_file"],
+            self.parser._yaml_docs[0]["ontology_file"].lower(),
             os.path.abspath(os.path.realpath(os.path.join(
-                os.path.dirname(__file__), "parser_test.ttl"))))
+                os.path.dirname(__file__), "parser_test.ttl"))).lower()
+        )
         x = dict(self.parser._yaml_docs[0])
         x["ontology_file"] = YML_DOC["ontology_file"]
         self.assertEqual(x, YML_DOC)

@@ -45,7 +45,7 @@ class TestTransportSqliteCity(unittest.TestCase):
 
         TestTransportSqliteCity.SERVER_STARTED = p
         for line in p.stdout:
-            if b"ready\n" == line:
+            if b"ready" in line:
                 break
 
     @classmethod
