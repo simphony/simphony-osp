@@ -48,7 +48,8 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "rdflib"
+        "rdflib",
+        "rdflib-jsonld"
     ],
     setup_requires=[
         "PyYaml",
@@ -56,6 +57,7 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "rdflib"
+        "rdflib",
+        "rdflib-jsonld"
     ]
 )
