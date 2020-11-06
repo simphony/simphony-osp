@@ -594,11 +594,11 @@ class SqlWrapperSession(TripleStoreWrapperSession):
             for table_name in self._get_table_names(
                     SqlWrapperSession.DATA_TABLE_PREFIX):
                 self._do_db_delete(table_name, None)
+            self._do_db_delete(self.TYPES_TABLE, None)
+            self._do_db_delete(self.RELATIONSHIP_TABLE, None)
             self._do_db_delete(self.CUDS_TABLE, None)
             self._do_db_delete(self.ENTITIES_TABLE, None)
-            self._do_db_delete(self.TYPES_TABLE, None)
             self._do_db_delete(self.NAMESPACES_TABLE, None)
-            self._do_db_delete(self.RELATIONSHIP_TABLE, None)
 
             self._initialize()
             self._commit()
