@@ -187,9 +187,10 @@ class OntologyNamespace():
         iri = rdflib.URIRef(str(self._iri) + iri_suffix)
         try:
             return self._namespace_registry.from_iri(iri, _name=name)
-        except ValueError:
-            return self._get_case_insensitive(name)
-        return self._get_case_insensitive(name)
+        except KeyError as e:
+            if not _case_sensitive:
+                return self._get_case_insensitive(name)
+            raise e
 
     def _get_case_insensitive(self, name):
         """Get by trying alternative naming convention of given name.

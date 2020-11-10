@@ -26,6 +26,9 @@ class TestCaseInsensitivity(unittest.TestCase):
         self.assertEqual(alt("some_entity", False), "SOME_ENTITY")
         self.assertEqual(alt("SOME_ENTITY", False), "SOME_ENTITY")
 
+        from osp.core.namespaces import cuba
+        self.assertEqual(cuba.wrapper, cuba.Wrapper)
+
 
 if __name__ == "__main__":
     unittest.main()
