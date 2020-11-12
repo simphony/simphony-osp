@@ -153,7 +153,8 @@ class WrapperSession(Session):
         """
         if not cuds_or_uids:
             return
-        logger.debug("Refreshing %s in %s" % (list(cuds_or_uids), self))
+        if logger.level == logging.DEBUG:
+            logger.debug("Refreshing %s in %s" % (list(cuds_or_uids), self))
         list(self.load(*self.expire(*cuds_or_uids)))
 
     def _get_full_graph(self):
@@ -175,12 +176,13 @@ class WrapperSession(Session):
             context (BufferContext): whether to print user or engine buffers
         """
         added, updated, deleted = self._buffers[context]
-        for x in added.values():
-            logger.debug("%s has been added to %s", x, self)
-        for x in updated.values():
-            logger.debug("%s has been updated %s", x, self)
-        for x in deleted.values():
-            logger.debug("%s has been deleted %s", x, self)
+        if logger.level == logging.DEBUG:
+            for x in added.values():
+                logger.debug("%s has been added to %s", x, self)
+            for x in updated.values():
+                logger.debug("%s has been updated %s", x, self)
+            for x in deleted.values():
+                logger.debug("%s has been deleted %s", x, self)
         plural = "%s CUDS objects have been %s %s"
         singular = "%s CUDS object has been %s %s"
         logger.info(singular if len(added) == 1 else plural,
@@ -214,20 +216,24 @@ class WrapperSession(Session):
             self._store_checks(cuds_object)
 
         # update buffers
-        logger.debug("Called store on %s in %s" % (cuds_object, self))
+        if logger.level == logging.DEBUG:
+            logger.debug("Called store on %s in %s" % (cuds_object, self))
         added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in deleted:
-            logger.debug("Removed %s from deleted buffer in %s of %s"
-                         % (cuds_object, self._current_context, self))
+            if logger.level == logging.DEBUG:
+                logger.debug("Removed %s from deleted buffer in %s of %s"
+                             % (cuds_object, self._current_context, self))
             del deleted[cuds_object.uid]
 
         if cuds_object.uid in self._registry:
-            logger.debug("Added %s to updated buffer in %s of %s"
-                         % (cuds_object, self._current_context, self))
+            if logger.level == logging.DEBUG:
+                logger.debug("Added %s to updated buffer in %s of %s"
+                             % (cuds_object, self._current_context, self))
             updated[cuds_object.uid] = cuds_object
         else:
-            logger.debug("Added %s to added buffer in %s of %s"
-                         % (cuds_object, self._current_context, self))
+            if logger.level == logging.DEBUG:
+                logger.debug("Added %s to added buffer in %s of %s"
+                             % (cuds_object, self._current_context, self))
             added[cuds_object.uid] = cuds_object
 
         # store
@@ -243,14 +249,16 @@ class WrapperSession(Session):
         Raises:
             RuntimeError: The updated object has been deleted previously.
         """
-        logger.debug("Called notify_update on %s in %s" % (cuds_object, self))
+        if logger.level == logging.DEBUG:
+            logger.debug("Called notify_update on %s in %s" % (cuds_object, self))
         added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in deleted:
             raise RuntimeError("Cannot update deleted object")
 
         if cuds_object.uid not in added and cuds_object.uid not in updated:
-            logger.debug("Added %s to updated buffer in %s of %s"
-                         % (cuds_object, self._current_context, self))
+            if logger.level == logging.DEBUG:
+                logger.debug("Added %s to updated buffer in %s of %s"
+                             % (cuds_object, self._current_context, self))
             updated[cuds_object.uid] = cuds_object
 
     # OVERRIDE
@@ -260,25 +268,30 @@ class WrapperSession(Session):
         Args:
             cuds_object (Cuds): The cuds_object that has been deleted.
         """
-        logger.debug("Called notify_delete on %s" % cuds_object)
+        if logger.level == logging.DEBUG:
+            logger.debug("Called notify_delete on %s" % cuds_object)
         added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in added:
-            logger.debug("Removed %s from added buffer in %s of %s"
-                         % (cuds_object, self._current_context, self))
+            if logger.level == logging.DEBUG:
+                logger.debug("Removed %s from added buffer in %s of %s"
+                             % (cuds_object, self._current_context, self))
             del added[cuds_object.uid]
         elif cuds_object.uid in updated:
-            logger.debug("Moved %s from updated to deleted buffer in %s of %s"
-                         % (cuds_object, self._current_context, self))
+            if logger.level == logging.DEBUG:
+                logger.debug("Moved %s from updated to deleted buffer in %s of %s"
+                             % (cuds_object, self._current_context, self))
             del updated[cuds_object.uid]
             deleted[cuds_object.uid] = cuds_object
         elif cuds_object.uid not in deleted:
-            logger.debug("Added %s to deleted buffer in %s of %s"
-                         % (cuds_object, self._current_context, self))
+            if logger.level == logging.DEBUG:
+                logger.debug("Added %s to deleted buffer in %s of %s"
+                             % (cuds_object, self._current_context, self))
             deleted[cuds_object.uid] = cuds_object
 
     # OVERRIDE
     def _notify_read(self, cuds_object):
-        logger.debug("Called notify_read on %s in %s" % (cuds_object, self))
+        if logger.level == logging.DEBUG:
+            logger.debug("Called notify_read on %s in %s" % (cuds_object, self))
         if cuds_object.uid in self._expired:
             self.refresh(cuds_object)
         if cuds_object.uid not in self._registry and cuds_object._stored:
