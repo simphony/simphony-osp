@@ -250,7 +250,8 @@ class WrapperSession(Session):
             RuntimeError: The updated object has been deleted previously.
         """
         if logger.level == logging.DEBUG:
-            logger.debug("Called notify_update on %s in %s" % (cuds_object, self))
+            logger.debug("Called notify_update on %s in %s"
+                         % (cuds_object, self))
         added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in deleted:
             raise RuntimeError("Cannot update deleted object")
@@ -278,7 +279,8 @@ class WrapperSession(Session):
             del added[cuds_object.uid]
         elif cuds_object.uid in updated:
             if logger.level == logging.DEBUG:
-                logger.debug("Moved %s from updated to deleted buffer in %s of %s"
+                logger.debug("Moved %s from updated to deleted buffer in %s "
+                             "of %s"
                              % (cuds_object, self._current_context, self))
             del updated[cuds_object.uid]
             deleted[cuds_object.uid] = cuds_object
@@ -291,7 +293,8 @@ class WrapperSession(Session):
     # OVERRIDE
     def _notify_read(self, cuds_object):
         if logger.level == logging.DEBUG:
-            logger.debug("Called notify_read on %s in %s" % (cuds_object, self))
+            logger.debug("Called notify_read on %s in %s"
+                         % (cuds_object, self))
         if cuds_object.uid in self._expired:
             self.refresh(cuds_object)
         if cuds_object.uid not in self._registry and cuds_object._stored:
