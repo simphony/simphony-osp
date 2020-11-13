@@ -890,7 +890,7 @@ class Cuds():
         """
         state = {k: v for k, v in self.__dict__.items()
                  if k not in {"_session", "_graph"}}
-        state["_graph"] = list(self._graph.triples((None, None, None)))
+        state["_graph"] = list(self.get_triples(include_neighbor_types=True))
         return state
 
     def __setstate__(self, state):
