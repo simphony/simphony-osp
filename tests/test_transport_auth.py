@@ -5,6 +5,7 @@ import sys
 import subprocess
 import unittest2 as unittest
 import hashlib
+import time
 from osp.wrappers.sqlite import SqliteSession
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
@@ -149,6 +150,7 @@ class TestTransportAuth(unittest.TestCase):
         TestTransportAuth.SERVER_STARTED.append(p)
         for line in p.stdout:
             if b"ready" in line:
+                time.sleep(0.1)
                 break
 
         args[-1] = "server2"
@@ -157,6 +159,7 @@ class TestTransportAuth(unittest.TestCase):
         TestTransportAuth.SERVER_STARTED.append(p)
         for line in p.stdout:
             if b"ready" in line:
+                time.sleep(0.1)
                 break
 
     @classmethod

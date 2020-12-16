@@ -8,6 +8,7 @@ import unittest2 as unittest
 import sqlite3
 import shutil
 import json
+import time
 from osp.core.session.transport.transport_utils import (
     move_files, serialize_buffers, deserialize_buffers, get_file_cuds)
 from osp.core.session.transport.communication_engine import \
@@ -119,6 +120,7 @@ class TestFiletransfer(unittest.TestCase):
         TestFiletransfer.SERVER_STARTED = p
         for line in p.stdout:
             if b"ready" in line:
+                time.sleep(0.1)
                 break
 
     @classmethod

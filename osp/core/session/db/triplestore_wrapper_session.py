@@ -132,10 +132,17 @@ class TripleStoreWrapperSession(DbWrapperSession):
                 Each can be None.
         """
 
-    @abstractmethod
     def _load_triples_for_iri(self, iri):
         """Load the all triples for the CUDS object with the given IRI.
 
         Args:
             iri (Tuple): The IRI of the CUDS object to load the triples for.
         """
+        triples = set(self._triples((iri, None, None)))
+        type_triples_of_neighbors = set()
+        for s, p, o in triples:
+            if isinstance(o, rdflib.URIRef):
+                type_triples_of_neighbors |= set(
+                    self._triples((o, rdflib.RDF.type, None))
+                )
+        return triples, type_triples_of_neighbors
