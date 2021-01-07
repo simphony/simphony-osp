@@ -4,6 +4,7 @@ import os
 import uuid
 import unittest2 as unittest
 import sqlite3
+import numpy as np
 from osp.wrappers.sqlite import SqliteSession
 
 try:
@@ -37,6 +38,19 @@ class TestSqliteCity(unittest.TestCase):
         """Remove the database file."""
         if os.path.exists(DB):
             os.remove(DB)
+
+    def test_vector(self):
+        """Test capabilities to store vectors."""
+        c = city.City(name="Frankfurt", coordinates=[42, 24])
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            wrapper.add(c)
+            wrapper.session.commit()
+
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            cw = wrapper.get(c.uid)
+            np.testing.assert_array_equal(cw.coordinates, [42, 24])
 
     def test_insert(self):
         """Test inserting in the sqlite table."""
