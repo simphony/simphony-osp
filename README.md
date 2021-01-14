@@ -26,7 +26,7 @@ www.simphony-project.eu)
 
 ## Installation
 
-See https://simphony.readthedocs.io/en/latest/getting_started.html#installation .
+See [https://simphony.readthedocs.io/en/latest/installation.html](https://simphony.readthedocs.io/en/latest/installation.html).
 
 ## Visualization of ontologies
 
