@@ -4,10 +4,11 @@ import os
 import unittest2 as unittest
 import sqlite3
 import numpy as np
+from time import sleep
 from pathlib import Path
 from osp.core.session.db.sql_migrate import check_supported_schema_version, \
     detect_current_schema_version, versions
-from osp.wrappers.sqlite.migrate import SqliteMigrate
+from osp.core.session.db.sql_migrate import SqlMigrate
 from osp.wrappers.sqlite import SqliteSession
 
 try:
@@ -27,13 +28,17 @@ class TestSqliteCity(unittest.TestCase):
 
     def tearDown(self):
         """Remove the database file."""
-        if os.path.exists(DB):
-            os.remove(DB)
+        while (True):
+            try:
+                os.remove(DB)
+                break
+            except PermissionError:
+                sleep(0.5)
 
     def run_migration(self, schema_version):
         """Load the data from the given schema version + run the migration."""
         filename = f"sqlite_schema_v{schema_version}.sql"
-        with open(Path(__file__).parent / filename) as f:
+        with open(Path(__file__).parent / filename, encoding="utf-8") as f:
             with sqlite3.connect(DB) as con:
                 con.executescript(f.read())
 
@@ -44,12 +49,14 @@ class TestSqliteCity(unittest.TestCase):
         self.assertEqual(detect_current_schema_version(
             SqliteSession(DB)._get_table_names("")), schema_version
         )
-        m = SqliteMigrate(DB)
-        m.run()
-        self.assertEqual(detect_current_schema_version(
-            SqliteSession(DB)._get_table_names("")), max(versions.values())
-        )
-        self.assertTrue(check_supported_schema_version(SqliteSession(DB)))
+
+        with SqliteSession(DB) as session:
+            m = SqlMigrate(session)
+            m.run()
+            self.assertEqual(detect_current_schema_version(
+                SqliteSession(DB)._get_table_names("")), max(versions.values())
+            )
+            self.assertTrue(check_supported_schema_version(SqliteSession(DB)))
 
     def run_test(self):
         """Test whether all data can be loaded correctly."""
