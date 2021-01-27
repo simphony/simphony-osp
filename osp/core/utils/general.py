@@ -8,8 +8,9 @@ import json
 import rdflib
 import uuid
 from osp.core.namespaces import cuba
+from rdflib_jsonld.parser import to_rdf as json_to_rdf
 
-CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds/#"
+CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
 
 
 def branch(cuds_object, *args, rel=None):
@@ -148,7 +149,8 @@ def get_custom_datatype_triples():
     return result
 
 
-def post(url, cuds_object, max_depth=float("inf")):
+def post(url, cuds_object, rel=cuba.activeRelationship,
+         max_depth=float("inf")):
     """Will send the given CUDS object to the given URL.
 
     Will also send the CUDS object in the container recursively.
@@ -160,16 +162,9 @@ def post(url, cuds_object, max_depth=float("inf")):
             recursively. Defaults to float("inf").
 
     Returns:
-        [type]: [description]
+        Server response
     """
-    from osp.core.utils import find_cuds_object
-    from osp.core.session.transport.transport_utils import serializable
-    cuds_objects = find_cuds_object(criterion=lambda x: True,
-                                    root=cuds_object,
-                                    rel=cuba.activeRelationship,
-                                    find_all=True,
-                                    max_depth=max_depth)
-    serialized = json.dumps(serializable(cuds_objects))
+    serialized = serialize(cuds_object, max_depth=max_depth, rel=rel)
     return requests.post(url=url,
                          data=serialized,
                          headers={"content_type": "application/json"})
@@ -193,19 +188,18 @@ def serialize(cuds_object, rel=cuba.activeRelationship,
     """
     from osp.core.session.transport.transport_utils import serializable
     from osp.core.utils import find_cuds_object
-    cuds_objects = find_cuds_object(criterion=lambda x: True,
+    cuds_objects = find_cuds_object(criterion=lambda _: True,
                                     root=cuds_object,
                                     rel=rel,
                                     find_all=True,
                                     max_depth=max_depth)
-    result = serializable(cuds_objects)
+    result = serializable(cuds_objects, partition_cuds=False, mark_first=True)
     if json_dumps:
         return json.dumps(result)
     return result
 
 
-def deserialize(json_doc, session=None, buffer_context=None,
-                only_return_first_element=True):
+def deserialize(json_doc, session=None, buffer_context=None):
     """Deserialize the given json objects (to CUDS).
 
     Will add the CUDS objects to the buffers.
@@ -218,31 +212,50 @@ def deserialize(json_doc, session=None, buffer_context=None,
         buffer_context (BufferContext): Whether to add the objects to the
             buffers of the user or the engine. Default is equivalent of
             the user creating the CUDS objects by hand.
-        only_return_first_element (bool): When the json doc is a list,
-            whether to return only the first element. The reason
-            for this is that the result of serializing a single cuds
-            object using `serialize()` is a list. Having this flag set to True,
-            the result of deserializing this list will be the input
-            CUDS object of serialize, as expected.
 
     Returns:
-        Any: The deserialized data. Can be CUDS.
+        Cuds: The deserialized Cuds.
     """
     from osp.core.cuds import Cuds
-    from osp.core.session.transport.transport_utils import deserialize \
-        as _deserialize
+    from osp.core.session.transport.transport_utils import import_rdf
     from osp.core.session.buffers import BufferContext
     if isinstance(json_doc, str):
         json_doc = json.loads(json_doc)
     session = session or Cuds._session
     buffer_context = buffer_context or BufferContext.USER
-    deserialized = _deserialize(
-        json_obj=json_doc,
+    g = json_to_rdf(json_doc, rdflib.Graph())
+    deserialized = import_rdf(
+        graph=g,
         session=session,
         buffer_context=buffer_context
     )
-    if isinstance(deserialized, list) and only_return_first_element:
-        return deserialized[0]
+    return deserialized
+
+
+def import_rdf_file(path, format="xml", session=None, buffer_context=None):
+    """Import rdf from file.
+
+    Args:
+        path (str): Path to the rdf file to import.
+        format (str, optional): The file format of the file. Defaults to "xml".
+        session (Session, optional): The session to add the CUDS objects to.
+            Defaults to the CoreSession.
+        buffer_context (BufferContext, optional): Whether to add the objects
+            to the buffers of the user or the engine. Default is equivalent of
+            the user creating the CUDS objects by hand.. Defaults to None.
+    """
+    from osp.core.cuds import Cuds
+    from osp.core.session.transport.transport_utils import import_rdf
+    from osp.core.session.buffers import BufferContext
+    g = rdflib.Graph()
+    g.parse(path, format=format)
+    session = session or Cuds._session
+    buffer_context = buffer_context or BufferContext.USER
+    deserialized = import_rdf(
+        graph=g,
+        session=session,
+        buffer_context=buffer_context
+    )
     return deserialized
 
 

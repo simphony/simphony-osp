@@ -1,12 +1,16 @@
 """Test the utility functions."""
 
 import io
+from osp.core.utils.general import import_rdf_file
 import unittest
 import responses
 import os
 import osp.core
 import rdflib
 import json
+import uuid
+import tempfile
+from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.namespaces import cuba
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.session.transport.transport_utils import serializable
@@ -46,7 +50,7 @@ except ImportError:
     city = _namespace_registry.city
 
 
-PRFX = 'http://www.osp-core.com/cuds/#00000000-0000-0000-0000-0000000000'
+PRFX = 'http://www.osp-core.com/cuds#00000000-0000-0000-0000-0000000000'
 CUDS_DICT = [{
     '@id': PRFX + "01",
     '@type': ['http://www.osp-core.com/city#City']
@@ -66,9 +70,12 @@ CUDS_DICT = [{
         {'@id': PRFX + "02"},
         {'@id': PRFX + "03"}],
     'http://www.osp-core.com/city#name': [{'@value': 'Peter'}]
+}, {
+    '@id': rdflib_cuba._serialization,
+    str(rdflib.RDF.first): [{'@value': "00000000-0000-0000-0000-00000000007b"}]
 }]
 
-CUDS_LIST = [[
+CUDS_LIST = [
     {"@id": PRFX + "01",
      "http://www.osp-core.com/city#name": [{"@value": "Freiburg"}],
      "http://www.osp-core.com/city#coordinates": [{
@@ -77,11 +84,6 @@ CUDS_LIST = [[
      "@type": ["http://www.osp-core.com/city#City"],
      "http://www.osp-core.com/city#hasPart": [
          {"@id": PRFX + "02"}]},
-    {"@id": PRFX + "02",
-     "@type": ["http://www.osp-core.com/city#Neighborhood"]}
-], [
-    {"@id": PRFX + "01",
-     "@type": ["http://www.osp-core.com/city#City"]},
     {"@id": PRFX + "02",
      "http://www.osp-core.com/city#hasPart": [
          {"@id": PRFX + "03"}],
@@ -93,19 +95,18 @@ CUDS_LIST = [[
      "http://www.osp-core.com/city#isPartOf": [
          {"@id": PRFX + "01"}]},
     {"@id": PRFX + "03",
-     "@type": ["http://www.osp-core.com/city#Street"]}
-], [
-    {"@id": PRFX + "02",
-     "@type": ["http://www.osp-core.com/city#Neighborhood"]},
-    {"@id": PRFX + "03",
      "http://www.osp-core.com/city#coordinates": [{
          "@value": "[0, 0]",
          "@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2"}],
      "http://www.osp-core.com/city#isPartOf": [
          {"@id": PRFX + "02"}],
      "@type": ["http://www.osp-core.com/city#Street"],
-     "http://www.osp-core.com/city#name": [{"@value": "Schwarzwaldstraße"}]}
-]]
+     "http://www.osp-core.com/city#name": [{"@value": "Schwarzwaldstraße"}]},
+    {"@id": rdflib_cuba._serialization,
+     str(rdflib.RDF.first): [
+         {"@value": "00000000-0000-0000-0000-000000000001"}]
+     }
+]
 
 
 def get_test_city():
@@ -147,7 +148,7 @@ class TestUtils(unittest.TestCase):
 
             # cuds must be in the grap
             iri = rdflib.URIRef(
-                "http://www.osp-core.com/cuds/#%s" % c.uid
+                "http://www.osp-core.com/cuds#%s" % c.uid
             )
             subjects = list(graph.subjects())
             self.assertTrue(iri in subjects)
@@ -297,11 +298,13 @@ class TestUtils(unittest.TestCase):
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         response = post('http://dsms.com', c)
 
-        serialized = serializable([c, p1, p2, p3, n1, n2, s1])
+        serialized = serializable([c, p1, p2, p3, n1, n2, s1],
+                                  partition_cuds=False, mark_first=True)
         assertJsonLdEqual(self, serialized, response.json())
 
         response = post('http://dsms.com', c, max_depth=1)
-        serialized = serializable([c, p1, p2, p3, n1, n2])
+        serialized = serializable([c, p1, p2, p3, n1, n2],
+                                  partition_cuds=False, mark_first=True)
         assertJsonLdEqual(self, serialized, response.json())
 
     def test_deserialize(self):
@@ -310,20 +313,37 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(result.is_a(city.Citizen))
         self.assertEqual(result.name, "Peter")
         self.assertEqual(result.age, 23)
-        result = deserialize([CUDS_DICT])
-        self.assertTrue(result.is_a(city.Citizen))
-        self.assertEqual(result.name, "Peter")
-        self.assertEqual(result.age, 23)
-        result = deserialize([CUDS_DICT], only_return_first_element=False)
-        self.assertEqual(len(result), 1)
-        self.assertTrue(result[0].is_a(city.Citizen))
-        self.assertEqual(result[0].name, "Peter")
-        self.assertEqual(result[0].age, 23)
-        self.maxDiff = None
 
         self.setUp()
         assertJsonLdEqual(self, CUDS_LIST,
                           json.loads(serialize(deserialize(CUDS_LIST))))
+
+    def test_import_rdf_file(self):
+        """Test the deserialize function."""
+        g = json_to_rdf(CUDS_DICT[:-1], rdflib.Graph())
+        with TestWrapperSession() as s:
+            with tempfile.TemporaryDirectory() as d:
+                f = os.path.join(d, "test")
+                g.serialize(f, format="ttl")
+                import_rdf_file(f, format="ttl", session=s)
+                self.assertEqual(set(s._buffers[0][0]), {
+                    uuid.UUID(int=1), uuid.UUID(int=2), uuid.UUID(int=3),
+                    uuid.UUID(int=123)})
+                self.assertEqual(s._buffers[0][1:], [{}, {}])
+                self.assertEqual(s._buffers[1], [{}, {}, {}])
+
+        self.setUp()
+
+        g = json_to_rdf(CUDS_LIST[:-1], rdflib.Graph())
+        with TestWrapperSession() as s:
+            with tempfile.TemporaryDirectory() as d:
+                f = os.path.join(d, "test")
+                g.serialize(f, format="ttl")
+                import_rdf_file(f, format="ttl", session=s)
+                self.assertEqual(set(s._buffers[0][0]), {
+                    uuid.UUID(int=1), uuid.UUID(int=2), uuid.UUID(int=3)})
+                self.assertEqual(s._buffers[0][1:], [{}, {}])
+                self.assertEqual(s._buffers[1], [{}, {}, {}])
 
     def test_serialize(self):
         """Test the serialize function."""

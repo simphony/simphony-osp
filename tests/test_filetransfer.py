@@ -65,7 +65,7 @@ HASHES = {
 }
 
 
-PRFX = 'http://www.osp-core.com/cuds/#00000000-0000-0000-0000-0000000000'
+PRFX = 'http://www.osp-core.com/cuds#00000000-0000-0000-0000-0000000000'
 SERIALIZED_BUFFERS = json.dumps({
     "added": [[
         {"@id": PRFX + "2a",
