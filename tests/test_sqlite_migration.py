@@ -27,7 +27,8 @@ class TestSqliteCity(unittest.TestCase):
 
     def tearDown(self):
         """Remove the database file."""
-        os.remove(DB)
+        if os.path.exists(DB):
+            os.remove(DB)
 
     def run_migration(self, schema_version):
         """Load the data from the given schema version + run the migration."""
