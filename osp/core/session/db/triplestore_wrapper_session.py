@@ -5,7 +5,7 @@ import rdflib
 from osp.core.utils import create_from_triples
 from osp.core.utils import iri_from_uid, uid_from_iri, CUDS_IRI_PREFIX
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 
 
 class TripleStoreWrapperSession(DbWrapperSession):
@@ -125,17 +125,95 @@ class TripleStoreWrapperSession(DbWrapperSession):
 
     @abstractmethod
     def _remove(self, pattern):
-        """Remove the triple from the database.
+        """Remove all triple that match the given rdflib Pattern.
+
+        A pattern is a 3-tuple of rdflib terms(URIRef and Literal),
+        but unlike triples it can have placeholders(None values).
+        These None values will be replaced by matching the patterns with
+        the triples stored in the graph.
 
         Args:
             pattern (Tuple): A triple consisting of subject, predicate, object.
                 Each can be None.
         """
 
-    @abstractmethod
     def _load_triples_for_iri(self, iri):
         """Load the all triples for the CUDS object with the given IRI.
 
         Args:
             iri (Tuple): The IRI of the CUDS object to load the triples for.
         """
+        triples = set(self._triples((iri, None, None)))
+        type_triples_of_neighbors = set()
+        for s, p, o in triples:
+            if isinstance(o, rdflib.URIRef):
+                type_triples_of_neighbors |= set(
+                    self._triples((o, rdflib.RDF.type, None))
+                )
+        return triples, type_triples_of_neighbors
+
+    def sparql(self, query_string):
+        """Execute the given SPARQL query on the backend.
+
+        Args:
+            query_string (): The SPARQL query as a string.
+        """
+        return self._sparql(query_string=query_string.replace(
+            str(self.root), str(uuid.UUID(int=0))
+        ))
+
+    @abstractmethod
+    def _sparql(self, query_string):
+        pass
+
+
+class SparqlResult(ABC):
+    """A base class for wrapping SPARQL results of different triple stores."""
+
+    def __init__(self, session):
+        """Initialize the object."""
+        self.session = session
+
+    @abstractmethod
+    def close(self):
+        """Close the connection."""
+
+    @abstractmethod
+    def __iter__(self):
+        """Iterate the result."""
+
+    @abstractmethod
+    def __len__(self):
+        """Return the number of elements in the result."""
+
+    def __enter__(self):
+        """Enter the with statement."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Close the connection."""
+        self.close()
+
+
+class SparqlBindingSet(ABC):
+    """A base clase from wrapper rows in SPARQL results."""
+
+    def __init__(self, session):
+        """Initialize the object."""
+        self.session = session
+
+    @abstractmethod
+    def _get(self, variable_name):
+        """Get the value of the given variable."""
+        pass
+
+    def __getitem__(self, variable_name):
+        """Get the value of the given variable.
+
+        Handle wrapper IRIs.
+        """
+        x = self._get(variable_name)
+        if x is not None and x.startswith(CUDS_IRI_PREFIX) \
+                and uid_from_iri(x) == uuid.UUID(int=0):
+            return iri_from_uid(self.session.root)
+        return x

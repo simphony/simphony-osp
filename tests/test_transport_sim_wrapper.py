@@ -4,6 +4,7 @@ import sys
 import subprocess
 import unittest2 as unittest
 import logging
+import time
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
@@ -46,6 +47,7 @@ class TestTransportSimWrapperCity(unittest.TestCase):
         TestTransportSimWrapperCity.SERVER_STARTED = p
         for line in p.stdout:
             if b"ready" in line:
+                time.sleep(0.1)
                 break
 
     @classmethod
