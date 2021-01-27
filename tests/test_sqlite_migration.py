@@ -4,7 +4,6 @@ import os
 import unittest2 as unittest
 import sqlite3
 import numpy as np
-from time import sleep
 from pathlib import Path
 from osp.core.session.db.sql_migrate import check_supported_schema_version, \
     detect_current_schema_version, versions
@@ -28,12 +27,7 @@ class TestSqliteCity(unittest.TestCase):
 
     def tearDown(self):
         """Remove the database file."""
-        while (True):
-            try:
-                os.remove(DB)
-                break
-            except PermissionError:
-                sleep(0.5)
+        os.remove(DB)
 
     def run_migration(self, schema_version):
         """Load the data from the given schema version + run the migration."""
