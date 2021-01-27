@@ -195,7 +195,11 @@ class TestParser(unittest.TestCase):
                 yml_doc = yaml.safe_load(f)
                 self.assertEqual(yml_doc["ontology_file"], "parser_test.xml")
                 yml_doc["ontology_file"] = YML_DOC["ontology_file"]
-                self.assertEqual(yml_doc, YML_DOC)
+                self.assertEqual(yml_doc["format"], "xml")
+                copy = YML_DOC.copy()
+                del yml_doc["format"]
+                del copy["format"]
+                self.assertEqual(yml_doc, copy)
             g = rdflib.Graph()
             g.parse(os.path.join(destination, "parser_test.xml"),
                     format="xml")

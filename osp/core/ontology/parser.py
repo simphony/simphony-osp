@@ -80,6 +80,7 @@ class Parser():
                 g.serialize(os.path.join(destination, rdf_file),
                             format="xml")
                 yaml_doc[RDF_FILE_KEY] = rdf_file
+                yaml_doc[FILE_FORMAT_KEY] = "xml"
 
             # store yaml files
             file_path = os.path.join(destination, f"{identifier}.yml")
