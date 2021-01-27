@@ -605,3 +605,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         except Exception as e:
             self._rollback_transaction()
             raise e
+
+    def _sparql(self, query_string):
+        """Perform a sparql query on the database."""
+        raise NotImplementedError()

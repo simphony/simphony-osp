@@ -4,6 +4,7 @@ import rdflib
 from abc import ABC, abstractmethod
 from osp.core.session.registry import Registry
 from osp.core.session.result import returns_query_result
+from osp.core.utils import uid_from_iri
 
 
 class Session(ABC):
@@ -48,6 +49,18 @@ class Session(ABC):
         cuds_object._graph = self.graph
         if self.root is None:
             self.root = cuds_object.uid
+
+    @returns_query_result
+    def load_from_iri(self, *iris):
+        """Load the cuds_objects with the given iris.
+
+        Args:
+            *iri (URIRef): The IRIs of the cuds_objects to load.
+
+        Yields:
+            Cuds: The fetched Cuds objects.
+        """
+        return self.load(*[uid_from_iri(iri) for iri in iris])
 
     @returns_query_result
     def load(self, *uids):

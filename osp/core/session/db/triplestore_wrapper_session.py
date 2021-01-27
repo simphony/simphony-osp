@@ -125,7 +125,12 @@ class TripleStoreWrapperSession(DbWrapperSession):
 
     @abstractmethod
     def _remove(self, pattern):
-        """Remove the triple from the database.
+        """Remove all triple that match the given rdflib Pattern.
+
+        A pattern is a 3-tuple of rdflib terms(URIRef and Literal),
+        but unlike triples it can have placeholders(None values).
+        These None values will be replaced by matching the patterns with
+        the triples stored in the graph.
 
         Args:
             pattern (Tuple): A triple consisting of subject, predicate, object.
@@ -163,7 +168,10 @@ class TripleStoreWrapperSession(DbWrapperSession):
 
 
 class SparqlResult(ABC):
+    """A base class for wrapping SPARQL results of different triple stores."""
+
     def __init__(self, session):
+        """Initialize the object."""
         self.session = session
 
     @abstractmethod
@@ -179,22 +187,32 @@ class SparqlResult(ABC):
         """Return the number of elements in the result."""
 
     def __enter__(self):
+        """Enter the with statement."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Close the connection."""
         self.close()
 
 
 class SparqlBindingSet(ABC):
+    """A base clase from wrapper rows in SPARQL results."""
+
     def __init__(self, session):
+        """Initialize the object."""
         self.session = session
 
     @abstractmethod
-    def _get(self, key):
+    def _get(self, variable_name):
+        """Get the value of the given variable."""
         pass
 
-    def __getitem__(self, key):
-        x = self._get(key)
+    def __getitem__(self, variable_name):
+        """Get the value of the given variable.
+
+        Handle wrapper IRIs.
+        """
+        x = self._get(variable_name)
         if x is not None and x.startswith(CUDS_IRI_PREFIX) \
                 and uid_from_iri(x) == uuid.UUID(int=0):
             return iri_from_uid(self.session.root)
