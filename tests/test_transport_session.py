@@ -15,7 +15,7 @@ from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
 from osp.core.session.transport.transport_utils import (
     deserialize, serializable, deserialize_buffers,
-    serialize_buffers, LOAD_COMMAND, INITIALIZE_COMMAND
+    serialize_buffers, LOAD_COMMAND, INITIALIZE_COMMAND, import_rdf
 )
 from osp.core.utils import create_from_cuds_object
 from rdflib_jsonld.parser import to_rdf as json_to_rdf
@@ -34,7 +34,7 @@ except ImportError:
     _namespace_registry.update_namespaces()
     city = _namespace_registry.city
 
-PRFX = 'http://www.osp-core.com/cuds/#00000000-0000-0000-0000-0000000000'
+PRFX = 'http://www.osp-core.com/cuds#00000000-0000-0000-0000-0000000000'
 CUDS_DICT = [{
     '@id': PRFX + "01",
     '@type': ['http://www.osp-core.com/city#City']
@@ -55,6 +55,97 @@ CUDS_DICT = [{
         {'@id': PRFX + "03"}],
     'http://www.osp-core.com/city#name': [{'@value': 'Peter'}]
 }]
+
+CUDS_LIST_NON_PARTITIONED = {
+    '@graph': [{
+        '@id': PRFX + '7b',
+        '@type': 'city:Citizen',
+        'city:name': 'Peter',
+        'city:age': 23,
+        'city:INVERSE_OF_hasInhabitant': {
+            '@id': PRFX + '01'},
+        'city:hasChild': [
+            {'@id': PRFX + '02'},
+            {'@id': PRFX + '03'}]
+    }, {
+        '@id': PRFX + '01',
+        '@type': 'city:City', 'city:coordinates': {
+            '@type': 'cuba:_datatypes/VECTOR-INT-2', '@value': '[0, 0]'},
+        'city:name': 'Freiburg',
+        'city:hasInhabitant': {'@id': PRFX + '7b'}
+    }, {
+        '@id': PRFX + '02',
+        '@type': 'city:Person',
+        'city:age': 25,
+        'city:name': 'John Smith',
+        'city:isChildOf': {'@id': PRFX + '7b'}
+    }, {
+        '@id': PRFX + '03',
+        '@type': 'city:Person',
+        'city:age': 25,
+        'city:name': 'John Smith',
+        'city:isChildOf': {'@id': PRFX + '7b'}
+    }],
+    '@context': {
+        'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+        'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
+        'xsd': 'http://www.w3.org/2001/XMLSchema#',
+        'owl': 'http://www.w3.org/2002/07/owl#',
+        'cuba': 'http://www.osp-core.com/cuba#',
+        'city': 'http://www.osp-core.com/city#',
+        'cuds': 'http://www.osp-core.com/cuds#'
+    }
+}
+
+
+CUDS_LIST_PARTITIONED = [[
+    {"@id": PRFX + "02",
+     "@type": ["http://www.osp-core.com/city#Person"]},
+    {"@id": PRFX + "01",
+     "@type": ["http://www.osp-core.com/city#City"]},
+    {"@id": PRFX + "03",
+     "@type": ["http://www.osp-core.com/city#Person"]},
+    {"@id": PRFX + "7b",
+     "http://www.osp-core.com/city#name": [{"@value": "Peter"}],
+     "http://www.osp-core.com/city#age": [{
+         "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": "23"}],
+     "@type": ["http://www.osp-core.com/city#Citizen"],
+     "http://www.osp-core.com/city#INVERSE_OF_hasInhabitant": [
+         {"@id": PRFX + "01"}],
+     "http://www.osp-core.com/city#hasChild": [
+         {"@id": PRFX + "02"},
+         {"@id": PRFX + "03"}]}
+], [
+    {"@id": PRFX + "01",
+     "http://www.osp-core.com/city#name": [{"@value": "Freiburg"}],
+     "@type": ["http://www.osp-core.com/city#City"],
+     "http://www.osp-core.com/city#coordinates": [{
+         "@type": "http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2",
+         "@value": "[0, 0]"}],
+     "http://www.osp-core.com/city#hasInhabitant": [
+         {"@id": PRFX + "7b"}]},
+    {"@id": PRFX + "7b",
+     "@type": ["http://www.osp-core.com/city#Citizen"]}
+], [
+    {"@id": PRFX + "02",
+     "@type": ["http://www.osp-core.com/city#Person"],
+     "http://www.osp-core.com/city#name": [{"@value": "John Smith"}],
+     "http://www.osp-core.com/city#age": [{
+         "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": "25"}],
+     "http://www.osp-core.com/city#isChildOf": [{"@id": PRFX + "7b"}]},
+    {"@id": PRFX + "7b",
+     "@type": ["http://www.osp-core.com/city#Citizen"]}
+], [
+    {"@id": PRFX + "03",
+     "@type": ["http://www.osp-core.com/city#Person"],
+     "http://www.osp-core.com/city#name": [{"@value": "John Smith"}],
+     "http://www.osp-core.com/city#age": [{
+         "@type": "http://www.w3.org/2001/XMLSchema#integer", "@value": "25"}],
+     "http://www.osp-core.com/city#isChildOf": [{"@id": PRFX + "7b"}]},
+    {"@id": PRFX + "7b",
+     "@type": ["http://www.osp-core.com/city#Citizen"]}
+]]
+
 
 ROOT_DICT = [{
     '@id': PRFX + "01",
@@ -168,20 +259,29 @@ INIT_DATA = {
 
 def jsonLdEqual(a, b):
     """Check if to JSON documents containing JSON LD are equal."""
-    if isinstance(a, dict) and isinstance(b, dict) and a.keys() == b.keys():
-        return all(jsonLdEqual(a[k], b[k]) for k in a.keys())
-    elif a and isinstance(a, list) and isinstance(a[0], dict) \
-            and "@id" in a[0]:
+    if (
+        a and isinstance(a, list) and isinstance(a[0], dict)
+            and "@id" in a[0]
+    ) or (
+        a and isinstance(a, dict) and "@graph" in a
+    ):
         return isomorphic(json_to_rdf(a, rdflib.Graph()),
                           json_to_rdf(b, rdflib.Graph()))
-    elif a and isinstance(a, list) and isinstance(a[0], list) \
-            and isinstance(a[0][0], dict) and "@id" in a[0][0]:
+    elif (
+        a and isinstance(a, list) and isinstance(a[0], list)
+            and isinstance(a[0][0], dict) and "@id" in a[0][0]
+    ) or (
+        a and isinstance(a, list) and isinstance(a[0], dict)
+            and "@graph" in a[0]
+    ):
         graph_a, graph_b = rdflib.Graph(), rdflib.Graph()
         for x in a:
             json_to_rdf(x, graph_a)
         for x in b:
             json_to_rdf(x, graph_b)
         return isomorphic(graph_a, graph_b)
+    elif isinstance(a, dict) and isinstance(b, dict) and a.keys() == b.keys():
+        return all(jsonLdEqual(a[k], b[k]) for k in a.keys())
     elif isinstance(a, list) and isinstance(b, list) and len(a) == len(b):
         return all(jsonLdEqual(aa, bb) for aa, bb in zip(a, b))
     else:
@@ -206,7 +306,17 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         """Test transformation from normal dictionary to cuds."""
         with TestWrapperSession() as session:
             city.CityWrapper(session=session)
-            cuds_object = deserialize(CUDS_DICT, session, True)
+            cuds_objects = deserialize(CUDS_LIST_PARTITIONED, session,
+                                       BufferContext.USER)
+            self.assertEqual(len(cuds_objects), 4)
+            self.assertEqual(set(map(lambda x: x.oclass, cuds_objects)),
+                             {city.Person, city.City, city.Citizen})
+            self.assertEqual(set(map(lambda x: x.uid.int, cuds_objects)),
+                             {1, 2, 3, 123})
+
+        with TestWrapperSession() as session:
+            city.CityWrapper(session=session)
+            cuds_object = deserialize(CUDS_DICT, session, BufferContext.USER)
             self.assertEqual(cuds_object.uid.int, 123)
             self.assertEqual(cuds_object.name, "Peter")
             self.assertEqual(cuds_object.age, 23)
@@ -224,30 +334,55 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             invalid_oclass = deepcopy(CUDS_DICT)
             invalid_oclass[-1]["@type"] = ["http://invalid.com/invalid"]
             self.assertRaises(TypeError, deserialize,
-                              invalid_oclass, session, True)
+                              invalid_oclass, session, BufferContext.USER)
 
-            self.assertEqual(deserialize(None, session, True), None)
-            self.assertEqual(deserialize([None, None], session, True),
-                             [None, None])
+            self.assertEqual(deserialize(
+                None, session, BufferContext.USER), None)
+            self.assertEqual(
+                deserialize([None, None], session, BufferContext.USER),
+                [None, None])
             self.assertEqual(
                 deserialize({"UUID": "00000000-0000-0000-0000-000000000001"},
-                            session, True), uuid.UUID(int=1))
+                            session, BufferContext.USER), uuid.UUID(int=1))
             self.assertEqual(
                 deserialize(
                     [{"UUID": "00000000-0000-0000-0000-000000000001"},
                      {"UUID": "00000000-0000-0000-0000-000000000002"}],
-                    session, True),
+                    session, BufferContext.USER),
                 [uuid.UUID(int=1), uuid.UUID(int=2)])
             self.assertEqual(
-                deserialize({"ENTITY": "city.Citizen"}, session, True),
+                deserialize({"ENTITY": "city.Citizen"},
+                            session, BufferContext.USER),
                 city.Citizen
             )
             self.assertEqual(
-                deserialize([{"ENTITY": "city.Citizen"},
-                             {"ENTITY": "city.City"}], session, True),
-                [city.Citizen, city.City])
-            self.assertEqual(deserialize([1, 1.2, "hallo"], session, True),
-                             [1, 1.2, "hallo"])
+                deserialize(
+                    [{"ENTITY": "city.Citizen"}, {"ENTITY": "city.City"}],
+                    session, BufferContext.USER),
+                [city.Citizen, city.City]
+            )
+            self.assertEqual(
+                deserialize([1, 1.2, "hallo"], session, BufferContext.USER),
+                [1, 1.2, "hallo"]
+            )
+
+    def test_import_rdf(self):
+        """Test the import rdf functionality."""
+        with TestWrapperSession() as session:
+            w = city.CityWrapper(session=session)
+            g = json_to_rdf(CUDS_LIST_NON_PARTITIONED, rdflib.Graph())
+            cuds_objects = import_rdf(g, session, BufferContext.USER)
+            self.assertEqual(len(cuds_objects), 4)
+            self.assertEqual(set(map(lambda x: x.oclass, cuds_objects)),
+                             {city.Person, city.City, city.Citizen})
+            self.assertEqual(set(map(lambda x: x.uid.int, cuds_objects)),
+                             {1, 2, 3, 123})
+            self.assertEqual(set(session._buffers[0][0]), {
+                uuid.UUID(int=1), uuid.UUID(int=2), uuid.UUID(int=3),
+                uuid.UUID(int=123), w.uid
+            })
+            self.assertEqual(session._buffers[0][1:], [{}, {}])
+            self.assertEqual(session._buffers[1], [{}, {}, {}])
 
     def test_serializable(self):
         """Test function to make Cuds objects json serializable."""
@@ -261,6 +396,12 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         p.add(c1, c2, rel=city.hasChild)
         assertJsonLdEqual(self, CUDS_DICT, serializable(p))
         assertJsonLdEqual(self, [CUDS_DICT], serializable([p]))
+        assertJsonLdEqual(self, CUDS_LIST_PARTITIONED,
+                          serializable([p, c, c1, c2]))
+        assertJsonLdEqual(self, CUDS_LIST_NON_PARTITIONED,
+                          serializable([p, c, c1, c2], partition_cuds=False))
+        assertJsonLdEqual(self, CUDS_DICT,
+                          serializable([p], partition_cuds=False))
         assertJsonLdEqual(self, None, serializable(None))
         assertJsonLdEqual(self, [None, None], serializable([None, None]))
         assertJsonLdEqual(

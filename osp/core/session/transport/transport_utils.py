@@ -13,8 +13,8 @@ from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.namespaces import get_entity, cuba
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
-from osp.core.session.buffers import get_buffer_context_mngr
-from osp.core.utils import create_from_triples
+from osp.core.session.buffers import BufferContext, get_buffer_context_mngr
+from osp.core.utils import create_from_triples, uid_from_iri
 from osp.core.ontology.cuba import rdflib_cuba
 
 logger = logging.getLogger(__name__)
@@ -223,7 +223,7 @@ def deserialize(json_obj, session, buffer_context, _force=False):
     raise ValueError("Could not deserialize %s." % json_obj)
 
 
-def serializable(obj):
+def serializable(obj, partition_cuds=True, mark_first=False):
     """Make given object json serializable.
 
     The object can be a cuds_object, a list of cuds_objects,
@@ -249,9 +249,14 @@ def serializable(obj):
     if isinstance(obj, OntologyEntity):
         return {"ENTITY": str(obj)}
     if isinstance(obj, Cuds):
-        return _serializable(obj)
+        return _serializable([obj])
     if isinstance(obj, dict):
         return {k: serializable(v) for k, v in obj.items()}
+    if not partition_cuds:  # TODO this should be the default
+        try:
+            return _serializable(obj, mark_first=mark_first)
+        except TypeError:
+            pass
     try:
         return [serializable(x) for x in obj]
     except TypeError as e:
@@ -281,23 +286,33 @@ def get_file_cuds(obj):
     return [y for x in obj for y in get_file_cuds(x)]
 
 
-def _serializable(cuds_object):
-    """Make CUDS object json serializable using JSON-LD.
+def _serializable(cuds_objects, mark_first=False):
+    """Make CUDS objects json serializable using JSON-LD.
 
     Args:
-        cuds_object ([type]): The CUDS object to make serializable.
+        cuds_objects ([type]): The CUDS objects to make serializable.
 
     Returns:
         List[Dict]: []
     """
-    # TODO send all triples of all CUDS to send in one json-ld document
+    from osp.core.cuds import Cuds
+    from osp.core.namespaces import _namespace_registry
     g = rdflib.Graph()
-    for s, p, o in cuds_object.get_triples(include_neighbor_types=True):
-        if isinstance(o, rdflib.Literal):
-            o = rdflib.Literal(convert_from(o.toPython(), o.datatype),
-                               datatype=o.datatype, lang=o.language)
-        g.add((s, p, o))
-    return json_from_rdf(g)  # TODO compact
+    g.namespace_manager = _namespace_registry._graph.namespace_manager
+    g.bind("cuds", rdflib.URIRef("http://www.osp-core.com/cuds#"))
+    if mark_first:
+        g.add((rdflib_cuba._serialization, rdflib.RDF.first,
+               rdflib.Literal(str(next(iter(cuds_objects)).uid))))
+    for cuds_object in cuds_objects:
+        if not isinstance(cuds_object, Cuds):
+            raise TypeError(f"Called _serializable with non-CUDS object "
+                            f"{cuds_object} of type {type(cuds_object)}")
+        for s, p, o in cuds_object.get_triples(include_neighbor_types=True):
+            if isinstance(o, rdflib.Literal):
+                o = rdflib.Literal(convert_from(o.toPython(), o.datatype),
+                                   datatype=o.datatype, lang=o.language)
+            g.add((s, p, o))
+    return json_from_rdf(g, auto_compact=len(cuds_objects) > 1)
 
 
 def _to_cuds_object(json_obj, session, buffer_context, _force=False):
@@ -306,13 +321,13 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
     Args:
         json_obj (Dict[str, Any]): The json object to convert to a Cuds object.
         session (Session): The session to add the cuds object to.
-        buffer_context (BufferContext): add the deserialized cuds objects to
+        buffer_context (BufferContext): add the deserialized cuds object to
             the selected buffers.
 
     Returns:
         Cuds: The resulting cuds_object.
     """
-    if buffer_context is None:
+    if not isinstance(buffer_context, BufferContext):
         raise ValueError("Not allowed to deserialize CUDS object "
                          "with undefined buffer_context")
     with get_buffer_context_mngr(session, buffer_context):
@@ -340,6 +355,53 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
         cuds = create_from_triples(triples, neighbor_triples, session,
                                    fix_neighbors=False)
         return cuds
+
+
+def import_rdf(graph, session, buffer_context):
+    """Import RDF Graph to CUDS.
+
+    Args:
+        graph (rdflib.Graph): The graph to import.
+        session (Session): The session to add the CUDS objects to.
+        buffer_context (BufferContext): add the deserialized cuds objects to
+            the selected buffers.
+
+    Raises:
+        ValueError: Not allowed to deserialize with undefined buffer context.
+
+    Returns:
+        List[Cuds]: The deserialized CUDS objects.
+    """
+    if not isinstance(buffer_context, BufferContext):
+        raise ValueError("Not allowed to deserialize CUDS object "
+                         "with undefined buffer_context")
+    first = graph.value(rdflib_cuba._serialization, rdflib.RDF.first)
+    if first:
+        first = uuid.UUID(hex=first)
+        graph.remove((rdflib_cuba._serialization, rdflib.RDF.first, None))
+    result = list()
+    with get_buffer_context_mngr(session, buffer_context):
+        triples = dict()
+        for s, p, o in graph:
+            if isinstance(o, rdflib.Literal) \
+                    and o.datatype and o.datatype in rdflib_cuba \
+                    and "VECTOR" in o.datatype.toPython():
+                o = rdflib.Literal(
+                    convert_to(ast.literal_eval(o.toPython()), o.datatype),
+                    datatype=o.datatype, lang=o.language
+                )
+            session.graph.add((s, p, o))
+            uid = uid_from_iri(s)
+            triples[uid] = triples.get(uid, set())
+            triples[uid].add((s, p, o))
+        if first:
+            result.append(create_from_triples(triples[first], set(), session,
+                                              fix_neighbors=False))
+            del triples[first]
+        for _, t in triples.items():
+            result.append(create_from_triples(t, set(), session,
+                                              fix_neighbors=False))
+    return result if not first else result[0]
 
 
 def get_hash_dir(directory_path):
