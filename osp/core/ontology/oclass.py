@@ -56,7 +56,13 @@ class OntologyClass(OntologyEntity):
 
     @property
     def restrictions(self):
-        """Get all the restrictions for the ontology class"""
+        """Get all the restrictions for the ontology class.
+
+        Include restrictions of superclasses.
+
+        Returns:
+            List[Restriction]: The list of restrictions for the ontology class.
+        """
         if self._cached_restrictions is None:
             for superclass in self.superclasses:
                 iri = superclass.iri
@@ -65,6 +71,15 @@ class OntologyClass(OntologyEntity):
         return self._cached_restrictions
 
     def _compute_restrictions(self, iri, rdflib_predicate):
+        """Compute the restrictions for the class with the given IRI.
+
+        Does not include superclasses.
+
+        Args:
+            iri (UriRef): The IRI of the class.
+            rdflib_predicate (UriRef): The predicate to which the class is
+                connected to restrictions (subclass or equivalentClass).
+        """
         self._cached_restrictions = self._cached_restrictions or []
         graph = self._namespace_registry._graph
         triple = (iri, rdflib_predicate, None)
