@@ -1,5 +1,6 @@
 """A class defined in the ontology."""
 
+from osp.core.ontology.restriction import Restriction
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.cuba import rdflib_cuba
 import logging
@@ -27,6 +28,7 @@ class OntologyClass(OntologyEntity):
         """
         super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
         logger.debug("Created ontology class %s" % self)
+        self._cached_restrictions = None
 
     @property
     def attributes(self):
@@ -51,6 +53,27 @@ class OntologyClass(OntologyEntity):
             Dict[OntologyAttribute, str]: Mapping from attribute to default
         """
         return self._get_attributes(self.iri)
+
+    @property
+    def restrictions(self):
+        """Get all the restrictions for the ontology class"""
+        if self._cached_restrictions is None:
+            for superclass in self.superclasses:
+                iri = superclass.iri
+                self._compute_restrictions(iri, rdflib.RDFS.subClassOf)
+                self._compute_restrictions(iri, rdflib.OWL.equivalentClass)
+        return self._cached_restrictions
+
+    def _compute_restrictions(self, iri, rdflib_predicate):
+        self._cached_restrictions = self._cached_restrictions or []
+        graph = self._namespace_registry._graph
+        triple = (iri, rdflib_predicate, None)
+        for _, _, o in self.namespace._graph.triples(triple):
+            if (o, rdflib.RDF.type, rdflib.OWL.Restriction) not in graph:
+                continue
+            r = Restriction(o, graph, self._namespace_registry)
+            if r.quantifier and r.rtype:
+                self._cached_restrictions.append(r)
 
     def _get_attributes(self, iri):
         """Get the non-inherited attributes of the oclass with the given iri.
