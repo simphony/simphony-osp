@@ -19,7 +19,7 @@ class QUANTIFIER(Enum):
     MAX = 5
 
 
-class TYPE(Enum):
+class RTYPE(Enum):
     """The two types of restrictions."""
     ATTRIBUTE_RESTRICTION = 1
     RELATIONSHIP_RESTRICTION = 2
@@ -27,21 +27,27 @@ class TYPE(Enum):
 
 class Restriction():
     """A class to represet restrictions on ontology classes."""
-    def __init__(self, bnode, graph, namespace_registry):
+
+    def __init__(self, bnode, namespace_registry):
         """Initialize the restriction class.
 
         Args:
-            bnode ([type]): [description]
-            graph ([type]): [description]
-            namespace_registry ([type]): [description]
+            bnode (BNode): The blank node that represents the restriction.
+            namespace_registry (NamespaceRegistry): The global namespace
+                registry that contains all the OSP-core namespaces.
         """
         self._bnode = bnode
-        self._graph = graph
+        self._graph = namespace_registry._graph
         self._namespace_registry = namespace_registry
         self._cached_quantifier = None
         self._cached_property = None
         self._cached_target = None
         self._cached_type = None
+
+    def __str__(self):
+        return " ".join(map(str, (self._property,
+                                  self.quantifier,
+                                  self.target)))
 
     @property
     def quantifier(self):
@@ -75,7 +81,7 @@ class Restriction():
         Returns:
             OntologyRelationship: The relationship the restriction acts on.
         """
-        if self.rtype == TYPE.ATTRIBUTE_RESTRICTION:
+        if self.rtype == RTYPE.ATTRIBUTE_RESTRICTION:
             raise AttributeError
         return self._property
 
@@ -91,7 +97,7 @@ class Restriction():
         Returns:
             UriRef: The datatype of the attribute.
         """
-        if self.rtype == TYPE.RELATIONSHIP_RESTRICTION:
+        if self.rtype == RTYPE.RELATIONSHIP_RESTRICTION:
             raise AttributeError
         return self._property
 
@@ -102,7 +108,7 @@ class Restriction():
         Whether the restriction acts on attributes or relationships.
 
         Returns:
-            TYPE: The type of restriction.
+            RTYPE: The type of restriction.
         """
         if self._cached_type is None:
             self._compute_rtype()
@@ -124,12 +130,11 @@ class Restriction():
         """Compute whether this restriction acts on rels or attrs."""
         x = self._property
         if isinstance(x, OntologyRelationship):
-            self._cached_type = TYPE.RELATIONSHIP_RESTRICTION
+            self._cached_type = RTYPE.RELATIONSHIP_RESTRICTION
             return True
         if isinstance(x, OntologyAttribute):
-            self._cached_type = TYPE.ATTRIBUTE_RESTRICTION
+            self._cached_type = RTYPE.ATTRIBUTE_RESTRICTION
             return True
-        self._print_warning()
 
     def _compute_property(self):
         """Compute the object of the OWL:onProperty predicate."""
@@ -137,7 +142,6 @@ class Restriction():
         if x and not isinstance(x, BNode):
             self._cached_property = self._namespace_registry.from_iri(x)
             return True
-        self._print_warning()
 
     def _compute_target(self):
         """Compute the target class or datatype."""
@@ -149,8 +153,7 @@ class Restriction():
             (rdflib.OWL.maxCardinality, QUANTIFIER.MAX)
         ]:
             if self._check_quantifier(rdflib_predicate, quantifier):
-                return
-        self._print_warning()
+                return True
 
     def _check_quantifier(self, rdflib_predicate, quantifier):
         """Check if the restriction uses given quantifier.
@@ -158,19 +161,21 @@ class Restriction():
         The quantifier is given as rdflib predicate and python enum.
         """
         x = self._graph.value(self._bnode, rdflib_predicate)
-        if x and not isinstance(x, BNode):
+        if x:
             self._cached_quantifier = quantifier
             try:
-                self._cached_target = self._namespace_registry.from_iri(x)
+                self._cached_target = (
+                    self._namespace_registry.from_bnode(x)
+                    if isinstance(x, BNode)
+                    else self._namespace_registry.from_iri(x)
+                )
             except KeyError:
                 self._cached_target = x
             return True
 
-    def _print_warning(self):
-        """Log a warning when an unsupported restriction is encountered."""
-        logger.debug("Unsupported restriction encountered.")
-        logger.debug("Defined by the following triples:")
-        for s, p, o in self._graph.triples((self._bnode, None, None)):
-            logger.debug(f"{s}\n\t{p}\n\t{o}")
-        # for s, p, o in self._graph.triples((None, None, self._bnode)):
-        #     logger.warning(f"{s}\n\t{p}\n\t{o}")
+
+def get_restriction(bnode, namespace_registry):
+    """Return the restriction object represented by given bnode (or None)."""
+    r = Restriction(bnode, namespace_registry)
+    if r.rtype and r.target:
+        return r
