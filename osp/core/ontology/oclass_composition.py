@@ -8,14 +8,14 @@ logger = logging.getLogger(__name__)
 
 
 class OPERATOR(Enum):
-    """The operator of the composition."""
-    AND = 1  # intersectionOf
-    OR = 2  # unionOf
-    NOT = 3  # complementOf
+    """Operators to connect different classes."""
+    AND = 1  # owl:intersectionOf
+    OR = 2  # owl:unionOf
+    NOT = 3  # owl:complementOf
 
 
 class Composition():
-    """A class expression that is composed of several class expression."""
+    """Combine multiple classes using logical formulae."""
 
     def __init__(self, bnode, namespace_registry):
         """Initialize the class composition."""
@@ -26,7 +26,7 @@ class Composition():
         self._cached_operands = None
 
     def __str__(self):
-        """Transform it to a Protege like string."""
+        """Transform to a Protege like string."""
         s = f" {self.operator} ".join(map(str, self.operands))
         if self.operator == OPERATOR.NOT:
             s = f"{self.operator} {s}"
@@ -34,20 +34,28 @@ class Composition():
 
     @property
     def operator(self):
-        """The operator that connects the individual classes."""
+        """The operator that connects the different classes in the formula.
+
+        Returns:
+            OPERATOR: The operator Enum.
+        """
         if self._cached_operator is None:
             self._compute()
         return self._cached_operator
 
     @property
     def operands(self):
-        """The individual classes that are composed."""
+        """The individual classes the formula is composed of.
+
+        Returns:
+            Union[OntologyClass, Composition, Restriction]: The operands.
+        """
         if self._cached_operands is None:
             self._compute()
         return self._cached_operands
 
     def _compute(self):
-        """Query the graph to get operator and operands."""
+        """Look up operator and operands in the graph."""
         for rdflib_predicate, operator in [
             (OWL.unionOf, OPERATOR.OR),
             (OWL.intersectionOf, OPERATOR.AND),
@@ -57,19 +65,21 @@ class Composition():
                 return True
 
     def _check_operator(self, rdflib_predicate, operator):
-        """Check if given operator is used in the composition."""
+        """Check if given operator is used and what the operands are."""
         self._cached_operands = list()
         o = self._graph.value(self._bnode, rdflib_predicate)
         if operator == OPERATOR.NOT:
-            self.add_operand(operator, o)
+            self._add_operand(operator, o)
+            return True
         x = self._graph.value(o, RDF.first)
         while x:
-            self.add_operand(operator, x)
+            self._add_operand(operator, x)
             o = self._graph.value(o, RDF.rest)
             x = self._graph.value(o, RDF.first)
         return self._cached_operator is not None
 
-    def add_operand(self, operator, x):
+    def _add_operand(self, operator, x):
+        """Add a single operand to the list."""
         self._cached_operator = operator
         try:
             self._cached_operands.append(

@@ -45,7 +45,7 @@ class Restriction():
         self._cached_type = None
 
     def __str__(self):
-        """Transform the restriction in a Protege like string."""
+        """Transform to string."""
         return " ".join(map(str, (self._property,
                                   self.quantifier,
                                   self.target)))

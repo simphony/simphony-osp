@@ -13,13 +13,12 @@ except ImportError:
 
 
 class TestRestrictionsEmmo(unittest.TestCase):
-    """Test the oclass.axioms method and its results objects."""
+    """Test the restrictions in EMMO ontology."""
 
     def test_emmo_datatypes(self):
-        """Test Integer, Bool, ... entity in EMMO."""
-        for a in math.Integer.axioms:
-            print(a)
-            print()
+        """Test for classes Integer, Boolean, .. in EMMO."""
+        for r in math.Integer.axioms:
+            print(r)  # TODO finish tests
 
 
 if __name__ == "__main__":

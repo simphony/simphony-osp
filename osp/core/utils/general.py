@@ -60,6 +60,7 @@ def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
 
 def serialize_rdf_graph(path, format="xml", session=None,
                         skip_custom_datatypes=False, skip_ontology=True):
+    """Serialize an RDF graph and take care of custom datatypes."""
     graph = get_rdf_graph(session, skip_custom_datatypes, skip_ontology)
     result = rdflib.Graph()
     for s, p, o in graph:

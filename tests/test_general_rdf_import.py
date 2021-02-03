@@ -1,3 +1,5 @@
+"""Test general RDF data."""
+
 from osp.core.namespaces import city
 from osp.core.utils import serialize_rdf_graph
 
