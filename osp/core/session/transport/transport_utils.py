@@ -14,7 +14,7 @@ from osp.core.namespaces import get_entity, cuba
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.buffers import BufferContext, get_buffer_context_mngr
-from osp.core.utils import create_from_triples, uid_from_iri
+from osp.core.utils import create_from_triples, uid_from_general_iri
 from osp.core.ontology.cuba import rdflib_cuba
 
 logger = logging.getLogger(__name__)
@@ -390,8 +390,8 @@ def import_rdf(graph, session, buffer_context):
                     convert_to(ast.literal_eval(o.toPython()), o.datatype),
                     datatype=o.datatype, lang=o.language
                 )
+            uid, s = uid_from_general_iri(s, session.graph)
             session.graph.add((s, p, o))
-            uid = uid_from_iri(s)
             triples[uid] = triples.get(uid, set())
             triples[uid].add((s, p, o))
         if first:

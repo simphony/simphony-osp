@@ -179,6 +179,7 @@ class NamespaceRegistry():
 
         Args:
             bnode (BNode): A blank node in the triple store.
+            btype (URIRef): The rdf.type of the blank node.
         """
         from osp.core.ontology.oclass_composition import get_composition
         from osp.core.ontology.oclass_restriction import get_restriction

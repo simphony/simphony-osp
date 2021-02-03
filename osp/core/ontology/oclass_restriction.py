@@ -45,6 +45,7 @@ class Restriction():
         self._cached_type = None
 
     def __str__(self):
+        """Transform the restriction in a Protege like string."""
         return " ".join(map(str, (self._property,
                                   self.quantifier,
                                   self.target)))
@@ -171,6 +172,8 @@ class Restriction():
                 )
             except KeyError:
                 self._cached_target = x
+                if isinstance(x, BNode):
+                    self._namespace_registry.from_bnode(x)
             return True
 
 

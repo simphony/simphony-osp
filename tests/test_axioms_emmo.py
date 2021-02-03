@@ -1,7 +1,6 @@
 """Test the API with the EMMO ontology."""
 
 import unittest2 as unittest
-from osp.core.ontology.oclass_restriction import RTYPE
 
 try:
     from osp.core.namespaces import math
@@ -14,11 +13,12 @@ except ImportError:
 
 
 class TestRestrictionsEmmo(unittest.TestCase):
+    """Test the oclass.axioms method and its results objects."""
 
     def test_emmo_datatypes(self):
-        for r in math.Integer.restrictions:
-            print(r.rtype)
-            print(r)
+        """Test Integer, Bool, ... entity in EMMO."""
+        for a in math.Integer.axioms:
+            print(a)
             print()
 
 
