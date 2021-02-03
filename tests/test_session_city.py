@@ -142,7 +142,7 @@ class TestSessionCity(unittest.TestCase):
                     city.Neighborhood(name="Littenweiler")
                 )
             )
-            g = get_rdf_graph(session)
+            g = get_rdf_graph(session, skip_ontology=False)
             c = w.get(rel=city.hasPart)[0]
             c.remove(rel=cuba.relationship)
             session._rdf_import(g)

@@ -144,7 +144,7 @@ class TestUtils(unittest.TestCase):
             wrapper = cuba.Wrapper(session=session)
             c = city.City(name='freiburg', session=session)
             wrapper.add(c, rel=cuba.activeRelationship)
-            graph = get_rdf_graph(c.session)
+            graph = get_rdf_graph(c.session, skip_ontology=False)
 
             # cuds must be in the grap
             iri = rdflib.URIRef(
