@@ -111,15 +111,23 @@ class TestCompositionsEMMO(unittest.TestCase):
         namespace_registry = math._namespace_registry
         graph = namespace_registry._graph
 
-        # Create collection of operands.
-        collection = rdflib.collection.Collection(graph, rdflib.BNode())
-        for operand in data['operands']:
-            collection.append(operand)
+        # Create collection of operands if there is more than one.
+        if len(data['operands']) > 1:
+            target = rdflib.collection.Collection(graph, rdflib.BNode())
+            for operand in data['operands']:
+                target.append(operand)
+        elif len(data['operands']) == 1 \
+                and data['operand'] is rdflib.OWL.complementOf:
+            target = data['operands'][0]
+        else:
+            raise Exception(f'Illegal combination of operator '
+                            f'{data["operator"]} and '
+                            f'operands {data["operands"]}.')
 
         # Add collection of operands to the graph and create the composition.
         bnode = rdflib.BNode()
         graph.add((bnode, rdflib.RDF.type, rdflib.OWL.Class))
-        graph.add((bnode, data['operator'], collection.uri))
+        graph.add((bnode, data['operator'], target.uri))
 
         composition = Composition(bnode, namespace_registry)
         return composition
