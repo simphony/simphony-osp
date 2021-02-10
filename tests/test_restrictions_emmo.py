@@ -245,7 +245,7 @@ class TestSpecificRestrictionsEmmo(unittest.TestCase):
                                              restriction,
                  'quantifier' (rdflib.URIRef): One of the quantifiers defined
                                                by the OWL ontology,
-                'target' (rdflib.URIRef or rdflib.BNode): Target of the
+                'target' (Union[rdflib.URIRef, rdflib.BNode]): Target of the
                                                           restriction,
                 }
         """
@@ -253,6 +253,7 @@ class TestSpecificRestrictionsEmmo(unittest.TestCase):
         graph = math._graph
 
         bnode = rdflib.BNode()
+        graph.add((bnode, rdflib.RDF.type, rdflib.OWL.Restriction))
         graph.add((bnode, rdflib.OWL.onProperty, data['property']))
         graph.add((bnode, data['quantifier'], data['target']))
         restriction = Restriction(bnode, namespace_registry)
