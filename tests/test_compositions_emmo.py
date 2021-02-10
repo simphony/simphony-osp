@@ -98,6 +98,7 @@ class TestCompositionsEMMO(unittest.TestCase):
     @staticmethod
     def build_composition(data):
         """Returns a Composition object from a dictionary.
+
         Args:
             data (dict): The source dictionary. It is expected to have
             the following structure.
@@ -137,7 +138,8 @@ class TestCompositionsEMMO(unittest.TestCase):
         """Tests the string representation of the composition.
 
         Also tests _compute_target, _check_quantifier and _add_operand
-        implicitly."""
+        implicitly.
+        """
         for data, composition in zip(self.composition_data, self.compositions):
             self.assertEqual(data['string'], composition.__str__(),
                              f'The string representation of the composition'
@@ -148,7 +150,8 @@ class TestCompositionsEMMO(unittest.TestCase):
         """Tests the operator method.
 
         Also tests _compute_target, _check_quantifier and _add_operand
-        implicitly."""
+        implicitly.
+        """
         for data, composition in zip(self.composition_data, self.compositions):
             operator = predicate_to_operator[data['operator']]
             self.assertIs(operator, composition.operator)
@@ -157,7 +160,8 @@ class TestCompositionsEMMO(unittest.TestCase):
         """Tests the operands method.
 
         Also tests _compute_target, _check_quantifier and _add_operand
-        implicitly."""
+        implicitly.
+        """
         for data, composition in zip(self.composition_data, self.compositions):
             operand_identifiers = tuple(get_identifier(operand)
                                         for operand in composition.operands)
@@ -165,6 +169,11 @@ class TestCompositionsEMMO(unittest.TestCase):
 
 
 def get_identifier(operand):
+    """Given an operand, compute its identifier (IRI or blank node).
+
+    If the operand is already referenced by an identifier, no changes are
+    performed on the input.
+    """
     if isinstance(operand, rdflib.term.Identifier) \
             or isinstance(operand, rdflib.BNode):
         operand_identifier = operand
