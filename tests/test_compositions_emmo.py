@@ -113,11 +113,12 @@ class TestCompositionsEMMO(unittest.TestCase):
 
         # Create collection of operands if there is more than one.
         if len(data['operands']) > 1:
-            target = rdflib.collection.Collection(graph, rdflib.BNode())
+            collection = rdflib.collection.Collection(graph, rdflib.BNode())
             for operand in data['operands']:
-                target.append(operand)
+                collection.append(operand)
+            target = collection.uri
         elif len(data['operands']) == 1 \
-                and data['operand'] is rdflib.OWL.complementOf:
+                and data['operator'] == rdflib.OWL.complementOf:
             target = data['operands'][0]
         else:
             raise Exception(f'Illegal combination of operator '
@@ -127,7 +128,7 @@ class TestCompositionsEMMO(unittest.TestCase):
         # Add collection of operands to the graph and create the composition.
         bnode = rdflib.BNode()
         graph.add((bnode, rdflib.RDF.type, rdflib.OWL.Class))
-        graph.add((bnode, data['operator'], target.uri))
+        graph.add((bnode, data['operator'], target))
 
         composition = Composition(bnode, namespace_registry)
         return composition
