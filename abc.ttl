@@ -1,0 +1,19 @@
+@prefix ns1: <http://www.osp-core.com/city#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://www.random.com#A> a ns1:Neighborhood ;
+    ns1:coordinates "[0, 0]"^^<http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2> ;
+    ns1:isPartOf <http://www.random.com#C> ;
+    ns1:name "Sachsenhausen" .
+
+<http://www.random.com#B> a ns1:Citizen ;
+    ns1:INVERSE_OF_hasInhabitant <http://www.random.com#C> ;
+    ns1:age 25 ;
+    ns1:name "John" .
+
+<http://www.random.com#C> a ns1:City ;
+    ns1:coordinates "[0, 0]"^^<http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2> ;
+    ns1:hasInhabitant <http://www.random.com#B> ;
+    ns1:hasPart <http://www.random.com#A> ;
+    ns1:name "Frankfurt" .
+

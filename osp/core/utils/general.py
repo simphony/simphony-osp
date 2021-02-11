@@ -127,7 +127,10 @@ def uid_from_iri(iri):
     Returns:
         URIRef: The IRI of the CUDS object with the given UUID.
     """
-    return uuid.UUID(hex=str(iri)[len(CUDS_IRI_PREFIX):])
+    try:
+        return uuid.UUID(hex=str(iri)[len(CUDS_IRI_PREFIX):])
+    except ValueError as e:
+        raise ValueError(f"Unable to transform {iri} to UUID.") from e
 
 
 def uid_from_general_iri(iri, graph, _visited=frozenset()):

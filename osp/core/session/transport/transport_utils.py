@@ -376,14 +376,15 @@ def import_rdf(graph, session, buffer_context):
         raise ValueError("Not allowed to deserialize CUDS object "
                          "with undefined buffer_context")
     first = graph.value(rdflib_cuba._serialization, rdflib.RDF.first)
-    if first:
+    if first:  # return the element marked as first later
         first = uuid.UUID(hex=first)
         graph.remove((rdflib_cuba._serialization, rdflib.RDF.first, None))
     result = list()
     with get_buffer_context_mngr(session, buffer_context):
         triples = dict()
         for s, p, o in graph:
-            if isinstance(o, rdflib.Literal) \
+            # handle custom datatype: VECTORs
+            if isinstance(o, rdflib.Literal)  \
                     and o.datatype and o.datatype in rdflib_cuba \
                     and "VECTOR" in o.datatype.toPython():
                 o = rdflib.Literal(
@@ -395,10 +396,12 @@ def import_rdf(graph, session, buffer_context):
             triples[uid] = triples.get(uid, set())
             triples[uid].add((s, p, o))
         if first:
+            # Create entry in the registry
             result.append(create_from_triples(triples[first], set(), session,
                                               fix_neighbors=False))
             del triples[first]
         for _, t in triples.items():
+            # Create entry in the registry
             result.append(create_from_triples(t, set(), session,
                                               fix_neighbors=False))
     return result if not first else result[0]
