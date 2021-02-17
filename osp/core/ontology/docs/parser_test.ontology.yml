@@ -82,6 +82,7 @@ ontology:
       and:
       - parser_test.ClassC
       - not: parser_test.ClassD
+    default_rel: false
   
   relationshipC:
     subclass_of:
