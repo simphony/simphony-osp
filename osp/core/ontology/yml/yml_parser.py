@@ -458,8 +458,7 @@ class YmlParser:
         if DEFAULT_REL_KEY in self._doc:
             occurrences += 1
         for entity_name, entity_doc in self._ontology_doc.items():
-            if DEFAULT_REL_KEY in entity_doc \
-                    and entity_doc[DEFAULT_REL_KEY] is True:
+            if entity_doc.get(DEFAULT_REL_KEY) is True:
                 occurrences += 1
         if occurrences > 1:
             raise ValueError(
