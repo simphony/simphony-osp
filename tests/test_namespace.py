@@ -139,6 +139,7 @@ class TestNamespaces(unittest.TestCase):
                 rdflib_cuba._reference_by_label,
                 rdflib.Literal(True)
             ))
+            self.namespace_registry.from_iri.cache_clear()
             c = self.namespace_registry.from_iri(city_iri)
             self.assertIsInstance(c, OntologyClass)
             self.assertEqual(c.namespace.get_name(), "city")
