@@ -8,6 +8,7 @@ from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
+from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +135,7 @@ class NamespaceRegistry():
                                  namespace_registry=self,
                                  iri=ns_iri)
 
+    @lru_cache(maxsize=1024)
     def from_iri(self, iri, raise_error=True,
                  allow_types=frozenset({rdflib.OWL.DatatypeProperty,
                                         rdflib.OWL.ObjectProperty,
@@ -173,6 +175,27 @@ class NamespaceRegistry():
         if raise_error:
             raise KeyError(f"IRI {iri} not found in graph or not of any "
                            f"type in the set {allow_types}")
+
+    def from_bnode(self, bnode, btype=None):
+        """Return restriction, composition represented by given bnode.
+
+        Args:
+            bnode (BNode): A blank node in the triple store.
+            btype (URIRef): The rdf:type of the bnode.
+        """
+        from osp.core.ontology.oclass_composition import get_composition
+        from osp.core.ontology.oclass_restriction import get_restriction
+        t = btype or self._graph.value(bnode, rdflib.RDF.type)
+
+        if t == rdflib.OWL.Restriction:
+            x = get_restriction(bnode, self)
+            if x:
+                return x
+        elif t == rdflib.OWL.Class:
+            x = get_composition(bnode, self)
+            if x:
+                return x
+        raise KeyError(bnode)
 
     def _get_namespace_name_and_iri(self, iri):
         """Get the namespace name and namespace iri for an entity iri.
