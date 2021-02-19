@@ -157,7 +157,7 @@ def uid_from_general_iri(iri, graph, _visited=frozenset()):
     uid = uuid.uuid4()
     new_iri = iri_from_uid(uid)
     graph.add((iri, rdflib.OWL.sameAs, new_iri))
-    return uuid, new_iri
+    return uid, new_iri
 
 
 def get_custom_datatypes():
@@ -268,15 +268,23 @@ def deserialize(json_doc, session=None, buffer_context=None):
     from osp.core.cuds import Cuds
     from osp.core.session.transport.transport_utils import import_rdf
     from osp.core.session.buffers import BufferContext
+    from osp.core.ontology.cuba import rdflib_cuba
     if isinstance(json_doc, str):
         json_doc = json.loads(json_doc)
     session = session or Cuds._session
     buffer_context = buffer_context or BufferContext.USER
     g = json_to_rdf(json_doc, rdflib.Graph())
+    # only return first
+    first = g.value(rdflib_cuba._serialization, rdflib.RDF.first)
+    first_uid = None
+    if first:  # return the element marked as first later
+        first_uid = uuid.UUID(hex=first)
+        g.remove((rdflib_cuba._serialization, rdflib.RDF.first, None))
     deserialized = import_rdf(
         graph=g,
         session=session,
-        buffer_context=buffer_context
+        buffer_context=buffer_context,
+        return_uid=first_uid
     )
     return deserialized
 
@@ -298,6 +306,17 @@ def import_rdf_file(path, format="xml", session=None, buffer_context=None):
     from osp.core.session.buffers import BufferContext
     g = rdflib.Graph()
     g.parse(path, format=format)
+    test_triples = [
+        (None, rdflib.RDF.type, rdflib.OWL.Class),
+        (None, rdflib.RDF.type, rdflib.OWL.DatatypeProperty),
+        (None, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
+    ]
+    if any(t in g for t in test_triples):
+        raise ValueError("Data contains class or property definitions. "
+                         "Please install ontologies using pico and use the "
+                         "rdf import only for individuals!")
+    onto_iri = g.value(None, rdflib.RDF.type, rdflib.OWL.Ontology)
+    g.remove((onto_iri, None, None))
     session = session or Cuds._session
     buffer_context = buffer_context or BufferContext.USER
     deserialized = import_rdf(

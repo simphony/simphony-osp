@@ -357,7 +357,7 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
         return cuds
 
 
-def import_rdf(graph, session, buffer_context):
+def import_rdf(graph, session, buffer_context, return_uid=None):
     """Import RDF Graph to CUDS.
 
     Args:
@@ -365,6 +365,7 @@ def import_rdf(graph, session, buffer_context):
         session (Session): The session to add the CUDS objects to.
         buffer_context (BufferContext): add the deserialized cuds objects to
             the selected buffers.
+        return_uid (UUID): Return only the object with the given UUID.
 
     Raises:
         ValueError: Not allowed to deserialize with undefined buffer context.
@@ -375,15 +376,14 @@ def import_rdf(graph, session, buffer_context):
     if not isinstance(buffer_context, BufferContext):
         raise ValueError("Not allowed to deserialize CUDS object "
                          "with undefined buffer_context")
-    first = graph.value(rdflib_cuba._serialization, rdflib.RDF.first)
-    if first:  # return the element marked as first later
-        first = uuid.UUID(hex=first)
-        graph.remove((rdflib_cuba._serialization, rdflib.RDF.first, None))
+
     result = list()
     with get_buffer_context_mngr(session, buffer_context):
         triples = dict()
         for s, p, o in graph:
             # handle custom datatype: VECTORs
+            if isinstance(s, rdflib.BNode):
+                continue
             if isinstance(o, rdflib.Literal)  \
                     and o.datatype and o.datatype in rdflib_cuba \
                     and "VECTOR" in o.datatype.toPython():
@@ -395,16 +395,13 @@ def import_rdf(graph, session, buffer_context):
             session.graph.add((s, p, o))
             triples[uid] = triples.get(uid, set())
             triples[uid].add((s, p, o))
-        if first:
+
+        for uid, t in triples.items():
             # Create entry in the registry
-            result.append(create_from_triples(triples[first], set(), session,
-                                              fix_neighbors=False))
-            del triples[first]
-        for _, t in triples.items():
-            # Create entry in the registry
-            result.append(create_from_triples(t, set(), session,
-                                              fix_neighbors=False))
-    return result if not first else result[0]
+            x = create_from_triples(t, set(), session, fix_neighbors=False)
+            if return_uid is None or uid == return_uid:
+                result.append(x)
+    return result if not return_uid else result[0]
 
 
 def get_hash_dir(directory_path):

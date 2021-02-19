@@ -2,8 +2,8 @@
 
 import unittest2 as unittest
 import rdflib
+from pathlib import Path
 from osp.core.utils import import_rdf_file
-
 
 # Load the ontology for the test.
 try:
@@ -11,7 +11,9 @@ try:
 except ImportError:  # If the ontology is not installed.
     from osp.core.ontology import Parser
     from osp.core.namespaces import _namespace_registry
-    Parser(_namespace_registry._graph).parse("test_general_rdf_import.owl.yml")
+    Parser(_namespace_registry._graph).parse(
+        str(Path(__file__).parent / "test_general_rdf_import.owl.yml")
+    )
     _namespace_registry.update_namespaces()
     test_general_rdf_import = _namespace_registry.test_general_rdf_import
 
@@ -25,7 +27,10 @@ class TestRDFImport(unittest.TestCase):
     against the loaded data.
     """
 
-    test_ontology_path = './test_general_rdf_import.owl'
+    test_ontology_path = str(Path(__file__).parent
+                             / "test_general_rdf_import_data.owl")
+    test_ontology_path_err = str(Path(__file__).parent
+                                 / "test_general_rdf_import.owl")
 
     def __init__(self, *args, **kwargs):
         """Loads the RDF file to be used in the test."""
@@ -44,7 +49,7 @@ class TestRDFImport(unittest.TestCase):
             for i in range(1, 5))
         # Each individual in the file
         # represents a "Block" placed in a line. Therefore they may be
-        # called object[1], onbject[2], object[3] and object[4].
+        # called object[1], object[2], object[3] and object[4].
         self.object = {i: obj for i, obj
                        in enumerate(self.expected_objects, 1)}
 
@@ -111,3 +116,7 @@ class TestRDFImport(unittest.TestCase):
             self.assertIs(neighbor, self.object[i + 1])
             neighbor = cuds.get(rel=test_general_rdf_import.isNextTo)
             self.assertIs(neighbor, self.object[i + 1])
+
+
+if __name__ == "__main__":
+    unittest.main()
