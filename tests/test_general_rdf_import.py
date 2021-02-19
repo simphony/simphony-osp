@@ -112,9 +112,9 @@ class TestRDFImport(unittest.TestCase):
         """Checks the loaded relationships between CUDS objects."""
         for i in range(1, 4):
             cuds = self.object[i]
-            neighbor = cuds.get(rel=test_general_rdf_import.isLeftOf)
+            neighbor = cuds.get(rel=test_general_rdf_import.isLeftOf)[0]
             self.assertIs(neighbor, self.object[i + 1])
-            neighbor = cuds.get(rel=test_general_rdf_import.isNextTo)
+            neighbor = cuds.get(rel=test_general_rdf_import.isNextTo)[0]
             self.assertIs(neighbor, self.object[i + 1])
 
 

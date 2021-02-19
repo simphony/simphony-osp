@@ -172,8 +172,6 @@ class Restriction():
                 )
             except KeyError:
                 self._cached_target = x
-                if isinstance(x, BNode):
-                    self._namespace_registry.from_bnode(x)
             return True
 
 

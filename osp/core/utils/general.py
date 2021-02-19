@@ -316,7 +316,8 @@ def import_rdf_file(path, format="xml", session=None, buffer_context=None):
                          "Please install ontologies using pico and use the "
                          "rdf import only for individuals!")
     onto_iri = g.value(None, rdflib.RDF.type, rdflib.OWL.Ontology)
-    g.remove((onto_iri, None, None))
+    if onto_iri:
+        g.remove((onto_iri, None, None))
     session = session or Cuds._session
     buffer_context = buffer_context or BufferContext.USER
     deserialized = import_rdf(

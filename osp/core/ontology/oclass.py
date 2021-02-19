@@ -186,7 +186,6 @@ class OntologyClass(OntologyEntity):
                     f"commandline tool to transform entity names to CamelCase."
                 )
                 return attribute
-        raise AttributeError(name)
 
     def _get_attributes_values(self, kwargs, _force):
         """Get the cuds object's attributes from the given kwargs.

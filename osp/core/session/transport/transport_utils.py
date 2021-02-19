@@ -382,8 +382,9 @@ def import_rdf(graph, session, buffer_context, return_uid=None):
         triples = dict()
         for s, p, o in graph:
             # handle custom datatype: VECTORs
-            if isinstance(s, rdflib.BNode):
-                continue
+            if isinstance(s, rdflib.BNode) or isinstance(o, rdflib.BNode) \
+                    or o == rdflib.OWL.NamedIndividual:
+                continue  # TODO also import BNodes and type-NamedIndividual?
             if isinstance(o, rdflib.Literal)  \
                     and o.datatype and o.datatype in rdflib_cuba \
                     and "VECTOR" in o.datatype.toPython():
@@ -391,10 +392,12 @@ def import_rdf(graph, session, buffer_context, return_uid=None):
                     convert_to(ast.literal_eval(o.toPython()), o.datatype),
                     datatype=o.datatype, lang=o.language
                 )
-            uid, s = uid_from_general_iri(s, session.graph)
+            if isinstance(o, rdflib.URIRef) and p != rdflib.RDF.type:
+                _, o = uid_from_general_iri(o, session.graph)
+            s_uid, s = uid_from_general_iri(s, session.graph)
             session.graph.add((s, p, o))
-            triples[uid] = triples.get(uid, set())
-            triples[uid].add((s, p, o))
+            triples[s_uid] = triples.get(s_uid, set())
+            triples[s_uid].add((s, p, o))
 
         for uid, t in triples.items():
             # Create entry in the registry
