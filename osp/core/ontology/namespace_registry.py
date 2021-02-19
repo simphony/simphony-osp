@@ -174,6 +174,27 @@ class NamespaceRegistry():
             raise KeyError(f"IRI {iri} not found in graph or not of any "
                            f"type in the set {allow_types}")
 
+    def from_bnode(self, bnode, btype=None):
+        """Return restriction, composition represented by given bnode.
+
+        Args:
+            bnode (BNode): A blank node in the triple store.
+            btype (URIRef): The rdf:type of the bnode.
+        """
+        from osp.core.ontology.oclass_composition import get_composition
+        from osp.core.ontology.oclass_restriction import get_restriction
+        t = btype or self._graph.value(bnode, rdflib.RDF.type)
+
+        if t == rdflib.OWL.Restriction:
+            x = get_restriction(bnode, self)
+            if x:
+                return x
+        elif t == rdflib.OWL.Class:
+            x = get_composition(bnode, self)
+            if x:
+                return x
+        raise KeyError(bnode)
+
     def _get_namespace_name_and_iri(self, iri):
         """Get the namespace name and namespace iri for an entity iri.
 
