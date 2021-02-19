@@ -245,8 +245,10 @@ class NamespaceRegistry():
             str: The name of the entity with the given IRI
         """
         if self._get_reference_by_label(ns_iri):
-            return self._graph.value(entity_iri,
-                                     rdflib.SKOS.prefLabel).toPython()
+            x = self._graph.value(entity_iri, rdflib.SKOS.prefLabel)
+            if x is not None:
+                return x.toPython()
+            logger.warn(f"No label for {entity_iri}")
         return entity_iri[len(ns_iri):]
 
     def clear(self):
