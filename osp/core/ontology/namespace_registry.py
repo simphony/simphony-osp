@@ -8,6 +8,7 @@ from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
+from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +135,7 @@ class NamespaceRegistry():
                                  namespace_registry=self,
                                  iri=ns_iri)
 
+    @lru_cache(maxsize=1024)
     def from_iri(self, iri, raise_error=True,
                  allow_types=frozenset({rdflib.OWL.DatatypeProperty,
                                         rdflib.OWL.ObjectProperty,
