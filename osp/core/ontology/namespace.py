@@ -304,7 +304,12 @@ class OntologyNamespace():
                             f'{rdflib.BNode} as left operand, '
                             f'not {type(item)}.')
 
-        return item in self._get_namespace_subjects(unique=False)
+        if isinstance(item, rdflib.BNode):
+            return False
+        elif str(item).startswith(self._iri):
+            return True
+        else:
+            return False
 
     # TODO: Cache or write a more efficient algorithm.
     def _get_namespace_subjects(self, unique=True):
@@ -318,9 +323,8 @@ class OntologyNamespace():
             iter: An iterator that goes through all the subjects belonging
                   to the namespace.
         """
-        subjects = (subject for subject in self._graph.subjects() if
-                    isinstance(subject, rdflib.URIRef)
-                    and str(subject).startswith(self._iri))
+        subjects = (subject for subject in self._graph.subjects()
+                    if subject in self)
         if unique:
             return set(subjects)
         else:
