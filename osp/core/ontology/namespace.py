@@ -148,7 +148,7 @@ class OntologyNamespace():
             OntologyEntity: The ontology entity.
         """
         if type(label) is str:
-            lang = 'en'
+            lang = None
         elif isinstance(label, Iterable):
             contents = tuple(label)
             if len(contents) == 2:
@@ -217,7 +217,7 @@ class OntologyNamespace():
                                                   self.get_from_suffix)
             raise e
 
-    def _get_from_label(self, label, lang='en', case_sensitive=False):
+    def _get_from_label(self, label, lang=None, case_sensitive=False):
         """Get an ontology entity from the registry by label.
 
         Args:
