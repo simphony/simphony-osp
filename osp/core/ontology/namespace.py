@@ -2,6 +2,7 @@
 
 
 from collections.abc import Iterable
+from functools import lru_cache
 import rdflib
 import logging
 
@@ -71,6 +72,22 @@ class OntologyNamespace():
     def _graph(self):
         """Return the graph of the namespace registry."""
         return self._namespace_registry._graph
+
+    @property
+    @lru_cache(maxsize=1)
+    def _label_properties(self):
+        """Returns a tuple with the preferred properties to be used as labels.
+
+        Returns (tuple): The properties to be used as labels, ordered by
+                         preference.
+        """
+        defaults = (rdflib.SKOS.prefLabel, rdflib.RDFS.label)
+        for s, p, o in self._graph.triples((self._iri,
+                                            rdflib_cuba._preferred_label_type,
+                                            None)):
+            return tuple((o, *(pr for pr in defaults if pr not in (o, ))))
+        else:
+            return defaults
 
     def get_default_rel(self):
         """Get the default relationship of the namespace."""
@@ -219,7 +236,9 @@ class OntologyNamespace():
             # label itself (a rdflib.Literal).
             entity_labels = (label_tuple[1].toPython()
                              for label_tuple in
-                             self._graph.preferredLabel(iri, lang=lang)
+                             self._graph.preferredLabel(iri, lang=lang,
+                                                        labelProperties=self.
+                                                        _label_properties)
                              if label_tuple is not None)
             if case_sensitive is False:
                 entity_labels = (label.lower() for label in entity_labels)

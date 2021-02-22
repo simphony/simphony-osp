@@ -84,7 +84,11 @@ class TestParser(unittest.TestCase):
             )
         rdf = rdflib.Graph()
         rdf.parse(RDF_FILE, format="ttl")
-        self.assertEqual(len(self.graph), len(rdf) + len_cuba)
+        len_pref_label = len(tuple(self.graph.triples((None,
+                                                       rdflib_cuba.
+                                                       _preferred_label_type,
+                                                       None))))
+        self.assertEqual(len(self.graph), len(rdf) + len_cuba + len_pref_label)
         self.assertEqual(len(self.parser._graphs), 1)
         self.assertEqual(len(self.parser._graphs["parser_test"]), len(rdf))
         self.assertTrue(isomorphic(self.parser._graphs["parser_test"], rdf))
