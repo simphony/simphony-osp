@@ -74,7 +74,7 @@ class OntologyNamespace():
         return self._namespace_registry._graph
 
     @property
-    @lru_cache(maxsize=1)
+    @lru_cache(maxsize=1024)
     def _label_properties(self):
         """Returns a tuple with the preferred properties to be used as labels.
 
