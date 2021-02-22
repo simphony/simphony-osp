@@ -244,19 +244,21 @@ class TestNamespaces(unittest.TestCase):
         self.assertEqual(namespace.coordinates._iri_suffix, "coordinates")
 
         # item
-        self.assertIsInstance(namespace["City_T"][0], OntologyClass)
-        self.assertEqual(namespace["City_T"][0].name, "City")
-        self.assertEqual(namespace["City_T"][0]._iri_suffix, "City")
-        self.assertIsInstance(namespace["City_T", "en"][0], OntologyClass)
-        self.assertEqual(namespace["City_T", "en"][0].name, "City")
-        self.assertEqual(namespace["City_T", "en"][0]._iri_suffix, "City")
-        self.assertIsInstance(namespace["hasPart_T"][0], OntologyRelationship)
-        self.assertEqual(namespace["hasPart_T"][0].name, "hasPart")
-        self.assertEqual(namespace["hasPart_T"][0]._iri_suffix, "hasPart")
-        self.assertIsInstance(namespace["coordinates_T"][0], OntologyAttribute)
-        self.assertEqual(namespace["coordinates_T"][0].name, "coordinates")
-        self.assertEqual(namespace["coordinates_T"][0]._iri_suffix,
+        self.assertIsInstance(namespace["City_T"], OntologyClass)
+        self.assertEqual(namespace["City_T"].name, "City")
+        self.assertEqual(namespace["City_T"]._iri_suffix, "City")
+        self.assertIsInstance(namespace["City_T", "en"], OntologyClass)
+        self.assertEqual(namespace["City_T", "en"].name, "City")
+        self.assertEqual(namespace["City_T", "en"]._iri_suffix, "City")
+        self.assertIsInstance(namespace["hasPart_T"], OntologyRelationship)
+        self.assertEqual(namespace["hasPart_T"].name, "hasPart")
+        self.assertEqual(namespace["hasPart_T"]._iri_suffix, "hasPart")
+        self.assertIsInstance(namespace["coordinates_T"], OntologyAttribute)
+        self.assertEqual(namespace["coordinates_T"].name, "coordinates")
+        self.assertEqual(namespace["coordinates_T"]._iri_suffix,
                          "coordinates")
+
+        # TODO test multiple elements with the same label
 
         # get
         self.assertIsInstance(namespace.get("City"), OntologyClass)
@@ -288,18 +290,18 @@ class TestNamespaces(unittest.TestCase):
         self.assertEqual(namespace.coordinates_T._iri_suffix, "coordinates")
 
         # item
-        self.assertIsInstance(namespace["City_T"][0], OntologyClass)
-        self.assertEqual(namespace["City_T"][0].name, "City_T")
-        self.assertEqual(namespace["City_T"][0]._iri_suffix, "City")
-        self.assertIsInstance(namespace["City_T", "en"][0], OntologyClass)
-        self.assertEqual(namespace["City_T", "en"][0].name, "City_T")
-        self.assertEqual(namespace["City_T", "en"][0]._iri_suffix, "City")
-        self.assertIsInstance(namespace["hasPart_T"][0], OntologyRelationship)
-        self.assertEqual(namespace["hasPart_T"][0].name, "hasPart_T")
-        self.assertEqual(namespace["hasPart_T"][0]._iri_suffix, "hasPart")
-        self.assertIsInstance(namespace["coordinates_T"][0], OntologyAttribute)
-        self.assertEqual(namespace["coordinates_T"][0].name, "coordinates_T")
-        self.assertEqual(namespace["coordinates_T"][0]._iri_suffix,
+        self.assertIsInstance(namespace["City_T"], OntologyClass)
+        self.assertEqual(namespace["City_T"].name, "City_T")
+        self.assertEqual(namespace["City_T"]._iri_suffix, "City")
+        self.assertIsInstance(namespace["City_T", "en"], OntologyClass)
+        self.assertEqual(namespace["City_T", "en"].name, "City_T")
+        self.assertEqual(namespace["City_T", "en"]._iri_suffix, "City")
+        self.assertIsInstance(namespace["hasPart_T"], OntologyRelationship)
+        self.assertEqual(namespace["hasPart_T"].name, "hasPart_T")
+        self.assertEqual(namespace["hasPart_T"]._iri_suffix, "hasPart")
+        self.assertIsInstance(namespace["coordinates_T"], OntologyAttribute)
+        self.assertEqual(namespace["coordinates_T"].name, "coordinates_T")
+        self.assertEqual(namespace["coordinates_T"]._iri_suffix,
                          "coordinates")
 
         # get
