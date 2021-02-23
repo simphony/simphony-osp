@@ -369,7 +369,6 @@ class TestNamespaces(unittest.TestCase):
         # Different concepts with the same label.
         self.assertRaises(AttributeError, namespace.__getattr__, 'Burro')
         # Same word with different concept in different languages.
-        self.assertNotEqual(namespace['Burro', 'es'], namespace['Burro', 'it'])
         self.assertEqual(namespace['Burro', 'it'], namespace.City_T)
         self.assertEqual(namespace['Burro', 'es'], namespace.Street_T)
 

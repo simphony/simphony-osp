@@ -7,6 +7,7 @@ import yaml
 import requests
 import tempfile
 from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.yml.yml_parser import YmlParser
 
 logger = logging.getLogger(__name__)
@@ -264,6 +265,9 @@ class Parser():
             self._graphs[identifier].parse(f, format=file_format)
         else:
             self._graphs[identifier].parse(rdf_file, format=file_format)
+        if reference_style:
+            for namespace, iri in namespaces.items():
+                self._check_duplicate_labels(iri, identifier)
         for triple in self._graphs[identifier]:
             self.graph.add(triple)
         default_rels = dict()
@@ -337,6 +341,50 @@ class Parser():
                     rdflib_cuba._reference_by_label,
                     rdflib.Literal(True)
                 ))
+
+    def _check_duplicate_labels(self, namespace, identifier):
+        # Recycle some methods from the Namespace class. A namespace class
+        # cannot be used directly, as the namespace is being spawned.
+        placeholder = type('', (object, ),
+                           {'_iri': rdflib.URIRef(namespace),
+                            '_graph': self._graphs[identifier]})
+
+        def in_namespace(item):
+            return OntologyNamespace.__contains__(placeholder, item)
+
+        def labels_for_iri(iri):
+            return OntologyNamespace._get_labels_for_iri(placeholder, iri,
+                                                         lang=None,
+                                                         _return_literal=True)
+        # Finally check for the duplicate labels.
+        subjects = (subject
+                    for subject in set(placeholder._graph.subjects())
+                    if in_namespace(subject))
+
+        labels = {}
+        for iri in subjects:
+            entity_labels = ((label.toPython(), label.language) for label in
+                             labels_for_iri(iri))
+            for label, language in entity_labels:
+                if (label, language) not in labels:
+                    labels[(label, language)] = {iri}
+                else:
+                    labels[(label, language)] |= {iri}
+        results = {}
+        for key, iris in labels.items():
+            if len(iris) > 1:
+                results[key] = iris
+        if len(results) > 0:
+            duplicates, culprits = True, results
+        else:
+            duplicates, culprits = False, results
+        if duplicates:
+            text = (f'{label}: '
+                    f'{", ".join(tuple(str(iri) for iri in iris))}'
+                    for label, iris in culprits.items())
+            raise KeyError(f'Different entities with coincident '
+                           f'labels found: {"; ".join(text)} in '
+                           f'namespace {namespace}.')
 
     def _check_namespaces(self, namespace_iris):
         namespaces = set(namespace_iris)

@@ -214,14 +214,7 @@ class OntologyNamespace():
         """
         results = []
         for iri in self._get_namespace_subjects():
-            entity_labels = (label_tuple[1].toPython()
-                             for prop in (rdflib.SKOS.prefLabel,
-                                          rdflib.RDFS.label)
-                             for label_tuple in
-                             self._graph.preferredLabel(iri, lang=lang,
-                                                        labelProperties=(prop,
-                                                                         ))
-                             if label_tuple is not None)
+            entity_labels = self._get_labels_for_iri(iri, lang=lang)
             if case_sensitive is False:
                 entity_labels = (label.lower() for label in entity_labels)
                 comp_label = label.lower()
@@ -312,6 +305,30 @@ class OntologyNamespace():
             return set(subjects)
         else:
             return subjects
+
+    def _get_labels_for_iri(self, iri, lang=None, _return_literal=False):
+        """Returns all the available labels for the given IRI.
+
+        Args:
+            iri (rdflib.URIRef): the target iri.
+            lang (str): retrieve labels only on a speific language.
+            _return_literal: return rdflib.Literal instead of str, so that the
+                             language of the labels is known to the caller.
+
+        Returns:
+            Union[str, rdflib.Literal]: Either the text of the label or the
+                                        rdflib.Literal representing the label.
+        """
+        labels = (label_tuple
+                  for prop in (rdflib.SKOS.prefLabel, rdflib.RDFS.label)
+                  for label_tuple in
+                  self._graph.preferredLabel(iri, lang=lang,
+                                             labelProperties=(prop,))
+                  if label_tuple is not None)
+        if not _return_literal:
+            return (label[1].toPython() for label in labels)
+        else:
+            return (label[1] for label in labels)
 
     # Backwards compatibility.
     # ↓----------------------↓

@@ -86,6 +86,31 @@ class TestInstallation(unittest.TestCase):
             self.assertIn("parser_test\thttp://www.osp-core.com/parser_test#",
                           lines)
 
+    def test_conflicting_labels(self):
+        """Tests that ontologies with conflicting labels fail to be installed.
+
+        An example of such an ontology is the FOAF ontology, which has the same
+        label for multiple IRIs. An error is only raised on installation if the
+        reference_by_label option is set to Tue in the yml file.
+        """
+        FOAF = """
+        identifier: foaf_TEST
+        ontology_file: http://xmlns.com/foaf/spec/index.rdf
+        reference_by_label: True
+        namespaces:
+            foaf_TEST: "http://xmlns.com/foaf/0.1/"
+        active_relationships: []
+        """
+
+        foaf_file = tempfile.NamedTemporaryFile(delete=False, suffix='.yml')
+        foaf_file.close()
+        with open(foaf_file.name, 'w') as file:
+            file.write(FOAF)
+        self.assertRaises(KeyError, self.installer._install,
+                          [foaf_file.name], lambda files: [foaf_file.name],
+                          clear=False)
+        os.remove(foaf_file.name)
+
     def test_get_new_packages(self):
         """Test getting new packages that need to be installed."""
         o1, o2 = self.copy_files()
