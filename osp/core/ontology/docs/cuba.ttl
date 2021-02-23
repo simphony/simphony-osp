@@ -33,10 +33,6 @@ cuba:_default_value rdf:type owl:AnnotationProperty .
 cuba:_reference_by_label rdf:type owl:AnnotationProperty .
 
 
-###  http://www.osp-core.com/cuba#_preferred_label_type
-cuba:_preferred_label_type rdf:type owl:AnnotationProperty .
-
-
 #################################################################
 #    Object Properties
 #################################################################

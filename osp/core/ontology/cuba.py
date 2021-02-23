@@ -14,7 +14,7 @@ ENTITIES = [
 HIDDEN = [
     "_default", "_default_attribute", "_default_value",
     "_default_rel", "_length", "_shape", "_dtype", "_reference_by_label",
-    "_serialization", "_preferred_label_type"
+    "_serialization"
 ]
 
 DTYPE_PREFIXES = [

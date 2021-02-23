@@ -19,7 +19,6 @@ DEFAULT_REL_KEY = "default_relationship"
 FILE_FORMAT_KEY = "format"
 REQUIREMENTS_KEY = "requirements"
 REFERENCE_STYLE_KEY = "reference_by_label"
-PREFERRED_LABEL_PREDICATE_KEY = "preferred_label_predicate"
 FILE_HANDLER_KEY = "file"
 ALL_KEYS = set([
     RDF_FILE_KEY, NAMESPACES_KEY, ACTIVE_REL_KEY, DEFAULT_REL_KEY,
@@ -240,17 +239,13 @@ class Parser():
         """
         # parse input kwargs
         try:
-            # Mandatory keys
             rdf_file = kwargs[RDF_FILE_KEY]
             f = kwargs[FILE_HANDLER_KEY]
             namespaces = kwargs[NAMESPACES_KEY]
             identifier = kwargs[IDENTIFIER_KEY]
-            # Optional keys
             active_rels = kwargs.get(ACTIVE_REL_KEY, [])
             default_rel = kwargs.get(DEFAULT_REL_KEY, None)
             reference_style = kwargs.get(REFERENCE_STYLE_KEY, False)
-            pref_label_predicate = kwargs.get(PREFERRED_LABEL_PREDICATE_KEY,
-                                              None)
             file_format = kwargs.get(FILE_FORMAT_KEY, "xml")
         except KeyError as e:
             raise TypeError(
@@ -273,7 +268,6 @@ class Parser():
             self.graph.add(triple)
         default_rels = dict()
         reference_styles = dict()
-        pref_label_predicates = dict()
         namespace_iris = set()
         for namespace, iri in namespaces.items():
             if not (
@@ -286,13 +280,11 @@ class Parser():
             self.graph.bind(namespace, rdflib.URIRef(iri))
             default_rels[iri] = default_rel
             reference_styles[iri] = reference_style
-            pref_label_predicates[iri] = pref_label_predicate
 
         self._check_namespaces(namespace_iris)
         self._add_cuba_triples(active_rels)
         self._add_default_rel_triples(default_rels)
         self._add_reference_style_triples(reference_styles)
-        self._add_reference_label_predicate_triples(pref_label_predicates)
 
     def _add_default_rel_triples(self, default_rels):
         """Add the triples to the graph that indicate the default rel.
@@ -345,21 +337,6 @@ class Parser():
                     rdflib_cuba._reference_by_label,
                     rdflib.Literal(True)
                 ))
-
-    def _add_reference_label_predicate_triples(self, pref_label_predicates):
-        """Specify the preferred label definition for referencing entities.
-
-        Args:
-            pref_label_predicates (dict{str: rdflib.URIRef, ...}): Pairs of
-                namespace names and the preferred predicate to be used when
-                referring to elements in the namespace by label.
-        """
-        for namespace, predicate in pref_label_predicates.items():
-            self.graph.add((
-                rdflib.URIRef(namespace),
-                rdflib_cuba._preferred_label_type,
-                rdflib.URIRef(str(predicate))
-            ))
 
     def _check_namespaces(self, namespace_iris):
         namespaces = set(namespace_iris)
