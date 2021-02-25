@@ -230,6 +230,9 @@ class TestNamespaces(unittest.TestCase):
                 label_RDFS_jp = f"{o}_T_jp"
                 triples.append((s, rdflib.RDFS.label,
                                 rdflib.Literal(label_RDFS_jp, lang='jp')))
+                label_SKOS_aa = f"{o}_T_aa_SKOS"
+                triples.append((s, rdflib.SKOS.prefLabel,
+                                rdflib.Literal(label_SKOS_aa, lang='aa')))
                 # To test undefined languages.
                 label_RDFS_unk = f"{o}_T_unknown_lang"
                 triples.append((s, rdflib.RDFS.label,

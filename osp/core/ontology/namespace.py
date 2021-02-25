@@ -306,7 +306,8 @@ class OntologyNamespace():
         else:
             return subjects
 
-    def _get_labels_for_iri(self, iri, lang=None, _return_literal=False):
+    def _get_labels_for_iri(self, iri, lang=None, _return_literal=False,
+                            _return_label_property=False):
         """Returns all the available labels for the given IRI.
 
         Args:
@@ -326,9 +327,12 @@ class OntologyNamespace():
                                              labelProperties=(prop,))
                   if label_tuple is not None)
         if not _return_literal:
-            return (label[1].toPython() for label in labels)
-        else:
+            labels = ((prop, literal.toPython())
+                      for prop, literal in labels)
+        if not _return_label_property:
             return (label[1] for label in labels)
+        else:
+            return labels
 
     # Backwards compatibility.
     # ↓----------------------↓
