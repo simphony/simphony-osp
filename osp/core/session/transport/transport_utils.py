@@ -14,7 +14,7 @@ from osp.core.namespaces import get_entity, cuba
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.buffers import BufferContext, get_buffer_context_mngr
-from osp.core.utils import create_from_triples, uid_from_iri
+from osp.core.utils import create_from_triples, uid_from_general_iri
 from osp.core.ontology.cuba import rdflib_cuba
 
 logger = logging.getLogger(__name__)
@@ -357,7 +357,7 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
         return cuds
 
 
-def import_rdf(graph, session, buffer_context):
+def import_rdf(graph, session, buffer_context, return_uid=None):
     """Import RDF Graph to CUDS.
 
     Args:
@@ -365,6 +365,7 @@ def import_rdf(graph, session, buffer_context):
         session (Session): The session to add the CUDS objects to.
         buffer_context (BufferContext): add the deserialized cuds objects to
             the selected buffers.
+        return_uid (UUID): Return only the object with the given UUID.
 
     Raises:
         ValueError: Not allowed to deserialize with undefined buffer context.
@@ -375,33 +376,35 @@ def import_rdf(graph, session, buffer_context):
     if not isinstance(buffer_context, BufferContext):
         raise ValueError("Not allowed to deserialize CUDS object "
                          "with undefined buffer_context")
-    first = graph.value(rdflib_cuba._serialization, rdflib.RDF.first)
-    if first:
-        first = uuid.UUID(hex=first)
-        graph.remove((rdflib_cuba._serialization, rdflib.RDF.first, None))
+
     result = list()
     with get_buffer_context_mngr(session, buffer_context):
         triples = dict()
         for s, p, o in graph:
-            if isinstance(o, rdflib.Literal) \
+            # handle custom datatype: VECTORs
+            if isinstance(s, rdflib.BNode) or isinstance(o, rdflib.BNode) \
+                    or o == rdflib.OWL.NamedIndividual:
+                continue  # TODO also import BNodes and type-NamedIndividual?
+            if isinstance(o, rdflib.Literal)  \
                     and o.datatype and o.datatype in rdflib_cuba \
                     and "VECTOR" in o.datatype.toPython():
                 o = rdflib.Literal(
                     convert_to(ast.literal_eval(o.toPython()), o.datatype),
                     datatype=o.datatype, lang=o.language
                 )
+            if isinstance(o, rdflib.URIRef) and p != rdflib.RDF.type:
+                _, o = uid_from_general_iri(o, session.graph)
+            s_uid, s = uid_from_general_iri(s, session.graph)
             session.graph.add((s, p, o))
-            uid = uid_from_iri(s)
-            triples[uid] = triples.get(uid, set())
-            triples[uid].add((s, p, o))
-        if first:
-            result.append(create_from_triples(triples[first], set(), session,
-                                              fix_neighbors=False))
-            del triples[first]
-        for _, t in triples.items():
-            result.append(create_from_triples(t, set(), session,
-                                              fix_neighbors=False))
-    return result if not first else result[0]
+            triples[s_uid] = triples.get(s_uid, set())
+            triples[s_uid].add((s, p, o))
+
+        for uid, t in triples.items():
+            # Create entry in the registry
+            x = create_from_triples(t, set(), session, fix_neighbors=False)
+            if return_uid is None or uid == return_uid:
+                result.append(x)
+    return result if not return_uid else result[0]
 
 
 def get_hash_dir(directory_path):

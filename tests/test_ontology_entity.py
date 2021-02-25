@@ -198,8 +198,7 @@ class TestOntologyEntity(unittest.TestCase):
         self.assertEqual(city.City.get_attribute_by_argname("name"), city.name)
         self.assertEqual(city.City.get_attribute_by_argname("coordinates"),
                          city.coordinates)
-        self.assertRaises(AttributeError, city.City.get_attribute_by_argname,
-                          "invalid")
+        self.assertIs(city.City.get_attribute_by_argname("invalid"), None)
 
     def test_oclass_call(self):
         """Test calling an close to create CUDS."""

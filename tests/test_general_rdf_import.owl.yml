@@ -1,0 +1,7 @@
+---
+identifier: test_general_rdf_import
+ontology_file: "./test_general_rdf_import_ontology.owl"
+reference_by_label: True
+namespaces:
+    test_general_rdf_import: "http://example.org/test-ontology#"
+active_relationships: []
