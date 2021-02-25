@@ -3,14 +3,17 @@
 These are potantially useful for every user of SimPhoNy.
 """
 
+import logging
 import requests
 import json
 import rdflib
 import uuid
 from osp.core.namespaces import cuba
 from rdflib_jsonld.parser import to_rdf as json_to_rdf
+from osp.core.ontology.datatypes import convert_from
 
 CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
+logger = logging.getLogger(__name__)
 
 
 def branch(cuds_object, *args, rel=None):
@@ -55,17 +58,32 @@ def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
         obj.session.delete_cuds_object(obj)
 
 
-def get_rdf_graph(session=None, skip_custom_datatypes=False):
-    """EXPERIMENTAL.
+def serialize_rdf_graph(path, format="xml", session=None,
+                        skip_custom_datatypes=False, skip_ontology=True):
+    """Serialize an RDF graph and take care of custom datatypes."""
+    graph = get_rdf_graph(session, skip_custom_datatypes, skip_ontology)
+    result = rdflib.Graph()
+    for s, p, o in graph:
+        if isinstance(o, rdflib.Literal):
+            o = rdflib.Literal(convert_from(o.toPython(), o.datatype),
+                               datatype=o.datatype, lang=o.language)
+        result.add((s, p, o))
+    result.serialize(path, format)
 
-    Get the RDF Graph from a session.
-    If no session is, the core session will be used.
+
+def get_rdf_graph(session=None, skip_custom_datatypes=False,
+                  skip_ontology=True):
+    """Get the RDF Graph from a session.
+
+    If no session is given, the core session will be used.
 
     Args:
         session (Session, optional): The session to compute the RDF Graph of.
             Defaults to None.
         skip_custom_datatypes (bool): Whether triples concerining custom
             datatypes should be skipped in export.
+        skip_ontology (bool): Whether to have the ontology triples in the
+            result graph.
 
     Returns:
         rdflib.Graph: The resulting rdf Graph
@@ -80,8 +98,9 @@ def get_rdf_graph(session=None, skip_custom_datatypes=False):
     from osp.core.cuds import Cuds
     from osp.core.namespaces import _namespace_registry
     session = session or Cuds._session
-    cuds_graph = session._get_full_graph()
-    result = cuds_graph | _namespace_registry._graph
+    result = session._get_full_graph()
+    if not skip_ontology:
+        result = result | _namespace_registry._graph
     if skip_custom_datatypes:
         return result - get_custom_datatype_triples()
     return result
@@ -108,7 +127,37 @@ def uid_from_iri(iri):
     Returns:
         URIRef: The IRI of the CUDS object with the given UUID.
     """
-    return uuid.UUID(hex=str(iri)[len(CUDS_IRI_PREFIX):])
+    try:
+        return uuid.UUID(hex=str(iri)[len(CUDS_IRI_PREFIX):])
+    except ValueError as e:
+        raise ValueError(f"Unable to transform {iri} to UUID.") from e
+
+
+def uid_from_general_iri(iri, graph, _visited=frozenset()):
+    """Get a UUID from a general (not containing a UUID) IRI.
+
+    Args:
+        iri (UriRef): The IRI to convert to UUID.
+        graph (Graph): The rdflib Graph to look for different IRIs for the
+            same individual.
+        _visited (Frozenset): Used for recursive calls.
+
+    Returns:
+        Tuple[UUID, URIRef]: The UUID and an IRI containing this UUID.
+    """
+    if str(iri).startswith(CUDS_IRI_PREFIX):
+        return uid_from_iri(iri), iri
+
+    for _, _, x in graph.triples((iri, rdflib.OWL.sameAs, None)):
+        if x not in _visited:
+            return uid_from_general_iri(x, graph, _visited | {iri})
+    for x, _, _ in graph.triples((None, rdflib.OWL.sameAs, iri)):
+        if x not in _visited:
+            return uid_from_general_iri(x, graph, _visited | {iri})
+    uid = uuid.uuid4()
+    new_iri = iri_from_uid(uid)
+    graph.add((iri, rdflib.OWL.sameAs, new_iri))
+    return uid, new_iri
 
 
 def get_custom_datatypes():
@@ -219,15 +268,23 @@ def deserialize(json_doc, session=None, buffer_context=None):
     from osp.core.cuds import Cuds
     from osp.core.session.transport.transport_utils import import_rdf
     from osp.core.session.buffers import BufferContext
+    from osp.core.ontology.cuba import rdflib_cuba
     if isinstance(json_doc, str):
         json_doc = json.loads(json_doc)
     session = session or Cuds._session
     buffer_context = buffer_context or BufferContext.USER
     g = json_to_rdf(json_doc, rdflib.Graph())
+    # only return first
+    first = g.value(rdflib_cuba._serialization, rdflib.RDF.first)
+    first_uid = None
+    if first:  # return the element marked as first later
+        first_uid = uuid.UUID(hex=first)
+        g.remove((rdflib_cuba._serialization, rdflib.RDF.first, None))
     deserialized = import_rdf(
         graph=g,
         session=session,
-        buffer_context=buffer_context
+        buffer_context=buffer_context,
+        return_uid=first_uid
     )
     return deserialized
 
@@ -249,6 +306,18 @@ def import_rdf_file(path, format="xml", session=None, buffer_context=None):
     from osp.core.session.buffers import BufferContext
     g = rdflib.Graph()
     g.parse(path, format=format)
+    test_triples = [
+        (None, rdflib.RDF.type, rdflib.OWL.Class),
+        (None, rdflib.RDF.type, rdflib.OWL.DatatypeProperty),
+        (None, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
+    ]
+    if any(t in g for t in test_triples):
+        raise ValueError("Data contains class or property definitions. "
+                         "Please install ontologies using pico and use the "
+                         "rdf import only for individuals!")
+    onto_iri = g.value(None, rdflib.RDF.type, rdflib.OWL.Ontology)
+    if onto_iri:
+        g.remove((onto_iri, None, None))
     session = session or Cuds._session
     buffer_context = buffer_context or BufferContext.USER
     deserialized = import_rdf(

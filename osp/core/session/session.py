@@ -4,7 +4,7 @@ import rdflib
 from abc import ABC, abstractmethod
 from osp.core.session.registry import Registry
 from osp.core.session.result import returns_query_result
-from osp.core.utils import uid_from_iri
+from osp.core.utils import uid_from_general_iri
 
 
 class Session(ABC):
@@ -60,7 +60,8 @@ class Session(ABC):
         Yields:
             Cuds: The fetched Cuds objects.
         """
-        return self.load(*[uid_from_iri(iri) for iri in iris])
+        return self.load(*[uid_from_general_iri(iri, self.graph)[0]
+                           for iri in iris])
 
     @returns_query_result
     def load(self, *uids):
@@ -152,6 +153,8 @@ class Session(ABC):
 
     def _rdf_import(self, graph):
         """Import an RDF graph. Clears the old data beforehand.
+
+        Not really used at the moment in favor of utils.import_rdf_file.
 
         Args:
             graph (rdflib.graph): The graph to import.
