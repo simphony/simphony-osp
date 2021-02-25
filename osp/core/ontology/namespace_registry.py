@@ -248,9 +248,10 @@ class NamespaceRegistry():
         """
         if self._get_reference_by_label(ns_iri):
             namespace = self.namespace_from_iri(ns_iri)
-            labels = tuple(namespace._get_labels_for_iri(entity_iri,
-                                                _return_literal=True,
-                                                _return_label_property=True))
+            labels = tuple(
+                namespace._get_labels_for_iri(entity_iri,
+                                              _return_literal=True,
+                                              _return_label_property=True))
             if not labels:
                 logger.warning(f"No label for {entity_iri}")
             else:
