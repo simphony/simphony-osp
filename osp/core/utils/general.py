@@ -11,6 +11,7 @@ import uuid
 from osp.core.namespaces import cuba
 from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.ontology.datatypes import convert_from
+assert rdflib.Graph.serialize.patched is True
 
 CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
 logger = logging.getLogger(__name__)
