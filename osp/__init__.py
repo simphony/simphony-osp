@@ -39,7 +39,7 @@ if _compare_version_leq(rdflib.__version__, '5.0.0'):
             if kwargs.get('destination') is not None and not hasattr(kwargs.get('destination'), 'write'):
                 scheme, netloc, path, params, _query, fragment = urlparse('destination')
                 if scheme != 'file':
-                    kwargs['destination'] += 'file:///'
+                    kwargs['destination'] = 'file:///' + kwargs['destination']
             func(*args, **kwargs)
         return graph_serialize
     rdflib.Graph.serialize = graph_serialize_fix_decorator(rdflib.Graph.serialize)
