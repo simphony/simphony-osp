@@ -8,7 +8,6 @@ import requests
 import tempfile
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.yml.yml_parser import YmlParser
-assert rdflib.Graph.serialize.patched is True
 
 logger = logging.getLogger(__name__)
 

@@ -9,7 +9,6 @@ from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
 from functools import lru_cache
-assert rdflib.Graph.serialize.patched is True
 
 logger = logging.getLogger(__name__)
 

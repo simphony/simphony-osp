@@ -43,7 +43,4 @@ if _compare_version_leq(rdflib.__version__, '5.0.0'):
             func(*args, **kwargs)
         return graph_serialize
     rdflib.Graph.serialize = graph_serialize_fix_decorator(rdflib.Graph.serialize)
-    rdflib.Graph.serialize.patched = True
-else:
-    rdflib.Graph.serialize.patched = False
 

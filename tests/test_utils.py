@@ -32,7 +32,6 @@ from osp.core.utils import (
 )
 from osp.core.session.buffers import BufferContext
 from osp.core.cuds import Cuds
-assert rdflib.Graph.serialize.patched is True
 
 try:
     from .test_session_city import TestWrapperSession
