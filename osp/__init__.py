@@ -4,11 +4,11 @@ __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 # path is stripped on Windows by the graph.Graph.serialize method of RDFLib <= 5.0.0).
 import sys
 if sys.platform == 'win32':
-    import os
-    import ctypes
-    import ctypes.wintypes as wintypes
-    from urllib.parse import urlparse
-    import rdflib
+    import os as _osp_os
+    import ctypes as _osp_ctypes
+    import ctypes.wintypes as _osp_wintypes
+    from urllib.parse import urlparse as _osp_urlparse
+    import rdflib as _osp_rdflib
 
 
     def _compare_version_leq(version, other_version):
@@ -38,26 +38,26 @@ if sys.platform == 'win32':
                 return True
 
 
-    if _compare_version_leq(rdflib.__version__, '5.0.0'):
+    if _compare_version_leq(_osp_rdflib.__version__, '5.0.0'):
         # Then patch RDFLib with the following decorator.
-        def graph_serialize_fix_decorator(func):
+        def _graph_serialize_fix_decorator(func):
             def graph_serialize(*args, **kwargs):
                 if kwargs.get('destination') is not None and not hasattr(kwargs.get('destination'), 'write'):
                     # Bug causing case.
-                    scheme, netloc, path, params, _query, fragment = urlparse(kwargs['destination'])
-                    if urlparse(kwargs['destination']).path.startswith('\\'):  # The destination is a windows path.
+                    scheme, netloc, path, params, _query, fragment = _osp_urlparse(kwargs['destination'])
+                    if _osp_urlparse(kwargs['destination']).path.startswith('\\'):  # The destination is a windows path.
                         # Call the win32 API to get the volume ID.
-                        windows_func = ctypes.windll.kernel32.GetVolumeNameForVolumeMountPointW
-                        windows_func.argtypes = wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.DWORD
-                        lpszVolumeMountPoint = wintypes.LPCWSTR(f'{scheme}:\\')
-                        lpszVolumeName = ctypes.create_unicode_buffer(50)
-                        cchBufferLength = wintypes.DWORD(50)
+                        windows_func = _osp_ctypes.windll.kernel32.GetVolumeNameForVolumeMountPointW
+                        windows_func.argtypes = _osp_wintypes.LPCWSTR, _osp_wintypes.LPWSTR, _osp_wintypes.DWORD
+                        lpszVolumeMountPoint = _osp_wintypes.LPCWSTR(f'{scheme}:\\')
+                        lpszVolumeName = _osp_ctypes.create_unicode_buffer(50)
+                        cchBufferLength = _osp_wintypes.DWORD(50)
                         windows_func(lpszVolumeMountPoint, lpszVolumeName, cchBufferLength)
                         # Get a DOS_DEVICE_PATH, not affected by the drive letter stripping bug.
-                        dos_device_path = os.path.join(lpszVolumeName.value.replace('?', '.')
+                        dos_device_path = _osp_os.path.join(lpszVolumeName.value.replace('?', '.')
                                                        or f'\\\\.\\Volume{{DRIVE_LETTER_{scheme}_NOT_ASSIGNED}}\\',
                                                        path)
                         kwargs['destination'] = dos_device_path
                 func(*args, **kwargs)
             return graph_serialize
-        rdflib.Graph.serialize = graph_serialize_fix_decorator(rdflib.Graph.serialize)
+        _osp_rdflib.Graph.serialize = _graph_serialize_fix_decorator(_osp_rdflib.Graph.serialize)
