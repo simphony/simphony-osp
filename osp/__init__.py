@@ -3,7 +3,9 @@ __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 # Patch RDFLib <= 5.0.0. See osp-core issue https://github.com/simphony/osp-core/issues/558 (the drive letter from the
 # path is stripped on Windows by the graph.Graph.serialize method of RDFLib <= 5.0.0).
 import rdflib
+import subprocess
 from urllib.parse import urlparse
+import os
 
 
 def _compare_version_leq(version, other_version):
@@ -37,9 +39,11 @@ if _compare_version_leq(rdflib.__version__, '5.0.0'):
     def graph_serialize_fix_decorator(func):
         def graph_serialize(*args, **kwargs):
             if kwargs.get('destination') is not None and not hasattr(kwargs.get('destination'), 'write'):
-                scheme, netloc, path, params, _query, fragment = urlparse('destination')
-                if scheme != 'file':
-                    kwargs['destination'] = 'file:///' + kwargs['destination']
+                scheme, netloc, path, params, _query, fragment = urlparse(kwargs['destination'])
+                if urlparse(kwargs['destination']).path == r'\\':
+                    output = subprocess.run(['mountvol', f'{scheme}:\\', '/L'], stdout=subprocess.PIPE)
+                    dos_device_path = os.path.join(output.stdout.decode().strip().replace('?', '.'), path)
+                    kwargs['destination'] = dos_device_path
             func(*args, **kwargs)
         return graph_serialize
     rdflib.Graph.serialize = graph_serialize_fix_decorator(rdflib.Graph.serialize)
