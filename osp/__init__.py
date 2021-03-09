@@ -2,8 +2,8 @@ __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
 # Patch RDFLib <= 5.0.0. See osp-core issue https://github.com/simphony/osp-core/issues/558 (the drive letter from the
 # path is stripped on Windows by the graph.Graph.serialize method of RDFLib <= 5.0.0).
-import sys
-if sys.platform == 'win32':
+import sys as _osp_sys
+if _osp_sys.platform == 'win32':
     import os as _osp_os
     import ctypes as _osp_ctypes
     import ctypes.wintypes as _osp_wintypes
