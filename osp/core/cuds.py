@@ -120,7 +120,7 @@ class Cuds():
 
     @property
     def _stored(self):
-        return self._graph is self.session.graph
+        return self.session is not None and self._graph is self.session.graph
 
     def get_triples(self, include_neighbor_types=False):
         """Get the triples of the cuds object."""
