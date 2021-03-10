@@ -3,36 +3,38 @@ __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 # Patch RDFLib <= 5.0.0. See osp-core issue https://github.com/simphony/osp-core/issues/558 (the drive letter from the
 # path is stripped on Windows by the graph.Graph.serialize method of RDFLib <= 5.0.0).
 import sys as _osp_sys
+
+
+def _compare_version_leq(version, other_version):
+    """Compares two software version strings.
+
+    Receives two software version strings which are just numbers separated by dots and determines whether the first one
+    is less or equal than the second one.
+
+    Args:
+        version (str): first version string (number separated by dots).
+        other_version (str) : second version string (number separated by dots).
+
+    Returns:
+        bool: whether the first version string is less or equal than the second one.
+    """
+    version = map(int, version.split('.'))
+    other_version = map(int, other_version.split('.'))
+    for v, o in zip(version, other_version):
+        if v == o:
+            continue
+        return v < o
+
+    # check remaining numbers of other_version
+    return all(o <= 0 for o in other_version)
+
+
 if _osp_sys.platform == 'win32':
     import os as _osp_os
     import ctypes as _osp_ctypes
     import ctypes.wintypes as _osp_wintypes
     from urllib.parse import urlparse as _osp_urlparse
     import rdflib as _osp_rdflib
-
-
-    def _compare_version_leq(version, other_version):
-        """Compares two software version strings.
-
-        Receives two software version strings which are just numbers separated by dots and determines whether the first one
-        is less or equal than the second one.
-
-        Args:
-            version (str): first version string (number separated by dots).
-            other_version (str) : second version string (number separated by dots).
-
-        Returns:
-            bool: whether the first version string is less or equal than the second one.
-        """
-        version = map(int, version.split('.'))
-        other_version = map(int, other_version.split('.'))
-        for v, o in zip(version, other_version):
-            if v == o:
-                continue
-            return v < o
-        
-        # check remaining numbers of other_version
-        return all(o <= 0 for o in other_version)
 
 
     if _compare_version_leq(_osp_rdflib.__version__, '5.0.0'):
