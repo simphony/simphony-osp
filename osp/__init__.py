@@ -31,7 +31,7 @@ if _osp_sys.platform == 'win32':
                 continue
             return v < o
         
-        # check remaining numbers versions of other_version
+        # check remaining numbers of other_version
         return all(o <= 0 for o in other_version)
 
 
