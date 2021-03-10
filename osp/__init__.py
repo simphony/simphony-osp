@@ -24,18 +24,15 @@ if _osp_sys.platform == 'win32':
         Returns:
             bool: whether the first version string is less or equal than the second one.
         """
-        version = version.split('.')
-        other_version = other_version.split('.')
-        for i in range(0, min(len(version), len(other_version))):
-            if version[i] < other_version[i]:
-                return True
-            elif version[i] > other_version[i]:
-                return False
-        else:
-            if len(other_version) > len(version) and other_version[i + 1] > str(0):
-                return False
-            else:
-                return True
+        version = map(int, version.split('.'))
+        other_version = map(int, other_version.split('.'))
+        for v, o in zip(version, other_version):
+            if v == o:
+                continue
+            return v < o
+        
+        # check remaining numbers versions of other_version
+        return all(o <= 0 for o in other_version)
 
 
     if _compare_version_leq(_osp_rdflib.__version__, '5.0.0'):
