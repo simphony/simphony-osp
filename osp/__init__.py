@@ -2,17 +2,18 @@ __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
 # Patch RDFLib <= 5.0.0. See osp-core issue
 # https://github.com/simphony/osp-core/issues/558 (the drive letter from the
-# path is stripped on Windows by the graph.Graph.serialize method of RDFLib
-# <= 5.0.0).
+# path is stripped on Windows by the graph.Graph.serialize method of
+# RDFLib <= 5.0.0).
 import sys as _osp_sys
+import itertools as _osp_itertools
 
 
 def _compare_version_leq(version, other_version):
     """Compares two software version strings.
 
     Receives two software version strings which are just numbers separated by
-    dots and determines whether the first one
-    is less or equal than the second one.
+    dots and determines whether the first one is less or equal than the
+    second one.
 
     Args:
         version (str): first version string (number separated by dots).
@@ -20,17 +21,17 @@ def _compare_version_leq(version, other_version):
 
     Returns:
         bool: whether the first version string is less or equal than the second
-              one.
+        one.
     """
     version = map(int, version.split('.'))
     other_version = map(int, other_version.split('.'))
-    for v, o in zip(version, other_version):
+    for v, o in _osp_itertools.zip_longest(version, other_version,
+                                           fillvalue=0):
         if v == o:
             continue
         return v < o
-
-    # check remaining numbers of other_version
-    return all(o <= 0 for o in other_version)
+    else:
+        return True
 
 
 if _osp_sys.platform == 'win32':
@@ -67,8 +68,8 @@ if _osp_sys.platform == 'win32':
                         # letter stripping bug.
                         dos_device_path = _osp_os.path.join(
                             lpszVolumeName.value.replace('?', '.')
-                            or f'\\\\.\\Volume{{DRIVE_LETTER_{scheme}_'
-                               f'NOT_ASSIGNED}}\\', path)
+                            or f'\\\\.\\Volume{{DRIVE_LETTER_{scheme}_NOT_'
+                            f'ASSIGNED}}\\', path)
                         kwargs['destination'] = dos_device_path
                 func(*args, **kwargs)
             return graph_serialize
