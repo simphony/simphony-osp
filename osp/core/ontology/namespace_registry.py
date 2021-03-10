@@ -250,7 +250,7 @@ class NamespaceRegistry():
             x = self._graph.value(entity_iri, rdflib.SKOS.prefLabel)
             if x is not None:
                 return x.toPython()
-            logger.warn(f"No label for {entity_iri}")
+            logger.warning(f"No label for {entity_iri}")
         return entity_iri[len(ns_iri):]
 
     def clear(self):
