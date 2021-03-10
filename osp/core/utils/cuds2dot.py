@@ -37,7 +37,7 @@ class Cuds2dot():
 
     def render(self, filename=None, **kwargs):
         """Create the graph and save it to a dot and png file."""
-        filename = filename or (self._graph.name + "gv")
+        filename = filename or (self._graph.name + ".gv")
         logger.info("Writing file %s" % filename)
         self._add_node(self._root, self._root_uid)
         self._visited.add(self._root.uid)
