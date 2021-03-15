@@ -368,8 +368,8 @@ class Parser():
         results = sorted(((label.toPython(), label.language), iri)
                          for iri in subjects for label
                          in labels_for_iri(iri))
-        labels, iris = tuple(result[0] for result in results), \
-                       tuple(result[1] for result in results)
+        labels, iris = tuple(result[0] for result in results),\
+            tuple(result[1] for result in results)
         coincidence_search = (i
                               for i in range(1, len(labels))
                               if labels[i - 1] == labels[i])
