@@ -362,7 +362,7 @@ class Parser():
                                                          lang=None,
                                                          _return_literal=True)
 
-        # Consider only subjects in the namespace and label properties.
+        # Finally check for the duplicate labels.
         subjects = set(subject for subject in graph.subjects()
                        if in_namespace(subject))
         results = sorted(((label.toPython(), label.language), iri)
