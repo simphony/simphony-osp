@@ -349,14 +349,24 @@ class Parser():
         # namespaces ever changes.
         placeholder = type('', (object, ),
                            {'_iri': rdflib.URIRef(namespace),
-                            '_graph': self._graphs[identifier]})
+                            '_graph': self._graphs[identifier],
+                            '_label_properties':
+                                OntologyNamespace._label_properties})
+
+        def in_namespace(item):
+            return OntologyNamespace.__contains__(placeholder, item)
+
+        def labels_for_iri(iri):
+            return OntologyNamespace._get_labels_for_iri(placeholder, iri,
+                                                         lang=None,
+                                                         _return_literal=True)
 
         # Consider only subjects in the namespace and label properties.
-        subjects = OntologyNamespace._get_namespace_subjects(placeholder,
-                                                             unique=True)
+        subjects = set(subject for subject in self._graph.subjects()
+                       if in_namespace(subject))
         labels, iris = sorted(((label.toPython(), label.language), label.iri)
                               for iri in subjects for label
-                              in OntologyNamespace.labels_for_iri(iri))
+                              in labels_for_iri(iri))
         coincidence_search = (i
                               for i in range(1, len(labels))
                               if labels[i - 1] == labels[i])
