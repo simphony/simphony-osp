@@ -365,14 +365,16 @@ class Parser():
         # Consider only subjects in the namespace and label properties.
         subjects = set(subject for subject in graph.subjects()
                        if in_namespace(subject))
-        labels, iris = sorted(((label.toPython(), label.language), label.iri)
-                              for iri in subjects for label
-                              in labels_for_iri(iri))
+        results = sorted(((label.toPython(), label.language), iri)
+                         for iri in subjects for label
+                         in labels_for_iri(iri))
+        labels, iris = tuple(result[0] for result in results), \
+                       tuple(result[1] for result in results)
         coincidence_search = (i
                               for i in range(1, len(labels))
                               if labels[i - 1] == labels[i])
         conflicting_labels = {labels[i]: set() for i in coincidence_search}
-        for i in conflicting_labels:
+        for i in range(1, len(conflicting_labels)):
             conflicting_labels[labels[i]] |= {iris[i - 1], iris[i]}
         if len(conflicting_labels) > 0:
             texts = (f'{label[0]}, language{label[1]}: '
