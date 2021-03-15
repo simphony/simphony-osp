@@ -347,9 +347,10 @@ class Parser():
         # cannot be used directly, as the namespace is being spawned.
         # This may be useful if the definition of containment for ontology
         # namespaces ever changes.
+        graph = self._graphs[identifier]
         placeholder = type('', (object, ),
                            {'_iri': rdflib.URIRef(namespace),
-                            '_graph': self._graphs[identifier],
+                            '_graph': graph,
                             '_label_properties':
                                 OntologyNamespace._label_properties})
 
@@ -362,7 +363,7 @@ class Parser():
                                                          _return_literal=True)
 
         # Consider only subjects in the namespace and label properties.
-        subjects = set(subject for subject in self._graph.subjects()
+        subjects = set(subject for subject in graph.subjects()
                        if in_namespace(subject))
         labels, iris = sorted(((label.toPython(), label.language), label.iri)
                               for iri in subjects for label
