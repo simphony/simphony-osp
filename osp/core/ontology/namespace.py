@@ -223,24 +223,22 @@ class OntologyNamespace():
             if comp_label in entity_labels:
                 _name = label if self._reference_by_label else None
                 results.append(self.get_from_iri(iri, _name=_name))
-        else:
-            if len(results) == 0:
-                raise KeyError("No element with label %s in namespace %s"
-                               % (label, self))
-            elif len(results) >= 2:
-                element_suffixes = (r._iri_suffix for r in results)
-                raise KeyError(f"There are multiple elements "
-                               f"({', '.join(element_suffixes)}) with label"
-                               f" {label} for namespace {self}."
-                               f"\n"
-                               f"Please refer to a specific element of the "
-                               f"list by calling get_from_iri(IRI) for "
-                               f"namespace {self} for one of the following "
-                               f"IRIs: " + "{iris}."
-                               .format(iris=', '.join(entity.iri for entity in
-                                                      results)))
-            else:
-                return results[0]
+        if len(results) == 0:
+            raise KeyError("No element with label %s in namespace %s"
+                           % (label, self))
+        elif len(results) >= 2:
+            element_suffixes = (r._iri_suffix for r in results)
+            raise KeyError(f"There are multiple elements "
+                           f"({', '.join(element_suffixes)}) with label"
+                           f" {label} for namespace {self}."
+                           f"\n"
+                           f"Please refer to a specific element of the "
+                           f"list by calling get_from_iri(IRI) for "
+                           f"namespace {self} for one of the following "
+                           f"IRIs: " + "{iris}."
+                           .format(iris=', '.join(entity.iri for entity in
+                                                  results)))
+        return results[0]
 
     def __iter__(self):
         """Iterate over the ontology entities in the namespace.
@@ -321,7 +319,7 @@ class OntologyNamespace():
                                         rdflib.Literal representing the label.
         """
         labels = (label_tuple
-                  for prop in (rdflib.SKOS.prefLabel, rdflib.RDFS.label)
+                  for prop in self._label_properties
                   for label_tuple in
                   self._graph.preferredLabel(iri, lang=lang,
                                              labelProperties=(prop,))
@@ -333,6 +331,8 @@ class OntologyNamespace():
             return (label[1] for label in labels)
         else:
             return labels
+
+    _label_properties = (rdflib.SKOS.prefLabel, rdflib.RDFS.label)
 
     # Backwards compatibility.
     # ↓----------------------↓
