@@ -213,15 +213,44 @@ class TestNamespaces(unittest.TestCase):
 
         Helper method.
         """
+        namespace = self.namespace_registry.city
         triples = list()
         for s, p, o in self.graph:
-            if (
-                s.startswith("http://www.osp-core.com/city#")
-                and p == rdflib.SKOS.prefLabel
-            ):
-                triples.append((s, p, rdflib.Literal(f"{o}_T", lang="en")))
+            if s in namespace and p in (rdflib.SKOS.prefLabel,
+                                        rdflib.RDFS.label):
+                # To test querying by label.
+                label_SKOS = f"{o}_T"
+                triples.append((s, rdflib.SKOS.prefLabel,
+                                rdflib.Literal(label_SKOS, lang='en')))
+                # To test RDFS labels and special characters.
+                label_RDFS = f"{o}-$"
+                triples.append((s, rdflib.RDFS.label,
+                                rdflib.Literal(label_RDFS, lang='en')))
+                # To test non-english languages.
+                label_RDFS_jp = f"{o}_T_jp"
+                triples.append((s, rdflib.RDFS.label,
+                                rdflib.Literal(label_RDFS_jp, lang='jp')))
+                label_SKOS_aa = f"{o}_T_aa_SKOS"
+                triples.append((s, rdflib.SKOS.prefLabel,
+                                rdflib.Literal(label_SKOS_aa, lang='aa')))
+                # To test undefined languages.
+                label_RDFS_unk = f"{o}_T_unknown_lang"
+                triples.append((s, rdflib.RDFS.label,
+                                rdflib.Literal(label_RDFS_unk)))
+                # To test labels that coincide in different languages.
+                label_RDFS_es = f"{o}_T_cosa"
+                label_RDFS_it = f"{o}_T_cosa"
+                for label, lang in ((label_RDFS_es, 'es'),
+                                    (label_RDFS_it, 'it')):
+                    triples.append((s, rdflib.RDFS.label,
+                                    rdflib.Literal(label, lang=lang)))
             else:
                 triples.append((s, p, o))
+        # Test different concepts with same label, and querying by language.
+        triples.append((rdflib.URIRef(str(namespace._iri) + 'City'),
+                        rdflib.RDFS.label, rdflib.Literal('Burro', lang='it')))
+        triples.append((rdflib.URIRef(str(namespace._iri) + 'Street'),
+                        rdflib.RDFS.label, rdflib.Literal('Burro', lang='es')))
         self.graph.remove((None, None, None))
         for t in triples:
             self.graph.add(t)
@@ -244,18 +273,18 @@ class TestNamespaces(unittest.TestCase):
         self.assertEqual(namespace.coordinates._iri_suffix, "coordinates")
 
         # item
-        self.assertIsInstance(namespace["City_T"][0], OntologyClass)
-        self.assertEqual(namespace["City_T"][0].name, "City")
-        self.assertEqual(namespace["City_T"][0]._iri_suffix, "City")
-        self.assertIsInstance(namespace["City_T", "en"][0], OntologyClass)
-        self.assertEqual(namespace["City_T", "en"][0].name, "City")
-        self.assertEqual(namespace["City_T", "en"][0]._iri_suffix, "City")
-        self.assertIsInstance(namespace["hasPart_T"][0], OntologyRelationship)
-        self.assertEqual(namespace["hasPart_T"][0].name, "hasPart")
-        self.assertEqual(namespace["hasPart_T"][0]._iri_suffix, "hasPart")
-        self.assertIsInstance(namespace["coordinates_T"][0], OntologyAttribute)
-        self.assertEqual(namespace["coordinates_T"][0].name, "coordinates")
-        self.assertEqual(namespace["coordinates_T"][0]._iri_suffix,
+        self.assertIsInstance(namespace["City_T"], OntologyClass)
+        self.assertEqual(namespace["City_T"].name, "City")
+        self.assertEqual(namespace["City_T"]._iri_suffix, "City")
+        self.assertIsInstance(namespace["City_T", "en"], OntologyClass)
+        self.assertEqual(namespace["City_T", "en"].name, "City")
+        self.assertEqual(namespace["City_T", "en"]._iri_suffix, "City")
+        self.assertIsInstance(namespace["hasPart_T"], OntologyRelationship)
+        self.assertEqual(namespace["hasPart_T"].name, "hasPart")
+        self.assertEqual(namespace["hasPart_T"]._iri_suffix, "hasPart")
+        self.assertIsInstance(namespace["coordinates_T"], OntologyAttribute)
+        self.assertEqual(namespace["coordinates_T"].name, "coordinates")
+        self.assertEqual(namespace["coordinates_T"]._iri_suffix,
                          "coordinates")
 
         # get
@@ -288,18 +317,18 @@ class TestNamespaces(unittest.TestCase):
         self.assertEqual(namespace.coordinates_T._iri_suffix, "coordinates")
 
         # item
-        self.assertIsInstance(namespace["City_T"][0], OntologyClass)
-        self.assertEqual(namespace["City_T"][0].name, "City_T")
-        self.assertEqual(namespace["City_T"][0]._iri_suffix, "City")
-        self.assertIsInstance(namespace["City_T", "en"][0], OntologyClass)
-        self.assertEqual(namespace["City_T", "en"][0].name, "City_T")
-        self.assertEqual(namespace["City_T", "en"][0]._iri_suffix, "City")
-        self.assertIsInstance(namespace["hasPart_T"][0], OntologyRelationship)
-        self.assertEqual(namespace["hasPart_T"][0].name, "hasPart_T")
-        self.assertEqual(namespace["hasPart_T"][0]._iri_suffix, "hasPart")
-        self.assertIsInstance(namespace["coordinates_T"][0], OntologyAttribute)
-        self.assertEqual(namespace["coordinates_T"][0].name, "coordinates_T")
-        self.assertEqual(namespace["coordinates_T"][0]._iri_suffix,
+        self.assertIsInstance(namespace["City_T"], OntologyClass)
+        self.assertEqual(namespace["City_T"].name, "City_T")
+        self.assertEqual(namespace["City_T"]._iri_suffix, "City")
+        self.assertIsInstance(namespace["City_T", "en"], OntologyClass)
+        self.assertEqual(namespace["City_T", "en"].name, "City_T")
+        self.assertEqual(namespace["City_T", "en"]._iri_suffix, "City")
+        self.assertIsInstance(namespace["hasPart_T"], OntologyRelationship)
+        self.assertEqual(namespace["hasPart_T"].name, "hasPart_T")
+        self.assertEqual(namespace["hasPart_T"]._iri_suffix, "hasPart")
+        self.assertIsInstance(namespace["coordinates_T"], OntologyAttribute)
+        self.assertEqual(namespace["coordinates_T"].name, "coordinates_T")
+        self.assertEqual(namespace["coordinates_T"]._iri_suffix,
                          "coordinates")
 
         # get
@@ -321,6 +350,30 @@ class TestNamespaces(unittest.TestCase):
         self.assertRaises(AttributeError, namespace.__getattr__, "City")
         self.assertRaises(KeyError, namespace.__getitem__, "City")
         self.assertEqual(namespace.get("coordinates"), None)
+
+        # Special characters and RDFS labels.
+        # RDFS label (special characters)
+        self.assertIsInstance(getattr(namespace, 'City-$'), OntologyClass)
+        self.assertEqual(getattr(namespace, 'City-$').name, "City-$")
+        self.assertEqual(getattr(namespace, 'City-$')._iri_suffix, "City")
+
+        # Language.
+        # Refer to the label in non-english language.
+        self.assertIsInstance(namespace.City_T_jp, OntologyClass)
+        self.assertEqual(namespace.City_T_jp.name, "City_T_jp")
+        self.assertEqual(namespace.City_T._iri_suffix, "City")
+        # Labels with unknown languages.
+        self.assertEqual(namespace['City_T_unknown_lang'].name,
+                         'City_T_unknown_lang')
+        # Coincident label in different languages.
+        self.assertIsInstance(namespace.City_T_cosa, OntologyClass)
+        self.assertEqual(namespace.City_T_cosa.name, "City_T_cosa")
+        self.assertEqual(namespace.City_T._iri_suffix, "City")
+        # Different concepts with the same label.
+        self.assertRaises(AttributeError, namespace.__getattr__, 'Burro')
+        # Same word with different concept in different languages.
+        self.assertEqual(namespace['Burro', 'it'], namespace.City_T)
+        self.assertEqual(namespace['Burro', 'es'], namespace.Street_T)
 
     def test_namespace_str(self):
         """Test converting namespace object to string."""
