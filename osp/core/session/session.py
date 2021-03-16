@@ -18,19 +18,18 @@ class Session(ABC):
         self._registry = Registry()
         self.root = None
         self.graph = rdflib.Graph()
-        self._previous_session = None
 
     def __enter__(self):
         """Establish the connection to the backend."""
         from osp.core.cuds import Cuds
-        self._previous_session = Cuds._session
+        Cuds._previous_session = Cuds._session
         Cuds._session = self
         return self
 
     def __exit__(self, *args):
         """Close the connection to the backend."""
         from osp.core.cuds import Cuds
-        Cuds._session = self._previous_session
+        Cuds._session = Cuds._previous_session
         self.close()
 
     def close(self):

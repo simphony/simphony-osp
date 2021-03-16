@@ -36,6 +36,7 @@ class Cuds():
     """
 
     _session = CoreSession()
+    _previous_session = None
 
     def __init__(
         self,
