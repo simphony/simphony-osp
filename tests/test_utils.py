@@ -405,7 +405,7 @@ class TestUtils(unittest.TestCase):
                 [{b.uid: b}, dict(), dict()]]
             )
 
-            x = city.Citizen()
+            x = city.Citizen(session=default_session)
             x = b.add(x, rel=city.hasInhabitant)
 
             c = create_recycle(oclass=city.City,
@@ -424,7 +424,7 @@ class TestUtils(unittest.TestCase):
                 [dict(), dict(), dict()]]
             )
 
-            x = city.Citizen()
+            x = city.Citizen(session=default_session)
             x = c.add(x, rel=city.hasInhabitant)
 
             c = create_recycle(oclass=city.City,
@@ -454,9 +454,9 @@ class TestUtils(unittest.TestCase):
                 [{b.uid: b}, dict(), dict()]])
 
             b.name = "Emmendingen"
-            x = city.Citizen(age=54, name="Franz")
+            x = city.Citizen(age=54, name="Franz", session=default_session)
             b.add(x, rel=city.hasInhabitant)
-            y = city.Citizen(age=21, name="Rolf")
+            y = city.Citizen(age=21, name="Rolf", session=default_session)
             a.add(y, rel=city.hasInhabitant)
 
             c = create_from_cuds_object(a, session)

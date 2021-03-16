@@ -804,8 +804,8 @@ class TestCommunicationEngineServer(unittest.TestCase):
 
     def test_load_from_session(self):
         """Test loading from the remote side."""
+        c = city.City(name="Freiburg", uid=1)
         with TestWrapperSession() as s1:
-            c = city.City(name="Freiburg", uid=1)
             w = city.CityWrapper(session=s1, uid=3)
             cw = w.add(c)
 

@@ -528,14 +528,14 @@ class TestAPICity(unittest.TestCase):
         It should correct dangling and one-way connections.
         """
         c = city.City(name="Freiburg")
+        p1 = city.Citizen()
+        p2 = city.Citizen()
+        p3 = city.Citizen()
+        p4 = city.Citizen()
         with CoreSession() as session:
             w = city.CityWrapper(session=session)
             cw = w.add(c)
 
-            p1 = city.Citizen()
-            p2 = city.Citizen()
-            p3 = city.Citizen()
-            p4 = city.Citizen()
             c.add(p1, p2, p3, rel=city.hasInhabitant)
             p3.add(p1, p2, rel=city.isChildOf)
             p3.add(p4, rel=city.hasChild)
@@ -576,6 +576,8 @@ class TestAPICity(unittest.TestCase):
         c2 = city.City(name="Paris")
         n.add(c1, c2, rel=city.isPartOf)
 
+        c3 = city.City(name="London")
+
         with CoreSession() as session:
             wrapper = city.CityWrapper(session=session)
             c1w, c2w = wrapper.add(c1, c2)
@@ -583,7 +585,6 @@ class TestAPICity(unittest.TestCase):
             nw.remove(c2.uid, rel=cuba.relationship)
 
             # only parent + available in default session
-            c3 = city.City(name="London")
             n.add(c3, rel=city.isPartOf)
 
             n = clone_cuds_object(n)
