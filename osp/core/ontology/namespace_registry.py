@@ -247,11 +247,34 @@ class NamespaceRegistry():
             str: The name of the entity with the given IRI
         """
         if self._get_reference_by_label(ns_iri):
-            x = self._graph.value(entity_iri, rdflib.SKOS.prefLabel)
-            if x is not None:
-                return x.toPython()
-            logger.warning(f"No label for {entity_iri}")
+            namespace = self.namespace_from_iri(ns_iri)
+            labels = tuple(
+                namespace._get_labels_for_iri(entity_iri,
+                                              _return_literal=True,
+                                              _return_label_property=True))
+            if not labels:
+                logger.warning(f"No label for {entity_iri}")
+            else:
+                labels = sorted(labels,
+                                key=lambda x:
+                                (self._get_entity_name_order_label[x[0]],
+                                 self._get_entity_name_order_language(
+                                     x[1].language)))
+                labels = tuple(label[1].toPython() for label in labels)
+                return labels[0]
         return entity_iri[len(ns_iri):]
+
+    _get_entity_name_order_label = {rdflib.SKOS.prefLabel: 0,
+                                    rdflib.RDFS.label: 1}
+
+    @staticmethod
+    def _get_entity_name_order_language(language):
+        if language == 'en':
+            return ''
+        elif language is None:
+            return '_'
+        else:
+            return language
 
     def clear(self):
         """Clear the loaded Graph and load cuba only.

@@ -7,6 +7,7 @@ import yaml
 import requests
 import tempfile
 from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.yml.yml_parser import YmlParser
 
 logger = logging.getLogger(__name__)
@@ -264,6 +265,9 @@ class Parser():
             self._graphs[identifier].parse(f, format=file_format)
         else:
             self._graphs[identifier].parse(rdf_file, format=file_format)
+        if reference_style:
+            for namespace, iri in namespaces.items():
+                self._check_duplicate_labels(iri, identifier)
         for triple in self._graphs[identifier]:
             self.graph.add(triple)
         default_rels = dict()
@@ -337,6 +341,48 @@ class Parser():
                     rdflib_cuba._reference_by_label,
                     rdflib.Literal(True)
                 ))
+
+    def _check_duplicate_labels(self, namespace, identifier):
+        # Recycle code methods from the Namespace class. A namespace class
+        # cannot be used directly, as the namespace is being spawned.
+        # This may be useful if the definition of containment for ontology
+        # namespaces ever changes.
+        graph = self._graphs[identifier]
+        placeholder = type('', (object, ),
+                           {'_iri': rdflib.URIRef(namespace),
+                            '_graph': graph,
+                            '_label_properties':
+                                OntologyNamespace._label_properties})
+
+        def in_namespace(item):
+            return OntologyNamespace.__contains__(placeholder, item)
+
+        def labels_for_iri(iri):
+            return OntologyNamespace._get_labels_for_iri(placeholder, iri,
+                                                         lang=None,
+                                                         _return_literal=True)
+
+        # Finally check for the duplicate labels.
+        subjects = set(subject for subject in graph.subjects()
+                       if in_namespace(subject))
+        results = sorted(((label.toPython(), label.language), iri)
+                         for iri in subjects for label
+                         in labels_for_iri(iri))
+        labels, iris = tuple(result[0] for result in results),\
+            tuple(result[1] for result in results)
+        coincidence_search = (i
+                              for i in range(1, len(labels))
+                              if labels[i - 1] == labels[i])
+        conflicting_labels = {labels[i]: set() for i in coincidence_search}
+        for i in range(1, len(conflicting_labels)):
+            conflicting_labels[labels[i]] |= {iris[i - 1], iris[i]}
+        if len(conflicting_labels) > 0:
+            texts = (f'{label[0]}, language{label[1]}: '
+                     f'{", ".join(tuple(str(iri) for iri in iris))}'
+                     for label, iris in conflicting_labels.items())
+            raise KeyError(f'The following labels are assigned to more than '
+                           f'one entity in namespace {namespace}; '
+                           f'{"; ".join(texts)}.')
 
     def _check_namespaces(self, namespace_iris):
         namespaces = set(namespace_iris)
