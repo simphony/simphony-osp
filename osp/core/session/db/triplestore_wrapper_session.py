@@ -5,6 +5,7 @@ import rdflib
 from osp.core.utils import create_from_triples
 from osp.core.utils import iri_from_uid, uid_from_iri, CUDS_IRI_PREFIX
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
+from osp.core.session.wrapper_session import disable_lazy_reload
 from abc import abstractmethod, ABC
 
 
@@ -39,6 +40,7 @@ class TripleStoreWrapperSession(DbWrapperSession):
             self._remove(next(self._substitute_root_iri([pattern])))
 
     # OVERRIDE
+    @disable_lazy_reload
     def _load_from_backend(self, uids, expired=None):
         for uid in uids:
             iri = iri_from_uid(uid)
@@ -83,6 +85,7 @@ class TripleStoreWrapperSession(DbWrapperSession):
                         and uid_from_iri(x) == uuid.UUID(int=0) else x
                         for x in triple)
 
+    @disable_lazy_reload
     def _load_by_iri(self, iri):
         """Load the CUDS object wit the given IRI.
 

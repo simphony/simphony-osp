@@ -42,11 +42,37 @@ def check_consumes_buffers(func):
         and func.does_consume_buffers
 
 
+class DisableLazyReload():
+    """Context manager that disables lazy reload of expired objects."""
+    def __init__(self):
+        """Safe the previous setting."""
+        self.prev = None
+
+    def __enter__(self):
+        """Disable the lazy reload by setting the flag to false."""
+        self.pref = WrapperSession._lazy_reload_enabled
+        WrapperSession._lazy_reload_enabled = False
+
+    def __exit__(self, type, value, traceback):
+        """Set the flag back to the previous value."""
+        WrapperSession._lazy_reload_enabled = self.pref
+
+
+def disable_lazy_reload(func):
+    """A decorator that disables lazy reload of expired objects."""
+    def f(*args, **kwargs):
+        with DisableLazyReload():
+            return func(*args, **kwargs)
+    return f
+
+
 class WrapperSession(Session):
     """Common class for all wrapper sessions.
 
     Sets the engine and creates the sets with the changed elements
     """
+
+    _lazy_reload_enabled = True
 
     def __init__(self, engine):
         """Initialize the session.
@@ -87,7 +113,8 @@ class WrapperSession(Session):
                                "Add it to a wrapper first.")
 
         # refresh expired
-        expired = frozenset(set(uids) & self._expired)
+        expired = frozenset(set(uids) & self._expired) \
+            if self._lazy_reload_enabled else frozenset()
         missing_uids = [uid for uid in uids
                         if uid not in self._registry or uid in expired]
         self._expired -= expired
