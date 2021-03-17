@@ -375,7 +375,7 @@ class TestFiletransfer(unittest.TestCase):
                              {target[0], target[2]})
             self.assertEqual(set(os.listdir(CLIENT_DIR)),
                              {target[0], target[2]})
-            self.assertEqual(os.listdir(FILES_DIR), FILES)
+            self.assertEqual(set(os.listdir(FILES_DIR)), set(FILES))
 
         self.tearDown()
         self.setUp()
@@ -390,7 +390,7 @@ class TestFiletransfer(unittest.TestCase):
             self.assertEqual(set(os.listdir(SERVER_DIR)),
                              {target[0], target[2]})
             self.assertEqual(set(os.listdir(CLIENT_DIR)), set())
-            self.assertEqual(os.listdir(FILES_DIR), FILES)
+            self.assertEqual(set(os.listdir(FILES_DIR)), set(FILES))
 
     def test_download(self):
         """Test full download routine."""
