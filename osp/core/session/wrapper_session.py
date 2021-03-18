@@ -50,12 +50,12 @@ class DisableLazyReload():
 
     def __enter__(self):
         """Disable the lazy reload by setting the flag to false."""
-        self.pref = WrapperSession._lazy_reload_enabled
+        self.prev = WrapperSession._lazy_reload_enabled
         WrapperSession._lazy_reload_enabled = False
 
     def __exit__(self, type, value, traceback):
         """Set the flag back to the previous value."""
-        WrapperSession._lazy_reload_enabled = self.pref
+        WrapperSession._lazy_reload_enabled = self.prev
 
 
 def disable_lazy_reload(func):
