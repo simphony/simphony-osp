@@ -59,7 +59,8 @@ def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
 
 
 def serialize_rdf_graph(path, format="xml", session=None,
-                        skip_custom_datatypes=False, skip_ontology=True):
+                        skip_custom_datatypes=False, skip_ontology=True,
+                        skip_wrapper=True):
     """Serialize an RDF graph and take care of custom datatypes."""
     graph = get_rdf_graph(session, skip_custom_datatypes, skip_ontology)
     result = rdflib.Graph()
@@ -67,7 +68,9 @@ def serialize_rdf_graph(path, format="xml", session=None,
         if isinstance(o, rdflib.Literal):
             o = rdflib.Literal(convert_from(o.toPython(), o.datatype),
                                datatype=o.datatype, lang=o.language)
-        result.add((s, p, o))
+        if not session or not skip_wrapper \
+                or iri_from_uid(session.root) not in {s, o}:
+            result.add((s, p, o))
     result.serialize(path, format)
 
 

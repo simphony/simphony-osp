@@ -343,11 +343,16 @@ class Parser():
                 ))
 
     def _check_duplicate_labels(self, namespace, identifier):
-        # Recycle some methods from the Namespace class. A namespace class
+        # Recycle code methods from the Namespace class. A namespace class
         # cannot be used directly, as the namespace is being spawned.
+        # This may be useful if the definition of containment for ontology
+        # namespaces ever changes.
+        graph = self._graphs[identifier]
         placeholder = type('', (object, ),
                            {'_iri': rdflib.URIRef(namespace),
-                            '_graph': self._graphs[identifier]})
+                            '_graph': graph,
+                            '_label_properties':
+                                OntologyNamespace._label_properties})
 
         def in_namespace(item):
             return OntologyNamespace.__contains__(placeholder, item)
@@ -356,35 +361,28 @@ class Parser():
             return OntologyNamespace._get_labels_for_iri(placeholder, iri,
                                                          lang=None,
                                                          _return_literal=True)
-        # Finally check for the duplicate labels.
-        subjects = (subject
-                    for subject in set(placeholder._graph.subjects())
-                    if in_namespace(subject))
 
-        labels = {}
-        for iri in subjects:
-            entity_labels = ((label.toPython(), label.language) for label in
-                             labels_for_iri(iri))
-            for label, language in entity_labels:
-                if (label, language) not in labels:
-                    labels[(label, language)] = {iri}
-                else:
-                    labels[(label, language)] |= {iri}
-        results = {}
-        for key, iris in labels.items():
-            if len(iris) > 1:
-                results[key] = iris
-        if len(results) > 0:
-            duplicates, culprits = True, results
-        else:
-            duplicates, culprits = False, results
-        if duplicates:
-            text = (f'{label}: '
-                    f'{", ".join(tuple(str(iri) for iri in iris))}'
-                    for label, iris in culprits.items())
-            raise KeyError(f'Different entities with coincident '
-                           f'labels found: {"; ".join(text)} in '
-                           f'namespace {namespace}.')
+        # Finally check for the duplicate labels.
+        subjects = set(subject for subject in graph.subjects()
+                       if in_namespace(subject))
+        results = sorted(((label.toPython(), label.language), iri)
+                         for iri in subjects for label
+                         in labels_for_iri(iri))
+        labels, iris = tuple(result[0] for result in results),\
+            tuple(result[1] for result in results)
+        coincidence_search = (i
+                              for i in range(1, len(labels))
+                              if labels[i - 1] == labels[i])
+        conflicting_labels = {labels[i]: set() for i in coincidence_search}
+        for i in range(1, len(conflicting_labels)):
+            conflicting_labels[labels[i]] |= {iris[i - 1], iris[i]}
+        if len(conflicting_labels) > 0:
+            texts = (f'{label[0]}, language{label[1]}: '
+                     f'{", ".join(tuple(str(iri) for iri in iris))}'
+                     for label, iris in conflicting_labels.items())
+            raise KeyError(f'The following labels are assigned to more than '
+                           f'one entity in namespace {namespace}; '
+                           f'{"; ".join(texts)}.')
 
     def _check_namespaces(self, namespace_iris):
         namespaces = set(namespace_iris)
