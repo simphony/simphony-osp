@@ -52,7 +52,11 @@ with SqliteSession(path="test.db") as session:
             print("\t", line.strip())
 
     # Usually, RDF data does not contain UUIDs as in the current output.
-    # Replace UUIDs in the RDF file
+    # Replace UUIDs in the RDF file.
+    # THIS IS JUST FOR DEMONSTRATION PURPOSES.
+    # THIS ALLOWS US TO SHOW THAT OSP-CORE CAN IMPORT ANY RDF DATA,
+    # AND NOT ONLY DATA THAT WAS PREVIOUSLY EXPORTED BY OSP CORE!
+    # THIS IS NOTHING THAT YOU AS A USER WOULD EVER HAVE TO DO.
 
     print("Replace UUID in turtle file")
     with open("test.rdf") as f1:
