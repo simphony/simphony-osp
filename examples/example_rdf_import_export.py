@@ -34,7 +34,7 @@ c = branch(branch(city.City(name="Freiburg"),
 serialize_rdf_graph("test.rdf", format="ttl")
 
 # Check output
-with open("test.rdf") as f:
+with open("test.rdf", encoding="utf-8") as f:
     print("Exported from Core Session")
     for line in f:
         print("\t", line.strip())
@@ -46,7 +46,7 @@ with SqliteSession(path="test.db") as session:
     serialize_rdf_graph("test.rdf", format="ttl", session=session)
 
     # Check output
-    with open("test.rdf") as f:
+    with open("test.rdf", encoding="utf-8") as f:
         print("Exported from SqliteSession")
         for line in f:
             print("\t", line.strip())
@@ -60,7 +60,7 @@ with SqliteSession(path="test.db") as session:
 
     print("Replace UUID in turtle file")
     with open("test.rdf") as f1:
-        with open("test2.rdf", "w") as f2:
+        with open("test2.rdf", "w", encoding="utf-8") as f2:
             for line in f1:
                 match = uuid_re.match(line)
                 if match:
