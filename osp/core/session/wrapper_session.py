@@ -45,7 +45,7 @@ def check_consumes_buffers(func):
 class DisableLazyReload():
     """Context manager that disables lazy reload of expired objects."""
     def __init__(self):
-        """Safe the previous setting."""
+        """Save the previous setting."""
         self.prev = None
 
     def __enter__(self):
