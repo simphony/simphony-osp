@@ -4,7 +4,7 @@
 from collections.abc import Iterable
 import rdflib
 import logging
-
+import itertools
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.yml.case_insensitivity import \
@@ -30,6 +30,17 @@ class OntologyNamespace():
         self._default_rel = -1
         self._reference_by_label = \
             namespace_registry._get_reference_by_label(self._iri)
+
+    def __dir__(self):
+        """Attributes available for the OntologyNamespace class.
+
+        Returns:
+            Iterable: the available attributes, which include the methods and
+                      the ontology entities in the namespace.
+        """
+        entity_autocompletion = self._iter_labels() \
+            if self._reference_by_label else self._iter_suffixes()
+        return itertools.chain(super().__dir__(), entity_autocompletion)
 
     def __str__(self):
         """Transform the namespace to a human readable string.
@@ -240,19 +251,45 @@ class OntologyNamespace():
                                                   results)))
         return results[0]
 
+    def _iter_iris(self):
+        """Iterate over the IRIs of the ontology entities in the namespace.
+
+        :return: An iterator over the entity IRIs.
+        :rtype: Iterator[rdflib.URIRef]
+        """
+        types = [rdflib.OWL.DatatypeProperty,
+                 rdflib.OWL.ObjectProperty,
+                 rdflib.OWL.Class]
+        return (s
+                for t in types
+                for s, _, _ in self._graph.triples((None, rdflib.RDF.type, t))
+                if s in self)
+
     def __iter__(self):
         """Iterate over the ontology entities in the namespace.
 
         :return: An iterator over the entities.
         :rtype: Iterator[OntologyEntity]
         """
-        types = [rdflib.OWL.DatatypeProperty,
-                 rdflib.OWL.ObjectProperty,
-                 rdflib.OWL.Class]
-        return (self._namespace_registry.from_iri(s)
-                for t in types
-                for s, _, _ in self._graph.triples((None, rdflib.RDF.type, t))
-                if s in self)
+        return (self._namespace_registry.from_iri(iri)
+                for iri in self._iter_iris())
+
+    def _iter_labels(self):
+        """Iterate over the labels of the ontology entities in the namespace.
+
+        :return: An iterator over the entity labels.
+        :rtype: Iterator[str]
+        """
+        return itertools.chain(*(self._get_labels_for_iri(iri)
+                                 for iri in self._iter_iris()))
+
+    def _iter_suffixes(self):
+        """Iterate over suffixes of the ontology entities in the namespace.
+
+        :return: An iterator over the entity suffixes.
+        :rtype: Iterator[str]
+        """
+        return (str(iri)[len(str(self._iri)):] for iri in self._iter_iris())
 
     def __contains__(self, item):
         """Check whether the given entity is part of the namespace.
