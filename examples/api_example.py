@@ -14,11 +14,23 @@ from osp.core.namespaces import city
 print("Creating a City object, c...")
 c = city.City(name="Freiburg", coordinates=[47, 7])
 print("  uid of c: " + str(c.uid))
+print("  IRI of c: " + str(c.iri))
 print("  oclass of c: " + str(c.oclass) + "\n")
 
 print("Creating Citizen objects, p1, p2...")
 p1 = city.Citizen(name="Peter")
 p2 = city.Citizen(name="Anne")
+print("  uid of p1: " + str(p1.uid))
+print("  IRI of p1: " + str(p1.iri))
+print("  oclass of p1: " + str(p1.oclass) + "\n")
+print("  uid of p2: " + str(p2.uid))
+print("  IRI of p2: " + str(p2.iri))
+print("  oclass of p2: " + str(p2.oclass) + "\n")
+
+print("Checking attributes of the CUDS objects...")
+print(f"Name of c: {c.name}. Coordinates of c: {c.coordinates}." )
+print("Name of p1: " + str(p1.name))
+print("Name of p2: " + str(p2.name))
 
 print("\nAdding p1 to c...")
 c.add(p1, rel=city.hasInhabitant)
@@ -48,3 +60,6 @@ for i in range(6):
     c.add(city.Neighborhood(
         name="neighborhood %s" % i))
 print("internal dict of c:", c._neighbors, "\n")
+
+print('Trying out the `is_a` method trivially with the new neighborhoods.')
+print(all(n.is_a(city.Neighborhood) for n in c.get(oclass=city.Neighborhood)))
