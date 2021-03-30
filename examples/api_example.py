@@ -28,7 +28,7 @@ print("  IRI of p2: " + str(p2.iri))
 print("  oclass of p2: " + str(p2.oclass) + "\n")
 
 print("Checking attributes of the CUDS objects...")
-print(f"Name of c: {c.name}. Coordinates of c: {c.coordinates}." )
+print(f"Name of c: {c.name}. Coordinates of c: {c.coordinates}.")
 print("Name of p1: " + str(p1.name))
 print("Name of p2: " + str(p2.name))
 
