@@ -141,17 +141,13 @@ print("\nYou can use the attribute to convert values "
 result = city.age.convert_to_datatype("10")
 print(type(result), result)
 
-print("\nAnd likewise to convert values to the python basic type "
-      "associated with the datatype of the attribute.")
-result = city.name.convert_to_ba
-
 
 # CUDS
 print("\nYou can instantiate CUDS objects using ontology classes")
 print(city.Citizen(name="Test Person", age=42))
 print("Take a look at api_example.py for a description of the CUDS API")
 
-print("\nYou can check if a CUDS object is an instace of an ontology class")
+print("\nYou can check if a CUDS object is an instance of an ontology class")
 print(city.Citizen(name="Test Person", age=42).is_a(city.Citizen))
 print(city.Citizen(name="Test Person", age=42).is_a(city.LivingBeing))
 
