@@ -8,6 +8,7 @@ import unittest2 as unittest
 import sqlite3
 import shutil
 import json
+import time
 from osp.core.session.transport.transport_utils import (
     move_files, serialize_buffers, deserialize_buffers, get_file_cuds)
 from osp.core.session.transport.communication_engine import \
@@ -65,7 +66,7 @@ HASHES = {
 }
 
 
-PRFX = 'http://www.osp-core.com/cuds/#00000000-0000-0000-0000-0000000000'
+PRFX = 'http://www.osp-core.com/cuds#00000000-0000-0000-0000-0000000000'
 SERIALIZED_BUFFERS = json.dumps({
     "added": [[
         {"@id": PRFX + "2a",
@@ -119,6 +120,7 @@ class TestFiletransfer(unittest.TestCase):
         TestFiletransfer.SERVER_STARTED = p
         for line in p.stdout:
             if b"ready" in line:
+                time.sleep(0.1)
                 break
 
     @classmethod
@@ -373,7 +375,7 @@ class TestFiletransfer(unittest.TestCase):
                              {target[0], target[2]})
             self.assertEqual(set(os.listdir(CLIENT_DIR)),
                              {target[0], target[2]})
-            self.assertEqual(os.listdir(FILES_DIR), FILES)
+            self.assertEqual(set(os.listdir(FILES_DIR)), set(FILES))
 
         self.tearDown()
         self.setUp()
@@ -388,7 +390,7 @@ class TestFiletransfer(unittest.TestCase):
             self.assertEqual(set(os.listdir(SERVER_DIR)),
                              {target[0], target[2]})
             self.assertEqual(set(os.listdir(CLIENT_DIR)), set())
-            self.assertEqual(os.listdir(FILES_DIR), FILES)
+            self.assertEqual(set(os.listdir(FILES_DIR)), set(FILES))
 
     def test_download(self):
         """Test full download routine."""

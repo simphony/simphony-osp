@@ -1,19 +1,61 @@
 """An example explaining how to access an installed ontology."""
 
-# Please install the city ontology: $pico install city
+from osp.core.ontology.oclass_composition import Composition  # Used later.
 
-from osp.core.namespaces import city  # This imports the namespace city
+# Please install the both the city ontology: $pico install city,
+# and the European Materials & Modelling Ontology (EMMO): $pico install emmo.
+
+# This imports the namespace city from the city ontology.
+from osp.core.namespaces import city
+# This imports the namespace math from the EMMO ontology.
+from osp.core.namespaces import math
+
+
+# Accessing entities by suffix.
+print('The dot notation can be used to fetch entities by suffix given that '
+      'the keyword reference_by_label is set to False in the ontology '
+      'installation file.')
+print(city.Citizen)
+
+print('Alternative method useful for suffixes with special characters.')
+print(city.get_from_suffix('Citizen'))
+
+# Suffixes are case sensitive:
+# city.citizen -> Fails.
+
+# Accessing entities by label.
+print('The dot notation can be used to fetch entities by label given that '
+      'the keyword reference_by_label is set to True in the ontology '
+      'installation file.')
+print(math.Integer)
+
+print('Alternative method useful for labels with special characters.')
+print(math['Integer'])
+
+# Accessing entities by IRI.
+
+print(math.get_from_iri('http://emmo.info/emmo/middle/math#'
+                        'EMMO_f8bd64d5_5d3e_4ad4_a46e_c30714fecb7f'))
+
+# Accessing entitites using a string (only useful in rare cases).
+
+from osp.core.namespaces import get_entity  # noqa: E402
+
+print("\nYou can get an entity with a string")
+print(get_entity("city.LivingBeing"))
+print(get_entity("city.LivingBeing") == city.LivingBeing)
+
 
 # Basic operations on entities
 
-print("\nYou can use the namespace to access its entities")
-print(city.LivingBeing)
+print("\nYou can access the name of an entity")
+print(city.LivingBeing.name)
 
-print("\nYou can also use index noteation")
-print(city.LivingBeing == city["LivingBeing"][0])
+print("\nYou can access the IRI of an entity")
+print(math.Real.iri)
 
 print("\nYou can access the namespace of an entity")
-print(city is city.LivingBeing.namespace)
+print(math is math.Equation.namespace)
 
 print("\nYou can access the superclasses and the subclasses")
 print(city.LivingBeing.superclasses)
@@ -30,14 +72,8 @@ print("\nYou can test if one entity is a subclass / superclass of another")
 print(city.Person.is_subclass_of(city.LivingBeing))
 print(city.LivingBeing.is_superclass_of(city.Person))
 
-# Get entities by string
-from osp.core.namespaces import get_entity  # noqa: E402
 
-print("\nYou can get an entity with a string")
-print(get_entity("city.LivingBeing"))
-print(get_entity("city.LivingBeing") == city.LivingBeing)
-
-# cuba namespace
+# CUBA namespace
 # This is the main namespace that is always available
 from osp.core.namespaces import cuba  # noqa: E402
 
@@ -62,6 +98,7 @@ print("\nYou can test if an entity is a attribute")
 print(isinstance(city.name, OntologyAttribute))
 print(city.name.is_subclass_of(cuba.attribute))
 
+
 # Type specific operations
 print("\nYou can get the attributes of an ontology class and their defaults")
 print(city.Citizen.attributes)
@@ -69,6 +106,25 @@ print(city.Citizen.attributes)
 print("\nYou can get the non-inherited attributes and their defaults")
 print(city.Citizen.own_attributes)
 print(city.LivingBeing.own_attributes)
+
+print("\nWeb Ontology Language Restrictions and Compositions are supported."
+      "The `axioms` property returns them.")
+tuple(str(x) for x in city.Citizen.axioms)
+
+print("\nAccessing a restriction")
+restriction = city.Citizen.axioms[0]
+print(restriction)
+print(restriction.quantifier)
+print(restriction.target)
+print(restriction.rtype)
+print(restriction.attribute)
+
+print("\nAccessing a composition")
+composition = tuple(x for x in math.Integer.axioms
+                    if type(x) is Composition)[0]
+print(composition)
+print(composition.operator)
+print(composition.operands)
 
 print("\nYou can get the inverse of a relationship")
 print(city.hasInhabitant.inverse)
@@ -82,14 +138,16 @@ print(city.age.datatype)
 
 print("\nYou can use the attribute to convert values "
       "to the datatype of the attribute")
-print(city.age.convert_to_datatype("10"))
+result = city.age.convert_to_datatype("10")
+print(type(result), result)
+
 
 # CUDS
 print("\nYou can instantiate CUDS objects using ontology classes")
 print(city.Citizen(name="Test Person", age=42))
 print("Take a look at api_example.py for a description of the CUDS API")
 
-print("\nYou can check if a CUDS object is an instace of an ontology class")
+print("\nYou can check if a CUDS object is an instance of an ontology class")
 print(city.Citizen(name="Test Person", age=42).is_a(city.Citizen))
 print(city.Citizen(name="Test Person", age=42).is_a(city.LivingBeing))
 

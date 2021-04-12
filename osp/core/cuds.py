@@ -120,7 +120,7 @@ class Cuds():
 
     @property
     def _stored(self):
-        return self._graph is self.session.graph
+        return self.session is not None and self._graph is self.session.graph
 
     def get_triples(self, include_neighbor_types=False):
         """Get the triples of the cuds object."""
@@ -803,7 +803,7 @@ class Cuds():
             The value of the attribute: Any
         """
         try:
-            attr = self.oclass.get_attribute_by_argname(name)
+            attr = self._get_attribute_by_argname(name)
             if self.session:
                 self.session._notify_read(self)
             return self._graph.value(self.iri, attr.iri).toPython()
@@ -821,6 +821,14 @@ class Cuds():
                 return getattr(self._session, name)
             raise AttributeError(name) from e
 
+    def _get_attribute_by_argname(self, name):
+        """Get the attributes of this CUDS by argname."""
+        for oclass in self.oclasses:
+            attr = oclass.get_attribute_by_argname(name)
+            if attr is not None:
+                return attr
+        raise AttributeError(name)
+
     def __setattr__(self, name, new_value):
         """Set an attribute.
 
@@ -836,7 +844,7 @@ class Cuds():
         if name.startswith("_"):
             super().__setattr__(name, new_value)
             return
-        attr = self.oclass.get_attribute_by_argname(name)
+        attr = self._get_attribute_by_argname(name)
         if self.session:
             self.session._notify_read(self)
         self._graph.set((

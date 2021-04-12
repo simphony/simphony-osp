@@ -5,6 +5,7 @@ import sys
 import subprocess
 import unittest2 as unittest
 import hashlib
+import time
 from osp.wrappers.sqlite import SqliteSession
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
@@ -24,7 +25,7 @@ HOST = "127.0.0.1"
 PORT1 = 8469
 URI_CORRECT1 = f"ws://username:correct@{HOST}:{PORT1}"
 URI_WRONG1 = f"ws://username:wrong@{HOST}:{PORT1}"
-PORT2 = 8470
+PORT2 = 8471
 URI_CORRECT2 = f"ws://username:correct@{HOST}:{PORT2}"
 URI_WRONG2 = f"ws://username:wrong@{HOST}:{PORT2}"
 DB = "transport.db"
@@ -149,6 +150,7 @@ class TestTransportAuth(unittest.TestCase):
         TestTransportAuth.SERVER_STARTED.append(p)
         for line in p.stdout:
             if b"ready" in line:
+                time.sleep(0.1)
                 break
 
         args[-1] = "server2"
@@ -157,6 +159,7 @@ class TestTransportAuth(unittest.TestCase):
         TestTransportAuth.SERVER_STARTED.append(p)
         for line in p.stdout:
             if b"ready" in line:
+                time.sleep(0.1)
                 break
 
     @classmethod

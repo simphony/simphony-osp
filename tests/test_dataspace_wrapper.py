@@ -6,6 +6,7 @@ import subprocess
 import unittest2 as unittest
 import sqlite3
 import logging
+import time
 from osp.wrappers.sqlite import SqliteSession
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
@@ -50,6 +51,7 @@ class TestDataspaceWrapper(unittest.TestCase):
         TestDataspaceWrapper.SERVER_STARTED = p
         for line in p.stdout:
             if b"ready" in line:
+                time.sleep(0.1)
                 break
 
     @classmethod

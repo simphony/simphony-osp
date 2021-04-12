@@ -1,9 +1,11 @@
 """Test the Sqlite Wrapper with the CITY ontology."""
 
 import os
+from osp.core.utils.general import iri_from_uid
 import uuid
 import unittest2 as unittest
 import sqlite3
+import numpy as np
 from osp.wrappers.sqlite import SqliteSession
 
 try:
@@ -37,6 +39,19 @@ class TestSqliteCity(unittest.TestCase):
         """Remove the database file."""
         if os.path.exists(DB):
             os.remove(DB)
+
+    def test_vector(self):
+        """Test capabilities to store vectors."""
+        c = city.City(name="Frankfurt", coordinates=[42, 24])
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            wrapper.add(c)
+            wrapper.session.commit()
+
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            cw = wrapper.get(c.uid)
+            np.testing.assert_array_equal(cw.coordinates, [42, 24])
 
     def test_insert(self):
         """Test inserting in the sqlite table."""
@@ -190,6 +205,35 @@ class TestSqliteCity(unittest.TestCase):
             cs = wrapper.get(c.uid)
             r = session.load_by_oclass(city.Street)
             self.assertRaises(StopIteration, next, r)
+
+    def test_load_by_iri(self):
+        """Test if it is possible to load objects by their IRIs."""
+        c = city.City(name="Freiburg")
+        p1 = city.Citizen(name="Peter")
+        p2 = city.Citizen(name="Anna")
+        p3 = city.Citizen(name="Julia")
+        c.add(p1, p2, p3, rel=city.hasInhabitant)
+        p1.add(p3, rel=city.hasChild)
+        p2.add(p3, rel=city.hasChild)
+
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            wrapper.add(c)
+            session.commit()
+
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            cs = wrapper.get(c.uid)
+            r = session.load_from_iri(cs.iri)
+            self.assertIs(next(r), cs)
+            r = session.load_from_iri(p1.iri, p2.iri, p3.iri)
+            self.assertEqual(set(r), {p1, p2, p3})
+
+        with SqliteSession(DB) as session:
+            wrapper = city.CityWrapper(session=session)
+            cs = wrapper.get(c.uid)
+            r = session.load_from_iri(iri_from_uid(uuid.UUID(int=1)))
+            self.assertEqual(set(r), {None})
 
     def test_expiring(self):
         """Test expring CUDS objects."""

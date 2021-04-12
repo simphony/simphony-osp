@@ -298,7 +298,6 @@ def expand_vector_cols(columns, datatypes, values=None):
     # iterate over the columns and look for vectors
     for i, column in enumerate(columns):
         # non vectors are simply added to the result
-        VEC_PREFIX = str(rdflib_cuba["_datatypes/VECTOR-"])
         if datatypes[column] is None or \
                 not datatypes[column].startswith(VEC_PREFIX):
             columns_expanded.append(column)

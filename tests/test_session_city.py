@@ -5,7 +5,9 @@ from osp.core.namespaces import cuba
 from osp.core.session.session import Session
 from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.buffers import BufferContext
+from osp.core.session.core_session import CoreSession
 from osp.core.utils import branch, get_rdf_graph
+from osp.core.cuds import Cuds
 
 try:
     from osp.core.namespaces import city
@@ -142,12 +144,37 @@ class TestSessionCity(unittest.TestCase):
                     city.Neighborhood(name="Littenweiler")
                 )
             )
-            g = get_rdf_graph(session)
+            g = get_rdf_graph(session, skip_ontology=False)
             c = w.get(rel=city.hasPart)[0]
             c.remove(rel=cuba.relationship)
             session._rdf_import(g)
             self.assertEqual(w.get(rel=city.hasPart), [c])
             self.assertEqual(c.get(rel=city.hasPart)[0].name, "Littenweiler")
+
+    def test_default_session_context_manager(self):
+        """Test changing the default session with a session context manager."""
+        default_session = CoreSession()
+        Cuds._session = default_session
+        bern = city.City(name='Bern')
+        with TestSession() as session1:
+            freiburg = city.City(name='Freiburg')
+            with TestSession() as session2:
+                berlin = city.City(name='Berlin')
+                with TestSession() as session3:
+                    madrid = city.City(name='Madrid')
+                    with TestSession() as session4:
+                        beijing = city.City(name='北京')
+                        self.assertIs(freiburg.session, session1)
+                        self.assertIs(berlin.session, session2)
+                        self.assertIs(madrid.session, session3)
+                        self.assertIs(beijing.session, session4)
+                paris = city.City(name='Paris')
+                self.assertIs(berlin.session, paris.session)
+                self.assertIsNot(berlin.session, beijing.session)
+        tokyo = city.City(name='Tokyo')
+        # Test default session restore.
+        self.assertIs(bern.session, tokyo.session)
+        self.assertIs(bern.session, default_session)
 
     # def test_parse_cardinality(self):
     #     """Test parsing cardinality from the ontology."""

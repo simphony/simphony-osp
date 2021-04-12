@@ -3,12 +3,12 @@
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.cuba import rdflib_cuba
 import logging
-import rdflib
+from rdflib import OWL, RDFS, RDF, BNode
 
 logger = logging.getLogger(__name__)
 
-BLACKLIST = {rdflib.OWL.Nothing, rdflib.OWL.Thing,
-             rdflib.OWL.NamedIndividual}
+BLACKLIST = {OWL.Nothing, OWL.Thing,
+             OWL.NamedIndividual}
 
 
 class OntologyClass(OntologyEntity):
@@ -20,13 +20,14 @@ class OntologyClass(OntologyEntity):
         Args:
             namespace_registry (OntologyNamespaceRegistry): The namespace
                 registry where all namespaces are stored.
-            namespace_iri (rdflib.URIRef): The IRI of the namespace.
+            namespace_iri (URIRef): The IRI of the namespace.
             name (str): The name of the class.
             iri_suffix (str): namespace_iri +  namespace_registry make up the
                 namespace of this entity.
         """
         super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
         logger.debug("Created ontology class %s" % self)
+        self._cached_axioms = None
 
     @property
     def attributes(self):
@@ -52,6 +53,44 @@ class OntologyClass(OntologyEntity):
         """
         return self._get_attributes(self.iri)
 
+    @property
+    def axioms(self):
+        """Get all the axioms for the ontology class.
+
+        Include axioms of superclasses.
+
+        Returns:
+            List[Restriction]: The list of axioms for the ontology class.
+        """
+        if self._cached_axioms is None:
+            for superclass in self.superclasses:
+                iri = superclass.iri
+                self._compute_axioms(iri, RDFS.subClassOf)
+                self._compute_axioms(iri, OWL.equivalentClass)
+        return self._cached_axioms
+
+    def _compute_axioms(self, iri, rdflib_predicate):
+        """Compute the axioms for the class with the given IRI.
+
+        Does not include superclasses.
+
+        Args:
+            iri (UriRef): The IRI of the class.
+            rdflib_predicate (UriRef): The predicate to which the class is
+                connected to axioms (subclass or equivalentClass).
+        """
+        self._cached_axioms = self._cached_axioms or []
+        triple = (iri, rdflib_predicate, None)
+        for _, _, o in self.namespace._graph.triples(triple):
+            if not isinstance(o, BNode):
+                continue
+            try:
+                self._cached_axioms.append(
+                    self._namespace_registry.from_bnode(o)
+                )
+            except KeyError:
+                pass
+
     def _get_attributes(self, iri):
         """Get the non-inherited attributes of the oclass with the given iri.
 
@@ -64,26 +103,26 @@ class OntologyClass(OntologyEntity):
         graph = self._namespace_registry._graph
         attributes = dict()
 
-        blacklist = [rdflib.OWL.topDataProperty, rdflib.OWL.bottomDataProperty]
+        blacklist = [OWL.topDataProperty, OWL.bottomDataProperty]
         # Case 1: domain of Datatype
-        triple = (None, rdflib.RDFS.domain, iri)
+        triple = (None, RDFS.domain, iri)
         for a_iri, _, _ in self.namespace._graph.triples(triple):
-            triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
-            if triple not in graph or isinstance(a_iri, rdflib.BNode) \
+            triple = (a_iri, RDF.type, OWL.DatatypeProperty)
+            if triple not in graph or isinstance(a_iri, BNode) \
                     or a_iri in blacklist:
                 continue
             a = self.namespace._namespace_registry.from_iri(a_iri)
             default = self._get_default(a_iri, iri)
             attributes[a] = (default, False, None)
 
-        # Case 2: restrictions
-        triple = (iri, rdflib.RDFS.subClassOf, None)
+        # Case 2: axioms
+        triple = (iri, RDFS.subClassOf, None)
         for _, _, o in self.namespace._graph.triples(triple):
-            if (o, rdflib.RDF.type, rdflib.OWL.Restriction) not in graph:
+            if (o, RDF.type, OWL.Restriction) not in graph:
                 continue
-            a_iri = graph.value(o, rdflib.OWL.onProperty)
-            triple = (a_iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty)
-            if triple not in graph or isinstance(a_iri, rdflib.BNode):
+            a_iri = graph.value(o, OWL.onProperty)
+            triple = (a_iri, RDF.type, OWL.DatatypeProperty)
+            if triple not in graph or isinstance(a_iri, BNode):
                 continue
             a = self.namespace._namespace_registry.from_iri(a_iri)
             default = self._get_default(a_iri, iri)
@@ -99,11 +138,11 @@ class OntologyClass(OntologyEntity):
         dt = None
         g = self.namespace._graph
 
-        dt = g.value(r, rdflib.OWL.someValuesFrom)
+        dt = g.value(r, OWL.someValuesFrom)
         obligatory = dt is not None
-        dt = dt or g.value(r, rdflib.OWL.allValuesFrom)
-        obligatory = obligatory or (r, rdflib.OWL.cardinality) != 0
-        obligatory = obligatory or (r, rdflib.OWL.minCardinality) != 0
+        dt = dt or g.value(r, OWL.allValuesFrom)
+        obligatory = obligatory or (r, OWL.cardinality) != 0
+        obligatory = obligatory or (r, OWL.minCardinality) != 0
         return dt, obligatory
 
     def _get_default(self, attribute_iri, superclass_iri):
@@ -195,23 +234,23 @@ class OntologyClass(OntologyEntity):
         return attributes
 
     def _direct_superclasses(self):
-        return self._directly_connected(rdflib.RDFS.subClassOf,
+        return self._directly_connected(RDFS.subClassOf,
                                         blacklist=BLACKLIST)
 
     def _direct_subclasses(self):
-        return self._directly_connected(rdflib.RDFS.subClassOf,
+        return self._directly_connected(RDFS.subClassOf,
                                         inverse=True, blacklist=BLACKLIST)
 
     def _superclasses(self):
         yield self
         yield from self._transitive_hull(
-            rdflib.RDFS.subClassOf,
+            RDFS.subClassOf,
             blacklist=BLACKLIST)
 
     def _subclasses(self):
         yield self
         yield from self._transitive_hull(
-            rdflib.RDFS.subClassOf, inverse=True,
+            RDFS.subClassOf, inverse=True,
             blacklist=BLACKLIST)
 
     def __call__(self, uid=None, session=None, _force=False, **kwargs):

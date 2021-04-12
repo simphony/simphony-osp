@@ -4,6 +4,7 @@ import rdflib
 from abc import ABC, abstractmethod
 from osp.core.session.registry import Registry
 from osp.core.session.result import returns_query_result
+from osp.core.utils import uid_from_general_iri
 
 
 class Session(ABC):
@@ -17,13 +18,19 @@ class Session(ABC):
         self._registry = Registry()
         self.root = None
         self.graph = rdflib.Graph()
+        self._previous_session = None
 
     def __enter__(self):
         """Establish the connection to the backend."""
+        from osp.core.cuds import Cuds
+        self._previous_session = Cuds._session
+        Cuds._session = self
         return self
 
     def __exit__(self, *args):
         """Close the connection to the backend."""
+        from osp.core.cuds import Cuds
+        Cuds._session = self._previous_session
         self.close()
 
     def close(self):
@@ -48,6 +55,19 @@ class Session(ABC):
         cuds_object._graph = self.graph
         if self.root is None:
             self.root = cuds_object.uid
+
+    @returns_query_result
+    def load_from_iri(self, *iris):
+        """Load the cuds_objects with the given iris.
+
+        Args:
+            *iri (URIRef): The IRIs of the cuds_objects to load.
+
+        Yields:
+            Cuds: The fetched Cuds objects.
+        """
+        return self.load(*[uid_from_general_iri(iri, self.graph)[0]
+                           for iri in iris])
 
     @returns_query_result
     def load(self, *uids):
@@ -139,6 +159,8 @@ class Session(ABC):
 
     def _rdf_import(self, graph):
         """Import an RDF graph. Clears the old data beforehand.
+
+        Not really used at the moment in favor of utils.import_rdf_file.
 
         Args:
             graph (rdflib.graph): The graph to import.

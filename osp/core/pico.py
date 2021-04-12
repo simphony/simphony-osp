@@ -35,7 +35,7 @@ def install_from_terminal():
     # uninstall parser
     uninstall_parser = subparsers.add_parser(
         "uninstall",
-        help="Uninstall ontology namespaces."
+        help="Uninstall ontologies."
     )
     uninstall_parser.add_argument(
         "packages", nargs="+", type=str,
