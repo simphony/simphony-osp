@@ -32,6 +32,11 @@ print(f"Name of c: {c.name}. Coordinates of c: {c.coordinates}.")
 print("Name of p1: " + str(p1.name))
 print("Name of p2: " + str(p2.name))
 
+print("\nChanging the attribute values of the CUDS objects...")
+print(f"Change the name of {p1.name}.")
+p1.name = "Bob"
+print(f"Name of p1: {p1.name}.")
+
 print("\nAdding p1 to c...")
 c.add(p1, rel=city.hasInhabitant)
 print("internal dict of c:", c._neighbors, "\n")
