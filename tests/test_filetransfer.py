@@ -484,8 +484,13 @@ class TestFiletransfer(unittest.TestCase):
         self.assertEqual(filename, FILES[2])
         self.assertEqual(request[0], "test")
         self.assertEqual(request[1], "data")
-        if os.name == "posix":
-            self.assertTrue(request[2].startswith("/tmp/tmp"))
+        # TODO: Think of a different way to perform the check below. The
+        #  condition does is not always true. For example if the IDE is
+        #  installed as a Flatpak package, then the temporary directory has a
+        #  different path format:
+        #  /run/user/1000/app/com.jetbrains.PyCharm-Community/tmpgdjc38pd.
+        # if os.name == "posix":
+        #     self.assertTrue(request[2].startswith("/tmp/tmp"))
         self.assertTrue(isinstance(request[3], uuid.UUID))
 
 
