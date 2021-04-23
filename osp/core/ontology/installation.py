@@ -200,7 +200,7 @@ def pico_migrate(namespace_registry, path):
         namespace_registry (NamespaceRegistry): The namespace registry
         path (str): The installation path
     """
-    logger.info("Migrating installed ontologies to new osp-core version")
+    logger.info("Migrating installed ontologies to new osp-core version.")
     yml_path = os.path.join(path, "yml", "installed")
     with tempfile.TemporaryDirectory() as d:
         files = list()
@@ -215,3 +215,25 @@ def pico_migrate(namespace_registry, path):
         installer = OntologyInstallationManager(namespace_registry, path)
         namespace_registry._load_cuba()
         installer.install(*files)
+
+
+def pico_migrate_v3_5_3_1(path, migration_version_file):
+    """Migrate old installations to v3.5.3.1.
+
+    The migration function `pico_migrate` should be applied before this one if
+    necessary.
+
+    Args:
+        path (str): The installation path.
+        migration_version_file (str): The path of the file that will contain
+            the version of osp-core associated with this migration.
+    """
+    logger.info("Migrating installed ontologies to new osp-core version.")
+    try:
+        os.remove(os.path.join(path, 'namespaces.txt'))
+    except FileNotFoundError:
+        pass
+    ontology_installer = OntologyInstallationManager()
+    ontology_installer.uninstall()
+    with open(os.path.join(path, migration_version_file), "w") as version_file:
+        version_file.write("3.5.3.1" + '\n')

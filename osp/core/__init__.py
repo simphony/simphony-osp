@@ -29,7 +29,7 @@ except ModuleNotFoundError:
     __version__ = None
     logger.critical(
         "Error determining version of osp-core. If you installed from source, "
-        "try the follwing: \n"
+        "try the following: \n"
         "\t- If you want to import osp-core with the osp-core repo as cwd, "
         "please reinstall using `pip install -e <path/to/osp-core/repo>`. \n"
         "\t- Otherwise you can reinstall using "

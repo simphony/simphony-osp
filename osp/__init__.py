@@ -6,32 +6,8 @@ __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 # RDFLib <= 5.0.0).
 import sys as _osp_sys
 import itertools as _osp_itertools
-
-
-def _compare_version_leq(version, other_version):
-    """Compares two software version strings.
-
-    Receives two software version strings which are just numbers separated by
-    dots and determines whether the first one is less or equal than the
-    second one.
-
-    Args:
-        version (str): first version string (number separated by dots).
-        other_version (str) : second version string (number separated by dots).
-
-    Returns:
-        bool: whether the first version string is less or equal than the second
-        one.
-    """
-    version = map(int, version.split('.'))
-    other_version = map(int, other_version.split('.'))
-    for v, o in _osp_itertools.zip_longest(version, other_version,
-                                           fillvalue=0):
-        if v == o:
-            continue
-        return v < o
-    else:
-        return True
+from osp.core.pico import compare_version as _compare_version
+from osp.core.pico import CompareOperations
 
 
 if _osp_sys.platform == 'win32':
@@ -41,7 +17,8 @@ if _osp_sys.platform == 'win32':
     from urllib.parse import urlparse as _osp_urlparse
     import rdflib as _osp_rdflib
 
-    if _compare_version_leq(_osp_rdflib.__version__, '5.0.0'):
+    if _compare_version(_osp_rdflib.__version__, '5.0.0',
+                        operation=CompareOperations.leq):
         # Then patch RDFLib with the following decorator.
         def _graph_serialize_fix_decorator(func):
             def graph_serialize(*args, **kwargs):

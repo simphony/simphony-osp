@@ -279,9 +279,10 @@ class NamespaceRegistry():
             iri (rdflib.URIRef): the iri prefix of the new namespace.
         """
 
-        if name in self._namespaces:
-            logger.warning(f'Namespace {name} already defined in the namespace'
-                           f'registry, replacing with new prefix {iri}.')
+        # if name in self._namespaces:
+        #    logger.warning(f'Namespace {name} already defined in the'
+        #                   f'namespace registry, replacing with new'
+        #                   f'prefix {iri}.')
         self._namespaces[name] = iri
         self._graph.bind(name, iri)
 
@@ -329,9 +330,27 @@ class NamespaceRegistry():
             path (Path): path to directory where the ontology has been
                 installed.
         """
+        # Migrate old ontology formats if needed.
         if os.path.exists(os.path.join(path, "yml")):
             from osp.core.ontology.installation import pico_migrate
             pico_migrate(self, path)
+        # Migrate to 3.5.3.1 format if needed.
+        migration_version_filename = 'last-migration-osp-core-version.txt'
+        migration_version_file_path = os.path.join(
+            path, migration_version_filename)
+        if os.path.exists(migration_version_file_path):
+            with open(migration_version_file_path, "r") as version_file:
+                from ..pico import compare_version, CompareOperations
+                version = version_file.read().strip()
+                do_migration = False or not version or \
+                    compare_version(version, "3.5.3.1",
+                                    operation=CompareOperations.l)
+        else:
+            do_migration = True
+        if do_migration:
+            from osp.core.ontology.installation import pico_migrate_v3_5_3_1
+            pico_migrate_v3_5_3_1(path, migration_version_filename)
+
         path_graph = os.path.join(path, "graph.xml")
         path_ns = os.path.join(path, "namespaces.txt")
         if os.path.exists(path_graph):
@@ -350,5 +369,6 @@ class NamespaceRegistry():
         self._graph.parse(path_cuba, format="ttl")
         self.bind("cuba",
                   rdflib.URIRef("http://www.osp-core.com/cuba#"))
+
 
 namespace_registry = NamespaceRegistry()
