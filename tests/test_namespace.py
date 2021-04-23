@@ -52,8 +52,8 @@ class TestNamespaces(unittest.TestCase):
                         rdflib.URIRef("http://www.osp-core.com/parser_test#"))
         self.namespace_registry.update_namespaces()
         self.namespace_registry.store(self.tempdir.name)
-        self.assertEqual(os.listdir(self.tempdir.name), ["graph.xml",
-                                                         "namespaces.txt"])
+        self.assertItemsEqual(os.listdir(self.tempdir.name),
+                              ["graph.xml", "namespaces.txt"])
         g = rdflib.Graph()
         g.parse(os.path.join(self.tempdir.name, "graph.xml"), format="xml")
         g1 = rdflib.Graph()

@@ -92,7 +92,7 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_migrate_v0(self):
         """Test migration from schema from v0."""
-        # load old schema and run migratio
+        # load old schema and run migration
 
         # connect to db and check if
         self.run_migration(0)
