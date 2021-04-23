@@ -16,12 +16,12 @@ try:
     from osp.core.namespaces import siunits
 except ImportError:  # When the EMMO ontology is not installed.
     from osp.core.ontology import Parser
-    from osp.core.namespaces import _namespace_registry
-    Parser(_namespace_registry._graph).parse("emmo")
-    _namespace_registry.update_namespaces()
-    math = _namespace_registry.math
-    materials = _namespace_registry.materials
-    siunits = _namespace_registry.siunits
+    from osp.core.ontology.namespace_registry import namespace_registry
+    Parser(namespace_registry._graph).parse("emmo")
+    namespace_registry.update_namespaces()
+    math = namespace_registry.math
+    materials = namespace_registry.materials
+    siunits = namespace_registry.siunits
 
 
 # Mappings from OWL objects and ontology classes to enums used

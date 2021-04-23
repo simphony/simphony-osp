@@ -19,8 +19,9 @@ class NamespaceRegistry():
     def __init__(self):
         """Initialize the namespace registry.
 
-        Do not instantiate you own namespace registry.
-        Instead you can use osp.core.namespaces._namespace_registry.
+        Do NOT instantiate you own namespace registry. It is meant to be a
+        singleton. Instead, you should use
+        osp.core.ontology.namespace_registry.namespace_registry.
         """
         self._graph = rdflib.Graph()
         self._namespaces = dict()
@@ -329,3 +330,5 @@ class NamespaceRegistry():
         self._graph.bind("cuba",
                          rdflib.URIRef("http://www.osp-core.com/cuba#"))
         self.update_namespaces()
+
+namespace_registry = NamespaceRegistry()

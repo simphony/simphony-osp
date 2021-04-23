@@ -5,6 +5,7 @@ import logging
 import yaml
 import rdflib
 import rdflib.collection
+from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.datatypes import get_rdflib_datatype
 from osp.core.ontology.yml.yml_keywords import (
@@ -475,8 +476,7 @@ class YmlParser:
             namespace, entity_name = self._doc[DEFAULT_REL_KEY].split('.')
 
             # defined relationship must be installed
-            from osp.core.namespaces import _namespace_registry
-            referred_namespace = _namespace_registry.get(namespace)
+            referred_namespace = namespace_registry.get(namespace)
             if not referred_namespace:
                 raise ValueError(
                     f"The namespace {namespace} that you have defined for "
@@ -621,7 +621,7 @@ class YmlParser:
     #     :rtype: OntologyClass
     #     """
     #     namespace, class_name = self.split_name(yaml_ce)
-    #     x = self._namespace_registry[namespace][class_name]
+    #     x = self.namespace_registry[namespace][class_name]
     #     if not isinstance(x, OntologyClass):
     #         raise ValueError("Invalid class expression %s" % x)
     #     return x
@@ -658,7 +658,7 @@ class YmlParser:
     #     :rtype: RelationshipClassExpression
     #     """
     #     namespace, rel_name = self.split_name(rel_key)
-    #     rel = self._namespace_registry[namespace][rel_name]
+    #     rel = self.namespace_registry[namespace][rel_name]
     #     if not isinstance(rel, OntologyRelationship):
     #        raise ValueError("Invalid relationship %s in class expression %s "
     #                          % (rel, yaml_ce))
@@ -682,7 +682,7 @@ class YmlParser:
     #     :raises RuntimeError: rel and inverse are both active
     #     :raises RuntimeError: rel and inverse are both passive
     #     """
-    #     cuba = self._namespace_registry.get_main_namespace()
+    #     cuba = self.namespace_registry.get_main_namespace()
     #     for entity in namespace:
     #         if isinstance(entity, OntologyRelationship):
     #             inverse = entity.inverse

@@ -296,9 +296,9 @@ def _serializable(cuds_objects, mark_first=False):
         List[Dict]: []
     """
     from osp.core.cuds import Cuds
-    from osp.core.namespaces import _namespace_registry
+    from osp.core.ontology.namespace_registry import namespace_registry
     g = rdflib.Graph()
-    g.namespace_manager = _namespace_registry._graph.namespace_manager
+    g.namespace_manager = namespace_registry._graph.namespace_manager
     g.bind("cuds", rdflib.URIRef("http://www.osp-core.com/cuds#"))
     if mark_first:
         g.add((rdflib_cuba._serialization, rdflib.RDF.first,

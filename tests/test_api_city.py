@@ -13,10 +13,10 @@ try:
     from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
-    from osp.core.namespaces import _namespace_registry
-    Parser(_namespace_registry._graph).parse("city")
-    _namespace_registry.update_namespaces()
-    city = _namespace_registry.city
+    from osp.core.ontology.namespace_registry import namespace_registry
+    Parser(namespace_registry._graph).parse("city")
+    namespace_registry.update_namespaces()
+    city = namespace_registry.city
 
 
 class TestAPICity(unittest.TestCase):

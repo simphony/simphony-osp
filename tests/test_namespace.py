@@ -126,9 +126,10 @@ class TestNamespaces(unittest.TestCase):
         self.assertEqual(r.name, "hasPart")
         from osp.core.namespaces import from_iri
         import osp.core.namespaces
-        old_ns_reg = osp.core.namespaces._namespace_registry
+        old_ns_reg = osp.core.ontology.namespace_registry.namespace_registry
         try:
-            osp.core.namespaces._namespace_registry = self.namespace_registry
+            osp.core.ontology.namespace_registry.namespace_registry = \
+                self.namespace_registry
             c = from_iri(rdflib_cuba.Entity)
             self.assertIsInstance(c, OntologyClass)
             self.assertEqual(c.namespace.get_name(), "cuba")

@@ -7,10 +7,10 @@ try:
     from osp.core.namespaces import foaf
 except ImportError:
     from osp.core.ontology import Parser
-    from osp.core.namespaces import _namespace_registry
-    Parser(_namespace_registry._graph).parse("foaf")
-    _namespace_registry.update_namespaces()
-    foaf = _namespace_registry.foaf
+    from osp.core.ontology.namespace_registry import namespace_registry
+    Parser(namespace_registry._graph).parse("foaf")
+    namespace_registry.update_namespaces()
+    foaf = namespace_registry.foaf
 
 
 class TestAPIfoaf(unittest.TestCase):

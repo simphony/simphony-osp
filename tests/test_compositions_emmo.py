@@ -13,12 +13,12 @@ try:
     from osp.core.namespaces import physicalistic
 except ImportError:  # When the EMMO ontology is not installed.
     from osp.core.ontology import Parser
-    from osp.core.namespaces import _namespace_registry
-    Parser(_namespace_registry._graph).parse("emmo")
-    _namespace_registry.update_namespaces()
-    math = _namespace_registry.math
-    materials = _namespace_registry.materials
-    physicalistic = _namespace_registry.physicalistic
+    from osp.core.ontology.namespace_registry import namespace_registry
+    Parser(namespace_registry._graph).parse("emmo")
+    namespace_registry.update_namespaces()
+    math = namespace_registry.math
+    materials = namespace_registry.materials
+    physicalistic = namespace_registry.physicalistic
 
 
 predicate_to_operator = {rdflib.OWL.unionOf: OPERATOR.OR,

@@ -11,13 +11,13 @@ try:
     from osp.core.namespaces import math, holistic, mereotopology, perceptual
 except ImportError:
     from osp.core.ontology import Parser
-    from osp.core.namespaces import _namespace_registry
-    Parser(_namespace_registry._graph).parse("emmo")
-    _namespace_registry.update_namespaces()
-    math = _namespace_registry.math
-    holistic = _namespace_registry.holistic
-    mereotopology = _namespace_registry.mereotopology
-    perceptual = _namespace_registry.perceptual
+    from osp.core.ontology.namespace_registry import namespace_registry
+    Parser(namespace_registry._graph).parse("emmo")
+    namespace_registry.update_namespaces()
+    math = namespace_registry.math
+    holistic = namespace_registry.holistic
+    mereotopology = namespace_registry.mereotopology
+    perceptual = namespace_registry.perceptual
 
 
 class TestAPIEmmo(unittest.TestCase):
