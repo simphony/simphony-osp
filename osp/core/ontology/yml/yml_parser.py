@@ -82,6 +82,7 @@ class YmlParser:
         self._namespace = self._doc[NAMESPACE_KEY].lower()
         self._ontology_doc = self._doc[ONTOLOGY_KEY]
         self._parse_ontology()
+        namespace_registry.bind(self._namespace, self._get_iri())
         logger.info(f"You can now use `from osp.core.namespaces import "
                     f"{self._namespace}`.")
 

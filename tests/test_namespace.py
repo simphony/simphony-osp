@@ -124,12 +124,14 @@ class TestNamespaces(unittest.TestCase):
         self.assertIsInstance(r, OntologyRelationship)
         self.assertEqual(r.namespace.get_name(), "city")
         self.assertEqual(r.name, "hasPart")
-        from osp.core.namespaces import from_iri
         import osp.core.namespaces
         old_ns_reg = osp.core.ontology.namespace_registry.namespace_registry
         try:
             osp.core.ontology.namespace_registry.namespace_registry = \
                 self.namespace_registry
+            osp.core.namespaces.from_iri = self.namespace_registry.from_iri
+
+            from osp.core.namespaces import from_iri
             c = from_iri(rdflib_cuba.Entity)
             self.assertIsInstance(c, OntologyClass)
             self.assertEqual(c.namespace.get_name(), "cuba")
@@ -141,11 +143,11 @@ class TestNamespaces(unittest.TestCase):
                 rdflib.Literal(True)
             ))
             self.namespace_registry.from_iri.cache_clear()
-            c = self.namespace_registry.from_iri(city_iri)
+            c = from_iri(city_iri)
             self.assertIsInstance(c, OntologyClass)
             self.assertEqual(c.namespace.get_name(), "city")
             self.assertEqual(c.name, "City_T")
-            r = self.namespace_registry.from_iri(hasPart_iri)
+            r = from_iri(hasPart_iri)
             self.assertIsInstance(r, OntologyRelationship)
             self.assertEqual(r.namespace.get_name(), "city")
             self.assertEqual(r.name, "hasPart_T")
@@ -170,7 +172,8 @@ class TestNamespaces(unittest.TestCase):
             self.assertEqual(b.namespace.get_name(), "d/e/")
             self.assertEqual(b.name, "f")
         finally:
-            osp.core.namespaces._namespace_registry = old_ns_reg
+            osp.core.ontology.namespace_registry = old_ns_reg
+            osp.core.namespaces.from_iri = old_ns_reg.from_iri
 
     def test_namespace_registry_update_namespaces(self):
         """Test updateing the namespaces."""

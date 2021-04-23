@@ -108,13 +108,7 @@ class NamespaceRegistry():
         raise KeyError("Namespace %s not installed." % name)
 
     def update_namespaces(self, modules=[]):
-        """Update the namespaces of the namespace registry.
-
-        Use the namespaces of the graph for that.
-        """
-        self._namespaces = dict()
-        for name, iri in self._graph.namespace_manager.namespaces():
-            self._namespaces[name.lower()] = iri
+        """Update the namespaces of the namespace registry."""
         for module in modules:
             for namespace in self:
                 setattr(module, namespace.get_name().upper(), namespace)
@@ -277,12 +271,40 @@ class NamespaceRegistry():
         else:
             return language
 
+    def bind(self, name: str, iri: rdflib.URIRef):
+        """Bind a namespace to this namespace registry.
+
+        Args:
+            name (str): the name to use for the new namespace.
+            iri (rdflib.URIRef): the iri prefix of the new namespace.
+        """
+
+        if name in self._namespaces:
+            logger.warning(f'Namespace {name} already defined in the namespace'
+                           f'registry, replacing with new prefix {iri}.')
+        self._namespaces[name] = iri
+        self._graph.bind(name, iri)
+
+    def unbind(self, name: str):
+        """Unbind a namespace from this namespace registry.
+
+        Args:
+            name (str): the name of the namespace to unbind.
+        """
+        try:
+            del self._namespaces[name]
+        except KeyError:
+            logger.warning(f'Tried to unbind {name} from the namespace'
+                           f'registry, but it was already unbounded.')
+
     def clear(self):
         """Clear the loaded Graph and load cuba only.
 
         Returns:
             [type]: [description]
         """
+        for ns_name in tuple(self._namespaces.keys()):
+            self.unbind(ns_name)
         self._graph = rdflib.Graph()
         self._load_cuba()
         return self._graph
@@ -297,7 +319,7 @@ class NamespaceRegistry():
         path_ns = os.path.join(path, "namespaces.txt")
         self._graph.serialize(destination=path_graph, format="xml")
         with open(path_ns, "w") as f:
-            for name, iri in self._graph.namespace_manager.namespaces():
+            for name, iri in self._namespaces.items():
                 print("%s\t%s" % (name, iri), file=f)
 
     def load(self, path):
@@ -318,8 +340,7 @@ class NamespaceRegistry():
                 with open(path_ns, "r") as f:
                     for line in f:
                         name, iri = line.strip("\n").split("\t")
-                        self._graph.bind(name, rdflib.URIRef(iri))
-                self.update_namespaces()
+                        self.bind(name, rdflib.URIRef(iri))
         else:
             self._load_cuba()
 
@@ -327,8 +348,7 @@ class NamespaceRegistry():
         """Load the cuba namespace."""
         path_cuba = os.path.join(os.path.dirname(__file__), "docs", "cuba.ttl")
         self._graph.parse(path_cuba, format="ttl")
-        self._graph.bind("cuba",
-                         rdflib.URIRef("http://www.osp-core.com/cuba#"))
-        self.update_namespaces()
+        self.bind("cuba",
+                  rdflib.URIRef("http://www.osp-core.com/cuba#"))
 
 namespace_registry = NamespaceRegistry()

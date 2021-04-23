@@ -9,6 +9,7 @@ import tempfile
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.yml.yml_parser import YmlParser
+from osp.core.ontology.namespace_registry import namespace_registry
 
 logger = logging.getLogger(__name__)
 
@@ -282,6 +283,7 @@ class Parser():
             logger.info(f"You can now use `from osp.core.namespaces import "
                         f"{namespace}`.")
             self.graph.bind(namespace, rdflib.URIRef(iri))
+            namespace_registry.bind(namespace, rdflib.URIRef(iri))
             default_rels[iri] = default_rel
             reference_styles[iri] = reference_style
 
