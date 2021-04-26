@@ -9,8 +9,7 @@ import tempfile
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.yml.yml_parser import YmlParser
-from osp.core.ontology.namespace_registry import namespace_registry, \
-    NamespaceRegistry
+from osp.core.ontology.namespace_registry import namespace_registry
 
 logger = logging.getLogger(__name__)
 
