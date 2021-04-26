@@ -80,7 +80,7 @@ def install_from_terminal():
 
 
 class CompareOperations(Enum):
-    """The allowed values for the compare_version function"""
+    """The allowed values for the compare_version function."""
     leq: str = 'leq'
     l: str = 'l'
 

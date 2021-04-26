@@ -278,7 +278,6 @@ class NamespaceRegistry():
             name (str): the name to use for the new namespace.
             iri (rdflib.URIRef): the iri prefix of the new namespace.
         """
-
         # if name in self._namespaces:
         #    logger.warning(f'Namespace {name} already defined in the'
         #                   f'namespace registry, replacing with new'

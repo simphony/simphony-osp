@@ -9,7 +9,8 @@ import tempfile
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.yml.yml_parser import YmlParser
-from osp.core.ontology.namespace_registry import namespace_registry
+from osp.core.ontology.namespace_registry import namespace_registry, \
+    NamespaceRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,13 @@ class Parser():
         Args:
             graph (rdflib.Graph): The graph to add the triples to.
                 might already contain some triples.
+            parser_namespace_registry (NamespaceRegistry): The namespace
+                registry that should be connected to this parser. The parser
+                will register the read namespaces in this specific namespace
+                registry. If none is provided, then the default
+                (namespace_registry from osp.core.ontology.namespace_registry)
+                will be used. In fact, you should never create several
+                namespace registries, except on unit tests.
         """
         self._namespace_registry = parser_namespace_registry or \
             namespace_registry
