@@ -144,7 +144,8 @@ class OntologyInstallationManager():
             graph = self.namespace_registry.clear()
             installed = set()
         files = self._sort_for_installation(filter_func(files), installed)
-        parser = Parser(graph)
+        parser = Parser(graph,
+                        parser_namespace_registry=self.namespace_registry)
         for file in files:
             parser.parse(file)
         self.namespace_registry.update_namespaces()
@@ -217,7 +218,8 @@ def pico_migrate(namespace_registry, path):
         installer.install(*files)
 
 
-def pico_migrate_v3_5_3_1(path, migration_version_file):
+def pico_migrate_v3_5_3_1(path, migration_version_file,
+                          namespace_registry=None):
     """Migrate old installations to v3.5.3.1.
 
     The migration function `pico_migrate` should be applied before this one if
@@ -227,13 +229,18 @@ def pico_migrate_v3_5_3_1(path, migration_version_file):
         path (str): The installation path.
         migration_version_file (str): The path of the file that will contain
             the version of osp-core associated with this migration.
+        namespace_registry (OntologyInstallationManager): use a specific
+            namespace registry in this migration function.
     """
     logger.info("Migrating installed ontologies to new osp-core version.")
     try:
         os.remove(os.path.join(path, 'namespaces.txt'))
     except FileNotFoundError:
         pass
-    ontology_installer = OntologyInstallationManager()
+    ontology_installer = OntologyInstallationManager() \
+        if not namespace_registry else \
+        OntologyInstallationManager(namespace_registry=namespace_registry,
+                                    path=path)
     ontology_installer.uninstall()
     with open(os.path.join(path, migration_version_file), "w") as version_file:
         version_file.write("3.5.3.1" + '\n')

@@ -6,7 +6,8 @@ of RDFLib <= 5.0.0).
 """
 
 import unittest
-from osp import _compare_version_leq as compare_version_leq
+from osp.core.pico import compare_version
+from osp import CompareOperations
 
 
 class TestRDFLibPatch(unittest.TestCase):
@@ -29,7 +30,8 @@ class TestRDFLibPatch(unittest.TestCase):
                                   "{other_version}"
                                   .format(version=version,
                                           other_version=other_version)):
-                self.assertIs(compare_version_leq(version, other_version),
+                self.assertIs(compare_version(version, other_version,
+                                              operation=CompareOperations.leq),
                               expected_result)
 
 

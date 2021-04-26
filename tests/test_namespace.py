@@ -50,6 +50,9 @@ class TestNamespaces(unittest.TestCase):
         self.graph.parse(RDF_FILE, format="ttl")
         self.graph.bind("parser_test",
                         rdflib.URIRef("http://www.osp-core.com/parser_test#"))
+        self.namespace_registry.bind("parser_test",
+                                     rdflib.URIRef("http://www.osp-core.com"
+                                                   "/parser_test#"))
         self.namespace_registry.update_namespaces()
         self.namespace_registry.store(self.tempdir.name)
         self.assertItemsEqual(os.listdir(self.tempdir.name),
@@ -82,6 +85,9 @@ class TestNamespaces(unittest.TestCase):
         self.graph.parse(RDF_FILE, format="ttl")
         self.graph.bind("parser_test",
                         rdflib.URIRef("http://www.osp-core.com/parser_test#"))
+        self.namespace_registry.bind("parser_test",
+                                     rdflib.URIRef("http://www.osp-core.com/"
+                                                   "parser_test#"))
         self.namespace_registry.update_namespaces()
         self.namespace_registry.store(self.tempdir.name)
 
@@ -178,8 +184,11 @@ class TestNamespaces(unittest.TestCase):
     def test_namespace_registry_update_namespaces(self):
         """Test updateing the namespaces."""
         self.graph.bind("a", rdflib.URIRef("aaa"))
+        self.namespace_registry.bind("a", rdflib.URIRef("aaa"))
         self.graph.bind("b", rdflib.URIRef("bbb"))
+        self.namespace_registry.bind("b", rdflib.URIRef("bbb"))
         self.graph.bind("c", rdflib.URIRef("ccc"))
+        self.namespace_registry.bind("c", rdflib.URIRef("ccc"))
         self.namespace_registry.update_namespaces()
         self.assertEqual(self.namespace_registry.a.get_name(), "a")
         self.assertEqual(self.namespace_registry.a.get_iri(),
@@ -210,7 +219,7 @@ class TestNamespaces(unittest.TestCase):
         self.assertRaises(AttributeError, getattr, self.namespace_registry,
                           "invalid")
         self.assertEqual({x.get_name() for x in self.namespace_registry}, {
-                         'xml', 'rdf', 'rdfs', 'xsd', 'cuba', 'owl', 'city'})
+                         'cuba', 'city'})
 
     def modify_labels(self):
         """Modify the labels in the graph. Append a T.

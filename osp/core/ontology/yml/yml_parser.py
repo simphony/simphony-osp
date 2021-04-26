@@ -32,13 +32,15 @@ logger = logging.getLogger(__name__)
 class YmlParser:
     """Class that parses a YAML ontology."""
 
-    def __init__(self, graph):
+    def __init__(self, graph, parser_namespace_registry=None):
         """Initialize the YamlParser.
 
         Args:
             graph (rdflib.Graph): The graph where the triples should be added
                 to. Might contain already some tripes.
         """
+        self._namespace_registry = parser_namespace_registry or \
+            namespace_registry
         self._doc = None
         self._ontology_doc = None
         self._namespace = None
@@ -82,7 +84,7 @@ class YmlParser:
         self._namespace = self._doc[NAMESPACE_KEY].lower()
         self._ontology_doc = self._doc[ONTOLOGY_KEY]
         self._parse_ontology()
-        namespace_registry.bind(self._namespace, self._get_iri())
+        self._namespace_registry.bind(self._namespace, self._get_iri())
         logger.info(f"You can now use `from osp.core.namespaces import "
                     f"{self._namespace}`.")
 
@@ -477,7 +479,7 @@ class YmlParser:
             namespace, entity_name = self._doc[DEFAULT_REL_KEY].split('.')
 
             # defined relationship must be installed
-            referred_namespace = namespace_registry.get(namespace)
+            referred_namespace = self._namespace_registry.get(namespace)
             if not referred_namespace:
                 raise ValueError(
                     f"The namespace {namespace} that you have defined for "
@@ -622,7 +624,7 @@ class YmlParser:
     #     :rtype: OntologyClass
     #     """
     #     namespace, class_name = self.split_name(yaml_ce)
-    #     x = self.namespace_registry[namespace][class_name]
+    #     x = self._namespace_registry[namespace][class_name]
     #     if not isinstance(x, OntologyClass):
     #         raise ValueError("Invalid class expression %s" % x)
     #     return x
@@ -659,7 +661,7 @@ class YmlParser:
     #     :rtype: RelationshipClassExpression
     #     """
     #     namespace, rel_name = self.split_name(rel_key)
-    #     rel = self.namespace_registry[namespace][rel_name]
+    #     rel = self._namespace_registry[namespace][rel_name]
     #     if not isinstance(rel, OntologyRelationship):
     #        raise ValueError("Invalid relationship %s in class expression %s "
     #                          % (rel, yaml_ce))
@@ -683,7 +685,7 @@ class YmlParser:
     #     :raises RuntimeError: rel and inverse are both active
     #     :raises RuntimeError: rel and inverse are both passive
     #     """
-    #     cuba = self.namespace_registry.get_main_namespace()
+    #     cuba = self._namespace_registry.get_main_namespace()
     #     for entity in namespace:
     #         if isinstance(entity, OntologyRelationship):
     #             inverse = entity.inverse

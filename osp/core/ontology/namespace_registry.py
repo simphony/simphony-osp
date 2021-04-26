@@ -349,7 +349,8 @@ class NamespaceRegistry():
             do_migration = True
         if do_migration:
             from osp.core.ontology.installation import pico_migrate_v3_5_3_1
-            pico_migrate_v3_5_3_1(path, migration_version_filename)
+            pico_migrate_v3_5_3_1(path, migration_version_filename,
+                                  namespace_registry=self)
 
         path_graph = os.path.join(path, "graph.xml")
         path_ns = os.path.join(path, "namespaces.txt")

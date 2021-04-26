@@ -5,7 +5,6 @@ __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 # path is stripped on Windows by the graph.Graph.serialize method of
 # RDFLib <= 5.0.0).
 import sys as _osp_sys
-import itertools as _osp_itertools
 from osp.core.pico import compare_version as _compare_version
 from osp.core.pico import CompareOperations
 
