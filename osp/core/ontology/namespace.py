@@ -365,7 +365,7 @@ class OntologyNamespace():
             OntologyEntity: The ontology entity
 
         """
-        if _force_by_iri is True:
+        if _force_by_iri is True or self._reference_by_label is False:
             return self.get_from_suffix(name)
         else:
             return self._get_from_label(name, case_sensitive=_case_sensitive)
