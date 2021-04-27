@@ -6,6 +6,7 @@ import rdflib
 import logging
 
 from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
@@ -213,6 +214,8 @@ class OntologyNamespace():
             OntologyEntity: The ontology entity.
         """
         results = []
+        inverse = label.startswith("INVERSE_OF_")
+        label = label if not inverse else label[11:]
         for iri in self._get_namespace_subjects():
             entity_labels = self._get_labels_for_iri(iri, lang=lang)
             if case_sensitive is False:
@@ -224,20 +227,31 @@ class OntologyNamespace():
                 _name = label if self._reference_by_label else None
                 results.append(self.get_from_iri(iri, _name=_name))
         if len(results) == 0:
-            raise KeyError("No element with label %s in namespace %s"
-                           % (label, self))
+            error = "No element with label %s was found in namespace %s."\
+                    % (label, self)
+            if inverse:
+                error += f' Therefore, INVERSE_OF_{label} could not be found.'
+            raise KeyError(error)
         elif len(results) >= 2:
             element_suffixes = (r._iri_suffix for r in results)
-            raise KeyError(f"There are multiple elements "
-                           f"({', '.join(element_suffixes)}) with label"
-                           f" {label} for namespace {self}."
-                           f"\n"
-                           f"Please refer to a specific element of the "
-                           f"list by calling get_from_iri(IRI) for "
-                           f"namespace {self} for one of the following "
-                           f"IRIs: " + "{iris}."
-                           .format(iris=', '.join(entity.iri for entity in
-                                                  results)))
+            error = (f"There are multiple elements "
+                     f"({', '.join(element_suffixes)}) with label"
+                     f" {label} for namespace {self}."
+                     f"\n"
+                     f"Please refer to a specific element of the "
+                     f"list by calling get_from_iri(IRI) for "
+                     f"namespace {self} for one of the following "
+                     f"IRIs: " + "{iris}.")\
+                .format(iris=', '.join(entity.iri for entity in results))
+            if inverse:
+                error += f' Therefore, INVERSE_OF_{label} could not be found.'
+            raise KeyError(error)
+        if inverse:
+            if type(results[0]) is not OntologyRelationship:
+                raise KeyError(f"The entity {label} is not an ontology "
+                               f"relationship. Therefore INVERSE_OF_{label} "
+                               f"does not exist.")
+            results[0] = results[0].inverse
         return results[0]
 
     def __iter__(self):
