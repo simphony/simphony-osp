@@ -11,17 +11,11 @@ from osp.core.ontology.oclass_composition import Composition
 
 
 try:
-    from osp.core.namespaces import math
-    from osp.core.namespaces import materials
-    from osp.core.namespaces import siunits
+    from osp.core.namespaces import math, materials, siunits
 except ImportError:  # When the EMMO ontology is not installed.
     from osp.core.ontology import Parser
-    from osp.core.ontology.namespace_registry import namespace_registry
-    Parser(namespace_registry._graph).parse("emmo")
-    namespace_registry.update_namespaces()
-    math = namespace_registry.math
-    materials = namespace_registry.materials
-    siunits = namespace_registry.siunits
+    Parser().parse("emmo")
+    from osp.core.namespaces import math, materials, siunits
 
 
 # Mappings from OWL objects and ontology classes to enums used

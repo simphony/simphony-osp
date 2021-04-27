@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 class YmlParser:
     """Class that parses a YAML ontology."""
 
-    def __init__(self, graph, parser_namespace_registry=None):
+    def __init__(self, parser_namespace_registry=None):
         """Initialize the YamlParser.
 
         Args:
@@ -52,8 +52,8 @@ class YmlParser:
         self._ontology_doc = None
         self._namespace = None
         self._file_path = None
-        self.graph = graph
-        graph.bind("owl", rdflib.OWL)
+        self.graph = self._namespace_registry._graph
+        self.graph.bind("owl", rdflib.OWL)
 
     @staticmethod
     def is_yaml_ontology(doc):

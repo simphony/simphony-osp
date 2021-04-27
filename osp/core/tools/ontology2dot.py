@@ -185,7 +185,7 @@ def run_from_terminal():
     args = parser.parse_args()
 
     namespaces = list()
-    parser = Parser(namespace_registry._graph)
+    parser = Parser()
     for x in args.to_plot:
         if x in namespace_registry:
             namespaces.append(x)

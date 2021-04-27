@@ -285,26 +285,13 @@ class NamespaceRegistry():
         self._namespaces[name] = iri
         self._graph.bind(name, iri)
 
-    def unbind(self, name: str):
-        """Unbind a namespace from this namespace registry.
-
-        Args:
-            name (str): the name of the namespace to unbind.
-        """
-        try:
-            del self._namespaces[name]
-        except KeyError:
-            logger.warning(f'Tried to unbind {name} from the namespace'
-                           f'registry, but it was already unbounded.')
-
     def clear(self):
         """Clear the loaded Graph and load cuba only.
 
         Returns:
             [type]: [description]
         """
-        for ns_name in tuple(self._namespaces.keys()):
-            self.unbind(ns_name)
+        self._namespaces = dict()
         self._graph = rdflib.Graph()
         self._load_cuba()
         return self._graph
@@ -341,9 +328,8 @@ class NamespaceRegistry():
             with open(migration_version_file_path, "r") as version_file:
                 from ..pico import compare_version, CompareOperations
                 version = version_file.read().strip()
-                do_migration = False or not version or \
-                    compare_version(version, "3.5.3.1",
-                                    operation=CompareOperations.l)
+                do_migration = not version or compare_version(
+                    version, "3.5.3.1", operation=CompareOperations.l)
         else:
             do_migration = True
         if do_migration:

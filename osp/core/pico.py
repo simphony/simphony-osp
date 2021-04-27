@@ -110,7 +110,7 @@ def compare_version(version, other_version,
             continue
         return v < o
     else:
-        return operation == CompareOperations.leq or False
+        return operation == CompareOperations.leq
 
 
 if __name__ == "__main__":

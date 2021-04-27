@@ -9,6 +9,7 @@ import responses
 from rdflib.compare import isomorphic
 from osp.core.ontology.parser import Parser
 from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.namespace_registry import NamespaceRegistry
 
 
 RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -26,8 +27,9 @@ class TestParser(unittest.TestCase):
 
     def setUp(self):
         """Set up Graph and Parser."""
-        self.graph = rdflib.Graph()
-        self.parser = Parser(self.graph)
+        self.namespace_registry = NamespaceRegistry()
+        self.graph = self.namespace_registry._graph
+        self.parser = Parser(parser_namespace_registry=self.namespace_registry)
 
     def test_add_cuba_triples(self):
         """Test adding the cuba triples, like active relationships."""

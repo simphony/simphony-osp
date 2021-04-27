@@ -48,8 +48,6 @@ class TestNamespaces(unittest.TestCase):
     def test_namespace_registry_store(self):
         """Test storing loaded namespaces."""
         self.graph.parse(RDF_FILE, format="ttl")
-        self.graph.bind("parser_test",
-                        rdflib.URIRef("http://www.osp-core.com/parser_test#"))
         self.namespace_registry.bind("parser_test",
                                      rdflib.URIRef("http://www.osp-core.com"
                                                    "/parser_test#"))
@@ -83,8 +81,6 @@ class TestNamespaces(unittest.TestCase):
 
         # graph.ttl found
         self.graph.parse(RDF_FILE, format="ttl")
-        self.graph.bind("parser_test",
-                        rdflib.URIRef("http://www.osp-core.com/parser_test#"))
         self.namespace_registry.bind("parser_test",
                                      rdflib.URIRef("http://www.osp-core.com/"
                                                    "parser_test#"))
@@ -135,9 +131,8 @@ class TestNamespaces(unittest.TestCase):
         try:
             osp.core.ontology.namespace_registry.namespace_registry = \
                 self.namespace_registry
-            osp.core.namespaces.from_iri = self.namespace_registry.from_iri
+            from_iri = self.namespace_registry.from_iri
 
-            from osp.core.namespaces import from_iri
             c = from_iri(rdflib_cuba.Entity)
             self.assertIsInstance(c, OntologyClass)
             self.assertEqual(c.namespace.get_name(), "cuba")
@@ -179,15 +174,11 @@ class TestNamespaces(unittest.TestCase):
             self.assertEqual(b.name, "f")
         finally:
             osp.core.ontology.namespace_registry = old_ns_reg
-            osp.core.namespaces.from_iri = old_ns_reg.from_iri
 
     def test_namespace_registry_update_namespaces(self):
         """Test updateing the namespaces."""
-        self.graph.bind("a", rdflib.URIRef("aaa"))
         self.namespace_registry.bind("a", rdflib.URIRef("aaa"))
-        self.graph.bind("b", rdflib.URIRef("bbb"))
         self.namespace_registry.bind("b", rdflib.URIRef("bbb"))
-        self.graph.bind("c", rdflib.URIRef("ccc"))
         self.namespace_registry.bind("c", rdflib.URIRef("ccc"))
         self.namespace_registry.update_namespaces()
         self.assertEqual(self.namespace_registry.a.get_name(), "a")

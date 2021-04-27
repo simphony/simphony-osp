@@ -8,16 +8,11 @@ from osp.core.session.core_session import CoreSession
 from osp.core.namespaces import cuba
 
 try:
-    from osp.core.namespaces import math, holistic, mereotopology, perceptual
+    from osp.core.namespaces import math, holistic, mereotopology
 except ImportError:
     from osp.core.ontology import Parser
-    from osp.core.ontology.namespace_registry import namespace_registry
-    Parser(namespace_registry._graph).parse("emmo")
-    namespace_registry.update_namespaces()
-    math = namespace_registry.math
-    holistic = namespace_registry.holistic
-    mereotopology = namespace_registry.mereotopology
-    perceptual = namespace_registry.perceptual
+    Parser().parse("emmo")
+    from osp.core.namespaces import math, holistic, mereotopology
 
 
 class TestAPIEmmo(unittest.TestCase):

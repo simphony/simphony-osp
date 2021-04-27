@@ -15,10 +15,8 @@ try:
     from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
-    from osp.core.ontology.namespace_registry import namespace_registry
-    Parser(namespace_registry._graph).parse("city")
-    namespace_registry.update_namespaces()
-    city = namespace_registry.city
+    Parser().parse("city")
+    from osp.core.namespaces import city
 
 CUDS_TABLE = SqlWrapperSession.CUDS_TABLE
 ENTITIES_TABLE = SqlWrapperSession.ENTITIES_TABLE

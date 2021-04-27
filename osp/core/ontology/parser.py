@@ -31,7 +31,7 @@ ALL_KEYS = set([
 class Parser():
     """The parser used to parse OWL ontologies in RDF format."""
 
-    def __init__(self, graph, parser_namespace_registry=None):
+    def __init__(self, parser_namespace_registry=None):
         """Initialize the parser.
 
         Args:
@@ -47,7 +47,7 @@ class Parser():
         """
         self._namespace_registry = parser_namespace_registry or \
             namespace_registry
-        self.graph = graph
+        self.graph = self._namespace_registry._graph
         self._yaml_docs = list()
         self._graphs = dict()
 
@@ -65,8 +65,7 @@ class Parser():
                     f"Empty format of file {file_path}"
                 )
             if YmlParser.is_yaml_ontology(yaml_doc):
-                YmlParser(self.graph,
-                          parser_namespace_registry=self._namespace_registry)\
+                YmlParser(parser_namespace_registry=self._namespace_registry)\
                     .parse(file_path, yaml_doc)
             elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
                 s = "-" + os.path.basename(file_path).split(".")[0]
@@ -293,7 +292,6 @@ class Parser():
             namespace_iris.add(iri)
             logger.info(f"You can now use `from osp.core.namespaces import "
                         f"{namespace}`.")
-            self.graph.bind(namespace, rdflib.URIRef(iri))
             self._namespace_registry.bind(namespace, rdflib.URIRef(iri))
             default_rels[iri] = default_rel
             reference_styles[iri] = reference_style
