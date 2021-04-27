@@ -16,8 +16,9 @@ try:
     from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
+    from osp.core.ontology.namespace_registry import namespace_registry
     Parser().parse("city")
-    from osp.core.namespaces import city
+    city = namespace_registry.city
 
 HOST = "127.0.0.1"
 PORT1 = 8469

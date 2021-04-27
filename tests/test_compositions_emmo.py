@@ -11,8 +11,9 @@ try:
     from osp.core.namespaces import math
 except ImportError:  # When the EMMO ontology is not installed.
     from osp.core.ontology import Parser
+    from osp.core.ontology.namespace_registry import namespace_registry
     Parser().parse("emmo")
-    from osp.core.namespaces import math
+    math = namespace_registry.math
 
 
 predicate_to_operator = {rdflib.OWL.unionOf: OPERATOR.OR,
