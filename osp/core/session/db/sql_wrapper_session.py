@@ -241,8 +241,8 @@ class SqlWrapperSession(TripleStoreWrapperSession):
     def _split_namespace(self, iri):
         if iri.startswith(CUDS_IRI_PREFIX):
             return uuid.UUID(hex=iri[len(CUDS_IRI_PREFIX):])
-        from osp.core.namespaces import _namespace_registry
-        ns_iri = _namespace_registry._get_namespace_name_and_iri(iri)[1]
+        from osp.core.ontology.namespace_registry import namespace_registry
+        ns_iri = namespace_registry._get_namespace_name_and_iri(iri)[1]
         return self._get_ns_idx(ns_iri), str(iri[len(ns_iri):])
 
     def _get_ns_idx(self, ns_iri):

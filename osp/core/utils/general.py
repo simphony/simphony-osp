@@ -99,11 +99,11 @@ def get_rdf_graph(session=None, skip_custom_datatypes=False,
                 f"Function can only be called on (sub)classes of {Session}."""
             )
     from osp.core.cuds import Cuds
-    from osp.core.namespaces import _namespace_registry
+    from osp.core.ontology.namespace_registry import namespace_registry
     session = session or Cuds._session
     result = session._get_full_graph()
     if not skip_ontology:
-        result = result | _namespace_registry._graph
+        result = result | namespace_registry._graph
     if skip_custom_datatypes:
         return result - get_custom_datatype_triples()
     return result
@@ -172,10 +172,10 @@ def get_custom_datatypes():
         Set[rdflib.IRI]: The set of IRI of custom datatypes.
     """
     from osp.core.ontology.cuba import rdflib_cuba
-    from osp.core.namespaces import _namespace_registry
+    from osp.core.ontology.namespace_registry import namespace_registry
     pattern = (None, rdflib.RDF.type, rdflib.RDFS.Datatype)
     result = set()
-    for s, p, o in _namespace_registry._graph.triples(pattern):
+    for s, p, o in namespace_registry._graph.triples(pattern):
         if s in rdflib_cuba:
             result.add(s)
     return result
@@ -191,12 +191,12 @@ def get_custom_datatype_triples():
             datatypes.
     """
     custom_datatypes = get_custom_datatypes()
-    from osp.core.namespaces import _namespace_registry
+    from osp.core.ontology.namespace_registry import namespace_registry
     result = rdflib.Graph()
     for d in custom_datatypes:
         result.add((d, rdflib.RDF.type, rdflib.RDFS.Datatype))
         pattern = (None, rdflib.RDFS.range, d)
-        for s, p, o in _namespace_registry._graph.triples(pattern):
+        for s, p, o in namespace_registry._graph.triples(pattern):
             result.add((s, p, o))
     return result
 

@@ -9,16 +9,11 @@ from osp.core.ontology.oclass_composition import Composition, OPERATOR
 
 try:
     from osp.core.namespaces import math
-    from osp.core.namespaces import materials
-    from osp.core.namespaces import physicalistic
 except ImportError:  # When the EMMO ontology is not installed.
     from osp.core.ontology import Parser
-    from osp.core.namespaces import _namespace_registry
-    Parser(_namespace_registry._graph).parse("emmo")
-    _namespace_registry.update_namespaces()
-    math = _namespace_registry.math
-    materials = _namespace_registry.materials
-    physicalistic = _namespace_registry.physicalistic
+    from osp.core.ontology.namespace_registry import namespace_registry
+    Parser().parse("emmo")
+    math = namespace_registry.math
 
 
 predicate_to_operator = {rdflib.OWL.unionOf: OPERATOR.OR,
