@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.namespace_registry import namespace_registry
-from osp.core.utils import iri_from_uid, uid_from_iri
+from osp.core.utils import iri_from_identifier, identifier_from_iri
 from osp.core.namespaces import from_iri
 
 
@@ -180,7 +180,7 @@ class NeighborDictTarget(NeighborDict):
 
     def _delitem(self, uid):
         """Delete an item from the dictionary."""
-        iri = iri_from_uid(uid)
+        iri = iri_from_identifier(uid)
         self.graph.remove((self.cuds_object.iri, self.rel.iri, iri))
 
     def _setitem(self, uid, oclasses):
@@ -188,7 +188,7 @@ class NeighborDictTarget(NeighborDict):
 
         Also add the oclass of the related CUDS object.
         """
-        iri = iri_from_uid(uid)
+        iri = iri_from_identifier(uid)
         self.cuds_object._check_valid_add(oclasses, self.rel)
         self.graph.add((self.cuds_object.iri, self.rel.iri, iri))
         for oclass in oclasses:
@@ -196,7 +196,7 @@ class NeighborDictTarget(NeighborDict):
 
     def _getitem(self, uid):
         """Get the oclass of the object with the given UUID."""
-        iri = iri_from_uid(uid)
+        iri = iri_from_identifier(uid)
         if (self.cuds_object.iri, self.rel.iri, iri) in self.graph:
             result = list()
             for _, _, o in self.graph.triples((iri, rdflib.RDF.type, None)):
@@ -212,4 +212,4 @@ class NeighborDictTarget(NeighborDict):
         """
         for s, p, o in self.graph.triples((self.cuds_object.iri,
                                            self.rel.iri, None)):
-            yield uid_from_iri(o)
+            yield identifier_from_iri(o)

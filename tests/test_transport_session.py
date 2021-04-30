@@ -182,7 +182,7 @@ SERIALIZED_BUFFERS = {
 
 SERIALIZED_BUFFERS_EXPIRED = deepcopy(SERIALIZED_BUFFERS)
 SERIALIZED_BUFFERS_EXPIRED["expired"] = [
-    {"UUID": "00000000-0000-0000-0000-000000000003"}
+    {"IDENTIFIER": "00000000-0000-0000-0000-000000000003"}
 ]
 
 SERIALIZED_BUFFERS2 = {
@@ -310,13 +310,13 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(len(cuds_objects), 4)
             self.assertEqual(set(map(lambda x: x.oclass, cuds_objects)),
                              {city.Person, city.City, city.Citizen})
-            self.assertEqual(set(map(lambda x: x.uid.int, cuds_objects)),
+            self.assertEqual(set(map(lambda x: x.identifier.int, cuds_objects)),
                              {1, 2, 3, 123})
 
         with TestWrapperSession() as session:
             city.CityWrapper(session=session)
             cuds_object = deserialize(CUDS_DICT, session, BufferContext.USER)
-            self.assertEqual(cuds_object.uid.int, 123)
+            self.assertEqual(cuds_object.identifier.int, 123)
             self.assertEqual(cuds_object.name, "Peter")
             self.assertEqual(cuds_object.age, 23)
             self.assertEqual(cuds_object.oclass, city.Citizen)
@@ -341,12 +341,12 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                 deserialize([None, None], session, BufferContext.USER),
                 [None, None])
             self.assertEqual(
-                deserialize({"UUID": "00000000-0000-0000-0000-000000000001"},
+                deserialize({"IDENTIFIER": "00000000-0000-0000-0000-000000000001"},
                             session, BufferContext.USER), uuid.UUID(int=1))
             self.assertEqual(
                 deserialize(
-                    [{"UUID": "00000000-0000-0000-0000-000000000001"},
-                     {"UUID": "00000000-0000-0000-0000-000000000002"}],
+                    [{"IDENTIFIER": "00000000-0000-0000-0000-000000000001"},
+                     {"IDENTIFIER": "00000000-0000-0000-0000-000000000002"}],
                     session, BufferContext.USER),
                 [uuid.UUID(int=1), uuid.UUID(int=2)])
             self.assertEqual(
@@ -374,11 +374,11 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(len(cuds_objects), 4)
             self.assertEqual(set(map(lambda x: x.oclass, cuds_objects)),
                              {city.Person, city.City, city.Citizen})
-            self.assertEqual(set(map(lambda x: x.uid.int, cuds_objects)),
+            self.assertEqual(set(map(lambda x: x.identifier.int, cuds_objects)),
                              {1, 2, 3, 123})
             self.assertEqual(set(session._buffers[0][0]), {
                 uuid.UUID(int=1), uuid.UUID(int=2), uuid.UUID(int=3),
-                uuid.UUID(int=123), w.uid
+                uuid.UUID(int=123), w.identifier
             })
             self.assertEqual(session._buffers[0][1:], [{}, {}])
             self.assertEqual(session._buffers[1], [{}, {}, {}])
@@ -404,12 +404,12 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         assertJsonLdEqual(self, None, serializable(None))
         assertJsonLdEqual(self, [None, None], serializable([None, None]))
         assertJsonLdEqual(
-            self, {"UUID": "00000000-0000-0000-0000-000000000001"},
+            self, {"IDENTIFIER": "00000000-0000-0000-0000-000000000001"},
             serializable(uuid.UUID(int=1))
         )
         assertJsonLdEqual(self, [
-            {"UUID": "00000000-0000-0000-0000-000000000001"},
-            {"UUID": "00000000-0000-0000-0000-000000000002"}],
+            {"IDENTIFIER": "00000000-0000-0000-0000-000000000001"},
+            {"IDENTIFIER": "00000000-0000-0000-0000-000000000002"}],
             serializable([uuid.UUID(int=1), uuid.UUID(int=2)]))
         assertJsonLdEqual(self, {"ENTITY": "city.Citizen"},
                           serializable(city.Citizen))
@@ -445,14 +445,14 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
             self.assertEqual(ws1._neighbors[city.hasPart],
-                             {cn.uid: [city.City]})
+                             {cn.identifier: [city.City]})
             self.assertEqual(set(ws1._neighbors.keys()), {city.hasPart})
             self.assertEqual(cn._neighbors[city.isPartOf],
-                             {ws1.uid: [city.CityWrapper]})
+                             {ws1.identifier: [city.CityWrapper]})
             self.assertEqual(set(cn._neighbors.keys()), {city.isPartOf})
             self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
             self.assertEqual(s1._buffers, [
-                [{cn.uid: cn}, {ws1.uid: ws1}, {c.uid: c}],
+                [{cn.identifier: cn}, {ws1.identifier: ws1}, {c.identifier: c}],
                 [dict(), dict(), dict()]])
 
         self.setUp()
@@ -476,17 +476,17 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                                           "kwargs": {"name": "London"}})
             self.assertEqual(s1._buffers, [
                 [dict(), dict(), dict()],
-                [{cn.uid: cn}, {ws1.uid: ws1}, {c.uid: c}]])
+                [{cn.identifier: cn}, {ws1.identifier: ws1}, {c.identifier: c}]])
             self.assertEqual(set(s1._registry.keys()),
                              {uuid.UUID(int=123), uuid.UUID(int=2),
                               uuid.UUID(int=3), uuid.UUID(int=4)})
             cn = ws1.get(uuid.UUID(int=2))
             self.assertEqual(cn.name, "Paris")
             self.assertEqual(ws1._neighbors[city.hasPart],
-                             {cn.uid: [city.City]})
+                             {cn.identifier: [city.City]})
             self.assertEqual(set(ws1._neighbors.keys()), {city.hasPart})
             self.assertEqual(cn._neighbors[city.isPartOf],
-                             {ws1.uid: [city.CityWrapper]})
+                             {ws1.identifier: [city.CityWrapper]})
             self.assertEqual(set(cn._neighbors.keys()), {city.isPartOf})
             self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
             self.assertEqual(s1._buffers, [
@@ -504,7 +504,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
             cn = city.City(name="Paris", uid=2)
             ws1.add(cn)
-            ws1.remove(c.uid)
+            ws1.remove(c.identifier)
             s1.prune()
             self.assertEqual(
                 ('{"expired": [], "args": [42], "kwargs": {"name": "London"}}',
@@ -542,11 +542,11 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
 
             cn = city.City(name="Paris", uid=2)
             ws1.add(cn)
-            ws1.remove(c.uid)
+            ws1.remove(c.identifier)
             s1.prune()
             s1._expired = {uuid.UUID(int=3)}
             self.assertEqual(
-                ('{"expired": [{"UUID": '
+                ('{"expired": [{"IDENTIFIER": '
                  '"00000000-0000-0000-0000-000000000003"}], '
                  '"args": [42], "kwargs": {"name": "London"}}', []),
                 serialize_buffers(
@@ -629,7 +629,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         c1 = create_recycle(
             oclass=city.City,
             kwargs={"name": "Freiburg"},
-            uid=1,
+            identifier=1,
             session=client,
             fix_neighbors=False
         )
@@ -637,12 +637,12 @@ class TestCommunicationEngineClient(unittest.TestCase):
         c3 = create_recycle(
             oclass=city.City,
             kwargs={"name": "Paris"},
-            uid=3,
+            identifier=3,
             session=client,
             fix_neighbors=False
         )
         client._reset_buffers(BufferContext.USER)
-        client.expire(c3.uid)
+        client.expire(c3.identifier)
 
         def on_send(command, data):
             with EngineContext(client):
@@ -656,11 +656,11 @@ class TestCommunicationEngineClient(unittest.TestCase):
         self.assertEqual(client._engine._sent_command, LOAD_COMMAND)
         self.assertEqual(
             client._engine._sent_data,
-            '{"expired": [{"UUID": "00000000-0000-0000-0000-000000000003"}], '
-            '"uids": [{"UUID": "00000000-0000-0000-0000-000000000002"}, '
-            '{"UUID": "00000000-0000-0000-0000-000000000003"}]}')
+            '{"expired": [{"IDENTIFIER": "00000000-0000-0000-0000-000000000003"}], '
+            '"identifiers": [{"IDENTIFIER": "00000000-0000-0000-0000-000000000002"}, '
+            '{"IDENTIFIER": "00000000-0000-0000-0000-000000000003"}]}')
         self.assertEqual(result, [c1, c2, None])
-        self.assertEqual(set(client._registry.keys()), {c1.uid, c2.uid})
+        self.assertEqual(set(client._registry.keys()), {c1.identifier, c2.identifier})
         self.assertEqual(client._buffers, [
             [dict(), dict(), dict()],
             [dict(), dict(), dict()]
@@ -675,13 +675,13 @@ class TestCommunicationEngineClient(unittest.TestCase):
         # first item
         c1 = create_recycle(oclass=city.CityWrapper,
                             kwargs={},
-                            uid=1,
+                            identifier=1,
                             session=client,
                             fix_neighbors=False)  # store will be called here
         self.assertEqual(client._engine._sent_command, INITIALIZE_COMMAND)
         assertJsonLdEqual(self, json.loads(client._engine._sent_data),
                           INIT_DATA)
-        self.assertEqual(set(client._registry.keys()), {c1.uid})
+        self.assertEqual(set(client._registry.keys()), {c1.identifier})
 
         # second item
         client._engine._sent_data = None
@@ -689,13 +689,13 @@ class TestCommunicationEngineClient(unittest.TestCase):
         c2 = create_recycle(
             oclass=city.City,
             kwargs={"name": "Freiburg"},
-            uid=2,
+            identifier=2,
             session=client,
             fix_neighbors=False
         )
         self.assertEqual(client._engine._sent_command, None)
         self.assertEqual(client._engine._sent_data, None)
-        self.assertEqual(set(client._registry.keys()), {c1.uid, c2.uid})
+        self.assertEqual(set(client._registry.keys()), {c1.identifier, c2.identifier})
         client.close()
 
     def test_send(self):
@@ -717,7 +717,7 @@ class TestCommunicationEngineClient(unittest.TestCase):
         self.assertRaises(RuntimeError, client._receive, "ERROR: Error!", None)
         client._receive(json.dumps(SERIALIZED_BUFFERS2), None)
         self.assertEqual(set(client._registry.keys()), {uuid.UUID(int=42),
-                                                        w.uid})
+                                                        w.identifier})
         self.assertEqual(client._buffers[BufferContext.USER],
                          [dict(), dict(), dict()])
         self.assertEqual(
@@ -772,7 +772,7 @@ class TestCommunicationEngineServer(unittest.TestCase):
         correct = False
 
         # command to be executed
-        def command(s, uid, name):
+        def command(s, identifier, name):
             nonlocal correct
             added = s._buffers[BufferContext.USER][BufferType.ADDED]
             correct = set(added.keys()) == {uuid.UUID(int=2)} and \
@@ -780,8 +780,8 @@ class TestCommunicationEngineServer(unittest.TestCase):
             s._reset_buffers(BufferContext.USER)
 
             added = s._buffers[BufferContext.ENGINE][BufferType.ADDED]
-            added[uuid.UUID(int=uid)] = city.City(name=name,
-                                                  uid=uid)
+            added[uuid.UUID(int=identifier)] = city.City(name=name,
+                                                         uid=identifier)
 
         TestWrapperSession.command = consumes_buffers(command)
         server = TransportSessionServer(TestWrapperSession, None, None)
@@ -813,9 +813,10 @@ class TestCommunicationEngineServer(unittest.TestCase):
                 cw.add(p, rel=city.hasInhabitant)
                 server = TransportSessionServer(TestWrapperSession, None, None)
                 server.session_objs["user"] = s1
-                s1._expired |= {c.uid, w.uid}
+                s1._expired |= {c.identifier, w.identifier}
                 result = server._load_from_session(
-                    '{"uids": [{"UUID": 1}, {"UUID": 3}]}', "user")
+                    '{"identifiers": [{"IDENTIFIER": 1}, '
+                    '{"IDENTIFIER": 3}]}', "user")
             self.maxDiff = None
             assertJsonLdEqual(self, json.loads(result[0]), SERIALIZED_BUFFERS3)
             self.assertEqual(result[1], [])

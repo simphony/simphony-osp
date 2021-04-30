@@ -38,9 +38,10 @@ class TestSessionCity(unittest.TestCase):
             session.delete_cuds_object(cities[0])
             self.maxDiff = None
             self.assertEqual(session._buffers, [
-                [{}, {w.uid: w, neighborhoods[0].uid: neighborhoods[0],
-                      neighborhoods[1].uid: neighborhoods[1]},
-                 {cities[0].uid: cities[0]}], [{}, {}, {}]])
+                [{}, {w.identifier: w,
+                      neighborhoods[0].identifier: neighborhoods[0],
+                      neighborhoods[1].identifier: neighborhoods[1]},
+                 {cities[0].identifier: cities[0]}], [{}, {}, {}]])
             self.assertNotIn(cities[0], session._registry)
             self.assertRaises(AttributeError, getattr, cities[0], "name")
 
@@ -76,13 +77,13 @@ class TestSessionCity(unittest.TestCase):
             for j in range(2):
                 n = city.Neighborhood(name="neighborhood %s %s" % (i, j))
                 cw.add(n)
-                nw = cw.get(n.uid)
+                nw = cw.get(n.identifier)
                 for k in range(2):
                     s = city.Street(name="street %s %s %s" % (i, j, k))
                     nw.add(s)
-        w.remove(cities[1].uid, cities[2].uid)
+        w.remove(cities[1].identifier, cities[2].identifier)
         expected_deletion = {
-            x.uid for x in session._registry.values()
+            x.identifier for x in session._registry.values()
             if (
                 hasattr(x, "name")
                 and x.name in {
@@ -99,7 +100,8 @@ class TestSessionCity(unittest.TestCase):
             set(["city 0", "neighborhood 0 0", "neighborhood 0 1",
                  "street 0 0 0", "street 0 0 1", "street 0 1 0",
                  "street 0 1 1", "wrapper"]))
-        self.assertEqual(set([d.uid for d in deleted]), expected_deletion)
+        self.assertEqual(set([d.identifier for d in deleted]),
+                         expected_deletion)
 
     def test_buffers(self):
         """Test if the buffers work correctly."""
@@ -114,23 +116,23 @@ class TestSessionCity(unittest.TestCase):
         n = city.Neighborhood(name="neighborhood")
         cw = w.add(c)
         cw.add(n)
-        cw.remove(n.uid)
+        cw.remove(n.identifier)
         cw.name = "city 2"
         w.session.prune()
 
         self.assertEqual(session._buffers, [
-            [{cw.uid: cw, w.uid: w}, dict(), dict()],
+            [{cw.identifier: cw, w.identifier: w}, dict(), dict()],
             [dict(), dict(), dict()]])
 
         w.session._reset_buffers(BufferContext.USER)
         c2 = city.City(name="city3")
         w.add(c2)
-        cw2 = w.get(c2.uid)
-        w.remove(cw.uid)
+        cw2 = w.get(c2.identifier)
+        w.remove(cw.identifier)
         w.session.prune()
 
         self.assertEqual(session._buffers, [
-            [{cw2.uid: cw2}, {w.uid: w}, {cw.uid: cw}],
+            [{cw2.identifier: cw2}, {w.identifier: w}, {cw.identifier: cw}],
             [dict(), dict(), dict()]])
 
     def test_rdf_import(self):
@@ -233,8 +235,8 @@ class TestSessionCity(unittest.TestCase):
     #         Cuds.CUDS_SETTINGS["check_cardinalities"] = False
     #         session._check_cardinalities()
     #         Cuds.CUDS_SETTINGS["check_cardinalities"] = True
-    #         c1w = wrapper.get(c1.uid)
-    #         c1w.remove(p.uid)
+    #         c1w = wrapper.get(c1.identifier)
+    #         c1w.remove(p.identifier)
     #         session._check_cardinalities()
 
     #     p.remove(rel=cuds.classes.IsInhabitantOf)
@@ -248,8 +250,8 @@ class TestSessionCity(unittest.TestCase):
     #         Cuds.CUDS_SETTINGS["check_cardinalities"] = False
     #         session._check_cardinalities()
     #         Cuds.CUDS_SETTINGS["check_cardinalities"] = True
-    #         c1w = wrapper.get(c1.uid)
-    #         c1w.remove(p.uid, rel=cuds.classes.HasMajor)
+    #         c1w = wrapper.get(c1.identifier)
+    #         c1w.remove(p.identifier, rel=cuds.classes.HasMajor)
     #         session._check_cardinalities()
 
 
@@ -308,9 +310,9 @@ class TestWrapperSession(WrapperSession):
         """Apply updated objects."""
         pass
 
-    def _load_from_backend(self, uids, expired=None):
+    def _load_from_backend(self, identifiers, expired=None):
         """Load data from backend."""
-        yield from Session.load(self, *uids)
+        yield from Session.load(self, *identifiers)
 
 
 if __name__ == "__main__":

@@ -3,9 +3,12 @@
 import uuid
 import numpy as np
 import rdflib
+from rdflib import RDF, RDFS, XSD, Literal, URIRef, Graph, collection
 import ast
 
 from osp.core.ontology.cuba import rdflib_cuba
+
+CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
 
 
 def convert_to(x, rdf_datatype):
@@ -50,8 +53,8 @@ def convert_from(x, rdf_datatype):
     return datatype(x)
 
 
-def to_uuid(x):
-    """Convert given value to a UUID.
+def to_identifier(x):
+    """Convert given value to an identifier.
 
     Args:
         x (Any): The value to convert
@@ -60,17 +63,28 @@ def to_uuid(x):
         ValueError: Invalid UUID specified
 
     Returns:
-        UUID: The resulting UUID
+        Union[UUID, URIRef]: The resulting UUID
     """
     if isinstance(x, uuid.UUID):
+        pass
+    elif isinstance(x, str):
+        if x.startswith(CUDS_IRI_PREFIX):
+            x = x[len(CUDS_IRI_PREFIX):]
+        split = x.split(':')
+        if len(split) > 1 and all(y != "" for y in split):
+            x = URIRef(x)
+        else:
+            x = uuid.UUID(hex=x)
+    elif isinstance(x, int):
+        x = uuid.UUID(int=x)
+    elif isinstance(x, bytes):
+        x = uuid.UUID(bytes=x)
+    else:
+        x = False
+    if x is False:
+        raise ValueError("Specify a valid identifier")
+    else:
         return x
-    if isinstance(x, str):
-        return uuid.UUID(hex=x)
-    if isinstance(x, int):
-        return uuid.UUID(int=x)
-    if isinstance(x, bytes):
-        return uuid.UUID(bytes=x)
-    raise ValueError("Specify a valid UUID")
 
 
 def to_string(x, maxsize=None):
@@ -105,7 +119,7 @@ def to_vector(x, np_dtype, shape):
     Returns:
         np.ndarray: The converted value
     """
-    if isinstance(x, rdflib.Literal):
+    if isinstance(x, Literal):
         if isinstance(x.toPython(), np.ndarray):
             return x.toPython()
         x = ast.literal_eval(str(x))
@@ -126,11 +140,11 @@ def from_vector(x):
 
 
 RDF_DATATYPES = {
-    rdflib.XSD.boolean: (bool, bool, np.dtype("bool")),
-    rdflib.XSD.integer: (int, int, np.dtype("int")),
-    rdflib.XSD.float: (float, float, np.dtype("float")),
-    rdflib.XSD.string: (str, str, np.dtype("str")),
-    "UUID": (to_uuid, str, np.dtype("str")),
+    XSD.boolean: (bool, bool, np.dtype("bool")),
+    XSD.integer: (int, int, np.dtype("int")),
+    XSD.float: (float, float, np.dtype("float")),
+    XSD.string: (str, str, np.dtype("str")),
+    "IDENTIFIER": (to_identifier, str, np.dtype("str")),
     None: (str, str, np.dtype("str"))
 }
 
@@ -163,11 +177,11 @@ def get_python_datatype(rdf_datatype):
 
 
 YML_DATATYPES = {
-    "BOOL": rdflib.XSD.boolean,
-    "INT": rdflib.XSD.integer,
-    "FLOAT": rdflib.XSD.float,
-    "STRING": rdflib.XSD.string,
-    "UUID": "UUID"
+    "BOOL": XSD.boolean,
+    "INT": XSD.integer,
+    "FLOAT": XSD.float,
+    "STRING": XSD.string,
+    "IDENTIFIER": "IDENTIFIER"
 }
 
 
@@ -176,7 +190,7 @@ def get_rdflib_datatype(yml_datatype, graph=None):
 
     Args:
         yml_datatype (str): YAMl datatype
-        graph (rdflib.Graph, optional): The rdflib graph, necessary if a new
+        graph (Graph, optional): The rdflib graph, necessary if a new
             datatype needs to be created. Defaults to None.
 
     Returns:
@@ -220,18 +234,18 @@ def _add_string_datatype(graph, length):
     """Add a custom string datatype to the graph refering.
 
     Args:
-        graph (rdflib.Graph): The graph to add the datatype to
+        graph (Graph): The graph to add the datatype to
         length (int): The maximim length of the string
 
     Returns:
         URIRef: The iri of the new datatype
     """
     iri = rdflib_cuba[f"_datatypes/STRING-{length}"]
-    triple = (iri, rdflib.RDF.type, rdflib.RDFS.Datatype)
+    triple = (iri, RDF.type, RDFS.Datatype)
     if graph is None or triple in graph:
         return iri
     graph.add(triple)
-    # length_triple = (iri, rdflib_cuba._length, rdflib.Literal(int(length)))
+    # length_triple = (iri, rdflib_cuba._length, Literal(int(length)))
     # graph.add(length_triple)
     return iri
 
@@ -240,7 +254,7 @@ def _add_vector_datatype(graph, shape, dtype):
     """Add custom vector datatype to the graph.
 
     Args:
-        graph (rdflib.Graph): The graph to add the datatype to
+        graph (Graph): The graph to add the datatype to
         shape (Tuple[int]): The shape of the array
         dtype (str): The datatype of the elements as YAML datatype
 
@@ -250,14 +264,14 @@ def _add_vector_datatype(graph, shape, dtype):
     shape = list(map(int, shape))
     iri = rdflib_cuba[f"_datatypes/VECTOR-{dtype}-"
                       + "-".join(map(str, shape))]
-    triple = (iri, rdflib.RDF.type, rdflib.RDFS.Datatype)
+    triple = (iri, RDF.type, RDFS.Datatype)
     if graph is None or triple in graph:
         return iri
     graph.add(triple)
     # dtype_triple = (iri, rdflib_cuba._length, YML_DATATYPES[dtype])
     # graph.add(dtype_triple)
-    # shape = list(map(rdflib.Literal, shape))
-    # shape = rdflib.collection.Collection(graph, [], shape)
+    # shape = list(map(Literal, shape))
+    # shape = collection.Collection(graph, [], shape)
     # shape_triple = (iri, rdflib_cuba._shape, shape.uri)
     # graph.add(shape_triple)
     return iri

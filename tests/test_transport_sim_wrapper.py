@@ -72,10 +72,10 @@ class TestTransportSimWrapperCity(unittest.TestCase):
             self.assertEqual(len(
                 cw.get(oclass=city.Citizen,
                        rel=city.hasInhabitant)), 1)
-            self.assertEqual(wrapper.get(p2.uid).name, "Renate")
-            self.assertEqual(wrapper.get(p2.uid).age, 55)
-            self.assertEqual(cw.get(p1.uid).name, "Hans")
-            self.assertEqual(cw.get(p1.uid).age, 35)
+            self.assertEqual(wrapper.get(p2.identifier).name, "Renate")
+            self.assertEqual(wrapper.get(p2.identifier).age, 55)
+            self.assertEqual(cw.get(p1.identifier).name, "Hans")
+            self.assertEqual(cw.get(p1.identifier).age, 35)
 
             session.run()
             wrapper.add(city.Person(name="Peter"))

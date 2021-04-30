@@ -4,6 +4,7 @@ from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.cuba import rdflib_cuba
 import logging
 from rdflib import OWL, RDFS, RDF, BNode
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -197,8 +198,8 @@ class OntologyClass(OntologyEntity):
             _force (bool): Skip checks.
 
         Raises:
-            TypeError:  Unexpected keyword argument.
-            TypeError: Missing keword argument.
+            TypeError: Unexpected keyword argument.
+            TypeError: Missing keyword argument.
 
         Returns:
             [Dict[OntologyAttribute, Any]]: The resulting attributes.
@@ -253,17 +254,18 @@ class OntologyClass(OntologyEntity):
             RDFS.subClassOf, inverse=True,
             blacklist=BLACKLIST)
 
-    def __call__(self, uid=None, session=None, _force=False, **kwargs):
+    def __call__(self, session=None, identifier=None, iri=None, uid=None,
+                 _force=False, **kwargs):
         """Create a Cuds object from this ontology class.
 
         Args:
-            uid (UUID, optional): The uid of the Cuds object.
-                Should be set to None in most cases.
-                Then a new UUID is generated, defaults to None.
+            identifier (Optional[Union[UUID, URIRef]]): The uid of the Cuds
+                object. Should be set to None in most cases.
+                Then a new identifier is generated, defaults to None.
                 Defaults to None.
-            session (Session, optional): The session to create the cuds object
+            session (Optional[Session]): The session to create the cuds object
                 in, defaults to None. Defaults to None.
-            _force (bool, optional): Skip validity checks. Defaults to False.
+            _force (Optional[bool]): Skip validity checks. Defaults to False.
 
         Raises:
             TypeError: Error occurred during instantiation.
@@ -287,5 +289,7 @@ class OntologyClass(OntologyEntity):
             attributes=self._get_attributes_values(kwargs, _force=_force),
             oclass=self,
             session=session,
+            identifier=identifier,
+            iri=iri,
             uid=uid
         )

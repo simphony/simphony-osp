@@ -42,7 +42,7 @@ emmo_town.add(city.Neighborhood(name="User cases"))
 ontology_uid = None
 for neighborhood in emmo_town.get(oclass=city.Neighborhood):
     if neighborhood.name == "Ontology":
-        ontology_uid = neighborhood.uid
+        ontology_uid = neighborhood.identifier
         neighborhood.add(city.Street(name="Relationships"), rel=city.hasPart)
         neighborhood.add(city.Street(name="Entities"), rel=city.hasPart)
 
@@ -60,7 +60,7 @@ with SqlAlchemyWrapperSession(postgres_url) as session:
 # Load from the DB.
 with SqlAlchemyWrapperSession(postgres_url) as db_session:
     db_wrapper = city.CityWrapper(session=db_session)
-    db_emmo_town = db_wrapper.get(emmo_town.uid)
+    db_emmo_town = db_wrapper.get(emmo_town.identifier)
     print("The database contains the following information about the city:")
     pretty_print(db_emmo_town)
 
@@ -72,7 +72,7 @@ with SqlAlchemyWrapperSession(postgres_url) as db_session:
         sim_emmo_town, _ = sim_wrapper.add(db_emmo_town, new_inhabitant)
         sim_session.run()
         print("The city has a new inhabitant:")
-        pretty_print(sim_emmo_town.get(new_inhabitant.uid))
+        pretty_print(sim_emmo_town.get(new_inhabitant.identifier))
 
     # update database
     db_wrapper.update(sim_emmo_town)
@@ -81,7 +81,7 @@ with SqlAlchemyWrapperSession(postgres_url) as db_session:
 # Check if database contains the changes of the simulation.
 with SqlAlchemyWrapperSession(postgres_url) as db_session:
     db_wrapper = city.CityWrapper(session=db_session)
-    db_emmo_town = db_wrapper.get(emmo_town.uid)
+    db_emmo_town = db_wrapper.get(emmo_town.identifier)
     print("The database contains the following information about the city:")
     pretty_print(db_emmo_town)
     input("Example finished. Press Enter to clear the database!")

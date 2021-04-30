@@ -69,7 +69,7 @@ class WrapperSession(Session):
 
     # OVERRIDE
     @returns_query_result
-    def load(self, *uids):
+    def load(self, *identifiers):
         """Load the CUDS object with the given uuid from the session.
 
         If the object either does not exist on the Client side or is expired,
@@ -87,14 +87,14 @@ class WrapperSession(Session):
                                "Add it to a wrapper first.")
 
         # refresh expired
-        expired = frozenset(set(uids) & self._expired)
-        missing_uids = [uid for uid in uids
+        expired = frozenset(set(identifiers) & self._expired)
+        missing_uids = [uid for uid in identifiers
                         if uid not in self._registry or uid in expired]
         self._expired -= expired
 
         # Load elements not in the registry / expired from the backend
         missing = self._load_from_backend(missing_uids, expired=expired)
-        for uid in uids:
+        for uid in identifiers:
 
             # Load from registry if uid is there and not expired
             if uid not in missing_uids:
@@ -104,32 +104,32 @@ class WrapperSession(Session):
             # Load from the backend
             old_cuds_object = self._get_old_cuds_object_clone(uid)
             new_cuds_object = self._get_next_missing(missing)
-            self._expire_neighour_diff(old_cuds_object, new_cuds_object, uids)
+            self._expire_neighour_diff(old_cuds_object, new_cuds_object,identifiers)
             if old_cuds_object is not None and new_cuds_object is None \
                     and uid in self._registry:
                 self._delete_cuds_triples(self._registry.get(uid))
             yield new_cuds_object
 
-    def expire(self, *cuds_or_uids):
+    def expire(self, *cuds_or_identifiers):
         """Let cuds_objects expire.
 
         Expired objects will be reloaded lazily
         when attributed or relationships are accessed.
 
         Args:
-            *cuds_or_uids (Union[Cuds, UUID]): The cuds_object or uids
-                to expire.
+            *cuds_or_identifiers (Union[Cuds, UUID, URIRef]): The cuds_object
+            or identifiers to expire.
 
         Returns:
-            Set[UUID]: The set of uids that became expired
+            Set[UUID]: The set of identifiers that became expired
         """
-        uids = set()
-        for c in cuds_or_uids:
-            if isinstance(c, uuid.UUID):
-                uids.add(c)
+        identifiers = set()
+        for c in cuds_or_identifiers:
+            if isinstance(c, (uuid.UUID, rdflib.URIRef)):
+                identifiers.add(c)
             else:
-                uids.add(c.uid)
-        return self._expire(uids)
+                identifiers.add(c.identifier)
+        return self._expire(identifiers)
 
     def expire_all(self):
         """Let all cuds_objects of the session expire.
@@ -196,7 +196,7 @@ class WrapperSession(Session):
         # Check if root is wrapper and wrapper is root
         from osp.core.namespaces import cuba
         if cuds_object.is_a(cuba.Wrapper) and self.root is not None \
-                and self.root != cuds_object.uid:
+                and self.root != cuds_object.identifier:
             raise RuntimeError("Only one wrapper is allowed per session")
 
         if not cuds_object.is_a(cuba.Wrapper) and self.root is None:
@@ -219,22 +219,22 @@ class WrapperSession(Session):
         if logger.level == logging.DEBUG:
             logger.debug("Called store on %s in %s" % (cuds_object, self))
         added, updated, deleted = self._buffers[self._current_context]
-        if cuds_object.uid in deleted:
+        if cuds_object.identifier in deleted:
             if logger.level == logging.DEBUG:
                 logger.debug("Removed %s from deleted buffer in %s of %s"
                              % (cuds_object, self._current_context, self))
-            del deleted[cuds_object.uid]
+            del deleted[cuds_object.identifier]
 
-        if cuds_object.uid in self._registry:
+        if cuds_object.identifier in self._registry:
             if logger.level == logging.DEBUG:
                 logger.debug("Added %s to updated buffer in %s of %s"
                              % (cuds_object, self._current_context, self))
-            updated[cuds_object.uid] = cuds_object
+            updated[cuds_object.identifier] = cuds_object
         else:
             if logger.level == logging.DEBUG:
                 logger.debug("Added %s to added buffer in %s of %s"
                              % (cuds_object, self._current_context, self))
-            added[cuds_object.uid] = cuds_object
+            added[cuds_object.identifier] = cuds_object
 
         # store
         super()._store(cuds_object)
@@ -253,14 +253,14 @@ class WrapperSession(Session):
             logger.debug("Called notify_update on %s in %s"
                          % (cuds_object, self))
         added, updated, deleted = self._buffers[self._current_context]
-        if cuds_object.uid in deleted:
+        if cuds_object.identifier in deleted:
             raise RuntimeError("Cannot update deleted object")
 
-        if cuds_object.uid not in added and cuds_object.uid not in updated:
+        if cuds_object.identifier not in added and cuds_object.identifier not in updated:
             if logger.level == logging.DEBUG:
                 logger.debug("Added %s to updated buffer in %s of %s"
                              % (cuds_object, self._current_context, self))
-            updated[cuds_object.uid] = cuds_object
+            updated[cuds_object.identifier] = cuds_object
 
     # OVERRIDE
     def _notify_delete(self, cuds_object):
@@ -272,50 +272,52 @@ class WrapperSession(Session):
         if logger.level == logging.DEBUG:
             logger.debug("Called notify_delete on %s" % cuds_object)
         added, updated, deleted = self._buffers[self._current_context]
-        if cuds_object.uid in added:
+        if cuds_object.identifier in added:
             if logger.level == logging.DEBUG:
                 logger.debug("Removed %s from added buffer in %s of %s"
                              % (cuds_object, self._current_context, self))
-            del added[cuds_object.uid]
-        elif cuds_object.uid in updated:
+            del added[cuds_object.identifier]
+        elif cuds_object.identifier in updated:
             if logger.level == logging.DEBUG:
                 logger.debug("Moved %s from updated to deleted buffer in %s "
                              "of %s"
                              % (cuds_object, self._current_context, self))
-            del updated[cuds_object.uid]
-            deleted[cuds_object.uid] = cuds_object
-        elif cuds_object.uid not in deleted:
+            del updated[cuds_object.identifier]
+            deleted[cuds_object.identifier] = cuds_object
+        elif cuds_object.identifier not in deleted:
             if logger.level == logging.DEBUG:
                 logger.debug("Added %s to deleted buffer in %s of %s"
                              % (cuds_object, self._current_context, self))
-            deleted[cuds_object.uid] = cuds_object
+            deleted[cuds_object.identifier] = cuds_object
 
     # OVERRIDE
     def _notify_read(self, cuds_object):
         if logger.level == logging.DEBUG:
             logger.debug("Called notify_read on %s in %s"
                          % (cuds_object, self))
-        if cuds_object.uid in self._expired:
+        if cuds_object.identifier in self._expired:
             self.refresh(cuds_object)
-        if cuds_object.uid not in self._registry and cuds_object._stored:
+        if cuds_object.identifier not in self._registry \
+                and cuds_object._stored:
             cuds_object._graph = rdflib.Graph()
 
-    def _expire(self, uids):
+    def _expire(self, identifiers):
         """Expire the given uids.
 
         Args:
-            uids(Set[UUID]): The uids to expire.
+            identifiers(Set[UUID]): The uids to expire.
         """
-        not_expirable = uids & self._get_buffer_uids(BufferContext.USER)
-        logger.debug("Expire %s in %s" % (uids, self))
+        not_expirable = identifiers & \
+                        self._get_buffer_identifiers(BufferContext.USER)
+        logger.debug("Expire %s in %s" % (identifiers, self))
         if not_expirable:
             logger.warning("Did not expire %s, because you have uncommitted "
                            "local changes. You might be out of sync with "
                            "the backend." % not_expirable)
-            uids -= not_expirable
-        self._expired |= uids
+            identifiers -= not_expirable
+        self._expired |= identifiers
         self._expired &= self._registry.keys()
-        return uids & self._registry.keys()
+        return identifiers & self._registry.keys()
 
     def _reset_buffers(self, context):
         """Reset the buffers.
@@ -333,14 +335,14 @@ class WrapperSession(Session):
         self._buffers[context][BufferType.DELETED] = dict()
         # TODO only buffers for added and deleted triples.
 
-    def _get_buffer_uids(self, context):
-        """Get all the uids of CUDS objects in buffers.
+    def _get_buffer_identifiers(self, context):
+        """Get all the identifiers of CUDS objects in buffers.
 
         Args:
             context (BufferContext): Which buffers to consider.
 
         Return:
-            Set[UUID]: The uids of cuds objects in buffers
+            Set[Union[UUID, URIRef]]: The identifiers of cuds objects in buffers
         """
         return (
             set(self._buffers[context][BufferType.ADDED].keys())
@@ -349,14 +351,14 @@ class WrapperSession(Session):
         )
 
     @abstractmethod
-    def _load_from_backend(self, uids, expired=None):
-        """Load cuds_object with given uids from the database.
+    def _load_from_backend(self, identifiers, expired=None):
+        """Load cuds_object with given identifiers from the database.
 
-        Will update objects with same uid in the registry.
+        Will update objects with same identifier in the registry.
 
         Args:
-            uids (List[UUID]): List of uids to load.
-            expired (Set[UUID]): Which of the cuds_objects are expired.
+            identifiers (List[Union[UUID, URIRef]]): List of identifiers to load.
+            expired (Set[Union[UUID, URIRef]]): Which of the cuds_objects are expired.
         """
 
     def _get_next_missing(self, missing):
@@ -376,7 +378,8 @@ class WrapperSession(Session):
             cuds_object = None  # not available in the backend
         return cuds_object
 
-    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object, uids):
+    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object,
+                              identifiers):
         """Expire outdated neighbors of the just loaded cuds object.
 
         Args:
@@ -384,28 +387,30 @@ class WrapperSession(Session):
                 object.
             new_cuds_object (Optional[Cuds]): The just loaded version of the
                 cuds object.
-            uids (List[UUID]): The uids that are loaded right now.
+            identifiers (List[Union[UUID, Identifiers]]): The identifiers that
+            are loaded right now.
         """
         if old_cuds_object:
             diff1 = get_neighbor_diff(new_cuds_object, old_cuds_object)
             diff1 = set([x[0] for x in diff1])
             diff2 = get_neighbor_diff(old_cuds_object, new_cuds_object)
             diff2 = set([x[0] for x in diff2])
-            diff = (diff1 | diff2) - set(uids)
+            diff = (diff1 | diff2) - set(identifiers)
             self._expire(diff)
 
-    def _get_old_cuds_object_clone(self, uid):
+    def _get_old_cuds_object_clone(self, identifier):
         """Get old version of expired cuds object from registry.
 
         Args:
-            uid (UUID): The uid to get the old cuds object.
+            identifier (Union[UUID, URIRef]): The identifier to get the old
+            cuds object.
 
         Returns:
             Optional[Cuds]: A clone of the old cuds object
         """
         clone = None
-        if uid in self._registry:
-            clone = clone_cuds_object(self._registry.get(uid))
+        if identifier in self._registry:
+            clone = clone_cuds_object(self._registry.get(identifier))
         return clone
 
     @staticmethod

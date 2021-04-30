@@ -228,7 +228,7 @@ class SqliteSession(SqlWrapperSession):
         """
         if rdflib_datatype is None:
             return "TEXT"
-        if rdflib_datatype == "UUID":
+        if rdflib_datatype == "IDENTIFIER":
             return "TEXT"
         if rdflib_datatype == rdflib.XSD.integer:
             return "INTEGER"
