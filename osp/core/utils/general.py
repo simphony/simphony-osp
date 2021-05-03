@@ -124,6 +124,10 @@ def iri_from_identifier(identifier):
         return identifier
 
 
+# For backwards compatibility with wrappers.
+iri_from_uid = iri_from_identifier
+
+
 def identifier_from_iri(iri):
     """Transform an IRI to an identifier.
 
