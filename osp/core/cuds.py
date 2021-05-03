@@ -35,7 +35,7 @@ class Cuds:
     _session = CoreSession()
 
     def __init__(self,
-                 attributes: Dict[OntologyAttribute, Any],
+                 attributes: Optional[Dict[OntologyAttribute, Any]] = None,
                  oclass: Optional[OntologyClass] = None,
                  session: Session = None,
                  identifier: Union[UUID, URIRef] = None,
@@ -56,11 +56,12 @@ class Cuds:
 
         # Create CUDS triples in internal temporary graph.
         self._graph = Graph()
-        for k, v in attributes.items():
-            self._graph.add((
-                self.iri, k.iri, Literal(k.convert_to_datatype(v),
-                                         datatype=k.datatype)
-            ))
+        if attributes:
+            for k, v in attributes.items():
+                self._graph.add((
+                    self.iri, k.iri, Literal(k.convert_to_datatype(v),
+                                             datatype=k.datatype)
+                ))
         if oclass:
             self._graph.add((
                 self.iri, RDF.type, oclass.iri
