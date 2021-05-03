@@ -71,6 +71,14 @@ class Cuds:
         self.session._store(self)
 
     @property
+    def uid(self) -> Union[URIRef, UUID]:
+        """Get the identifier of the CUDS object.
+
+        Does just the same as the `identifier` property, it just exists for
+        backwards compatibility purposes (with the wrappers)."""
+        return self.identifier
+
+    @property
     def iri(self) -> URIRef:
         """Get the IRI of the CUDS object."""
         return self.identifier if type(self.identifier) is URIRef else \
@@ -83,6 +91,8 @@ class Cuds:
         This is the public getter of the property.
         """
         return self._identifier
+
+
 
     @property
     def _identifier(self) -> Union[URIRef, UUID]:
