@@ -52,7 +52,7 @@ class TripleStoreWrapperSession(DbWrapperSession):
         iris = {
             o for s, p, o in self._triples(triple)
             if isinstance(o, rdflib.URIRef)
-            and str(o).startswith(CUDS_IRI_PREFIX)
+            and self._is_cuds_iri_ontology(o)
             and identifier_from_iri(o) != uuid.UUID(int=0)
         }
         iris.add(iri_from_identifier(self.root))

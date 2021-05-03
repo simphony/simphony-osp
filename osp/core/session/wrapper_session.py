@@ -203,7 +203,9 @@ class WrapperSession(Session):
         if not cuds_object.is_a(cuba.Wrapper) and self.root is None:
             raise RuntimeError("Please add a wrapper to the session first")
 
-        if cuds_object.oclass is None:
+        if cuds_object.oclass is None and \
+                any(self.graph.triples((cuds_object.iri, rdflib.RDF.type,
+                                        None))):
             raise TypeError(f"No oclass associated with {cuds_object}!")
 
     # OVERRIDE

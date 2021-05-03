@@ -105,6 +105,7 @@ def create_recycle(oclass, kwargs, session, identifier,
         Cuds: The created cuds object.
     """
     from osp.core.session.wrapper_session import WrapperSession
+    from osp.core.cuds import Cuds
     identifier = convert_to(identifier, "IDENTIFIER")
     if isinstance(session, WrapperSession) and identifier in session._expired:
         session._expired.remove(identifier)
@@ -119,8 +120,13 @@ def create_recycle(oclass, kwargs, session, identifier,
                 cuds_object.remove(rel=rel)
         change_oclass(cuds_object, oclass, kwargs, _force=_force)
     else:  # create new
-        cuds_object = oclass(identifier=identifier, session=session, **kwargs,
-                             _force=_force)
+        if oclass is not None:
+            cuds_object = oclass(identifier=identifier, session=session,
+                                 **kwargs,
+                                 _force=_force)
+        else:
+            cuds_object = Cuds(identifier=identifier, session=session,
+                               **kwargs)
     return cuds_object
 
 
@@ -205,6 +211,7 @@ def create_from_triples(triples, neighbor_triples, session,
     triples = list(triples)
     if not triples:
         return None
+
     identifier = identifier_from_iri(triples[0][0])
     if isinstance(session, WrapperSession) and identifier in session._expired:
         session._expired.remove(identifier)

@@ -1,6 +1,10 @@
 """An abstract session containing method useful for all database backends."""
 
 from abc import abstractmethod
+import rdflib
+import uuid
+from osp.core.utils import identifier_from_iri, CUDS_IRI_PREFIX
+from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
 from osp.core.session.result import returns_query_result
 from osp.core.session.buffers import BufferContext, EngineContext
@@ -142,3 +146,18 @@ class DbWrapperSession(WrapperSession):
         if x and x.identifier != self.root:
             super()._expire_neighour_diff(old_cuds_object, new_cuds_object,
                                           identifiers)
+
+    def _is_cuds_iri(self, iri):
+        identifier = identifier_from_iri(rdflib.URIRef(iri))
+        return identifier in self._registry.keys() or \
+            identifier == uuid.UUID(int=0) or iri.startswith(CUDS_IRI_PREFIX)
+
+    @staticmethod
+    def _is_cuds_iri_ontology(iri):
+        for s, p, o in namespace_registry._graph\
+                .triples((rdflib.URIRef(iri), rdflib.RDF.type, None)):
+            if o in frozenset({rdflib.OWL.DatatypeProperty,
+                               rdflib.OWL.ObjectProperty,
+                               rdflib.OWL.Class}):
+                return False
+        return True

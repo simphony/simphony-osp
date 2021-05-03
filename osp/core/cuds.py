@@ -42,12 +42,12 @@ class Cuds:
                  iri: URIRef = None,
                  uid: UUID = None):
         """Initialize a CUDS object."""
-        # Set identifier.
+        # Set identifier. This is a "user-facing" method, so strict types
+        # checks are performed.
         if oclass and attributes is None:
             raise TypeError("__init__() missing 1 optional argument:"
                             "`attributes`. This attribute is required when"
-                            "an otology class is specified.")
-
+                            "an ontology class is specified.")
         if identifier is not None and any(x is not None for x in (iri, uid)):
             raise Exception("The keyword argument `identifier` cannot be used"
                             "at the same time as the keyword arguments `iri`"
@@ -56,6 +56,13 @@ class Cuds:
             raise Exception("Tried to initialize a CUDS object specifying, "
                             "both its IRI and its UID. A CUDS object is "
                             "constrained to have just one identifier.")
+        elif identifier is not None \
+                and type(identifier) not in (UUID, URIRef):
+            raise ValueError('Provide either a UUID or a URIRef object.')
+        elif uid is not None and type(uid) is not UUID:
+            raise ValueError('Provide a UUID object.')
+        elif iri is not None and type(iri) is not URIRef:
+            raise ValueError('Provide a URIRef object.')
         else:
             self._identifier = identifier or uid or iri or uuid4()
 

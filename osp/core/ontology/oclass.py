@@ -1,4 +1,7 @@
 """A class defined in the ontology."""
+import uuid
+
+import rdflib
 
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.cuba import rdflib_cuba
@@ -258,10 +261,13 @@ class OntologyClass(OntologyEntity):
         """Create a Cuds object from this ontology class.
 
         Args:
-            identifier (Union[UUID, URIRef], optional): The uid of the Cuds
-                object. Should be set to None in most cases.
-                Then a new identifier is generated, defaults to None.
-                Defaults to None.
+            identifier (Union[UUID, URIRef], optional): The identifier of the
+                Cuds object. Should be set to None in most cases. Then a new
+                identifier is generated, defaults to None. Defaults to None.
+            iri (Union[URIRef, str], optional): The same as the identifier, but
+                exclusively for IRI identifiers.
+            uid (Union[UUID, int], optional): The same as the identifier, but
+                exclusively for UUID identifiers.
             session (Session, optional): The session to create the cuds object
                 in, defaults to None. Defaults to None.
             _force (bool, optional): Skip validity checks. Defaults to False.
@@ -272,6 +278,12 @@ class OntologyClass(OntologyEntity):
         Returns:
             Cuds: The created cuds object
         """
+        # Accept strings IRI identifiers.
+        iri = rdflib.URIRef(iri) if iri is not None else iri
+        # Accept integers as UID identifiers.
+        uid = uuid.UUID(int=uid) if uid is not None \
+            and type(uid) is int else uid
+
         from osp.core.cuds import Cuds
         from osp.core.namespaces import cuba
 

@@ -158,7 +158,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         s, p, o = triple
 
         # object given
-        if isinstance(o, rdflib.URIRef) and str(o).startswith(CUDS_IRI_PREFIX):
+        if isinstance(o, rdflib.URIRef) and self._is_cuds_iri(o):
             return rel_table
         if isinstance(o, rdflib.URIRef):
             return types_table
@@ -243,6 +243,8 @@ class SqlWrapperSession(TripleStoreWrapperSession):
     def _split_namespace(self, iri):
         if iri.startswith(CUDS_IRI_PREFIX):
             return uuid.UUID(hex=iri[len(CUDS_IRI_PREFIX):])
+        elif self._is_cuds_iri(iri):
+            return iri
         from osp.core.ontology.namespace_registry import namespace_registry
         ns_iri = namespace_registry._get_namespace_name_and_iri(iri)[1]
         return self._get_ns_idx(ns_iri), str(iri[len(ns_iri):])
