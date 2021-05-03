@@ -326,7 +326,8 @@ class TestSqlWrapperSession(unittest.TestCase):
         """Test construction a remove condition."""
         # from rel table
         r = sorted(self.session._queries(
-            pattern=(iri_from_identifier(uuid.UUID(int=1)), city.hasInhabitant.iri,
+            pattern=(iri_from_identifier(uuid.UUID(int=1)),
+                     city.hasInhabitant.iri,
                      iri_from_identifier(uuid.UUID(int=2))), mode="delete"),
                    key=lambda x: x[1])
         self.assertEqual(len(r), 1)
@@ -362,9 +363,11 @@ class TestSqlWrapperSession(unittest.TestCase):
                                           rdflib.XSD.integer)
         )
         self.assertEqual(triples, [
-            (iri_from_identifier(uuid.UUID(int=1)), city.hasInhabitant.iri,
+            (iri_from_identifier(uuid.UUID(int=1)),
+             city.hasInhabitant.iri,
              iri_from_identifier(uuid.UUID(int=2))),
-            (iri_from_identifier(uuid.UUID(int=1)), cuba.activeRelationship.iri,
+            (iri_from_identifier(uuid.UUID(int=1)),
+             cuba.activeRelationship.iri,
              iri_from_identifier(uuid.UUID(int=3)))
         ])
 
@@ -377,8 +380,10 @@ class TestSqlWrapperSession(unittest.TestCase):
                                           rdflib.XSD.integer)
         )
         self.assertEqual(sorted(triples), sorted([
-            (iri_from_identifier(uuid.UUID(int=1)), rdflib.RDF.type, city.City.iri),
-            (iri_from_identifier(uuid.UUID(int=2)), rdflib.RDF.type, cuba.Entity.iri)
+            (iri_from_identifier(uuid.UUID(int=1)), rdflib.RDF.type,
+             city.City.iri),
+            (iri_from_identifier(uuid.UUID(int=2)), rdflib.RDF.type,
+             cuba.Entity.iri)
         ]))
 
         # data table
@@ -413,7 +418,8 @@ class TestSqlWrapperSession(unittest.TestCase):
             data_tbl("VECTOR-INT-2"))
         np.testing.assert_equal(v, (1, 42, np.array([1, 2])))
         v = self.session._get_values(
-            (iri_from_identifier(uuid.UUID(int=1)), rdflib.XSD.type, city.City.iri),
+            (iri_from_identifier(uuid.UUID(int=1)), rdflib.XSD.type,
+             city.City.iri),
             TYPES_TABLE)
         self.assertEqual(v, (1, 42))
 

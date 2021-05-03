@@ -310,7 +310,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(len(cuds_objects), 4)
             self.assertEqual(set(map(lambda x: x.oclass, cuds_objects)),
                              {city.Person, city.City, city.Citizen})
-            self.assertEqual(set(map(lambda x: x.identifier.int, cuds_objects)),
+            self.assertEqual(set(map(lambda x: x.identifier.int,
+                                     cuds_objects)),
                              {1, 2, 3, 123})
 
         with TestWrapperSession() as session:
@@ -341,7 +342,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                 deserialize([None, None], session, BufferContext.USER),
                 [None, None])
             self.assertEqual(
-                deserialize({"IDENTIFIER": "00000000-0000-0000-0000-000000000001"},
+                deserialize({"IDENTIFIER": "00000000-0000-0000-0000"
+                                           "-000000000001"},
                             session, BufferContext.USER), uuid.UUID(int=1))
             self.assertEqual(
                 deserialize(
@@ -374,7 +376,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(len(cuds_objects), 4)
             self.assertEqual(set(map(lambda x: x.oclass, cuds_objects)),
                              {city.Person, city.City, city.Citizen})
-            self.assertEqual(set(map(lambda x: x.identifier.int, cuds_objects)),
+            self.assertEqual(set(map(lambda x: x.identifier.int,
+                                     cuds_objects)),
                              {1, 2, 3, 123})
             self.assertEqual(set(session._buffers[0][0]), {
                 uuid.UUID(int=1), uuid.UUID(int=2), uuid.UUID(int=3),
@@ -452,7 +455,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
             self.assertEqual(set(cn._neighbors.keys()), {city.isPartOf})
             self.assertEqual(s1._expired, {uuid.UUID(int=3), uuid.UUID(int=4)})
             self.assertEqual(s1._buffers, [
-                [{cn.identifier: cn}, {ws1.identifier: ws1}, {c.identifier: c}],
+                [{cn.identifier: cn}, {ws1.identifier: ws1},
+                 {c.identifier: c}],
                 [dict(), dict(), dict()]])
 
         self.setUp()
@@ -476,7 +480,8 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                                           "kwargs": {"name": "London"}})
             self.assertEqual(s1._buffers, [
                 [dict(), dict(), dict()],
-                [{cn.identifier: cn}, {ws1.identifier: ws1}, {c.identifier: c}]])
+                [{cn.identifier: cn}, {ws1.identifier: ws1},
+                 {c.identifier: c}]])
             self.assertEqual(set(s1._registry.keys()),
                              {uuid.UUID(int=123), uuid.UUID(int=2),
                               uuid.UUID(int=3), uuid.UUID(int=4)})
@@ -656,11 +661,14 @@ class TestCommunicationEngineClient(unittest.TestCase):
         self.assertEqual(client._engine._sent_command, LOAD_COMMAND)
         self.assertEqual(
             client._engine._sent_data,
-            '{"expired": [{"IDENTIFIER": "00000000-0000-0000-0000-000000000003"}], '
-            '"identifiers": [{"IDENTIFIER": "00000000-0000-0000-0000-000000000002"}, '
+            '{"expired": '
+            '[{"IDENTIFIER": "00000000-0000-0000-0000-000000000003"}], '
+            '"identifiers": '
+            '[{"IDENTIFIER": "00000000-0000-0000-0000-000000000002"}, '
             '{"IDENTIFIER": "00000000-0000-0000-0000-000000000003"}]}')
         self.assertEqual(result, [c1, c2, None])
-        self.assertEqual(set(client._registry.keys()), {c1.identifier, c2.identifier})
+        self.assertEqual(set(client._registry.keys()), {c1.identifier,
+                                                        c2.identifier})
         self.assertEqual(client._buffers, [
             [dict(), dict(), dict()],
             [dict(), dict(), dict()]
@@ -695,7 +703,8 @@ class TestCommunicationEngineClient(unittest.TestCase):
         )
         self.assertEqual(client._engine._sent_command, None)
         self.assertEqual(client._engine._sent_data, None)
-        self.assertEqual(set(client._registry.keys()), {c1.identifier, c2.identifier})
+        self.assertEqual(set(client._registry.keys()), {c1.identifier,
+                                                        c2.identifier})
         client.close()
 
     def test_send(self):

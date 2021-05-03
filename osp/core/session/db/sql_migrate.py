@@ -172,7 +172,8 @@ class SqlMigrate():
         cuds_iri = str(iri_from_identifier(identifier))
         if cuds_iri not in self.cuds:
             self.cuds[cuds_iri] = self.session._do_db_insert(
-                "OSP_V1_CUDS", ["uid"], [str(identifier)], {"uid": "IDENTIFIER"}
+                "OSP_V1_CUDS", ["uid"], [str(identifier)],
+                {"uid": "IDENTIFIER"}
             )
         cuds_idx = self.cuds[cuds_iri]
         return cuds_idx
@@ -203,7 +204,7 @@ class SqlMigrate():
         attributes = list(oclass.attributes)
         columns = [x.argname for x in attributes] + ["uid"]
         datatypes = dict(uid="IDENTIFIER", **{x.argname: x.datatype
-                                               for x in attributes})
+                                              for x in attributes})
         return attributes, columns, datatypes
 
     def delete_old_tables_0(self):

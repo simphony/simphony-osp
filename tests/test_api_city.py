@@ -34,7 +34,8 @@ class TestAPICity(unittest.TestCase):
     def test_creation(self):
         """Tests the instantiation and type of the objects."""
         self.assertRaises(TypeError, city.City, name="name",
-                          coordinates=[1, 2], identifier=0, unwanted="unwanted")
+                          coordinates=[1, 2], identifier=0,
+                          unwanted="unwanted")
         self.assertRaises(TypeError, city.City)
 
         c = city.City(name="a city")
@@ -480,7 +481,8 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(elements, {n, p, q})
 
         # return_rel=True
-        get_p_identifier, get_p_rel = next(c.iter(p.identifier, return_rel=True))
+        get_p_identifier, get_p_rel = next(c.iter(p.identifier,
+                                                  return_rel=True))
         self.assertEqual(get_p_identifier, p)
         self.assertEqual(get_p_rel, city.hasInhabitant)
         result = c.iter(rel=city.encloses, return_rel=True)

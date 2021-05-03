@@ -104,7 +104,8 @@ class WrapperSession(Session):
             # Load from the backend
             old_cuds_object = self._get_old_cuds_object_clone(uid)
             new_cuds_object = self._get_next_missing(missing)
-            self._expire_neighour_diff(old_cuds_object, new_cuds_object,identifiers)
+            self._expire_neighour_diff(old_cuds_object, new_cuds_object,
+                                       identifiers)
             if old_cuds_object is not None and new_cuds_object is None \
                     and uid in self._registry:
                 self._delete_cuds_triples(self._registry.get(uid))
@@ -256,7 +257,8 @@ class WrapperSession(Session):
         if cuds_object.identifier in deleted:
             raise RuntimeError("Cannot update deleted object")
 
-        if cuds_object.identifier not in added and cuds_object.identifier not in updated:
+        if cuds_object.identifier not in added \
+                and cuds_object.identifier not in updated:
             if logger.level == logging.DEBUG:
                 logger.debug("Added %s to updated buffer in %s of %s"
                              % (cuds_object, self._current_context, self))
@@ -308,7 +310,7 @@ class WrapperSession(Session):
             identifiers(Set[UUID]): The uids to expire.
         """
         not_expirable = identifiers & \
-                        self._get_buffer_identifiers(BufferContext.USER)
+            self._get_buffer_identifiers(BufferContext.USER)
         logger.debug("Expire %s in %s" % (identifiers, self))
         if not_expirable:
             logger.warning("Did not expire %s, because you have uncommitted "
@@ -342,7 +344,8 @@ class WrapperSession(Session):
             context (BufferContext): Which buffers to consider.
 
         Return:
-            Set[Union[UUID, URIRef]]: The identifiers of cuds objects in buffers
+            Set[Union[UUID, URIRef]]: The identifiers of cuds objects in
+                                      buffers.
         """
         return (
             set(self._buffers[context][BufferType.ADDED].keys())
@@ -357,8 +360,10 @@ class WrapperSession(Session):
         Will update objects with same identifier in the registry.
 
         Args:
-            identifiers (List[Union[UUID, URIRef]]): List of identifiers to load.
-            expired (Set[Union[UUID, URIRef]]): Which of the cuds_objects are expired.
+            identifiers (List[Union[UUID, URIRef]]): List of identifiers to
+                                                     load.
+            expired (Set[Union[UUID, URIRef]]): Which of the cuds_objects are
+                                                expired.
         """
 
     def _get_next_missing(self, missing):

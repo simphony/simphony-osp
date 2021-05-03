@@ -395,9 +395,11 @@ class TestUtils(unittest.TestCase):
                     fix_neighbors=False)
             self.assertEqual(b.name, "Offenburg")
             self.assertEqual(b.identifier, a.identifier)
-            self.assertEqual(set(default_session._registry.keys()), {a.identifier})
+            self.assertEqual(set(default_session._registry.keys()),
+                             {a.identifier})
             self.assertIs(default_session._registry.get(a.identifier), a)
-            self.assertEqual(set(session._registry.keys()), {b.identifier, w.identifier})
+            self.assertEqual(set(session._registry.keys()), {b.identifier,
+                                                             w.identifier})
             self.assertIs(session._registry.get(b.identifier), b)
             self.assertEqual(session._buffers, [
                 [{w.identifier: w}, dict(), dict()],
@@ -419,7 +421,8 @@ class TestUtils(unittest.TestCase):
                              {a.identifier, x.identifier})
             self.assertIs(default_session._registry.get(a.identifier), a)
             self.assertEqual(session._buffers, [
-                [{w.identifier: w, x.identifier: x}, {c.identifier: c}, dict()],
+                [{w.identifier: w, x.identifier: x}, {c.identifier: c},
+                 dict()],
                 [dict(), dict(), dict()]]
             )
 
@@ -470,7 +473,8 @@ class TestUtils(unittest.TestCase):
                              {a.identifier, x.identifier, y.identifier})
             self.assertIs(default_session._registry.get(a.identifier), a)
             self.assertEqual(session._buffers, [
-                [{x.identifier: x, w.identifier: w}, {c.identifier: c}, dict()],
+                [{x.identifier: x, w.identifier: w}, {c.identifier: c},
+                 dict()],
                 [dict(), dict(), dict()]])
 
     def test_change_oclass(self):

@@ -125,7 +125,8 @@ class TestSqliteCity(unittest.TestCase):
                              {c.identifier, wrapper.identifier})
             self.assertEqual(wrapper.get(c.identifier).name, "Freiburg")
             self.assertEqual(
-                session._registry.get(c.identifier)._neighbors[city.hasInhabitant],
+                session._registry.get(c.identifier)
+                       ._neighbors[city.hasInhabitant],
                 {p1.identifier: p1.oclasses, p2.identifier: p2.oclasses,
                  p3.identifier: p3.oclasses})
             self.assertEqual(
@@ -387,8 +388,10 @@ def check_state(test_case, c, p1, p2, db=DB):
             (str(uuid.UUID(int=0)), 1, "hasPart", str(c.identifier)),
             (str(c.identifier), 1, "hasInhabitant", str(p1.identifier)),
             (str(c.identifier), 1, "hasInhabitant", str(p2.identifier)),
-            (str(p1.identifier), 1, "INVERSE_OF_hasInhabitant", str(c.identifier)),
-            (str(p2.identifier), 1, "INVERSE_OF_hasInhabitant", str(c.identifier)),
+            (str(p1.identifier), 1, "INVERSE_OF_hasInhabitant",
+             str(c.identifier)),
+            (str(p2.identifier), 1, "INVERSE_OF_hasInhabitant",
+             str(c.identifier)),
             (str(c.identifier), 1, "isPartOf", str(uuid.UUID(int=0)))
         })
 

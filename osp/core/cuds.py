@@ -12,7 +12,7 @@ from osp.core.namespaces import cuba, from_iri
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.oclass import OntologyClass
-from osp.core.ontology.datatypes import CUDS_IRI_PREFIX, convert_to
+from osp.core.ontology.datatypes import CUDS_IRI_PREFIX
 from osp.core.session.core_session import CoreSession
 from osp.core.session.session import Session
 from osp.core.neighbor_dict import NeighborDictRel
@@ -44,13 +44,13 @@ class Cuds:
         """Initialize a CUDS object."""
         # Set identifier.
         if identifier is not None and any(x is not None for x in (iri, uid)):
-            raise Exception(f"The keyword argument `identifier` cannot be used"
-                            f"at the same time as the keyword arguments `iri`"
-                            f"or `uuid`.")
+            raise Exception("The keyword argument `identifier` cannot be used"
+                            "at the same time as the keyword arguments `iri`"
+                            "or `uuid`.")
         elif all(x is not None for x in (iri, uid)):
-            raise Exception(f"Tried to initialize a CUDS object specifying, "
-                            f"both its IRI and its UID. A CUDS object is "
-                            f"constrained to have just one identifier.")
+            raise Exception("Tried to initialize a CUDS object specifying, "
+                            "both its IRI and its UID. A CUDS object is "
+                            "constrained to have just one identifier.")
         else:
             self._identifier = identifier or uid or iri or uuid4()
 
@@ -210,7 +210,8 @@ class Cuds:
             *[arg.identifier for arg in args if arg.session != self.session])
         for arg in args:
             # Recursively add the children to the registry
-            if rel in self._neighbors and arg.identifier in self._neighbors[rel]:
+            if rel in self._neighbors \
+                    and arg.identifier in self._neighbors[rel]:
                 message = '{!r} is already in the container'
                 raise ValueError(message.format(arg))
             if self.session != arg.session:
@@ -346,7 +347,7 @@ class Cuds:
         neighbors = self.session.load(
             *[identifier for identifier, _ in identifier_relationships])
         for identifier_relationship, neighbor in zip(identifier_relationships,
-                                              neighbors):
+                                                     neighbors):
             identifier, relationships = identifier_relationship
             for relationship in relationships:
                 self._remove_direct(relationship, identifier)
@@ -536,7 +537,7 @@ class Cuds:
         """
         # Iterate over the new parents
         for (parent_identifier, relationship), parent in zip(new_parent_diff,
-                                                      new_parents):
+                                                             new_parents):
             if relationship.is_subclass_of(cuba.activeRelationship):
                 continue
             inverse = relationship.inverse
@@ -762,9 +763,10 @@ class Cuds:
         relationship_mapping = dict()
         for relationship in relationships:
 
-            # Collect all identifiers who are object of the current relationship.
-            # Possibly filter by OntologyClass.
-            for identifier, target_classes in self._neighbors[relationship].items():
+            # Collect all identifiers who are object of the current
+            # relationship. Possibly filter by OntologyClass.
+            for identifier, target_classes \
+                    in self._neighbors[relationship].items():
                 if oclass is None or any(t.is_subclass_of(oclass)
                                          for t in target_classes):
                     if identifier not in relationship_mapping:

@@ -67,7 +67,7 @@ def serialize_rdf_graph(path, format="xml", session=None,
     for s, p, o in graph:
         if isinstance(o, Literal):
             o = Literal(convert_from(o.toPython(), o.datatype),
-                               datatype=o.datatype, lang=o.language)
+                        datatype=o.datatype, lang=o.language)
         if not session or not skip_wrapper \
                 or iri_from_identifier(session.root) not in {s, o}:
             result.add((s, p, o))

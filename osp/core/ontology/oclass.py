@@ -4,7 +4,6 @@ from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.cuba import rdflib_cuba
 import logging
 from rdflib import OWL, RDFS, RDF, BNode
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 

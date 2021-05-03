@@ -69,7 +69,8 @@ class TestSqliteCity(unittest.TestCase):
             neighborhoods = c.get(oclass=city.Neighborhood)
             n = neighborhoods[0]
             self.assertEqual(len(neighborhoods), 1)
-            self.assertEqual(n.identifier.hex, "e30e0287f52b49f396b939a85fc9460d")
+            self.assertEqual(n.identifier.hex,
+                             "e30e0287f52b49f396b939a85fc9460d")
             self.assertEqual(n.name, "Zähringen")
             self.assertEqual(n.get(rel=city.isPartOf), [c])
             np.testing.assert_equal(n.coordinates, np.array([0, 0]))

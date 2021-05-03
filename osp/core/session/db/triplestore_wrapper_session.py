@@ -73,7 +73,7 @@ class TripleStoreWrapperSession(DbWrapperSession):
         for triple in triples:
             yield tuple(iri_from_identifier(uuid.UUID(int=0))
                         if x is not None and x.startswith(CUDS_IRI_PREFIX)
-                           and identifier_from_iri(x) == self.root else x
+                        and identifier_from_iri(x) == self.root else x
                         for x in triple)
 
     def _substitute_zero_iri(self, triples):
@@ -81,7 +81,7 @@ class TripleStoreWrapperSession(DbWrapperSession):
         for triple in triples:
             yield tuple(iri_from_identifier(self.root)
                         if x is not None and x.startswith(CUDS_IRI_PREFIX)
-                           and identifier_from_iri(x) == uuid.UUID(int=0) else x
+                        and identifier_from_iri(x) == uuid.UUID(int=0) else x
                         for x in triple)
 
     def _load_by_iri(self, iri):

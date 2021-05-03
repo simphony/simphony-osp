@@ -135,7 +135,8 @@ class DbWrapperSession(WrapperSession):
         return username, password
 
     # OVERRIDE
-    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object, identifiers):
+    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object,
+                              identifiers):
         # do not expire if root is loaded
         x = old_cuds_object or new_cuds_object
         if x and x.identifier != self.root:
