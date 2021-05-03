@@ -25,8 +25,7 @@ def check_arguments(types, *args):
 
 
 def get_neighbor_diff(cuds1, cuds2, mode="all"):
-    """Get the identifiers of neighbors of cuds1 which are no neighbors in
-    cuds2.
+    """Get the ids of neighbors of cuds1 which are no neighbors in cuds2.
 
     Furthermore get the relationship the neighbors are connected with.
     Optionally filter the considered relationships.

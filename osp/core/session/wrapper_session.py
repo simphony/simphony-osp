@@ -370,11 +370,11 @@ class WrapperSession(Session):
         """Get the next missing cuds object from the iterator.
 
         Args:
-            missing (Iterator[Optional[Cuds]]): The iterator over loaded
+            missing (Iterator[Cuds], optional): The iterator over loaded
                 missing cuds objects.
 
         Return:
-            Optional[Cuds]: The next loaded cuds object or None, if it doesn't
+            Cuds, optional: The next loaded cuds object or None, if it doesn't
                 exist.
         """
         try:
@@ -388,9 +388,9 @@ class WrapperSession(Session):
         """Expire outdated neighbors of the just loaded cuds object.
 
         Args:
-            old_cuds_object (Optional[Cuds]): The old version of the cuds
+            old_cuds_object (Cuds, optional): The old version of the cuds
                 object.
-            new_cuds_object (Optional[Cuds]): The just loaded version of the
+            new_cuds_object (Cuds, optional): The just loaded version of the
                 cuds object.
             identifiers (List[Union[UUID, Identifiers]]): The identifiers that
             are loaded right now.
@@ -411,7 +411,7 @@ class WrapperSession(Session):
             cuds object.
 
         Returns:
-            Optional[Cuds]: A clone of the old cuds object
+            Cuds, optional: A clone of the old cuds object
         """
         clone = None
         if identifier in self._registry:

@@ -72,8 +72,7 @@ class SimDummySession(SimWrapperSession):
                 yield None
 
     def _load_person(self, identifier):
-        """Load the Person CUDS object with the given identifier from the
-        backend.
+        """Load the Person CUDS object with given identifier from the backend.
 
         Args:
             identifier (Union[UUID, URIRef]): The identifier of the CUDS object

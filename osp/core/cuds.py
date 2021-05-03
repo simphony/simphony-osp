@@ -6,7 +6,7 @@ has attributes and is connected to other cuds objects via relationships.
 
 import logging
 from uuid import uuid4, UUID
-from typing import Union, List, Iterator, Dict, Any, Optional
+from typing import Union, List, Iterator, Dict, Any, Optional, Tuple
 from rdflib import URIRef, RDF, Graph, Literal
 from osp.core.namespaces import cuba, from_iri
 from osp.core.ontology.relationship import OntologyRelationship
@@ -75,7 +75,8 @@ class Cuds:
         """Get the identifier of the CUDS object.
 
         Does just the same as the `identifier` property, it just exists for
-        backwards compatibility purposes (with the wrappers)."""
+        backwards compatibility purposes (with the wrappers).
+        """
         return self.identifier
 
     @property
@@ -92,14 +93,11 @@ class Cuds:
         """
         return self._identifier
 
-
-
     @property
     def _identifier(self) -> Union[URIRef, UUID]:
-        """
-        Get the identifier of the CUDS object.
+        """Get the identifier of the CUDS object.
 
-        This is the private getter of the property
+        This is the private getter of the property.
         """
         return self.__identifier
 
@@ -529,16 +527,18 @@ class Cuds:
 
     @staticmethod
     def _fix_new_parents(new_cuds_object, new_parents,
-                         new_parent_diff, missing):
+                         new_parent_diff: List[Tuple[Union[UUID, URIRef],
+                                                     OntologyRelationship]],
+                         missing):
         """Fix the relationships of the added Cuds objects.
 
         Fixes relationships to the parents of the added Cuds object.
 
         Args:
-            new_cuds_object (Cuds): The added Cuds object
+            new_cuds_object (Cuds): The added Cuds object.
             new_parents (Iterator[Cuds]): The new parents of the added CUDS
-                object
-            new_parent_diff (List[Tuple[Union[UUID, URIRef], Relationship]]):
+                object.
+            new_parent_diff : stuff.
                 The identifiers of the new parents and the relations they are
                 connected with.
             missing (dict): dictionary that will be populated with connections
@@ -567,7 +567,9 @@ class Cuds:
                 new_cuds_object.oclasses
 
     @staticmethod
-    def _fix_old_neighbors(new_cuds_object, old_cuds_object, old_neighbors,
+    def _fix_old_neighbors(new_cuds_object, old_cuds_object,
+                           old_neighbors: List[Tuple[Union[UUID, URIRef],
+                                                     OntologyRelationship]],
                            old_neighbor_diff):
         """Fix the relationships of the added Cuds objects.
 
@@ -579,9 +581,8 @@ class Cuds:
                 to be replaced
             old_neighbors (Iterator[Cuds]): The Cuds object that were neighbors
                 before the replacement.
-            old_neighbor_diff (List[Tuple[Union[UUID, URIRef], Relationship]]):
-                The identifiers of the old neighbors and the relations they are
-                connected with.
+            old_neighbor_diff: The identifiers of the old neighbors and the
+                relations they are connected with.
         """
         # iterate over all old neighbors.
         for (neighbor_identifier, relationship), neighbor \
@@ -814,8 +815,7 @@ class Cuds:
                     return None
 
     def _remove_direct(self, relationship, identifier):
-        """Remove the direct relationship to the object with the given
-        identifier.
+        """Remove the direct relationship to the object with given identifier.
 
         Args:
             relationship (OntologyRelationship): The relationship to remove.

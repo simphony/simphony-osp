@@ -258,13 +258,13 @@ class OntologyClass(OntologyEntity):
         """Create a Cuds object from this ontology class.
 
         Args:
-            identifier (Optional[Union[UUID, URIRef]]): The uid of the Cuds
+            identifier (Union[UUID, URIRef], optional): The uid of the Cuds
                 object. Should be set to None in most cases.
                 Then a new identifier is generated, defaults to None.
                 Defaults to None.
-            session (Optional[Session]): The session to create the cuds object
+            session (Session, optional): The session to create the cuds object
                 in, defaults to None. Defaults to None.
-            _force (Optional[bool]): Skip validity checks. Defaults to False.
+            _force (bool, optional): Skip validity checks. Defaults to False.
 
         Raises:
             TypeError: Error occurred during instantiation.
