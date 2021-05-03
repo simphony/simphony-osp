@@ -43,6 +43,11 @@ class Cuds:
                  uid: UUID = None):
         """Initialize a CUDS object."""
         # Set identifier.
+        if oclass and attributes is None:
+            raise TypeError("__init__() missing 1 optional argument:"
+                            "`attributes`. This attribute is required when"
+                            "an otology class is specified.")
+
         if identifier is not None and any(x is not None for x in (iri, uid)):
             raise Exception("The keyword argument `identifier` cannot be used"
                             "at the same time as the keyword arguments `iri`"
