@@ -269,7 +269,7 @@ def get_file_cuds(obj):
 
     Args:
         obj (Union[Cuds, UUID, URIRef, List[Cuds], List[Union[UUID, URIRef],
-             None]): The object to check for fie cuds.
+             None]): The object to check for file cuds.
 
     Returns:
         List[Cuds]: The list of file cuds

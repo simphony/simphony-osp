@@ -2,7 +2,7 @@
 
 import uuid
 import numpy as np
-from rdflib import RDF, RDFS, XSD, Literal, URIRef  # , Graph, collection
+from rdflib import RDF, RDFS, XSD, Literal, URIRef
 import ast
 
 from osp.core.ontology.cuba import rdflib_cuba

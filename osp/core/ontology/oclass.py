@@ -278,7 +278,7 @@ class OntologyClass(OntologyEntity):
         Returns:
             Cuds: The created cuds object
         """
-        # Accept strings IRI identifiers.
+        # Accept strings as IRI identifiers.
         iri = rdflib.URIRef(iri) if iri is not None else iri
         # Accept integers as UID identifiers.
         uid = uuid.UUID(int=uid) if uid is not None \
