@@ -74,7 +74,8 @@ class Session(ABC):
         """Load the cuds_objects of the given uids.
 
         Args:
-            *uids (UUID): The uids of the cuds_objects to load.
+            *uids (Union[UUID, URIRef]): The uids of the
+            cuds_objects to load.
 
         Yields:
             Cuds: The fetched Cuds objects.

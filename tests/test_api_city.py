@@ -1,5 +1,5 @@
 """Test the API of CUDS objects using the CITY ontology."""
-
+import rdflib
 import unittest2 as unittest
 import uuid
 
@@ -34,7 +34,8 @@ class TestAPICity(unittest.TestCase):
     def test_creation(self):
         """Tests the instantiation and type of the objects."""
         self.assertRaises(TypeError, city.City, name="name",
-                          coordinates=[1, 2], uid=0, unwanted="unwanted")
+                          coordinates=[1, 2], uid=0,
+                          unwanted="unwanted")
         self.assertRaises(TypeError, city.City)
 
         c = city.City(name="a city")
@@ -47,9 +48,9 @@ class TestAPICity(unittest.TestCase):
         cuba.Wrapper(session=CoreSession())
 
     def test_uid(self):
-        """Tests that the uid variable contains a UUID object."""
+        """Tests that the uid variable contains an uid."""
         c = city.City(name="a city")
-        self.assertIsInstance(c.uid, uuid.UUID)
+        self.assertIsInstance(c.uid, (uuid.UUID, rdflib.URIRef))
 
     def test_set_throws_exception(self):
         """Thest that setting an invalid key throws an exception."""
@@ -185,7 +186,8 @@ class TestAPICity(unittest.TestCase):
         p2w1 = city.Citizen(name="child")
 
         w2.add(c1w1, c3w1, c4w1)
-        c1w2, c3w2, c4w2 = w2.get(c1w1.uid, c3w1.uid, c4w1.uid)
+        c1w2, c3w2, c4w2 = w2.get(c1w1.uid, c3w1.uid,
+                                  c4w1.uid)
         c1w2.add(p1w1, rel=city.hasInhabitant)
         c4w2.add(p1w1, rel=city.hasInhabitant)
         p1w2 = c1w2.get(p1w1.uid)
@@ -215,7 +217,8 @@ class TestAPICity(unittest.TestCase):
         self.assertIn(c2w1.uid, missing)
         self.assertEqual(
             set(p1w1._neighbors[city.INVERSE_OF_hasInhabitant].keys()),
-            set([c1w1.uid, c2w1.uid, c3w1.uid, c4w1.uid]))
+            set([c1w1.uid, c2w1.uid, c3w1.uid,
+                 c4w1.uid]))
         self.assertNotIn(city.isPartOf, p2w2._neighbors)
 
         # check if there are no unexpected other changes
@@ -666,6 +669,15 @@ class TestAPICity(unittest.TestCase):
             wrapper.add(c, rel=cuba.activeRelationship)
             self.assertIn(bw, aw.get(rel=cuba.activeRelationship))
             self.assertIn(aw, bw.get(rel=cuba.passiveRelationship))
+
+    def test_cuds_without_oclass(self):
+        """Tries to create a cuds without oclass.
+
+        Should fail except if the argument _from_triples is set to True.
+        """
+        self.assertRaises(TypeError,
+                          Cuds, oclass=None, attributes={})
+        self.assertTrue(Cuds(oclass=None, attributes={}, _from_triples=True))
 
 
 if __name__ == '__main__':
