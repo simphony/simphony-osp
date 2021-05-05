@@ -670,6 +670,15 @@ class TestAPICity(unittest.TestCase):
             self.assertIn(bw, aw.get(rel=cuba.activeRelationship))
             self.assertIn(aw, bw.get(rel=cuba.passiveRelationship))
 
+    def test_cuds_without_oclass(self):
+        """Tries to create a cuds without oclass.
+
+        Should fail except if the argument _from_triples is set to True.
+        """
+        self.assertRaises(TypeError,
+                          Cuds, oclass=None, attributes={})
+        self.assertTrue(Cuds(oclass=None, attributes={}, _from_triples=True))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -6,7 +6,6 @@ import uuid
 import unittest2 as unittest
 import sqlite3
 import numpy as np
-from rdflib import URIRef
 from osp.wrappers.sqlite import SqliteSession
 
 try:
@@ -364,25 +363,21 @@ class TestSqliteCity(unittest.TestCase):
                 session1.commit()
 
     def test_cuds_with_iri(self):
-        """Test of first level of children are loaded automatically."""
+        """Try to assign IRIs as UIDs for CUDS objects."""
         c = city.City(name="Freiburg", iri="http://example.org/namespace"
                                            "#Freiburg")
-        from osp.core.cuds import Cuds
-        unknown = Cuds(iri=URIRef('http://example.org/namespace#individual'))
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            wrapper.add(c, unknown)
+            wrapper.add(c)
             session.commit()
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
-                             {unknown.uid, c.uid,
-                              wrapper.uid})
+                             {c.uid, wrapper.uid})
             self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(wrapper.get(c.uid).oclass, city.City)
-            self.assertIs(wrapper.get(unknown.uid).oclass, None)
 
 
 def check_state(test_case, c, p1, p2, db=DB):

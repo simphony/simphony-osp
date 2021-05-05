@@ -35,22 +35,22 @@ class Cuds:
     _session = CoreSession()
 
     def __init__(self,
-                 attributes: Optional[Dict[OntologyAttribute, Any]] = None,
+                 # Create from oclass and attributes dict.
+                 attributes: Dict[OntologyAttribute, Any],
                  oclass: Optional[OntologyClass] = None,
                  session: Session = None,
                  iri: URIRef = None,
-                 uid: Union[UUID, URIRef] = None):
+                 uid: Union[UUID, URIRef] = None,
+                 # Create an empty CUDS and add the triples externally
+                 # afterwards.
+                 _from_triples: bool = False):
         """Initialize a CUDS object."""
         # Set uid. This is a "user-facing" method, so strict types
         # checks are performed.
-        if oclass and attributes is None:
-            raise TypeError("__init__() missing 1 optional argument:"
-                            "`attributes`. This attribute is required when"
-                            "an ontology class is specified.")
         if len(set(filter(lambda x: x is not None, (uid, iri)))) > 1:
-            raise Exception("Tried to initialize a CUDS object specifying, "
-                            "both its IRI and UID. A CUDS object is "
-                            "constrained to have just one UID.")
+            raise ValueError("Tried to initialize a CUDS object specifying, "
+                             "both its IRI and UID. A CUDS object is "
+                             "constrained to have just one UID.")
         elif uid is not None and type(uid) not in (UUID, URIRef):
             raise ValueError('Provide either a UUID or a URIRef object'
                              'as UID.')
@@ -71,6 +71,9 @@ class Cuds:
             self._graph.add((
                 self.iri, RDF.type, oclass.iri
             ))
+        elif not _from_triples:
+            raise TypeError(f"No oclass associated with {self}! "
+                            f"Did you install te required ontology?")
 
         self._session = session or Cuds._session
         # Copy temporary graph to the session graph and discard it.

@@ -203,10 +203,19 @@ class WrapperSession(Session):
         if not cuds_object.is_a(cuba.Wrapper) and self.root is None:
             raise RuntimeError("Please add a wrapper to the session first")
 
-        if cuds_object.oclass is None and \
-                any(self.graph.triples((cuds_object.iri, rdflib.RDF.type,
-                                        None))):
-            raise TypeError(f"No oclass associated with {cuds_object}!")
+        if cuds_object.oclass is None:
+            if any(self.graph.triples((cuds_object.iri, rdflib.RDF.type,
+                                       None))):
+                raise TypeError(f"No oclass associated with {cuds_object}! "
+                                f"However, the cuds is supposed to be of "
+                                "type(s): %s. Did you install the required "
+                                "ontology?" %
+                                ", ".join(o for o in self.graph.objects(
+                                    cuds_object.iri, rdflib.RDF.type))
+                                )
+            else:
+                raise TypeError(f"No oclass associated with {cuds_object}!"
+                                f"Did you install the required ontology?")
 
     # OVERRIDE
     def _store(self, cuds_object):

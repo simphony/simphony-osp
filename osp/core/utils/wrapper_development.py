@@ -229,7 +229,8 @@ def create_from_triples(triples, neighbor_triples, session,
         cuds_object = Cuds(attributes={},
                            oclass=None,
                            session=session,
-                           uid=uid)
+                           uid=uid,
+                           _from_triples=True)
 
     # add the triples
     for triple in set(triples) | set(neighbor_triples):
