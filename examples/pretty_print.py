@@ -20,10 +20,10 @@ emmo_town.add(city.Citizen(name='Jesper Friis'),
 emmo_town.add(city.Neighborhood(name="Ontology"))
 emmo_town.add(city.Neighborhood(name="User cases"))
 
-ontology_identifier = None
+ontology_uid = None
 for neighborhood in emmo_town.get(oclass=city.Neighborhood):
     if neighborhood.name == "Ontology":
-        ontology_identifier = neighborhood.identifier
+        ontology_uid = neighborhood.uid
         neighborhood.add(city.Street(name="Relationships"), rel=city.hasPart)
         neighborhood.add(city.Street(name="Entities"), rel=city.hasPart)
 pretty_print(emmo_town)

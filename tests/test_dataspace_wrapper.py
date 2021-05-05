@@ -115,7 +115,7 @@ class TestDataspaceWrapper(unittest.TestCase):
             cw = wrapper.add(c)
             session.commit()
 
-            cw.remove(p3.identifier)
+            cw.remove(p3.uid)
             session.prune()
             session.commit()
 

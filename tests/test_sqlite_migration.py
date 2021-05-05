@@ -61,7 +61,7 @@ class TestSqliteCity(unittest.TestCase):
             self.assertEqual(len(cities), 1)
             self.assertTrue(c.is_a(city.City))
             self.assertEqual(c.name, "Freiburg")
-            self.assertEqual(c.identifier.hex,
+            self.assertEqual(c.uid.hex,
                              "affb72ee61754028bd7e39a92ba3bb77")
             self.assertEqual(c.get(rel=city.isPartOf), [w])
             np.testing.assert_equal(c.coordinates, np.array([42, 12]))
@@ -69,7 +69,7 @@ class TestSqliteCity(unittest.TestCase):
             neighborhoods = c.get(oclass=city.Neighborhood)
             n = neighborhoods[0]
             self.assertEqual(len(neighborhoods), 1)
-            self.assertEqual(n.identifier.hex,
+            self.assertEqual(n.uid.hex,
                              "e30e0287f52b49f396b939a85fc9460d")
             self.assertEqual(n.name, "Zähringen")
             self.assertEqual(n.get(rel=city.isPartOf), [c])
@@ -78,7 +78,7 @@ class TestSqliteCity(unittest.TestCase):
             streets = n.get()
             s = streets[0]
             self.assertEqual(len(streets), 1)
-            self.assertEqual(s.identifier.hex,
+            self.assertEqual(s.uid.hex,
                              "25cb6116e9d04ceb81cdd8cfcbead47b")
             self.assertEqual(s.name, "Le street")
             self.assertEqual(s.get(rel=city.isPartOf), [n])

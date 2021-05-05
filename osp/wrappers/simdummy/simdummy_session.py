@@ -43,86 +43,86 @@ class SimDummySession(SimWrapperSession):
         self._engine.simulate(root_cuds_object.numSteps)
 
     # OVERRIDE
-    def _load_from_backend(self, identifiers, expired=None):
+    def _load_from_backend(self, uids, expired=None):
         """Load objects from the dummy backend.
 
         Args:
-            identifiers (List[Union[UUID, URIRef]): Load the objects with the
-                given identifiers.
-            expired (Set[Union[UUID, URIRef]], optional): A set of identifiers
+            uids (List[Union[UUID, URIRef]): Load the objects with the
+                given uids.
+            expired (Set[Union[UUID, URIRef]], optional): A set of uids
                 that have been marked as expired.. Defaults to None.
 
         Yields:
             Cuds: A loaded CUDS objects.
         """
         # update the age of each person and delete persons that became citizens
-        for identifier in identifiers:
+        for uid in uids:
             root_cuds_object = self._registry.get(self.root)
             cities = root_cuds_object.get(oclass=city.City)
-            if identifier == self.root:
-                yield self._load_wrapper(identifier)
-            elif cities and identifier == cities[0].identifier:
+            if uid == self.root:
+                yield self._load_wrapper(uid)
+            elif cities and uid == cities[0].uid:
                 assert len(cities) == 1, len(cities)
-                yield self._load_city(identifier)
-            elif identifier in self._person_map:
-                yield self._load_person(identifier)
-            elif identifier in self._registry:
-                yield self._registry.get(identifier)
+                yield self._load_city(uid)
+            elif uid in self._person_map:
+                yield self._load_person(uid)
+            elif uid in self._registry:
+                yield self._registry.get(uid)
             else:
                 yield None
 
-    def _load_person(self, identifier):
-        """Load the Person CUDS object with given identifier from the backend.
+    def _load_person(self, uid):
+        """Load the Person CUDS object with given uid from the backend.
 
         Args:
-            identifier (Union[UUID, URIRef]): The identifier of the CUDS object
+            uid (Union[UUID, URIRef]): The uid of the CUDS object
             to load.
 
         Returns:
             Cuds: The loaded Person CUDS object.
         """
-        person = self._registry.get(identifier)
-        idx = self._person_map[identifier]
+        person = self._registry.get(uid)
+        idx = self._person_map[uid]
         person.age = self._engine.get_person(idx)[1].age
         if person.is_a(city.Citizen):
             return person
-        self._check_convert_to_inhabitant(identifier)
+        self._check_convert_to_inhabitant(uid)
         return person
 
-    def _load_city(self, identifier):
-        """Load the City CUDS object with the given identifier from the backend.
+    def _load_city(self, uid):
+        """Load the City CUDS object with the given uid from the backend.
 
         Args:
-            identifier (Union[UUID, URIRef]): The identifier of the City CUDS
+            uid (Union[UUID, URIRef]): The uid of the City CUDS
             object to load.
 
         Returns:
             Cuds: The loaded City CUDS object.
         """
-        c = self._registry.get(identifier)
-        inhabitant_identifiers = set(
-            [x.identifier for x in c.get(rel=city.hasInhabitant)]
+        c = self._registry.get(uid)
+        inhabitant_uids = set(
+            [x.uid for x in c.get(rel=city.hasInhabitant)]
         )
-        person_identifiers = self._person_map.keys() - inhabitant_identifiers
-        for person_identifier in person_identifiers:
-            self.refresh(person_identifier)
+        person_uids = self._person_map.keys() - inhabitant_uids
+        for person_uid in person_uids:
+            self.refresh(person_uid)
         return c
 
-    def _load_wrapper(self, identifier):
+    def _load_wrapper(self, uid):
         """Load the Wrapper CUDS object.
 
         Args:
-            identifier (Union[UUID, URIRef]): The identifier of the Wrapper.
+            uid (Union[UUID, URIRef]): The uid of the Wrapper.
 
         Returns:
             Cuds: The loaded Wrapper object.
         """
-        wrapper = self._registry.get(identifier)
+        wrapper = self._registry.get(uid)
         for person in wrapper.get(oclass=city.Person):
-            self.refresh(person.identifier)
+            self.refresh(person.uid)
         return wrapper
 
-    def _check_convert_to_inhabitant(self, identifier):
+    def _check_convert_to_inhabitant(self, uid):
         """Check whether a Person should be converted to an Inhabitant.
 
         If the backend converted the Person with the given UUID to
@@ -130,15 +130,15 @@ class SimDummySession(SimWrapperSession):
         of the object.
 
         Args:
-            identifier (Union[UUID, URIRef]): The identifier of the person to
+            uid (Union[UUID, URIRef]): The uid of the person to
             check.
         """
         wrapper = self._registry.get(self.root)
         c = wrapper.get(oclass=city.City)[0]
-        idx = self._person_map[identifier]
+        idx = self._person_map[uid]
         is_inhabitant, dummy_person = self._engine.get_person(idx)
         if is_inhabitant:
-            person = self._registry.get(identifier)
+            person = self._registry.get(uid)
             change_oclass(person, city.Citizen,
                           {"name": dummy_person.name,
                            "age": dummy_person.age})
@@ -166,12 +166,12 @@ class SimDummySession(SimWrapperSession):
         for added in sorted_added:
             if (
                 added.is_a(city.Person)
-                and self.root in map(lambda x: x.identifier,
+                and self.root in map(lambda x: x.uid,
                                      added.get(rel=city.isPartOf))
             ):
                 idx = self._engine.add_person(DummyPerson(added.name,
                                                           added.age))
-                self._person_map[added.identifier] = idx
+                self._person_map[added.uid] = idx
 
     # OVERRIDE
     def _apply_updated(self, root_obj, buffer):

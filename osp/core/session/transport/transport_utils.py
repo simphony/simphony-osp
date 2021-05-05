@@ -115,8 +115,8 @@ def deserialize_buffers(session_obj, buffer_context, data,
             session_obj._notify_delete(x)
 
         for cuds_object in deleted:
-            if cuds_object.identifier in session_obj._registry:
-                del session_obj._registry[cuds_object.identifier]
+            if cuds_object.uid in session_obj._registry:
+                del session_obj._registry[cuds_object.uid]
         return {k: v for k, v in deserialized.items()
                 if k not in ["added", "updated", "deleted", "expired"]}
 
@@ -146,8 +146,8 @@ def move_files(file_cuds, temp_directory, target_directory):
             path = os.path.join(temp_directory,
                                 base_name)
         # get target location
-        if not base_name.startswith(cuds.identifier.hex):
-            base_name = cuds.identifier.hex + "-" + base_name
+        if not base_name.startswith(cuds.uid.hex):
+            base_name = cuds.uid.hex + "-" + base_name
         target_path = os.path.join(target_directory, base_name)
         # copy
         if (
@@ -159,7 +159,7 @@ def move_files(file_cuds, temp_directory, target_directory):
             )
         ):
             shutil.copyfile(path, target_path)
-            assert cuds.identifier not in cuds.session._expired
+            assert cuds.uid not in cuds.session._expired
             cuds.path = target_path
             logger.debug(
                 "Copy file %s to %s" % (repr(path), repr(target_path))
@@ -212,8 +212,8 @@ def deserialize(json_obj, session, buffer_context, _force=False):
         return [deserialize(x, session, buffer_context, _force=_force)
                 for x in json_obj]
     if isinstance(json_obj, dict) \
-            and set(["IDENTIFIER"]) == set(json_obj.keys()):
-        return convert_to(json_obj["IDENTIFIER"], "IDENTIFIER")
+            and set(["UID"]) == set(json_obj.keys()):
+        return convert_to(json_obj["UID"], "UID")
     if isinstance(json_obj, dict) \
             and set(["ENTITY"]) == set(json_obj.keys()):
         return get_entity(json_obj["ENTITY"])
@@ -245,7 +245,7 @@ def serializable(obj, partition_cuds=True, mark_first=False):
     if isinstance(obj, (str, int, float)):
         return obj
     if isinstance(obj, uuid.UUID):
-        return {"IDENTIFIER": convert_from(obj, "IDENTIFIER")}
+        return {"UID": convert_from(obj, "UID")}
     if isinstance(obj, OntologyEntity):
         return {"ENTITY": str(obj)}
     if isinstance(obj, Cuds):
@@ -302,7 +302,7 @@ def _serializable(cuds_objects, mark_first=False):
     g.bind("cuds", rdflib.URIRef("http://www.osp-core.com/cuds#"))
     if mark_first:
         g.add((rdflib_cuba._serialization, rdflib.RDF.first,
-               rdflib.Literal(str(next(iter(cuds_objects)).identifier))))
+               rdflib.Literal(str(next(iter(cuds_objects)).uid))))
     for cuds_object in cuds_objects:
         if not isinstance(cuds_object, Cuds):
             raise TypeError(f"Called _serializable with non-CUDS object "
@@ -357,7 +357,7 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
         return cuds
 
 
-def import_rdf(graph, session, buffer_context, return_identifier=None):
+def import_rdf(graph, session, buffer_context, return_uid=None):
     """Import RDF Graph to CUDS.
 
     Args:
@@ -365,8 +365,8 @@ def import_rdf(graph, session, buffer_context, return_identifier=None):
         session (Session): The session to add the CUDS objects to.
         buffer_context (BufferContext): add the deserialized cuds objects to
             the selected buffers.
-        return_identifier (Union[UUID, URIRef]): Return only the object with
-        the given identifier.
+        return_uid (Union[UUID, URIRef]): Return only the object with
+        the given uid.
 
     Raises:
         ValueError: Not allowed to deserialize with undefined buffer context.
@@ -403,9 +403,9 @@ def import_rdf(graph, session, buffer_context, return_identifier=None):
         for uid, t in triples.items():
             # Create entry in the registry
             x = create_from_triples(t, set(), session, fix_neighbors=False)
-            if return_identifier is None or uid == return_identifier:
+            if return_uid is None or uid == return_uid:
                 result.append(x)
-    return result if not return_identifier else result[0]
+    return result if not return_uid else result[0]
 
 
 def get_hash_dir(directory_path):
@@ -505,4 +505,4 @@ def _determine_path_type_of_file_cuds(file_cuds):
     else:
         raise Exception("""Inconsistent path attribute for
         CUBA.FILE object {} with
-        path {}.""".format(file_cuds.identifier, path))
+        path {}.""".format(file_cuds.uid, path))

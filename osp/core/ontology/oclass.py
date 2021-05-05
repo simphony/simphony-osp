@@ -256,18 +256,16 @@ class OntologyClass(OntologyEntity):
             RDFS.subClassOf, inverse=True,
             blacklist=BLACKLIST)
 
-    def __call__(self, session=None, identifier=None, iri=None, uid=None,
+    def __call__(self, session=None, iri=None, uid=None,
                  _force=False, **kwargs):
         """Create a Cuds object from this ontology class.
 
         Args:
-            identifier (Union[UUID, URIRef], optional): The identifier of the
+            uid (Union[UUID, int], optional): The identifier of the
                 Cuds object. Should be set to None in most cases. Then a new
                 identifier is generated, defaults to None. Defaults to None.
-            iri (Union[URIRef, str], optional): The same as the identifier, but
+            iri (Union[URIRef, str], optional): The same as the uid, but
                 exclusively for IRI identifiers.
-            uid (Union[UUID, int], optional): The same as the identifier, but
-                exclusively for UUID identifiers.
             session (Session, optional): The session to create the cuds object
                 in, defaults to None. Defaults to None.
             _force (bool, optional): Skip validity checks. Defaults to False.
@@ -278,11 +276,13 @@ class OntologyClass(OntologyEntity):
         Returns:
             Cuds: The created cuds object
         """
-        # Accept strings as IRI identifiers.
-        iri = rdflib.URIRef(iri) if iri is not None else iri
-        # Accept integers as UID identifiers.
-        uid = uuid.UUID(int=uid) if uid is not None \
-            and type(uid) is int else uid
+        # Accept strings as IRI identifiers and integers as UUID identifiers.
+        types_map = {int: lambda x: uuid.UUID(int=x),
+                     str: lambda x: rdflib.URIRef(x),
+                     rdflib.URIRef: lambda x: x,
+                     uuid.UUID: lambda x: x,
+                     type(None): lambda x: x}
+        iri, uid = (types_map[type(x)](x) for x in (iri, uid))
 
         from osp.core.cuds import Cuds
         from osp.core.namespaces import cuba
@@ -300,7 +300,6 @@ class OntologyClass(OntologyEntity):
             attributes=self._get_attributes_values(kwargs, _force=_force),
             oclass=self,
             session=session,
-            identifier=identifier,
             iri=iri,
             uid=uid
         )

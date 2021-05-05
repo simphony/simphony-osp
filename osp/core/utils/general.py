@@ -69,7 +69,7 @@ def serialize_rdf_graph(path, format="xml", session=None,
             o = Literal(convert_from(o.toPython(), o.datatype),
                         datatype=o.datatype, lang=o.language)
         if not session or not skip_wrapper \
-                or iri_from_identifier(session.root) not in {s, o}:
+                or iri_from_uid(session.root) not in {s, o}:
             result.add((s, p, o))
     result.serialize(path, format)
 
@@ -109,39 +109,35 @@ def get_rdf_graph(session=None, skip_custom_datatypes=False,
     return result
 
 
-def iri_from_identifier(identifier):
-    """Transform an identifier to an IRI.
+def iri_from_uid(uid):
+    """Transform an uid to an IRI.
 
     Args:
-        identifier (Union[UUID, URIRef]): The UUID to transform.
+        uid (Union[UUID, URIRef]): The UUID to transform.
 
     Returns:
         URIRef: The IRI of the CUDS object with the given UUID.
     """
-    if type(identifier) is uuid.UUID:
-        return URIRef(CUDS_IRI_PREFIX + str(identifier))
+    if type(uid) is uuid.UUID:
+        return URIRef(CUDS_IRI_PREFIX + str(uid))
     else:
-        return identifier
+        return uid
 
 
-# For backwards compatibility with wrappers.
-iri_from_uid = iri_from_identifier
-
-
-def identifier_from_iri(iri):
-    """Transform an IRI to an identifier.
+def uid_from_iri(iri):
+    """Transform an IRI to an uid.
 
     Args:
         iri (URIRef): The IRI to transform.
 
     Returns:
-        URIRef: The IRI of the CUDS object with the given identifier.
+        URIRef: The IRI of the CUDS object with the given uid.
     """
     if iri.startswith(CUDS_IRI_PREFIX):
         try:
             return uuid.UUID(hex=str(iri)[len(CUDS_IRI_PREFIX):])
         except ValueError as e:
-            raise ValueError(f"Unable to transform {iri} to identifier.") \
+            raise ValueError(f"Unable to transform {iri} to uid.") \
                 from e
     else:
         return iri
@@ -160,7 +156,7 @@ def uid_from_general_iri(iri, graph, _visited=frozenset()):
         Tuple[UUID, URIRef]: The UUID and an IRI containing this UUID.
     """
     if str(iri).startswith(CUDS_IRI_PREFIX):
-        return identifier_from_iri(iri), iri
+        return uid_from_iri(iri), iri
 
     for _, _, x in graph.triples((iri, OWL.sameAs, None)):
         if x not in _visited:
@@ -169,7 +165,7 @@ def uid_from_general_iri(iri, graph, _visited=frozenset()):
         if x not in _visited:
             return uid_from_general_iri(x, graph, _visited | {iri})
     uid = uuid.uuid4()
-    new_iri = iri_from_identifier(uid)
+    new_iri = iri_from_uid(uid)
     graph.add((iri, OWL.sameAs, new_iri))
     return uid, new_iri
 
@@ -298,7 +294,7 @@ def deserialize(json_doc, session=None, buffer_context=None):
         graph=g,
         session=session,
         buffer_context=buffer_context,
-        return_identifier=first_uid
+        return_uid=first_uid
     )
     return deserialized
 
@@ -354,7 +350,7 @@ def remove_cuds_object(cuds_object):
     """
     # Method does not allow deletion of the root element of a container
     for elem in cuds_object.iter(rel=cuba.relationship):
-        cuds_object.remove(elem.identifier, rel=cuba.relationship)
+        cuds_object.remove(elem.uid, rel=cuba.relationship)
 
 
 def get_relationships_between(subj, obj):
@@ -369,7 +365,7 @@ def get_relationships_between(subj, obj):
             and object.
     """
     result = set()
-    for rel, obj_identifiers in subj._neighbors.items():
-        if obj.identifier in obj_identifiers:
+    for rel, obj_uids in subj._neighbors.items():
+        if obj.uid in obj_uids:
             result.add(rel)
     return result

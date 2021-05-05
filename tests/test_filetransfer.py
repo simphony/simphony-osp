@@ -168,7 +168,7 @@ class TestFiletransfer(unittest.TestCase):
                 city.Image(path=FILE_PATHS[2])
             )
             result = move_files(images, None, CLIENT_DIR)
-            target = ["%s-%s" % (image.identifier.hex, file)
+            target = ["%s-%s" % (image.uid.hex, file)
                       for image, file in zip(images, FILES)]
             target_full_path = [os.path.join(CLIENT_DIR, t) for t in target]
 
@@ -189,7 +189,7 @@ class TestFiletransfer(unittest.TestCase):
                 city.Image(path=paths[2])
             )
             result = move_files(images, FILES_DIR, CLIENT_DIR)
-            target = ["%s-%s" % (image.identifier.hex, file)
+            target = ["%s-%s" % (image.uid.hex, file)
                       for image, file in zip(images, FILES)]
             target_full_path = [os.path.join(CLIENT_DIR, t) for t in target]
             self.assertEqual(set(os.listdir(CLIENT_DIR)), set(target))
@@ -236,7 +236,7 @@ class TestFiletransfer(unittest.TestCase):
             city.Image(path=FILE_PATHS[1])
         )
         session._reset_buffers(BufferContext.USER)
-        wrapper.remove(images[1].identifier)
+        wrapper.remove(images[1].uid)
         images[0].path = FILE_PATHS[0]
         images = list(images) + \
             [wrapper.add(city.Image(path=FILE_PATHS[2]))]
@@ -262,7 +262,7 @@ class TestFiletransfer(unittest.TestCase):
             _, result = serialize_buffers(
                 session, buffer_context=BufferContext.USER,
                 target_directory=CLIENT_DIR)
-            target = ["%s-%s" % (image.identifier.hex, file)
+            target = ["%s-%s" % (image.uid.hex, file)
                       for image, file in zip(images, FILES)]
             target_full_path = [os.path.join(CLIENT_DIR, t) for t in target]
             self.assertEqual(
@@ -293,7 +293,7 @@ class TestFiletransfer(unittest.TestCase):
             self.assertEqual(len(updated), 2)
             self.assertEqual(len(deleted), 1)
             images = images + [added[uuid.UUID(int=3)]]
-            target = ["%s-%s" % (image.identifier.hex, file)
+            target = ["%s-%s" % (image.uid.hex, file)
                       for image, file in zip(images, FILES)]
             target_full_path = [os.path.join(CLIENT_DIR, t) for t in target]
             self.assertEqual(added[uuid.UUID(int=3)].path,
@@ -368,7 +368,7 @@ class TestFiletransfer(unittest.TestCase):
                                     file_destination=CLIENT_DIR) as session:
             images = self.setup_buffers1(session)
             session.commit()
-            target = ["%s-%s" % (image.identifier.hex, file)
+            target = ["%s-%s" % (image.uid.hex, file)
                       for image, file in zip(images, FILES)]
             self.assertEqual(set(os.listdir(SERVER_DIR)),
                              {target[0], target[2]})
@@ -384,7 +384,7 @@ class TestFiletransfer(unittest.TestCase):
                                     file_destination=None) as session:
             images = self.setup_buffers1(session)
             session.commit()
-            target = ["%s-%s" % (image.identifier.hex, file)
+            target = ["%s-%s" % (image.uid.hex, file)
                       for image, file in zip(images, FILES)]
             self.assertEqual(set(os.listdir(SERVER_DIR)),
                              {target[0], target[2]})
@@ -401,10 +401,10 @@ class TestFiletransfer(unittest.TestCase):
         with TransportSessionClient(SqliteSession, URI,
                                     file_destination=CLIENT_DIR) as session:
             city.CityWrapper(session=session)
-            session.load(images[0].identifier)
-            session.load(images[1].identifier)
-            session.load(images[2].identifier)
-            target = ["%s-%s" % (image.identifier.hex, file)
+            session.load(images[0].uid)
+            session.load(images[1].uid)
+            session.load(images[2].uid)
+            target = ["%s-%s" % (image.uid.hex, file)
                       for image, file in zip(images, FILES)]
             self.assertEqual(set(os.listdir(CLIENT_DIR)),
                              {target[0], target[2]})
@@ -416,9 +416,9 @@ class TestFiletransfer(unittest.TestCase):
         with TransportSessionClient(SqliteSession, URI,
                                     file_destination=CLIENT_DIR) as session:
             city.CityWrapper(session=session)
-            session.load(images[0].identifier)
-            session.load(images[1].identifier)
-            session.load(images[2].identifier)
+            session.load(images[0].uid)
+            session.load(images[1].uid)
+            session.load(images[2].uid)
             self.assertEqual(
                 number_of_downloaded_files,
                 len(os.listdir(CLIENT_DIR))

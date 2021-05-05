@@ -4,7 +4,7 @@ import uuid
 import rdflib
 from osp.core.session.db.sql_util import SqlQuery
 from osp.core.namespaces import get_entity
-from osp.core.utils import iri_from_identifier
+from osp.core.utils import iri_from_uid
 from osp.core.namespaces import cuba
 
 INT = rdflib.XSD.integer
@@ -95,15 +95,15 @@ class SqlMigrate():
         """Migrate the OSP_MASTER table."""
         c = self.session._do_db_select(
             SqlQuery("OSP_MASTER", ["uid", "oclass"],
-                     {"uid": "IDENTIFIER", "oclass": STR})
+                     {"uid": "UID", "oclass": STR})
         )
-        for identifier, oclass in c:
+        for uid, oclass in c:
             oclass = get_entity(oclass) if oclass != "" else cuba.Wrapper
             ns_iri = str(oclass.namespace.get_iri())
 
             ns_idx = self.get_ns_idx_0_1(ns_iri)
             oclass_idx = self.get_entity_idx_0_1(ns_idx, oclass)
-            cuds_idx = self.get_cuds_idx_0_1(identifier)
+            cuds_idx = self.get_cuds_idx_0_1(uid)
 
             self.session._do_db_insert(
                 "OSP_V1_TYPES", ["s", "o"], [cuds_idx, oclass_idx],
@@ -114,7 +114,7 @@ class SqlMigrate():
         """Migrate the relations from v0 to v1."""
         c = self.session._do_db_select(
             SqlQuery("OSP_RELATIONSHIPS", ["origin", "target", "name"],
-                     {"origin": "IDENTIFIER", "target": "IDENTIFIER",
+                     {"origin": "UID", "target": "UID",
                       "name": STR})
         )
         for origin, target, name in c:
@@ -167,13 +167,13 @@ class SqlMigrate():
             {"s": INT, "p": INT, "o": datatype}
         )
 
-    def get_cuds_idx_0_1(self, identifier):
+    def get_cuds_idx_0_1(self, uid):
         """Get CUDS index when migrating from v0 to v1."""
-        cuds_iri = str(iri_from_identifier(identifier))
+        cuds_iri = str(iri_from_uid(uid))
         if cuds_iri not in self.cuds:
             self.cuds[cuds_iri] = self.session._do_db_insert(
-                "OSP_V1_CUDS", ["uid"], [str(identifier)],
-                {"uid": "IDENTIFIER"}
+                "OSP_V1_CUDS", ["uid"], [str(uid)],
+                {"uid": "UID"}
             )
         cuds_idx = self.cuds[cuds_iri]
         return cuds_idx
@@ -203,8 +203,8 @@ class SqlMigrate():
         """Get the columns specification of CUDS tables in schema v0."""
         attributes = list(oclass.attributes)
         columns = [x.argname for x in attributes] + ["uid"]
-        datatypes = dict(uid="IDENTIFIER", **{x.argname: x.datatype
-                                              for x in attributes})
+        datatypes = dict(uid="UID", **{x.argname: x.datatype
+                                       for x in attributes})
         return attributes, columns, datatypes
 
     def delete_old_tables_0(self):

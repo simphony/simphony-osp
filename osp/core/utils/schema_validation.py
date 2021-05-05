@@ -32,7 +32,7 @@ def validate_tree_against_schema(root_obj, schema_file):
         Exception: Tells the user which constraint was violated
     """
     logger.info("""Validating tree of root object {}
-    against schema file {} ...""".format(root_obj.identifier, schema_file))
+    against schema file {} ...""".format(root_obj.uid, schema_file))
 
     data_model_dict = _load_data_model_from_yaml(schema_file)
     optional_subtrees, mandatory_subtrees = \
@@ -103,14 +103,14 @@ def _check_cuds_object_cardinality(
     if actual_cardinality < min or actual_cardinality > max:
         message = """Found invalid cardinality between {} and {} with relationship {}.
         The constraint says it should be between {} and {}, but we found {}.
-        The identifier of the affected cuds_object is: {}""".format(
+        The uid of the affected cuds_object is: {}""".format(
             str(origin_cuds.oclass),
             dest_oclass,
             rel,
             min,
             max,
             actual_cardinality,
-            origin_cuds.identifier)
+            origin_cuds.uid)
         raise CardinalityError(message)
 
 

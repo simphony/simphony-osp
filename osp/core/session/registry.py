@@ -34,29 +34,29 @@ class Registry(dict):
         """
         from osp.core.cuds import Cuds
         if isinstance(cuds_object, Cuds):
-            super().__setitem__(cuds_object.identifier, cuds_object)
+            super().__setitem__(cuds_object.uid, cuds_object)
         else:
             message = '{!r} is not a cuds'
             raise ValueError(message.format(cuds_object))
 
-    def get(self, identifier):
-        """Return the object corresponding to a given identifier.
+    def get(self, uid):
+        """Return the object corresponding to a given uid.
 
         Args:
-            identifier (Union[UUID, URIRef]): The identifier of the desired
+            uid (Union[UUID, URIRef]): The uid of the desired
                 object.
 
         Raises:
-            ValueError: Unsupported key provided (not a identifier object).
+            ValueError: Unsupported key provided (not a uid object).
 
         Returns:
-            Cuds: Cuds object with the identifier.
+            Cuds: Cuds object with the uid.
         """
-        if isinstance(identifier, (UUID, URIRef)):
-            return super().__getitem__(identifier)
+        if isinstance(uid, (UUID, URIRef)):
+            return super().__getitem__(uid)
         else:
-            message = '{!r} is not a proper identifier'
-            raise ValueError(message.format(identifier))
+            message = '{!r} is not a proper uid'
+            raise ValueError(message.format(uid))
 
     def get_subtree(self, root, rel=None, skip=None):
         """Get all the elements in the subtree rooted at given root.
@@ -72,17 +72,17 @@ class Registry(dict):
 
         Returns:
             Set[Cuds]: The set of elements in the subtree rooted in the given
-                identifier.
+                uid.
         """
         from osp.core.cuds import Cuds
         skip = skip or set()
         if not isinstance(root, Cuds):
             root = super().__getitem__(root)
-        assert root.identifier in self
+        assert root.uid in self
         subtree = {root}
         for child in root.iter(rel=rel):
             if child not in (skip | subtree):
-                subtree |= self.get_subtree(child.identifier, rel,
+                subtree |= self.get_subtree(child.uid, rel,
                                             skip=(skip | subtree))
         return subtree
 
@@ -100,7 +100,7 @@ class Registry(dict):
                        "Use Session.prune() instead.")
         not_reachable = self._get_not_reachable(*roots, rel=rel)
         for x in not_reachable:
-            super().__delitem__(x.identifier)
+            super().__delitem__(x.uid)
         return not_reachable
 
     def _get_not_reachable(self, *roots, rel=None):
@@ -121,13 +121,13 @@ class Registry(dict):
         reachable = set()
         for root in roots:
             reachable |= self.get_subtree(root, rel=rel, skip=reachable)
-        reachable_identifiers = set([r.identifier for r in reachable])
+        reachable_uids = set([r.uid for r in reachable])
 
         # Get all the Cuds objects that are not reachable
         delete = list()
-        for identifier in self.keys():
-            if identifier not in reachable_identifiers:
-                delete.append(super().__getitem__(identifier))
+        for uid in self.keys():
+            if uid not in reachable_uids:
+                delete.append(super().__getitem__(uid))
         return delete
 
     def reset(self):
@@ -154,9 +154,9 @@ class Registry(dict):
                 satisfying the criterion.
         """
         result = dict()
-        for identifier, cuds_object in super().items():
+        for uid, cuds_object in super().items():
             if criterion(cuds_object):
-                result[identifier] = cuds_object
+                result[uid] = cuds_object
         return result
 
     def filter_by_oclass(self, oclass):

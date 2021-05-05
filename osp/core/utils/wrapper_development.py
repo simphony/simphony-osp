@@ -39,7 +39,7 @@ def get_neighbor_diff(cuds1, cuds2, mode="all"):
 
     Returns:
         List[Tuple[Union[UUID, URIRef], Relationship]]: List of Tuples that
-            contain the found identifiers and relationships.
+            contain the found uids and relationships.
     """
     allowed_modes = ["all", "active", "non-active"]
     if mode not in allowed_modes:
@@ -61,13 +61,13 @@ def get_neighbor_diff(cuds1, cuds2, mode="all"):
             continue
 
         # Get all the neighbors that are no neighbors is cuds2
-        old_neighbor_identifiers = set()
+        old_neighbor_uids = set()
         if cuds2 is not None and relationship in cuds2._neighbors:
-            old_neighbor_identifiers = cuds2._neighbors[relationship].keys()
-        new_neighbor_identifiers = list(
-            cuds1._neighbors[relationship].keys() - old_neighbor_identifiers)
-        result += list(zip(new_neighbor_identifiers,
-                           [relationship] * len(new_neighbor_identifiers)))
+            old_neighbor_uids = cuds2._neighbors[relationship].keys()
+        new_neighbor_uids = list(
+            cuds1._neighbors[relationship].keys() - old_neighbor_uids)
+        result += list(zip(new_neighbor_uids,
+                           [relationship] * len(new_neighbor_uids)))
     return result
 
 
@@ -85,18 +85,18 @@ def clone_cuds_object(cuds_object):
     return clone
 
 
-def create_recycle(oclass, kwargs, session, identifier,
+def create_recycle(oclass, kwargs, session, uid,
                    fix_neighbors=True, _force=False):
     """Instantiate a cuds_object with a given session.
 
-    If cuds_object with same identifier is already in the session,
+    If cuds_object with same uid is already in the session,
     this object will be reused.
 
     Args:
         oclass (Cuds): The OntologyClass of cuds_object to instantiate
         kwargs (Dict[str, Any]): The kwargs of the cuds_object
         session (Session): The session of the new Cuds object
-        identifier (Union[UUID, URIRef): The identifier of the new Cuds object
+        uid (Union[UUID, URIRef): The uid of the new Cuds object
         fix_neighbors (bool): Whether to remove the link from the old neighbors
             to this cuds object, defaults to True
         _force (bool): Skip sanity checks.
@@ -106,13 +106,13 @@ def create_recycle(oclass, kwargs, session, identifier,
     """
     from osp.core.session.wrapper_session import WrapperSession
     from osp.core.cuds import Cuds
-    identifier = convert_to(identifier, "IDENTIFIER")
-    if isinstance(session, WrapperSession) and identifier in session._expired:
-        session._expired.remove(identifier)
+    uid = convert_to(uid, "UID")
+    if isinstance(session, WrapperSession) and uid in session._expired:
+        session._expired.remove(uid)
 
     # recycle old object
-    if identifier in session._registry:
-        cuds_object = session._registry.get(identifier)
+    if uid in session._registry:
+        cuds_object = session._registry.get(uid)
         for rel in set(cuds_object._neighbors.keys()):
             if not fix_neighbors:
                 del cuds_object._neighbors[rel]
@@ -121,11 +121,11 @@ def create_recycle(oclass, kwargs, session, identifier,
         change_oclass(cuds_object, oclass, kwargs, _force=_force)
     else:  # create new
         if oclass is not None:
-            cuds_object = oclass(identifier=identifier, session=session,
+            cuds_object = oclass(uid=uid, session=session,
                                  **kwargs,
                                  _force=_force)
         else:
-            cuds_object = Cuds(identifier=identifier, session=session,
+            cuds_object = Cuds(uid=uid, session=session,
                                **kwargs)
     return cuds_object
 
@@ -147,12 +147,12 @@ def create_from_cuds_object(cuds_object, session):
     clone = create_recycle(oclass=cuds_object.oclass,
                            kwargs=kwargs,
                            session=session,
-                           identifier=cuds_object.identifier,
+                           uid=cuds_object.uid,
                            fix_neighbors=False)
     for rel, target_dict in cuds_object._neighbors.items():
         clone._neighbors[rel] = {}
-        for identifier, target_oclass in target_dict.items():
-            clone._neighbors[rel][identifier] = target_oclass
+        for uid, target_oclass in target_dict.items():
+            clone._neighbors[rel][uid] = target_oclass
     return clone
 
 
@@ -175,7 +175,7 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
     if cuds_object.oclass != new_oclass:
         for neighbor in cuds_object.get(rel=cuba.relationship):
             for rel in get_relationships_between(cuds_object, neighbor):
-                neighbor._neighbors[rel.inverse][cuds_object.identifier] = \
+                neighbor._neighbors[rel.inverse][cuds_object.uid] = \
                     [new_oclass]
 
     # update attributes
@@ -205,20 +205,20 @@ def create_from_triples(triples, neighbor_triples, session,
         fix_neighbors (bool): Whether to remove the link from the old neighbors
             to this cuds object, defaults to True.
     """
-    from osp.core.utils import identifier_from_iri
+    from osp.core.utils import uid_from_iri
     from osp.core.cuds import Cuds
     from osp.core.session.wrapper_session import WrapperSession
     triples = list(triples)
     if not triples:
         return None
 
-    identifier = identifier_from_iri(triples[0][0])
-    if isinstance(session, WrapperSession) and identifier in session._expired:
-        session._expired.remove(identifier)
+    uid = uid_from_iri(triples[0][0])
+    if isinstance(session, WrapperSession) and uid in session._expired:
+        session._expired.remove(uid)
 
     # recycle old object
-    if identifier in session._registry:
-        cuds_object = session._registry.get(identifier)
+    if uid in session._registry:
+        cuds_object = session._registry.get(uid)
         cuds_object.session._notify_read(cuds_object)
         if fix_neighbors:
             rels = set(cuds_object._neighbors.keys())
@@ -229,7 +229,7 @@ def create_from_triples(triples, neighbor_triples, session,
         cuds_object = Cuds(attributes={},
                            oclass=None,
                            session=session,
-                           identifier=identifier)
+                           uid=uid)
 
     # add the triples
     for triple in set(triples) | set(neighbor_triples):

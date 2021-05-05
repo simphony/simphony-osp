@@ -52,8 +52,8 @@ def convert_from(x, rdf_datatype):
     return datatype(x)
 
 
-def to_identifier(x):
-    """Convert given value to an identifier.
+def to_uid(x):
+    """Convert given value to an uid.
 
     Args:
         x (Any): The value to convert
@@ -81,7 +81,7 @@ def to_identifier(x):
     else:
         x = False
     if x is False:
-        raise ValueError("Specify a valid identifier")
+        raise ValueError("Specify a valid uid")
     else:
         return x
 
@@ -143,7 +143,7 @@ RDF_DATATYPES = {
     XSD.integer: (int, int, np.dtype("int")),
     XSD.float: (float, float, np.dtype("float")),
     XSD.string: (str, str, np.dtype("str")),
-    "IDENTIFIER": (to_identifier, str, np.dtype("str")),
+    "UID": (to_uid, str, np.dtype("str")),
     None: (str, str, np.dtype("str"))
 }
 
@@ -180,7 +180,7 @@ YML_DATATYPES = {
     "INT": XSD.integer,
     "FLOAT": XSD.float,
     "STRING": XSD.string,
-    "IDENTIFIER": "IDENTIFIER"
+    "UID": "UID"
 }
 
 

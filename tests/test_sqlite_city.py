@@ -1,7 +1,7 @@
 """Test the Sqlite Wrapper with the CITY ontology."""
 
 import os
-from osp.core.utils.general import iri_from_identifier
+from osp.core.utils.general import iri_from_uid
 import uuid
 import unittest2 as unittest
 import sqlite3
@@ -50,7 +50,7 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            cw = wrapper.get(c.identifier)
+            cw = wrapper.get(c.uid)
             np.testing.assert_array_equal(cw.coordinates, [42, 24])
 
     def test_insert(self):
@@ -98,7 +98,7 @@ class TestSqliteCity(unittest.TestCase):
             cw = wrapper.add(c)
             session.commit()
 
-            cw.remove(p3.identifier)
+            cw.remove(p3.uid)
             session._notify_read(wrapper)
             session.prune()
             session.commit()
@@ -123,16 +123,16 @@ class TestSqliteCity(unittest.TestCase):
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
-                             {c.identifier, wrapper.identifier})
-            self.assertEqual(wrapper.get(c.identifier).name, "Freiburg")
+                             {c.uid, wrapper.uid})
+            self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(
-                session._registry.get(c.identifier)
+                session._registry.get(c.uid)
                        ._neighbors[city.hasInhabitant],
-                {p1.identifier: p1.oclasses, p2.identifier: p2.oclasses,
-                 p3.identifier: p3.oclasses})
+                {p1.uid: p1.oclasses, p2.uid: p2.oclasses,
+                 p3.uid: p3.oclasses})
             self.assertEqual(
-                session._registry.get(c.identifier)._neighbors[city.isPartOf],
-                {wrapper.identifier: wrapper.oclasses})
+                session._registry.get(c.uid)._neighbors[city.isPartOf],
+                {wrapper.uid: wrapper.oclasses})
 
     def test_load_missing(self):
         """Test if missing objects are loaded automatically."""
@@ -152,29 +152,29 @@ class TestSqliteCity(unittest.TestCase):
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
-                             {c.identifier, wrapper.identifier})
-            cw = wrapper.get(c.identifier)
-            p1w = cw.get(p1.identifier)
-            p2w = cw.get(p2.identifier)
-            p3w = p1w.get(p3.identifier)
+                             {c.uid, wrapper.uid})
+            cw = wrapper.get(c.uid)
+            p1w = cw.get(p1.uid)
+            p2w = cw.get(p2.uid)
+            p3w = p1w.get(p3.uid)
             self.assertEqual(
                 set(session._registry.keys()),
-                {c.identifier, wrapper.identifier, p1.identifier,
-                 p2.identifier, p3.identifier})
+                {c.uid, wrapper.uid, p1.uid,
+                 p2.uid, p3.uid})
             self.assertEqual(p1w.name, "Peter")
             self.assertEqual(p2w.name, "Anna")
             self.assertEqual(p3w.name, "Julia")
             self.assertEqual(
                 p3w._neighbors[city.isChildOf],
-                {p1.identifier: p1.oclasses, p2.identifier: p2.oclasses}
+                {p1.uid: p1.oclasses, p2.uid: p2.oclasses}
             )
             self.assertEqual(
                 p2w._neighbors[city.hasChild],
-                {p3.identifier: p3.oclasses}
+                {p3.uid: p3.oclasses}
             )
             self.assertEqual(
                 p2w._neighbors[city.INVERSE_OF_hasInhabitant],
-                {c.identifier: c.oclasses}
+                {c.uid: c.oclasses}
             )
 
     def test_load_by_oclass(self):
@@ -194,7 +194,7 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            cs = wrapper.get(c.identifier)
+            cs = wrapper.get(c.uid)
             r = session.load_by_oclass(city.City)
             self.assertIs(next(r), cs)
             r = session.load_by_oclass(city.Citizen)
@@ -204,7 +204,7 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            cs = wrapper.get(c.identifier)
+            cs = wrapper.get(c.uid)
             r = session.load_by_oclass(city.Street)
             self.assertRaises(StopIteration, next, r)
 
@@ -225,7 +225,7 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            cs = wrapper.get(c.identifier)
+            cs = wrapper.get(c.uid)
             r = session.load_from_iri(cs.iri)
             self.assertIs(next(r), cs)
             r = session.load_from_iri(p1.iri, p2.iri, p3.iri)
@@ -233,8 +233,8 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            cs = wrapper.get(c.identifier)
-            r = session.load_from_iri(iri_from_identifier(uuid.UUID(int=1)))
+            cs = wrapper.get(c.uid)
+            r = session.load_from_iri(iri_from_uid(uuid.UUID(int=1)))
             self.assertEqual(set(r), {None})
 
     def test_expiring(self):
@@ -250,7 +250,7 @@ class TestSqliteCity(unittest.TestCase):
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
-            p1w, p2w, p3w = cw.get(p1.identifier, p2.identifier, p3.identifier)
+            p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)
             session.commit()
 
             # p1w is no longer expired after the following assert
@@ -268,7 +268,7 @@ class TestSqliteCity(unittest.TestCase):
             self.assertEqual(set(cw.get()), {p1w})
             self.assertEqual(p2w.get(), list())
             self.assertFalse(hasattr(p3w, "name"))
-            self.assertNotIn(p3w.identifier, session._registry)
+            self.assertNotIn(p3w.uid, session._registry)
 
     def test_refresh(self):
         """Test refreshing CUDS objects."""
@@ -283,14 +283,14 @@ class TestSqliteCity(unittest.TestCase):
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
-            p1w, p2w, p3w = cw.get(p1.identifier, p2.identifier, p3.identifier)
+            p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)
             session.commit()
 
             self.assertEqual(cw.name, "Freiburg")
             self.assertEqual(p1w.name, "Peter")
             self.assertEqual(p2w.name, "Anna")
             self.assertEqual(p3w.name, "Julia")
-            self.assertEqual(session._expired, {wrapper.identifier})
+            self.assertEqual(session._expired, {wrapper.uid})
 
             update_db(DB, c, p1, p2, p3)
 
@@ -300,7 +300,7 @@ class TestSqliteCity(unittest.TestCase):
             self.assertEqual(set(cw.get()), {p1w})
             self.assertEqual(p2w.get(), list())
             self.assertFalse(hasattr(p3w, "name"))
-            self.assertNotIn(p3w.identifier, session._registry)
+            self.assertNotIn(p3w.uid, session._registry)
 
     def test_clear_database(self):
         """Test clearing the database."""
@@ -355,9 +355,9 @@ class TestSqliteCity(unittest.TestCase):
                 session2.commit()
 
                 cw = wrapper1.add(city.City(name="Karlsruhe"))
-                self.assertEqual(session1._expired, {city1.identifier})
+                self.assertEqual(session1._expired, {city1.uid})
                 self.assertEqual(session1._buffers, [
-                    [{cw.identifier: cw}, {wrapper1.identifier: wrapper1},
+                    [{cw.uid: cw}, {wrapper1.uid: wrapper1},
                      dict()],
                     [dict(), dict(), dict()]
                 ])
@@ -378,11 +378,11 @@ class TestSqliteCity(unittest.TestCase):
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
-                             {unknown.identifier, c.identifier,
-                              wrapper.identifier})
-            self.assertEqual(wrapper.get(c.identifier).name, "Freiburg")
-            self.assertEqual(wrapper.get(c.identifier).oclass, city.City)
-            self.assertIs(wrapper.get(unknown.identifier).oclass, None)
+                             {unknown.uid, c.uid,
+                              wrapper.uid})
+            self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
+            self.assertEqual(wrapper.get(c.uid).oclass, city.City)
+            self.assertIs(wrapper.get(unknown.uid).oclass, None)
 
 
 def check_state(test_case, c, p1, p2, db=DB):
@@ -407,14 +407,14 @@ def check_state(test_case, c, p1, p2, db=DB):
                ENTITIES_TABLE, CUDS_TABLE))
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
-            (str(uuid.UUID(int=0)), 1, "hasPart", str(c.identifier)),
-            (str(c.identifier), 1, "hasInhabitant", str(p1.identifier)),
-            (str(c.identifier), 1, "hasInhabitant", str(p2.identifier)),
-            (str(p1.identifier), 1, "INVERSE_OF_hasInhabitant",
-             str(c.identifier)),
-            (str(p2.identifier), 1, "INVERSE_OF_hasInhabitant",
-             str(c.identifier)),
-            (str(c.identifier), 1, "isPartOf", str(uuid.UUID(int=0)))
+            (str(uuid.UUID(int=0)), 1, "hasPart", str(c.uid)),
+            (str(c.uid), 1, "hasInhabitant", str(p1.uid)),
+            (str(c.uid), 1, "hasInhabitant", str(p2.uid)),
+            (str(p1.uid), 1, "INVERSE_OF_hasInhabitant",
+             str(c.uid)),
+            (str(p2.uid), 1, "INVERSE_OF_hasInhabitant",
+             str(c.uid)),
+            (str(c.uid), 1, "isPartOf", str(uuid.UUID(int=0)))
         })
 
         cursor.execute(
@@ -433,9 +433,9 @@ def check_state(test_case, c, p1, p2, db=DB):
             % (TYPES_TABLE, CUDS_TABLE, ENTITIES_TABLE))
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
-            (str(c.identifier), 1, 'City'),
-            (str(p1.identifier), 1, 'Citizen'),
-            (str(p2.identifier), 1, 'Citizen'),
+            (str(c.uid), 1, 'City'),
+            (str(p1.uid), 1, 'Citizen'),
+            (str(p2.uid), 1, 'Citizen'),
             (str(uuid.UUID(int=0)), 1, 'CityWrapper')
         })
 
@@ -446,9 +446,9 @@ def check_state(test_case, c, p1, p2, db=DB):
             % (data_tbl("XSD_string"), CUDS_TABLE, ENTITIES_TABLE))
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
-            (str(p1.identifier), 1, 'name', 'Peter'),
-            (str(c.identifier), 1, 'name', 'Freiburg'),
-            (str(p2.identifier), 1, 'name', 'Georg')
+            (str(p1.uid), 1, 'name', 'Peter'),
+            (str(c.uid), 1, 'name', 'Freiburg'),
+            (str(p2.uid), 1, 'name', 'Georg')
         })
 
         cursor.execute(
@@ -459,7 +459,7 @@ def check_state(test_case, c, p1, p2, db=DB):
             % (data_tbl("VECTOR-INT-2"), CUDS_TABLE, ENTITIES_TABLE))
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
-            (str(c.identifier), 1, 'coordinates', 0, 0)
+            (str(c.uid), 1, 'coordinates', 0, 0)
         })
 
 
@@ -498,24 +498,24 @@ def update_db(db, c, p1, p2, p3):
         e = dict(cursor)
 
         cursor.execute(f"UPDATE {data_tbl('XSD_string')} SET o = 'Paris' "
-                       f"WHERE s={m[c.identifier]} AND p={e['name']};")
+                       f"WHERE s={m[c.uid]} AND p={e['name']};")
         cursor.execute(f"UPDATE {data_tbl('XSD_string')} SET o = 'Maria' "
-                       f"WHERE s={m[p1.identifier]} AND p={e['name']};")
+                       f"WHERE s={m[p1.uid]} AND p={e['name']};")
         cursor.execute(f"UPDATE {data_tbl('XSD_string')} SET o = 'Jacob' "
-                       f"WHERE s={m[p2.identifier]} AND p={e['name']};")
+                       f"WHERE s={m[p2.uid]} AND p={e['name']};")
 
         cursor.execute(f"DELETE FROM {RELATIONSHIP_TABLE} "
-                       f"WHERE s == '{m[p2.identifier]}' OR "
-                       f"o = '{m[p2.identifier]}'")
+                       f"WHERE s == '{m[p2.uid]}' OR "
+                       f"o = '{m[p2.uid]}'")
         cursor.execute(f"DELETE FROM {RELATIONSHIP_TABLE} "
-                       f"WHERE s == '{m[p3.identifier]}' OR "
-                       f"o = '{m[p3.identifier]}'")
+                       f"WHERE s == '{m[p3.uid]}' OR "
+                       f"o = '{m[p3.uid]}'")
         cursor.execute(f"DELETE FROM {data_tbl('XSD_string')} "
-                       f"WHERE s == '{m[p3.identifier]}'")
+                       f"WHERE s == '{m[p3.uid]}'")
         cursor.execute(f"DELETE FROM '{data_tbl('XSD_integer')}' "
-                       f"WHERE s == '{m[p3.identifier]}'")
+                       f"WHERE s == '{m[p3.uid]}'")
         cursor.execute(f"DELETE FROM {CUDS_TABLE} "
-                       f"WHERE cuds_idx == '{m[p3.identifier]}'")
+                       f"WHERE cuds_idx == '{m[p3.uid]}'")
         conn.commit()
 
 

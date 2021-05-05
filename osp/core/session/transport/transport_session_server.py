@@ -141,20 +141,20 @@ class TransportSessionServer():
         """Load cuds_objects from the session.
 
         Args:
-            data (str): The identifiers to load as json encoded list.
+            data (str): The uids to load as json encoded list.
 
         Returns:
             str: The resulting cuds_objects, serialized.
         """
         session = self.session_objs[connection_id]
-        identifiers = deserialize_buffers(
+        uids = deserialize_buffers(
             session,
             buffer_context=None,
             data=data,
             temp_directory=temp_directory,
             target_directory=self._file_destination
-        )["identifiers"]
-        cuds_objects = list(session.load(*identifiers))
+        )["uids"]
+        cuds_objects = list(session.load(*uids))
         additional = {"result": cuds_objects}
         return serialize_buffers(session, buffer_context=BufferContext.ENGINE,
                                  additional_items=additional)

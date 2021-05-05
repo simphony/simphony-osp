@@ -38,33 +38,26 @@ class Cuds:
                  attributes: Optional[Dict[OntologyAttribute, Any]] = None,
                  oclass: Optional[OntologyClass] = None,
                  session: Session = None,
-                 identifier: Union[UUID, URIRef] = None,
                  iri: URIRef = None,
-                 uid: UUID = None):
+                 uid: Union[UUID, URIRef] = None):
         """Initialize a CUDS object."""
-        # Set identifier. This is a "user-facing" method, so strict types
+        # Set uid. This is a "user-facing" method, so strict types
         # checks are performed.
         if oclass and attributes is None:
             raise TypeError("__init__() missing 1 optional argument:"
                             "`attributes`. This attribute is required when"
                             "an ontology class is specified.")
-        if identifier is not None and any(x is not None for x in (iri, uid)):
-            raise Exception("The keyword argument `identifier` cannot be used"
-                            "at the same time as the keyword arguments `iri`"
-                            "or `uuid`.")
-        elif all(x is not None for x in (iri, uid)):
+        if len(set(filter(lambda x: x is not None, (uid, iri)))) > 1:
             raise Exception("Tried to initialize a CUDS object specifying, "
-                            "both its IRI and its UID. A CUDS object is "
-                            "constrained to have just one identifier.")
-        elif identifier is not None \
-                and type(identifier) not in (UUID, URIRef):
-            raise ValueError('Provide either a UUID or a URIRef object.')
-        elif uid is not None and type(uid) is not UUID:
-            raise ValueError('Provide a UUID object.')
+                            "both its IRI and UID. A CUDS object is "
+                            "constrained to have just one UID.")
+        elif uid is not None and type(uid) not in (UUID, URIRef):
+            raise ValueError('Provide either a UUID or a URIRef object'
+                             'as UID.')
         elif iri is not None and type(iri) is not URIRef:
-            raise ValueError('Provide a URIRef object.')
+            raise ValueError('Provide a URIRef object as IRI.')
         else:
-            self._identifier = identifier or uid or iri or uuid4()
+            self._uid = uid or iri or uuid4()
 
         # Create CUDS triples in internal temporary graph.
         self._graph = Graph()
@@ -84,39 +77,30 @@ class Cuds:
         self.session._store(self)
 
     @property
-    def uid(self) -> Union[URIRef, UUID]:
-        """Get the identifier of the CUDS object.
-
-        Does just the same as the `identifier` property, it just exists for
-        backwards compatibility purposes (with the wrappers).
-        """
-        return self.identifier
-
-    @property
     def iri(self) -> URIRef:
         """Get the IRI of the CUDS object."""
-        return self.identifier if type(self.identifier) is URIRef else \
-            URIRef(CUDS_NAMESPACE_IRI + str(self.identifier))
+        return self.uid if type(self.uid) is URIRef else \
+            URIRef(CUDS_NAMESPACE_IRI + str(self.uid))
 
     @property
-    def identifier(self) -> Union[URIRef, UUID]:
-        """Get the identifier of the CUDS object.
+    def uid(self) -> Union[URIRef, UUID]:
+        """Get the uid of the CUDS object.
 
         This is the public getter of the property.
         """
-        return self._identifier
+        return self._uid
 
     @property
-    def _identifier(self) -> Union[URIRef, UUID]:
-        """Get the identifier of the CUDS object.
+    def _uid(self) -> Union[URIRef, UUID]:
+        """Get the uid of the CUDS object.
 
         This is the private getter of the property.
         """
-        return self.__identifier
+        return self.__uid
 
-    @_identifier.setter
-    def _identifier(self, value: Union[URIRef, UUID, int]):
-        """Set the identifier of a CUDS object.
+    @_uid.setter
+    def _uid(self, value: Union[URIRef, UUID, int]):
+        """Set the uid of a CUDS object.
 
         This is the private setter of the property.
         """
@@ -128,8 +112,8 @@ class Cuds:
             split = value.split(':')
             invalid = not len(split) > 1 or any(x == "" for x in split)
         if invalid:
-            raise ValueError(f"Invalid identifier: {value}.")
-        self.__identifier = value
+            raise ValueError(f"Invalid uid: {value}.")
+        self.__uid = value
 
     @property
     def session(self) -> Session:
@@ -228,11 +212,11 @@ class Cuds:
         result = list()
         # update cuds objects if they are already in the session
         old_objects = self._session.load(
-            *[arg.identifier for arg in args if arg.session != self.session])
+            *[arg.uid for arg in args if arg.session != self.session])
         for arg in args:
             # Recursively add the children to the registry
             if rel in self._neighbors \
-                    and arg.identifier in self._neighbors[rel]:
+                    and arg.uid in self._neighbors[rel]:
                 message = '{!r} is already in the container'
                 raise ValueError(message.format(arg))
             if self.session != arg.session:
@@ -244,28 +228,28 @@ class Cuds:
         return result[0] if len(args) == 1 else result
 
     def get(self,
-            *identifiers: Union[UUID, URIRef],
+            *uids: Union[UUID, URIRef],
             rel: OntologyRelationship = cuba.activeRelationship,
             oclass: OntologyClass = None,
             return_rel: bool = False) -> Union["Cuds", List["Cuds"]]:
         """Return the contained elements.
 
-        Filter elements by given type, identifier or relationship.
-        Expected calls are get(), get(*identifiers), get(rel), get(oclass),
+        Filter elements by given type, uid or relationship.
+        Expected calls are get(), get(*uids), get(rel), get(oclass),
         get(*indentifiers, rel), get(rel, oclass).
-        If identifiers are specified:
+        If uids are specified:
             The position of each element in the result is determined by to the
-            position of the corresponding identifier in the given list of
-            identifiers. In this case, the result can contain None values if a
-            given identifier is not a child of this cuds_object.
+            position of the corresponding uid in the given list of
+            uids. In this case, the result can contain None values if a
+            given uid is not a child of this cuds_object.
             If only a single indentifier is given, only this one element is
             returned (i.e. no list).
-        If no identifiers are specified:
+        If no uids are specified:
             The result is a collection, where the elements are ordered
             randomly.
 
         Args:
-            identifiers (Union[UUID, URIRef]): Identifiers of the elements.
+            uids (Union[UUID, URIRef]): uids of the elements.
             rel (OntologyRelationship, optional): Only return cuds_object
                 which are connected by subclass of given relationship.
                 Defaults to cuba.activeRelationship.
@@ -278,10 +262,10 @@ class Cuds:
             Union[Cuds, List[Cuds]]: The queried objects.
         """
         result = list(
-            self.iter(*identifiers, rel=rel, oclass=oclass,
+            self.iter(*uids, rel=rel, oclass=oclass,
                       return_rel=return_rel)
         )
-        if len(identifiers) == 1:
+        if len(uids) == 1:
             return result[0]
         return result
 
@@ -310,7 +294,7 @@ class Cuds:
                 returned.
         """
         check_arguments(Cuds, *args)
-        old_objects = self.get(*[arg.identifier for arg in args])
+        old_objects = self.get(*[arg.uid for arg in args])
         if len(args) == 1:
             old_objects = [old_objects]
         if any(x is None for x in old_objects):
@@ -335,8 +319,8 @@ class Cuds:
                oclass: OntologyClass = None):
         """Remove elements from the CUDS object.
 
-        Expected calls are remove(), remove(*identifiers/Cuds),
-        remove(rel), remove(oclass), remove(*identifiers/Cuds, rel),
+        Expected calls are remove(), remove(*uids/Cuds),
+        remove(rel), remove(oclass), remove(*uids/Cuds, rel),
         remove(rel, oclass)
 
         Args:
@@ -353,48 +337,47 @@ class Cuds:
                 objects are not in the container of the current CUDS object
                 directly.
         """
-        identifiers = [arg.identifier if isinstance(arg, Cuds) else
-                       arg for arg in args]
+        uids = [arg.uid if isinstance(arg, Cuds) else arg for arg in args]
 
-        # Get mapping from identifiers to connecting relationships
-        _, relationship_mapping = self._get(*identifiers, rel=rel,
+        # Get mapping from uids to connecting relationships
+        _, relationship_mapping = self._get(*uids, rel=rel,
                                             oclass=oclass, return_mapping=True)
         if not relationship_mapping:
             raise RuntimeError("Did not remove any Cuds object, "
                                "because none matched your filter.")
-        identifier_relationships = list(relationship_mapping.items())
+        uid_relationships = list(relationship_mapping.items())
 
         # load all the neighbors to delete and remove inverse relationship
         neighbors = self.session.load(
-            *[identifier for identifier, _ in identifier_relationships])
-        for identifier_relationship, neighbor in zip(identifier_relationships,
-                                                     neighbors):
-            identifier, relationships = identifier_relationship
+            *[uid for uid, _ in uid_relationships])
+        for uid_relationship, neighbor in zip(uid_relationships,
+                                              neighbors):
+            uid, relationships = uid_relationship
             for relationship in relationships:
-                self._remove_direct(relationship, identifier)
-                neighbor._remove_inverse(relationship, self.identifier)
+                self._remove_direct(relationship, uid)
+                neighbor._remove_inverse(relationship, self.uid)
 
     def iter(self,
-             *identifiers: Union[UUID, URIRef],
+             *uids: Union[UUID, URIRef],
              rel: OntologyRelationship = cuba.activeRelationship,
              oclass: OntologyClass = None,
              return_rel: bool = False) -> Iterator["Cuds"]:
         """Iterate over the contained elements.
 
-        Only iterate over objects of a given type, identifier or oclass.
+        Only iterate over objects of a given type, uid or oclass.
 
-        Expected calls are iter(), iter(*identifiers), iter(rel),
-        iter(oclass), iter(*identifiers, rel), iter(rel, oclass).
-        If identifiers are specified:
+        Expected calls are iter(), iter(*uids), iter(rel),
+        iter(oclass), iter(*uids, rel), iter(rel, oclass).
+        If uids are specified:
             The position of each element in the result is determined by to the
-            position of the corresponding identifier in the given list of
-            identifiers. In this case, the result can contain None values if a
-            given identifier is not a child of this cuds_object.
-        If no identifiers are specified:
+            position of the corresponding uid in the given list of
+            uids. In this case, the result can contain None values if a
+            given uid is not a child of this cuds_object.
+        If no uids are specified:
             The result is ordered randomly.
 
         Args:
-            identifiers (Union[UUID, URIRef]): identifiers of the elements.
+            uids (Union[UUID, URIRef]): uids of the elements.
             rel (OntologyRelationship, optional): Only return cuds_object
                 which are connected by subclass of given relationship.
                 Defaults to cuba.activeRelationship.
@@ -407,19 +390,17 @@ class Cuds:
             Iterator[Cuds]: The queried objects.
         """
         if return_rel:
-            collected_identifiers, mapping = self._get(*identifiers, rel=rel,
-                                                       oclass=oclass,
-                                                       return_mapping=True)
+            collected_uids, mapping = self._get(*uids, rel=rel, oclass=oclass,
+                                                return_mapping=True)
         else:
-            collected_identifiers = self._get(*identifiers, rel=rel,
-                                              oclass=oclass)
+            collected_uids = self._get(*uids, rel=rel, oclass=oclass)
 
-        result = self._load_cuds_objects(collected_identifiers)
+        result = self._load_cuds_objects(collected_uids)
         for r in result:
             if not return_rel:
                 yield r
             else:
-                yield from ((r, m) for m in mapping[r.identifier])
+                yield from ((r, m) for m in mapping[r.uid])
 
     def _recursive_store(self, new_cuds_object, old_cuds_object=None):
         """Recursively store cuds_object and all its children.
@@ -436,15 +417,15 @@ class Cuds:
         """
         # add new_cuds_object to self and replace old_cuds_object
         queue = [(self, new_cuds_object, old_cuds_object)]
-        identifiers_stored = {new_cuds_object.identifier, self.identifier}
+        uids_stored = {new_cuds_object.uid, self.uid}
         missing = dict()
         result = None
         while queue:
 
             # Store copy in registry
             add_to, new_cuds_object, old_cuds_object = queue.pop(0)
-            if new_cuds_object.identifier in missing:
-                del missing[new_cuds_object.identifier]
+            if new_cuds_object.uid in missing:
+                del missing[new_cuds_object.uid]
             old_cuds_object = clone_cuds_object(old_cuds_object)
             new_child_getter = new_cuds_object
             new_cuds_object = create_from_cuds_object(new_cuds_object,
@@ -461,19 +442,19 @@ class Cuds:
                     continue
 
                 # add children not already added
-                for child_identifier in \
+                for child_uid in \
                         new_cuds_object._neighbors[outgoing_rel]:
-                    if child_identifier not in identifiers_stored:
+                    if child_uid not in uids_stored:
                         new_child = new_child_getter.get(
-                            child_identifier, rel=outgoing_rel)
-                        old_child = self.session.load(child_identifier).first()
+                            child_uid, rel=outgoing_rel)
+                        old_child = self.session.load(child_uid).first()
                         queue.append((new_cuds_object, new_child, old_child))
-                        identifiers_stored.add(new_child.identifier)
+                        uids_stored.add(new_child.uid)
 
         # perform the deletion
-        for identifier in missing:
-            for cuds_object, rel in missing[identifier]:
-                del cuds_object._neighbors[rel][identifier]
+        for uid in missing:
+            for cuds_object, rel in missing[uid]:
+                del cuds_object._neighbors[rel][uid]
                 if not cuds_object._neighbors[rel]:
                     del cuds_object._neighbors[rel]
         return result
@@ -525,7 +506,7 @@ class Cuds:
 
         # Load all the cuds_objects of the session
         cuds_objects = iter(session.load(
-            *[identifier for identifier, _ in
+            *[uid for uid, _ in
               new_parent_diff + old_neighbor_diff]))
 
         # Perform the fixes
@@ -552,31 +533,31 @@ class Cuds:
             new_parents (Iterator[Cuds]): The new parents of the added CUDS
                 object.
             new_parent_diff : stuff.
-                The identifiers of the new parents and the relations they are
+                The uids of the new parents and the relations they are
                 connected with.
             missing (dict): dictionary that will be populated with connections
                 to objects, that are currently not available in the new
                 session. The recursive_add might add it later.
         """
         # Iterate over the new parents
-        for (parent_identifier, relationship), parent in zip(new_parent_diff,
-                                                             new_parents):
+        for (parent_uid, relationship), parent in zip(new_parent_diff,
+                                                      new_parents):
             if relationship.is_subclass_of(cuba.activeRelationship):
                 continue
             inverse = relationship.inverse
             # Delete connection to parent if parent is not present
             if parent is None:
-                if parent_identifier not in missing:
-                    missing[parent_identifier] = list()
-                missing[parent_identifier].append((new_cuds_object,
-                                                   relationship))
+                if parent_uid not in missing:
+                    missing[parent_uid] = list()
+                missing[parent_uid].append((new_cuds_object,
+                                            relationship))
                 continue
 
             # Add the inverse to the parent
             if inverse not in parent._neighbors:
                 parent._neighbors[inverse] = {}
 
-            parent._neighbors[inverse][new_cuds_object.identifier] = \
+            parent._neighbors[inverse][new_cuds_object.uid] = \
                 new_cuds_object.oclasses
 
     @staticmethod
@@ -594,11 +575,11 @@ class Cuds:
                 to be replaced
             old_neighbors (Iterator[Cuds]): The Cuds object that were neighbors
                 before the replacement.
-            old_neighbor_diff: The identifiers of the old neighbors and the
+            old_neighbor_diff: The uids of the old neighbors and the
                 relations they are connected with.
         """
         # iterate over all old neighbors.
-        for (neighbor_identifier, relationship), neighbor \
+        for (neighbor_uid, relationship), neighbor \
                 in zip(old_neighbor_diff, old_neighbors):
             inverse = relationship.inverse
 
@@ -606,18 +587,18 @@ class Cuds:
             if relationship.is_subclass_of(cuba.activeRelationship):
                 if inverse in neighbor._neighbors:
                     neighbor._remove_direct(inverse,
-                                            new_cuds_object.identifier)
+                                            new_cuds_object.uid)
 
             # if neighbor is parent, add missing relationships
             else:
                 if relationship not in new_cuds_object._neighbors:
                     new_cuds_object._neighbors[relationship] = {}
-                for (identifier, oclasses), parent in \
+                for (uid, oclasses), parent in \
                         zip(old_cuds_object._neighbors[relationship].items(),
                             neighbor._neighbors):
                     if parent is not None:
                         new_cuds_object \
-                            ._neighbors[relationship][identifier] = oclasses
+                            ._neighbors[relationship][uid] = oclasses
 
     def _add_direct(self, cuds_object, rel):
         """Add an cuds_object with a specific relationship.
@@ -630,10 +611,10 @@ class Cuds:
         # First element, create set
         if rel not in self._neighbors.keys():
             self._neighbors[rel] = \
-                {cuds_object.identifier: cuds_object.oclasses}
+                {cuds_object.uid: cuds_object.oclasses}
         # Element not already there
-        elif cuds_object.identifier not in self._neighbors[rel]:
-            self._neighbors[rel][cuds_object.identifier] = cuds_object.oclasses
+        elif cuds_object.uid not in self._neighbors[rel]:
+            self._neighbors[rel][cuds_object.uid] = cuds_object.oclasses
 
     def _add_inverse(self, cuds_object, rel):
         """Add the inverse relationship from self to cuds_object.
@@ -645,38 +626,38 @@ class Cuds:
         inverse_rel = rel.inverse
         self._add_direct(cuds_object, inverse_rel)
 
-    def _get(self, *identifiers, rel=None, oclass=None, return_mapping=False):
-        """Get the identifier of contained elements that satisfy the filter.
+    def _get(self, *uids, rel=None, oclass=None, return_mapping=False):
+        """Get the uid of contained elements that satisfy the filter.
 
-        This filter consists of a certain type, identifier or relationship.
-        Expected calls are _get(), _get(*identifiers), _get(rel),_ get(oclass),
-        _get(*identifiers, rel), _get(rel, oclass).
-        If identifiers are specified, the result is the input, but
-        non-available identifiers are replaced by None.
+        This filter consists of a certain type, uid or relationship.
+        Expected calls are _get(), _get(*uids), _get(rel),_ get(oclass),
+        _get(*uids, rel), _get(rel, oclass).
+        If uids are specified, the result is the input, but
+        non-available uids are replaced by None.
 
         Args:
-            identifiers (Union[UUID, URIRef]): Identifiers of the elements to
+            uids (Union[UUID, URIRef]): uids of the elements to
                 get.
             rel (OntologyRelationship, optional): Only return CUDS objects
                 connected with a subclass of relationship. Defaults to None.
             oclass (OntologyClass, optional): Only return CUDS objects of a
                 subclass of this ontology class. Defaults to None.
             return_mapping (bool, optional): Whether to return a mapping from
-                identifiers to relationships, that connect self with the
-                identifier. Defaults to False.
+                uids to relationships, that connect self with the
+                uid. Defaults to False.
 
         Raises:
-            TypeError: Specified both identifiers and oclass.
+            TypeError: Specified both uids and oclass.
             ValueError: Wrong type of argument.
 
         Returns:
             List[Union[UUID, URIRef]] (+ Dict[Union[UUID, URIRef],
-            Set[Relationship]]): list of identifiers, or None, if not found.
+            Set[Relationship]]): list of uids, or None, if not found.
                 (+ Mapping from UUIDs to relationships, which connect self to
                 the respective Cuds object.)
         """
-        if identifiers and oclass is not None:
-            raise TypeError("Do not specify both identifiers and oclass.")
+        if uids and oclass is not None:
+            raise TypeError("Do not specify both uids and oclass.")
         if rel is not None and not isinstance(rel, OntologyRelationship):
             raise ValueError("Found object of type %s passed to argument rel. "
                              "Should be an OntologyRelationship." % type(rel))
@@ -685,8 +666,8 @@ class Cuds:
                              "oclass. Should be an OntologyClass."
                              % type(oclass))
 
-        if identifiers:
-            check_arguments((UUID, URIRef), *identifiers)
+        if uids:
+            check_arguments((UUID, URIRef), *uids)
 
         self.session._notify_read(self)
         # consider either given relationship and subclasses
@@ -698,128 +679,127 @@ class Cuds:
 
         # return empty list if no element of given relationship is available.
         if not consider_relationships and not return_mapping:
-            return [] if not identifiers else [None] * len(identifiers)
+            return [] if not uids else [None] * len(uids)
         elif not consider_relationships:
-            return ([], dict()) if not identifiers else \
-                ([None] * len(identifiers), dict())
+            return ([], dict()) if not uids else \
+                ([None] * len(uids), dict())
 
-        if identifiers:
-            return self._get_by_identifiers(identifiers,
-                                            consider_relationships,
-                                            return_mapping=return_mapping)
+        if uids:
+            return self._get_by_uids(uids, consider_relationships,
+                                     return_mapping=return_mapping)
         return self._get_by_oclass(oclass, consider_relationships,
                                    return_mapping=return_mapping)
 
-    def _get_by_identifiers(self, identifiers, relationships, return_mapping):
-        """Check for each given identifier if it is connected by a given relationship.
+    def _get_by_uids(self, uids, relationships, return_mapping):
+        """Check for each given uid if it is connected by a given relationship.
 
         If not, replace it with None.
-        Optionally return a mapping from identifiers to the set of
+        Optionally return a mapping from uids to the set of
         relationships, which connect self and the cuds_object with the
-        identifier.
+        uid.
 
         Args:
-            identifiers (List[Union[UUID, URIRef]]): The identifiers to check.
+            uids (List[Union[UUID, URIRef]]): The uids to check.
             relationships (List[Relationship]): Only consider these
                 relationships.
             return_mapping (bool): Whether to return a mapping from
-                identifiers to relationships, that connect self with the
-                identifier.
+                uids to relationships, that connect self with the
+                uid.
 
         Returns:
             List[Union[UUID, URIRef]] (+ Dict[Union[UUID, URIRef],
-            Set[Relationship]]): list of found identifiers, None for not found
-                identifiers (+ Mapping from identifiers to relationships, which
+            Set[Relationship]]): list of found uids, None for not found
+                uids (+ Mapping from uids to relationships, which
                 connect self to the respective Cuds object.)
         """
-        not_found_identifiers = dict(enumerate(identifiers)) if identifiers \
+        not_found_uids = dict(enumerate(uids)) if uids \
             else None
         relationship_mapping = dict()
         for relationship in relationships:
 
-            # Identifiers are given.
+            # uids are given.
             # Check which occur as object of current relation.
-            found_identifiers_indexes = set()
+            found_uids_indexes = set()
 
-            # we need to iterate over all identifiers for every
+            # we need to iterate over all uids for every
             # relationship if we compute a mapping
-            iterator = enumerate(identifiers) if relationship_mapping \
-                else not_found_identifiers.items()
-            for i, identifier in iterator:
-                if identifier in self._neighbors[relationship]:
-                    found_identifiers_indexes.add(i)
-                    if identifier not in relationship_mapping:
-                        relationship_mapping[identifier] = set()
-                    relationship_mapping[identifier].add(relationship)
-            for i in found_identifiers_indexes:
-                if i in not_found_identifiers:
-                    del not_found_identifiers[i]
+            iterator = enumerate(uids) if relationship_mapping \
+                else not_found_uids.items()
+            for i, uid in iterator:
+                if uid in self._neighbors[relationship]:
+                    found_uids_indexes.add(i)
+                    if uid not in relationship_mapping:
+                        relationship_mapping[uid] = set()
+                    relationship_mapping[uid].add(relationship)
+            for i in found_uids_indexes:
+                if i in not_found_uids:
+                    del not_found_uids[i]
 
-        collected_identifier = [(uid if i not in not_found_identifiers
-                                 else None)
-                                for i, uid in enumerate(identifiers)]
+        collected_uid = [(uid if i not in not_found_uids
+                          else None)
+                         for i, uid in enumerate(uids)]
         if return_mapping:
-            return collected_identifier, relationship_mapping
-        return collected_identifier
+            return collected_uid, relationship_mapping
+        return collected_uid
 
     def _get_by_oclass(self, oclass, relationships, return_mapping):
         """Get the cuds_objects with given oclass.
 
         Only return objects that are connected to self
         with any of the given relationships. Optionally return a mapping
-        from identifiers to the set of relationships, which connect self and
-        the cuds_objects with the identifier.
+        from uids to the set of relationships, which connect self and
+        the cuds_objects with the uid.
 
         Args:
             oclass (OntologyClass, optional): Filter by the given
                 OntologyClass. None means no filter.
             relationships (List[Relationship]): Filter by list of
                 relationships.
-            return_mapping (bool): whether to return a mapping from identifiers
-            to relationships, that connect self with the identifier.
+            return_mapping (bool): whether to return a mapping from uids
+            to relationships, that connect self with the uid.
 
         Returns:
             List[Union[UUID, URIRef]] (+ Dict[Union[UUID, URIRef],
-            Set[Relationship]]): The identifiers of the found CUDS objects
-                (+ Mapping from identifier to set of relationsships that
+            Set[Relationship]]): The uids of the found CUDS objects
+                (+ Mapping from uid to set of relationsships that
                 connect self with the respective cuds_object.)
         """
         relationship_mapping = dict()
         for relationship in relationships:
 
-            # Collect all identifiers who are object of the current
+            # Collect all uids who are object of the current
             # relationship. Possibly filter by OntologyClass.
-            for identifier, target_classes \
+            for uid, target_classes \
                     in self._neighbors[relationship].items():
                 if oclass is None or any(t.is_subclass_of(oclass)
                                          for t in target_classes):
-                    if identifier not in relationship_mapping:
-                        relationship_mapping[identifier] = set()
-                    relationship_mapping[identifier].add(relationship)
+                    if uid not in relationship_mapping:
+                        relationship_mapping[uid] = set()
+                    relationship_mapping[uid].add(relationship)
         if return_mapping:
             return list(relationship_mapping.keys()), relationship_mapping
         return list(relationship_mapping.keys())
 
-    def _load_cuds_objects(self, identifiers):
-        """Load the cuds_objects of the given identifiers from the session.
+    def _load_cuds_objects(self, uids):
+        """Load the cuds_objects of the given uids from the session.
 
         Each in cuds_object is at the same position in the result as
-        the corresponding identifier in the given identifier list.
-        If the given identifiers contain None values, there will be
+        the corresponding uid in the given uid list.
+        If the given uids contain None values, there will be
         None values at the same position in the result.
 
         Args:
-            identifiers (List[Union[UUID, URIRef]]): The identifiers to fetch
+            uids (List[Union[UUID, URIRef]]): The uids to fetch
             from the session.
 
         Yields:
             Cuds: The loaded cuds_objects
         """
-        without_none = [identifier for identifier in identifiers
-                        if identifier is not None]
+        without_none = [uid for uid in uids
+                        if uid is not None]
         cuds_objects = self.session.load(*without_none)
-        for identifier in identifiers:
-            if identifier is None:
+        for uid in uids:
+            if uid is None:
                 yield None
             else:
                 try:
@@ -827,26 +807,26 @@ class Cuds:
                 except StopIteration:
                     return None
 
-    def _remove_direct(self, relationship, identifier):
-        """Remove the direct relationship to the object with given identifier.
+    def _remove_direct(self, relationship, uid):
+        """Remove the direct relationship to the object with given uid.
 
         Args:
             relationship (OntologyRelationship): The relationship to remove.
-            identifier (Union[UUID, URIRef]): The identifier to remove.
+            uid (Union[UUID, URIRef]): The uid to remove.
         """
-        del self._neighbors[relationship][identifier]
+        del self._neighbors[relationship][uid]
         if not self._neighbors[relationship]:
             del self._neighbors[relationship]
 
-    def _remove_inverse(self, relationship, identifier):
+    def _remove_inverse(self, relationship, uid):
         """Remove the inverse of the given relationship.
 
         Args:
             relationship (OntologyRelationship): The relationship to remove.
-            identifier (Union[UUID, URIRef]): The identifier to remove.
+            uid (Union[UUID, URIRef]): The uid to remove.
         """
         inverse = relationship.inverse
-        self._remove_direct(inverse, identifier)
+        self._remove_direct(inverse, uid)
 
     def _check_valid_add(self, to_add, rel):
         return True  # TODO
@@ -855,9 +835,9 @@ class Cuds:
         """Get a human readable string.
 
         Returns:
-            str: string with the Ontology class and identifier.
+            str: string with the Ontology class and uid.
         """
-        return "%s: %s" % (self.oclass, self.identifier)
+        return "%s: %s" % (self.oclass, self.uid)
 
     def __getattr__(self, name):
         """Set the attributes corresponding to ontology values.
@@ -930,33 +910,33 @@ class Cuds:
         Returns:
             str: Machine readable string representation for Cuds.
         """
-        return "<%s: %s,  %s: @%s>" % (self.oclass, self.identifier,
+        return "<%s: %s,  %s: @%s>" % (self.oclass, self.uid,
                                        type(self.session).__name__,
                                        hex(id(self.session)))
 
     def __hash__(self) -> int:
         """Make Cuds objects hashable.
 
-        Use the hash of the identifier of the object
+        Use the hash of the uid of the object
 
         Returns:
             int: unique hash
         """
-        return hash(self.identifier)
+        return hash(self.uid)
 
     def __eq__(self, other):
         """Define which CUDS objects are treated as equal.
 
-        Same Ontology class and same identifier.
+        Same Ontology class and same uid.
 
         Args:
             other (Cuds): Instance to check.
 
         Returns:
-            bool: True if they share the identifier and class, False otherwise
+            bool: True if they share the uid and class, False otherwise
         """
         return isinstance(other, Cuds) and other.oclass == self.oclass \
-            and self.identifier == other.identifier
+            and self.uid == other.uid
 
     def __getstate__(self):
         """Get the state for pickling or copying.

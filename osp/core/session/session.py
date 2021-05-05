@@ -54,7 +54,7 @@ class Session(ABC):
             self.graph.add(t)
         cuds_object._graph = self.graph
         if self.root is None:
-            self.root = cuds_object.identifier
+            self.root = cuds_object.uid
 
     @returns_query_result
     def load_from_iri(self, *iris):
@@ -70,19 +70,19 @@ class Session(ABC):
                            for iri in iris])
 
     @returns_query_result
-    def load(self, *identifiers):
-        """Load the cuds_objects of the given identifiers.
+    def load(self, *uids):
+        """Load the cuds_objects of the given uids.
 
         Args:
-            *identifiers (Union[UUID, URIRef]): The identifiers of the
+            *uids (Union[UUID, URIRef]): The uids of the
             cuds_objects to load.
 
         Yields:
             Cuds: The fetched Cuds objects.
         """
-        for identifier in identifiers:
+        for uid in uids:
             try:
-                yield self._registry.get(identifier)
+                yield self._registry.get(uid)
             except KeyError:
                 yield None
 
@@ -109,7 +109,7 @@ class Session(ABC):
         """
         from osp.core.namespaces import cuba
         if cuds_object.session != self:
-            cuds_object = next(self.load(cuds_object.identifier))
+            cuds_object = next(self.load(cuds_object.uid))
         if cuds_object.get(rel=cuba.relationship):
             cuds_object.remove(rel=cuba.relationship)
         self._delete_cuds_triples(cuds_object)
@@ -120,7 +120,7 @@ class Session(ABC):
         Args:
             cuds_object (Cuds): The object to delete.
         """
-        del self._registry[cuds_object.identifier]
+        del self._registry[cuds_object.uid]
         t = self.graph.value(cuds_object.iri, rdflib.RDF.type)
         self.graph.remove((cuds_object.iri, None, None))
         cuds_object._graph = rdflib.Graph()

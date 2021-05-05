@@ -15,7 +15,7 @@ def pretty_print(cuds_object, file=sys.stdout):
         file (TextIOWrapper): The file to print to.
     """
     pp = _pp_cuds_object_name(cuds_object)
-    pp += "\n  identifier: " + str(cuds_object.identifier)
+    pp += "\n  uid: " + str(cuds_object.uid)
     pp += "\n  type: " + str(cuds_object.oclass)
     pp += "\n  superclasses: " + ", ".join(
         sorted(map(str, cuds_object.oclass.superclasses))
@@ -65,7 +65,7 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
         cuds_object._neighbors.keys())
     sorted_relationships = sorted(filtered_relationships, key=str)
     visited = visited or set()
-    visited.add(cuds_object.identifier)
+    visited.add(cuds_object.uid)
     for i, relationship in enumerate(sorted_relationships):
         pp_sub += level_indentation \
             + " |_Relationship %s:" % relationship
@@ -87,9 +87,9 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
                 indentation += "   "
             else:
                 indentation += ".  "
-            pp_sub += indentation + "identifier: " + str(element.identifier)
+            pp_sub += indentation + "uid: " + str(element.uid)
 
-            if element.identifier in visited:
+            if element.uid in visited:
                 pp_sub += indentation + "(already printed)"
                 continue
 

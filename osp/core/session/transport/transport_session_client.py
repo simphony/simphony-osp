@@ -88,7 +88,7 @@ class TransportSessionClient(WrapperSession):
             logger.debug("Remove %s from added buffer in context %s of session"
                          " %s" % (cuds_object, self._current_context, self))
             del self._buffers[self._current_context][
-                BufferType.ADDED][cuds_object.identifier]
+                BufferType.ADDED][cuds_object.uid]
             return
         super()._store(cuds_object)
 
@@ -100,11 +100,11 @@ class TransportSessionClient(WrapperSession):
         self._engine.close()
 
     # OVERRIDE
-    def _load_from_backend(self, identifiers, expired=None):
+    def _load_from_backend(self, uids, expired=None):
         expired = expired or self._expired
         data, files = serialize_buffers(
             self, buffer_context=None,
-            additional_items={"identifiers": identifiers,
+            additional_items={"uids": uids,
                               "expired": expired},
             target_directory=self._file_destination
         )

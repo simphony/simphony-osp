@@ -34,7 +34,7 @@ class TestAPIEmmo(unittest.TestCase):
     def test_creation(self):
         """Test the instantiation and type of the objects."""
         self.assertRaises(TypeError, math.Real, hasNumericalData=1.2,
-                          identifier=0, unwanted="unwanted")
+                          uid=0, unwanted="unwanted")
         self.assertRaises(TypeError, math.Real)
 
         r = math.Real(hasNumericalData=1.2, hasSymbolData="1.2")
@@ -45,10 +45,10 @@ class TestAPIEmmo(unittest.TestCase):
         self.assertEqual(p.oclass, holistic.Process)
         cuba.Wrapper(session=CoreSession())
 
-    def test_identifier(self):
-        """Tests that the identifier variable contains an identifier."""
+    def test_uid(self):
+        """Tests that the uid variable contains an uid."""
         c = holistic.Process()
-        self.assertIsInstance(c.identifier, uuid.UUID)
+        self.assertIsInstance(c.uid, uuid.UUID)
 
     def test_set_throws_exception(self):
         """Test that setting a value for an invlid key throws an error."""
@@ -62,7 +62,7 @@ class TestAPIEmmo(unittest.TestCase):
         n = math.Real(hasNumericalData=1.2)
 
         p.add(n)
-        self.assertEqual(p.get(n.identifier).identifier, n.identifier)
+        self.assertEqual(p.get(n.uid).uid, n.uid)
 
         # Test the inverse relationship
         get_inverse = n.get(rel=mereotopology.hasPart.inverse)
@@ -72,10 +72,10 @@ class TestAPIEmmo(unittest.TestCase):
         """Test the standard, normal behavior of the get() method.
 
         - get()
-        - get(*identifiers)
+        - get(*uids)
         - get(rel)
         - get(oclass)
-        - get(*identifiers, rel)
+        - get(*uids, rel)
         - get(rel, oclass)
         """
         p = holistic.Process()
@@ -88,15 +88,15 @@ class TestAPIEmmo(unittest.TestCase):
         get_default = p.get()
         self.assertEqual(set(get_default), {i, n})
 
-        # get(*identifiers)
-        get_n_identifier = p.get(n.identifier)
-        self.assertEqual(get_n_identifier, n)
-        get_i_identifier = p.get(i.identifier)
-        self.assertEqual(get_i_identifier, i)
-        get_ni_identifier = p.get(n.identifier, i.identifier)
-        self.assertEqual(set(get_ni_identifier), {n, i})
-        get_new_identifier = p.get(uuid.uuid4())
-        self.assertEqual(get_new_identifier, None)
+        # get(*uids)
+        get_n_uid = p.get(n.uid)
+        self.assertEqual(get_n_uid, n)
+        get_i_uid = p.get(i.uid)
+        self.assertEqual(get_i_uid, i)
+        get_ni_uid = p.get(n.uid, i.uid)
+        self.assertEqual(set(get_ni_uid), {n, i})
+        get_new_uid = p.get(uuid.uuid4())
+        self.assertEqual(get_new_uid, None)
 
         # get(rel)
         get_has_part = p.get(rel=mereotopology.hasPart)
@@ -125,13 +125,13 @@ class TestAPIEmmo(unittest.TestCase):
         new_n.add(new_s)
         c.add(n)
 
-        old_real = c.get(n.identifier)
+        old_real = c.get(n.uid)
         old_integers = old_real.get(oclass=math.Integer)
         self.assertEqual(old_integers, [])
 
         c.update(new_n)
 
-        new_real = c.get(n.identifier)
+        new_real = c.get(n.uid)
         new_integers = new_real.get(oclass=math.Integer)
         self.assertEqual(new_integers, [new_s])
 
@@ -141,11 +141,11 @@ class TestAPIEmmo(unittest.TestCase):
         """Test the standard, normal behavior of the remove() method.
 
         - remove()
-        - remove(*identifiers/DataContainers)
+        - remove(*uids/DataContainers)
         - remove(rel)
         - remove(oclass)
         - remove(rel, oclass)
-        - remove(*identifiers/DataContainers, rel)
+        - remove(*uids/DataContainers, rel)
         """
         c = holistic.Process()
         n = math.Integer(hasNumericalData=12)
@@ -164,12 +164,12 @@ class TestAPIEmmo(unittest.TestCase):
         get_inverse = p.get(rel=mereotopology.hasPart.inverse)
         self.assertEqual(get_inverse, [])
 
-        # remove(*identifiers/DataContainers)
+        # remove(*uids/DataContainers)
         c.add(n)
         c.add(p, q, rel=mereotopology.hasProperPart)
         get_all = c.get()
         self.assertIn(p, get_all)
-        c.remove(p.identifier)
+        c.remove(p.uid)
         get_all = c.get()
         self.assertNotIn(p, get_all)
         # inverse
@@ -190,7 +190,7 @@ class TestAPIEmmo(unittest.TestCase):
         get_inverse = n.get(rel=mereotopology.hasProperPart.inverse)
         self.assertEqual(get_inverse, [])
 
-        # remove(*identifiers/DataContainers, rel)
+        # remove(*uids/DataContainers, rel)
         c.add(p, q, rel=mereotopology.hasProperPart)
         self.assertIn(mereotopology.hasProperPart, c._neighbors)
         c.remove(q, p, rel=mereotopology.hasProperPart)

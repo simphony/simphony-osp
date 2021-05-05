@@ -20,10 +20,10 @@ class TestAPIfoaf(unittest.TestCase):
         c = foaf.Person()
         self.assertTrue(c.is_a(foaf.Person))
 
-    def test_identifier(self):
-        """Test that the identifier variable contains an identifier."""
+    def test_uid(self):
+        """Test that the uid variable contains an uid."""
         c = foaf.Person()
-        self.assertIsInstance(c.identifier, (uuid.UUID, rdflib.URIRef))
+        self.assertIsInstance(c.uid, (uuid.UUID, rdflib.URIRef))
 
     def test_relations(self):
         """Test some relationships."""

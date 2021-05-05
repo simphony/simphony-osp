@@ -3,7 +3,7 @@
 from abc import abstractmethod
 import rdflib
 import uuid
-from osp.core.utils import identifier_from_iri, CUDS_IRI_PREFIX
+from osp.core.utils import uid_from_iri, CUDS_IRI_PREFIX
 from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
 from osp.core.session.result import returns_query_result
@@ -140,17 +140,17 @@ class DbWrapperSession(WrapperSession):
 
     # OVERRIDE
     def _expire_neighour_diff(self, old_cuds_object, new_cuds_object,
-                              identifiers):
+                              uids):
         # do not expire if root is loaded
         x = old_cuds_object or new_cuds_object
-        if x and x.identifier != self.root:
+        if x and x.uid != self.root:
             super()._expire_neighour_diff(old_cuds_object, new_cuds_object,
-                                          identifiers)
+                                          uids)
 
     def _is_cuds_iri(self, iri):
-        identifier = identifier_from_iri(rdflib.URIRef(iri))
-        return identifier in self._registry.keys() or \
-            identifier == uuid.UUID(int=0) or iri.startswith(CUDS_IRI_PREFIX)
+        uid = uid_from_iri(rdflib.URIRef(iri))
+        return uid in self._registry.keys() or \
+            uid == uuid.UUID(int=0) or iri.startswith(CUDS_IRI_PREFIX)
 
     @staticmethod
     def _is_cuds_iri_ontology(iri):

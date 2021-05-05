@@ -18,14 +18,14 @@ def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
         max_depth (int, optional): The maximum depth for the search.
             Defaults to float("inf").
         current_depth (int, optional): The current search depth. Defaults to 0.
-        visited (Set[Union[UUID, URIRef]], optional): The set of identifiers
+        visited (Set[Union[UUID, URIRef]], optional): The set of uids
             already visited. Defaults to None.
 
     Returns:
         Union[Cuds, List[Cuds]]: The element(s) found.
     """
     visited = visited or set()
-    visited.add(root.identifier)
+    visited.add(root.uid)
     output = [root] if criterion(root) else []
 
     if output and not find_all:
@@ -33,7 +33,7 @@ def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
 
     if current_depth < max_depth:
         for sub in root.iter(rel=rel):
-            if sub.identifier not in visited:
+            if sub.uid not in visited:
                 result = find_cuds_object(criterion=criterion,
                                           root=sub,
                                           rel=rel,
@@ -48,13 +48,13 @@ def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
     return output if find_all else None
 
 
-def find_cuds_object_by_identifier(identifier, root, rel):
-    """Recursively finds an element with given identifier inside a cuds object.
+def find_cuds_object_by_uid(uid, root, rel):
+    """Recursively finds an element with given uid inside a cuds object.
 
     Only use the given relationship for traversal.
 
     Args:
-        identifier (Union[UUID, URIRef]): The identifier of the cuds_object
+        uid (Union[UUID, URIRef]): The uid of the cuds_object
             that is searched.
         root (Cuds): Starting point of search.
         rel (OntologyRelationship): The relationship (incl. subrelationships)
@@ -64,7 +64,7 @@ def find_cuds_object_by_identifier(identifier, root, rel):
         Cuds: The element found.
     """
     return find_cuds_object(
-        criterion=lambda cuds_object: cuds_object.identifier == identifier,
+        criterion=lambda cuds_object: cuds_object.uid == uid,
         root=root,
         rel=rel,
         find_all=False,
