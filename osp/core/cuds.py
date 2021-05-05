@@ -73,7 +73,7 @@ class Cuds:
             ))
         elif not _from_triples:
             raise TypeError(f"No oclass associated with {self}! "
-                            f"Did you install te required ontology?")
+                            f"Did you install the required ontology?")
 
         self._session = session or Cuds._session
         # Copy temporary graph to the session graph and discard it.
