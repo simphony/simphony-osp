@@ -46,7 +46,7 @@ class TestAPIEmmo(unittest.TestCase):
         cuba.Wrapper(session=CoreSession())
 
     def test_uid(self):
-        """Tests that the uid variable contains a UUID object."""
+        """Tests that the uid variable contains an uid."""
         c = holistic.Process()
         self.assertIsInstance(c.uid, uuid.UUID)
 

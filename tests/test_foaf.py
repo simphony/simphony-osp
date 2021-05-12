@@ -1,5 +1,5 @@
 """Test the API of CUDS objects using the foaf ontology."""
-
+import rdflib
 import unittest2 as unittest
 import uuid
 
@@ -21,9 +21,9 @@ class TestAPIfoaf(unittest.TestCase):
         self.assertTrue(c.is_a(foaf.Person))
 
     def test_uid(self):
-        """Test that the uid variable contains a UUID object."""
+        """Test that the uid variable contains an uid."""
         c = foaf.Person()
-        self.assertIsInstance(c.uid, uuid.UUID)
+        self.assertIsInstance(c.uid, (uuid.UUID, rdflib.URIRef))
 
     def test_relations(self):
         """Test some relationships."""

@@ -38,7 +38,8 @@ class TestSessionCity(unittest.TestCase):
             session.delete_cuds_object(cities[0])
             self.maxDiff = None
             self.assertEqual(session._buffers, [
-                [{}, {w.uid: w, neighborhoods[0].uid: neighborhoods[0],
+                [{}, {w.uid: w,
+                      neighborhoods[0].uid: neighborhoods[0],
                       neighborhoods[1].uid: neighborhoods[1]},
                  {cities[0].uid: cities[0]}], [{}, {}, {}]])
             self.assertNotIn(cities[0], session._registry)
@@ -99,7 +100,8 @@ class TestSessionCity(unittest.TestCase):
             set(["city 0", "neighborhood 0 0", "neighborhood 0 1",
                  "street 0 0 0", "street 0 0 1", "street 0 1 0",
                  "street 0 1 1", "wrapper"]))
-        self.assertEqual(set([d.uid for d in deleted]), expected_deletion)
+        self.assertEqual(set([d.uid for d in deleted]),
+                         expected_deletion)
 
     def test_buffers(self):
         """Test if the buffers work correctly."""
