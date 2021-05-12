@@ -71,6 +71,8 @@ def serialize_rdf_graph(path, format="xml", session=None,
         if not session or not skip_wrapper \
                 or iri_from_uid(session.root) not in {s, o}:
             result.add((s, p, o))
+    for prefix, iri in graph.namespaces():
+        result.bind(prefix, iri)
     result.serialize(path, format)
 
 
