@@ -143,7 +143,8 @@ class TestTransportSqliteCity(unittest.TestCase):
 
             self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(
-                session._registry.get(c.uid)._neighbors[city.hasInhabitant],
+                session._registry.get(c.uid)
+                       ._neighbors[city.hasInhabitant],
                 {p1.uid: p1.oclasses, p2.uid: p2.oclasses,
                  p3.uid: p3.oclasses})
             self.assertEqual(
@@ -176,7 +177,8 @@ class TestTransportSqliteCity(unittest.TestCase):
             p3w = p1w.get(p3.uid)
             self.assertEqual(
                 set(session._registry.keys()),
-                {c.uid, wrapper.uid, p1.uid, p2.uid, p3.uid})
+                {c.uid, wrapper.uid, p1.uid,
+                 p2.uid, p3.uid})
             self.assertEqual(p1w.name, "Peter")
             self.assertEqual(p2w.name, "Anna")
             self.assertEqual(p3w.name, "Julia")

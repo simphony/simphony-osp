@@ -158,30 +158,30 @@ class TestCompositionsEMMO(unittest.TestCase):
         implicitly.
         """
         for data, composition in zip(self.composition_data, self.compositions):
-            operand_identifiers = tuple(get_identifier(operand)
-                                        for operand in composition.operands)
-            self.assertEqual(data['operands'], operand_identifiers)
+            operand_uids = tuple(get_uid(operand)
+                                 for operand in composition.operands)
+            self.assertEqual(data['operands'], operand_uids)
 
 
-def get_identifier(operand):
-    """Given an operand, compute its identifier (IRI or blank node).
+def get_uid(operand):
+    """Given an operand, compute its uid (IRI or blank node).
 
-    If the operand is already referenced by an identifier, no changes are
+    If the operand is already referenced by an uid, no changes are
     performed on the input.
     """
     if isinstance(operand, rdflib.term.Identifier) \
             or isinstance(operand, rdflib.BNode):
-        operand_identifier = operand
+        operand_uid = operand
     elif isinstance(operand, OntologyEntity):
-        operand_identifier = operand.iri
+        operand_uid = operand.iri
     elif isinstance(operand.target, Composition):
-        operand_identifier = operand._bnode
+        operand_uid = operand._bnode
     elif isinstance(operand.target, Restriction):
-        operand_identifier = operand._bnode
+        operand_uid = operand._bnode
     else:
         raise Exception(f"Unit test is incomplete, operands of type "
                         f"{type(operand)} are not considered.")
-    return operand_identifier
+    return operand_uid
 
 
 if __name__ == "__main__":
