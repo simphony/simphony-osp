@@ -4,7 +4,7 @@ import rdflib
 from abc import ABC, abstractmethod
 from osp.core.session.registry import Registry
 from osp.core.session.result import returns_query_result
-from osp.core.utils import uid_from_general_iri
+from osp.core.utils.general import uid_from_general_iri
 
 
 class Session(ABC):
@@ -129,7 +129,7 @@ class Session(ABC):
 
     @abstractmethod
     def _notify_delete(self, cuds_object):
-        """Notify the session that some object has been delted.
+        """Notify the session that some object has been deleted.
 
         Args:
             cuds_object (Cuds): The cuds_object that has been deleted
@@ -167,7 +167,7 @@ class Session(ABC):
             graph (rdflib.graph): The graph to import.
             clear (bool): Whether to clear the existing data.
         """
-        from osp.core.utils import CUDS_IRI_PREFIX
+        from osp.core.utils.general import CUDS_IRI_PREFIX
         self.graph.remove((None, None, None))
         for s, p, o in graph:
             if str(s).startswith(CUDS_IRI_PREFIX):

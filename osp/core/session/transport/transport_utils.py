@@ -14,7 +14,8 @@ from osp.core.namespaces import get_entity, cuba
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.buffers import BufferContext, get_buffer_context_mngr
-from osp.core.utils import create_from_triples, uid_from_general_iri
+from osp.core.utils import create_from_triples
+from osp.core.utils.general import uid_from_general_iri
 from osp.core.ontology.cuba import rdflib_cuba
 
 logger = logging.getLogger(__name__)

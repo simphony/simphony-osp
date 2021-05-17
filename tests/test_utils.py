@@ -16,19 +16,20 @@ from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.session.transport.transport_utils import serializable
 from osp.core.session.core_session import CoreSession
 from osp.core.session.buffers import EngineContext
+from osp.core.utils.general import remove_cuds_object,\
+    deserialize_cuds_object, serialize_cuds_object_json, \
+    get_custom_datatype_triples, get_custom_datatypes
 from osp.core.utils import (
     clone_cuds_object,
     create_recycle, create_from_cuds_object,
     check_arguments, find_cuds_object,
-    find_cuds_object_by_uid, remove_cuds_object,
-    pretty_print, deserialize,
+    find_cuds_object_by_uid, pretty_print,
     find_cuds_objects_by_oclass, find_relationships,
     find_cuds_objects_by_attribute, post,
     get_relationships_between,
     get_neighbor_diff, change_oclass, branch, validate_tree_against_schema,
     ConsistencyError, CardinalityError, get_rdf_graph,
-    delete_cuds_object_recursively,
-    serialize, get_custom_datatype_triples, get_custom_datatypes
+    delete_cuds_object_recursively
 )
 from osp.core.session.buffers import BufferContext
 from osp.core.cuds import Cuds
@@ -308,14 +309,15 @@ class TestUtils(unittest.TestCase):
 
     def test_deserialize(self):
         """Test the deserialize function."""
-        result = deserialize(CUDS_DICT)
+        result = deserialize_cuds_object(CUDS_DICT)
         self.assertTrue(result.is_a(city.Citizen))
         self.assertEqual(result.name, "Peter")
         self.assertEqual(result.age, 23)
 
         self.setUp()
         assertJsonLdEqual(self, CUDS_LIST,
-                          json.loads(serialize(deserialize(CUDS_LIST))))
+                          json.loads(serialize_cuds_object_json
+                                     (deserialize_cuds_object(CUDS_LIST))))
 
     def test_import_rdf_file(self):
         """Test the deserialize function."""
@@ -356,12 +358,12 @@ class TestUtils(unittest.TestCase):
         self.maxDiff = None
         assertJsonLdEqual(
             self,
-            json.loads(serialize(c)),
+            json.loads(serialize_cuds_object_json(c)),
             CUDS_LIST
         )
         assertJsonLdEqual(
             self,
-            serialize(c, json_dumps=False),
+            serialize_cuds_object_json(c, json_dumps=False),
             CUDS_LIST
         )
 

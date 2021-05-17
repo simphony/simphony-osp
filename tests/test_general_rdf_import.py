@@ -3,7 +3,7 @@
 import unittest2 as unittest
 import rdflib
 from pathlib import Path
-from osp.core.utils import import_rdf_file
+from osp.core.utils.general import import_rdf_file
 
 # Load the ontology for the test.
 try:
