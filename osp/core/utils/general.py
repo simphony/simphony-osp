@@ -71,6 +71,8 @@ def serialize_rdf_graph(path, format="xml", session=None,
         if not session or not skip_wrapper \
                 or iri_from_uid(session.root) not in {s, o}:
             result.add((s, p, o))
+    for prefix, iri in graph.namespaces():
+        result.bind(prefix, iri)
     result.serialize(path, format)
 
 
@@ -104,6 +106,11 @@ def get_rdf_graph(session=None, skip_custom_datatypes=False,
     result = session._get_full_graph()
     if not skip_ontology:
         result = result | namespace_registry._graph
+        # The union includes namespace bindings.
+    else:
+        # Still bind the installed namespaces
+        for prefix, iri in namespace_registry._graph.namespaces():
+            result.bind(prefix, iri)
     if skip_custom_datatypes:
         return result - get_custom_datatype_triples()
     return result
