@@ -24,3 +24,6 @@ class CoreSession(Session):
     def _get_full_graph(self):
         """Get the triples in the core session."""
         return self.graph
+
+
+core_session = CoreSession()
