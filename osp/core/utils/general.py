@@ -10,7 +10,11 @@ import io
 import pathlib
 import json
 import uuid
-from rdflib import OWL, RDF, RDFS, URIRef, Literal, Graph
+from rdflib.parser import Parser as RDFLib_Parser
+from rdflib.serializer import Serializer as RDFLib_Serializer
+from rdflib.plugin import get as get_plugin
+from rdflib import OWL, RDF, RDFS
+from rdflib import URIRef, Literal, Graph
 from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.namespaces import cuba
 from osp.core.ontology.relationship import OntologyRelationship
@@ -357,132 +361,178 @@ def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
         obj.session.delete_cuds_object(obj)
 
 
-def import_(path: Optional[str] = None,
-            file: Union[str, dict, TextIO] = None,
-            session: Optional = None,
-            format: str = None):
-    """Imports CUDS in various formats.
-
-    The supported formats types are:
-    - (json) Serialized CUDS as json.
-    - (xml) CUDS serialized as RDF triples in xml format.
-    - (ttl) CUDS serialized as RDF triples in ttl format.
+def import_cuds(path_or_filelike: Union[str, TextIO, dict],
+                session: Optional = None,
+                format: str = None):
+    """Imports CUDS in various formats (see the `format` argument).
 
     Args:
-        path (str, optional): path of the file to import.
-        file (Union[str, dict, TextIO], optional): instead of giving a path, it
-            is possible to give "the file" to the function directly. It can
-            receive a string representing the contents of a file, a dictionary
-            representing a json file, or a generic file-like object (opened
-            in text mode).
+        path_or_filelike (Union[str, TextIO], optional): either,
+            (str) the path of a file to import;
+            (dict) a dictionary representing the contents of a json file;
+            (TextIO) any file-like object that provides a `read()` method. Note
+            that it is possible to get such an object from any `str` object
+            using the python standard library. For example, given the `str`
+            object `string`, `import io; filelike = io.StringIO(string)` would
+            create such an object.
+            If not format is specified, it will be guessed.
         session (Session): the session in which the imported data will be
             stored.
-        format (str, optional): the format of the content to import. See the
-            supported file formats above.
+        format (str, optional): the format of the content to import. The
+            supported formats are `json` and the ones supported by RDFLib. See
+            `https://rdflib.readthedocs.io/en/latest/plugin_parsers.html`.
 
     Returns (List[Cuds]): a list of cuds objects.
-
     """
-    if not any(bool(x) for x in (path, file)):
-        raise ValueError('Specify a path or a file (a file-like object, '
-                         'a string, or a json document dictionary) '
-                         'to read from.')
-    elif sum(bool(x) for x in (path, file)) > 1:
-        raise ValueError('Specify either a path or a file (a file-like object,'
-                         ' a string, or a json document dictionary) '
-                         'to read from.')
-    elif format not in ('json', 'xml', 'ttl'):
-        raise ValueError(f'Unsupported format {format}. The supported formats '
-                         f'are: {", ".join(("json", "xml", "ttl"))}. '
-                         f'Please check the docstring of this function for '
-                         f'more information.')
+    # Check the validity of the requested format and raise useful exceptions.
+    if format is not None and format not in ('json', 'application/json'):
+        try:
+            get_plugin(format, RDFLib_Parser)
+        except AttributeError as e:
+            if '/' not in format:
+                raise ValueError(
+                    f'Unsupported format {format}. The supported formats are '
+                    f'`json` and the ones supported by RDFLib '
+                    f'`https://rdflib.readthedocs.io/en/latest'
+                    f'/plugin_parsers.html`.') from e
+            else:
+                raise ValueError(
+                    f'Unsupported mime-type {format}. The supported mime-types'
+                    f' are `application/json`and the ones supported by RDFLib.'
+                    f'Unfortunately, the latter are not documented, but'
+                    f'can be checked directly on its source code '
+                    f'`https://github.com/RDFLib/rdflib/blob/master'
+                    f'/rdflib/plugin.py`. Look for lines of the form '
+                    f'`register(".*", Parser, ".*", ".*")`.') from e
 
-    if path:
-        if not pathlib.Path(path).is_file():
-            raise Exception(f'{path} is not a file.')
-        with open(path, 'r') as file:
-            contents = file.read()
-            file_like = False
-    elif file:
-        if type(file) in (str, dict):
-            if type(file) is dict and format != 'json':
-                raise TypeError('Not a json document.')
-            contents = file
-            file_like = False
-        else:
-            if '__read__' not in file.__dir__():
-                raise TypeError(f'{file} is not a file-like object.')
-            contents = file
-            file_like = True
+    # Guess and/or validate the specified format.
+    if isinstance(path_or_filelike, dict):  # JSON document as dict.
+        if not (format is None or format in ('json', 'application/json')):
+            raise ValueError(f'The CUDS objects to be imported do not match '
+                             f'the specified format: {format}.')
+        contents = path_or_filelike
+        format = 'application/json'
+    else:  # Path to a file or file-like object.
+        # Read the contents of the object.
+        if isinstance(path_or_filelike, str):  # Path.
+            if not pathlib.Path(path_or_filelike).is_file():
+                raise ValueError(f'{path_or_filelike} is not a file or does '
+                                 f'not exist.')
+            with open(path_or_filelike, 'r') as file:
+                contents = file.read()
+        else:  # File-like object.
+            if '__read__' not in path_or_filelike.__dir__():
+                raise TypeError(f'{path_or_filelike} is neither a path'
+                                f'or a file-like object.')
+            contents = path_or_filelike.read()
 
-    from osp.core.session.core_session import core_session
-    session = session or core_session
-    if format == 'json':
+        # Guess or validate whether the content is json.
+        if format is None or format in ('json', 'application/json'):
+            try:
+                contents = json.loads(contents)
+                format = 'application/json'
+            except ValueError as e:
+                # It is not json, but json format was specified. Raise
+                # ValueError.
+                if format in ('json', 'application/json'):
+                    raise ValueError(
+                        f'The CUDS objects to be imported do not match '
+                        f'the specified format: {format}.') from e
+        else:  # Let RDFLib guess
+            contents = io.StringIO(contents)
+
+    # Import the contents.
+    from osp.core.cuds import Cuds
+    session = session or Cuds._session
+    if format == 'application/json':
         results = deserialize_cuds_object(contents, session=session,
                                           buffer_context=None)
-    elif format in ('xml', 'ttl'):
-        results = import_rdf_file(contents if file_like
-                                  else io.StringIO(contents),
-                                  format=format, session=session,
+    else:
+        results = import_rdf_file(contents, format=format, session=session,
                                   buffer_context=None)
     return results
 
 
-def export(item: Optional = None,
-           path: Optional[str] = None,
-           format: str = None,
-           rel: OntologyRelationship = cuba.activeRelationship,
-           max_depth: float = float("inf")) -> Union[str, None]:
-    """Exports CUDS objects in a variety of formats.
+def export_cuds(cuds_or_session: Optional = None,
+                file: Optional[Union[str, TextIO]] = None,
+                format: str = 'text/turtle',
+                rel: OntologyRelationship = cuba.activeRelationship,
+                max_depth: float = float("inf")) -> Union[str, None]:
+    """Exports CUDS in a variety of formats (see the `format` argument).
 
     Args:
-        item (Union[Cuds, Session], optional): the CUDS object to serialize,
-            or a session to serialize all of its CUDS objects. If no item is
-            specified, then the coresession is exported.
-        path (str, optional): a path to save the CUDS objects. If no path is
-            specified, a string with the results will be
-            returned instead.
-        format(str): the target format.
+        cuds_or_session (Union[Cuds, Session], optional): the
+            (Cuds) CUDS object to export, or
+            (Session) a session to serialize all of its CUDS objects.
+            If no item is specified, then the current session is exported.
+        file (str, optional): either,
+            (str) a path, to save the CUDS objects or,
+            (TextIO) any file-like object that provides a `write()` method.
+            If this argument is not specified, a string with the results will
+            be returned instead.
+        format(str): the target format. Defaults to triples in turtle syntax.
         rel (OntologyRelationship): the ontology relationship to use as
-            containment relationship when exporting
-            CUDS.
+            containment relationship when exporting CUDS.
         max_depth (float): maximum depth to search for children CUDS.
     """
+    # Choose default session if not specified.
+    from osp.core.session.session import Session
     from osp.core.cuds import Cuds
-    from osp.core.session import Session
-    from osp.core.session.core_session import core_session
-    if item is None:
-        item = core_session
-    if not isinstance(item, (Cuds, Session)):
-        raise ValueError('Specify either a CUDS object or a session to '
-                         'be exported.')
-    if format not in ('json', 'xml', 'ttl'):
-        raise ValueError(f'Unsupported format {format}. The supported formats '
-                         f'are: {", ".join(("json", "xml", "ttl"))}. '
-                         f'Please check the docstring of this function for '
-                         f'more information.')
+    if cuds_or_session is None:
+        cuds_or_session = Cuds._session
 
-    if isinstance(item, Cuds):
-        if format == 'json':
-            result = serialize_cuds_object_json(item, rel=rel,
+    # Check the validity of the requested format and raise useful exceptions.
+    if format not in ('json', 'application/json'):
+        try:
+            get_plugin(format, RDFLib_Serializer)
+        except AttributeError as e:
+            if '/' not in format:
+                raise ValueError(
+                    f'Unsupported format {format}. The supported formats are '
+                    f'`json` and the ones supported by RDFLib '
+                    f'`https://rdflib.readthedocs.io/en/latest'
+                    f'/plugin_serializers.html`.') from e
+            else:
+                raise ValueError(
+                    f'Unsupported mime-type {format}. The supported mime-types'
+                    f' are `application/json`and the ones supported by RDFLib.'
+                    f'Unfortunately, the latter are not documented, but'
+                    f'can be checked directly on its source code '
+                    f'`https://github.com/RDFLib/rdflib/blob/master'
+                    f'/rdflib/plugin.py`. Look for lines of the form '
+                    f'`register(".*", Serializer, ".*", ".*")`.') from e
+
+    if isinstance(cuds_or_session, Cuds):
+        if format in ('json', 'application/json'):
+            result = serialize_cuds_object_json(cuds_or_session, rel=rel,
                                                 max_depth=max_depth,
                                                 json_dumps=True)
         else:
-            result = serialize_cuds_object_triples(item, rel=rel,
+            result = serialize_cuds_object_triples(cuds_or_session, rel=rel,
                                                    max_depth=max_depth,
                                                    format=format)
-    elif isinstance(item, Session):
-        result = serialize_rdf_graph(format=format, session=item,
+    elif isinstance(cuds_or_session, Session):
+        result = serialize_rdf_graph(format=format, session=cuds_or_session,
                                      skip_custom_datatypes=False,
                                      skip_ontology=True,
                                      skip_wrapper=True)
+    else:
+        raise ValueError('Specify either a CUDS object or a session to '
+                         'be exported.')
 
-    if path:
-        if pathlib.Path(path).is_dir():
-            raise ValueError(f'{path} is a directory.')
-        with open(path, 'w+') as file:
-            file.write(result)
-        return None
+    if file:
+        if isinstance(file, str):  # Path
+            if pathlib.Path(file).is_dir():
+                raise ValueError(f'{file} is a directory.')
+            else:
+                with open(file, 'w+') as file_handle:
+                    file_handle.write(result)
+        else:  # File-like object
+            if '__write__' not in file.__dir__():
+                raise TypeError(f'{file} is neither a path'
+                                f'or a file-like object.')
+            else:
+                file.write(result)
     else:
         return result
 

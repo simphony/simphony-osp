@@ -15,7 +15,7 @@ import os
 from rdflib import URIRef
 from osp.wrappers.sqlite import SqliteSession
 from osp.core.namespaces import city
-from osp.core.utils import import_, export, branch, pretty_print
+from osp.core.utils import import_cuds, export_cuds, branch, pretty_print
 
 uuid_re = re.compile(r".*(http://www\.osp-core\.com/cuds#"
                      r"([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}"
@@ -30,7 +30,7 @@ c = branch(branch(city.City(name="Freiburg"),
            city.Neighborhood(name="Herdern"))
 
 # Export from Core Session
-export(path="test.rdf", format="ttl")
+export_cuds(path="test.rdf", format="ttl")
 
 # Check output
 with open("test.rdf", encoding="utf-8") as f:
@@ -42,7 +42,7 @@ with open("test.rdf", encoding="utf-8") as f:
 with SqliteSession(path="test.db") as session:
     w = city.CityWrapper(session=session)
     w.add(c)
-    export(session, path="test.rdf", format="ttl")
+    export_cuds(session, path="test.rdf", format="ttl")
 
     # Check output
     with open("test.rdf", encoding="utf-8") as f:
@@ -72,7 +72,7 @@ with SqliteSession(path="test.db") as session:
 # Create new session and import file
 with SqliteSession(path="test2.db") as session:
     w = city.CityWrapper(session=session)  # wrapper will be skipped for export
-    import_("test2.rdf", format="ttl", session=session)
+    import_cuds("test2.rdf", format="ttl", session=session)
     w.add(session.load_from_iri(URIRef("http://city.com/Freiburg")).one())
     print("Imported data:")
     pretty_print(w)
