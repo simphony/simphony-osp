@@ -359,7 +359,7 @@ def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
 
 def import_(path: Optional[str] = None,
             file: Union[str, dict, TextIO] = None,
-            session=None,
+            session: Optional = None,
             format: str = None):
     """Imports CUDS in various formats.
 
@@ -398,7 +398,7 @@ def import_(path: Optional[str] = None,
                          f'more information.')
 
     if path:
-        if not pathlib.is_file(path):
+        if not pathlib.Path(path).is_file():
             raise Exception(f'{path} is not a file.')
         with open(path, 'r') as file:
             contents = file.read()
@@ -415,7 +415,7 @@ def import_(path: Optional[str] = None,
             contents = file
             file_like = True
 
-    from osp.core.session import core_session
+    from osp.core.session.core_session import core_session
     session = session or core_session
     if format == 'json':
         results = deserialize_cuds_object(contents, session=session,
@@ -428,16 +428,17 @@ def import_(path: Optional[str] = None,
     return results
 
 
-def export(item,
-           path: Optional[str],
+def export(item: Optional = None,
+           path: Optional[str] = None,
            format: str = None,
            rel: OntologyRelationship = cuba.activeRelationship,
            max_depth: float = float("inf")) -> Union[str, None]:
     """Exports CUDS objects in a variety of formats.
 
     Args:
-        item (Union[Cuds, Session]): the cuds object to serialize, or a session
-            to serialize all of its CUDS objects.
+        item (Union[Cuds, Session], optional): the CUDS object to serialize,
+            or a session to serialize all of its CUDS objects. If no item is
+            specified, then the coresession is exported.
         path (str, optional): a path to save the CUDS objects. If no path is
             specified, a string with the results will be
             returned instead.
@@ -449,6 +450,9 @@ def export(item,
     """
     from osp.core.cuds import Cuds
     from osp.core.session import Session
+    from osp.core.session.core_session import core_session
+    if item is None:
+        item = core_session
     if not isinstance(item, (Cuds, Session)):
         raise ValueError('Specify either a CUDS object or a session to '
                          'be exported.')
@@ -458,7 +462,7 @@ def export(item,
                          f'Please check the docstring of this function for '
                          f'more information.')
 
-    if type(item) is Cuds:
+    if isinstance(item, Cuds):
         if format == 'json':
             result = serialize_cuds_object_json(item, rel=rel,
                                                 max_depth=max_depth,
@@ -467,7 +471,7 @@ def export(item,
             result = serialize_cuds_object_triples(item, rel=rel,
                                                    max_depth=max_depth,
                                                    format=format)
-    elif type(item) is Session:
+    elif isinstance(item, Session):
         result = serialize_rdf_graph(format=format, session=item,
                                      skip_custom_datatypes=False,
                                      skip_ontology=True,
