@@ -16,10 +16,6 @@ from osp.core.namespaces import cuba
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.datatypes import convert_from
 
-__all__ = ['branch', 'get_relationships_between',
-           'delete_cuds_object_recursively',
-           'import_', 'export', 'post',
-           'get_rdf_graph']
 
 CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
 logger = logging.getLogger(__name__)
