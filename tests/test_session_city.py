@@ -6,7 +6,7 @@ from osp.core.session.session import Session
 from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.buffers import BufferContext
 from osp.core.session.core_session import CoreSession
-from osp.core.utils import branch, get_rdf_graph
+from osp.core.utils.general import branch, get_rdf_graph
 from osp.core.cuds import Cuds
 
 try:

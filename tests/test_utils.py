@@ -18,20 +18,18 @@ from osp.core.session.core_session import CoreSession
 from osp.core.session.buffers import EngineContext
 from osp.core.utils.general import remove_cuds_object,\
     deserialize_cuds_object, serialize_cuds_object_json, \
-    get_custom_datatype_triples, get_custom_datatypes
+    get_custom_datatype_triples, get_custom_datatypes, post, \
+    get_relationships_between, branch, get_rdf_graph, \
+    delete_cuds_object_recursively
 from osp.core.utils.schema_validation import validate_tree_against_schema, \
     ConsistencyError, CardinalityError
-from osp.core.utils import (
-    clone_cuds_object,
-    create_recycle, create_from_cuds_object,
-    check_arguments, find_cuds_object,
-    find_cuds_object_by_uid, pretty_print,
-    find_cuds_objects_by_oclass, find_relationships,
-    find_cuds_objects_by_attribute, post,
-    get_relationships_between,
-    get_neighbor_diff, change_oclass, branch, get_rdf_graph,
-    delete_cuds_object_recursively
-)
+from osp.core.utils.wrapper_development import clone_cuds_object, \
+    create_recycle, create_from_cuds_object, check_arguments, \
+    get_neighbor_diff, change_oclass
+from osp.core.utils.simple_search import find_cuds_object_by_uid, \
+    find_cuds_objects_by_oclass, find_relationships,\
+    find_cuds_objects_by_attribute, find_cuds_object
+from osp.core.utils.pretty_print import pretty_print
 from osp.core.session.buffers import BufferContext
 from osp.core.cuds import Cuds
 

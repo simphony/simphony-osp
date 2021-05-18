@@ -7,7 +7,7 @@ from rdflib.compare import isomorphic
 from copy import deepcopy
 from osp.core.session.buffers import BufferContext, EngineContext, \
     BufferType
-from osp.core.utils import create_recycle
+from osp.core.utils.wrapper_development import create_recycle
 from osp.core.session.wrapper_session import consumes_buffers
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
@@ -17,7 +17,7 @@ from osp.core.session.transport.transport_utils import (
     deserialize, serializable, deserialize_buffers,
     serialize_buffers, LOAD_COMMAND, INITIALIZE_COMMAND, import_rdf
 )
-from osp.core.utils import create_from_cuds_object
+from osp.core.utils.wrapper_development import create_from_cuds_object
 from rdflib_jsonld.parser import to_rdf as json_to_rdf
 
 try:

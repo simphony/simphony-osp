@@ -58,7 +58,7 @@ def serialize_cuds_object_json(cuds_object, rel=cuba.activeRelationship,
         Union[str, List]: The serialized cuds object.
     """
     from osp.core.session.transport.transport_utils import serializable
-    from osp.core.utils import find_cuds_object
+    from osp.core.utils.simple_search import find_cuds_object
     cuds_objects = find_cuds_object(criterion=lambda _: True,
                                     root=cuds_object,
                                     rel=rel,
@@ -88,7 +88,7 @@ def serialize_cuds_object_triples(cuds_object,
         str: The CUDS object serialized as a RDF file.
     """
     from osp.core.ontology.namespace_registry import namespace_registry
-    from osp.core.utils import find_cuds_object
+    from osp.core.utils.simple_search import find_cuds_object
     cuds_objects = find_cuds_object(criterion=lambda _: True,
                                     root=cuds_object,
                                     rel=rel,

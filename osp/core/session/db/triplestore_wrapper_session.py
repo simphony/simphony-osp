@@ -2,7 +2,7 @@
 
 import uuid
 import rdflib
-from osp.core.utils import create_from_triples
+from osp.core.utils.wrapper_development import create_from_triples
 from osp.core.utils.general import iri_from_uid, uid_from_iri, \
     CUDS_IRI_PREFIX
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
