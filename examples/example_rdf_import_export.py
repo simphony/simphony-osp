@@ -15,8 +15,7 @@ import os
 from rdflib import URIRef
 from osp.wrappers.sqlite import SqliteSession
 from osp.core.namespaces import city
-from osp.core.utils import serialize_rdf_graph, branch, import_rdf_file, \
-    pretty_print
+from osp.core.utils import import_, export, branch, pretty_print
 
 uuid_re = re.compile(r".*(http://www\.osp-core\.com/cuds#"
                      r"([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}"
@@ -31,7 +30,7 @@ c = branch(branch(city.City(name="Freiburg"),
            city.Neighborhood(name="Herdern"))
 
 # Export from Core Session
-serialize_rdf_graph("test.rdf", format="ttl")
+export(path="test.rdf", format="ttl")
 
 # Check output
 with open("test.rdf", encoding="utf-8") as f:
@@ -43,7 +42,7 @@ with open("test.rdf", encoding="utf-8") as f:
 with SqliteSession(path="test.db") as session:
     w = city.CityWrapper(session=session)
     w.add(c)
-    serialize_rdf_graph("test.rdf", format="ttl", session=session)
+    export(session, path="test.rdf", format="ttl")
 
     # Check output
     with open("test.rdf", encoding="utf-8") as f:
@@ -72,8 +71,8 @@ with SqliteSession(path="test.db") as session:
 
 # Create new session and import file
 with SqliteSession(path="test2.db") as session:
-    w = city.CityWrapper(session=session)  # wrapper will be skiped for export
-    import_rdf_file("test2.rdf", format="ttl", session=session)
+    w = city.CityWrapper(session=session)  # wrapper will be skipped for export
+    import_("test2.rdf", format="ttl", session=session)
     w.add(session.load_from_iri(URIRef("http://city.com/Freiburg")).one())
     print("Imported data:")
     pretty_print(w)
