@@ -37,7 +37,7 @@ class CoreSession(Session):
         return CoreSession.CoreSessionSparqlResult(result, self)
 
     class CoreSessionSparqlResult(SparqlResult):
-        """The result of a SPARQL query of an AGraph session."""
+        """The result of a SPARQL query on the core session."""
 
         def __init__(self, query_result, session):
             """Initialize the result."""
