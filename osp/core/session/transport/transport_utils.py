@@ -394,7 +394,8 @@ def import_rdf(graph, session, buffer_context, return_uid=None):
                     convert_to(ast.literal_eval(o.toPython()), o.datatype),
                     datatype=o.datatype, lang=o.language
                 )
-            if isinstance(o, rdflib.URIRef) and p != rdflib.RDF.type:
+            if isinstance(o, rdflib.URIRef) \
+                    and p not in (rdflib.RDF.type, rdflib.OWL.sameAs):
                 _, o = uid_from_general_iri(o, session.graph)
             s_uid, s = uid_from_general_iri(s, session.graph)
             session.graph.add((s, p, o))
