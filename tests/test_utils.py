@@ -291,7 +291,7 @@ class TestUtils(unittest.TestCase):
         responses.add_callback(
             responses.POST, 'http://dsms.com',
             callback=request_callback,
-            content_type='application/json',
+            content_type='application/ld+json',
         )
 
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
