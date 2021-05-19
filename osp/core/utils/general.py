@@ -470,9 +470,9 @@ def import_cuds(path_or_filelike: Union[str, TextIO, dict],
                 if isinstance(path_or_filelike, str):
                     format = guess_format(path_or_filelike)
             else:
-                raise ValueError(f'Could not guess the file format. Please'
-                                 f'specify it using the "format" keyword '
-                                 f'argument.')
+                raise ValueError('Could not guess the file format. Please'
+                                 'specify it using the "format" keyword '
+                                 'argument.')
 
     # Import the contents.
     from osp.core.cuds import Cuds

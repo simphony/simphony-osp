@@ -136,9 +136,8 @@ class TestImportExport(unittest.TestCase):
             # The expected objects will not be found in session, they will
             # be none.
             expected_objects = tuple(session.load_from_iri(
-                rdflib.URIRef(
-                    f'http://example.org/test-ontology#x_{i}')).first()
-                                     for i in range(1, 5))
+                rdflib.URIRef(f'http://example.org/test-ontology#x_{i}'))
+                .first() for i in range(1, 5))
             self.assertTrue(all(x is None for x in expected_objects))
 
             # Test correctness in the other session.
@@ -167,8 +166,8 @@ def data_integrity(testcase, session, loaded_objects, label=None):
     # Load the expected objects from their URI, as an incorrect
     # number of them may be loaded when calling import_rdf_file.
     expected_objects = tuple(session.load_from_iri(
-        rdflib.URIRef(f'http://example.org/test-ontology#x_{i}')).first()
-                             for i in range(1, 5))
+        rdflib.URIRef(f'http://example.org/test-ontology#x_{i}'))
+        .first() for i in range(1, 5))
     # Each individual in the file
     # represents a "Block" placed in a line. Therefore they may be
     # called object[1], object[2], object[3] and object[4].
