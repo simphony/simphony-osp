@@ -1,10 +1,13 @@
 """The core session used as default when no backend is connected."""
-from .session import Session
-from .db.triplestore_wrapper_session import SparqlResult, SparqlBindingSet
+import logging
+from .sparql_session import SparqlResult, SparqlBindingSet, SPARQLSession
+
+logger = logging.getLogger(__name__)
 
 
-class CoreSession(Session):
+class CoreSession(SPARQLSession):
     """Core default session for all objects."""
+    _warned_sparql_slow = False
 
     def __str__(self):
         """Convert the core session object to string."""
@@ -26,13 +29,19 @@ class CoreSession(Session):
         """Get the triples in the core session."""
         return self.graph
 
-    def sparql(self, query_string):
+    def _sparql(self, query_string):
         """Execute the given SPARQL query on the graph of the core session.
 
         Args:
             query_string (str): The SPARQL query as a string.
         """
-        # TODO: raise slowness warning.
+        if not CoreSession._warned_sparql_slow:
+            logger.warning('At the moment, SPARQL queries on the default '
+                           'session of OSP-core (the core session) are '
+                           'supported, but slow. For better performance, '
+                           'please perform the query on another session with '
+                           'SPARQL support (e.g. a triple store wrapper).')
+            CoreSession._warned_sparql_slow = True
         result = self.graph.query(query_string)
         return CoreSession.CoreSessionSparqlResult(result, self)
 
@@ -56,7 +65,7 @@ class CoreSession(Session):
 
         def __len__(self):
             """Compute the number of elements in the result."""
-            # TODO: make sure it works.
+            # TODO: make sure it works (unit tests).
             return len(self.result)
 
     class CoreSessionSparqlBindingSet(SparqlBindingSet):

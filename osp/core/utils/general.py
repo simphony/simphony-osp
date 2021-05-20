@@ -3,6 +3,7 @@
 These are potantially useful for every user of SimPhoNy.
 """
 
+from typing import Optional
 import logging
 import requests
 import json
@@ -11,6 +12,7 @@ import uuid
 from osp.core.namespaces import cuba
 from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.ontology.datatypes import convert_from
+from osp.core.session.sparql_session import SparqlResult
 
 CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
 logger = logging.getLogger(__name__)
@@ -376,3 +378,39 @@ def get_relationships_between(subj, obj):
         if obj.uid in obj_uids:
             result.add(rel)
     return result
+
+
+def sparql(query_string: str, session: Optional = None) -> SparqlResult:
+    """Performs a SPARQL query on a session (if supported by the session).
+
+    Args:
+        query_string (str): A string with the SPARQL query to perform.
+        session (Session, optional): The session on which the SPARQL query
+            will be performed. If no session is specified, then the current
+            default session is used. This means that, when no session is
+            specified, inside session `with` statements, the query will be
+            performed on the session associated with such statement, while
+            outside, it will be performed on the OSP-core default session,
+            the core session.
+
+    Returns:
+        SparqlResult: A SparqlResult object, which can be iterated to obtain
+            the output rows. Then for each `row`, the value for each query
+            variable can be retrieved as follows: `row['variable']`.
+
+    Raises:
+        NotImplementedError: when the session does not support SPARQL queries.
+    """
+    from osp.core.cuds import Cuds
+    from osp.core.session.core_session import CoreSession
+    session = session or Cuds._session
+    try:
+        return session.sparql(query_string)
+    except AttributeError or NotImplementedError:
+        if isinstance(session, CoreSession):
+            raise NotImplementedError("SPARQL queries on the default session "
+                                      "of OSP-core (the core session) are not "
+                                      "supported.")
+        else:
+            raise NotImplementedError(f'The session {session} does not support'
+                                      f' SPARQL queries.')

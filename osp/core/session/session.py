@@ -114,15 +114,6 @@ class Session(ABC):
             cuds_object.remove(rel=cuba.relationship)
         self._delete_cuds_triples(cuds_object)
 
-    # @abstractmethod - Raise an error when not overridden.
-    def sparql(self, query_string):
-        """Execute the given SPARQL query on the backend.
-
-        Args:
-            query_string (): The SPARQL query as a string.
-        """
-        raise AttributeError('This session does not support SPARQL queries.')
-
     def _delete_cuds_triples(self, cuds_object):
         """Delete the triples of a given cuds object from the session's graph.
 
