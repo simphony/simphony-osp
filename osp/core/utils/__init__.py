@@ -12,7 +12,7 @@ __all__ = [
     'Cuds2dot',
     # .general
     'branch', 'get_relationships_between', 'delete_cuds_object_recursively',
-    'import_cuds', 'export_cuds', 'get_rdf_graph', 'post',
+    'remove_cuds_object', 'import_cuds', 'export_cuds', 'post',
     # .wrapper_development
     #  TODO: Remove, kept for backwards compatibility.
     'check_arguments', 'get_neighbor_diff', 'clone_cuds_object',

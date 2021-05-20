@@ -3,9 +3,11 @@
 import io
 import unittest2 as unittest
 import rdflib
+import json
 from pathlib import Path
 from osp.core.session.core_session import CoreSession
-from osp.core.utils.general import import_cuds, export_cuds
+from osp.core.utils.general import import_cuds, export_cuds, branch
+from .test_transport_session import assertJsonLdEqual
 
 # Load the ontology for the test.
 try:
@@ -17,6 +19,14 @@ except ImportError:  # If the ontology is not installed.
         str(Path(__file__).parent / "test_importexport.owl.yml")
     )
     test_importexport = namespace_registry.test_importexport
+# Load also the city ontology.
+try:
+    from osp.core.namespaces import city
+except ImportError:
+    from osp.core.ontology import Parser
+    from osp.core.ontology.namespace_registry import namespace_registry
+    Parser().parse("city")
+    city = namespace_registry.city
 
 
 class TestImportExport(unittest.TestCase):
@@ -99,6 +109,47 @@ class TestImportExport(unittest.TestCase):
             loaded_objects = import_cuds(test_data_path)
             data_integrity(self, session, loaded_objects, label='import')
 
+    def test_application_json_doc_city(self):
+        """Test importing the `application/ld+json` mime type from doc dict.
+
+        This test uses a city ontology instead.
+        """
+        # Importing
+        test_data_path = str(Path(__file__).parent
+                             / "test_importexport_city_import.json")
+        with open(test_data_path, 'r') as file:
+            json_doc = json.loads(file.read())
+        with CoreSession():
+            cuds = import_cuds(json_doc, format='application/ld+json')
+            self.assertTrue(cuds.is_a(city.Citizen))
+            self.assertEqual(cuds.name, "Peter")
+            self.assertEqual(cuds.age, 23)
+            export_file = io.StringIO()
+            export_cuds(cuds, file=export_file, format='application/ld+json')
+            export_file.seek(0)
+            assertJsonLdEqual(self, json_doc, json.loads(export_file.read()))
+        # Exporting
+        test_data_path = str(Path(__file__).parent
+                             / "test_importexport_city_export.json")
+        with open(test_data_path, 'r') as file:
+            json_doc = json.loads(file.read())
+        with CoreSession():
+            c = branch(
+                city.City(name="Freiburg", uid=1),
+                branch(
+                    city.Neighborhood(name="Littenweiler", uid=2),
+                    city.Street(name="Schwarzwaldstraße", uid=3)
+                )
+            )
+            export_file = io.StringIO()
+            export_cuds(c, file=export_file, format='application/ld+json')
+            export_file.seek(0)
+            assertJsonLdEqual(
+                self,
+                json.loads(export_file.read()),
+                json_doc
+            )
+
     def test_text_turtle_file_handle(self):
         """Test importing the `text/turtle` mime type from a file handle."""
         with CoreSession() as session:
@@ -164,7 +215,7 @@ def data_integrity(testcase, session, loaded_objects, label=None):
         label = ''
 
     # Load the expected objects from their URI, as an incorrect
-    # number of them may be loaded when calling import_rdf_file.
+    # number of them may be loaded when calling import_cuds.
     expected_objects = tuple(session.load_from_iri(
         rdflib.URIRef(f'http://example.org/test-ontology#x_{i}'))
         .first() for i in range(1, 5))

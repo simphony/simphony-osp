@@ -6,7 +6,6 @@ from osp.core.session.session import Session
 from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.buffers import BufferContext
 from osp.core.session.core_session import CoreSession
-from osp.core.utils.general import branch, get_rdf_graph
 from osp.core.cuds import Cuds
 
 try:
@@ -134,23 +133,6 @@ class TestSessionCity(unittest.TestCase):
         self.assertEqual(session._buffers, [
             [{cw2.uid: cw2}, {w.uid: w}, {cw.uid: cw}],
             [dict(), dict(), dict()]])
-
-    def test_rdf_import(self):
-        """Test the import of RDF data."""
-        with TestSession() as session:
-            w = branch(
-                city.CityWrapper(session=session),
-                branch(
-                    city.City(name="Freiburg"),
-                    city.Neighborhood(name="Littenweiler")
-                )
-            )
-            g = get_rdf_graph(session, skip_ontology=False)
-            c = w.get(rel=city.hasPart)[0]
-            c.remove(rel=cuba.relationship)
-            session._rdf_import(g)
-            self.assertEqual(w.get(rel=city.hasPart), [c])
-            self.assertEqual(c.get(rel=city.hasPart)[0].name, "Littenweiler")
 
     def test_default_session_context_manager(self):
         """Test changing the default session with a session context manager."""

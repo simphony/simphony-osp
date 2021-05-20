@@ -157,18 +157,3 @@ class Session(ABC):
     @abstractmethod
     def _get_full_graph(self):
         """Get the RDF Graph including objects only present in the backend."""
-
-    def _rdf_import(self, graph):
-        """Import an RDF graph. Clears the old data beforehand.
-
-        Not really used at the moment in favor of utils.import_rdf_file.
-
-        Args:
-            graph (rdflib.graph): The graph to import.
-            clear (bool): Whether to clear the existing data.
-        """
-        from osp.core.utils.general import CUDS_IRI_PREFIX
-        self.graph.remove((None, None, None))
-        for s, p, o in graph:
-            if str(s).startswith(CUDS_IRI_PREFIX):
-                self.graph.add((s, p, o))  # TODO update registry
