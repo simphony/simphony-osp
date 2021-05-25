@@ -12,7 +12,6 @@ import uuid
 from osp.core.namespaces import cuba
 from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.ontology.datatypes import convert_from
-from osp.core.session.sparql_session import SparqlResult
 
 CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
 logger = logging.getLogger(__name__)
@@ -380,7 +379,7 @@ def get_relationships_between(subj, obj):
     return result
 
 
-def sparql(query_string: str, session: Optional = None) -> SparqlResult:
+def sparql(query_string: str, session: Optional = None):
     """Performs a SPARQL query on a session (if supported by the session).
 
     Args:
