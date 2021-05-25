@@ -1,11 +1,12 @@
 """The core session used as default when no backend is connected."""
 import logging
-from .sparql_session import SparqlResult, SparqlBindingSet, SPARQLSession
+from .session import Session
+from .sparql_backend import SparqlResult, SparqlBindingSet, SPARQLBackend
 
 logger = logging.getLogger(__name__)
 
 
-class CoreSession(SPARQLSession):
+class CoreSession(Session, SPARQLBackend):
     """Core default session for all objects."""
     _warned_sparql_slow = False
 

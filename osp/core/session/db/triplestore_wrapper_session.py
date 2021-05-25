@@ -4,12 +4,12 @@ import uuid
 import rdflib
 from osp.core.utils import create_from_triples
 from osp.core.utils import iri_from_uid, uid_from_iri
-from osp.core.session.sparql_session import SPARQLSession
+from osp.core.session.sparql_backend import SPARQLBackend
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from abc import abstractmethod
 
 
-class TripleStoreWrapperSession(DbWrapperSession, SPARQLSession):
+class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
     """A session connecting to a backend which stores the CUDS in triples."""
 
     # OVERRIDE

@@ -1,13 +1,12 @@
-"""Defines an abstract base class for sessions that support SPARQL queries."""
+"""Defines an abstract base class for backends that support SPARQL queries."""
 from abc import ABC, abstractmethod
 import uuid
 from osp.core.utils.general import iri_from_uid, uid_from_iri
 from osp.core.utils.general import CUDS_IRI_PREFIX
-from osp.core.session.session import Session
 
 
-class SPARQLSession(Session, ABC):
-    """Defines an abstract base class for sessions that support SPARQL queries.
+class SPARQLBackend(ABC):
+    """Defines an abstract base class for backends that support SPARQL queries.
 
     Contains only one abstract method, it is feasible to use multiple
     inheritance with this abstract class.
