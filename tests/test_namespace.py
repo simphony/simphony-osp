@@ -48,12 +48,13 @@ class TestNamespaces(unittest.TestCase):
     def test_namespace_registry_store(self):
         """Test storing loaded namespaces."""
         self.graph.parse(RDF_FILE, format="ttl")
-        self.graph.bind("parser_test",
-                        rdflib.URIRef("http://www.osp-core.com/parser_test#"))
+        self.namespace_registry.bind("parser_test",
+                                     rdflib.URIRef("http://www.osp-core.com"
+                                                   "/parser_test#"))
         self.namespace_registry.update_namespaces()
         self.namespace_registry.store(self.tempdir.name)
-        self.assertEqual(os.listdir(self.tempdir.name), ["graph.xml",
-                                                         "namespaces.txt"])
+        self.assertItemsEqual(os.listdir(self.tempdir.name),
+                              ["graph.xml", "namespaces.txt"])
         g = rdflib.Graph()
         g.parse(os.path.join(self.tempdir.name, "graph.xml"), format="xml")
         g1 = rdflib.Graph()
@@ -80,8 +81,9 @@ class TestNamespaces(unittest.TestCase):
 
         # graph.ttl found
         self.graph.parse(RDF_FILE, format="ttl")
-        self.graph.bind("parser_test",
-                        rdflib.URIRef("http://www.osp-core.com/parser_test#"))
+        self.namespace_registry.bind("parser_test",
+                                     rdflib.URIRef("http://www.osp-core.com/"
+                                                   "parser_test#"))
         self.namespace_registry.update_namespaces()
         self.namespace_registry.store(self.tempdir.name)
 
@@ -124,11 +126,13 @@ class TestNamespaces(unittest.TestCase):
         self.assertIsInstance(r, OntologyRelationship)
         self.assertEqual(r.namespace.get_name(), "city")
         self.assertEqual(r.name, "hasPart")
-        from osp.core.namespaces import from_iri
         import osp.core.namespaces
-        old_ns_reg = osp.core.namespaces._namespace_registry
+        old_ns_reg = osp.core.ontology.namespace_registry.namespace_registry
         try:
-            osp.core.namespaces._namespace_registry = self.namespace_registry
+            osp.core.ontology.namespace_registry.namespace_registry = \
+                self.namespace_registry
+            from_iri = self.namespace_registry.from_iri
+
             c = from_iri(rdflib_cuba.Entity)
             self.assertIsInstance(c, OntologyClass)
             self.assertEqual(c.namespace.get_name(), "cuba")
@@ -140,11 +144,11 @@ class TestNamespaces(unittest.TestCase):
                 rdflib.Literal(True)
             ))
             self.namespace_registry.from_iri.cache_clear()
-            c = self.namespace_registry.from_iri(city_iri)
+            c = from_iri(city_iri)
             self.assertIsInstance(c, OntologyClass)
             self.assertEqual(c.namespace.get_name(), "city")
             self.assertEqual(c.name, "City_T")
-            r = self.namespace_registry.from_iri(hasPart_iri)
+            r = from_iri(hasPart_iri)
             self.assertIsInstance(r, OntologyRelationship)
             self.assertEqual(r.namespace.get_name(), "city")
             self.assertEqual(r.name, "hasPart_T")
@@ -169,13 +173,13 @@ class TestNamespaces(unittest.TestCase):
             self.assertEqual(b.namespace.get_name(), "d/e/")
             self.assertEqual(b.name, "f")
         finally:
-            osp.core.namespaces._namespace_registry = old_ns_reg
+            osp.core.ontology.namespace_registry = old_ns_reg
 
     def test_namespace_registry_update_namespaces(self):
         """Test updateing the namespaces."""
-        self.graph.bind("a", rdflib.URIRef("aaa"))
-        self.graph.bind("b", rdflib.URIRef("bbb"))
-        self.graph.bind("c", rdflib.URIRef("ccc"))
+        self.namespace_registry.bind("a", rdflib.URIRef("aaa"))
+        self.namespace_registry.bind("b", rdflib.URIRef("bbb"))
+        self.namespace_registry.bind("c", rdflib.URIRef("ccc"))
         self.namespace_registry.update_namespaces()
         self.assertEqual(self.namespace_registry.a.get_name(), "a")
         self.assertEqual(self.namespace_registry.a.get_iri(),
@@ -206,7 +210,7 @@ class TestNamespaces(unittest.TestCase):
         self.assertRaises(AttributeError, getattr, self.namespace_registry,
                           "invalid")
         self.assertEqual({x.get_name() for x in self.namespace_registry}, {
-                         'xml', 'rdf', 'rdfs', 'xsd', 'cuba', 'owl', 'city'})
+                         'cuba', 'city'})
 
     def modify_labels(self):
         """Modify the labels in the graph. Append a T.

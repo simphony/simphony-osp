@@ -212,8 +212,8 @@ def deserialize(json_obj, session, buffer_context, _force=False):
         return [deserialize(x, session, buffer_context, _force=_force)
                 for x in json_obj]
     if isinstance(json_obj, dict) \
-            and set(["UUID"]) == set(json_obj.keys()):
-        return convert_to(json_obj["UUID"], "UUID")
+            and set(["UID"]) == set(json_obj.keys()):
+        return convert_to(json_obj["UID"], "UID")
     if isinstance(json_obj, dict) \
             and set(["ENTITY"]) == set(json_obj.keys()):
         return get_entity(json_obj["ENTITY"])
@@ -245,7 +245,7 @@ def serializable(obj, partition_cuds=True, mark_first=False):
     if isinstance(obj, (str, int, float)):
         return obj
     if isinstance(obj, uuid.UUID):
-        return {"UUID": convert_from(obj, "UUID")}
+        return {"UID": convert_from(obj, "UID")}
     if isinstance(obj, OntologyEntity):
         return {"ENTITY": str(obj)}
     if isinstance(obj, Cuds):
@@ -268,8 +268,8 @@ def get_file_cuds(obj):
     """Get the file cuds out of cuds_object, or list of cuds_objects.
 
     Args:
-        obj (Union[Cuds, UUID, List[Cuds], List[UUID], None]): The object to
-            check for fie cuds..
+        obj (Union[Cuds, UUID, URIRef, List[Cuds], List[Union[UUID, URIRef],
+             None]): The object to check for file cuds.
 
     Returns:
         List[Cuds]: The list of file cuds
@@ -296,9 +296,9 @@ def _serializable(cuds_objects, mark_first=False):
         List[Dict]: []
     """
     from osp.core.cuds import Cuds
-    from osp.core.namespaces import _namespace_registry
+    from osp.core.ontology.namespace_registry import namespace_registry
     g = rdflib.Graph()
-    g.namespace_manager = _namespace_registry._graph.namespace_manager
+    g.namespace_manager = namespace_registry._graph.namespace_manager
     g.bind("cuds", rdflib.URIRef("http://www.osp-core.com/cuds#"))
     if mark_first:
         g.add((rdflib_cuba._serialization, rdflib.RDF.first,
@@ -365,7 +365,8 @@ def import_rdf(graph, session, buffer_context, return_uid=None):
         session (Session): The session to add the CUDS objects to.
         buffer_context (BufferContext): add the deserialized cuds objects to
             the selected buffers.
-        return_uid (UUID): Return only the object with the given UUID.
+        return_uid (Union[UUID, URIRef]): Return only the object with
+        the given uid.
 
     Raises:
         ValueError: Not allowed to deserialize with undefined buffer context.

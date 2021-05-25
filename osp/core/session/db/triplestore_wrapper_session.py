@@ -3,7 +3,8 @@
 import uuid
 import rdflib
 from osp.core.utils import create_from_triples
-from osp.core.utils import iri_from_uid, uid_from_iri, CUDS_IRI_PREFIX
+from osp.core.utils import iri_from_uid, uid_from_iri, \
+    CUDS_IRI_PREFIX
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from abc import abstractmethod, ABC
 
@@ -51,7 +52,7 @@ class TripleStoreWrapperSession(DbWrapperSession):
         iris = {
             o for s, p, o in self._triples(triple)
             if isinstance(o, rdflib.URIRef)
-            and str(o).startswith(CUDS_IRI_PREFIX)
+            and self._is_cuds_iri_ontology(o)
             and uid_from_iri(o) != uuid.UUID(int=0)
         }
         iris.add(iri_from_uid(self.root))

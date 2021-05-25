@@ -95,7 +95,7 @@ class SqlMigrate():
         """Migrate the OSP_MASTER table."""
         c = self.session._do_db_select(
             SqlQuery("OSP_MASTER", ["uid", "oclass"],
-                     {"uid": "UUID", "oclass": STR})
+                     {"uid": "UID", "oclass": STR})
         )
         for uid, oclass in c:
             oclass = get_entity(oclass) if oclass != "" else cuba.Wrapper
@@ -114,7 +114,8 @@ class SqlMigrate():
         """Migrate the relations from v0 to v1."""
         c = self.session._do_db_select(
             SqlQuery("OSP_RELATIONSHIPS", ["origin", "target", "name"],
-                     {"origin": "UUID", "target": "UUID", "name": STR})
+                     {"origin": "UID", "target": "UID",
+                      "name": STR})
         )
         for origin, target, name in c:
             rel = get_entity(name)
@@ -171,7 +172,8 @@ class SqlMigrate():
         cuds_iri = str(iri_from_uid(uid))
         if cuds_iri not in self.cuds:
             self.cuds[cuds_iri] = self.session._do_db_insert(
-                "OSP_V1_CUDS", ["uid"], [str(uid)], {"uid": "UUID"}
+                "OSP_V1_CUDS", ["uid"], [str(uid)],
+                {"uid": "UID"}
             )
         cuds_idx = self.cuds[cuds_iri]
         return cuds_idx
@@ -201,8 +203,8 @@ class SqlMigrate():
         """Get the columns specification of CUDS tables in schema v0."""
         attributes = list(oclass.attributes)
         columns = [x.argname for x in attributes] + ["uid"]
-        datatypes = dict(uid="UUID", **{x.argname: x.datatype
-                                        for x in attributes})
+        datatypes = dict(uid="UID", **{x.argname: x.datatype
+                                       for x in attributes})
         return attributes, columns, datatypes
 
     def delete_old_tables_0(self):

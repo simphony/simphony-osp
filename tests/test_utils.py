@@ -44,10 +44,9 @@ try:
     from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
-    from osp.core.namespaces import _namespace_registry
-    Parser(_namespace_registry._graph).parse("city")
-    _namespace_registry.update_namespaces()
-    city = _namespace_registry.city
+    from osp.core.ontology.namespace_registry import namespace_registry
+    Parser().parse("city")
+    city = namespace_registry.city
 
 
 PRFX = 'http://www.osp-core.com/cuds#00000000-0000-0000-0000-0000000000'
@@ -396,9 +395,11 @@ class TestUtils(unittest.TestCase):
                     fix_neighbors=False)
             self.assertEqual(b.name, "Offenburg")
             self.assertEqual(b.uid, a.uid)
-            self.assertEqual(set(default_session._registry.keys()), {a.uid})
+            self.assertEqual(set(default_session._registry.keys()),
+                             {a.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
-            self.assertEqual(set(session._registry.keys()), {b.uid, w.uid})
+            self.assertEqual(set(session._registry.keys()), {b.uid,
+                                                             w.uid})
             self.assertIs(session._registry.get(b.uid), b)
             self.assertEqual(session._buffers, [
                 [{w.uid: w}, dict(), dict()],
@@ -420,7 +421,8 @@ class TestUtils(unittest.TestCase):
                              {a.uid, x.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
             self.assertEqual(session._buffers, [
-                [{w.uid: w, x.uid: x}, {c.uid: c}, dict()],
+                [{w.uid: w, x.uid: x}, {c.uid: c},
+                 dict()],
                 [dict(), dict(), dict()]]
             )
 
@@ -445,9 +447,11 @@ class TestUtils(unittest.TestCase):
                 b = create_from_cuds_object(a, session)
             self.assertEqual(b.name, "Freiburg")
             self.assertEqual(b.uid, a.uid)
-            self.assertEqual(set(default_session._registry.keys()), {a.uid})
+            self.assertEqual(set(default_session._registry.keys()),
+                             {a.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
-            self.assertEqual(set(session._registry.keys()), {b.uid, w.uid})
+            self.assertEqual(set(session._registry.keys()), {b.uid,
+                                                             w.uid})
             self.assertIs(session._registry.get(b.uid), b)
             self.assertEqual(session._buffers, [
                 [{w.uid: w}, dict(), dict()],
@@ -469,7 +473,8 @@ class TestUtils(unittest.TestCase):
                              {a.uid, x.uid, y.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
             self.assertEqual(session._buffers, [
-                [{x.uid: x, w.uid: w}, {c.uid: c}, dict()],
+                [{x.uid: x, w.uid: w}, {c.uid: c},
+                 dict()],
                 [dict(), dict(), dict()]])
 
     def test_change_oclass(self):
@@ -709,7 +714,7 @@ class TestUtils(unittest.TestCase):
         self.maxDiff = 5000
         self.assertEqual(f.getvalue(), "\n".join([
             "- Cuds object named <Freiburg>:",
-            "  uuid: %s" % c.uid,
+            "  uid: %s" % c.uid,
             "  type: city.City",
             "  superclasses: city.City, city.GeographicalPlace, "
             + "city.PopulatedPlace, cuba.Entity",
@@ -719,47 +724,47 @@ class TestUtils(unittest.TestCase):
             "",
             "   |_Relationship city.encloses:",
             "   | -  city.Person cuds object named <John Smith>:",
-            "   |    uuid: %s" % px.uid,
+            "   |    uid: %s" % px.uid,
             "   |    age: 25",
             "   |_Relationship city.hasInhabitant:",
             "   | -  city.Citizen cuds object named <Carlos>:",
-            "   | .  uuid: %s" % p2.uid,
+            "   | .  uid: %s" % p2.uid,
             "   | .  age: 25",
             "   | .   |_Relationship city.hasChild:",
             "   | .     -  city.Citizen cuds object named <Maria>:",
-            "   | .        uuid: %s" % p3.uid,
+            "   | .        uid: %s" % p3.uid,
             "   | .        age: 25",
             "   | -  city.Citizen cuds object named <Maria>:",
-            "   | .  uuid: %s" % p3.uid,
+            "   | .  uid: %s" % p3.uid,
             "   | .  (already printed)",
             "   | -  city.Citizen cuds object named <Rainer>:",
-            "   |    uuid: %s" % p1.uid,
+            "   |    uid: %s" % p1.uid,
             "   |    age: 25",
             "   |     |_Relationship city.hasChild:",
             "   |       -  city.Citizen cuds object named <Maria>:",
-            "   |          uuid: %s" % p3.uid,
+            "   |          uid: %s" % p3.uid,
             "   |          (already printed)",
             "   |_Relationship city.hasPart:",
             "     -  city.Neighborhood cuds object named <St. Georgen>:",
-            "     .  uuid: %s" % n2.uid,
+            "     .  uid: %s" % n2.uid,
             "     .  coordinates: [3 4]",
             "     .   |_Relationship city.hasPart:",
             "     .     -  city.Street cuds object named <Lange Straße>:",
-            "     .        uuid: %s" % s1.uid,
+            "     .        uid: %s" % s1.uid,
             "     .        coordinates: [4 5]",
             "     .         |_Relationship city.hasInhabitant:",
             "     .           -  city.Citizen cuds object named <Carlos>:",
-            "     .           .  uuid: %s" % p2.uid,
+            "     .           .  uid: %s" % p2.uid,
             "     .           .  (already printed)",
             "     .           -  city.Citizen cuds object named <Maria>:",
-            "     .              uuid: %s" % p3.uid,
+            "     .              uid: %s" % p3.uid,
             "     .              (already printed)",
             "     -  city.Neighborhood cuds object named <Zähringen>:",
-            "        uuid: %s" % n1.uid,
+            "        uid: %s" % n1.uid,
             "        coordinates: [2 3]",
             "         |_Relationship city.hasPart:",
             "           -  city.Street cuds object named <Lange Straße>:",
-            "              uuid: %s" % s1.uid,
+            "              uid: %s" % s1.uid,
             "              (already printed)",
             ""]))
 

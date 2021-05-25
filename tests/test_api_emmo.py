@@ -8,16 +8,14 @@ from osp.core.session.core_session import CoreSession
 from osp.core.namespaces import cuba
 
 try:
-    from osp.core.namespaces import math, holistic, mereotopology, perceptual
+    from osp.core.namespaces import math, holistic, mereotopology
 except ImportError:
     from osp.core.ontology import Parser
-    from osp.core.namespaces import _namespace_registry
-    Parser(_namespace_registry._graph).parse("emmo")
-    _namespace_registry.update_namespaces()
-    math = _namespace_registry.math
-    holistic = _namespace_registry.holistic
-    mereotopology = _namespace_registry.mereotopology
-    perceptual = _namespace_registry.perceptual
+    from osp.core.ontology.namespace_registry import namespace_registry
+    Parser().parse("emmo")
+    math = namespace_registry.math
+    holistic = namespace_registry.holistic
+    mereotopology = namespace_registry.mereotopology
 
 
 class TestAPIEmmo(unittest.TestCase):
@@ -48,7 +46,7 @@ class TestAPIEmmo(unittest.TestCase):
         cuba.Wrapper(session=CoreSession())
 
     def test_uid(self):
-        """Tests that the uid variable contains a UUID object."""
+        """Tests that the uid variable contains an uid."""
         c = holistic.Process()
         self.assertIsInstance(c.uid, uuid.UUID)
 

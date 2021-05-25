@@ -10,12 +10,11 @@ try:
     from osp.core.namespaces import test_general_rdf_import
 except ImportError:  # If the ontology is not installed.
     from osp.core.ontology import Parser
-    from osp.core.namespaces import _namespace_registry
-    Parser(_namespace_registry._graph).parse(
+    from osp.core.ontology.namespace_registry import namespace_registry
+    Parser().parse(
         str(Path(__file__).parent / "test_general_rdf_import.owl.yml")
     )
-    _namespace_registry.update_namespaces()
-    test_general_rdf_import = _namespace_registry.test_general_rdf_import
+    test_general_rdf_import = namespace_registry.test_general_rdf_import
 
 
 class TestRDFImport(unittest.TestCase):
