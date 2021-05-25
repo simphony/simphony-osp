@@ -1,6 +1,7 @@
 """An abstract session containing method useful for all database backends."""
 
 from abc import abstractmethod
+import itertools
 import logging
 import rdflib
 import uuid
@@ -31,10 +32,14 @@ class DbWrapperSession(WrapperSession):
             self._reset_buffers(BufferContext.USER)
             unreachable = self._registry._get_not_reachable(root_obj, rel=None)
             if len(unreachable) > 0:
-                logger.warning(f"Some CUDS objects are unreachable "
-                               f"from the wrapper object and will be deleted "
-                               f"when the session is closed: "
-                               f"{', '.join(unreachable)}.")
+                warning = "Some CUDS objects are unreachable " \
+                          "from the wrapper object: " \
+                          "{cuds}{more}." \
+                          .format(cuds=', '.join(str(x) for x in itertools
+                                                 .islice(unreachable, 5)),
+                                  more=f" and {len(unreachable) - 5} more" if
+                                  len(unreachable) > 5 else "")
+                logger.warning(warning)
             self._commit()
         except Exception as e:
             self._rollback_transaction()
