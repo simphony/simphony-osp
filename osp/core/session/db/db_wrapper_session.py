@@ -1,6 +1,7 @@
 """An abstract session containing method useful for all database backends."""
 
 from abc import abstractmethod
+import logging
 import rdflib
 import uuid
 from osp.core.utils import uid_from_iri, CUDS_IRI_PREFIX
@@ -8,6 +9,8 @@ from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
 from osp.core.session.result import returns_query_result
 from osp.core.session.buffers import BufferContext, EngineContext
+
+logger = logging.getLogger(__name__)
 
 
 class DbWrapperSession(WrapperSession):
@@ -26,6 +29,11 @@ class DbWrapperSession(WrapperSession):
             self._apply_updated(root_obj, updated)
             self._apply_deleted(root_obj, deleted)
             self._reset_buffers(BufferContext.USER)
+            unreachable = self._registry._get_not_reachable(root_obj, rel=None)
+            if len(unreachable) > 0:
+                logger.warning(f"Some CUDS objects are unreachable "
+                               f"from the wrapper object and will be deleted "
+                               f"when the session is closed: {unreachable}.")
             self._commit()
         except Exception as e:
             self._rollback_transaction()
