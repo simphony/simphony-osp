@@ -33,7 +33,8 @@ class DbWrapperSession(WrapperSession):
             if len(unreachable) > 0:
                 logger.warning(f"Some CUDS objects are unreachable "
                                f"from the wrapper object and will be deleted "
-                               f"when the session is closed: {unreachable}.")
+                               f"when the session is closed: "
+                               f"{', '.join(unreachable)}.")
             self._commit()
         except Exception as e:
             self._rollback_transaction()
