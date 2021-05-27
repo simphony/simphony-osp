@@ -406,10 +406,5 @@ def sparql(query_string: str, session: Optional = None):
     try:
         return session.sparql(query_string)
     except AttributeError or NotImplementedError:
-        if isinstance(session, CoreSession):
-            raise NotImplementedError("SPARQL queries on the default session "
-                                      "of OSP-core (the core session) are not "
-                                      "supported.")
-        else:
-            raise NotImplementedError(f'The session {session} does not support'
-                                      f' SPARQL queries.')
+        raise NotImplementedError(f'The session {session} does not support'
+                                  f' SPARQL queries.')
