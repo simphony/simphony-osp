@@ -450,6 +450,9 @@ def import_cuds(path_or_filelike: Union[str, TextIO, dict, List[dict]],
         format (str, optional): the format of the content to import. The
             supported formats are `json` and the ones supported by RDFLib. See
             `https://rdflib.readthedocs.io/en/latest/plugin_parsers.html`.
+            If no format is specified, then it will be guessed. Note that in
+            some specific cases, the guess may be wrong. In such cases, try
+            again specifying the format.
 
     Returns (List[Cuds]): a list of cuds objects.
     """
