@@ -33,9 +33,15 @@ class TestSPARQL(unittest.TestCase):
                              ?citizen <{city.age.iri}> ?citizen_age .
                           }}
                  """
-        results = (next(iter(sparql(query, session=None))),
-                   next(iter(sparql(query, session=core_session))),
-                   next(iter(core_session.sparql(query))))
+        results_none = sparql(query, session=None)
+        results_core_session = sparql(query, session=core_session)
+        results_core_session_method = core_session.sparql(query)
+        self.assertEqual(len(results_none), 1)
+        self.assertEqual(len(results_core_session), 1)
+        self.assertEqual(len(results_core_session_method), 1)
+        results = (next(iter(results_none)),
+                   next(iter(results_core_session)),
+                   next(iter(results_core_session_method)))
         self.assertTrue(all(result['city_name'].toPython() == freiburg.name
                             for result in results))
         self.assertTrue(all(result['citizen'] == karl.iri
@@ -44,6 +50,7 @@ class TestSPARQL(unittest.TestCase):
                             for result in results))
         self.assertTrue(all(result['citizen_name'].toPython() == karl.name
                             for result in results))
+        results = sparql(query, session=None)
 
 
 if __name__ == '__main__':

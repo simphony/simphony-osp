@@ -66,7 +66,6 @@ class CoreSession(Session, SPARQLBackend):
 
         def __len__(self):
             """Compute the number of elements in the result."""
-            # TODO: make sure it works (unit tests).
             return len(self.result)
 
     class CoreSessionSparqlBindingSet(SparqlBindingSet):
