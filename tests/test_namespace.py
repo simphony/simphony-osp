@@ -523,7 +523,7 @@ class TestNamespaces(unittest.TestCase):
         expected = {'activeRelationship', 'passiveRelationship',
                     'relationship', 'attribute', 'path', 'Entity', 'File',
                     'Nothing', 'Wrapper'}
-        self.assertSetEqual(set(cuba.__dir__()) & expected, expected)
+        self.assertSetEqual(set(dir(cuba)) & expected, expected)
 
 
 if __name__ == "__main__":

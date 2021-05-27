@@ -41,7 +41,7 @@ class OntologyNamespace():
         """
         entity_autocompletion = self._iter_labels() \
             if self._reference_by_label else self._iter_suffixes()
-        return itertools.chain(super().__dir__(), entity_autocompletion)
+        return itertools.chain(dir(super()), entity_autocompletion)
 
     def __str__(self):
         """Transform the namespace to a human readable string.
