@@ -401,7 +401,6 @@ def sparql(query_string: str, session: Optional = None):
         NotImplementedError: when the session does not support SPARQL queries.
     """
     from osp.core.cuds import Cuds
-    from osp.core.session.core_session import CoreSession
     session = session or Cuds._session
     try:
         return session.sparql(query_string)
