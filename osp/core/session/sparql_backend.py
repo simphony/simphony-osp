@@ -21,6 +21,15 @@ class SPARQLBackend(ABC):
         return self._sparql(query_string=query_string.replace(
             str(self.root), str(uuid.UUID(int=0))
         ))
+        # NOTE: Why is the uid of the root replaced in the query?
+        #  Each time that a session is opened, the user is expected to create a
+        #  wrapper for the session. The uid of the wrapper is new each time it
+        #  is created. Thus, the uid saved to the database does not match the
+        #  uuid of the new wrapper, so the objects in the database become
+        #  unreachable. As a workaround, OSP-core is replacing the uid of the
+        #  wrapper with zero, so that the root of the session always has the
+        #  same uid and the CUDS objects are reachable from the root. This is
+        #  done not only here, but also on other parts of the code.
 
     @abstractmethod
     def _sparql(self, query_string):
