@@ -163,7 +163,8 @@ class TestImportExport(unittest.TestCase):
         c.add(p1, rel=city.hasInhabitant)
         c.add(p2, rel=city.hasInhabitant)
         exported_file = io.StringIO()
-        export_cuds(c, file=exported_file, format='text/turtle')
+        cuds = export_cuds(c, file=exported_file, format='text/turtle')
+        self.assertIs(type(cuds), Cuds)
 
     def test_text_turtle_file_handle(self):
         """Test importing the `text/turtle` mime type from a file handle."""
