@@ -19,6 +19,7 @@ from rdflib import OWL, RDF, RDFS
 from rdflib import URIRef, Literal, Graph
 from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.namespaces import cuba
+from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.datatypes import convert_from
 
@@ -143,11 +144,16 @@ def _serialize_cuds_object_triples(cuds_object,
                                     find_all=True,
                                     max_depth=max_depth)
     graph = Graph()
+    graph.add((rdflib_cuba._serialization, RDF.first,
+               Literal(str(cuds_object.uid))))
     for prefix, iri in namespace_registry._graph.namespaces():
         graph.bind(prefix, iri)
-    for triple in itertools.chain(*(cuds.get_triples()
-                                    for cuds in cuds_objects)):
-        graph.add(triple)
+    for s, p, o in itertools.chain(*(cuds.get_triples()
+                                     for cuds in cuds_objects)):
+        if isinstance(o, Literal):
+            o = Literal(convert_from(o.toPython(), o.datatype),
+                        datatype=o.datatype, lang=o.language)
+        graph.add((s, p, o))
     return graph.serialize(format=format, encoding='UTF-8').decode('UTF-8')
 
 
@@ -197,17 +203,19 @@ def _deserialize_cuds_object(json_doc, session=None, buffer_context=None):
     session = session or Cuds._session
     buffer_context = buffer_context or BufferContext.USER
     g = json_to_rdf(json_doc, Graph())
-    # only return first
+    # only return first (when a cuds instead of a session was exported)
     first = g.value(rdflib_cuba._serialization, RDF.first)
-    first_uid = None
     if first:  # return the element marked as first later
-        first_uid = uuid.UUID(hex=first)
+        try:
+            first = uuid.UUID(hex=first)
+        except ValueError:
+            first = URIRef(first)
         g.remove((rdflib_cuba._serialization, RDF.first, None))
     deserialized = import_rdf(
         graph=g,
         session=session,
         buffer_context=buffer_context,
-        return_uid=first_uid
+        return_uid=first
     )
     return deserialized
 
@@ -242,12 +250,21 @@ def _import_rdf_file(path, format="xml", session=None, buffer_context=None):
     onto_iri = g.value(None, RDF.type, OWL.Ontology)
     if onto_iri:
         g.remove((onto_iri, None, None))
+    # only return first (when a cuds instead of a session was exported)
+    first = g.value(rdflib_cuba._serialization, RDF.first)
+    if first:  # return the element marked as first later
+        try:
+            first = uuid.UUID(hex=first)
+        except ValueError:
+            first = URIRef(first)
+        g.remove((rdflib_cuba._serialization, RDF.first, None))
     session = session or Cuds._session
     buffer_context = buffer_context or BufferContext.USER
     deserialized = import_rdf(
         graph=g,
         session=session,
-        buffer_context=buffer_context
+        buffer_context=buffer_context,
+        return_uid=first
     )
     return deserialized
 

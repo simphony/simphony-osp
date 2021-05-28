@@ -5,6 +5,7 @@ import unittest2 as unittest
 import rdflib
 import json
 from pathlib import Path
+from osp.core.cuds import Cuds
 from osp.core.session.core_session import CoreSession
 from osp.core.utils.general import import_cuds, export_cuds, branch
 from .test_transport_session import assertJsonLdEqual
@@ -150,7 +151,7 @@ class TestImportExport(unittest.TestCase):
                 json_doc
             )
 
-    def test_text_turtle_export_cuds_triples(self):
+    def test_text_turtle_cuds_triples(self):
         """Test exporting the `text/turtle` mime type from a cuds object.
 
         This test uses the city ontology.
@@ -161,9 +162,8 @@ class TestImportExport(unittest.TestCase):
         p2 = city.Citizen(name="Anne")
         c.add(p1, rel=city.hasInhabitant)
         c.add(p2, rel=city.hasInhabitant)
-        export_file = io.StringIO()
-        export_cuds(c, file=export_file, format='text/turtle')
-        export_file.seek(0)
+        exported_file = io.StringIO()
+        export_cuds(c, file=exported_file, format='text/turtle')
 
     def test_text_turtle_file_handle(self):
         """Test importing the `text/turtle` mime type from a file handle."""
