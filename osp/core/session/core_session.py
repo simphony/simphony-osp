@@ -30,7 +30,6 @@ class CoreSession(Session, SPARQLBackend):
         """Get the triples in the core session."""
         return self.graph
 
-
     def _sparql(self, query_string):
         """Execute the given SPARQL query on the graph of the core session.
 
