@@ -163,7 +163,9 @@ class TestImportExport(unittest.TestCase):
         c.add(p1, rel=city.hasInhabitant)
         c.add(p2, rel=city.hasInhabitant)
         exported_file = io.StringIO()
-        cuds = export_cuds(c, file=exported_file, format='text/turtle')
+        export_cuds(c, file=exported_file, format='text/turtle')
+        exported_file.seek(0)
+        cuds = import_cuds(exported_file, format='text/turtle')
         self.assertIs(type(cuds), Cuds)
 
     def test_text_turtle_file_handle(self):
