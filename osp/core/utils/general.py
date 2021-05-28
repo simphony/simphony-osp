@@ -4,6 +4,7 @@ These are potentially useful for every user of SimPhoNy.
 """
 
 from typing import Optional, Union, TextIO, List
+import itertools
 import logging
 import requests
 import io
@@ -144,7 +145,8 @@ def _serialize_cuds_object_triples(cuds_object,
     graph = Graph()
     for prefix, iri in namespace_registry._graph.namespaces():
         graph.bind(prefix, iri)
-    for triple in (cuds.get_triples() for cuds in cuds_objects):
+    for triple in itertools.chain(*(cuds.get_triples()
+                                    for cuds in cuds_objects)):
         graph.add(triple)
     return graph.serialize(format=format, encoding='UTF-8').decode('UTF-8')
 
