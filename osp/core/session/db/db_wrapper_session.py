@@ -185,6 +185,10 @@ class DbWrapperSession(WrapperSession):
             warning = "Some CUDS objects are unreachable " \
                       "from the wrapper object: " \
                       "{cuds}{more}." \
+                      "\n" \
+                      "If you want to be able to retrieve those CUDS " \
+                      "objects later, either add them to the wrapper object " \
+                      "or to any other CUDS that is reachable from it." \
                 .format(cuds=', '.join(str(x) for x in itertools
                                        .islice(unreachable,
                                                max_cuds_on_warning)),
