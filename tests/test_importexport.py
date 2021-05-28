@@ -150,6 +150,21 @@ class TestImportExport(unittest.TestCase):
                 json_doc
             )
 
+    def test_text_turtle_export_cuds_triples(self):
+        """Test exporting the `text/turtle` mime type from a cuds object.
+
+        This test uses the city ontology.
+        """
+        # Exporting
+        c = city.City(name="Freiburg", coordinates=[47, 7])
+        p1 = city.Citizen(name="Peter")
+        p2 = city.Citizen(name="Anne")
+        c.add(p1, rel=city.hasInhabitant)
+        c.add(p2, rel=city.hasInhabitant)
+        export_file = io.StringIO()
+        export_cuds(c, file=export_file, format='text/turtle')
+        export_file.seek(0)
+
     def test_text_turtle_file_handle(self):
         """Test importing the `text/turtle` mime type from a file handle."""
         with CoreSession() as session:
