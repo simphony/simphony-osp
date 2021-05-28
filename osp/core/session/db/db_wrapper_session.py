@@ -1,6 +1,9 @@
 """An abstract session containing method useful for all database backends."""
 
 from abc import abstractmethod
+from typing import Union
+import itertools
+import logging
 import rdflib
 import uuid
 from osp.core.utils import uid_from_iri, CUDS_IRI_PREFIX
@@ -8,6 +11,8 @@ from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
 from osp.core.session.result import returns_query_result
 from osp.core.session.buffers import BufferContext, EngineContext
+
+logger = logging.getLogger(__name__)
 
 
 class DbWrapperSession(WrapperSession):
@@ -26,6 +31,7 @@ class DbWrapperSession(WrapperSession):
             self._apply_updated(root_obj, updated)
             self._apply_deleted(root_obj, deleted)
             self._reset_buffers(BufferContext.USER)
+            self._unreachable_warning(root_obj)
             self._commit()
         except Exception as e:
             self._rollback_transaction()
@@ -161,3 +167,33 @@ class DbWrapperSession(WrapperSession):
                                rdflib.OWL.Class}):
                 return False
         return True
+
+    def _unreachable_warning(self, root_obj: Union[rdflib.URIRef, uuid.UUID]):
+        """Raises a warning when there are unreachable cuds.
+
+        Gets a list of all the CUDS objects in the session which are
+        unreachable from the specified `root_obj`. If there are any, then
+        raises a warning that lists some of the unreachable CUDS objects.
+
+        Args:
+            root_obj (Union[URIRef, UUID]): The root object with respect to
+                which objects are deemed reachable or unreachable.
+        """
+        unreachable = self._registry._get_not_reachable(root_obj, rel=None)
+        max_cuds_on_warning = 5
+        if len(unreachable) > 0:
+            warning = "Some CUDS objects are unreachable " \
+                      "from the wrapper object: " \
+                      "{cuds}{more}." \
+                      "\n" \
+                      "If you want to be able to retrieve those CUDS " \
+                      "objects later, either add them to the wrapper object " \
+                      "or to any other CUDS that is reachable from it." \
+                .format(cuds=', '.join(str(x) for x in itertools
+                                       .islice(unreachable,
+                                               max_cuds_on_warning)),
+                        more=" and " + str(len(unreachable)
+                                           - max_cuds_on_warning)
+                             + " more" if len(unreachable) > 5
+                        else "")
+            logger.warning(warning)
