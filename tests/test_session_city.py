@@ -6,17 +6,15 @@ from osp.core.session.session import Session
 from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.buffers import BufferContext
 from osp.core.session.core_session import CoreSession
-from osp.core.utils import branch, get_rdf_graph
 from osp.core.cuds import Cuds
 
 try:
     from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
-    from osp.core.namespaces import _namespace_registry
-    Parser(_namespace_registry._graph).parse("city")
-    _namespace_registry.update_namespaces()
-    city = _namespace_registry.city
+    from osp.core.ontology.namespace_registry import namespace_registry
+    Parser().parse("city")
+    city = namespace_registry.city
 
 
 class TestSessionCity(unittest.TestCase):
@@ -39,7 +37,8 @@ class TestSessionCity(unittest.TestCase):
             session.delete_cuds_object(cities[0])
             self.maxDiff = None
             self.assertEqual(session._buffers, [
-                [{}, {w.uid: w, neighborhoods[0].uid: neighborhoods[0],
+                [{}, {w.uid: w,
+                      neighborhoods[0].uid: neighborhoods[0],
                       neighborhoods[1].uid: neighborhoods[1]},
                  {cities[0].uid: cities[0]}], [{}, {}, {}]])
             self.assertNotIn(cities[0], session._registry)
@@ -100,7 +99,8 @@ class TestSessionCity(unittest.TestCase):
             set(["city 0", "neighborhood 0 0", "neighborhood 0 1",
                  "street 0 0 0", "street 0 0 1", "street 0 1 0",
                  "street 0 1 1", "wrapper"]))
-        self.assertEqual(set([d.uid for d in deleted]), expected_deletion)
+        self.assertEqual(set([d.uid for d in deleted]),
+                         expected_deletion)
 
     def test_buffers(self):
         """Test if the buffers work correctly."""
@@ -133,23 +133,6 @@ class TestSessionCity(unittest.TestCase):
         self.assertEqual(session._buffers, [
             [{cw2.uid: cw2}, {w.uid: w}, {cw.uid: cw}],
             [dict(), dict(), dict()]])
-
-    def test_rdf_import(self):
-        """Test the import of RDF data."""
-        with TestSession() as session:
-            w = branch(
-                city.CityWrapper(session=session),
-                branch(
-                    city.City(name="Freiburg"),
-                    city.Neighborhood(name="Littenweiler")
-                )
-            )
-            g = get_rdf_graph(session, skip_ontology=False)
-            c = w.get(rel=city.hasPart)[0]
-            c.remove(rel=cuba.relationship)
-            session._rdf_import(g)
-            self.assertEqual(w.get(rel=city.hasPart), [c])
-            self.assertEqual(c.get(rel=city.hasPart)[0].name, "Littenweiler")
 
     def test_default_session_context_manager(self):
         """Test changing the default session with a session context manager."""

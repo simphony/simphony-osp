@@ -8,6 +8,7 @@ from rdflib.compare import isomorphic
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.yml.yml_parser import YmlParser
 from osp.core.ontology.parser import Parser
+from osp.core.ontology.namespace_registry import NamespaceRegistry
 
 
 YML_FILE = os.path.join(
@@ -30,8 +31,10 @@ class TestYmlParser(unittest.TestCase):
         with open(YML_FILE, "r") as f:
             self.yml_doc = yaml.safe_load(f)
         self.ontology_doc = self.yml_doc["ontology"]
-        self.graph = rdflib.Graph()
-        self.parser = YmlParser(self.graph)
+        self.namespace_registry = NamespaceRegistry()
+        self.graph = self.namespace_registry._graph
+        self.parser = YmlParser(
+            parser_namespace_registry=self.namespace_registry)
         self.parser._namespace = "parser_test"
         self.parser._ontology_doc = self.ontology_doc
         self.parser._doc = self.yml_doc
@@ -251,7 +254,8 @@ class TestYmlParser(unittest.TestCase):
         self.assertEqual(self.parser._get_iri(None, "b"),
                          rdflib.term.URIRef('http://www.osp-core.com/b#'))
 
-        Parser(self.graph).parse(EMMO_FILE)
+        Parser(parser_namespace_registry=self.namespace_registry)\
+            .parse(EMMO_FILE)
         self.assertEqual(
             self.parser._get_iri("Molecule", "materials"),
             rdflib.URIRef("http://emmo.info/emmo/middle/materials#"
@@ -323,7 +327,8 @@ class TestYmlParser(unittest.TestCase):
     def test_parse(self):
         """Test the parse method of the YAML parser."""
         self.graph.parse(CUBA_FILE, format="ttl")
-        self.parser = YmlParser(self.graph)
+        self.parser = YmlParser(
+            parser_namespace_registry=self.namespace_registry)
         pre = set(self.graph)
         self.parser.parse(YML_FILE)
         test_graph1 = rdflib.Graph()

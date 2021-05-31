@@ -9,6 +9,7 @@ import tempfile
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.yml.yml_parser import YmlParser
+from osp.core.ontology.namespace_registry import namespace_registry
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +31,23 @@ ALL_KEYS = set([
 class Parser():
     """The parser used to parse OWL ontologies in RDF format."""
 
-    def __init__(self, graph):
+    def __init__(self, parser_namespace_registry=None):
         """Initialize the parser.
 
         Args:
             graph (rdflib.Graph): The graph to add the triples to.
                 might already contain some triples.
+            parser_namespace_registry (NamespaceRegistry): The namespace
+                registry that should be connected to this parser. The parser
+                will register the read namespaces in this specific namespace
+                registry. If none is provided, then the default
+                (namespace_registry from osp.core.ontology.namespace_registry)
+                will be used. In fact, you should never create several
+                namespace registries, except on unit tests.
         """
-        self.graph = graph
+        self._namespace_registry = parser_namespace_registry or \
+            namespace_registry
+        self.graph = self._namespace_registry._graph
         self._yaml_docs = list()
         self._graphs = dict()
 
@@ -55,7 +65,8 @@ class Parser():
                     f"Empty format of file {file_path}"
                 )
             if YmlParser.is_yaml_ontology(yaml_doc):
-                YmlParser(self.graph).parse(file_path, yaml_doc)
+                YmlParser(parser_namespace_registry=self._namespace_registry)\
+                    .parse(file_path, yaml_doc)
             elif RDF_FILE_KEY in yaml_doc and IDENTIFIER_KEY in yaml_doc:
                 s = "-" + os.path.basename(file_path).split(".")[0]
                 with tempfile.NamedTemporaryFile(mode="wb+", suffix=s) as f:
@@ -281,7 +292,7 @@ class Parser():
             namespace_iris.add(iri)
             logger.info(f"You can now use `from osp.core.namespaces import "
                         f"{namespace}`.")
-            self.graph.bind(namespace, rdflib.URIRef(iri))
+            self._namespace_registry.bind(namespace, rdflib.URIRef(iri))
             default_rels[iri] = default_rel
             reference_styles[iri] = reference_style
 
@@ -370,14 +381,14 @@ class Parser():
                          in labels_for_iri(iri))
         labels, iris = tuple(result[0] for result in results),\
             tuple(result[1] for result in results)
-        coincidence_search = (i
-                              for i in range(1, len(labels))
-                              if labels[i - 1] == labels[i])
+        coincidence_search = tuple(i
+                                   for i in range(1, len(labels))
+                                   if labels[i - 1] == labels[i])
         conflicting_labels = {labels[i]: set() for i in coincidence_search}
-        for i in range(1, len(conflicting_labels)):
+        for i in coincidence_search:
             conflicting_labels[labels[i]] |= {iris[i - 1], iris[i]}
         if len(conflicting_labels) > 0:
-            texts = (f'{label[0]}, language{label[1]}: '
+            texts = (f'{label[0]}, language {label[1]}: '
                      f'{", ".join(tuple(str(iri) for iri in iris))}'
                      for label, iris in conflicting_labels.items())
             raise KeyError(f'The following labels are assigned to more than '
