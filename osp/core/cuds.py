@@ -13,11 +13,11 @@ from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.datatypes import CUDS_IRI_PREFIX
-from osp.core.session.core_session import CoreSession
+from osp.core.session.core_session import core_session
 from osp.core.session.session import Session
 from osp.core.neighbor_dict import NeighborDictRel
-from osp.core.utils import check_arguments, clone_cuds_object, \
-    create_from_cuds_object, get_neighbor_diff
+from osp.core.utils.wrapper_development import check_arguments, \
+    clone_cuds_object, create_from_cuds_object, get_neighbor_diff
 
 logger = logging.getLogger("osp.core")
 
@@ -32,7 +32,7 @@ class Cuds:
     relationships.
     """
 
-    _session = CoreSession()
+    _session = core_session
 
     def __init__(self,
                  # Create from oclass and attributes dict.

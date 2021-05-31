@@ -4,7 +4,7 @@ import uuid
 import rdflib
 from osp.core.session.db.sql_util import SqlQuery
 from osp.core.namespaces import get_entity
-from osp.core.utils import iri_from_uid
+from osp.core.utils.general import iri_from_uid
 from osp.core.namespaces import cuba
 
 INT = rdflib.XSD.integer

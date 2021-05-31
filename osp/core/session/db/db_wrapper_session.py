@@ -6,7 +6,7 @@ import itertools
 import logging
 import rdflib
 import uuid
-from osp.core.utils import uid_from_iri, CUDS_IRI_PREFIX
+from osp.core.utils.general import uid_from_iri, CUDS_IRI_PREFIX
 from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
 from osp.core.session.result import returns_query_result

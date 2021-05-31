@@ -205,7 +205,7 @@ def create_from_triples(triples, neighbor_triples, session,
         fix_neighbors (bool): Whether to remove the link from the old neighbors
             to this cuds object, defaults to True.
     """
-    from osp.core.utils import uid_from_iri
+    from osp.core.utils.general import uid_from_iri
     from osp.core.cuds import Cuds
     from osp.core.session.wrapper_session import WrapperSession
     triples = list(triples)

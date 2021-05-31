@@ -2,8 +2,8 @@
 
 import uuid
 import rdflib
-from osp.core.utils import create_from_triples
-from osp.core.utils import iri_from_uid, uid_from_iri
+from osp.core.utils.wrapper_development import create_from_triples
+from osp.core.utils.general import iri_from_uid, uid_from_iri
 from osp.core.session.sparql_backend import SPARQLBackend
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from abc import abstractmethod
@@ -69,7 +69,7 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
         yield from self._load_from_backend(uids)
 
     def _substitute_root_iri(self, triples):
-        from osp.core.utils import CUDS_IRI_PREFIX
+        from osp.core.utils.general import CUDS_IRI_PREFIX
         for triple in triples:
             yield tuple(iri_from_uid(uuid.UUID(int=0))
                         if x is not None and x.startswith(CUDS_IRI_PREFIX)
@@ -77,7 +77,7 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
                         for x in triple)
 
     def _substitute_zero_iri(self, triples):
-        from osp.core.utils import CUDS_IRI_PREFIX
+        from osp.core.utils.general import CUDS_IRI_PREFIX
         for triple in triples:
             yield tuple(iri_from_uid(self.root)
                         if x is not None and x.startswith(CUDS_IRI_PREFIX)
