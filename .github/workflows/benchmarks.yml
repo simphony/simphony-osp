@@ -32,7 +32,7 @@ jobs:
           tool: 'pytest'
           output-file-path: output.json
           # Personal access token to deploy GitHub Pages branch
-          github-token: ${{ secrets.BENCHMARKS_GITHUB_TOKEN }}
+          github-token: ${{ secrets.BENCHMARKS_TOKEN }}
           auto-push: true
           # Workflow will fail when an alert happens
           alert-threshold: '150%'
