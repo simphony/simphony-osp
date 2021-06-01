@@ -6,7 +6,7 @@ import rdflib
 from abc import abstractmethod
 from osp.core.session.session import Session
 from osp.core.session.result import returns_query_result
-from osp.core.utils import clone_cuds_object, \
+from osp.core.utils.wrapper_development import clone_cuds_object, \
     get_neighbor_diff
 from osp.core.session.buffers import BufferType, BufferContext, \
     EngineContext
@@ -160,8 +160,8 @@ class WrapperSession(Session):
 
     def _get_full_graph(self):
         """Get the triples in the core session."""
-        from osp.core.utils import find_cuds_object
-        from osp.core.utils import cuba
+        from osp.core.utils.simple_search import find_cuds_object
+        from osp.core.namespaces import cuba
 
         for cuds_object in find_cuds_object(lambda x: True,
                                             self._registry.get(self.root),

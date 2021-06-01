@@ -5,7 +5,7 @@ def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
                      current_depth=0, visited=None):
     """Recursively finds an element inside a container.
 
-    Use the given relationshipfor traversal.
+    Use the given relationship for traversal.
 
     Args:
         criterion (Callable): Function that returns True on the Cuds object

@@ -8,7 +8,7 @@ from osp.core.session.db.triplestore_wrapper_session import \
     TripleStoreWrapperSession
 from osp.core.session.buffers import BufferContext
 from osp.core.ontology import OntologyRelationship
-from osp.core.utils import CUDS_IRI_PREFIX, iri_from_uid
+from osp.core.utils.general import CUDS_IRI_PREFIX, iri_from_uid
 from osp.core.ontology.datatypes import to_uid
 from osp.core.session.db.sql_migrate import check_supported_schema_version
 from osp.core.session.db.sql_util import (
@@ -403,7 +403,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         self._default_create(self.RELATIONSHIP_TABLE)
         self._load_namespace_indexes()
 
-        from osp.core.utils import get_custom_datatypes
+        from osp.core.utils.general import get_custom_datatypes
         datatypes = get_custom_datatypes() | {
             rdflib.XSD.integer, rdflib.XSD.boolean, rdflib.XSD.float,
             rdflib.XSD.string

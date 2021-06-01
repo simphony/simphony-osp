@@ -3,7 +3,7 @@
 import unittest2 as unittest
 import uuid
 
-from osp.core.utils import create_from_cuds_object
+from osp.core.utils.wrapper_development import create_from_cuds_object
 from osp.core.session.core_session import CoreSession
 from osp.core.namespaces import cuba
 

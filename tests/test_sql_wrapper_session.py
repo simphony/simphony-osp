@@ -8,7 +8,7 @@ from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.session import SqlWrapperSession
 from osp.core.session.db.sql_util import AndCondition, JoinCondition, \
     EqualsCondition
-from osp.core.utils import iri_from_uid
+from osp.core.utils.general import iri_from_uid
 from osp.core.namespaces import cuba
 
 try:

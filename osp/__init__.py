@@ -47,7 +47,7 @@ if _osp_sys.platform == 'win32':
                             or f'\\\\.\\Volume{{DRIVE_LETTER_{scheme}_NOT_'
                             f'ASSIGNED}}\\', path)
                         kwargs['destination'] = dos_device_path
-                func(*args, **kwargs)
+                return func(*args, **kwargs)
             return graph_serialize
         _osp_rdflib.Graph.serialize = _graph_serialize_fix_decorator(
             _osp_rdflib.Graph.serialize)

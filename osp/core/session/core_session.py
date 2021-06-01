@@ -78,3 +78,6 @@ class CoreSession(Session, SPARQLBackend):
 
         def _get(self, variable_name):
             return self.binding_set[variable_name]
+
+
+core_session = CoreSession()
