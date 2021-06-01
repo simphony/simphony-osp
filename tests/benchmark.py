@@ -73,7 +73,12 @@ class Benchmark(ABC):
 
     def set_up(self):
         """Set up the benchmark. The time spent in the setup is not counted."""
-        self._benchmark_set_up()
+        if not self.started and not self.finished:
+            self._benchmark_set_up()
+        elif self.started and not self.finished:
+            raise RuntimeError('This benchmark has already started.')
+        else:  # Both are true.
+            raise StopIteration('This benchmark is finished.')
 
     @abstractmethod
     def _benchmark_set_up(self):
@@ -120,12 +125,22 @@ class Benchmark(ABC):
         This method will only work on a benchmark that has not been started
         already. It runs all of its programmed iterations.
         """
-        if not self.started and not self.finished:
-            self.set_up()
-            for i in range(self.size):
-                self.iterate()
-            self.tear_down()
-        elif self.started and not self.finished:
-            raise RuntimeError('This benchmark has already started.')
-        else:  # Both are true.
-            raise StopIteration('This benchmark is finished.')
+        self.set_up()
+        for i in range(self.size):
+            self.iterate()
+        self.tear_down()
+
+    @classmethod
+    def iterate_pytest_benchmark(cls, benchmark, size: int = 500,
+                                 *args, **kwargs):
+        """Template wrapper function for pytest-benchmark.
+
+        Can be overridden on a benchmark basis if desired.
+        """
+        kwargs['iterations'] = kwargs.get('rounds', 1)
+        kwargs['rounds'] = kwargs.get('rounds', size)
+        kwargs['warmup_rounds'] = kwargs.get('warmup_rounds', 0)
+        benchmark_instance = cls(size=size)
+        benchmark_instance.set_up()
+        benchmark.pedantic(benchmark_instance.iterate, *args, **kwargs)
+        benchmark_instance.tear_down()

@@ -15,19 +15,6 @@ except ImportError:  # When the city ontology is not installed.
 
 
 DEFAULT_SIZE = 1000
-WARMUP_ROUNDS = 0
-ITERATIONS = 1
-
-
-def template_benchmark_cuds_api(benchmark, benchmark_class):
-    """Wrapper function for the any CUDS API benchmark."""
-    benchmark_instance = benchmark_class(size=DEFAULT_SIZE)
-    benchmark_instance.set_up()
-    benchmark.pedantic(benchmark_instance.iterate,
-                       rounds=benchmark_instance.size,
-                       warmup_rounds=WARMUP_ROUNDS,
-                       iterations=ITERATIONS)
-    benchmark_instance.tear_down()
 
 
 class CudsCreate(Benchmark):
@@ -46,7 +33,7 @@ class CudsCreate(Benchmark):
 
 def benchmark_cuds_create(benchmark):
     """Wrapper function for the CudsCreate benchmark."""
-    return template_benchmark_cuds_api(benchmark, CudsCreate)
+    return CudsCreate.iterate_pytest_benchmark(benchmark, size=DEFAULT_SIZE)
 
 
 # `add` method.
@@ -68,7 +55,8 @@ class Cuds_add_Default(Benchmark):
 
 def benchmark_add_default(benchmark):
     """Wrapper function for the Cuds_add_Default benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_add_Default)
+    return Cuds_add_Default.iterate_pytest_benchmark(benchmark,
+                                                     size=DEFAULT_SIZE)
 
 
 class Cuds_add_Rel(Benchmark):
@@ -88,7 +76,7 @@ class Cuds_add_Rel(Benchmark):
 
 def benchmark_cuds_add_rel(benchmark):
     """Wrapper function for the Cuds_add_Rel benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_add_Rel)
+    return Cuds_add_Rel.iterate_pytest_benchmark(benchmark, size=DEFAULT_SIZE)
 
 
 # `get` method
@@ -113,7 +101,8 @@ class Cuds_get_ByuidUUID(Benchmark):
 
 def benchmark_cuds_get_byuiduuid(benchmark):
     """Wrapper function for the Cuds_get_ByuidUUID benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_get_ByuidUUID)
+    return Cuds_get_ByuidUUID.iterate_pytest_benchmark(benchmark,
+                                                       size=DEFAULT_SIZE)
 
 
 class Cuds_get_ByuidURIRef(Benchmark):
@@ -138,7 +127,7 @@ class Cuds_get_ByuidURIRef(Benchmark):
 
 def benchmark_get_byuiduriref(benchmark):
     """Wrapper function for the Cuds_get_ByuidURIRef benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_get_ByuidURIRef)
+    return Cuds_get_ByuidURIRef(benchmark, size=DEFAULT_SIZE)
 
 
 class Cuds_get_ByRel(Benchmark):
@@ -166,7 +155,8 @@ class Cuds_get_ByRel(Benchmark):
 
 def benchmark_get_byrel(benchmark):
     """Wrapper function for the Cuds_get_ByRel benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_get_ByRel)
+    return Cuds_get_ByRel.iterate_pytest_benchmark(benchmark,
+                                                   size=DEFAULT_SIZE)
 
 
 class Cuds_get_Byoclass(Benchmark):
@@ -194,7 +184,8 @@ class Cuds_get_Byoclass(Benchmark):
 
 def benchmark_get_byoclass(benchmark):
     """Wrapper function for the Cuds_get_Byoclass benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_get_Byoclass)
+    return Cuds_get_Byoclass.iterate_pytest_benchmark(benchmark,
+                                                      DEFAULT_SIZE)
 
 
 # `iter` method
@@ -220,7 +211,8 @@ class Cuds_iter_ByuidUUID(Benchmark):
 
 def benchmark_cuds_iter_byuiduuid(benchmark):
     """Wrapper function for the Cuds_iter_ByuidUUID benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_iter_ByuidUUID)
+    return Cuds_iter_ByuidUUID.iterate_pytest_benchmark(benchmark,
+                                                        size=DEFAULT_SIZE)
 
 
 class Cuds_iter_ByuidURIRef(Benchmark):
@@ -246,7 +238,8 @@ class Cuds_iter_ByuidURIRef(Benchmark):
 
 def benchmark_cuds_iter_byuiduriref(benchmark):
     """Wrapper function for the Cuds_iter_ByuidURIRef benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_iter_ByuidURIRef)
+    return Cuds_iter_ByuidURIRef.iterate_pytest_benchmark(benchmark,
+                                                          size=DEFAULT_SIZE)
 
 
 class Cuds_iter_ByRel(Benchmark):
@@ -274,7 +267,8 @@ class Cuds_iter_ByRel(Benchmark):
 
 def benchmark_cuds_iter_byrel(benchmark):
     """Wrapper function for the Cuds_iter_ByRel benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_iter_ByRel)
+    return Cuds_iter_ByRel.iterate_pytest_benchmark(benchmark,
+                                                    size=DEFAULT_SIZE)
 
 
 class Cuds_iter_Byoclass(Benchmark):
@@ -302,7 +296,8 @@ class Cuds_iter_Byoclass(Benchmark):
 
 def benchmark_iter_byoclass(benchmark):
     """Wrapper function for the Cuds_iter_Byoclass benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_iter_Byoclass)
+    return Cuds_iter_Byoclass.iterate_pytest_benchmark(benchmark,
+                                                       size=DEFAULT_SIZE)
 
 
 # `is_a` method
@@ -331,7 +326,7 @@ class Cuds_is_a(Benchmark):
 
 def benchmark_cuds_is_a(benchmark):
     """Wrapper function for the Cuds_is_a benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_is_a)
+    return Cuds_is_a.iterate_pytest_benchmark(benchmark, size=DEFAULT_SIZE)
 
 
 # `oclass` property
@@ -351,7 +346,7 @@ class Cuds_oclass(Benchmark):
 
 def benchmark_cuds_oclass(benchmark):
     """Wrapper function for the Cuds_oclass benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_oclass)
+    return Cuds_oclass.iterate_pytest_benchmark(benchmark, size=DEFAULT_SIZE)
 
 
 # `uid` property
@@ -371,7 +366,7 @@ class Cuds_uid(Benchmark):
 
 def benchmark_cuds_uid(benchmark):
     """Wrapper function for the Cuds_uid benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_uid)
+    return Cuds_uid.iterate_pytest_benchmark(benchmark, size=DEFAULT_SIZE)
 
 
 # `iri` property
@@ -391,7 +386,7 @@ class Cuds_iri(Benchmark):
 
 def benchmark_cuds_iri(benchmark):
     """Wrapper function for the Cuds_iri benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_iri)
+    return Cuds_iri.iterate_pytest_benchmark(benchmark, size=DEFAULT_SIZE)
 
 
 # get attributes
@@ -420,7 +415,7 @@ class Cuds_attributes(Benchmark):
 
 def benchmark_cuds_attributes(benchmark):
     """Wrapper function for the Cuds_attributes benchmark."""
-    return template_benchmark_cuds_api(benchmark, Cuds_attributes)
+    return Cuds_attributes(benchmark, size=DEFAULT_SIZE)
 
 
 if __name__ == '__main__':
