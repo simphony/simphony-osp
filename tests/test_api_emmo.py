@@ -3,7 +3,7 @@
 import unittest2 as unittest
 import uuid
 
-from osp.core.utils import create_from_cuds_object
+from osp.core.utils.wrapper_development import create_from_cuds_object
 from osp.core.session.core_session import CoreSession
 from osp.core.namespaces import cuba
 
@@ -46,7 +46,7 @@ class TestAPIEmmo(unittest.TestCase):
         cuba.Wrapper(session=CoreSession())
 
     def test_uid(self):
-        """Tests that the uid variable contains a UUID object."""
+        """Tests that the uid variable contains an uid."""
         c = holistic.Process()
         self.assertIsInstance(c.uid, uuid.UUID)
 

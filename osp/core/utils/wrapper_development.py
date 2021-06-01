@@ -25,7 +25,7 @@ def check_arguments(types, *args):
 
 
 def get_neighbor_diff(cuds1, cuds2, mode="all"):
-    """Get the uids of neighbors of cuds1 which are no neighbors in cuds2.
+    """Get the ids of neighbors of cuds1 which are no neighbors in cuds2.
 
     Furthermore get the relationship the neighbors are connected with.
     Optionally filter the considered relationships.
@@ -38,8 +38,8 @@ def get_neighbor_diff(cuds1, cuds2, mode="all"):
         active or non-active relationships.
 
     Returns:
-        List[Tuple[UUID, Relationship]]: List of Tuples that contain the found
-            uids and relationships.
+        List[Tuple[Union[UUID, URIRef], Relationship]]: List of Tuples that
+            contain the found uids and relationships.
     """
     allowed_modes = ["all", "active", "non-active"]
     if mode not in allowed_modes:
@@ -96,7 +96,7 @@ def create_recycle(oclass, kwargs, session, uid,
         oclass (Cuds): The OntologyClass of cuds_object to instantiate
         kwargs (Dict[str, Any]): The kwargs of the cuds_object
         session (Session): The session of the new Cuds object
-        uid (UUID): The uid of the new Cuds object
+        uid (Union[UUID, URIRef): The uid of the new Cuds object
         fix_neighbors (bool): Whether to remove the link from the old neighbors
             to this cuds object, defaults to True
         _force (bool): Skip sanity checks.
@@ -105,7 +105,8 @@ def create_recycle(oclass, kwargs, session, uid,
         Cuds: The created cuds object.
     """
     from osp.core.session.wrapper_session import WrapperSession
-    uid = convert_to(uid, "UUID")
+    from osp.core.cuds import Cuds
+    uid = convert_to(uid, "UID")
     if isinstance(session, WrapperSession) and uid in session._expired:
         session._expired.remove(uid)
 
@@ -119,7 +120,13 @@ def create_recycle(oclass, kwargs, session, uid,
                 cuds_object.remove(rel=rel)
         change_oclass(cuds_object, oclass, kwargs, _force=_force)
     else:  # create new
-        cuds_object = oclass(uid=uid, session=session, **kwargs, _force=_force)
+        if oclass is not None:
+            cuds_object = oclass(uid=uid, session=session,
+                                 **kwargs,
+                                 _force=_force)
+        else:
+            cuds_object = Cuds(uid=uid, session=session,
+                               **kwargs)
     return cuds_object
 
 
@@ -198,12 +205,13 @@ def create_from_triples(triples, neighbor_triples, session,
         fix_neighbors (bool): Whether to remove the link from the old neighbors
             to this cuds object, defaults to True.
     """
-    from osp.core.utils import uid_from_iri
+    from osp.core.utils.general import uid_from_iri
     from osp.core.cuds import Cuds
     from osp.core.session.wrapper_session import WrapperSession
     triples = list(triples)
     if not triples:
         return None
+
     uid = uid_from_iri(triples[0][0])
     if isinstance(session, WrapperSession) and uid in session._expired:
         session._expired.remove(uid)
@@ -221,7 +229,8 @@ def create_from_triples(triples, neighbor_triples, session,
         cuds_object = Cuds(attributes={},
                            oclass=None,
                            session=session,
-                           uid=uid)
+                           uid=uid,
+                           _from_triples=True)
 
     # add the triples
     for triple in set(triples) | set(neighbor_triples):

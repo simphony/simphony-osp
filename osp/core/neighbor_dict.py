@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.namespace_registry import namespace_registry
-from osp.core.utils import iri_from_uid, uid_from_iri
+from osp.core.utils.general import iri_from_uid, uid_from_iri
 from osp.core.namespaces import from_iri
 
 
@@ -166,7 +166,7 @@ class NeighborDictTarget(NeighborDict):
         self.rel = rel
         super().__init__(
             cuds_object,
-            key_check=lambda k: isinstance(k, uuid.UUID),
+            key_check=lambda k: isinstance(k, (uuid.UUID, rdflib.URIRef)),
             value_check=lambda v: (
                 isinstance(v, list)
                 and all(isinstance(x, OntologyClass) for x in v)

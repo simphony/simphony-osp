@@ -50,7 +50,7 @@ class Cuds2dot():
         Args:
             current: root of the entities to add.
         """
-        from osp.core.utils import get_relationships_between
+        from osp.core.utils.general import get_relationships_between
         current_uid = self.shorten_uid(current.uid)
         for cuds_object in current.iter(rel=cuba.relationship):
             cuds_object_uid = self.shorten_uid(cuds_object.uid)
