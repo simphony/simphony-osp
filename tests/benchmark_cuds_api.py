@@ -2,7 +2,7 @@
 
 import random
 # from .benchmarks import Benchmark
-from benchmarks import Benchmark
+from benchmark import Benchmark
 
 try:
     from osp.core.namespaces import city
