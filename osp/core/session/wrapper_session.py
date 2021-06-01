@@ -6,7 +6,7 @@ import rdflib
 from abc import abstractmethod
 from osp.core.session.session import Session
 from osp.core.session.result import returns_query_result
-from osp.core.utils import clone_cuds_object, \
+from osp.core.utils.wrapper_development import clone_cuds_object, \
     get_neighbor_diff
 from osp.core.session.buffers import BufferType, BufferContext, \
     EngineContext
@@ -104,7 +104,8 @@ class WrapperSession(Session):
             # Load from the backend
             old_cuds_object = self._get_old_cuds_object_clone(uid)
             new_cuds_object = self._get_next_missing(missing)
-            self._expire_neighour_diff(old_cuds_object, new_cuds_object, uids)
+            self._expire_neighour_diff(old_cuds_object, new_cuds_object,
+                                       uids)
             if old_cuds_object is not None and new_cuds_object is None \
                     and uid in self._registry:
                 self._delete_cuds_triples(self._registry.get(uid))
@@ -117,15 +118,15 @@ class WrapperSession(Session):
         when attributed or relationships are accessed.
 
         Args:
-            *cuds_or_uids (Union[Cuds, UUID]): The cuds_object or uids
-                to expire.
+            *cuds_or_uids (Union[Cuds, UUID, URIRef]): The cuds_object
+            or uids to expire.
 
         Returns:
             Set[UUID]: The set of uids that became expired
         """
         uids = set()
         for c in cuds_or_uids:
-            if isinstance(c, uuid.UUID):
+            if isinstance(c, (uuid.UUID, rdflib.URIRef)):
                 uids.add(c)
             else:
                 uids.add(c.uid)
@@ -159,8 +160,8 @@ class WrapperSession(Session):
 
     def _get_full_graph(self):
         """Get the triples in the core session."""
-        from osp.core.utils import find_cuds_object
-        from osp.core.utils import cuba
+        from osp.core.utils.simple_search import find_cuds_object
+        from osp.core.namespaces import cuba
 
         for cuds_object in find_cuds_object(lambda x: True,
                                             self._registry.get(self.root),
@@ -203,7 +204,18 @@ class WrapperSession(Session):
             raise RuntimeError("Please add a wrapper to the session first")
 
         if cuds_object.oclass is None:
-            raise TypeError(f"No oclass associated with {cuds_object}!")
+            if any(self.graph.triples((cuds_object.iri, rdflib.RDF.type,
+                                       None))):
+                raise TypeError(f"No oclass associated with {cuds_object}! "
+                                f"However, the cuds is supposed to be of "
+                                "type(s): %s. Did you install the required "
+                                "ontology?" %
+                                ", ".join(o for o in self.graph.objects(
+                                    cuds_object.iri, rdflib.RDF.type))
+                                )
+            else:
+                raise TypeError(f"No oclass associated with {cuds_object}!"
+                                f"Did you install the required ontology?")
 
     # OVERRIDE
     def _store(self, cuds_object):
@@ -256,7 +268,8 @@ class WrapperSession(Session):
         if cuds_object.uid in deleted:
             raise RuntimeError("Cannot update deleted object")
 
-        if cuds_object.uid not in added and cuds_object.uid not in updated:
+        if cuds_object.uid not in added \
+                and cuds_object.uid not in updated:
             if logger.level == logging.DEBUG:
                 logger.debug("Added %s to updated buffer in %s of %s"
                              % (cuds_object, self._current_context, self))
@@ -297,7 +310,8 @@ class WrapperSession(Session):
                          % (cuds_object, self))
         if cuds_object.uid in self._expired:
             self.refresh(cuds_object)
-        if cuds_object.uid not in self._registry and cuds_object._stored:
+        if cuds_object.uid not in self._registry \
+                and cuds_object._stored:
             cuds_object._graph = rdflib.Graph()
 
     def _expire(self, uids):
@@ -306,7 +320,8 @@ class WrapperSession(Session):
         Args:
             uids(Set[UUID]): The uids to expire.
         """
-        not_expirable = uids & self._get_buffer_uids(BufferContext.USER)
+        not_expirable = uids & \
+            self._get_buffer_uids(BufferContext.USER)
         logger.debug("Expire %s in %s" % (uids, self))
         if not_expirable:
             logger.warning("Did not expire %s, because you have uncommitted "
@@ -340,7 +355,8 @@ class WrapperSession(Session):
             context (BufferContext): Which buffers to consider.
 
         Return:
-            Set[UUID]: The uids of cuds objects in buffers
+            Set[Union[UUID, URIRef]]: The uids of cuds objects in
+                                      buffers.
         """
         return (
             set(self._buffers[context][BufferType.ADDED].keys())
@@ -355,19 +371,21 @@ class WrapperSession(Session):
         Will update objects with same uid in the registry.
 
         Args:
-            uids (List[UUID]): List of uids to load.
-            expired (Set[UUID]): Which of the cuds_objects are expired.
+            uids (List[Union[UUID, URIRef]]): List of uids to
+                                                     load.
+            expired (Set[Union[UUID, URIRef]]): Which of the cuds_objects are
+                                                expired.
         """
 
     def _get_next_missing(self, missing):
         """Get the next missing cuds object from the iterator.
 
         Args:
-            missing (Iterator[Optional[Cuds]]): The iterator over loaded
+            missing (Iterator[Cuds], optional): The iterator over loaded
                 missing cuds objects.
 
         Return:
-            Optional[Cuds]: The next loaded cuds object or None, if it doesn't
+            Cuds, optional: The next loaded cuds object or None, if it doesn't
                 exist.
         """
         try:
@@ -376,15 +394,17 @@ class WrapperSession(Session):
             cuds_object = None  # not available in the backend
         return cuds_object
 
-    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object, uids):
+    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object,
+                              uids):
         """Expire outdated neighbors of the just loaded cuds object.
 
         Args:
-            old_cuds_object (Optional[Cuds]): The old version of the cuds
+            old_cuds_object (Cuds, optional): The old version of the cuds
                 object.
-            new_cuds_object (Optional[Cuds]): The just loaded version of the
+            new_cuds_object (Cuds, optional): The just loaded version of the
                 cuds object.
-            uids (List[UUID]): The uids that are loaded right now.
+            uids (List[Union[UUID, uids]]): The uids that
+            are loaded right now.
         """
         if old_cuds_object:
             diff1 = get_neighbor_diff(new_cuds_object, old_cuds_object)
@@ -398,10 +418,11 @@ class WrapperSession(Session):
         """Get old version of expired cuds object from registry.
 
         Args:
-            uid (UUID): The uid to get the old cuds object.
+            uid (Union[UUID, URIRef]): The uid to get the old
+            cuds object.
 
         Returns:
-            Optional[Cuds]: A clone of the old cuds object
+            Cuds, optional: A clone of the old cuds object
         """
         clone = None
         if uid in self._registry:

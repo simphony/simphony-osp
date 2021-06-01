@@ -515,6 +515,16 @@ class TestNamespaces(unittest.TestCase):
             "City_T"
         )
 
+    def test_autocompletion_ipython(self):
+        """Checks that all the expected ontology entities are in __dir__.
+
+        The check is done just for the `cuba` namespace.
+        """
+        expected = {'activeRelationship', 'passiveRelationship',
+                    'relationship', 'attribute', 'path', 'Entity', 'File',
+                    'Nothing', 'Wrapper'}
+        self.assertSetEqual(set(dir(cuba)) & expected, expected)
+
 
 if __name__ == "__main__":
     unittest.main()
