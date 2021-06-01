@@ -14,7 +14,7 @@ except ImportError:  # When the city ontology is not installed.
     city = namespace_registry.city
 
 
-DEFAULT_SIZE = 1000
+DEFAULT_SIZE = 500
 
 
 class CudsCreate(Benchmark):
