@@ -1,10 +1,11 @@
-
+"""Contains an abstract class that serves as a base for defining benchmarks."""
 import time
 from typing import Union
 from abc import ABC, abstractmethod
 
 
 class Benchmark(ABC):
+    """Abstract class that serves as a base for defining benchmarks."""
 
     def __init__(self, size: int = 500, *args, **kwargs):
         """Set-up the internal attributes of the benchmark.
@@ -15,7 +16,7 @@ class Benchmark(ABC):
         """
         super().__init__(*args, **kwargs)
         self._size = size
-        self._iter_times = []
+        self._iter_times = [None] * size
         self._finished = False
 
     @property
@@ -41,12 +42,12 @@ class Benchmark(ABC):
         Standard Library. Check its definition on the library's docs
         https://docs.python.org/dev/library/time.html#time.process_time .
         """
-        return float(sum(self._iter_times))
+        return sum(float(x) for x in self._iter_times if x is not None)
 
     @property
     def iterations(self) -> int:
         """The number of iterations already executed."""
-        return len(self._iter_times)
+        return len(tuple(None for x in self._iter_times if x is not None))
 
     @property
     def iteration(self) -> Union[int, None]:
@@ -70,9 +71,8 @@ class Benchmark(ABC):
         """
         return self._size
 
-    def _set_up(self):
-        """Set up the benchmark. The time spent in the setup is not counted.
-        """
+    def set_up(self):
+        """Set up the benchmark. The time spent in the setup is not counted."""
         self._benchmark_set_up()
 
     @abstractmethod
@@ -80,7 +80,7 @@ class Benchmark(ABC):
         """Implementation of the setup for a specific benchmark."""
         pass
 
-    def _tear_down(self):
+    def tear_down(self):
         """Clean up after the benchmark. The time spent is not counted."""
         self._benchmark_tear_down()
 
@@ -89,7 +89,7 @@ class Benchmark(ABC):
         """Implementation of the teardown for a specific benchmark."""
         pass
 
-    def _iterate(self):
+    def iterate(self):
         """Perform one iteration of the benchmark.
 
         Raises:
@@ -98,10 +98,11 @@ class Benchmark(ABC):
         """
         if self.finished:
             raise StopIteration('This benchmark is finished.')
+        iteration = self.iterations
         start = time.process_time()
-        self._benchmark_iterate(iteration=self.iterations)
+        self._benchmark_iterate(iteration=iteration)
         end = time.process_time()
-        self._iter_times.append(end - start)
+        self._iter_times[iteration] = end - start
 
     @abstractmethod
     def _benchmark_iterate(self, iteration: int = None):
@@ -120,10 +121,10 @@ class Benchmark(ABC):
         already. It runs all of its programmed iterations.
         """
         if not self.started and not self.finished:
-            self._set_up()
+            self.set_up()
             for i in range(self.size):
-                self._iterate()
-            self._tear_down()
+                self.iterate()
+            self.tear_down()
         elif self.started and not self.finished:
             raise RuntimeError('This benchmark has already started.')
         else:  # Both are true.
