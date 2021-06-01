@@ -1,5 +1,5 @@
 Copyright © 2021 Fraunhofer-Gesellschaft zur Förderung der angewandten Forschung e.V. acting on behalf of its Fraunhofer IWM; Enthought, Inc.; Centre Internacional de Mètodes Numèrics a l'Enginyeria (CIMNE); University of Jyväskylä.
-Contact: [Pablo de Andrés](mailto:pablo.de.andres@iwm.fraunhofer.de), [José Manuel Domínguez](mailto:jose.manuel.dominguez@iwm.fraunhofer.de), [Yoav Nahshon](mailto:yoav.nahshon@iwm.fraunhofer.de) (Fraunhofer IWM).
+Contact: Pablo de Andrés, José Manuel Domínguez, Yoav Nahshon (Fraunhofer IWM).
 
 BSD 3-Clause License
 
