@@ -416,7 +416,8 @@ class Cuds_attributes(Benchmark):
 
 def benchmark_cuds_attributes(benchmark):
     """Wrapper function for the Cuds_attributes benchmark."""
-    return Cuds_attributes(benchmark, size=DEFAULT_SIZE)
+    return Cuds_attributes.iterate_pytest_benchmark(benchmark,
+                                                    size=DEFAULT_SIZE)
 
 
 if __name__ == '__main__':
