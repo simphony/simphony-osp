@@ -127,7 +127,8 @@ class Cuds_get_ByuidURIRef(Benchmark):
 
 def benchmark_get_byuiduriref(benchmark):
     """Wrapper function for the Cuds_get_ByuidURIRef benchmark."""
-    return Cuds_get_ByuidURIRef(benchmark, size=DEFAULT_SIZE)
+    return Cuds_get_ByuidURIRef.iterate_pytest_benchmark(benchmark,
+                                                         size=DEFAULT_SIZE)
 
 
 class Cuds_get_ByRel(Benchmark):
