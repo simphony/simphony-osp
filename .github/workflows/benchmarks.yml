@@ -5,7 +5,6 @@ on:
     branches:
       - dev
       - master
-      - 108-Do_performance_tests
 
 jobs:
   benchmark:
@@ -13,6 +12,9 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
+      # - uses: actions/setup-python@v1  # (not needed for self-hosted runner)
+      #   with:
+      #     python-version: '3.8'
       # run: pip install pytest pytest-benchmark  (already in docker image)
       - name: Run benchmark
         run: |
