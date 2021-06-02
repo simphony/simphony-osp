@@ -5,6 +5,7 @@ on:
     branches:
       - dev
       - master
+      - 108-Do_performance_tests
 
 jobs:
   benchmark:
