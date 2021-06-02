@@ -13,10 +13,10 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
+      # run: pip install pytest pytest-benchmark  (already in docker image)
       - name: Run benchmark
         run: |
           pip install -e .
-      #    pip install pytest pytest-benchmark  (already in docker image)
           pytest tests --benchmark-only --benchmark-timer='time.process_time' --benchmark-json output.json
       - name: Download previous benchmark data
         uses: actions/cache@v1
