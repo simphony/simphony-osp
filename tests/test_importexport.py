@@ -14,11 +14,10 @@ from .test_transport_session import assertJsonLdEqual
 try:
     from osp.core.namespaces import test_importexport
 except ImportError:  # If the ontology is not installed.
-    from osp.core.ontology import Parser
+    from osp.core.ontology.parser.parser import load
     from osp.core.ontology.namespace_registry import namespace_registry
-    Parser().parse(
-        str(Path(__file__).parent / "test_importexport.owl.yml")
-    )
+    namespace_registry.load_parser(
+        load(str(Path(__file__).parent / "test_importexport.owl.yml")))
     test_importexport = namespace_registry.test_importexport
 # Load also the city ontology.
 try:

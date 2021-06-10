@@ -3,7 +3,7 @@
 import re
 import logging
 
-from osp.core.ontology.yml.yml_keywords import (
+from osp.core.ontology.parser.yml.keywords import (
     VERSION_KEY, AUTHOR_KEY, ONTOLOGY_KEY, NAMESPACE_KEY, REQUIREMENTS_KEY,
     DESCRIPTION_KEY, SUPERCLASSES_KEY,
     INVERSE_KEY, DEFAULT_REL_KEY, DATATYPE_KEY, ATTRIBUTES_KEY, DISJOINTS_KEY,

@@ -20,8 +20,8 @@ from rdflib import URIRef, Literal, Graph
 from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.namespaces import cuba
 from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.datatypes import convert_from
+from osp.core.ontology.entities.relationship import OntologyRelationship
+from osp.core.ontology.entities.datatypes import convert_from
 
 
 CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"

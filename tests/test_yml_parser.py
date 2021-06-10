@@ -6,8 +6,8 @@ import unittest2 as unittest
 import logging
 from rdflib.compare import isomorphic
 from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.yml.yml_parser import YmlParser
-from osp.core.ontology.parser import Parser
+from osp.core.ontology.parser.yml import YMLParser
+from osp.core.ontology.parser.owl_DELETE import Parser
 from osp.core.ontology.namespace_registry import NamespaceRegistry
 
 

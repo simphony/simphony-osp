@@ -4,8 +4,8 @@ from enum import Enum
 import rdflib
 import logging
 from rdflib.term import BNode
-from osp.core.ontology.attribute import OntologyAttribute
-from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.ontology.entities.attribute import OntologyAttribute
+from osp.core.ontology.entities.relationship import OntologyRelationship
 
 logger = logging.getLogger(__name__)
 

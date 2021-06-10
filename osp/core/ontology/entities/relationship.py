@@ -1,6 +1,6 @@
 """A relationship defined in the ontology."""
 
-from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.entities.entity import OntologyEntity
 import logging
 import rdflib
 

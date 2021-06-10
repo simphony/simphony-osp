@@ -4,7 +4,8 @@ import os
 import logging
 import shutil
 import tempfile
-from osp.core.ontology.parser import Parser
+from osp.core.ontology.parser.parser import load, get_identifier,\
+    get_requirements
 
 logger = logging.getLogger(__name__)
 
@@ -143,15 +144,16 @@ class OntologyInstallationManager():
             self.namespace_registry.clear()
             installed = set()
         files = self._sort_for_installation(filter_func(files), installed)
-        parser = Parser(parser_namespace_registry=self.namespace_registry)
+        print(files)
         for file in files:
-            parser.parse(file)
+            parser = load(file)
+            self.namespace_registry.load_parser(parser)
         self.namespace_registry.update_namespaces()
         # serialize the result
         if clear:
             shutil.rmtree(self.path)
             os.makedirs(self.path)
-        parser.store(self.path)
+        parser.install(self.path)
         self.namespace_registry.store(self.path)
 
     def _sort_for_installation(self, files, installed):
@@ -167,8 +169,8 @@ class OntologyInstallationManager():
             List[str]: The sorted list of file paths.
         """
         result = list()
-        files = {Parser.get_identifier(f): f for f in files}
-        requirements = {n: Parser.get_requirements(f) for
+        files = {get_identifier(f): f for f in files}
+        requirements = {n: get_requirements(f) for
                         n, f in files.items()}
 
         # order the files
@@ -200,7 +202,7 @@ def pico_migrate(namespace_registry, path):
         path (str): The installation path
     """
     logger.info("Migrating installed ontologies to new osp-core version.")
-    yml_path = os.path.join(path, "yml", "installed")
+    yml_path = os.path.join(path, "parser/yml", "installed")
     with tempfile.TemporaryDirectory() as d:
         files = list()
         for file in os.listdir(yml_path):

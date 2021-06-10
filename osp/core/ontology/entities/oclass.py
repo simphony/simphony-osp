@@ -3,7 +3,7 @@ import uuid
 
 import rdflib
 
-from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.entities.entity import OntologyEntity
 from osp.core.ontology.cuba import rdflib_cuba
 import logging
 from rdflib import OWL, RDFS, RDF, BNode

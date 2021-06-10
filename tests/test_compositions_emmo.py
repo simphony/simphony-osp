@@ -2,9 +2,9 @@
 
 import unittest2 as unittest
 import rdflib
-from osp.core.ontology.entity import OntologyEntity
-from osp.core.ontology.oclass_restriction import Restriction
-from osp.core.ontology.oclass_composition import Composition, OPERATOR
+from osp.core.ontology.entities.entity import OntologyEntity
+from osp.core.ontology.entities.oclass_restriction import Restriction
+from osp.core.ontology.entities.oclass_composition import Composition, OPERATOR
 
 
 try:

@@ -12,8 +12,8 @@ import shutil
 import os
 from copy import deepcopy
 from pathlib import Path
-from osp.core.ontology.yml.yml_parser import YmlParser
-from osp.core.ontology.yml.yml_keywords import NAMESPACE_KEY, ONTOLOGY_KEY, \
+from osp.core.ontology.parser.yml import YmlParser
+from osp.core.ontology.parser.yml.keywords import NAMESPACE_KEY, ONTOLOGY_KEY, \
     SUPERCLASSES_KEY, REQUIREMENTS_KEY
 
 

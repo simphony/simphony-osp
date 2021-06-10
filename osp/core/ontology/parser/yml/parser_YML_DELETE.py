@@ -7,8 +7,8 @@ import rdflib
 import rdflib.collection
 from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.datatypes import get_rdflib_datatype
-from osp.core.ontology.yml.yml_keywords import (
+from osp.core.ontology.entities.datatypes import get_rdflib_datatype
+from osp.core.ontology.parser.yml.keywords import (
     ONTOLOGY_KEY, NAMESPACE_KEY,
     DESCRIPTION_KEY, SUPERCLASSES_KEY,
     INVERSE_KEY, DEFAULT_REL_KEY, DATATYPE_KEY, ATTRIBUTES_KEY,
@@ -22,14 +22,15 @@ from osp.core.ontology.yml.yml_keywords import (
 #     MAIN_NAMESPACE, CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY, AUTHOR_KEY,
 #     VERSION_KEY, ROOT_CLASS
 # )
-from osp.core.ontology.yml.yml_validator import validate
-from osp.core.ontology.yml.case_insensitivity import \
+from osp.core.ontology.parser.parser import OntologyParser
+from osp.core.ontology.parser.yml.validator import validate
+from osp.core.ontology.parser.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
 
 logger = logging.getLogger(__name__)
 
 
-class YmlParser:
+class YmlParser(OntologyParser):
     """Class that parses a YAML ontology."""
 
     def __init__(self, parser_namespace_registry=None):
@@ -55,30 +56,6 @@ class YmlParser:
         self.graph = self._namespace_registry._graph
         self.graph.bind("owl", rdflib.OWL)
 
-    @staticmethod
-    def is_yaml_ontology(doc):
-        """Check whether the given YAML document is a YAML ontology.
-
-        Args:
-            doc (dict): A loaded YAML document.
-
-        Returns:
-            bool: Whether the given document is a YAML ontology.
-        """
-        return ONTOLOGY_KEY in doc and NAMESPACE_KEY in doc
-
-    @staticmethod
-    def get_namespace_name(doc):
-        """Get the namespace name defined by the given YAML ontology doc.
-
-        Args:
-            doc (dict): The document of the YAML ontology.
-
-        Returns:
-            str: The namespace name of the given YAML ontology document.
-        """
-        return doc[NAMESPACE_KEY].lower()
-
     def parse(self, file_path, doc=None):
         """Read the YAML and extracts the dictionary with the CUDS."""
         logger.info("Parsing YAML ontology file %s" % file_path)
@@ -94,17 +71,6 @@ class YmlParser:
         self._namespace_registry.bind(self._namespace, self._get_iri())
         logger.info(f"You can now use `from osp.core.namespaces import "
                     f"{self._namespace}`.")
-
-    @staticmethod
-    def get_doc(file_path):
-        """Parse the file path to yaml.
-
-        :param file_path: The path to the file to parse.
-        :type file_path: str
-        """
-        with open(file_path, 'r') as stream:
-            yaml_doc = yaml.safe_load(stream)
-        return yaml_doc
 
     def _parse_ontology(self):
         """Parse the entity descriptions."""
@@ -131,26 +97,6 @@ class YmlParser:
         for entity_name, entity_doc in self._ontology_doc.items():
             if types[entity_name] == "class":
                 self._add_attributes(entity_name, entity_doc)
-
-    @staticmethod
-    def split_name(name):
-        """Split the name in namespace and entity name.
-
-        Args:
-            name (str): namespace.entity_name
-
-        Raises:
-            ValueError: Not exactly one '.' in the given name
-
-        Returns:
-            Tuple[str, str]: Tuple of namespace and name.
-        """
-        try:
-            a, b = name.split(".")
-            return a.lower(), b
-        except ValueError as e:
-            raise ValueError("Reference to entity '%s' without namespace"
-                             % name) from e
 
     def _load_entity(self, entity_name, entity_doc):
         """Load an entity into the registry.
@@ -208,6 +154,7 @@ class YmlParser:
         if not entity_name:
             return ns_iri
 
+        iri = ns_iri + entity_name
         iri = ns_iri + entity_name
         # in case of reference by label (EMMO)
         if (ns_iri, rdflib_cuba._reference_by_label, rdflib.Literal(True)) \

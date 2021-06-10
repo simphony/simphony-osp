@@ -9,10 +9,10 @@ from uuid import uuid4, UUID
 from typing import Union, List, Iterator, Dict, Any, Optional, Tuple
 from rdflib import URIRef, RDF, Graph, Literal
 from osp.core.namespaces import cuba, from_iri
-from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.attribute import OntologyAttribute
-from osp.core.ontology.oclass import OntologyClass
-from osp.core.ontology.datatypes import CUDS_IRI_PREFIX
+from osp.core.ontology.entities.relationship import OntologyRelationship
+from osp.core.ontology.entities.attribute import OntologyAttribute
+from osp.core.ontology.entities.oclass import OntologyClass
+from osp.core.ontology.entities.datatypes import CUDS_IRI_PREFIX
 from osp.core.session.core_session import core_session
 from osp.core.session.session import Session
 from osp.core.neighbor_dict import NeighborDictRel
