@@ -3,13 +3,13 @@
 import uuid
 import rdflib
 from abc import abstractmethod
-from osp.core.ontology.entities.datatypes import convert_from
+from osp.core.ontology.datatypes import convert_from
 from osp.core.session.db.triplestore_wrapper_session import \
     TripleStoreWrapperSession
 from osp.core.session.buffers import BufferContext
 from osp.core.ontology import OntologyRelationship
 from osp.core.utils.general import CUDS_IRI_PREFIX, iri_from_uid
-from osp.core.ontology.entities.datatypes import to_uid
+from osp.core.ontology.datatypes import to_uid
 from osp.core.session.db.sql_migrate import check_supported_schema_version
 from osp.core.session.db.sql_util import (
     SqlQuery, EqualsCondition, AndCondition, JoinCondition,

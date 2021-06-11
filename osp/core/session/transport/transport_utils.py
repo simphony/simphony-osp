@@ -11,8 +11,8 @@ import ast
 from rdflib_jsonld.serializer import from_rdf as json_from_rdf
 from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.namespaces import get_entity, cuba
-from osp.core.ontology.entities.datatypes import convert_from, convert_to
-from osp.core.ontology.entities.entity import OntologyEntity
+from osp.core.ontology.datatypes import convert_from, convert_to
+from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.buffers import BufferContext, get_buffer_context_mngr
 from osp.core.utils.wrapper_development import create_from_triples
 from osp.core.utils.general import uid_from_general_iri

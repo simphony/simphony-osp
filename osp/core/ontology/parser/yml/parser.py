@@ -7,7 +7,7 @@ from rdflib import BNode, Graph, URIRef, Literal, RDF, RDFS, OWL, XSD, SKOS
 from rdflib.graph import ReadOnlyGraphAggregate
 import yaml
 from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.entities.datatypes import get_rdflib_datatype
+from osp.core.ontology.datatypes import get_rdflib_datatype
 from osp.core.ontology.parser.parser import OntologyParser
 from osp.core.ontology.parser.yml.validator import validate
 from osp.core.ontology.parser.yml.case_insensitivity import \

@@ -2,7 +2,7 @@
 
 import rdflib
 from copy import deepcopy
-from osp.core.ontology.entities.datatypes import convert_to
+from osp.core.ontology.datatypes import convert_to
 from osp.core.utils.general import get_relationships_between
 from osp.core.namespaces import cuba
 

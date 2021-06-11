@@ -3,8 +3,8 @@
 import uuid
 import rdflib
 from abc import ABC, abstractmethod
-from osp.core.ontology.entities.relationship import OntologyRelationship
-from osp.core.ontology.entities.oclass import OntologyClass
+from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.utils.general import iri_from_uid, uid_from_iri
 from osp.core.namespaces import from_iri

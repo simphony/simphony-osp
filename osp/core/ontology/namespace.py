@@ -5,8 +5,8 @@ from collections.abc import Iterable
 import rdflib
 import logging
 import itertools
-from osp.core.ontology.entities.entity import OntologyEntity
-from osp.core.ontology.entities.relationship import OntologyRelationship
+from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.parser.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt

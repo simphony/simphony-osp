@@ -1,7 +1,7 @@
 """An attribute defined in the ontology."""
 
-from osp.core.ontology.entities.entity import OntologyEntity
-from osp.core.ontology.entities.datatypes import convert_from, convert_to
+from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.datatypes import convert_from, convert_to
 import logging
 import rdflib
 

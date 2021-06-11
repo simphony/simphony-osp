@@ -2,7 +2,7 @@
 
 import rdflib
 from operator import mul
-from osp.core.ontology.entities.datatypes import convert_to, convert_from, \
+from osp.core.ontology.datatypes import convert_to, convert_from, \
     _parse_vector_args
 from osp.core.ontology.cuba import rdflib_cuba
 from functools import reduce

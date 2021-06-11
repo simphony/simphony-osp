@@ -5,9 +5,9 @@ import logging
 import rdflib
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.namespace import OntologyNamespace
-from osp.core.ontology.entities.oclass import OntologyClass
-from osp.core.ontology.entities.relationship import OntologyRelationship
-from osp.core.ontology.entities.attribute import OntologyAttribute
+from osp.core.ontology.oclass import OntologyClass
+from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.ontology import Ontology
 from osp.core.ontology.parser.parser import OntologyParser
 from functools import lru_cache
@@ -180,9 +180,9 @@ class NamespaceRegistry:
             bnode (BNode): A blank node in the triple store.
             btype (URIRef): The rdf.type of the blank node.
         """
-        from osp.core.ontology.entities.oclass_composition import \
+        from osp.core.ontology.oclass_composition import \
             get_composition
-        from osp.core.ontology.entities.oclass_restriction import \
+        from osp.core.ontology.oclass_restriction import \
             get_restriction
         t = btype or self._graph.value(bnode, rdflib.RDF.type)
 
