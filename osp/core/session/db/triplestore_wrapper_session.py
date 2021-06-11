@@ -16,25 +16,32 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
     def _apply_added(self, root_obj, buffer):
         # Perform the SQL-Statements to add the elements
         # in the buffers to the DB.
-
-        for added in buffer.values():
-            triples = self._substitute_root_iri(added.get_triples())
-            self._add(*triples)
+        triples = (triple for added in buffer.values() for triple
+                   in self._substitute_root_iri(added.get_triples()))
+        self._add(*triples)
 
     # OVERRIDE
     def _apply_updated(self, root_obj, buffer):
         # Perform the SQL-Statements to update the elements
         # in the buffers in the DB.
+        # TODO: maybe _remove should accept multiple patterns at once,
+        #  as _add does. Changing this should only break the AllegroGraph
+        #  wrapper.
         for updated in buffer.values():
             pattern = (updated.iri, None, None)
             self._remove(next(self._substitute_root_iri([pattern])))
-            triples = self._substitute_root_iri(updated.get_triples())
-            self._add(*triples)
+        triples_add = (triple for updated in buffer.values()
+                       for triple in
+                       self._substitute_root_iri(updated.get_triples()))
+        self._add(*triples_add)
 
     # OVERRIDE
     def _apply_deleted(self, root_obj, buffer):
         # Perform the SQL-Statements to delete the elements
         # in the buffers in the DB.
+        # TODO: maybe _remove should accept multiple patterns at once,
+        #  as _add does. Changing this should only break the AllegroGraph
+        #  wrapper.
         for deleted in buffer.values():
             pattern = (deleted.iri, None, None)
             self._remove(next(self._substitute_root_iri([pattern])))

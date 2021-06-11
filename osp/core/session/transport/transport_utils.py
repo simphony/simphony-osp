@@ -8,6 +8,7 @@ import logging
 import hashlib
 import rdflib
 import ast
+from typing import Optional, Tuple, Any
 from rdflib_jsonld.serializer import from_rdf as json_from_rdf
 from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.namespaces import get_entity, cuba
@@ -379,35 +380,57 @@ def import_rdf(graph, session, buffer_context, return_uid=None):
         raise ValueError("Not allowed to deserialize CUDS object "
                          "with undefined buffer_context")
 
+    get_buffer_context_mngr(session, buffer_context)
+    triples = (triple for triple in graph if _import_rdf_filter(triple))
+    triples = map(_import_rdf_custom_datatypes, triples)
+    uid_triples = dict()
+    for s, p, o in triples:
+        if isinstance(o, rdflib.URIRef) \
+                and p not in (rdflib.RDF.type, rdflib.OWL.sameAs):
+            _, o = uid_from_general_iri(o, session.graph)
+        s_uid, s = uid_from_general_iri(s, session.graph)
+        session.graph.add((s, p, o))
+        uid_triples[s_uid] = uid_triples.get(s_uid, set())
+        uid_triples[s_uid].add((s, p, o))
     result = list()
-    with get_buffer_context_mngr(session, buffer_context):
-        triples = dict()
-        for s, p, o in graph:
-            # handle custom datatype: VECTORs
-            if isinstance(s, rdflib.BNode) or isinstance(o, rdflib.BNode) \
-                    or o == rdflib.OWL.NamedIndividual:
-                continue  # TODO also import BNodes and type-NamedIndividual?
-            if isinstance(o, rdflib.Literal)  \
-                    and o.datatype and o.datatype in rdflib_cuba \
-                    and "VECTOR" in o.datatype.toPython():
-                o = rdflib.Literal(
-                    convert_to(ast.literal_eval(o.toPython()), o.datatype),
-                    datatype=o.datatype, lang=o.language
-                )
-            if isinstance(o, rdflib.URIRef) \
-                    and p not in (rdflib.RDF.type, rdflib.OWL.sameAs):
-                _, o = uid_from_general_iri(o, session.graph)
-            s_uid, s = uid_from_general_iri(s, session.graph)
-            session.graph.add((s, p, o))
-            triples[s_uid] = triples.get(s_uid, set())
-            triples[s_uid].add((s, p, o))
-
-        for uid, t in triples.items():
-            # Create entry in the registry
-            x = create_from_triples(t, set(), session, fix_neighbors=False)
-            if return_uid is None or uid == return_uid:
-                result.append(x)
+    for uid, t in uid_triples.items():
+        # Create entry in the registry
+        x = create_from_triples(t, set(), session, fix_neighbors=False)
+        if return_uid is None or uid == return_uid:
+            result.append(x)
     return result if not return_uid else result[0]
+
+
+def _import_rdf_filter(triple: Tuple[Any, Any, Any]) \
+        -> Optional[Tuple[Any, Any, Any]]:
+    """Auxiliary function for `import_rdf`.
+
+    Filters triples blank nodes and named individuals.
+    """
+    s, p, o = triple
+    if isinstance(s, rdflib.BNode) or isinstance(o, rdflib.BNode) \
+            or o == rdflib.OWL.NamedIndividual:
+        return None
+    else:
+        return triple
+
+
+def _import_rdf_custom_datatypes(triple: Tuple[Any, Any, Any]) \
+        -> Tuple[Any, Any, Any]:
+    """Auxiliary function for `import_rdf`.
+
+    Handles custom datatypes in a triple (if any).
+    """
+    s, p, o = triple
+    # handle custom datatype: VECTORs
+    if isinstance(o, rdflib.Literal) \
+            and o.datatype and o.datatype in rdflib_cuba \
+            and "VECTOR" in o.datatype.toPython():
+        o = rdflib.Literal(
+            convert_to(ast.literal_eval(o.toPython()), o.datatype),
+            datatype=o.datatype, lang=o.language
+        )
+    return s, p, o
 
 
 def get_hash_dir(directory_path):
