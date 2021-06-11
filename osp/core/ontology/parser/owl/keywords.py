@@ -1,3 +1,5 @@
+"""This file contains keywords that occur in the OWL ontology config files."""
+
 IDENTIFIER_KEY = "identifier"
 RDF_FILE_KEY = "ontology_file"
 NAMESPACES_KEY = "namespaces"

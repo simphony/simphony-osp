@@ -7,10 +7,8 @@ import logging
 from rdflib.compare import isomorphic
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.ontology import Ontology
-from osp.core.ontology.parser.parser import OntologyParser
 from osp.core.ontology.parser.owl.parser import OWLParser
 from osp.core.ontology.parser.yml.parser import YMLParser
-from osp.core.ontology.parser import Parser
 from osp.core.ontology.namespace_registry import NamespaceRegistry
 
 
@@ -131,9 +129,9 @@ class TestYMLParser(unittest.TestCase):
         pre = set(self.parser._graph)
         self.parser._add_attributes("ClassA", self.ontology_doc["ClassA"])
         bnode1 = self.parser._graph.value(self.parser._get_iri("ClassA"),
-                                  rdflib_cuba._default)
+                                          rdflib_cuba._default)
         bnode2 = self.parser._graph.value(None, rdflib.RDF.type,
-                                  rdflib.OWL.Restriction)
+                                          rdflib.OWL.Restriction)
         self.assertEqual(set(self.parser._graph) - pre, {
             (self.parser._get_iri("ClassA"), rdflib_cuba._default, bnode1),
             (bnode1, rdflib_cuba._default_value, rdflib.Literal("DEFAULT_A")),

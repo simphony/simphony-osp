@@ -2,9 +2,7 @@
 
 import os
 import logging
-from typing import Tuple, Dict
 import rdflib
-from rdflib import Graph, URIRef
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.entities.oclass import OntologyClass
@@ -182,8 +180,10 @@ class NamespaceRegistry:
             bnode (BNode): A blank node in the triple store.
             btype (URIRef): The rdf.type of the blank node.
         """
-        from osp.core.ontology.entities.oclass_composition import get_composition
-        from osp.core.ontology.entities.oclass_restriction import get_restriction
+        from osp.core.ontology.entities.oclass_composition import \
+            get_composition
+        from osp.core.ontology.entities.oclass_restriction import \
+            get_restriction
         t = btype or self._graph.value(bnode, rdflib.RDF.type)
 
         if t == rdflib.OWL.Restriction:
@@ -407,7 +407,7 @@ class NamespaceRegistry:
             except KeyError:
                 pass
         if not found:
-            raise ValueError(f'The default relationship ' 
+            raise ValueError(f'The default relationship '
                              f'{ontology.default_relationship} defined for '
                              f'the ontology package {ontology.identifier} '
                              f'is not installed.')

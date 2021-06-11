@@ -1,3 +1,5 @@
+"""Parses YAML ontologies."""
+
 from typing import Tuple, Set, Dict, Optional
 import os
 import logging
@@ -18,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 
 class YMLParser(OntologyParser):
+    """Parses YAML ontologies."""
+
     _default_rel: URIRef = None
     _file_path: str
     _graph: Graph  # For lazy evaluation.
@@ -25,33 +29,56 @@ class YMLParser(OntologyParser):
 
     @property
     def identifier(self) -> str:
+        """Get the identifier of the loaded ontology package.
+
+        Returns:
+            str: The identifier of the loaded ontology package.
+        """
         return self._namespace
 
     @property
     def namespaces(self) -> Dict[str, URIRef]:
+        """Fetch the namespaces from the ontology files.
+
+        YAML ontologies can define just one namespace.
+
+        Returns:
+            Dict[str, URIRef]: A dictionary containing the defined namespace
+                names and URIs. For YAML ontologies this dictionary has just
+                one key.
+        """
         namespace = self._yaml_doc[keywords.NAMESPACE_KEY].lower()
         return {namespace: URIRef(f"http://www.osp-core.com/{namespace}#")}
 
     @property
     def requirements(self) -> Set[str]:
+        """Fetch the requirements from the ontology file."""
         return set(self._yaml_doc.get(keywords.REQUIREMENTS_KEY, set()))
 
     @property
     def active_relationships(self) -> Tuple[URIRef]:
+        """Fetch the active relationships from the ontology file."""
         return tuple(iri for iri in self.graph.subjects(
             RDFS.subPropertyOf, rdflib_cuba.activeRelationship))
 
     @property
     def default_relationship(self) -> Optional[URIRef]:
+        """Fetch the default relationship from the ontology file."""
         if self.graph:
             pass
         return self._default_rel
 
     @property
     def reference_style(self) -> bool:
+        """Whether to reference entities by labels or iri suffix.
+
+        For YAML ontologies it is only possible to reference them by iri
+        suffix.
+        """
         return False
 
     def __init__(self, path: str):
+        """Initialize the parser."""
         path = self.parse_file_path(path)
         doc = self.load_yaml(path)
         validate(doc, context="<%s>" % os.path.basename(path))
@@ -61,11 +88,20 @@ class YMLParser(OntologyParser):
 
     @property
     def graph(self):
+        """Fetch the ontology graph from the ontology file."""
         if not self._graph:
             self._construct_ontology_graph()
         return self._graph
 
     def install(self, destination: str):
+        """Store the parsed files at the given destination.
+
+        This function is meant to copy the ontology to the OSP-core data
+        directory. So usually the destination will be `~/.osp_ontologies`.
+
+        Args:
+            destination (str): the OSP-core data directory.
+        """
         file_path = os.path.join(destination, f"{self.identifier}.yml")
         with open(file_path, "w") as f:
             yaml.safe_dump(self._yaml_doc, f)

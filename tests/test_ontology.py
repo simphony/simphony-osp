@@ -1,3 +1,5 @@
+"""Test the ontology class."""
+
 import unittest
 from rdflib import URIRef, Literal, RDF, RDFS, OWL
 from osp.core.ontology.cuba import rdflib_cuba
@@ -5,7 +7,8 @@ from osp.core.ontology.ontology import Ontology
 
 
 class TestOntology(unittest.TestCase):
-    
+    """Test the ontology class."""
+
     def setUp(self):
         """Set up Graph and Parser."""
         self.ontology = Ontology(identifier='identifier')

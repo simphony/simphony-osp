@@ -1,3 +1,5 @@
+"""Parses OWL ontologies."""
+
 from typing import Tuple, Set, Dict, Optional
 import io
 import logging
@@ -13,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class OWLParser(OntologyParser):
+    """Parses OWL ontologies."""
+
     _file_path: str
     _graph: Graph = None  # For lazy evaluation.
     _yaml_config: dict
@@ -28,10 +32,11 @@ class OWLParser(OntologyParser):
 
     @property
     def namespaces(self) -> Dict[str, URIRef]:
-        """Get the names of the namespaces of the loaded configuration file.
+        """Fetch the namespaces from the ontology files.
 
         Returns:
-            Tuple[str]: A tuple containing the defined namespace names.
+            Dict[str, URIRef]: A dictionary containing the defined namespace
+                names and URIs.
         """
         namespaces = {label.lower(): URIRef(value) for label, value in
                       self._yaml_config[keywords.NAMESPACES_KEY].items()}
@@ -45,6 +50,7 @@ class OWLParser(OntologyParser):
 
     @property
     def requirements(self) -> Set[str]:
+        """Fetch the requirements from the ontology file."""
         requirements = self._yaml_config.get(keywords.REQUIREMENTS_KEY, list())
         if not isinstance(requirements, list):
             raise ValueError(
@@ -56,21 +62,25 @@ class OWLParser(OntologyParser):
 
     @property
     def active_relationships(self) -> Tuple[URIRef]:
+        """Fetch the active relationships from the ontology file."""
         return tuple(rdflib.URIRef(x) for x in
                      self._yaml_config.get(keywords.ACTIVE_REL_KEY, tuple()))
 
     @property
     def default_relationship(self) -> Optional[URIRef]:
+        """Fetch the default relationship from the ontology file."""
         default_relationship = self._yaml_config.get(keywords.DEFAULT_REL_KEY,
                                                      None)
         return URIRef(default_relationship) if default_relationship else None
 
     @property
     def reference_style(self) -> bool:
+        """Whether to reference entities by labels or iri suffix."""
         return self._yaml_config.get(keywords.REFERENCE_STYLE_KEY, False)
 
     @property
     def graph(self) -> Graph:
+        """Fetch the ontology graph from the ontology file."""
         if not self._graph:
             file_format = self._yaml_config.get(keywords.FILE_FORMAT_KEY,
                                                 'xml')
@@ -80,6 +90,7 @@ class OWLParser(OntologyParser):
         return self._graph
 
     def __init__(self, path: str):
+        """Initialize the OWL ontology parser."""
         self._yaml_config = self._load_yaml_config(path)
         self._file_path = path
 
@@ -97,7 +108,7 @@ class OWLParser(OntologyParser):
         graph_destination = os.path.join(destination, rdf_relative_path)
         config_destination = os.path.join(destination,
                                           f"{self.identifier}.yml")
-        saved_graph, saved_config = (False, )*2
+        saved_graph, saved_config = (False, ) * 2
         try:
             # Save graph.
             self.graph.serialize(graph_destination,
@@ -154,9 +165,9 @@ class OWLParser(OntologyParser):
             ValueError: invalid values for some keywords.
         """
         if not all(KEY in doc for KEY in keywords.MANDATORY_KEYS):
-            raise SyntaxError(f"The given file is not a YAML configuration "
-                              f"file for an OWL ontology. Make sure that it "
-                              f"contains all of the following keys: %s."
+            raise SyntaxError("The given file is not a YAML configuration "
+                              "file for an OWL ontology. Make sure that it "
+                              "contains all of the following keys: %s."
                               % ', '.join(KEY
                                           for KEY in keywords.MANDATORY_KEYS))
         other_keys = set(KEY for KEY in doc) - set(keywords.ALL_KEYS)
@@ -181,6 +192,7 @@ class OWLParser(OntologyParser):
             yaml_config_path (str): the path where the YAML config file was
                 read. It is used to resolve the relative path to the ontology
                 file.
+
         Returns:
             Graph: The ontology graph.
         """
@@ -198,4 +210,3 @@ class OWLParser(OntologyParser):
                     format=file_format)
         file_like.close()
         return graph
-

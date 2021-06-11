@@ -1,3 +1,4 @@
+"""Defines an ontology."""
 from copy import deepcopy
 from typing import Union, Set, Dict, Tuple, Optional, Iterable
 import logging
@@ -11,6 +12,12 @@ logger = logging.getLogger(__name__)
 
 
 class Ontology:
+    """Defines an ontology.
+
+    Sets the basis for editable ontologies. This object is the one meant to be
+    loaded by the namespace registry.
+    """
+
     identifier: str
     namespaces: Dict[str, URIRef]
     requirements: Set[str]
@@ -19,11 +26,13 @@ class Ontology:
 
     @property
     def active_relationships(self) -> Tuple[URIRef]:
+        """Get the active relationships defined in the ontology."""
         return tuple(iri for iri in self._ontology_overlay.subjects(
             RDFS.subPropertyOf, rdflib_cuba.activeRelationship))
 
     @active_relationships.setter
     def active_relationships(self, value: Tuple[URIRef]):
+        """Set the active relationships defined in the ontology."""
         for triple in self._ontology_overlay.triples(
                 (None, RDFS.subPropertyOf, rdflib_cuba.activeRelationship)):
             self._ontology_overlay.remove(triple)
@@ -33,6 +42,7 @@ class Ontology:
 
     @property
     def default_relationship(self) -> Optional[URIRef]:
+        """Get the default relationship defined in the ontology."""
         default_relationships = (o for s, o in
                                  self._ontology_overlay.subject_objects(
                                      rdflib_cuba._default_rel)
@@ -45,6 +55,7 @@ class Ontology:
 
     @default_relationship.setter
     def default_relationship(self, value: Optional[URIRef]):
+        """Set the default relationship defined in the ontology."""
         default_relationships = (o for s, o in
                                  self._ontology_overlay.subject_objects(
                                      rdflib_cuba._default_rel)
@@ -55,8 +66,13 @@ class Ontology:
             for iri in self.namespaces.values():
                 self._ontology_overlay.add((iri, rdflib_cuba._default_rel,
                                             value))
+
     @property
     def reference_style(self) -> bool:
+        """Get the reference style defined in the ontology.
+
+        Can be either by label (True) or by iri suffix (False).
+        """
         true_reference_styles = (s for s in
                                  self._ontology_overlay.subjects(
                                      rdflib_cuba._reference_by_label,
@@ -70,9 +86,13 @@ class Ontology:
 
     @reference_style.setter
     def reference_style(self, value: bool) -> bool:
+        """Set the reference style defined in the ontology.
+
+        Can be either by label (True) or by iri suffix (False).
+        """
         reference_style_triples = (
             (s, p, o) for s, p, o in self._ontology_overlay.triples(
-            (None, rdflib_cuba._reference_by_label, Literal(True)))
+                (None, rdflib_cuba._reference_by_label, Literal(True)))
             if s in self.namespaces.values()
         )
         for triple in reference_style_triples:
@@ -83,12 +103,18 @@ class Ontology:
 
     @property
     def graph(self) -> Graph:
+        """Get the ontology graph."""
         return self._ontology_graph + self._ontology_overlay
 
     def __init__(self, identifier: str = None,
                  namespaces: Dict[str, str] = None,
                  requirements: Iterable[str] = None,
                  from_parser: OntologyParser = None):
+        """Initialize the ontology.
+
+        A few metadata can be specified, but the ontology will be essentially
+        empty unless it is created from a parser object.
+        """
         if from_parser:  # Compute ontology graph from an ontology parser.
             parser = from_parser
             self._ontology_graph = deepcopy(parser.graph)
