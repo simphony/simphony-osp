@@ -8,7 +8,7 @@ from rdflib.compare import isomorphic
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.namespace_registry import NamespaceRegistry
 from osp.core.ontology.installation import OntologyInstallationManager
-from osp.core.ontology.entities import OntologyClass, OntologyRelationship, \
+from osp.core.ontology import OntologyClass, OntologyRelationship, \
     OntologyAttribute
 from osp.core.namespaces import cuba
 
