@@ -367,13 +367,50 @@ class NamespaceRegistry:
             parser (OntologyParser): the ontology parser from where to load
                 the new namespaces
         """
+        namespaces = parser.namespaces.items() \
+            if isinstance(parser.namespaces, dict) else dict()
         logger.info("Loading namespaces %s." %
                     '; '.join([f'{name}, {uri}'
-                               for name, uri in parser.namespaces.items()]))
+                               for name, uri in namespaces]))
         ontology = Ontology(from_parser=parser)
+        # Force default relationships to be installed before installing a new
+        # ontology.
+        self._check_default_relationship_installed(ontology)
+        # Merge ontology graph.
         self._graph += ontology.graph
-        for name, iri in ontology.namespaces.items():
+        # Bind namespaces.
+        for name, iri in namespaces:
+            if not (
+                iri.endswith("#") or iri.endswith("/")
+            ):
+                iri += "#"
             self.bind(name, iri)
+
+    def _check_default_relationship_installed(self, ontology: Ontology,
+                                              allow_types=frozenset(
+                                                  {rdflib.OWL.ObjectProperty,
+                                                   })
+                                              ):
+        found = False
+        # Check if it is in the namespace to be installed.
+        for s, p, o in ontology.graph.triples((ontology.default_relationship,
+                                               rdflib.RDF.type,
+                                               None)):
+            if o in allow_types:
+                found = True
+                break
+        # If not, found, find it in the namespace registry.
+        if not found:
+            try:
+                self.from_iri(ontology.default_relationship)
+                found = True
+            except KeyError:
+                pass
+        if not found:
+            raise ValueError(f'The default relationship ' 
+                             f'{ontology.default_relationship} defined for '
+                             f'the ontology package {ontology.identifier} '
+                             f'is not installed.')
 
 
 namespace_registry = NamespaceRegistry()

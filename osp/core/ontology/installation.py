@@ -4,13 +4,12 @@ import os
 import logging
 import shutil
 import tempfile
-from osp.core.ontology.parser.parser import load, get_identifier,\
-    get_requirements
+from osp.core.ontology.parser.parser import OntologyParser
 
 logger = logging.getLogger(__name__)
 
 
-class OntologyInstallationManager():
+class OntologyInstallationManager:
     """This class handles the installation of ontologies."""
 
     def __init__(self, namespace_registry=None, path=None):
@@ -82,7 +81,7 @@ class OntologyInstallationManager():
         installed_pkgs = dict(self.get_installed_packages(return_path=True))
         for pkg in remove_packages:
             if pkg.endswith(".yml") and os.path.exists(pkg):
-                pkg = Parser.get_identifier(pkg)
+                pkg = OntologyParser.get_parser(pkg).identifier
             if pkg in installed_pkgs:
                 remove_pkgs.add(pkg)
             else:
@@ -106,7 +105,7 @@ class OntologyInstallationManager():
         """
         installed = dict(self.get_installed_packages(return_path=True))
         for pkg in new_packages:
-            installed[Parser.get_identifier(pkg)] = pkg
+            installed[OntologyParser.get_parser(pkg).identifier] = pkg
         return installed.values()
 
     def _get_new_packages(self, packages):
@@ -121,7 +120,7 @@ class OntologyInstallationManager():
         result = set(packages)
         installed = set(self.get_installed_packages())
         for pkg in packages:
-            identifier = Parser.get_identifier(pkg)
+            identifier = OntologyParser.get_parser(pkg).identifier
             if identifier in installed:
                 logger.info("Skipping package %s with identifier %s, "
                             "because it is already installed."
@@ -143,17 +142,15 @@ class OntologyInstallationManager():
         if clear:
             self.namespace_registry.clear()
             installed = set()
-        files = self._sort_for_installation(filter_func(files), installed)
-        print(files)
-        for file in files:
-            parser = load(file)
-            self.namespace_registry.load_parser(parser)
-        self.namespace_registry.update_namespaces()
-        # serialize the result
-        if clear:
             shutil.rmtree(self.path)
             os.makedirs(self.path)
-        parser.install(self.path)
+        files = self._sort_for_installation(filter_func(files), installed)
+        for file in files:
+            parser = OntologyParser.get_parser(file)
+            self.namespace_registry.load_parser(parser)
+            # serialize the result
+            parser.install(self.path)
+        self.namespace_registry.update_namespaces()
         self.namespace_registry.store(self.path)
 
     def _sort_for_installation(self, files, installed):
@@ -169,8 +166,8 @@ class OntologyInstallationManager():
             List[str]: The sorted list of file paths.
         """
         result = list()
-        files = {get_identifier(f): f for f in files}
-        requirements = {n: get_requirements(f) for
+        files = {OntologyParser.get_parser(f).identifier: f for f in files}
+        requirements = {n: OntologyParser.get_parser(f).requirements for
                         n, f in files.items()}
 
         # order the files
@@ -202,7 +199,7 @@ def pico_migrate(namespace_registry, path):
         path (str): The installation path
     """
     logger.info("Migrating installed ontologies to new osp-core version.")
-    yml_path = os.path.join(path, "parser/yml", "installed")
+    yml_path = os.path.join(path, "yml", "installed")
     with tempfile.TemporaryDirectory() as d:
         files = list()
         for file in os.listdir(yml_path):
@@ -212,7 +209,6 @@ def pico_migrate(namespace_registry, path):
             files.append(os.path.join(d, file))
         shutil.rmtree(path)
         os.mkdir(path)
-
         installer = OntologyInstallationManager(namespace_registry, path)
         namespace_registry._load_cuba()
         installer.install(*files)

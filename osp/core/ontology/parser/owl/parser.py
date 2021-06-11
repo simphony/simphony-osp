@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 class OWLParser(OntologyParser):
-    # graph: Graph (inherited from OntologyParser)
+    _file_path: str
+    _graph: Graph = None  # For lazy evaluation.
     _yaml_config: dict
 
     @property
@@ -32,8 +33,15 @@ class OWLParser(OntologyParser):
         Returns:
             Tuple[str]: A tuple containing the defined namespace names.
         """
-        return {label.lower(): URIRef(value) for label, value in
-                self._yaml_config[keywords.NAMESPACES_KEY].items()}
+        namespaces = {label.lower(): URIRef(value) for label, value in
+                      self._yaml_config[keywords.NAMESPACES_KEY].items()}
+        # TODO: Do not do this, the ontology creator is responsible.
+        for name, iri in namespaces.items():
+            if not (
+                    iri.endswith("#") or iri.endswith("/")
+            ):
+                namespaces[name] = iri + "#"
+        return namespaces
 
     @property
     def requirements(self) -> Set[str]:
@@ -61,9 +69,19 @@ class OWLParser(OntologyParser):
     def reference_style(self) -> bool:
         return self._yaml_config.get(keywords.REFERENCE_STYLE_KEY, False)
 
+    @property
+    def graph(self) -> Graph:
+        if not self._graph:
+            file_format = self._yaml_config.get(keywords.FILE_FORMAT_KEY,
+                                                'xml')
+            self._graph = self._read_ontology_graph(self._yaml_config,
+                                                    self._file_path,
+                                                    file_format)
+        return self._graph
+
     def __init__(self, path: str):
-        self._load_yaml_config(path)
-        self._load_ontology_graph(self._yaml_config, path)
+        self._yaml_config = self._load_yaml_config(path)
+        self._file_path = path
 
     def install(self, destination: str):
         """Store the parsed files at the given destination.
@@ -99,7 +117,8 @@ class OWLParser(OntologyParser):
                 if saved_config:
                     os.remove(config_destination)
 
-    def _load_yaml_config(self, path: str) -> list:
+    @classmethod
+    def _load_yaml_config(cls, path: str) -> list:
         """Load the given YAML config file for the OWL ontology.
 
         Loads the YAML config file into the Parser object. Validates it first.
@@ -115,13 +134,12 @@ class OWLParser(OntologyParser):
             SyntaxError: needed keywords not found in file.
             ValueError: invalid values for some keywords.
         """
-        path = self.parse_file_path(path)
-        doc = self.load_yaml(path)
+        path = cls.parse_file_path(path)
+        doc = cls.load_yaml(path)
         try:
-            self._validate_yaml_config(doc)
+            cls._validate_yaml_config(doc)
         except SyntaxError or ValueError as e:
             raise type(e)(f'Invalid configuration file {path}. {e}')
-        self._yaml_config = doc
         return doc
 
     @staticmethod
@@ -149,9 +167,10 @@ class OWLParser(OntologyParser):
             raise ValueError("No dots are allowed in the given package "
                              "identifier: %s." % doc[keywords.IDENTIFIER_KEY])
 
-    def _load_ontology_graph(self,
-                             yaml_config_doc: list,
-                             yaml_config_path: str) -> Graph:
+    @staticmethod
+    def _read_ontology_graph(yaml_config_doc: list,
+                             yaml_config_path: str,
+                             file_format: str) -> Graph:
         """Get the ontology from the file specified in the configuration file.
 
         Args:
@@ -176,9 +195,7 @@ class OWLParser(OntologyParser):
             file_like = open(rdf_file_location)
         graph = Graph()
         graph.parse(file_like,
-                    format=self._yaml_config.get(keywords.FILE_FORMAT_KEY,
-                                                 'xml'))
+                    format=file_format)
         file_like.close()
-        self.graph = graph
         return graph
 

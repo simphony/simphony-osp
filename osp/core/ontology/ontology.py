@@ -22,6 +22,15 @@ class Ontology:
         return tuple(iri for iri in self._ontology_overlay.subjects(
             RDFS.subPropertyOf, rdflib_cuba.activeRelationship))
 
+    @active_relationships.setter
+    def active_relationships(self, value: Tuple[URIRef]):
+        for triple in self._ontology_overlay.triples(
+                (None, RDFS.subPropertyOf, rdflib_cuba.activeRelationship)):
+            self._ontology_overlay.remove(triple)
+        for relationship in value:
+            self._ontology_overlay.add((relationship, RDFS.subPropertyOf,
+                                        rdflib_cuba.activeRelationship))
+
     @property
     def default_relationship(self) -> Optional[URIRef]:
         default_relationships = (o for s, o in
@@ -34,6 +43,18 @@ class Ontology:
             default_relationship = None
         return default_relationship
 
+    @default_relationship.setter
+    def default_relationship(self, value: Optional[URIRef]):
+        default_relationships = (o for s, o in
+                                 self._ontology_overlay.subject_objects(
+                                     rdflib_cuba._default_rel)
+                                 if s in self.namespaces.values())
+        for triple in default_relationships:
+            self._ontology_overlay.remove(triple)
+        if value is not None:
+            for iri in self.namespaces.values():
+                self._ontology_overlay.add((iri, rdflib_cuba._default_rel,
+                                            value))
     @property
     def reference_style(self) -> bool:
         true_reference_styles = (s for s in
@@ -46,6 +67,19 @@ class Ontology:
         except StopIteration:
             default_relationship = None
         return default_relationship
+
+    @reference_style.setter
+    def reference_style(self, value: bool) -> bool:
+        reference_style_triples = (
+            (s, p, o) for s, p, o in self._ontology_overlay.triples(
+            (None, rdflib_cuba._reference_by_label, Literal(True)))
+            if s in self.namespaces.values()
+        )
+        for triple in reference_style_triples:
+            self._ontology_overlay.remove(triple)
+        for iri in self.namespaces.values():
+            self._ontology_overlay.add((iri, rdflib_cuba._reference_by_label,
+                                        Literal(value)))
 
     @property
     def graph(self) -> Graph:
@@ -64,9 +98,22 @@ class Ontology:
         else:  # Create an empty ontology.
             self._ontology_graph = Graph()
             self._ontology_overlay = Graph()
-            self.identifier = identifier
-            self.namespaces = namespaces
-            self.requirements = requirements
+            self.identifier = identifier if identifier else ''
+            self.namespaces = namespaces if namespaces else dict()
+            self.requirements = requirements if requirements else set()
+
+    def _update_overlay(self) -> Graph:
+        graph = self._ontology_graph
+        overlay = Graph()
+        for namespace, iri in self.namespaces.items():
+            # Look for duplicate labels.
+            if self.reference_style:
+                _check_duplicate_labels(graph, iri)
+        _check_namespaces(self.namespaces.values(), graph)
+        self._overlay_add_cuba_triples(self, overlay)
+        self._overlay_add_default_rel_triples(self, overlay)
+        self._overlay_add_reference_style_triples(self, overlay)
+        return overlay
 
     def _overlay_from_parser(self, parser: OntologyParser) -> Graph:
         graph = parser.graph
@@ -76,14 +123,15 @@ class Ontology:
             if parser.reference_style:
                 _check_duplicate_labels(graph, iri)
         _check_namespaces(parser.namespaces.values(), graph)
-        self._overlay_from_parser_add_cuba_triples(parser, overlay)
-        self._overlay_from_parser_add_default_rel_triples(parser, overlay)
-        self._overlay_from_parser_add_reference_style_triples(parser, overlay)
+        self._overlay_add_cuba_triples(parser, overlay)
+        self._overlay_add_default_rel_triples(parser, overlay)
+        self._overlay_add_reference_style_triples(parser, overlay)
         return overlay
 
     @staticmethod
-    def _overlay_from_parser_add_default_rel_triples(parser: OntologyParser,
-                                                     overlay: Graph):
+    def _overlay_add_default_rel_triples(parser: Union[OntologyParser,
+                                                       'Ontology'],
+                                         overlay: Graph):
         """Add the triples to the graph that indicate the default rel.
 
         The default rel is defined per namespace. However, only one is
@@ -101,8 +149,8 @@ class Ontology:
             ))
 
     @staticmethod
-    def _overlay_from_parser_add_cuba_triples(parser: OntologyParser,
-                                              overlay: Graph):
+    def _overlay_add_cuba_triples(parser: Union[OntologyParser, 'Ontology'],
+                                  overlay: Graph):
         """Add the triples to connect the owl ontology to CUBA."""
         for iri in parser.active_relationships:
             if (iri, RDF.type, OWL.ObjectProperty) not in parser.graph:
@@ -115,8 +163,9 @@ class Ontology:
             )
 
     @staticmethod
-    def _overlay_from_parser_add_reference_style_triples(parser: OntologyParser,
-                                                         overlay: Graph):
+    def _overlay_add_reference_style_triples(parser: Union[OntologyParser,
+                                                           'Ontology'],
+                                             overlay: Graph):
         """Add a triple to store how the user should reference the entities.
 
         The reference style (by entity label or by iri suffix) is defined per

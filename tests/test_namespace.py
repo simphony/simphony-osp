@@ -8,7 +8,7 @@ from rdflib.compare import isomorphic
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.namespace_registry import NamespaceRegistry
 from osp.core.ontology.installation import OntologyInstallationManager
-from osp.core.ontology import OntologyClass, OntologyRelationship, \
+from osp.core.ontology.entities import OntologyClass, OntologyRelationship, \
     OntologyAttribute
 from osp.core.namespaces import cuba
 
@@ -415,6 +415,7 @@ class TestNamespaces(unittest.TestCase):
         )
         self.assertRaises(ValueError, self.installer.install, onto_def_rel)
 
+        # Now this will be checked at installation time.
         onto_def_rel = os.path.join(
             os.path.dirname(__file__),
             'default_rel_across_namespace_uninstalled_namespace.yml'

@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from copy import deepcopy
 from typing import Tuple, Set, Dict, Optional
 import logging
 import os
@@ -75,8 +74,8 @@ class OntologyParser(ABC):
             f"{file_identifier}.yml"
         )
         if os.path.exists(a):
-            return a
-        return b
+            return os.path.abspath(a)
+        return os.path.abspath(b)
 
     @staticmethod
     def load_yaml(path: str):
@@ -91,87 +90,67 @@ class OntologyParser(ABC):
                 raise SyntaxError(f"File {path} is empty.")
         return doc
 
+    @staticmethod
+    def is_yaml_ontology(doc):
+        """Check whether the given YAML document is a YAML ontology.
 
-def load(path: str) -> OntologyParser:
-    """Parse the given YAML files.
+        Args:
+            doc (dict): A loaded YAML document.
 
-    Args:
-        path (str): path to the YAML file
-    """
-    from osp.core.ontology.parser.owl.parser import OWLParser
-    from osp.core.ontology.parser.yml.parser import YMLParser
-    import osp.core.ontology.parser.owl.keywords as owl_keywords
-    file_path = OntologyParser.parse_file_path(path)
-    yaml_doc = OntologyParser.load_yaml(file_path)
-    if YMLParser.is_yaml_ontology(yaml_doc):
-        parser = YMLParser(file_path)
-    elif all(x in yaml_doc for x in
-             (owl_keywords.RDF_FILE_KEY, owl_keywords.IDENTIFIER_KEY)):
-        parser = OWLParser(file_path)
-    else:
-        raise SyntaxError(f"Invalid format of file {file_path}")
-    return parser
+        Returns:
+            bool: Whether the given document is a YAML ontology.
+        """
+        import osp.core.ontology.parser.yml.keywords as keywords
+        return keywords.ONTOLOGY_KEY in doc and keywords.NAMESPACE_KEY in doc
 
+    @staticmethod
+    def is_owl_ontology(doc):
+        import osp.core.ontology.parser.owl.keywords as keywords
+        return all(x in doc for x in (keywords.RDF_FILE_KEY,
+                                      keywords.IDENTIFIER_KEY))
 
-def get_identifier(file_path_or_doc):
-    """Get the identifier of the given yaml doc or path to such.
-
-    Args:
-        file_path_or_doc (Union[Path, dict]): The YAML document or
-            a path to it
-
-    Raises:
-        SyntaxError: Invalid YAML format
-
-    Returns:
-        str: The identifier of the yaml document.
-    """
-    from osp.core.ontology.parser.yml.parser import YMLParser
-    import osp.core.ontology.parser.owl.keywords as owl_keywords
-    yaml_doc = file_path_or_doc
-    if isinstance(file_path_or_doc, str):
-        file_path = OntologyParser.parse_file_path(file_path_or_doc)
-        with open(file_path, "r") as f:
-            yaml_doc = yaml.safe_load(f)
-            if yaml_doc is None:
-                raise SyntaxError(
-                    f"Empty format of file {file_path_or_doc}"
-                )
-    if YMLParser.is_yaml_ontology(yaml_doc):
-        return YMLParser(file_path).identifier
-    elif all(x in yaml_doc for x in
-             (owl_keywords.RDF_FILE_KEY, owl_keywords.IDENTIFIER_KEY)):
-        return yaml_doc[owl_keywords.IDENTIFIER_KEY].lower()
-    else:
-        raise SyntaxError(f"Invalid format of file {file_path_or_doc}")
+    @classmethod
+    def get_parser(cls, path: str) -> 'OntologyParser':
+        """Parse the given YAML files.
+        Args:
+            path (str): path to the YAML file
+        """
+        from osp.core.ontology.parser.owl.parser import OWLParser
+        from osp.core.ontology.parser.yml.parser import YMLParser
+        file_path = cls.parse_file_path(path)
+        yaml_doc = cls.load_yaml(file_path)
+        if cls.is_yaml_ontology(yaml_doc):
+            parser = YMLParser(file_path)
+        elif cls.is_owl_ontology(yaml_doc):
+            parser = OWLParser(file_path)
+        else:
+            raise SyntaxError(f"Invalid format of file {file_path}")
+        return parser
 
 
-def get_requirements(file_path_or_doc):
-    """Get the requirements of a given document or file path to such.
+class Parser:
+    """For backwards compatibility: do not break wrapper's unit tests."""
 
-    Args:
-        file_path_or_doc (Union[Path, dict]): The YAML document or
-            a path to it
+    def __init__(self, parser_namespace_registry=None):
+        from osp.core.ontology.namespace_registry import namespace_registry
+        """Initialize the parser.
 
-    Returns:
-        Set[str]: The requirements
-    """
-    from osp.core.ontology.parser.yml.parser import YMLParser
-    import osp.core.ontology.parser.owl.keywords as owl_keywords
-    yaml_doc = file_path_or_doc
-    if isinstance(file_path_or_doc, str):
-        file_path = OntologyParser.parse_file_path(file_path_or_doc)
-        with open(file_path, "r") as f:
-            yaml_doc = yaml.safe_load(f)
-    if owl_keywords.REQUIREMENTS_KEY in yaml_doc:
-        if not isinstance(yaml_doc[owl_keywords.REQUIREMENTS_KEY], list):
-            identifier = get_identifier(yaml_doc)
-            raise ValueError(
-                f"Object of type  %s given "
-                f"as list of requirements for ontology {identifier}. "
-                f"You need to specify a list." %
-                type(yaml_doc[owl_keywords.REQUIREMENTS_KEY])
-            )
-        return set(yaml_doc[owl_keywords.REQUIREMENTS_KEY])
-    else:
-        return set()
+        Args:
+            graph (rdflib.Graph): The graph to add the triples to.
+                might already contain some triples.
+            parser_namespace_registry (NamespaceRegistry): The namespace
+                registry that should be connected to this parser. The parser
+                will register the read namespaces in this specific namespace
+                registry. If none is provided, then the default
+                (namespace_registry from osp.core.ontology.namespace_registry)
+                will be used. In fact, you should never create several
+                namespace registries, except on unit tests.
+        """
+        self._namespace_registry = parser_namespace_registry or \
+            namespace_registry
+
+    @staticmethod
+    def parse(path: str):
+        from osp.core.ontology.namespace_registry import namespace_registry
+        parser = OntologyParser.get_parser(path)
+        namespace_registry.load_parser(parser)
