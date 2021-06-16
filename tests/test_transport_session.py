@@ -380,7 +380,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                              {1, 2, 3, 123})
             self.assertEqual(set(session._buffers[0][0]), {
                 uuid.UUID(int=1), uuid.UUID(int=2), uuid.UUID(int=3),
-                uuid.UUID(int=123), w.uid
+                uuid.UUID(int=123)
             })
             self.assertEqual(session._buffers[0][1:], [{}, {}])
             self.assertEqual(session._buffers[1], [{}, {}, {}])
