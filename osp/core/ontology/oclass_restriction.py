@@ -17,6 +17,7 @@ class QUANTIFIER(Enum):
     EXACTLY = 3
     MIN = 4
     MAX = 5
+    VALUE = 6
 
 
 class RTYPE(Enum):
@@ -151,7 +152,8 @@ class Restriction():
             (rdflib.OWL.allValuesFrom, QUANTIFIER.ONLY),
             (rdflib.OWL.cardinality, QUANTIFIER.EXACTLY),
             (rdflib.OWL.minCardinality, QUANTIFIER.MIN),
-            (rdflib.OWL.maxCardinality, QUANTIFIER.MAX)
+            (rdflib.OWL.maxCardinality, QUANTIFIER.MAX),
+            (rdflib.OWL.hasValue, QUANTIFIER.VALUE)
         ]:
             if self._check_quantifier(rdflib_predicate, quantifier):
                 return True
