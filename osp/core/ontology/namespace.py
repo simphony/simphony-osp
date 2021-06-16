@@ -4,8 +4,9 @@
 from collections.abc import Iterable
 import rdflib
 import logging
-
+import itertools
 from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
@@ -30,6 +31,17 @@ class OntologyNamespace():
         self._default_rel = -1
         self._reference_by_label = \
             namespace_registry._get_reference_by_label(self._iri)
+
+    def __dir__(self):
+        """Attributes available for the OntologyNamespace class.
+
+        Returns:
+            Iterable: the available attributes, which include the methods and
+                      the ontology entities in the namespace.
+        """
+        entity_autocompletion = self._iter_labels() \
+            if self._reference_by_label else self._iter_suffixes()
+        return itertools.chain(dir(super()), entity_autocompletion)
 
     def __str__(self):
         """Transform the namespace to a human readable string.
@@ -213,6 +225,8 @@ class OntologyNamespace():
             OntologyEntity: The ontology entity.
         """
         results = []
+        inverse = label.startswith("INVERSE_OF_")
+        label = label if not inverse else label[11:]
         for iri in self._get_namespace_subjects():
             entity_labels = self._get_labels_for_iri(iri, lang=lang)
             if case_sensitive is False:
@@ -224,21 +238,46 @@ class OntologyNamespace():
                 _name = label if self._reference_by_label else None
                 results.append(self.get_from_iri(iri, _name=_name))
         if len(results) == 0:
-            raise KeyError("No element with label %s in namespace %s"
-                           % (label, self))
+            error = "No element with label %s was found in namespace %s."\
+                    % (label, self)
+            if inverse:
+                error += f' Therefore, INVERSE_OF_{label} could not be found.'
+            raise KeyError(error)
         elif len(results) >= 2:
             element_suffixes = (r._iri_suffix for r in results)
-            raise KeyError(f"There are multiple elements "
-                           f"({', '.join(element_suffixes)}) with label"
-                           f" {label} for namespace {self}."
-                           f"\n"
-                           f"Please refer to a specific element of the "
-                           f"list by calling get_from_iri(IRI) for "
-                           f"namespace {self} for one of the following "
-                           f"IRIs: " + "{iris}."
-                           .format(iris=', '.join(entity.iri for entity in
-                                                  results)))
+            error = (f"There are multiple elements "
+                     f"({', '.join(element_suffixes)}) with label"
+                     f" {label} for namespace {self}."
+                     f"\n"
+                     f"Please refer to a specific element of the "
+                     f"list by calling get_from_iri(IRI) for "
+                     f"namespace {self} for one of the following "
+                     f"IRIs: " + "{iris}.")\
+                .format(iris=', '.join(entity.iri for entity in results))
+            if inverse:
+                error += f' Therefore, INVERSE_OF_{label} could not be found.'
+            raise KeyError(error)
+        if inverse:
+            if type(results[0]) is not OntologyRelationship:
+                raise KeyError(f"The entity {label} is not an ontology "
+                               f"relationship. Therefore INVERSE_OF_{label} "
+                               f"does not exist.")
+            results[0] = results[0].inverse
         return results[0]
+
+    def _iter_iris(self):
+        """Iterate over the IRIs of the ontology entities in the namespace.
+
+        :return: An iterator over the entity IRIs.
+        :rtype: Iterator[rdflib.URIRef]
+        """
+        types = [rdflib.OWL.DatatypeProperty,
+                 rdflib.OWL.ObjectProperty,
+                 rdflib.OWL.Class]
+        return (s
+                for t in types
+                for s, _, _ in self._graph.triples((None, rdflib.RDF.type, t))
+                if s in self)
 
     def __iter__(self):
         """Iterate over the ontology entities in the namespace.
@@ -246,13 +285,25 @@ class OntologyNamespace():
         :return: An iterator over the entities.
         :rtype: Iterator[OntologyEntity]
         """
-        types = [rdflib.OWL.DatatypeProperty,
-                 rdflib.OWL.ObjectProperty,
-                 rdflib.OWL.Class]
-        return (self._namespace_registry.from_iri(s)
-                for t in types
-                for s, _, _ in self._graph.triples((None, rdflib.RDF.type, t))
-                if s in self)
+        return (self._namespace_registry.from_iri(iri)
+                for iri in self._iter_iris())
+
+    def _iter_labels(self):
+        """Iterate over the labels of the ontology entities in the namespace.
+
+        :return: An iterator over the entity labels.
+        :rtype: Iterator[str]
+        """
+        return itertools.chain(*(self._get_labels_for_iri(iri)
+                                 for iri in self._iter_iris()))
+
+    def _iter_suffixes(self):
+        """Iterate over suffixes of the ontology entities in the namespace.
+
+        :return: An iterator over the entity suffixes.
+        :rtype: Iterator[str]
+        """
+        return (str(iri)[len(str(self._iri)):] for iri in self._iter_iris())
 
     def __contains__(self, item):
         """Check whether the given entity is part of the namespace.
@@ -351,7 +402,7 @@ class OntologyNamespace():
             OntologyEntity: The ontology entity
 
         """
-        if _force_by_iri is True:
+        if _force_by_iri is True or self._reference_by_label is False:
             return self.get_from_suffix(name)
         else:
             return self._get_from_label(name, case_sensitive=_case_sensitive)

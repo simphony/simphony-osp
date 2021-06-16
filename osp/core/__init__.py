@@ -1,6 +1,9 @@
 import sys
 import rdflib
 import logging
+from osp.core.ontology.namespace_registry import namespace_registry \
+    as _namespace_registry
+import osp.core.namespaces
 
 logging.getLogger("rdflib").setLevel(logging.WARNING)
 
@@ -8,9 +11,6 @@ try:
     getattr(rdflib, "SKOS")
 except AttributeError:
     rdflib.SKOS = rdflib.Namespace("http://www.w3.org/2004/02/skos/core#")
-
-from osp.core.namespaces import _namespace_registry
-import osp.core.namespaces
 
 # set up logging
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ except ModuleNotFoundError:
     __version__ = None
     logger.critical(
         "Error determining version of osp-core. If you installed from source, "
-        "try the follwing: \n"
+        "try the following: \n"
         "\t- If you want to import osp-core with the osp-core repo as cwd, "
         "please reinstall using `pip install -e <path/to/osp-core/repo>`. \n"
         "\t- Otherwise you can reinstall using "

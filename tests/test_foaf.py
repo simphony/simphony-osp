@@ -1,5 +1,5 @@
 """Test the API of CUDS objects using the foaf ontology."""
-
+import rdflib
 import unittest2 as unittest
 import uuid
 
@@ -7,10 +7,9 @@ try:
     from osp.core.namespaces import foaf
 except ImportError:
     from osp.core.ontology import Parser
-    from osp.core.namespaces import _namespace_registry
-    Parser(_namespace_registry._graph).parse("foaf")
-    _namespace_registry.update_namespaces()
-    foaf = _namespace_registry.foaf
+    from osp.core.ontology.namespace_registry import namespace_registry
+    Parser().parse("foaf")
+    foaf = namespace_registry.foaf
 
 
 class TestAPIfoaf(unittest.TestCase):
@@ -22,9 +21,9 @@ class TestAPIfoaf(unittest.TestCase):
         self.assertTrue(c.is_a(foaf.Person))
 
     def test_uid(self):
-        """Test that the uid variable contains a UUID object."""
+        """Test that the uid variable contains an uid."""
         c = foaf.Person()
-        self.assertIsInstance(c.uid, uuid.UUID)
+        self.assertIsInstance(c.uid, (uuid.UUID, rdflib.URIRef))
 
     def test_relations(self):
         """Test some relationships."""

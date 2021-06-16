@@ -5,6 +5,7 @@ import logging
 import yaml
 import rdflib
 import rdflib.collection
+from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.datatypes import get_rdflib_datatype
 from osp.core.ontology.yml.yml_keywords import (
@@ -31,19 +32,28 @@ logger = logging.getLogger(__name__)
 class YmlParser:
     """Class that parses a YAML ontology."""
 
-    def __init__(self, graph):
+    def __init__(self, parser_namespace_registry=None):
         """Initialize the YamlParser.
 
         Args:
             graph (rdflib.Graph): The graph where the triples should be added
                 to. Might contain already some tripes.
+            parser_namespace_registry (NamespaceRegistry): The namespace
+                registry that should be connected to this parser. The parser
+                will register the read namespaces in this specific namespace
+                registry. If none is provided, then the default
+                (namespace_registry from osp.core.ontology.namespace_registry)
+                will be used. In fact, you should never create several
+                namespace registries, except on unit tests.
         """
+        self._namespace_registry = parser_namespace_registry or \
+            namespace_registry
         self._doc = None
         self._ontology_doc = None
         self._namespace = None
         self._file_path = None
-        self.graph = graph
-        graph.bind("owl", rdflib.OWL)
+        self.graph = self._namespace_registry._graph
+        self.graph.bind("owl", rdflib.OWL)
 
     @staticmethod
     def is_yaml_ontology(doc):
@@ -81,6 +91,7 @@ class YmlParser:
         self._namespace = self._doc[NAMESPACE_KEY].lower()
         self._ontology_doc = self._doc[ONTOLOGY_KEY]
         self._parse_ontology()
+        self._namespace_registry.bind(self._namespace, self._get_iri())
         logger.info(f"You can now use `from osp.core.namespaces import "
                     f"{self._namespace}`.")
 
@@ -475,8 +486,7 @@ class YmlParser:
             namespace, entity_name = self._doc[DEFAULT_REL_KEY].split('.')
 
             # defined relationship must be installed
-            from osp.core.namespaces import _namespace_registry
-            referred_namespace = _namespace_registry.get(namespace)
+            referred_namespace = self._namespace_registry.get(namespace)
             if not referred_namespace:
                 raise ValueError(
                     f"The namespace {namespace} that you have defined for "

@@ -1,4 +1,7 @@
 """A class defined in the ontology."""
+import uuid
+
+import rdflib
 
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.cuba import rdflib_cuba
@@ -197,8 +200,8 @@ class OntologyClass(OntologyEntity):
             _force (bool): Skip checks.
 
         Raises:
-            TypeError:  Unexpected keyword argument.
-            TypeError: Missing keword argument.
+            TypeError: Unexpected keyword argument.
+            TypeError: Missing keyword argument.
 
         Returns:
             [Dict[OntologyAttribute, Any]]: The resulting attributes.
@@ -253,14 +256,16 @@ class OntologyClass(OntologyEntity):
             RDFS.subClassOf, inverse=True,
             blacklist=BLACKLIST)
 
-    def __call__(self, uid=None, session=None, _force=False, **kwargs):
+    def __call__(self, session=None, iri=None, uid=None,
+                 _force=False, **kwargs):
         """Create a Cuds object from this ontology class.
 
         Args:
-            uid (UUID, optional): The uid of the Cuds object.
-                Should be set to None in most cases.
-                Then a new UUID is generated, defaults to None.
-                Defaults to None.
+            uid (Union[UUID, int], optional): The identifier of the
+                Cuds object. Should be set to None in most cases. Then a new
+                identifier is generated, defaults to None. Defaults to None.
+            iri (Union[URIRef, str], optional): The same as the uid, but
+                exclusively for IRI identifiers.
             session (Session, optional): The session to create the cuds object
                 in, defaults to None. Defaults to None.
             _force (bool, optional): Skip validity checks. Defaults to False.
@@ -271,6 +276,14 @@ class OntologyClass(OntologyEntity):
         Returns:
             Cuds: The created cuds object
         """
+        # Accept strings as IRI identifiers and integers as UUID identifiers.
+        types_map = {int: lambda x: uuid.UUID(int=x),
+                     str: lambda x: rdflib.URIRef(x),
+                     rdflib.URIRef: lambda x: x,
+                     uuid.UUID: lambda x: x,
+                     type(None): lambda x: x}
+        iri, uid = (types_map[type(x)](x) for x in (iri, uid))
+
         from osp.core.cuds import Cuds
         from osp.core.namespaces import cuba
 
@@ -287,5 +300,6 @@ class OntologyClass(OntologyEntity):
             attributes=self._get_attributes_values(kwargs, _force=_force),
             oclass=self,
             session=session,
+            iri=iri,
             uid=uid
         )

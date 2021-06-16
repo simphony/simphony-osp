@@ -1,6 +1,7 @@
 """The registry stores all local CUDS objects."""
 
 from uuid import UUID
+from rdflib import URIRef
 import logging
 
 logger = logging.getLogger(__name__)
@@ -39,21 +40,22 @@ class Registry(dict):
             raise ValueError(message.format(cuds_object))
 
     def get(self, uid):
-        """Return the object corresponding to a given uuid.
+        """Return the object corresponding to a given uid.
 
         Args:
-            uid (UUID): The UUID of the desired object.
+            uid (Union[UUID, URIRef]): The uid of the desired
+                object.
 
         Raises:
-            ValueError: Unsupported key provided (not a UUID object).
+            ValueError: Unsupported key provided (not a uid object).
 
         Returns:
             Cuds: Cuds object with the uid.
         """
-        if isinstance(uid, UUID):
+        if isinstance(uid, (UUID, URIRef)):
             return super().__getitem__(uid)
         else:
-            message = '{!r} is not a proper uuid'
+            message = '{!r} is not a proper uid'
             raise ValueError(message.format(uid))
 
     def get_subtree(self, root, rel=None, skip=None):
@@ -62,7 +64,7 @@ class Registry(dict):
         Only use the given relationship for traversal.
 
         Args:
-            root (Union[UUID, Cuds]): The root of the subtree.
+            root (Union[UUID, URIRef, Cuds]): The root of the subtree.
             rel (Relationship, optional): The relationship used for traversal.
                 Defaults to None. Defaults to None.
             skip (Set[Cuds], optional): The elements to skip. Defaults to None.
@@ -107,8 +109,8 @@ class Registry(dict):
         Use the given rel for traversal.
 
         Args:
-            *roots (Union[UUID, Cuds]): Get all elements not reachable from
-                these root elements.
+            *roots (Union[UUID, URIRef, Cuds]): Get all elements not reachable
+                from these root elements.
             rel (Relationship, optional): Only use this relationship for
                 traversal. Defaults to None.
 
@@ -148,8 +150,8 @@ class Registry(dict):
                 criterion.
 
         Returns:
-            Dict[UUID, Cuds]:  dict contains the cuds objects satisfying the
-                criterion.
+            Dict[Union[UUID, URIRef], Cuds]:  dict contains the cuds objects
+                satisfying the criterion.
         """
         result = dict()
         for uid, cuds_object in super().items():
@@ -164,7 +166,7 @@ class Registry(dict):
             oclass (OntologyClass): The oclass used for filtering.
 
         Returns:
-            Dict[UUID, Cuds]: A subset of the registry,
+            Dict[Union[UUID, URIRef], Cuds]: A subset of the registry,
                 containing cuds objects with given ontology class.
         """
         return self.filter(lambda x: x.oclass == oclass)
@@ -177,7 +179,7 @@ class Registry(dict):
             value (Any): The corresponding value to look for.
 
         Returns:
-            Dict[UUID, Cuds]: A subset of the registry,
+            Dict[Union[UUID, URIRef], Cuds]: A subset of the registry,
                 containing cuds objects with given attribute and value.
         """
         return self.filter(lambda x: hasattr(x, attribute)
@@ -196,7 +198,7 @@ class Registry(dict):
                 Defaults to False.
 
         Returns:
-            Dict[UUID, Cuds]: A subset of the registry,
+            Dict[Union[UUID, URIRef], Cuds]: A subset of the registry,
                 containing cuds objects with given relationship.
         """
         if consider_subrelationships:
