@@ -249,6 +249,52 @@ class TestOntologyEntity(unittest.TestCase):
             [1, 2]
         )
 
+    def test_hasValue_statement(self):
+        """Test hasValue statement from the OWL ontology for data properties.
+
+        The hasValue statement is an OWL restriction, and forces the individual
+        to be connected at least once to a specific literal through a specific
+        datatype restriction.
+        """
+        graph = city._graph
+        namespace_registry = city._namespace_registry
+
+        triples_hassymboldata = ((rdflib.URIRef("http://www.osp-core.com/city#"
+                                                "hasSymbolData"),
+                                  rdflib.RDF.type,
+                                  rdflib.OWL.DatatypeProperty),
+                                 )
+        bnode = rdflib.BNode()
+        triples_restriction = ((bnode, rdflib.RDF.type,
+                                rdflib.OWL.Restriction),
+                               (bnode, rdflib.OWL.onProperty,
+                                rdflib.URIRef("http://www.osp-core.com/city#"
+                                              "hasSymbolData")),
+                               (bnode, rdflib.OWL.hasValue,
+                                rdflib.Literal('C',
+                                               datatype=rdflib.XSD.string)),
+                               )
+        triples_carbonsymbol = ((rdflib.URIRef("http://www.osp-core.com/city#"
+                                               "CarbonSymbol"),
+                                 rdflib.RDF.type, rdflib.OWL.Class),
+                                (rdflib.URIRef("http://www.osp-core.com/city#"
+                                               "CarbonSymbol"),
+                                 rdflib.RDFS.subClassOf, bnode),
+                                )
+        triples = (*triples_hassymboldata, *triples_carbonsymbol,
+                   *triples_restriction)
+
+        for triple in triples:
+            graph.add(triple)
+        namespace_registry.update_namespaces()
+        try:
+            carbon_symbol = city.CarbonSymbol()
+            self.assertEqual(carbon_symbol.hasSymbolData, 'C')
+        finally:
+            for triple in triples:
+                graph.remove(triple)
+            namespace_registry.update_namespaces()
+
 
 if __name__ == "__main__":
     unittest.main()

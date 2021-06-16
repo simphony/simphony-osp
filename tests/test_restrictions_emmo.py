@@ -3,10 +3,11 @@
 import itertools
 import unittest2 as unittest
 import rdflib
-from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology import OntologyEntity
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
-from osp.core.ontology.oclass_restriction import Restriction, QUANTIFIER, RTYPE
+from osp.core.ontology.oclass_restriction import Restriction, \
+    QUANTIFIER, RTYPE
 from osp.core.ontology.oclass_composition import Composition
 
 
@@ -27,7 +28,8 @@ quantifier_owl_to_enum = {rdflib.OWL.someValuesFrom: QUANTIFIER.SOME,
                           rdflib.OWL.allValuesFrom: QUANTIFIER.ONLY,
                           rdflib.OWL.cardinality: QUANTIFIER.EXACTLY,
                           rdflib.OWL.minCardinality: QUANTIFIER.MIN,
-                          rdflib.OWL.maxCardinality: QUANTIFIER.MAX}
+                          rdflib.OWL.maxCardinality: QUANTIFIER.MAX,
+                          rdflib.OWL.hasValue: QUANTIFIER.VALUE}
 rtypes = {OntologyRelationship: RTYPE.RELATIONSHIP_RESTRICTION,
           OntologyAttribute: RTYPE.ATTRIBUTE_RESTRICTION}
 
