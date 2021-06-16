@@ -27,7 +27,8 @@ quantifier_owl_to_enum = {rdflib.OWL.someValuesFrom: QUANTIFIER.SOME,
                           rdflib.OWL.allValuesFrom: QUANTIFIER.ONLY,
                           rdflib.OWL.cardinality: QUANTIFIER.EXACTLY,
                           rdflib.OWL.minCardinality: QUANTIFIER.MIN,
-                          rdflib.OWL.maxCardinality: QUANTIFIER.MAX}
+                          rdflib.OWL.maxCardinality: QUANTIFIER.MAX,
+                          rdflib.OWL.hasValue: QUANTIFIER.VALUE}
 rtypes = {OntologyRelationship: RTYPE.RELATIONSHIP_RESTRICTION,
           OntologyAttribute: RTYPE.ATTRIBUTE_RESTRICTION}
 
