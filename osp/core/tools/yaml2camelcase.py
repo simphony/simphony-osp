@@ -12,8 +12,7 @@ import shutil
 import os
 from copy import deepcopy
 from pathlib import Path
-from osp.core.ontology.yml.yml_parser import YmlParser
-from osp.core.ontology.yml.yml_keywords import NAMESPACE_KEY, ONTOLOGY_KEY, \
+from osp.core.ontology.parser.yml.keywords import NAMESPACE_KEY, ONTOLOGY_KEY,\
     SUPERCLASSES_KEY, REQUIREMENTS_KEY
 
 
@@ -40,11 +39,12 @@ class Yaml2CamelCaseConverter():
             file_path (path): Path to the yaml file to convert
         """
         self.file_path = file_path
-        self.doc = YmlParser.get_doc(self.file_path)
-        self.onto_doc = self.doc[ONTOLOGY_KEY]
-        self.orig_onto_doc = deepcopy(self.onto_doc)
-        self.namespace = self.doc[NAMESPACE_KEY].lower()
-        self.ambiguity_resolution = dict()
+        with open(file_path, 'r') as file:
+            self.doc = yaml.safe_load(file)
+            self.onto_doc = self.doc[ONTOLOGY_KEY]
+            self.orig_onto_doc = deepcopy(self.onto_doc)
+            self.namespace = self.doc[NAMESPACE_KEY].lower()
+            self.ambiguity_resolution = dict()
 
     def convert(self):
         """Convert the yaml file to CamelCase."""

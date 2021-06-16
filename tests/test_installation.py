@@ -177,7 +177,6 @@ class TestInstallation(unittest.TestCase):
         shutil.copyfile(file, dest)
         pkl_file = os.path.join(path, "foo.bar.pkl")
         open(pkl_file, "wb").close()
-        self.installer.namespace_registry._graph = rdflib.Graph()
         pico_migrate(self.installer.namespace_registry,
                      path)
         self.assertEqual(sorted(os.listdir(path)), sorted([

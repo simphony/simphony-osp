@@ -8,7 +8,7 @@ import itertools
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.yml.case_insensitivity import \
+from osp.core.ontology.parser.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
 
 logger = logging.getLogger(__name__)

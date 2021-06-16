@@ -5,7 +5,7 @@ import graphviz
 import argparse
 import logging
 from osp.core.ontology.namespace_registry import namespace_registry
-from osp.core.ontology.parser import Parser
+from osp.core.ontology.parser.owl_DELETE import Parser
 from osp.core.ontology import OntologyClass, OntologyRelationship, \
     OntologyAttribute
 

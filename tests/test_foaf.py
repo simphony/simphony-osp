@@ -6,9 +6,9 @@ import uuid
 try:
     from osp.core.namespaces import foaf
 except ImportError:
-    from osp.core.ontology import Parser
+    from osp.core.ontology.parser.parser import OntologyParser
     from osp.core.ontology.namespace_registry import namespace_registry
-    Parser().parse("foaf")
+    namespace_registry.load_parser(OntologyParser.get_parser("foaf"))
     foaf = namespace_registry.foaf
 
 
