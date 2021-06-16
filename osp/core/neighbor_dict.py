@@ -5,8 +5,9 @@ import rdflib
 from abc import ABC, abstractmethod
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.oclass import OntologyClass
-from osp.core.utils import iri_from_uid, uid_from_iri
-from osp.core.namespaces import from_iri, _namespace_registry
+from osp.core.ontology.namespace_registry import namespace_registry
+from osp.core.utils.general import iri_from_uid, uid_from_iri
+from osp.core.namespaces import from_iri
 
 
 class NeighborDict(ABC):
@@ -138,7 +139,7 @@ class NeighborDictRel(NeighborDict):
         """Check if there are elements in the dictionary."""
         for s, p, o in self.graph.triples((self.cuds_object.iri, None, None)):
             if (p, rdflib.RDF.type, rdflib.OWL.ObjectProperty) in \
-                    _namespace_registry._graph:
+                    namespace_registry._graph:
                 return True
         return False
 
@@ -150,7 +151,7 @@ class NeighborDictRel(NeighborDict):
         ])
         for p in predicates:
             if (p, rdflib.RDF.type, rdflib.OWL.ObjectProperty) \
-                    in _namespace_registry._graph:
+                    in namespace_registry._graph:
                 yield from_iri(p)
 
 
@@ -165,7 +166,7 @@ class NeighborDictTarget(NeighborDict):
         self.rel = rel
         super().__init__(
             cuds_object,
-            key_check=lambda k: isinstance(k, uuid.UUID),
+            key_check=lambda k: isinstance(k, (uuid.UUID, rdflib.URIRef)),
             value_check=lambda v: (
                 isinstance(v, list)
                 and all(isinstance(x, OntologyClass) for x in v)

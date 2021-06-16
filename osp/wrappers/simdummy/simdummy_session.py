@@ -10,16 +10,15 @@ from osp.wrappers.simdummy import (
     DummySyntacticLayer, DummyPerson
 )
 from osp.core.session.sim_wrapper_session import SimWrapperSession
-from osp.core.utils import change_oclass
+from osp.core.utils.wrapper_development import change_oclass
 
 try:
     from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
-    from osp.core.namespaces import _namespace_registry
-    Parser(_namespace_registry._graph).parse("city")
-    _namespace_registry.update_namespaces()
-    city = _namespace_registry.city
+    from osp.core.ontology.namespace_registry import namespace_registry
+    Parser().parse("city")
+    city = namespace_registry.city
 
 
 class SimDummySession(SimWrapperSession):
@@ -48,9 +47,10 @@ class SimDummySession(SimWrapperSession):
         """Load objects from the dummy backend.
 
         Args:
-            uids (List[UUID]): Load the objects with the given UUIDs.
-            expired (Set[UUID], optional): A set of UUID that have been
-                marked as expired.. Defaults to None.
+            uids (List[Union[UUID, URIRef]): Load the objects with the
+                given uids.
+            expired (Set[Union[UUID, URIRef]], optional): A set of uids
+                that have been marked as expired.. Defaults to None.
 
         Yields:
             Cuds: A loaded CUDS objects.
@@ -72,10 +72,11 @@ class SimDummySession(SimWrapperSession):
                 yield None
 
     def _load_person(self, uid):
-        """Load the Person CUDS object with the given UUID from the backend..
+        """Load the Person CUDS object with given uid from the backend.
 
         Args:
-            uid (UUID): The UUID of the CUDS object to load.
+            uid (Union[UUID, URIRef]): The uid of the CUDS object
+            to load.
 
         Returns:
             Cuds: The loaded Person CUDS object.
@@ -89,10 +90,11 @@ class SimDummySession(SimWrapperSession):
         return person
 
     def _load_city(self, uid):
-        """Load the City CUDS object with the given UUID from the backend.
+        """Load the City CUDS object with the given uid from the backend.
 
         Args:
-            uid (UUID): The UUID of the City CUDS object to load.
+            uid (Union[UUID, URIRef]): The uid of the City CUDS
+            object to load.
 
         Returns:
             Cuds: The loaded City CUDS object.
@@ -110,7 +112,7 @@ class SimDummySession(SimWrapperSession):
         """Load the Wrapper CUDS object.
 
         Args:
-            uid (UUID): The UUID of the Wrapper
+            uid (Union[UUID, URIRef]): The uid of the Wrapper.
 
         Returns:
             Cuds: The loaded Wrapper object.
@@ -128,7 +130,8 @@ class SimDummySession(SimWrapperSession):
         of the object.
 
         Args:
-            uid (UUID): The UUID of the person to check.
+            uid (Union[UUID, URIRef]): The uid of the person to
+            check.
         """
         wrapper = self._registry.get(self.root)
         c = wrapper.get(oclass=city.City)[0]
@@ -148,7 +151,7 @@ class SimDummySession(SimWrapperSession):
 
         Args:
             root_obj (Cuds): The Wrapper CUDS object.
-            buffer (dict[UUID, Cuds]): The added CUDS objects.
+            buffer (dict[Union[UUID, URIRef], Cuds]): The added CUDS objects.
 
         Raises:
             RuntimeError: It is not allowed to add CUDS objects after
@@ -176,7 +179,7 @@ class SimDummySession(SimWrapperSession):
 
         Args:
             root_obj (Cuds): The Wrapper Cuds object.
-            buffer (dict[UUID, CUDs]): The updated CUDS objects.
+            buffer (dict[Union[UUID, URIRef], Cuds]): The updated CUDS objects.
 
         Raises:
             RuntimeError: It is not allowed to update CUDS objects
@@ -192,7 +195,7 @@ class SimDummySession(SimWrapperSession):
 
         Args:
             root_obj (Cuds): The Wrapper Cuds object.
-            buffer (dict[UUID, CUDS]): The deleted CUDS objects.
+            buffer (dict[Union[UUID, URIRef], CUDS]): The deleted CUDS objects.
 
         Raises:
             RuntimeError: It is not allowed to delete CUDS objects

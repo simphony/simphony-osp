@@ -5,7 +5,7 @@ def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
                      current_depth=0, visited=None):
     """Recursively finds an element inside a container.
 
-    Use the given relationshipfor traversal.
+    Use the given relationship for traversal.
 
     Args:
         criterion (Callable): Function that returns True on the Cuds object
@@ -18,8 +18,8 @@ def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
         max_depth (int, optional): The maximum depth for the search.
             Defaults to float("inf").
         current_depth (int, optional): The current search depth. Defaults to 0.
-        visited (Set[UUID], optional): The set of UUIDs already visited.
-            Defaults to None.
+        visited (Set[Union[UUID, URIRef]], optional): The set of uids
+            already visited. Defaults to None.
 
     Returns:
         Union[Cuds, List[Cuds]]: The element(s) found.
@@ -54,7 +54,8 @@ def find_cuds_object_by_uid(uid, root, rel):
     Only use the given relationship for traversal.
 
     Args:
-        uid (UUID): The uid of the cuds_object that is searched.
+        uid (Union[UUID, URIRef]): The uid of the cuds_object
+            that is searched.
         root (Cuds): Starting point of search.
         rel (OntologyRelationship): The relationship (incl. subrelationships)
             to consider.

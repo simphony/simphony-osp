@@ -1,5 +1,7 @@
-BSD 3-Clause 
-Copyright 2020 SimPhoNy OSP-core developers
+Copyright © 2021 Fraunhofer-Gesellschaft zur Förderung der angewandten Forschung e.V. acting on behalf of its Fraunhofer IWM; Enthought, Inc.; Centre Internacional de Mètodes Numèrics a l'Enginyeria (CIMNE); University of Jyväskylä.
+Contact: Pablo de Andrés, José Manuel Domínguez, Yoav Nahshon (Fraunhofer IWM).
+
+BSD 3-Clause License
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 

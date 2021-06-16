@@ -8,7 +8,8 @@ from osp.core.session.db.triplestore_wrapper_session import \
     TripleStoreWrapperSession
 from osp.core.session.buffers import BufferContext
 from osp.core.ontology import OntologyRelationship
-from osp.core.utils import CUDS_IRI_PREFIX, iri_from_uid
+from osp.core.utils.general import CUDS_IRI_PREFIX, iri_from_uid
+from osp.core.ontology.datatypes import to_uid
 from osp.core.session.db.sql_migrate import check_supported_schema_version
 from osp.core.session.db.sql_util import (
     SqlQuery, EqualsCondition, AndCondition, JoinCondition,
@@ -38,7 +39,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
     DATATYPES = {
         CUDS_TABLE: {
             "cuds_idx": rdflib.XSD.integer,
-            "uid": "UUID"
+            "uid": "UID"
         },
         ENTITIES_TABLE: {
             "entity_idx": rdflib.XSD.integer,
@@ -157,7 +158,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         s, p, o = triple
 
         # object given
-        if isinstance(o, rdflib.URIRef) and str(o).startswith(CUDS_IRI_PREFIX):
+        if isinstance(o, rdflib.URIRef) and self._is_cuds_iri(o):
             return rel_table
         if isinstance(o, rdflib.URIRef):
             return types_table
@@ -210,8 +211,9 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         s, p, o = triple
 
         if s is not None:
-            uid = self._split_namespace(s)
-            conditions += [EqualsCondition("ts", "uid", uid, "UUID")]
+            uid = to_uid(s)
+            conditions += [EqualsCondition("ts", "uid", uid,
+                                           "UID")]
 
         if p is not None and table_name != self.TYPES_TABLE:
             ns_idx, name = self._split_namespace(p)
@@ -222,7 +224,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
 
         if o is not None and table_name == self.RELATIONSHIP_TABLE:
             uid = self._split_namespace(o)
-            conditions += [EqualsCondition("to", "uid", uid, "UUID")]
+            conditions += [EqualsCondition("to", "uid", uid, "UID")]
 
         elif o is not None and table_name == self.TYPES_TABLE:
             ns_idx, name = self._split_namespace(o)
@@ -241,8 +243,10 @@ class SqlWrapperSession(TripleStoreWrapperSession):
     def _split_namespace(self, iri):
         if iri.startswith(CUDS_IRI_PREFIX):
             return uuid.UUID(hex=iri[len(CUDS_IRI_PREFIX):])
-        from osp.core.namespaces import _namespace_registry
-        ns_iri = _namespace_registry._get_namespace_name_and_iri(iri)[1]
+        elif self._is_cuds_iri(iri):
+            return iri
+        from osp.core.ontology.namespace_registry import namespace_registry
+        ns_iri = namespace_registry._get_namespace_name_and_iri(iri)[1]
         return self._get_ns_idx(ns_iri), str(iri[len(ns_iri):])
 
     def _get_ns_idx(self, ns_iri):
@@ -321,7 +325,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
     def _get_cuds_idx(self, uid):
         c = self._default_select(
             self.CUDS_TABLE, condition=EqualsCondition(
-                self.CUDS_TABLE, "uid", uid, datatype="UUID"
+                self.CUDS_TABLE, "uid", uid, datatype="UID"
             )
         )
         for cuds_idx, uid in c:
@@ -355,7 +359,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
 
     def _remove(self, pattern):
         for c, t, _ in self._queries(pattern, mode="delete"):
-            c = self._do_db_delete(t, c)
+            self._do_db_delete(t, c)
 
     def _construct_remove_condition(self, pattern, table, object_datatype):
         conditions = list()
@@ -399,7 +403,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         self._default_create(self.RELATIONSHIP_TABLE)
         self._load_namespace_indexes()
 
-        from osp.core.utils import get_custom_datatypes
+        from osp.core.utils.general import get_custom_datatypes
         datatypes = get_custom_datatypes() | {
             rdflib.XSD.integer, rdflib.XSD.boolean, rdflib.XSD.float,
             rdflib.XSD.string

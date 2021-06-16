@@ -7,6 +7,7 @@ remote side.
 
 import asyncio
 import websockets
+import websockets.exceptions as ws_exceptions
 import logging
 import tempfile
 import uuid
@@ -101,7 +102,7 @@ class CommunicationEngineServer():
                         await websocket.send(part)
                     for part in encode_files(files):
                         await websocket.send(part)
-        except websockets.exceptions.ConnectionClosedOK:
+        except ws_exceptions.ConnectionClosedOK:
             pass
         finally:
             logger.debug("Connection %s closed!" % connection_id)
