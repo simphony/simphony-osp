@@ -43,7 +43,8 @@ class OntologyClass(OntologyEntity):
         for superclass in self.superclasses:
             for attr, v in self._get_attributes(superclass.iri).items():
                 x = attributes.get(attr, (None, None, None))
-                x = (x[0] or v[0], x[1] or v[1], x[2] or v[2])
+                x = (x[0] or v[0], False if x[0] or v[0] else x[1] or v[1],
+                     x[2] or v[2])
                 attributes[attr] = x
         return attributes
 
@@ -128,10 +129,12 @@ class OntologyClass(OntologyEntity):
             if triple not in graph or isinstance(a_iri, BNode):
                 continue
             a = self.namespace._namespace_registry.from_iri(a_iri)
-            default = self._get_default(a_iri, iri)
+            cuba_default = self._get_default(a_iri, iri)
+            restriction_default = graph.value(o, OWL.hasValue)
+            default = cuba_default or restriction_default
             dt, obligatory = self._get_datatype_for_restriction(o)
             obligatory = default is None and obligatory
-            attributes[a] = (self._get_default(a_iri, iri), obligatory, dt)
+            attributes[a] = (default, obligatory, dt)
 
         # TODO more cases
         return attributes
@@ -144,6 +147,7 @@ class OntologyClass(OntologyEntity):
         dt = g.value(r, OWL.someValuesFrom)
         obligatory = dt is not None
         dt = dt or g.value(r, OWL.allValuesFrom)
+        dt = dt or g.value(r, OWL.hasValue)
         obligatory = obligatory or (r, OWL.cardinality) != 0
         obligatory = obligatory or (r, OWL.minCardinality) != 0
         return dt, obligatory
