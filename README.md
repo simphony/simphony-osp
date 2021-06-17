@@ -82,3 +82,7 @@ From our experience, this will not happen if you use the virtual environements o
   - session -- Different abstract classes for wrappers.
 - examples -- examples of usage.
 - tests -- unittesting of the code
+
+## Acknowledgements
+
+Special thanks to [Enthought, Inc](https://www.enthought.com/); [Centre Internacional de Mètodes Numèrics a l'Enginyeria (CIMNE)](https://cimne.com/) and the [University of Jyväskylä](https://www.jyu.fi/en) for collaborating with [Fraunhofer IWM](https://www.iwm.fraunhofer.de/en.html) to devise some of the ideas behind OSP-core.
