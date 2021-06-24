@@ -85,4 +85,4 @@ From our experience, this will not happen if you use the virtual environements o
 
 ## Acknowledgements
 
-Special thanks to [Enthought, Inc](https://www.enthought.com/); [Centre Internacional de Mètodes Numèrics a l'Enginyeria (CIMNE)](https://cimne.com/) and the [University of Jyväskylä](https://www.jyu.fi/en) for collaborating with [Fraunhofer IWM](https://www.iwm.fraunhofer.de/en.html) to devise some of the ideas behind OSP-core.
+The OSP-core Python package originates from the European Project [SimPhoNy](https://www.simphony-project.eu/) (Project Nr. 604005). We would like to acknowledge and thank our project partners, especially [Enthought, Inc](https://www.enthought.com/), [Centre Internacional de Mètodes Numèrics a l'Enginyeria (CIMNE)](https://cimne.com/) and the [University of Jyväskylä](https://www.jyu.fi/en), for their important contributions to some of the core concepts of OSP-core, which were originally demonstrated under the project https://github.com/simphony/simphony-common.
