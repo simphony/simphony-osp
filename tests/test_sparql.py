@@ -58,13 +58,10 @@ class TestSPARQL(unittest.TestCase):
             else:
                 return False
 
-        results_core_session(
-            citizen='cuds',
-            citizen_age=int,
-            citizen_name=str,
-            city_name=test_function
-        )
-        for row in results_core_session(citizen='cuds'):
+        for row in results_core_session(citizen='cuds',
+                                        citizen_age=int,
+                                        citizen_name=str,
+                                        city_name=test_function):
             self.assertTrue(row["citizen"].is_a(karl.oclass))
             self.assertEqual(row["citizen_age"], karl.age)
             self.assertEqual(row["citizen_name"], karl.name)
