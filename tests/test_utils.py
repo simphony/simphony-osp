@@ -246,7 +246,7 @@ class TestUtils(unittest.TestCase):
                                                              w.uid})
             self.assertIs(session._registry.get(b.uid), b)
             self.assertEqual(session._buffers, [
-                [{w.uid: w}, dict(), dict()],
+                [dict(), dict(), dict()],
                 [{b.uid: b}, dict(), dict()]]
             )
 
@@ -265,7 +265,7 @@ class TestUtils(unittest.TestCase):
                              {a.uid, x.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
             self.assertEqual(session._buffers, [
-                [{w.uid: w, x.uid: x}, {c.uid: c},
+                [{x.uid: x}, {c.uid: c},
                  dict()],
                 [dict(), dict(), dict()]]
             )
@@ -298,7 +298,7 @@ class TestUtils(unittest.TestCase):
                                                              w.uid})
             self.assertIs(session._registry.get(b.uid), b)
             self.assertEqual(session._buffers, [
-                [{w.uid: w}, dict(), dict()],
+                [dict(), dict(), dict()],
                 [{b.uid: b}, dict(), dict()]])
 
             b.name = "Emmendingen"
@@ -317,7 +317,7 @@ class TestUtils(unittest.TestCase):
                              {a.uid, x.uid, y.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
             self.assertEqual(session._buffers, [
-                [{x.uid: x, w.uid: w}, {c.uid: c},
+                [{x.uid: x}, {c.uid: c},
                  dict()],
                 [dict(), dict(), dict()]])
 

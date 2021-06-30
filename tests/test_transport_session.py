@@ -369,7 +369,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
     def test_import_rdf(self):
         """Test the import rdf functionality."""
         with TestWrapperSession() as session:
-            w = city.CityWrapper(session=session)
+            city.CityWrapper(session=session)
             g = json_to_rdf(CUDS_LIST_NON_PARTITIONED, rdflib.Graph())
             cuds_objects = import_rdf(g, session, BufferContext.USER)
             self.assertEqual(len(cuds_objects), 4)
@@ -380,7 +380,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
                              {1, 2, 3, 123})
             self.assertEqual(set(session._buffers[0][0]), {
                 uuid.UUID(int=1), uuid.UUID(int=2), uuid.UUID(int=3),
-                uuid.UUID(int=123), w.uid
+                uuid.UUID(int=123)
             })
             self.assertEqual(session._buffers[0][1:], [{}, {}])
             self.assertEqual(session._buffers[1], [{}, {}, {}])

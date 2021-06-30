@@ -4,6 +4,7 @@ import uuid
 import logging
 import rdflib
 from abc import abstractmethod
+from osp.core.namespaces import cuba
 from osp.core.session.session import Session
 from osp.core.session.result import returns_query_result
 from osp.core.utils.wrapper_development import clone_cuds_object, \
@@ -161,7 +162,6 @@ class WrapperSession(Session):
     def _get_full_graph(self):
         """Get the triples in the core session."""
         from osp.core.utils.simple_search import find_cuds_object
-        from osp.core.namespaces import cuba
 
         for cuds_object in find_cuds_object(lambda x: True,
                                             self._registry.get(self.root),
@@ -195,7 +195,6 @@ class WrapperSession(Session):
 
     def _store_checks(self, cuds_object):
         # Check if root is wrapper and wrapper is root
-        from osp.core.namespaces import cuba
         if cuds_object.is_a(cuba.Wrapper) and self.root is not None \
                 and self.root != cuds_object.uid:
             raise RuntimeError("Only one wrapper is allowed per session")
@@ -242,12 +241,11 @@ class WrapperSession(Session):
                 logger.debug("Added %s to updated buffer in %s of %s"
                              % (cuds_object, self._current_context, self))
             updated[cuds_object.uid] = cuds_object
-        else:
+        elif not cuds_object.is_a(cuba.Wrapper):
             if logger.level == logging.DEBUG:
                 logger.debug("Added %s to added buffer in %s of %s"
                              % (cuds_object, self._current_context, self))
             added[cuds_object.uid] = cuds_object
-
         # store
         super()._store(cuds_object)
 

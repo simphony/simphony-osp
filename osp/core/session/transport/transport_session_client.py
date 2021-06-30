@@ -10,6 +10,7 @@ import json
 import logging
 import tempfile
 import urllib.parse
+from osp.core.namespaces import cuba
 from osp.core.session.buffers import BufferType
 from osp.core.session.wrapper_session import check_consumes_buffers, \
     WrapperSession
@@ -85,10 +86,12 @@ class TransportSessionClient(WrapperSession):
             super()._store(cuds_object)
             self._engine.send(INITIALIZE_COMMAND,
                               json.dumps(data))
-            logger.debug("Remove %s from added buffer in context %s of session"
-                         " %s" % (cuds_object, self._current_context, self))
-            del self._buffers[self._current_context][
-                BufferType.ADDED][cuds_object.uid]
+            if not cuds_object.is_a(cuba.Wrapper):
+                logger.debug("Remove %s from added buffer in context %s of "
+                             "session %s" % (cuds_object,
+                                             self._current_context, self))
+                del self._buffers[self._current_context][
+                    BufferType.ADDED][cuds_object.uid]
             return
         super()._store(cuds_object)
 
