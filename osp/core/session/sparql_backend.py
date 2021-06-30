@@ -71,7 +71,7 @@ class SparqlResult(ABC):
         return self
 
     def __call__(self, **kwargs):
-        """Add kwargs to datatypes when class is called"""
+        """Add kwargs to datatypes when class is called."""
         self.datatypes.update(kwargs)
         return self.__iter__()
 
@@ -124,8 +124,7 @@ class SparqlBindingSet(ABC):
 
 
 class SparqlDataTypes(dict):
-    """Class in order to store the desired datatypes.
-    """
+    """Class in order to store the desired datatypes."""
     def __init__(self, **kwargs):
         """Initialize the object."""
         super().__init__(kwargs)
