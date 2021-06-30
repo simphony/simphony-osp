@@ -62,7 +62,8 @@ class CoreSession(Session, SPARQLBackend):
             """Iterate the result."""
             for row in self.result:
                 yield CoreSession.CoreSessionSparqlBindingSet(row,
-                                                              self.session)
+                                                              self.session,
+                                                              self.datatypes)
 
         def __len__(self):
             """Compute the number of elements in the result."""
@@ -71,10 +72,10 @@ class CoreSession(Session, SPARQLBackend):
     class CoreSessionSparqlBindingSet(SparqlBindingSet):
         """A row in the result. Mapping from variable to value."""
 
-        def __init__(self, row, session):
+        def __init__(self, row, session, datatypes):
             """Initialize the row."""
             self.binding_set = row
-            super().__init__(session)
+            super().__init__(session, datatypes)
 
         def _get(self, variable_name):
             return self.binding_set[variable_name]

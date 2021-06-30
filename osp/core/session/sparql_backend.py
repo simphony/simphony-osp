@@ -52,6 +52,7 @@ class SparqlResult(ABC):
     def __init__(self, session):
         """Initialize the object."""
         self.session = session
+        self.datatypes = SparqlDataTypes()
 
     @abstractmethod
     def close(self):
@@ -69,6 +70,10 @@ class SparqlResult(ABC):
         """Enter the with statement."""
         return self
 
+    def __call__(self, **kwargs):
+        self.datatypes.update(kwargs)
+        return self.__iter__()
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Close the connection."""
         self.close()
@@ -77,9 +82,10 @@ class SparqlResult(ABC):
 class SparqlBindingSet(ABC):
     """A base class from wrapper rows in SPARQL results."""
 
-    def __init__(self, session):
+    def __init__(self, session, datatypes=None):
         """Initialize the object."""
         self.session = session
+        self.datatypes = datatypes or SparqlDataTypes()
 
     @abstractmethod
     def _get(self, variable_name):
@@ -91,8 +97,35 @@ class SparqlBindingSet(ABC):
 
         Handle wrapper IRIs.
         """
-        x = self._get(variable_name)
-        if x is not None and x.startswith(CUDS_IRI_PREFIX) \
-                and uid_from_iri(x) == uuid.UUID(int=0):
-            return iri_from_uid(self.session.root)
-        return x
+        iri = self._get(variable_name)
+        if iri is not None and iri.startswith(CUDS_IRI_PREFIX) \
+                and uid_from_iri(iri) == uuid.UUID(int=0):
+            iri = iri_from_uid(self.session.root)
+        return self._check_datatype(variable_name, iri)
+
+    def _check_datatype(self, variable_name, iri):
+        """Check if iri shall be converted to a certain datatype"""
+        try:
+            variable_type = self.datatypes[variable_name]
+            if variable_type == 'cuds':
+                cuds_query = self.session.load_from_iri(iri)
+                return cuds_query.first()
+            elif variable_type in [float, str, int, bool]:
+                return variable_type(iri._value)
+            elif callable(variable_type):
+                return variable_type(iri)
+            else:
+                raise TypeError("Variable type not understood")
+        except KeyError:
+            return iri
+        except Exception as excep:
+            raise ValueError(excep)
+
+
+class SparqlDataTypes(dict):
+    """
+    Class in order to store the desired datatypes of
+    the SparqlBindingSet
+    """
+    def __init__(self, **kwargs):
+        super().__init__(kwargs)

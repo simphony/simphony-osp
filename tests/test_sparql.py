@@ -50,7 +50,35 @@ class TestSPARQL(unittest.TestCase):
                             for result in results))
         self.assertTrue(all(result['citizen_name'].toPython() == karl.name
                             for result in results))
-        results = sparql(query, session=None)
+
+        def test_function(iri):
+            value = str(iri._value)
+            if value == "Freiburg":
+                return True
+            else:
+                return False
+
+        results_core_session(
+            citizen='cuds',
+            citizen_age=int,
+            citizen_name=str,
+            city_name=test_function
+        )
+        for row in results_core_session(citizen='cuds'):
+            self.assertTrue(row["citizen"].is_a(karl.oclass))
+            self.assertEqual(row["citizen_age"], karl.age)
+            self.assertEqual(row["citizen_name"], karl.name)
+            self.assertTrue(row["city_name"])
+
+        self.assertDictEqual(
+            results_core_session.datatypes,
+            dict(
+                citizen="cuds",
+                citizen_age=int,
+                citizen_name=str,
+                city_name=test_function
+            )
+        )
 
 
 if __name__ == '__main__':
