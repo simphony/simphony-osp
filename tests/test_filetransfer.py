@@ -404,10 +404,8 @@ class TestFiletransfer(unittest.TestCase):
             session.load(images[0].uid)
             session.load(images[1].uid)
             session.load(images[2].uid)
-            target = ["%s-%s" % (image.uid.hex, file)
-                      for image, file in zip(images, FILES)]
             self.assertEqual(set(os.listdir(CLIENT_DIR)),
-                             {target[0], target[2]})
+                             {FILES[0], FILES[2]})
 
         # download again and check that no errors occur
         # and that the duplicates are still
