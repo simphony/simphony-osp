@@ -151,7 +151,8 @@ class TransportSessionClient(WrapperSession):
             buffer_context=BufferContext.ENGINE,
             data=data,
             temp_directory=temp_directory,
-            target_directory=self._file_destination
+            target_directory=self._file_destination,
+            file_cuds_uid=False
         )
         result = None
         if remainder and "expired" in remainder:

@@ -8,6 +8,7 @@ import logging
 import hashlib
 import rdflib
 import ast
+import filecmp
 from typing import Optional, Tuple, Any
 from rdflib_jsonld.serializer import from_rdf as json_from_rdf
 from rdflib_jsonld.parser import to_rdf as json_to_rdf
@@ -71,7 +72,8 @@ def serialize_buffers(session_obj, buffer_context,
 
 
 def deserialize_buffers(session_obj, buffer_context, data,
-                        temp_directory=None, target_directory=None):
+                        temp_directory=None, target_directory=None,
+                        file_cuds_uid=True):
     """Deserialize serialized buffers.
 
     Add them to the session and push them
@@ -88,6 +90,8 @@ def deserialize_buffers(session_obj, buffer_context, data,
             the full path.
         target_directory (Path): Where to move the files.
         If None, do not move them.
+        file_cuds_uid (bool): Whether to prepend the CUDS uid to the file name
+            on the target location.
 
     Returns:
         Dict[str, Any]: Everything in data, that were not part of the buffers.
@@ -110,7 +114,8 @@ def deserialize_buffers(session_obj, buffer_context, data,
                             _force=(k == "deleted"))
             deserialized[k] = d
             if k != "deleted":
-                move_files(get_file_cuds(d), temp_directory, target_directory)
+                move_files(get_file_cuds(d), temp_directory, target_directory,
+                           file_cuds_uid=file_cuds_uid)
         deleted = deserialized["deleted"] if "deleted" in deserialized else []
 
         for x in deleted:
@@ -123,7 +128,8 @@ def deserialize_buffers(session_obj, buffer_context, data,
                 if k not in ["added", "updated", "deleted", "expired"]}
 
 
-def move_files(file_cuds, temp_directory, target_directory):
+def move_files(file_cuds, temp_directory, target_directory,
+               file_cuds_uid=True):
     """Move the files associated with the given CUDS. Return all moved CUDS.
 
     Args:
@@ -132,7 +138,8 @@ def move_files(file_cuds, temp_directory, target_directory):
             If None, file cuds are expected to have the whole path.
         target_directory (path): The directory to move the files to.
             If None, do not move anything and return all file paths
-
+        file_cuds_uid (bool): Whether to prepend the CUDS uid to the file name
+            on the target location.
     Returns:
         List[path]: The list of files moved (if target_directory not None) or
                     The list of all files (if target_directory None)
@@ -148,18 +155,25 @@ def move_files(file_cuds, temp_directory, target_directory):
             path = os.path.join(temp_directory,
                                 base_name)
         # get target location
-        if not base_name.startswith(cuds.uid.hex):
+        if file_cuds_uid and not base_name.startswith(cuds.uid.hex):
             base_name = cuds.uid.hex + "-" + base_name
+        elif not file_cuds_uid \
+                and base_name.startswith(str(cuds.uid.hex) + '-'):
+            base_name = base_name[len(str(cuds.uid.hex) + '-'):]
         target_path = os.path.join(target_directory, base_name)
         # copy
-        if (
-            os.path.exists(os.path.dirname(target_path))
-            and os.path.exists(path)
-            and not (
-                os.path.exists(target_path)
-                and os.path.samefile(path, target_path)
-            )
-        ):
+        if (os.path.exists(os.path.dirname(target_path))
+                and os.path.exists(path)) and (
+                not os.path.exists(target_path) or not os.path.samefile(
+                    path, target_path)):
+            # Append CUDS uid.
+            if file_cuds_uid and os.path.exists(target_path) and not \
+                    filecmp.cmp(path, target_path):
+                name, ext = os.path.splitext(
+                    os.path.basename(target_path))
+                name += f' ({cuds.uid})'
+                target_path = os.path.join(os.path.dirname(target_path),
+                                           name + ext)
             shutil.copyfile(path, target_path)
             assert cuds.uid not in cuds.session._expired
             cuds.path = target_path
