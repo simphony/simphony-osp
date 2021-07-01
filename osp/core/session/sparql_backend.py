@@ -106,21 +106,24 @@ class SparqlBindingSet(ABC):
 
     def _check_datatype(self, variable_name, iri):
         """Check if iri shall be converted to a certain datatype."""
-        try:
-            variable_type = self.datatypes[variable_name]
-            if variable_type == 'cuds':
-                cuds_query = self.session.load_from_iri(iri)
-                return cuds_query.first()
-            elif variable_type in [float, str, int, bool]:
-                return variable_type(iri._value)
-            elif callable(variable_type):
-                return variable_type(iri)
-            else:
-                raise TypeError("Variable type not understood")
-        except KeyError:
+        if iri:
+            try:
+                variable_type = self.datatypes[variable_name]
+                if variable_type == 'cuds':
+                    cuds_query = self.session.load_from_iri(iri)
+                    return cuds_query.first()
+                elif variable_type in [float, str, int, bool]:
+                    return variable_type(iri._value)
+                elif callable(variable_type):
+                    return variable_type(iri)
+                else:
+                    raise TypeError("Variable type not understood")
+            except KeyError:
+                return iri
+            except Exception as excep:
+                raise ValueError(excep)
+        else:
             return iri
-        except Exception as excep:
-            raise ValueError(excep)
 
 
 class SparqlDataTypes(dict):
