@@ -52,6 +52,7 @@ class TestSPARQL(unittest.TestCase):
         self.assertEqual(len(results_none), 1)
         self.assertEqual(len(results_core_session), 1)
         self.assertEqual(len(results_core_session_method), 1)
+
         results = (next(results_none(**datatypes)),
                    next(results_core_session(**datatypes)),
                    next(results_core_session_method(**datatypes)))
@@ -62,6 +63,14 @@ class TestSPARQL(unittest.TestCase):
         self.assertTrue(all(result["citizen_name"] == karl.name
                             for result in results))
         self.assertTrue(all(result["city_name"]
+                            for result in results))
+
+        results = (next(iter(results_none)),
+                   next(iter(results_core_session)),
+                   next(iter(results_core_session_method)))
+        self.assertTrue(all(result['citizen'] == karl.iri
+                            for result in results))
+        self.assertTrue(all(type(result["citizen_age"]) != int
                             for result in results))
 
 

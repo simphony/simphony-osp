@@ -61,9 +61,11 @@ class CoreSession(Session, SPARQLBackend):
         def __iter__(self):
             """Iterate the result."""
             for row in self.result:
-                yield CoreSession.CoreSessionSparqlBindingSet(row,
-                                                              self.session,
-                                                              self.datatypes)
+                result = CoreSession.CoreSessionSparqlBindingSet(
+                    row, self.session, self.datatypes
+                )
+                self.datatypes = dict()
+                yield result
 
         def __len__(self):
             """Compute the number of elements in the result."""
