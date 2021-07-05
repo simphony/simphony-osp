@@ -129,10 +129,10 @@ class SparqlBindingSet(ABC):
 
             ValueError: when there is an exception on the conversion process.
         """
-        if not iri:
+        if iri is None:
             return iri
         variable_type = self.datatypes.get(variable_name)
-        if not variable_type:
+        if variable_type is None:
             return iri
 
         unknown_type_error = TypeError(f"Variable type {variable_type} not "
