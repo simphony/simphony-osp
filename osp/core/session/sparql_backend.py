@@ -96,7 +96,7 @@ class SparqlBindingSet(ABC):
     def __getitem__(self, variable_name):
         """Get the value of the given variable.
 
-        Handle wrapper IRIs.
+        Handles wrapper IRIs and datatype conversion.
         """
         iri = self._get(variable_name)
         if iri is not None and iri.startswith(CUDS_IRI_PREFIX) \
@@ -105,20 +105,48 @@ class SparqlBindingSet(ABC):
         return self._check_datatype(variable_name, iri)
 
     def _check_datatype(self, variable_name, iri):
-        """Check if iri shall be converted to a certain datatype."""
-        if iri:
-            try:
-                variable_type = self.datatypes[variable_name]
-                if variable_type == 'cuds':
-                    cuds_query = self.session.load_from_iri(iri)
-                    return cuds_query.first()
-                elif callable(variable_type):
-                    return variable_type(iri)
-                else:
-                    raise TypeError("Variable type not understood")
-            except KeyError:
-                return iri
-            except Exception as excep:
-                raise TypeError(excep)
-        else:
+        """Check if iri shall be converted to a certain datatype.
+
+        The `variable_name` is checked against the dictionary `self.datatypes`,
+        and if a datatype is defined there for such variable name, then the
+        function returns the value of the variable converted to such datatype.
+
+        Args:
+            variable_name (str): the variable of the SPARQL query on which the
+                check should be performed.
+            iri (Union[URIRef, Literal]): a result returned by the SPARQL
+                query for such variable name. This is what is then converted
+                to the desired datatype.
+
+        Returns:
+            Any: the result of the SPARQL query converted to the desired
+                datatype.
+
+        Raises:
+            TypeError: when the an invalid string is specified as target
+                datatype or the target datatype is neither a string or a
+                callable.
+
+            ValueError: when there is an exception on the conversion process.
+        """
+        if not iri:
             return iri
+        variable_type = self.datatypes.get(variable_name)
+        if not variable_type:
+            return iri
+
+        unknown_type_error = TypeError(f"Variable type {variable_type} not "
+                                       f"understood.")
+        try:
+            if variable_type == 'cuds':
+                cuds_query = self.session.load_from_iri(iri)
+                return cuds_query.first()
+            elif callable(variable_type):
+                return variable_type(iri)
+            else:
+                raise unknown_type_error
+        except Exception as exception:
+            if exception is not unknown_type_error:
+                raise ValueError(exception) from exception
+            else:
+                raise unknown_type_error
