@@ -21,6 +21,13 @@ class TestSPARQL(unittest.TestCase):
         query using both the `sparql` function from utils and the sparql method
         of the session.
         """
+        def is_freiburg(iri):
+            value = str(iri)
+            if value == "Freiburg":
+                return True
+            else:
+                return False
+
         freiburg = city.City(name='Freiburg')
         karl = city.Citizen(name="Karl", age=47)
         freiburg.add(karl, rel=city.hasInhabitant)
@@ -33,49 +40,29 @@ class TestSPARQL(unittest.TestCase):
                              ?citizen <{city.age.iri}> ?citizen_age .
                           }}
                  """
+        datatypes = dict(
+            citizen='cuds',
+            citizen_age=int,
+            citizen_name=str,
+            city_name=is_freiburg
+        )
         results_none = sparql(query, session=None)
         results_core_session = sparql(query, session=core_session)
         results_core_session_method = core_session.sparql(query)
         self.assertEqual(len(results_none), 1)
         self.assertEqual(len(results_core_session), 1)
         self.assertEqual(len(results_core_session_method), 1)
-        results = (next(iter(results_none)),
-                   next(iter(results_core_session)),
-                   next(iter(results_core_session_method)))
-        self.assertTrue(all(result['city_name'].toPython() == freiburg.name
+        results = (next(results_none(**datatypes)),
+                   next(results_core_session(**datatypes)),
+                   next(results_core_session_method(**datatypes)))
+        self.assertTrue(all(result["citizen"].is_a(karl.oclass)
                             for result in results))
-        self.assertTrue(all(result['citizen'] == karl.iri
+        self.assertTrue(all(result["citizen_age"] == karl.age
                             for result in results))
-        self.assertTrue(all(result['citizen_age'].toPython() == karl.age
+        self.assertTrue(all(result["citizen_name"] == karl.name
                             for result in results))
-        self.assertTrue(all(result['citizen_name'].toPython() == karl.name
+        self.assertTrue(all(result["city_name"]
                             for result in results))
-
-        def test_function(iri):
-            value = str(iri._value)
-            if value == "Freiburg":
-                return True
-            else:
-                return False
-
-        for row in results_core_session(citizen='cuds',
-                                        citizen_age=int,
-                                        citizen_name=str,
-                                        city_name=test_function):
-            self.assertTrue(row["citizen"].is_a(karl.oclass))
-            self.assertEqual(row["citizen_age"], karl.age)
-            self.assertEqual(row["citizen_name"], karl.name)
-            self.assertTrue(row["city_name"])
-
-        self.assertDictEqual(
-            results_core_session.datatypes,
-            dict(
-                citizen="cuds",
-                citizen_age=int,
-                citizen_name=str,
-                city_name=test_function
-            )
-        )
 
 
 if __name__ == '__main__':

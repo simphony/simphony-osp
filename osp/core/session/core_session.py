@@ -72,7 +72,7 @@ class CoreSession(Session, SPARQLBackend):
     class CoreSessionSparqlBindingSet(SparqlBindingSet):
         """A row in the result. Mapping from variable to value."""
 
-        def __init__(self, row, session, datatypes):
+        def __init__(self, row, session, datatypes=None):
             """Initialize the row."""
             self.binding_set = row
             super().__init__(session, datatypes)

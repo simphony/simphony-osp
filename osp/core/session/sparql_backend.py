@@ -49,10 +49,10 @@ class SPARQLBackend(ABC):
 class SparqlResult(ABC):
     """A base class for wrapping SPARQL results of different triple stores."""
 
-    def __init__(self, session):
+    def __init__(self, session, datatypes=None):
         """Initialize the object."""
         self.session = session
-        self.datatypes = SparqlDataTypes()
+        self.datatypes = datatypes or dict()
 
     @abstractmethod
     def close(self):
@@ -72,7 +72,7 @@ class SparqlResult(ABC):
 
     def __call__(self, **kwargs):
         """Add kwargs to datatypes when class is called."""
-        self.datatypes.update(kwargs)
+        self.datatypes = kwargs
         return self.__iter__()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -86,7 +86,7 @@ class SparqlBindingSet(ABC):
     def __init__(self, session, datatypes=None):
         """Initialize the object."""
         self.session = session
-        self.datatypes = datatypes or SparqlDataTypes()
+        self.datatypes = datatypes or dict()
 
     @abstractmethod
     def _get(self, variable_name):
@@ -112,8 +112,6 @@ class SparqlBindingSet(ABC):
                 if variable_type == 'cuds':
                     cuds_query = self.session.load_from_iri(iri)
                     return cuds_query.first()
-                elif variable_type in [float, str, int, bool]:
-                    return variable_type(iri._value)
                 elif callable(variable_type):
                     return variable_type(iri)
                 else:
@@ -121,13 +119,6 @@ class SparqlBindingSet(ABC):
             except KeyError:
                 return iri
             except Exception as excep:
-                raise ValueError(excep)
+                raise TypeError(excep)
         else:
             return iri
-
-
-class SparqlDataTypes(dict):
-    """Class in order to store the desired datatypes."""
-    def __init__(self, **kwargs):
-        """Initialize the object."""
-        super().__init__(kwargs)
