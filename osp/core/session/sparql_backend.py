@@ -49,17 +49,16 @@ class SPARQLBackend(ABC):
 class SparqlResult(ABC):
     """A base class for wrapping SPARQL results of different triple stores."""
 
-    def __init__(self, session, datatypes=None):
+    def __init__(self, session):
         """Initialize the object."""
         self.session = session
-        self.datatypes = datatypes or dict()
 
     @abstractmethod
     def close(self):
         """Close the connection."""
 
     @abstractmethod
-    def __iter__(self):
+    def __iter__(self, **kwargs):
         """Iterate the result."""
 
     @abstractmethod
@@ -72,8 +71,7 @@ class SparqlResult(ABC):
 
     def __call__(self, **kwargs):
         """Add kwargs to datatypes when class is called."""
-        self.datatypes = kwargs
-        return self.__iter__()
+        return self.__iter__(**kwargs)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Close the connection."""
