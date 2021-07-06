@@ -180,9 +180,15 @@ class Ontology:
         """Add the triples to connect the owl ontology to CUBA."""
         for iri in parser.active_relationships:
             if (iri, RDF.type, OWL.ObjectProperty) not in parser.graph:
-                raise ValueError(f"Specified relationship {iri} as "
-                                 f"active relationship, which is not "
-                                 f"a valid object property in the ontology.")
+                logger.warning(f"Specified relationship {iri} as "
+                               f"active relationship, which is not "
+                               f"a valid object property in the ontology."
+                               f"If such relationship belongs to another"
+                               f"ontology, and such ontology is installed, "
+                               f"then you may safely ignore this warning.")
+                # This requirement is checked later on in
+                # `namespace_registry.py`
+                # (NamespaceRegistry._check_default_relationship_installed).
             overlay.add(
                 (iri, RDFS.subPropertyOf,
                  rdflib_cuba.activeRelationship)
