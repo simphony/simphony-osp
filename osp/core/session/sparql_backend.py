@@ -58,7 +58,7 @@ class SparqlResult(ABC):
         """Close the connection."""
 
     @abstractmethod
-    def __iter__(self, **kwargs):
+    def __iter__(self):
         """Iterate the result."""
 
     @abstractmethod
