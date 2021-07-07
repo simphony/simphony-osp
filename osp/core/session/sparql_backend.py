@@ -71,7 +71,12 @@ class SparqlResult(ABC):
 
     def __call__(self, **kwargs):
         """Add kwargs to datatypes when class is called."""
-        return self.__iter__(**kwargs)
+        # Set the datatypes of each returned SparqlBindingSet while keeping
+        # __iter__ as an abstract method.
+        def add_datatypes(x):
+            x.datatypes = kwargs
+            return x
+        return map(add_datatypes, self.__iter__())
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Close the connection."""
@@ -127,7 +132,7 @@ class SparqlBindingSet(ABC):
 
             ValueError: when there is an exception on the conversion process.
         """
-        if iri is None:
+        if iri is None or not self.datatypes:
             return iri
         variable_type = self.datatypes.get(variable_name)
         if variable_type is None:
