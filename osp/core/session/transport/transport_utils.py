@@ -42,6 +42,8 @@ def serialize_buffers(session_obj, buffer_context,
         target_directory (Path): Where to move the files of the files cuds to
             serialize. If None, do not move them and return all the files
             corresponding to file cuds in the buffers.
+        file_cuds_uid (bool): Whether to prepend the CUDS uid to the file name
+            on the target location.
 
     Returns:
         str, List[path]: The serialized buffers and the list of corresponding
@@ -93,7 +95,7 @@ def deserialize_buffers(session_obj, buffer_context, data,
             to deserialize are stored. If None, file cuds are assumed to have
             the full path.
         target_directory (Path): Where to move the files.
-        If None, do not move them.
+            If None, do not move them.
         file_cuds_uid (bool): Whether to prepend the CUDS uid to the file name
             on the target location.
 
