@@ -140,6 +140,7 @@ def move_files(file_cuds, temp_directory, target_directory,
             If None, do not move anything and return all file paths
         file_cuds_uid (bool): Whether to prepend the CUDS uid to the file name
             on the target location.
+
     Returns:
         List[path]: The list of files moved (if target_directory not None) or
                     The list of all files (if target_directory None)
