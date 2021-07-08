@@ -407,9 +407,9 @@ class TestFiletransfer(unittest.TestCase):
                               target_second[0], target_second[1]})
             self.assertEqual(set(os.listdir(CLIENT_DIR)),
                              {FILES[0], FILES[1], FILES[2],
-                              os.path.splitext(FILES[1])[0] +
-                              f' ({images_second[1].uid})' +
-                              os.path.splitext(FILES[1])[1]})
+                              os.path.splitext(FILES[1])[0]
+                              + f' ({images_second[1].uid})'
+                              + os.path.splitext(FILES[1])[1]})
             self.assertEqual(set(os.listdir(FILES_DIR)), set(FILES))
             self.assertEqual(set(os.listdir(SECOND_FILES_DIR)), set(FILES))
 
