@@ -30,7 +30,8 @@ serialization_initialized = False
 
 
 def serialize_buffers(session_obj, buffer_context,
-                      additional_items=None, target_directory=None):
+                      additional_items=None, target_directory=None,
+                      file_cuds_uid=True):
     """Serialize the buffers and additional items.
 
     Args:
@@ -51,9 +52,11 @@ def serialize_buffers(session_obj, buffer_context,
     if buffer_context is not None:
         added, updated, deleted = session_obj._buffers[buffer_context]
         files += move_files(get_file_cuds(added.values()),
-                            None, target_directory)
+                            None, target_directory,
+                            file_cuds_uid=file_cuds_uid)
         files += move_files(get_file_cuds(updated.values()),
-                            None, target_directory)
+                            None, target_directory,
+                            file_cuds_uid=file_cuds_uid)
         result = {
             "added": serializable(added.values()),
             "updated": serializable(updated.values()),
@@ -64,7 +67,8 @@ def serialize_buffers(session_obj, buffer_context,
 
     if additional_items is not None:
         for k, v in additional_items.items():
-            files += move_files(get_file_cuds(v), None, target_directory)
+            files += move_files(get_file_cuds(v), None, target_directory,
+                                file_cuds_uid=file_cuds_uid)
             result[k] = serializable(v)
     if buffer_context is not None:
         session_obj._reset_buffers(buffer_context)
@@ -156,11 +160,18 @@ def move_files(file_cuds, temp_directory, target_directory,
             path = os.path.join(temp_directory,
                                 base_name)
         # get target location
+        # fix prefix (add in server, remove in client)
         if file_cuds_uid and not base_name.startswith(cuds.uid.hex):
             base_name = cuds.uid.hex + "-" + base_name
         elif not file_cuds_uid \
                 and base_name.startswith(str(cuds.uid.hex) + '-'):
             base_name = base_name[len(str(cuds.uid.hex) + '-'):]
+        # fix suffix (remove in server)
+        if file_cuds_uid:
+            name, ext = os.path.splitext(base_name)
+            if name.endswith(f' ({cuds.uid})'):
+                name = name[0:name.find(f' ({cuds.uid})')]
+                base_name = f'{name}{ext}'
         target_path = os.path.join(target_directory, base_name)
         # copy
         if (os.path.exists(os.path.dirname(target_path))
@@ -168,7 +179,7 @@ def move_files(file_cuds, temp_directory, target_directory,
                 not os.path.exists(target_path) or not os.path.samefile(
                     path, target_path)):
             # Append CUDS uid.
-            if file_cuds_uid and os.path.exists(target_path) and not \
+            if not file_cuds_uid and os.path.exists(target_path) and not \
                     filecmp.cmp(path, target_path):
                 name, ext = os.path.splitext(
                     os.path.basename(target_path))
