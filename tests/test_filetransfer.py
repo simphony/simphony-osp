@@ -466,12 +466,13 @@ class TestFiletransfer(unittest.TestCase):
             wrapper.add(file1, file2)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, URI,
-                                    file_destination=CLIENT_DIR) as session:
-            wrapper = city.CityWrapper(session=session)
-            path1 = wrapper.get(file1.uid).path
-            path2 = wrapper.get(file2.uid).path
-            # path3 = wrapper.get(file3.uid).path
+        # with TransportSessionClient(SqliteSession, URI,
+        #                             file_destination=CLIENT_DIR) as session:
+        #     wrapper = city.CityWrapper(session=session)
+        #     path1 = wrapper.get(file1.uid).path
+        #     path2 = wrapper.get(file2.uid).path
+        #     path3 = wrapper.get(file3.uid).path
+        #     path4 = wrapper.get(file4.uid).path
 
         self.assertTrue(path1.startswith(CLIENT_DIR))
         self.assertTrue(path2.startswith(CLIENT_DIR))
