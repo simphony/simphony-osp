@@ -34,6 +34,7 @@ try:
 except Exception:
     from test_communication_engine import async_test, MockWebsocket
 
+from osp.core.namespaces import cuba
 try:
     from osp.core.namespaces import city
 except ImportError:
@@ -423,6 +424,33 @@ class TestFiletransfer(unittest.TestCase):
                 number_of_downloaded_files,
                 len(os.listdir(CLIENT_DIR))
             )
+
+    def test_path(self):
+        """Tests that the path of the CUBA file on the client is correct.
+
+        Created due to issue #652.
+        """
+        with TransportSessionClient(SqliteSession, URI,
+                                    file_destination=CLIENT_DIR) as session:
+            wrapper = city.CityWrapper(session=session)
+            file = cuba.File(path=FILE_PATHS[1])  # `f1.jpg`
+            wrapper.add(file)
+            session.commit()
+
+        with TransportSessionClient(SqliteSession, URI,
+                                    file_destination=CLIENT_DIR) as session:
+            wrapper = city.CityWrapper(session=session)
+            file = wrapper.get(file.uid)
+            path1 = file.path
+
+        with TransportSessionClient(SqliteSession, URI,
+                                    file_destination=CLIENT_DIR) as session:
+            wrapper = city.CityWrapper(session=session)
+            file = wrapper.get(file.uid)
+            path2 = file.path
+
+        self.assertEqual(os.path.dirname(path1), CLIENT_DIR)
+        self.assertEqual(os.path.dirname(path2), CLIENT_DIR)
 
     def test_hashes(self):
         """Test the methods for computing hashes."""
