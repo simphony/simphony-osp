@@ -186,7 +186,7 @@ def move_files(file_cuds, temp_directory, target_directory):
                              "at the destination")
                 cuds.path = target_path
             elif not os.path.exists(path):
-                print("Reason: File to move does not exist")
+                logger.debug("Reason: File to move does not exist")
     return result
 
 
