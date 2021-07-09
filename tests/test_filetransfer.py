@@ -430,6 +430,7 @@ class TestFiletransfer(unittest.TestCase):
 
         Created due to issue #652.
         """
+        # Upload file and retrieve twice. Both paths should be correct.
         with TransportSessionClient(SqliteSession, URI,
                                     file_destination=CLIENT_DIR) as session:
             wrapper = city.CityWrapper(session=session)
@@ -451,6 +452,32 @@ class TestFiletransfer(unittest.TestCase):
 
         self.assertEqual(os.path.dirname(path1), CLIENT_DIR)
         self.assertEqual(os.path.dirname(path2), CLIENT_DIR)
+
+        # Upload two identical instances of the same file, also upload one
+        # file with the same name (but different).
+        with TransportSessionClient(SqliteSession, URI,
+                                    file_destination=CLIENT_DIR) as session:
+            wrapper = city.CityWrapper(session=session)
+            file1 = cuba.File(path=FILE_PATHS[0])  # `f0`
+            file2 = cuba.File(path=FILE_PATHS[0])  # `f0`
+            # file3 = cuba.File(path=SECOND_FILE_PATHS[0])  # `f0` (second
+            # file)
+            # wrapper.add(file1, file2, file3)
+            wrapper.add(file1, file2)
+            session.commit()
+
+        with TransportSessionClient(SqliteSession, URI,
+                                    file_destination=CLIENT_DIR) as session:
+            wrapper = city.CityWrapper(session=session)
+            path1 = wrapper.get(file1.uid).path
+            path2 = wrapper.get(file2.uid).path
+            # path3 = wrapper.get(file3.uid).path
+
+        self.assertTrue(path1.startswith(CLIENT_DIR))
+        self.assertTrue(path2.startswith(CLIENT_DIR))
+        # self.assertTrue(path3.startswith(CLIENT_DIR))
+        # self.assertEqual(path1, path2)
+        # self.assertNotEqual(path1, path3)
 
     def test_hashes(self):
         """Test the methods for computing hashes."""
