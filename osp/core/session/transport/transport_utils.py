@@ -181,7 +181,10 @@ def move_files(file_cuds, temp_directory, target_directory):
                 # The above expression has the form A ( BC + ~B ) = ABC + A~B.
                 # The meaning of the first minterm is clear, but the meaning
                 # of the second is not. The reason why it is there is
-                # because when the hash of the file to
+                # because when the hash of the file that should be loaded
+                # coincides with the hash of one of the files in the target
+                # directory, the server does not send the file. However,
+                # the cuds path should still be updated.
                 logger.debug("Reason: The exact same file is already present "
                              "at the destination")
                 cuds.path = target_path
