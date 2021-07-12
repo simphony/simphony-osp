@@ -74,24 +74,19 @@ class Cuds:
             self._graph.add((
                 self.iri, RDF.type, oclass.iri
             ))
-        extra_oclass_valid = None
+        extra_oclass = False
         for s, p, o in extra_triples:
             if s != self.iri:
                 raise ValueError("Trying to add extra triples to a CUDS "
                                  "object with a subject that does not match "
                                  "the CUDS object's IRI.")
             elif p == RDF.type:
-                try:
-                    namespace_registry.from_iri(o)
-                    if extra_oclass_valid is None:
-                        extra_oclass_valid = True
-                except KeyError:
-                    extra_oclass_valid = False
+                extra_oclass = True
             self._graph.add((s, p, o))
-        oclass_invalid = extra_oclass_valid or oclass
-        if oclass_invalid:
-            raise TypeError(f"No oclass or invalid oclass associated with"
-                            f" {self}! Did you install the required ontology?")
+        oclass_assigned = bool(oclass) or extra_oclass
+        if not oclass_assigned:
+            raise TypeError(f"No oclass associated with {self}! "
+                            f"Did you install the required ontology?")
 
         self._session = session or Cuds._session
         # Copy temporary graph to the session graph and discard it.
