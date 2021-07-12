@@ -6,13 +6,14 @@ has attributes and is connected to other cuds objects via relationships.
 
 import logging
 from uuid import uuid4, UUID
-from typing import Union, List, Iterator, Dict, Any, Optional, Tuple
-from rdflib import URIRef, RDF, Graph, Literal
+from typing import Union, List, Iterator, Dict, Any, Optional, Tuple, Iterable
+from rdflib import URIRef, BNode, RDF, Graph, Literal
 from osp.core.namespaces import cuba, from_iri
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.datatypes import CUDS_IRI_PREFIX
+from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.session.core_session import core_session
 from osp.core.session.session import Session
 from osp.core.neighbor_dict import NeighborDictRel
@@ -41,9 +42,11 @@ class Cuds:
                  session: Session = None,
                  iri: URIRef = None,
                  uid: Union[UUID, URIRef] = None,
-                 # Create an empty CUDS and add the triples externally
-                 # afterwards.
-                 _from_triples: bool = False):
+                 # Specify extra triples for the CUDS object.
+                 extra_triples: Iterable[
+                     Tuple[Union[URIRef, BNode],
+                           Union[URIRef, BNode],
+                           Union[URIRef, BNode]]] = tuple()):
         """Initialize a CUDS object."""
         # Set uid. This is a "user-facing" method, so strict types
         # checks are performed.
@@ -71,9 +74,24 @@ class Cuds:
             self._graph.add((
                 self.iri, RDF.type, oclass.iri
             ))
-        elif not _from_triples:
-            raise TypeError(f"No oclass associated with {self}! "
-                            f"Did you install the required ontology?")
+        extra_oclass_valid = None
+        for s, p, o in extra_triples:
+            if s != self.iri:
+                raise ValueError("Trying to add extra triples to a CUDS "
+                                 "object with a subject that does not match "
+                                 "the CUDS object's IRI.")
+            elif p == RDF.type:
+                try:
+                    namespace_registry.from_iri(o)
+                    if extra_oclass_valid is None:
+                        extra_oclass_valid = True
+                except KeyError:
+                    extra_oclass_valid = False
+            self._graph.add((s, p, o))
+        oclass_invalid = extra_oclass_valid or oclass
+        if oclass_invalid:
+            raise TypeError(f"No oclass or invalid oclass associated with"
+                            f" {self}! Did you install the required ontology?")
 
         self._session = session or Cuds._session
         # Copy temporary graph to the session graph and discard it.

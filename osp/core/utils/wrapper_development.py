@@ -225,15 +225,17 @@ def create_from_triples(triples, neighbor_triples, session,
             for rel in rels:
                 cuds_object.remove(rel=rel)
         session.graph.remove((cuds_object.iri, None, None))
+        for triple in set(triples):
+            session.graph.add(triple)
     else:  # create new
         cuds_object = Cuds(attributes={},
                            oclass=None,
                            session=session,
                            uid=uid,
-                           _from_triples=True)
+                           extra_triples=set(triples))
 
     # add the triples
-    for triple in set(triples) | set(neighbor_triples):
+    for triple in set(neighbor_triples):
         session.graph.add(triple)
     if isinstance(session, WrapperSession):
         session._store_checks(cuds_object)
