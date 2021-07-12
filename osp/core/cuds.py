@@ -13,7 +13,6 @@ from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.datatypes import CUDS_IRI_PREFIX
-from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.session.core_session import core_session
 from osp.core.session.session import Session
 from osp.core.neighbor_dict import NeighborDictRel
