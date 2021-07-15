@@ -6,8 +6,8 @@ has attributes and is connected to other cuds objects via relationships.
 
 import logging
 from uuid import uuid4, UUID
-from typing import Union, List, Iterator, Dict, Any, Optional, Tuple
-from rdflib import URIRef, RDF, Graph, Literal
+from typing import Union, List, Iterator, Dict, Any, Optional, Tuple, Iterable
+from rdflib import URIRef, BNode, RDF, Graph, Literal
 from osp.core.namespaces import cuba, from_iri
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
@@ -41,9 +41,11 @@ class Cuds:
                  session: Session = None,
                  iri: URIRef = None,
                  uid: Union[UUID, URIRef] = None,
-                 # Create an empty CUDS and add the triples externally
-                 # afterwards.
-                 _from_triples: bool = False):
+                 # Specify extra triples for the CUDS object.
+                 extra_triples: Iterable[
+                     Tuple[Union[URIRef, BNode],
+                           Union[URIRef, BNode],
+                           Union[URIRef, BNode]]] = tuple()):
         """Initialize a CUDS object."""
         # Set uid. This is a "user-facing" method, so strict types
         # checks are performed.
@@ -71,7 +73,17 @@ class Cuds:
             self._graph.add((
                 self.iri, RDF.type, oclass.iri
             ))
-        elif not _from_triples:
+        extra_oclass = False
+        for s, p, o in extra_triples:
+            if s != self.iri:
+                raise ValueError("Trying to add extra triples to a CUDS "
+                                 "object with a subject that does not match "
+                                 "the CUDS object's IRI.")
+            elif p == RDF.type:
+                extra_oclass = True
+            self._graph.add((s, p, o))
+        oclass_assigned = bool(oclass) or extra_oclass
+        if not oclass_assigned:
             raise TypeError(f"No oclass associated with {self}! "
                             f"Did you install the required ontology?")
 
