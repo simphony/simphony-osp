@@ -391,6 +391,8 @@ class NamespaceRegistry:
                                                   {rdflib.OWL.ObjectProperty,
                                                    })
                                               ):
+        if not ontology.default_relationship:
+            return
         found = False
         # Check if it is in the namespace to be installed.
         for s, p, o in ontology.graph.triples((ontology.default_relationship,
@@ -402,6 +404,7 @@ class NamespaceRegistry:
         # If not, found, find it in the namespace registry.
         if not found:
             try:
+                print(ontology.default_relationship)
                 self.from_iri(ontology.default_relationship)
                 found = True
             except KeyError:
