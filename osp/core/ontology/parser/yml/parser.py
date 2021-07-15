@@ -212,7 +212,8 @@ class YMLParser(OntologyParser):
             superclass_iri = self._get_iri(superclass_name, namespace,
                                            entity_name)
             predicate = RDFS.subPropertyOf
-            if (iri, RDF.type, OWL.Class) in self._graph:
+            if (iri, RDF.type, OWL.Class) in ReadOnlyGraphAggregate(
+                    [self._graph, namespace_registry._graph]):
                 predicate = RDFS.subClassOf
 
             self._graph.add((iri, predicate, superclass_iri))
@@ -374,7 +375,8 @@ class YMLParser(OntologyParser):
             attribute_iri = self._get_iri(attribute_name, attribute_namespace,
                                           entity_name)
             x = (attribute_iri, RDF.type, OWL.DatatypeProperty)
-            if x not in self._graph:
+            if x not in ReadOnlyGraphAggregate([self._graph,
+                                                namespace_registry._graph]):
                 raise ValueError(f"Invalid attribute {attribute_namespace}."
                                  f"{attribute_name} of entity {entity_name}")
             self._add_attribute(iri, attribute_iri, default)
@@ -516,9 +518,12 @@ class YMLParser(OntologyParser):
         rel_triple = (iri, RDF.type, OWL.ObjectProperty)
         attr_triple = (iri, RDF.type, OWL.DatatypeProperty)
         status = (
-            class_triple in self._graph,
-            rel_triple in self._graph,
-            attr_triple in self._graph
+            class_triple in ReadOnlyGraphAggregate(
+                [self._graph, namespace_registry._graph]),
+            rel_triple in ReadOnlyGraphAggregate(
+                [self._graph, namespace_registry._graph]),
+            attr_triple in ReadOnlyGraphAggregate(
+                [self._graph, namespace_registry._graph])
         )
         if sum(status) != 1:
             raise RuntimeError(f"Couldn't determine type of {entity_name}")
