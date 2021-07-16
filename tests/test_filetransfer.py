@@ -522,7 +522,7 @@ class TestFiletransfer(unittest.TestCase):
         # Now clean up the folder (make sure that the server can find the
         # files, that is, the path is correct for the server).
         for file in os.listdir(CLIENT_DIR):
-           os.remove(os.path.join(CLIENT_DIR, file))
+            os.remove(os.path.join(CLIENT_DIR, file))
         with TransportSessionClient(SqliteSession, URI,
                                     file_destination=CLIENT_DIR) as session:
             wrapper = city.CityWrapper(session=session)
