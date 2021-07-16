@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1626417637779,
+  "lastUpdate": 1626419117743,
   "repoUrl": "https://github.com/simphony/osp-core",
   "entries": {
     "Benchmark": [
@@ -1496,6 +1496,142 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.0007903614418217648",
             "extra": "mean: 3.71694740600077 msec\nrounds: 500"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "43052541+kysrpex@users.noreply.github.com",
+            "name": "José Manuel Domínguez",
+            "username": "kysrpex"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "118f08a0b8937a52bec186a62ff83679a5b43b60",
+          "message": "652 cuba.file in dataspace session shows wrong file path on second load (#667)\n\n* Transport session: set `cuds.path` for CUDS of type `cuba.File` even when the file which the CUDS references is not moved.\r\n\r\n* Add tests for issue #652.",
+          "timestamp": "2021-07-16T09:02:02+02:00",
+          "tree_id": "c3c52e3442efdfbba502c5bc765cce6b826dedb7",
+          "url": "https://github.com/simphony/osp-core/commit/118f08a0b8937a52bec186a62ff83679a5b43b60"
+        },
+        "date": 1626419116801,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_create",
+            "value": 162.33921410026073,
+            "unit": "iter/sec",
+            "range": "stddev: 0.005509330778809066",
+            "extra": "mean: 6.159941117999991 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_add_default",
+            "value": 125.54342690105373,
+            "unit": "iter/sec",
+            "range": "stddev: 0.003651905026838891",
+            "extra": "mean: 7.965371223999993 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_add_rel",
+            "value": 117.86515573117128,
+            "unit": "iter/sec",
+            "range": "stddev: 0.004247257285525154",
+            "extra": "mean: 8.48427165599998 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_get_byuiduuid",
+            "value": 210.19754647082428,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0014685602510897324",
+            "extra": "mean: 4.757429459999912 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byuiduriref",
+            "value": 251.87967207731455,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0011820467971340057",
+            "extra": "mean: 3.970149681999942 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byrel",
+            "value": 389.81324254931167,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00015314521835198635",
+            "extra": "mean: 2.5653310119999304 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byoclass",
+            "value": 11.091219191633371,
+            "unit": "iter/sec",
+            "range": "stddev: 0.006489555208925544",
+            "extra": "mean: 90.16141352200009 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byuiduuid",
+            "value": 459.70527261563564,
+            "unit": "iter/sec",
+            "range": "stddev: 0.04694137339673279",
+            "extra": "mean: 2.1753067879996024 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byuiduriref",
+            "value": 696.1411986980119,
+            "unit": "iter/sec",
+            "range": "stddev: 0.030523233180933775",
+            "extra": "mean: 1.436490186000043 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byrel",
+            "value": 383.1771183956797,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00044223775035675785",
+            "extra": "mean: 2.6097591739999757 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_iter_byoclass",
+            "value": 10.81054120362656,
+            "unit": "iter/sec",
+            "range": "stddev: 0.013251270022467766",
+            "extra": "mean: 92.50230688400086 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_is_a",
+            "value": 4715.961816976391,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00010731813661303256",
+            "extra": "mean: 212.045821999709 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_oclass",
+            "value": 7510.941789823366,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000027404047556753315",
+            "extra": "mean: 133.13909599924045 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_uid",
+            "value": 16261.732718251087,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00001556795461030675",
+            "extra": "mean: 61.49406199978102 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iri",
+            "value": 8931.453417155286,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00004026639131158392",
+            "extra": "mean: 111.96386000057146 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_attributes",
+            "value": 281.27892072944735,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00041209552109768466",
+            "extra": "mean: 3.555189978000044 msec\nrounds: 500"
           }
         ]
       }
