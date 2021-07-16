@@ -18,7 +18,7 @@ _os.makedirs(_path, exist_ok=True)
 
 
 try:
-    _namespace_registry.load(_path)
+    _namespace_registry.load_graph_file(_path)
 except RuntimeError:
     _logger.critical("Could not load installed ontologies.", exc_info=1)
 

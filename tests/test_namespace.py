@@ -72,7 +72,7 @@ class TestNamespaces(unittest.TestCase):
         """Test loading an installed namespaces."""
         # no graph.xml found
         self.namespace_registry.clear()
-        self.namespace_registry.load(self.tempdir.name)
+        self.namespace_registry.load_graph_file(self.tempdir.name)
         g = rdflib.Graph()
         g.parse(CUBA_FILE, format="ttl")
         self.assertTrue(isomorphic(g, self.namespace_registry._graph))
@@ -88,7 +88,7 @@ class TestNamespaces(unittest.TestCase):
         self.namespace_registry.store(self.tempdir.name)
 
         nr = NamespaceRegistry()
-        nr.load(self.tempdir.name)
+        nr.load_graph_file(self.tempdir.name)
         self.assertTrue(isomorphic(nr._graph, self.graph))
         self.assertIn("parser_test", nr)
 
@@ -415,6 +415,7 @@ class TestNamespaces(unittest.TestCase):
         )
         self.assertRaises(ValueError, self.installer.install, onto_def_rel)
 
+        # Now this will be checked at installation time.
         onto_def_rel = os.path.join(
             os.path.dirname(__file__),
             'default_rel_across_namespace_uninstalled_namespace.yml'

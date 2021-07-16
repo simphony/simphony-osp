@@ -2,7 +2,7 @@
 
 import unittest2 as unittest
 import re
-from osp.core.ontology.yml.yml_validator import validate, _validate_format
+from osp.core.ontology.parser.yml.validator import validate, _validate_format
 
 
 class TestOntologyValidator(unittest.TestCase):

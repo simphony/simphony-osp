@@ -673,11 +673,10 @@ class TestAPICity(unittest.TestCase):
     def test_cuds_without_oclass(self):
         """Tries to create a cuds without oclass.
 
-        Should fail except if the argument _from_triples is set to True.
+        Should always fail.
         """
         self.assertRaises(TypeError,
                           Cuds, oclass=None, attributes={})
-        self.assertTrue(Cuds(oclass=None, attributes={}, _from_triples=True))
 
 
 if __name__ == '__main__':

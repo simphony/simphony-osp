@@ -1,6 +1,6 @@
 """An example explaining how to access an installed ontology."""
 
-from osp.core.ontology.oclass_composition import Composition  # Used later.
+from osp.core.ontology.oclass_composition import Composition
 
 # Please install the both the city ontology: $pico install city,
 # and the European Materials & Modelling Ontology (EMMO): $pico install emmo.

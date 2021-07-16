@@ -10,6 +10,7 @@ import json
 import logging
 import tempfile
 import urllib.parse
+from osp.core.namespaces import cuba
 from osp.core.session.buffers import BufferType
 from osp.core.session.wrapper_session import check_consumes_buffers, \
     WrapperSession
@@ -34,13 +35,15 @@ class TransportSessionClient(WrapperSession):
     """
 
     def __init__(self, session_cls, uri, file_destination=None,
-                 connect_kwargs=None, *args, **kwargs):
+                 connect_kwargs=None, file_uid=False, *args, **kwargs):
         """Construct the client of the transport session.
 
         Args:
             session_cls (Session): The session class to wrap.
             uri (str): WebSocket URI.
             file_destination (path): Where to put the uploaded files.
+            file_uid (bool): Whether to prepend the files with the uid of
+                their associated CUDS object.
             connect_kwargs (dict[str, Any]): Will be passed to
                 websockets.connect. E.g. it is possible to pass an SSL context
                 with the ssl keyword.
@@ -50,6 +53,7 @@ class TransportSessionClient(WrapperSession):
         self.session_cls = session_cls
         self.args = args
         self.kwargs = kwargs
+        self.file_uid = file_uid
         uri, username, password = self._parse_uri(uri)
         if file_destination is None:
             self.__local_temp_dir = tempfile.TemporaryDirectory()
@@ -85,10 +89,12 @@ class TransportSessionClient(WrapperSession):
             super()._store(cuds_object)
             self._engine.send(INITIALIZE_COMMAND,
                               json.dumps(data))
-            logger.debug("Remove %s from added buffer in context %s of session"
-                         " %s" % (cuds_object, self._current_context, self))
-            del self._buffers[self._current_context][
-                BufferType.ADDED][cuds_object.uid]
+            if not cuds_object.is_a(cuba.Wrapper):
+                logger.debug("Remove %s from added buffer in context %s of "
+                             "session %s" % (cuds_object,
+                                             self._current_context, self))
+                del self._buffers[self._current_context][
+                    BufferType.ADDED][cuds_object.uid]
             return
         super()._store(cuds_object)
 
@@ -106,7 +112,8 @@ class TransportSessionClient(WrapperSession):
             self, buffer_context=None,
             additional_items={"uids": uids,
                               "expired": expired},
-            target_directory=self._file_destination
+            target_directory=self._file_destination,
+            file_cuds_uid=self.file_uid
         )
         yield from self._engine.send(LOAD_COMMAND, data, files)
 
@@ -127,7 +134,8 @@ class TransportSessionClient(WrapperSession):
         data, files = serialize_buffers(
             self, buffer_context=buffer_context,
             additional_items=arguments,
-            target_directory=self._file_destination
+            target_directory=self._file_destination,
+            file_cuds_uid=self.file_uid
         )
         return self._engine.send(command, data, files)
 
@@ -148,7 +156,8 @@ class TransportSessionClient(WrapperSession):
             buffer_context=BufferContext.ENGINE,
             data=data,
             temp_directory=temp_directory,
-            target_directory=self._file_destination
+            target_directory=self._file_destination,
+            file_cuds_uid=self.file_uid
         )
         result = None
         if remainder and "expired" in remainder:

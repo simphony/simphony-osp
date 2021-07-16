@@ -120,7 +120,7 @@ class TestSessionCity(unittest.TestCase):
         w.session.prune()
 
         self.assertEqual(session._buffers, [
-            [{cw.uid: cw, w.uid: w}, dict(), dict()],
+            [{cw.uid: cw}, {w.uid: w}, dict()],
             [dict(), dict(), dict()]])
 
         w.session._reset_buffers(BufferContext.USER)

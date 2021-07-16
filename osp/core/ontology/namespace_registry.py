@@ -8,12 +8,14 @@ from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
+from osp.core.ontology.ontology import Ontology
+from osp.core.ontology.parser.parser import OntologyParser
 from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
 
-class NamespaceRegistry():
+class NamespaceRegistry:
     """Stores all the loaded namespaces."""
 
     def __init__(self):
@@ -27,7 +29,7 @@ class NamespaceRegistry():
         self._namespaces = dict()
 
     def __iter__(self):
-        """Iterate over the installed namespace.
+        """Iterate over the installed namespaces.
 
         :return: An iterator over the namespaces.
         :rtype: Iterator[OntologyNamespace]
@@ -178,8 +180,10 @@ class NamespaceRegistry():
             bnode (BNode): A blank node in the triple store.
             btype (URIRef): The rdf.type of the blank node.
         """
-        from osp.core.ontology.oclass_composition import get_composition
-        from osp.core.ontology.oclass_restriction import get_restriction
+        from osp.core.ontology.oclass_composition import \
+            get_composition
+        from osp.core.ontology.oclass_restriction import \
+            get_restriction
         t = btype or self._graph.value(bnode, rdflib.RDF.type)
 
         if t == rdflib.OWL.Restriction:
@@ -309,7 +313,7 @@ class NamespaceRegistry():
             for name, iri in self._namespaces.items():
                 print("%s\t%s" % (name, iri), file=f)
 
-    def load(self, path):
+    def load_graph_file(self, path):
         """Load the installed graph from at the given path.
 
         Args:
@@ -317,7 +321,7 @@ class NamespaceRegistry():
                 installed.
         """
         # Migrate old ontology formats if needed.
-        if os.path.exists(os.path.join(path, "yml")):
+        if os.path.exists(os.path.join(path, "parser/yml")):
             from osp.core.ontology.installation import pico_migrate
             pico_migrate(self, path)
         # Migrate to 3.5.3.1 format if needed.
@@ -355,6 +359,61 @@ class NamespaceRegistry():
         self._graph.parse(path_cuba, format="ttl")
         self.bind("cuba",
                   rdflib.URIRef("http://www.osp-core.com/cuba#"))
+
+    def load_parser(self, parser: OntologyParser):
+        """Load new namespace(s) from a parser object.
+
+        Args:
+            parser (OntologyParser): the ontology parser from where to load
+                the new namespaces
+        """
+        namespaces = parser.namespaces.items() \
+            if isinstance(parser.namespaces, dict) else dict()
+        logger.info("Loading namespaces %s." %
+                    '; '.join([f'{name}, {uri}'
+                               for name, uri in namespaces]))
+        ontology = Ontology(from_parser=parser)
+        # Force default relationships to be installed before installing a new
+        # ontology.
+        self._check_default_relationship_installed(ontology)
+        # Merge ontology graph.
+        self._graph += ontology.graph
+        # Bind namespaces.
+        for name, iri in namespaces:
+            if not (
+                iri.endswith("#") or iri.endswith("/")
+            ):
+                iri += "#"
+            self.bind(name, iri)
+
+    def _check_default_relationship_installed(self, ontology: Ontology,
+                                              allow_types=frozenset(
+                                                  {rdflib.OWL.ObjectProperty,
+                                                   })
+                                              ):
+        if not ontology.default_relationship:
+            return
+        found = False
+        # Check if it is in the namespace to be installed.
+        for s, p, o in ontology.graph.triples((ontology.default_relationship,
+                                               rdflib.RDF.type,
+                                               None)):
+            if o in allow_types:
+                found = True
+                break
+        # If not, found, find it in the namespace registry.
+        if not found:
+            try:
+                print(ontology.default_relationship)
+                self.from_iri(ontology.default_relationship)
+                found = True
+            except KeyError:
+                pass
+        if not found:
+            raise ValueError(f'The default relationship '
+                             f'{ontology.default_relationship} defined for '
+                             f'the ontology package {ontology.identifier} '
+                             f'is not installed.')
 
 
 namespace_registry = NamespaceRegistry()

@@ -12,7 +12,7 @@ __all__ = [
     'Cuds2dot',
     # .general
     'branch', 'get_relationships_between', 'delete_cuds_object_recursively',
-    'remove_cuds_object', 'import_cuds', 'export_cuds', 'post',
+    'remove_cuds_object', 'import_cuds', 'export_cuds', 'post', 'sparql',
     # .wrapper_development
     #  TODO: Remove, kept for backwards compatibility.
     'check_arguments', 'get_neighbor_diff', 'clone_cuds_object',
