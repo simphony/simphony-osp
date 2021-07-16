@@ -495,46 +495,46 @@ class TestFiletransfer(unittest.TestCase):
         # Upload two identical instances of the same file, also upload two
         # different files with the same name.
         # The CLIENT_DIR is not cleaned up on purpose.
-        # with TransportSessionClient(SqliteSession, URI,
-        #                             file_destination=CLIENT_DIR) as session:
-        #     wrapper = city.CityWrapper(session=session)
-        #     file1 = cuba.File(path=FILE_PATHS[0])  # `f0`
-        #     file2 = cuba.File(path=FILE_PATHS[0])  # `f0`
-        #     file3 = cuba.File(path=FILE_PATHS[1])  # `f1.jpg`
-        #     file4 = cuba.File(path=SECOND_FILE_PATHS[1])  # `f1.jpg` (second
-        #     # file)
-        #     wrapper.add(file1, file2, file3, file4)
-        #     session.commit()
+        with TransportSessionClient(SqliteSession, URI,
+                                    file_destination=CLIENT_DIR) as session:
+            wrapper = city.CityWrapper(session=session)
+            file1 = cuba.File(path=FILE_PATHS[0])  # `f0`
+            file2 = cuba.File(path=FILE_PATHS[0])  # `f0`
+            file3 = cuba.File(path=FILE_PATHS[1])  # `f1.jpg`
+            file4 = cuba.File(path=SECOND_FILE_PATHS[1])  # `f1.jpg` (second
+            # file)
+            wrapper.add(file1, file2, file3, file4)
+            session.commit()
 
-        # with TransportSessionClient(SqliteSession, URI,
-        #                             file_destination=CLIENT_DIR) as session:
-        #     wrapper = city.CityWrapper(session=session)
-        #     path1 = wrapper.get(file1.uid).path
-        #     path2 = wrapper.get(file2.uid).path
-        #     path3 = wrapper.get(file3.uid).path
-        #     path4 = wrapper.get(file4.uid).path
+        with TransportSessionClient(SqliteSession, URI,
+                                    file_destination=CLIENT_DIR) as session:
+            wrapper = city.CityWrapper(session=session)
+            path1 = wrapper.get(file1.uid).path
+            path2 = wrapper.get(file2.uid).path
+            path3 = wrapper.get(file3.uid).path
+            path4 = wrapper.get(file4.uid).path
 
-        # self.assertTrue(all(path.startswith(CLIENT_DIR) for path in
-        #                     (path1, path2, path3, path4)), True)
-        # self.assertEqual(path1, path2)
-        # self.assertNotEqual(path3, path4)
+        self.assertTrue(all(path.startswith(CLIENT_DIR) for path in
+                            (path1, path2, path3, path4)), True)
+        self.assertEqual(path1, path2)
+        self.assertNotEqual(path3, path4)
 
         # Now clean up the folder (make sure that the server can find the
         # files, that is, the path is correct for the server).
-        # for file in os.listdir(CLIENT_DIR):
-        #    os.remove(os.path.join(CLIENT_DIR, file))
-        # with TransportSessionClient(SqliteSession, URI,
-        #                             file_destination=CLIENT_DIR) as session:
-        #     wrapper = city.CityWrapper(session=session)
-        #     path1 = wrapper.get(file1.uid).path
-        #     path2 = wrapper.get(file2.uid).path
-        #     path3 = wrapper.get(file3.uid).path
-        #     path4 = wrapper.get(file4.uid).path
+        for file in os.listdir(CLIENT_DIR):
+           os.remove(os.path.join(CLIENT_DIR, file))
+        with TransportSessionClient(SqliteSession, URI,
+                                    file_destination=CLIENT_DIR) as session:
+            wrapper = city.CityWrapper(session=session)
+            path1 = wrapper.get(file1.uid).path
+            path2 = wrapper.get(file2.uid).path
+            path3 = wrapper.get(file3.uid).path
+            path4 = wrapper.get(file4.uid).path
 
-        # self.assertTrue(all(path.startswith(CLIENT_DIR) for path in
-        #                     (path1, path2, path3, path4)), True)
-        # self.assertEqual(path1, path2)
-        # self.assertNotEqual(path3, path4)
+        self.assertTrue(all(path.startswith(CLIENT_DIR) for path in
+                            (path1, path2, path3, path4)), True)
+        self.assertEqual(path1, path2)
+        self.assertNotEqual(path3, path4)
 
     def test_hashes(self):
         """Test the methods for computing hashes."""
