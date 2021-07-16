@@ -50,12 +50,15 @@ DB = "filetransfer.db"
 
 FILES_DIR = os.path.abspath(os.path.join(
     os.path.dirname(__file__), "filetransfer_files"))
+SECOND_FILES_DIR = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "filetransfer_files_second"))
 CLIENT_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "filetransfer_client"))
 SERVER_DIR = os.path.abspath(os.path.join(
     os.path.dirname(__file__), "filetransfer_server"))
 FILES = ["f0", "f1.jpg", "f2.tar.gz"]
 FILE_PATHS = [os.path.join(FILES_DIR, file) for file in FILES]
+SECOND_FILE_PATHS = [os.path.join(SECOND_FILES_DIR, file) for file in FILES]
 HASHES = {
     FILES[0]:
     '9722fa4a83e528278c7f5009da2486e7255af8756a888733a4ceaee449e0f102',
@@ -132,6 +135,7 @@ class TestFiletransfer(unittest.TestCase):
     def tearDown(self):
         """Remove temporary directories and clear the database."""
         shutil.rmtree(FILES_DIR)
+        shutil.rmtree(SECOND_FILES_DIR)
         shutil.rmtree(CLIENT_DIR)
         shutil.rmtree(SERVER_DIR)
         with sqlite3.connect(DB) as conn:
@@ -145,17 +149,20 @@ class TestFiletransfer(unittest.TestCase):
 
     def setUp(self):
         """Set up some temporary directory and test files."""
-        if not os.path.exists(FILES_DIR):
-            os.mkdir(FILES_DIR)
-        if not os.path.exists(CLIENT_DIR):
-            os.mkdir(CLIENT_DIR)
-        if not os.path.exists(SERVER_DIR):
-            os.mkdir(SERVER_DIR)
+        for directory in (FILES_DIR, SECOND_FILES_DIR, CLIENT_DIR, SERVER_DIR):
+            if not os.path.exists(directory):
+                os.mkdir(directory)
         with open(FILE_PATHS[0], "wb") as f:
             f.write(("0" * (BLOCK_SIZE + 1)).encode("utf-8"))
         with open(FILE_PATHS[1], "wb") as f:
             f.write(("1" * (BLOCK_SIZE * 2)).encode("utf-8"))
         with open(FILE_PATHS[2], "wb") as f:
+            pass
+        with open(SECOND_FILE_PATHS[0], "wb") as f:
+            f.write(("0" * (BLOCK_SIZE + 1)).encode("utf-8"))  # Same
+        with open(SECOND_FILE_PATHS[1], "wb") as f:
+            f.write(("1" * (BLOCK_SIZE * 2 + 1)).encode("utf-8"))  # Different
+        with open(SECOND_FILE_PATHS[2], "wb") as f:
             pass
 
     def test_move_files(self):
@@ -362,20 +369,50 @@ class TestFiletransfer(unittest.TestCase):
         self.assertEqual(sorted(os.listdir(SERVER_DIR)), sorted(FILES))
         self.assertEqual(get_hash_dir(SERVER_DIR), HASHES)
 
+    def setup_buffers3(self, session):
+        """Set up the buffers for the upload and download tests."""
+        wrapper = city.CityWrapper(session=session)
+        images = wrapper.add(
+            city.Image(path=FILE_PATHS[0]),
+            city.Image(path=FILE_PATHS[1]),
+            city.Image(path=FILE_PATHS[1])
+        )
+        images_second = wrapper.add(
+            city.Image(path=SECOND_FILE_PATHS[0]),
+            city.Image(path=SECOND_FILE_PATHS[1]),
+        )
+        session._reset_buffers(BufferContext.USER)
+        wrapper.remove(images[1].uid)
+        images[0].path = FILE_PATHS[0]
+        images[2].path = FILE_PATHS[1]
+        images_second[0].path = SECOND_FILE_PATHS[0]
+        images_second[1].path = SECOND_FILE_PATHS[1]
+        images = [list(images)[0], list(images)[2]] + \
+            [wrapper.add(city.Image(path=FILE_PATHS[2]))]
+        session.prune()
+        return images, images_second
+
     def test_upload(self):
         """Test full upload routine."""
         # with given file destination on client
         with TransportSessionClient(SqliteSession, URI,
                                     file_destination=CLIENT_DIR) as session:
-            images = self.setup_buffers1(session)
+            images, images_second = self.setup_buffers3(session)
             session.commit()
             target = ["%s-%s" % (image.uid.hex, file)
                       for image, file in zip(images, FILES)]
+            target_second = ["%s-%s" % (image.uid.hex, file)
+                             for image, file in zip(images_second, FILES)]
             self.assertEqual(set(os.listdir(SERVER_DIR)),
-                             {target[0], target[2]})
+                             {target[0], target[1], target[2],
+                              target_second[0], target_second[1]})
             self.assertEqual(set(os.listdir(CLIENT_DIR)),
-                             {target[0], target[2]})
+                             {FILES[0], FILES[1], FILES[2],
+                              os.path.splitext(FILES[1])[0]
+                              + f' ({images_second[1].uid})'
+                              + os.path.splitext(FILES[1])[1]})
             self.assertEqual(set(os.listdir(FILES_DIR)), set(FILES))
+            self.assertEqual(set(os.listdir(SECOND_FILES_DIR)), set(FILES))
 
         self.tearDown()
         self.setUp()
@@ -383,14 +420,18 @@ class TestFiletransfer(unittest.TestCase):
         # With no given file destination on client
         with TransportSessionClient(SqliteSession, URI,
                                     file_destination=None) as session:
-            images = self.setup_buffers1(session)
+            images, images_second = self.setup_buffers3(session)
             session.commit()
             target = ["%s-%s" % (image.uid.hex, file)
                       for image, file in zip(images, FILES)]
+            target_second = ["%s-%s" % (image.uid.hex, file)
+                             for image, file in zip(images_second, FILES)]
             self.assertEqual(set(os.listdir(SERVER_DIR)),
-                             {target[0], target[2]})
+                             {target[0], target[1], target[2],
+                              target_second[0], target_second[1]})
             self.assertEqual(set(os.listdir(CLIENT_DIR)), set())
             self.assertEqual(set(os.listdir(FILES_DIR)), set(FILES))
+            self.assertEqual(set(os.listdir(SECOND_FILES_DIR)), set(FILES))
 
     def test_download(self):
         """Test full download routine."""
@@ -405,10 +446,8 @@ class TestFiletransfer(unittest.TestCase):
             session.load(images[0].uid)
             session.load(images[1].uid)
             session.load(images[2].uid)
-            target = ["%s-%s" % (image.uid.hex, file)
-                      for image, file in zip(images, FILES)]
             self.assertEqual(set(os.listdir(CLIENT_DIR)),
-                             {target[0], target[2]})
+                             {FILES[0], FILES[2]})
 
         # download again and check that no errors occur
         # and that the duplicates are still
