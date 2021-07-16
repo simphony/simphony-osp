@@ -143,6 +143,7 @@ RDF_DATATYPES = {
     XSD.integer: (int, int, np.dtype("int")),
     XSD.float: (float, float, np.dtype("float")),
     XSD.string: (str, str, np.dtype("str")),
+    XSD.double: (float, float, np.dtype("double")),
     "UID": (to_uid, str, np.dtype("str")),
     None: (str, str, np.dtype("str"))
 }
