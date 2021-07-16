@@ -1,6 +1,7 @@
 """This class handles the installation of ontologies."""
 
 import os
+import glob
 import logging
 import shutil
 import tempfile
@@ -138,18 +139,31 @@ class OntologyInstallationManager:
             clear (bool): Whether it is necessary to clear what is already
                 installed.
         """
-        installed = set(self.get_installed_packages())
+        os.makedirs(self.path, exist_ok=True)
         if clear:
             self.namespace_registry.clear()
-            installed = set()
-            shutil.rmtree(self.path)
-            os.makedirs(self.path)
-        files = self._sort_for_installation(filter_func(files), installed)
+        files = self._sort_for_installation(filter_func(files),
+                                            set(self.get_installed_packages())
+                                            if not clear else set())
+        installed_packages = set()
         for file in files:
             parser = OntologyParser.get_parser(file)
             self.namespace_registry.load_parser(parser)
             # serialize the result
             parser.install(self.path)
+            installed_packages.add(parser.identifier)
+        if clear:
+            all_ontology_files, files_to_keep = set(), set()
+            for ext in ('yml', 'xml'):
+                all_ontology_files |= set(os.path.basename(x) for x in
+                                          glob.glob(
+                                              os.path.join(self.path,
+                                                           f'*.{ext}')))
+                files_to_keep |= set(f'{identifier}.{ext}' for identifier in
+                                     installed_packages)
+            files_to_remove = all_ontology_files - files_to_keep
+            for file in files_to_remove:
+                os.remove(os.path.join(self.path, file))
         self.namespace_registry.update_namespaces()
         self.namespace_registry.store(self.path)
 
