@@ -5,14 +5,14 @@ import graphviz
 import argparse
 import logging
 from osp.core.ontology.namespace_registry import namespace_registry
-from osp.core.ontology.parser.owl_DELETE import Parser
+from osp.core.ontology.parser import OntologyParser
 from osp.core.ontology import OntologyClass, OntologyRelationship, \
     OntologyAttribute
 
 logger = logging.getLogger(__name__)
 
 
-class Ontology2Dot():
+class Ontology2Dot:
     """Utility for creating a dot and png representation of an ontology."""
 
     label = ("<<TABLE BORDER='0' CELLBORDER='0'>"
@@ -185,18 +185,17 @@ def run_from_terminal():
     args = parser.parse_args()
 
     namespaces = list()
-    parser = Parser()
     for x in args.to_plot:
         if x in namespace_registry:
             namespaces.append(x)
             continue
-        for n in Parser.get_namespace_names(x):
+        parser = OntologyParser.get_parser(x)
+        for n in parser.namespaces.keys():
             if n in namespace_registry:
                 logger.warning("Using installed version of namespace %s" % n)
                 namespaces.append(namespace_registry[n])
             else:
-                parser.parse(x)
-                namespace_registry.update_namespaces()
+                namespace_registry.load_parser(parser)
                 namespaces.append(namespace_registry[n])
 
     # Convert the ontology to dot
