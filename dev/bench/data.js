@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1626710662776,
+  "lastUpdate": 1626873905271,
   "repoUrl": "https://github.com/simphony/osp-core",
   "entries": {
     "Benchmark": [
@@ -2312,6 +2312,142 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.00047639451760281135",
             "extra": "mean: 3.6592519860000152 msec\nrounds: 500"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "53036503+create-issue-branch[bot]@users.noreply.github.com",
+            "name": "create-issue-branch[bot]",
+            "username": "create-issue-branch[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fa6ebcd8b7f7b38b557d44cbeef40c98a11c722c",
+          "message": "OSP-core incompatible with RDFLib 6.0.0 (#678)\n\n* Enforce `rdflib` < 6.0.0.\r\n\r\nAuthored-by: kysrpex <kysrpex@users.noreply.github.com>\r\nAuthored-by: José Manuel Domínguez <jose.manuel.dominguez@iwm.fraunhofer.de>",
+          "timestamp": "2021-07-21T15:21:48+02:00",
+          "tree_id": "45c9a63b49c6592373287458baf78cbaeea58f9f",
+          "url": "https://github.com/simphony/osp-core/commit/fa6ebcd8b7f7b38b557d44cbeef40c98a11c722c"
+        },
+        "date": 1626873902037,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_create",
+            "value": 156.24354523736375,
+            "unit": "iter/sec",
+            "range": "stddev: 0.005269342076216083",
+            "extra": "mean: 6.400264397999989 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_add_default",
+            "value": 124.26803227332425,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0035345768519101273",
+            "extra": "mean: 8.047121868000021 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_add_rel",
+            "value": 128.22427471958602,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0035303184051666465",
+            "extra": "mean: 7.798835299999961 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_get_byuiduuid",
+            "value": 223.42319727567445,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0013519868665882384",
+            "extra": "mean: 4.475810981999928 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byuiduriref",
+            "value": 280.4841441973788,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0007789872579310362",
+            "extra": "mean: 3.565263922000142 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byrel",
+            "value": 345.695279212015,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0007136685316580123",
+            "extra": "mean: 2.892721018000074 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byoclass",
+            "value": 11.10455353072455,
+            "unit": "iter/sec",
+            "range": "stddev: 0.006041814326220446",
+            "extra": "mean: 90.05314776799963 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byuiduuid",
+            "value": 416.88834774046336,
+            "unit": "iter/sec",
+            "range": "stddev: 0.05206233168991246",
+            "extra": "mean: 2.3987237959995866 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byuiduriref",
+            "value": 705.4166557866728,
+            "unit": "iter/sec",
+            "range": "stddev: 0.030150293742193662",
+            "extra": "mean: 1.4176019120002366 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byrel",
+            "value": 381.62971335976243,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00031740527735648493",
+            "extra": "mean: 2.6203410399999427 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_iter_byoclass",
+            "value": 10.737839159496556,
+            "unit": "iter/sec",
+            "range": "stddev: 0.010235971386528531",
+            "extra": "mean: 93.12860671000078 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_is_a",
+            "value": 4647.938072879726,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00011269351811479643",
+            "extra": "mean: 215.14916600006018 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_oclass",
+            "value": 7568.67089161526,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000021146083464503304",
+            "extra": "mean: 132.12359399955176 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_uid",
+            "value": 15743.51224046129,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000019695394561980616",
+            "extra": "mean: 63.51822799933871 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iri",
+            "value": 10117.004164909999,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000019897327470944356",
+            "extra": "mean: 98.84348999958092 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_attributes",
+            "value": 282.26569188149045,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00040665380381009545",
+            "extra": "mean: 3.5427614079994214 msec\nrounds: 500"
           }
         ]
       }
