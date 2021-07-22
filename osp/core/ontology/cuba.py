@@ -26,11 +26,10 @@ DTYPE_PREFIXES = [
 class _CubaNamespace(ClosedNamespace):
     """Closed namespace for RDF terms."""
 
-    def __init__(self):
-        super(_CubaNamespace, self).__init__(
-            URIRef(NAMESPACE_IRI),
-            terms=ENTITIES + HIDDEN + DTYPE_PREFIXES
-        )
+    def __new__(cls, *args, **kwargs):
+        kwargs.setdefault('uri', URIRef(NAMESPACE_IRI))
+        kwargs.setdefault('terms', ENTITIES + HIDDEN + DTYPE_PREFIXES)
+        return super().__new__(cls, *args, **kwargs)
 
     def term(self, name):
         if name.startswith("_datatypes/"):

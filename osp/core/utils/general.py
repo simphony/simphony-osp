@@ -17,7 +17,7 @@ from rdflib.plugin import get as get_plugin
 from rdflib.util import guess_format
 from rdflib import OWL, RDF, RDFS
 from rdflib import URIRef, Literal, Graph
-from rdflib_jsonld.parser import to_rdf as json_to_rdf
+from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 from osp.core.namespaces import cuba
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.relationship import OntologyRelationship

@@ -18,7 +18,7 @@ from osp.core.session.transport.transport_utils import (
     serialize_buffers, LOAD_COMMAND, INITIALIZE_COMMAND, import_rdf
 )
 from osp.core.utils.wrapper_development import create_from_cuds_object
-from rdflib_jsonld.parser import to_rdf as json_to_rdf
+from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 
 try:
     from .test_session_city import TestWrapperSession
