@@ -27,7 +27,9 @@ setup(
     description='The native implementation of the SimPhoNy cuds objects',
     keywords='simphony, cuds, Fraunhofer IWM',
     long_description=README_TEXT,
-    packages=find_packages(exclude=("examples", "tests")),
+    packages=find_packages(
+        exclude=("examples",
+                 "tests")),
     package_data={
         "osp.core.ontology.docs": ["*.yml", "*.ttl", "*.xml", "EMMO/*.owl"],
     },
@@ -48,7 +50,8 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "rdflib >= 6.0.0, < 7.0.0",
+        "rdflib >= 5.0.0, < 7.0.0",
+        "rdflib-jsonld",
     ],
     setup_requires=[
         "PyYaml",
@@ -56,6 +59,7 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "rdflib >= 6.0.0, < 7.0.0",
-    ]
+        "rdflib >= 5.0.0, < 7.0.0",
+        "rdflib-jsonld",
+    ],
 )
