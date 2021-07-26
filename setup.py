@@ -50,8 +50,9 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "rdflib >= 5.0.0, < 7.0.0",
-        "rdflib-jsonld",
+        "rdflib >= 5.0.0, < 6.0.0; python_version < '3.7'",
+        "rdflib >= 6.0.0, < 7.0.0; python_version >= '3.7'",
+        "rdflib-jsonld; python_version < '3.7'",
     ],
     setup_requires=[
         "PyYaml",
@@ -59,7 +60,8 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "rdflib >= 5.0.0, < 7.0.0",
-        "rdflib-jsonld",
+        "rdflib >= 5.0.0, < 6.0.0; python_version < '3.7'",
+        "rdflib >= 6.0.0, < 7.0.0; python_version >= '3.7'",
+        "rdflib-jsonld; python_version < '3.7'",
     ],
 )
