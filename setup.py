@@ -48,7 +48,6 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "rdflib >= 5.0.0",
         "rdflib >= 5.0.0, < 6.0.0",
         "rdflib-jsonld"
     ],
