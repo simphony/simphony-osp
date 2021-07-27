@@ -34,62 +34,8 @@ class Cuds:
 
     _session = core_session
 
-    def __init__(self,
-                 # Create from oclass and attributes dict.
-                 attributes: Dict[OntologyAttribute, Any],
-                 oclass: Optional[OntologyClass] = None,
-                 session: Session = None,
-                 iri: URIRef = None,
-                 uid: Union[UUID, URIRef] = None,
-                 # Specify extra triples for the CUDS object.
-                 extra_triples: Iterable[
-                     Tuple[Union[URIRef, BNode],
-                           Union[URIRef, BNode],
-                           Union[URIRef, BNode]]] = tuple()):
-        """Initialize a CUDS object."""
-        # Set uid. This is a "user-facing" method, so strict types
-        # checks are performed.
-        if len(set(filter(lambda x: x is not None, (uid, iri)))) > 1:
-            raise ValueError("Tried to initialize a CUDS object specifying, "
-                             "both its IRI and UID. A CUDS object is "
-                             "constrained to have just one UID.")
-        elif uid is not None and type(uid) not in (UUID, URIRef):
-            raise ValueError('Provide either a UUID or a URIRef object'
-                             'as UID.')
-        elif iri is not None and type(iri) is not URIRef:
-            raise ValueError('Provide a URIRef object as IRI.')
-        else:
-            self._uid = uid or iri or uuid4()
-
-        # Create CUDS triples in internal temporary graph.
-        self._graph = Graph()
-        if attributes:
-            for k, v in attributes.items():
-                self._graph.add((
-                    self.iri, k.iri, Literal(k.convert_to_datatype(v),
-                                             datatype=k.datatype)
-                ))
-        if oclass:
-            self._graph.add((
-                self.iri, RDF.type, oclass.iri
-            ))
-        extra_oclass = False
-        for s, p, o in extra_triples:
-            if s != self.iri:
-                raise ValueError("Trying to add extra triples to a CUDS "
-                                 "object with a subject that does not match "
-                                 "the CUDS object's IRI.")
-            elif p == RDF.type:
-                extra_oclass = True
-            self._graph.add((s, p, o))
-        oclass_assigned = bool(oclass) or extra_oclass
-        if not oclass_assigned:
-            raise TypeError(f"No oclass associated with {self}! "
-                            f"Did you install the required ontology?")
-
-        self._session = session or Cuds._session
-        # Copy temporary graph to the session graph and discard it.
-        self.session._store(self)
+    # Public API
+    # ↓ ------ ↓
 
     @property
     def iri(self) -> URIRef:
@@ -104,31 +50,6 @@ class Cuds:
         This is the public getter of the property.
         """
         return self._uid
-
-    @property
-    def _uid(self) -> Union[URIRef, UUID]:
-        """Get the uid of the CUDS object.
-
-        This is the private getter of the property.
-        """
-        return self.__uid
-
-    @_uid.setter
-    def _uid(self, value: Union[URIRef, UUID, int]):
-        """Set the uid of a CUDS object.
-
-        This is the private setter of the property.
-        """
-        if type(value) is int:
-            value = UUID(int=value)
-        if type(value) is UUID:
-            invalid = value.int == 0
-        else:
-            split = value.split(':')
-            invalid = not len(split) > 1 or any(x == "" for x in split)
-        if invalid:
-            raise ValueError(f"Invalid uid: {value}.")
-        self.__uid = value
 
     @property
     def session(self) -> Session:
@@ -153,35 +74,6 @@ class Cuds:
             return oclasses[0]
         return None
 
-    @property
-    def _neighbors(self):
-        return NeighborDictRel(self)
-
-    @property
-    def _stored(self):
-        return self.session is not None and self._graph is self.session.graph
-
-    def get_triples(self, include_neighbor_types=False):
-        """Get the triples of the cuds object."""
-        o_set = set()
-        for s, p, o in self._graph.triples((self.iri, None, None)):
-            yield s, p, o
-            o_set.add(o)
-        if include_neighbor_types:
-            for o in o_set:
-                yield from self._graph.triples((o, RDF.type, None))
-
-    def get_attributes(self):
-        """Get the attributes as a dictionary."""
-        if self.session:
-            self.session._notify_read(self)
-        result = {}
-        for s, p, o in self._graph.triples((self.iri, None, None)):
-            obj = from_iri(p, raise_error=False)
-            if isinstance(obj, OntologyAttribute):
-                result[obj] = o.toPython()
-        return result
-
     def is_a(self, oclass):
         """Check if the CUDS object is an instance of the given oclass.
 
@@ -195,13 +87,14 @@ class Cuds:
         return any(oc in oclass.subclasses for oc in self.oclasses)
 
     def add(self,
-            *args: "Cuds",
+            *args: Any,
             rel: OntologyRelationship = None) -> Union["Cuds", List["Cuds"]]:
-        """Add CUDS objects to their respective relationship.
+        """Link CUDS objects to another CUDS or assign data properties.
 
         If the added objects are associated with the same session,
         only a link is created. Otherwise, the a deepcopy is made and added
-        to the session of this Cuds object.
+        to the session of this CUDS object.
+
         Before adding, check for invalid keys to avoid inconsistencies later.
 
         Args:
@@ -209,7 +102,7 @@ class Cuds:
             rel (OntologyRelationship): The relationship between the objects.
 
         Raises:
-            TypeError: Ne relationship given and no default specified.
+            TypeError: No relationship given and no default specified.
             ValueError: Added a CUDS object that is already in the container.
 
         Returns:
@@ -283,6 +176,51 @@ class Cuds:
         if len(uids) == 1:
             return result[0]
         return result
+
+    def iter(self,
+             *uids: Union[UUID, URIRef],
+             rel: OntologyRelationship = cuba.activeRelationship,
+             oclass: OntologyClass = None,
+             return_rel: bool = False) -> Iterator["Cuds"]:
+        """Iterate over the contained elements.
+
+        Only iterate over objects of a given type, uid or oclass.
+
+        Expected calls are iter(), iter(*uids), iter(rel),
+        iter(oclass), iter(*uids, rel), iter(rel, oclass).
+        If uids are specified:
+            The position of each element in the result is determined by to the
+            position of the corresponding uid in the given list of
+            uids. In this case, the result can contain None values if a
+            given uid is not a child of this cuds_object.
+        If no uids are specified:
+            The result is ordered randomly.
+
+        Args:
+            uids (Union[UUID, URIRef]): uids of the elements.
+            rel (OntologyRelationship, optional): Only return cuds_object
+                which are connected by subclass of given relationship.
+                Defaults to cuba.activeRelationship.
+            oclass (OntologyClass, optional): Only return elements which are a
+                subclass of the given ontology class. Defaults to None.
+            return_rel (bool, optional): Whether to return the connecting
+                relationship. Defaults to False.
+
+        Returns:
+            Iterator[Cuds]: The queried objects.
+        """
+        if return_rel:
+            collected_uids, mapping = self._get(*uids, rel=rel, oclass=oclass,
+                                                return_mapping=True)
+        else:
+            collected_uids = self._get(*uids, rel=rel, oclass=oclass)
+
+        result = self._load_cuds_objects(collected_uids)
+        for r in result:
+            if not return_rel:
+                yield r
+            else:
+                yield from ((r, m) for m in mapping[r.uid])
 
     def update(self, *args: "Cuds") -> List["Cuds"]:
         """Update the Cuds object.
@@ -372,50 +310,120 @@ class Cuds:
                 self._remove_direct(relationship, uid)
                 neighbor._remove_inverse(relationship, self.uid)
 
-    def iter(self,
-             *uids: Union[UUID, URIRef],
-             rel: OntologyRelationship = cuba.activeRelationship,
-             oclass: OntologyClass = None,
-             return_rel: bool = False) -> Iterator["Cuds"]:
-        """Iterate over the contained elements.
+    # ↑ ------ ↑
+    # Public API
 
-        Only iterate over objects of a given type, uid or oclass.
-
-        Expected calls are iter(), iter(*uids), iter(rel),
-        iter(oclass), iter(*uids, rel), iter(rel, oclass).
-        If uids are specified:
-            The position of each element in the result is determined by to the
-            position of the corresponding uid in the given list of
-            uids. In this case, the result can contain None values if a
-            given uid is not a child of this cuds_object.
-        If no uids are specified:
-            The result is ordered randomly.
-
-        Args:
-            uids (Union[UUID, URIRef]): uids of the elements.
-            rel (OntologyRelationship, optional): Only return cuds_object
-                which are connected by subclass of given relationship.
-                Defaults to cuba.activeRelationship.
-            oclass (OntologyClass, optional): Only return elements which are a
-                subclass of the given ontology class. Defaults to None.
-            return_rel (bool, optional): Whether to return the connecting
-                relationship. Defaults to False.
-
-        Returns:
-            Iterator[Cuds]: The queried objects.
-        """
-        if return_rel:
-            collected_uids, mapping = self._get(*uids, rel=rel, oclass=oclass,
-                                                return_mapping=True)
+    def __init__(self,
+                 # Create from oclass and attributes dict.
+                 attributes: Dict[OntologyAttribute, Any],
+                 oclass: Optional[OntologyClass] = None,
+                 session: Session = None,
+                 iri: URIRef = None,
+                 uid: Union[UUID, URIRef] = None,
+                 # Specify extra triples for the CUDS object.
+                 extra_triples: Iterable[
+                     Tuple[Union[URIRef, BNode],
+                           Union[URIRef, BNode],
+                           Union[URIRef, BNode]]] = tuple()):
+        """Initialize a CUDS object."""
+        # Set uid. This is a "user-facing" method, so strict types
+        # checks are performed.
+        if len(set(filter(lambda x: x is not None, (uid, iri)))) > 1:
+            raise ValueError("Tried to initialize a CUDS object specifying, "
+                             "both its IRI and UID. A CUDS object is "
+                             "constrained to have just one UID.")
+        elif uid is not None and type(uid) not in (UUID, URIRef):
+            raise ValueError('Provide either a UUID or a URIRef object'
+                             'as UID.')
+        elif iri is not None and type(iri) is not URIRef:
+            raise ValueError('Provide a URIRef object as IRI.')
         else:
-            collected_uids = self._get(*uids, rel=rel, oclass=oclass)
+            self._uid = uid or iri or uuid4()
 
-        result = self._load_cuds_objects(collected_uids)
-        for r in result:
-            if not return_rel:
-                yield r
-            else:
-                yield from ((r, m) for m in mapping[r.uid])
+        # Create CUDS triples in internal temporary graph.
+        self._graph = Graph()
+        if attributes:
+            for k, v in attributes.items():
+                self._graph.add((
+                    self.iri, k.iri, Literal(k.convert_to_datatype(v),
+                                             datatype=k.datatype)
+                ))
+        if oclass:
+            self._graph.add((
+                self.iri, RDF.type, oclass.iri
+            ))
+        extra_oclass = False
+        for s, p, o in extra_triples:
+            if s != self.iri:
+                raise ValueError("Trying to add extra triples to a CUDS "
+                                 "object with a subject that does not match "
+                                 "the CUDS object's IRI.")
+            elif p == RDF.type:
+                extra_oclass = True
+            self._graph.add((s, p, o))
+        oclass_assigned = bool(oclass) or extra_oclass
+        if not oclass_assigned:
+            raise TypeError(f"No oclass associated with {self}! "
+                            f"Did you install the required ontology?")
+
+        self._session = session or Cuds._session
+        # Copy temporary graph to the session graph and discard it.
+        self.session._store(self)
+
+
+    @property
+    def _uid(self) -> Union[URIRef, UUID]:
+        """Get the uid of the CUDS object.
+
+        This is the private getter of the property.
+        """
+        return self.__uid
+
+    @_uid.setter
+    def _uid(self, value: Union[URIRef, UUID, int]):
+        """Set the uid of a CUDS object.
+
+        This is the private setter of the property.
+        """
+        if type(value) is int:
+            value = UUID(int=value)
+        if type(value) is UUID:
+            invalid = value.int == 0
+        else:
+            split = value.split(':')
+            invalid = not len(split) > 1 or any(x == "" for x in split)
+        if invalid:
+            raise ValueError(f"Invalid uid: {value}.")
+        self.__uid = value
+
+    @property
+    def _neighbors(self):
+        return NeighborDictRel(self)
+
+    @property
+    def _stored(self):
+        return self.session is not None and self._graph is self.session.graph
+
+    def get_triples(self, include_neighbor_types=False):
+        """Get the triples of the cuds object."""
+        o_set = set()
+        for s, p, o in self._graph.triples((self.iri, None, None)):
+            yield s, p, o
+            o_set.add(o)
+        if include_neighbor_types:
+            for o in o_set:
+                yield from self._graph.triples((o, RDF.type, None))
+
+    def get_attributes(self):
+        """Get the attributes as a dictionary."""
+        if self.session:
+            self.session._notify_read(self)
+        result = {}
+        for s, p, o in self._graph.triples((self.iri, None, None)):
+            obj = from_iri(p, raise_error=False)
+            if isinstance(obj, OntologyAttribute):
+                result[obj] = o.toPython()
+        return result
 
     def _recursive_store(self, new_cuds_object, old_cuds_object=None):
         """Recursively store cuds_object and all its children.
