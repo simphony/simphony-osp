@@ -2,6 +2,9 @@
 
 import ast
 import uuid
+from decimal import Decimal
+from fractions import Fraction
+from typing import Union
 
 import numpy as np
 from rdflib import RDF, RDFS, XSD, Literal, URIRef
@@ -9,6 +12,89 @@ from rdflib import RDF, RDFS, XSD, Literal, URIRef
 from osp.core.ontology.cuba import rdflib_cuba
 
 CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
+
+# See [Datatype Maps](https://www.w3.org/TR/owl2-syntax/#Datatype_Maps) on
+# the OWL specification.
+# TODO: replace RDF_DATATYPES and YML_DATATYPES with this.
+OWL_TO_PYTHON = {URIRef('http://www.w3.org/2002/07/owl#real'): float,
+                 URIRef('http://www.w3.org/2002/07/owl#rational'): Fraction,
+                 # ↑ Workaround
+                 #   [rdflib issue #1378](
+                 #   https://github.com/RDFLib/rdflib/issues/1378).
+                 XSD.decimal: Decimal,
+                 XSD.integer: int,
+                 XSD.nonNegativeInteger: int,
+                 XSD.nonPositiveInteger: int,
+                 XSD.positiveInteger: int,
+                 XSD.negativeInteger: int,
+                 XSD.long: int,
+                 XSD.int: int,
+                 XSD.short: int,
+                 # XSD.byte: ?, (TODO: not yet supported)
+                 XSD.unsignedLong: int,
+                 XSD.unsignedInt: int,
+                 XSD.unsignedShort: int,
+                 # XSD.unsignedByte: ?, (TODO: not yet supported)
+                 XSD.double: float,
+                 XSD.float: float,
+                 XSD.string: str,
+                 # XSD.normalizedString: ?, (TODO: not yet supported)
+                 # XSD.token: ?, (TODO: not yet supported)
+                 # XSD.Name: ?, (TODO: not yet supported)
+                 # XSD.NCName: ?, (TODO: not yet supported)
+                 # XSD.NMTOKEN: ?, (TODO: not yet supported)
+                 XSD.boolean: bool,
+                 # XSD.hexBinary: ?, (TODO: not yet supported)
+                 # XSD.base64Binary: ?, (TODO: not yet supported)
+                 XSD.anyURI: URIRef,
+                 # XSD.dateTime: ?, (TODO: not yet supported)
+                 # XSD.dateTimeStamp: ?, (TODO: not yet supported)
+                 # RDF.XMLLiteral: ?, (TODO: not yet supported)
+                 }
+PYTHON_TO_OWL = {item: key for key, item in OWL_TO_PYTHON.items()}
+OWL_COMPATIBLE_TYPES = tuple(x for x in OWL_TO_PYTHON.values())
+OwlCompatibleType = Union[tuple(value for value in OWL_TO_PYTHON.values())]
+
+OWL_TO_NUMPY = {
+    # URIRef('http://www.w3.org/2002/07/owl#real'): ?,
+    #  (TODO: not yet supported)
+    # URIRef('http://www.w3.org/2002/07/owl#rational'): ?,
+    #  (TODO: not yet supported),
+    # ↑ Workaround
+    #   [rdflib issue #1378](
+    #   https://github.com/RDFLib/rdflib/issues/1378).
+    # XSD.decimal: ?, (TODO: not yet supported),
+    XSD.integer: np.dtype("int"),
+    # XSD.nonNegativeInteger: ?, (TODO: not yet supported),
+    # XSD.nonPositiveInteger: ?, (TODO: not yet supported),
+    # XSD.positiveInteger: ?, (TODO: not yet supported),
+    # XSD.negativeInteger: ?, (TODO: not yet supported),
+    # XSD.long: ?, (TODO: not yet supported),
+    # XSD.int: ?, (TODO: not yet supported),
+    # XSD.short: ?, (TODO: not yet supported),
+    # XSD.byte: ?, (TODO: not yet supported)
+    # XSD.unsignedLong: ?, (TODO: not yet supported),
+    # XSD.unsignedLong: ?, (TODO: not yet supported),
+    # XSD.unsignedInt: ?, (TODO: not yet supported),
+    # XSD.unsignedShort: ?, (TODO: not yet supported),
+    # XSD.unsignedByte: ?, (TODO: not yet supported)
+    XSD.double: np.dtype("double"),
+    XSD.float: np.dtype("float"),
+    XSD.string: np.dtype("str"),
+    # XSD.normalizedString: ?, (TODO: not yet supported)
+    # XSD.token: ?, (TODO: not yet supported)
+    # XSD.Name: ?, (TODO: not yet supported)
+    # XSD.NCName: ?, (TODO: not yet supported)
+    # XSD.NMTOKEN: ?, (TODO: not yet supported)
+    XSD.boolean: np.dtype("bool"),
+    # XSD.hexBinary: ?, (TODO: not yet supported)
+    # XSD.base64Binary: ?, (TODO: not yet supported)
+    # XSD.anyURI: ?, (TODO: not yet supported)
+    # XSD.dateTime: ?, (TODO: not yet supported)
+    # XSD.dateTimeStamp: ?, (TODO: not yet supported)
+    # RDF.XMLLiteral: ?, (TODO: not yet supported)
+}
+OWL_TO_NUMPY = {item: key for key, item in OWL_TO_NUMPY.items()}
 
 
 def convert_to(x, rdf_datatype):
