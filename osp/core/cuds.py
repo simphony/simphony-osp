@@ -370,7 +370,6 @@ class Cuds:
         # Copy temporary graph to the session graph and discard it.
         self.session._store(self)
 
-
     @property
     def _uid(self) -> Union[URIRef, UUID]:
         """Get the uid of the CUDS object.
@@ -414,6 +413,66 @@ class Cuds:
             for o in o_set:
                 yield from self._graph.triples((o, RDF.type, None))
 
+    # Attribute handling
+    # ↓ -------------- ↓
+
+    def __getattr__(self, name):
+        """Set the attributes corresponding to ontology values.
+
+        Args:
+            name (str): The name of the attribute
+
+        Raises:
+            AttributeError: Unknown attribute name
+
+        Returns:
+            The value of the attribute: Any
+        """
+        try:
+            attr = self._get_attribute_by_argname(name)
+            if self.session:
+                self.session._notify_read(self)
+            return self._graph.value(self.iri, attr.iri).toPython()
+        except AttributeError as e:
+            if (  # check if user calls session's methods on wrapper
+                self.is_a(cuba.Wrapper)
+                and self._session is not None
+                and hasattr(self._session, name)
+            ):
+                logger.warning(
+                    "Trying to get non-defined attribute '%s' "
+                    "of wrapper CUDS object '%s'. Will return attribute of "
+                    "its session '%s' instead." % (name, self, self._session)
+                )
+                return getattr(self._session, name)
+            raise AttributeError(name) from e
+
+    def __setattr__(self, name, new_value):
+        """Set an attribute.
+
+        Will notify the session of it corresponds to an ontology value.
+
+        Args:
+            name (str): The name of the attribute.
+            new_value (Any): The new value.
+
+        Raises:
+            AttributeError: Unknown attribute name
+        """
+        if name.startswith("_"):
+            super().__setattr__(name, new_value)
+            return
+        attr = self._get_attribute_by_argname(name)
+        if self.session:
+            self.session._notify_read(self)
+        self._graph.set((
+            self.iri, attr.iri,
+            Literal(attr.convert_to_datatype(new_value),
+                    datatype=attr.datatype)
+        ))
+        if self.session:
+            self.session._notify_update(self)
+
     def get_attributes(self):
         """Get the attributes as a dictionary."""
         if self.session:
@@ -424,6 +483,17 @@ class Cuds:
             if isinstance(obj, OntologyAttribute):
                 result[obj] = o.toPython()
         return result
+
+    def _get_attribute_by_argname(self, name):
+        """Get the attributes of this CUDS by argname."""
+        for oclass in self.oclasses:
+            attr = oclass.get_attribute_by_argname(name)
+            if attr is not None:
+                return attr
+        raise AttributeError(name)
+
+    # ↑ -------------- ↑
+    # Attribute handling
 
     def _recursive_store(self, new_cuds_object, old_cuds_object=None):
         """Recursively store cuds_object and all its children.
@@ -861,71 +931,6 @@ class Cuds:
             str: string with the Ontology class and uid.
         """
         return "%s: %s" % (self.oclass, self.uid)
-
-    def __getattr__(self, name):
-        """Set the attributes corresponding to ontology values.
-
-        Args:
-            name (str): The name of the attribute
-
-        Raises:
-            AttributeError: Unknown attribute name
-
-        Returns:
-            The value of the attribute: Any
-        """
-        try:
-            attr = self._get_attribute_by_argname(name)
-            if self.session:
-                self.session._notify_read(self)
-            return self._graph.value(self.iri, attr.iri).toPython()
-        except AttributeError as e:
-            if (  # check if user calls session's methods on wrapper
-                self.is_a(cuba.Wrapper)
-                and self._session is not None
-                and hasattr(self._session, name)
-            ):
-                logger.warning(
-                    "Trying to get non-defined attribute '%s' "
-                    "of wrapper CUDS object '%s'. Will return attribute of "
-                    "its session '%s' instead." % (name, self, self._session)
-                )
-                return getattr(self._session, name)
-            raise AttributeError(name) from e
-
-    def _get_attribute_by_argname(self, name):
-        """Get the attributes of this CUDS by argname."""
-        for oclass in self.oclasses:
-            attr = oclass.get_attribute_by_argname(name)
-            if attr is not None:
-                return attr
-        raise AttributeError(name)
-
-    def __setattr__(self, name, new_value):
-        """Set an attribute.
-
-        Will notify the session of it corresponds to an ontology value.
-
-        Args:
-            name (str): The name of the attribute.
-            new_value (Any): The new value.
-
-        Raises:
-            AttributeError: Unknown attribute name
-        """
-        if name.startswith("_"):
-            super().__setattr__(name, new_value)
-            return
-        attr = self._get_attribute_by_argname(name)
-        if self.session:
-            self.session._notify_read(self)
-        self._graph.set((
-            self.iri, attr.iri,
-            Literal(attr.convert_to_datatype(new_value),
-                    datatype=attr.datatype)
-        ))
-        if self.session:
-            self.session._notify_update(self)
 
     def __repr__(self) -> str:
         """Return a machine readable string that represents the cuds object.
