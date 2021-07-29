@@ -57,7 +57,7 @@ class Cuds:
         return self._session
 
     @property
-    def oclasses(self):
+    def oclasses(self) -> List[OntologyClass]:
         """Get the ontology classes of this CUDS object."""
         result = list()
         for s, p, o in self._graph.triples((self.iri, RDF.type, None)):
@@ -67,14 +67,14 @@ class Cuds:
         return result
 
     @property
-    def oclass(self):
+    def oclass(self) -> Optional[OntologyClass]:
         """Get the type of the cuds object."""
         oclasses = self.oclasses
         if oclasses:
             return oclasses[0]
         return None
 
-    def is_a(self, oclass):
+    def is_a(self, oclass) -> bool:
         """Check if the CUDS object is an instance of the given oclass.
 
         Args:
@@ -222,7 +222,7 @@ class Cuds:
             else:
                 yield from ((r, m) for m in mapping[r.uid])
 
-    def update(self, *args: "Cuds") -> List["Cuds"]:
+    def update(self, *args: "Cuds") -> Union["Cuds", List["Cuds"]]:
         """Update the Cuds object.
 
         Updates the object by providing updated versions of CUDS objects
