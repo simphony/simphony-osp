@@ -2,6 +2,7 @@
 
 import ast
 import uuid
+
 import numpy as np
 from rdflib import RDF, RDFS, XSD, Literal, URIRef
 
