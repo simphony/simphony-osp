@@ -2,7 +2,7 @@
 
 import rdflib
 from copy import deepcopy
-from osp.core.ontology.datatypes import convert_to
+from osp.core.ontology.datatypes import to_uid
 from osp.core.utils.general import get_relationships_between
 from osp.core.namespaces import cuba
 
@@ -106,7 +106,7 @@ def create_recycle(oclass, kwargs, session, uid,
     """
     from osp.core.session.wrapper_session import WrapperSession
     from osp.core.cuds import Cuds
-    uid = convert_to(uid, "UID")
+    uid = to_uid(uid)
     if isinstance(session, WrapperSession) and uid in session._expired:
         session._expired.remove(uid)
 
@@ -185,10 +185,11 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
         cuds_object.iri, rdflib.RDF.type, new_oclass.iri
     ))
     for k, v in attributes.items():
-        cuds_object._graph.set((
-            cuds_object.iri, k.iri, rdflib.Literal(k.convert_to_datatype(v),
-                                                   datatype=k.datatype)
-        ))
+        for e in v:
+            cuds_object._graph.set((
+                cuds_object.iri, k.iri,
+                rdflib.Literal(k.convert_to_datatype(e), datatype=k.datatype)
+            ))
     cuds_object.session._notify_update(cuds_object)
 
 

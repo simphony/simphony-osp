@@ -3,13 +3,12 @@
 import uuid
 import rdflib
 from abc import abstractmethod
-from osp.core.ontology.datatypes import convert_from
 from osp.core.session.db.triplestore_wrapper_session import \
     TripleStoreWrapperSession
 from osp.core.session.buffers import BufferContext
 from osp.core.ontology import OntologyRelationship
 from osp.core.utils.general import CUDS_IRI_PREFIX, iri_from_uid
-from osp.core.ontology.datatypes import to_uid
+from osp.core.ontology.datatypes import normalize_python_object, to_uid
 from osp.core.session.db.sql_migrate import check_supported_schema_version
 from osp.core.session.db.sql_util import (
     SqlQuery, EqualsCondition, AndCondition, JoinCondition,
@@ -524,7 +523,8 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         columns, datatypes, values = expand_vector_cols(columns,
                                                         datatypes,
                                                         values)
-        values = [convert_from(v, datatypes.get(c))
+        values = [normalize_python_object(v, datatypes.get(c))
+                  if datatypes.get(c) != "UID" else str(to_uid(v))
                   for c, v in zip(columns, values)]
         check_characters(table_name, columns, datatypes)
         return self._db_insert(table_name, columns, values, datatypes)
@@ -536,7 +536,8 @@ class SqlWrapperSession(TripleStoreWrapperSession):
                                                         datatypes,
                                                         values)
         condition = expand_vector_condition(condition)
-        values = [convert_from(v, datatypes.get(c))
+        values = [normalize_python_object(v, datatypes.get(c))
+                  if datatypes.get(c) != "UID" else str(to_uid(v))
                   for c, v in zip(columns, values)]
         check_characters(table_name, columns,
                          condition, datatypes)

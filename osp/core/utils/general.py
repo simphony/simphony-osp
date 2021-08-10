@@ -24,8 +24,8 @@ else:
     from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.namespaces import cuba
 from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.datatypes import normalize_python_object
 from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.datatypes import convert_from
 
 
 CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
@@ -83,7 +83,7 @@ def _serialize_rdf_graph(format="xml", session=None,
     result = Graph()
     for s, p, o in graph:
         if isinstance(o, Literal):
-            o = Literal(convert_from(o.toPython(), o.datatype),
+            o = Literal(normalize_python_object(o.toPython(), o.datatype),
                         datatype=o.datatype, lang=o.language)
         if not session or type(session) is CoreSession \
                 or not skip_wrapper \
@@ -155,7 +155,7 @@ def _serialize_cuds_object_triples(cuds_object,
     for s, p, o in itertools.chain(*(cuds.get_triples()
                                      for cuds in cuds_objects)):
         if isinstance(o, Literal):
-            o = Literal(convert_from(o.toPython(), o.datatype),
+            o = Literal(normalize_python_object(o.toPython(), o.datatype),
                         datatype=o.datatype, lang=o.language)
         graph.add((s, p, o))
     return graph.serialize(format=format, encoding='UTF-8').decode('UTF-8')

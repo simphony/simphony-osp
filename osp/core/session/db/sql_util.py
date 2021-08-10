@@ -2,8 +2,7 @@
 
 import rdflib
 from operator import mul
-from osp.core.ontology.datatypes import convert_to, convert_from, \
-    _parse_vector_args
+from osp.core.ontology.datatypes import Vector, normalize_python_object, to_uid
 from osp.core.ontology.cuba import rdflib_cuba
 from functools import reduce
 from copy import deepcopy
@@ -89,7 +88,8 @@ class EqualsCondition(Condition):
         """
         self.table_name = table_name
         self.column = column
-        self.value = convert_from(value, datatype)
+        self.value = normalize_python_object(value, datatype) \
+            if datatype != "UID" else str(to_uid(value))
         self.datatype = datatype
 
     def __eq__(self, other):
@@ -316,8 +316,8 @@ def expand_vector_cols(columns, datatypes, values=None):
         datatypes_expanded.update({c: datatype for c in expanded_cols})
         datatypes_expanded[column] = datatypes[column]
         if values:
-            values_expanded.extend(convert_from(values[i],
-                                                datatypes[column]))
+            values_expanded.extend(normalize_python_object(values[i],
+                                                           datatypes[column]))
     if values:
         return columns_expanded, datatypes_expanded, values_expanded
     return columns_expanded, datatypes_expanded
@@ -351,7 +351,8 @@ def contract_vector_values(rows, query):
                 continue
 
             if temp_vec:  # add the vector to the result
-                contracted_row.append(convert_to(temp_vec, vector_datatype))
+                contracted_row.append(normalize_python_object(temp_vec,
+                                                              vector_datatype))
                 temp_vec = list()
 
             vector_datatype, is_vec_elem = handle_vector_item(
@@ -365,8 +366,8 @@ def contract_vector_values(rows, query):
             contracted_row.append(value)
 
         if temp_vec:  # add the vector to the result
-            contracted_row.append(convert_to(temp_vec,
-                                             vector_datatype))
+            contracted_row.append(normalize_python_object(temp_vec,
+                                                          vector_datatype))
             temp_vec = list()
         yield contracted_row
 
@@ -414,7 +415,7 @@ def get_expanded_cols(column, datatype):
     if not datatype.startswith(VEC_PREFIX):
         return [column], datatype
     vector_args = datatype[len(VEC_PREFIX):].split("-")
-    datatype, shape = _parse_vector_args(vector_args)
+    datatype, shape = Vector._parse_vector_args(vector_args)
     size = reduce(mul, map(int, shape))
     expanded_cols = ["%s___%s" % (column, x)
                      for x in range(size)]
@@ -461,6 +462,9 @@ def convert_values(rows, query):
         output = []
         for value, (t_alias, column) in zip(row, query.columns):
             output.append(
-                convert_to(value, query.datatypes[t_alias][column])
+                normalize_python_object(value,
+                                        query.datatypes[t_alias][column])
+                if query.datatypes[t_alias][column] != "UID" else
+                to_uid(value)
             )
         yield output

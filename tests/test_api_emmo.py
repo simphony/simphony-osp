@@ -228,7 +228,7 @@ class TestAPIEmmo(unittest.TestCase):
         p = math.Real(hasNumericalData=1.2)
         self.assertEqual(
             p.get_attributes(),
-            {math.hasNumericalData: "1.2"}  # TODO type conversion
+            {math.hasNumericalData: {"1.2"}}  # TODO type conversion
         )
 
 

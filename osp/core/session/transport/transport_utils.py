@@ -18,7 +18,7 @@ else:
     from rdflib_jsonld.serializer import from_rdf as json_from_rdf
     from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.namespaces import get_entity, cuba
-from osp.core.ontology.datatypes import convert_from, convert_to
+from osp.core.ontology.datatypes import normalize_python_object, to_uid
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.buffers import BufferContext, get_buffer_context_mngr
 from osp.core.utils.wrapper_development import create_from_triples
@@ -256,10 +256,10 @@ def deserialize(json_obj, session, buffer_context, _force=False):
         return [deserialize(x, session, buffer_context, _force=_force)
                 for x in json_obj]
     if isinstance(json_obj, dict) \
-            and set(["UID"]) == set(json_obj.keys()):
-        return convert_to(json_obj["UID"], "UID")
+            and {"UID"} == set(json_obj.keys()):
+        return to_uid(json_obj["UID"])
     if isinstance(json_obj, dict) \
-            and set(["ENTITY"]) == set(json_obj.keys()):
+            and {"ENTITY"} == set(json_obj.keys()):
         return get_entity(json_obj["ENTITY"])
     if isinstance(json_obj, dict):
         return {k: deserialize(v, session, buffer_context, _force=_force)
@@ -289,7 +289,7 @@ def serializable(obj, partition_cuds=True, mark_first=False):
     if isinstance(obj, (str, int, float)):
         return obj
     if isinstance(obj, uuid.UUID):
-        return {"UID": convert_from(obj, "UID")}
+        return {"UID": str(obj)}
     if isinstance(obj, OntologyEntity):
         return {"ENTITY": str(obj)}
     if isinstance(obj, Cuds):
@@ -353,7 +353,8 @@ def _serializable(cuds_objects, mark_first=False):
                             f"{cuds_object} of type {type(cuds_object)}")
         for s, p, o in cuds_object.get_triples(include_neighbor_types=True):
             if isinstance(o, rdflib.Literal):
-                o = rdflib.Literal(convert_from(o.toPython(), o.datatype),
+                o = rdflib.Literal(normalize_python_object(o.toPython(),
+                                                           o.datatype),
                                    datatype=o.datatype, lang=o.language)
             g.add((s, p, o))
     return json_from_rdf(g, auto_compact=len(cuds_objects) > 1)
@@ -389,7 +390,8 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
                         and o.datatype and o.datatype in rdflib_cuba \
                         and "VECTOR" in o.datatype.toPython():
                     o = rdflib.Literal(
-                        convert_to(ast.literal_eval(o.toPython()), o.datatype),
+                        normalize_python_object(ast.literal_eval(o.toPython()),
+                                                o.datatype),
                         datatype=o.datatype, lang=o.language
                     )
                 triples.add((s, p, o))
@@ -469,7 +471,8 @@ def _import_rdf_custom_datatypes(triple: Tuple[Any, Any, Any]) \
             and o.datatype and o.datatype in rdflib_cuba \
             and "VECTOR" in o.datatype.toPython():
         o = rdflib.Literal(
-            convert_to(ast.literal_eval(o.toPython()), o.datatype),
+            normalize_python_object(ast.literal_eval(o.toPython()),
+                                    o.datatype),
             datatype=o.datatype, lang=o.language
         )
     return s, p, o

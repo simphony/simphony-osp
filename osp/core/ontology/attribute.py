@@ -1,7 +1,7 @@
 """An attribute defined in the ontology."""
 
 from osp.core.ontology.entity import OntologyEntity
-from osp.core.ontology.datatypes import convert_from, convert_to
+from osp.core.ontology.datatypes import normalize_python_object
 import logging
 import rdflib
 
@@ -72,18 +72,7 @@ class OntologyAttribute(OntologyEntity):
         Returns:
             Any: The converted value
         """
-        return convert_to(value, self.datatype)
-
-    def convert_to_basic_type(self, value):
-        """Convert from the datatype of the value to a python basic type.
-
-        Args:
-            value(Any): The value to convert
-
-        Returns:
-            Any: The converted value
-        """
-        return convert_from(value, self.datatype)
+        return normalize_python_object(value, self.datatype)
 
     def _direct_superclasses(self):
         return self._directly_connected(rdflib.RDFS.subPropertyOf,

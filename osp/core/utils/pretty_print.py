@@ -117,6 +117,8 @@ def _pp_values(cuds_object, indentation="\n          "):
                                key=lambda x: (str(x[0]), str(x[1])))
     for attribute, value in sorted_attributes:
         if attribute.argname != "name":
-            result.append("%s: %s" % (attribute.argname, value))
+            result.append("%s: %s" % (attribute.argname,
+                                      value if not len(value) == 1 else
+                                      next(iter(value))))
     if result:
         return indentation.join(result)

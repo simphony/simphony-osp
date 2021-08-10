@@ -16,7 +16,6 @@ www.simphony-project.eu)
 ## Requirements
 
 - PyYaml (on Windows, use <https://stackoverflow.com/a/33673823>) for parsing yaml files
-- numpy for vector attributes of cuds
 - websockets for the transport layer
 - requests for sending CUDS to a server
 - tox to run unittests

@@ -654,7 +654,7 @@ class TestAPICity(unittest.TestCase):
         p = city.Citizen(name="Ralf")
         self.assertEqual(
             p.get_attributes(),
-            {city.name: "Ralf", city.age: 25}
+            {city.name: {"Ralf"}, city.age: {25}}
         )
 
     def test_add_multi_session(self):

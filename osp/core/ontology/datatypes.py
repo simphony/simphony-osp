@@ -2,11 +2,12 @@
 
 import ast
 import uuid
+from abc import ABC, abstractmethod
 from decimal import Decimal
 from fractions import Fraction
-from typing import Union
+from typing import Any, Callable, Iterable, List, Optional, Tuple, Union, \
+    Sequence, MutableSequence
 
-import numpy as np
 from rdflib import RDF, RDFS, XSD, Literal, URIRef
 
 from osp.core.ontology.cuba import rdflib_cuba
@@ -15,7 +16,7 @@ CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
 
 # See [Datatype Maps](https://www.w3.org/TR/owl2-syntax/#Datatype_Maps) on
 # the OWL specification.
-# TODO: replace RDF_DATATYPES and YML_DATATYPES with this.
+# All the classes on the RHS need to be hashable.
 OWL_TO_PYTHON = {URIRef('http://www.w3.org/2002/07/owl#real'): float,
                  URIRef('http://www.w3.org/2002/07/owl#rational'): Fraction,
                  # ↑ Workaround
@@ -53,90 +54,201 @@ OWL_TO_PYTHON = {URIRef('http://www.w3.org/2002/07/owl#real'): float,
                  }
 PYTHON_TO_OWL = {item: key for key, item in OWL_TO_PYTHON.items()}
 OWL_COMPATIBLE_TYPES = tuple(x for x in OWL_TO_PYTHON.values())
-OwlCompatibleType = Union[tuple(value for value in OWL_TO_PYTHON.values())]
+OWLCompatibleType = Union[tuple(value for value in OWL_TO_PYTHON.values())]
 
-OWL_TO_NUMPY = {
-    # URIRef('http://www.w3.org/2002/07/owl#real'): ?,
-    #  (TODO: not yet supported)
-    # URIRef('http://www.w3.org/2002/07/owl#rational'): ?,
-    #  (TODO: not yet supported),
-    # ↑ Workaround
-    #   [rdflib issue #1378](
-    #   https://github.com/RDFLib/rdflib/issues/1378).
-    # XSD.decimal: ?, (TODO: not yet supported),
-    XSD.integer: np.dtype("int"),
-    # XSD.nonNegativeInteger: ?, (TODO: not yet supported),
-    # XSD.nonPositiveInteger: ?, (TODO: not yet supported),
-    # XSD.positiveInteger: ?, (TODO: not yet supported),
-    # XSD.negativeInteger: ?, (TODO: not yet supported),
-    # XSD.long: ?, (TODO: not yet supported),
-    # XSD.int: ?, (TODO: not yet supported),
-    # XSD.short: ?, (TODO: not yet supported),
-    # XSD.byte: ?, (TODO: not yet supported)
-    # XSD.unsignedLong: ?, (TODO: not yet supported),
-    # XSD.unsignedLong: ?, (TODO: not yet supported),
-    # XSD.unsignedInt: ?, (TODO: not yet supported),
-    # XSD.unsignedShort: ?, (TODO: not yet supported),
-    # XSD.unsignedByte: ?, (TODO: not yet supported)
-    XSD.double: np.dtype("double"),
-    XSD.float: np.dtype("float"),
-    XSD.string: np.dtype("str"),
-    # XSD.normalizedString: ?, (TODO: not yet supported)
-    # XSD.token: ?, (TODO: not yet supported)
-    # XSD.Name: ?, (TODO: not yet supported)
-    # XSD.NCName: ?, (TODO: not yet supported)
-    # XSD.NMTOKEN: ?, (TODO: not yet supported)
-    XSD.boolean: np.dtype("bool"),
-    # XSD.hexBinary: ?, (TODO: not yet supported)
-    # XSD.base64Binary: ?, (TODO: not yet supported)
-    # XSD.anyURI: ?, (TODO: not yet supported)
-    # XSD.dateTime: ?, (TODO: not yet supported)
-    # XSD.dateTimeStamp: ?, (TODO: not yet supported)
-    # RDF.XMLLiteral: ?, (TODO: not yet supported)
+# All the classes on the RHS need to be hashable.
+CUSTOM_TO_PYTHON = dict()
+PYTHON_TO_CUSTOM = {item: key for key, item in CUSTOM_TO_PYTHON.items()}
+CUSTOM_COMPATIBLE_TYPES = tuple(x for x in CUSTOM_TO_PYTHON.values())
+CustomCompatibleType = Union[tuple(value for value in
+                                   CUSTOM_TO_PYTHON.values())] if \
+        CUSTOM_TO_PYTHON else None
+
+# Automatically generated from the previous mappings.
+RDF_TO_PYTHON = dict()
+RDF_TO_PYTHON.update(OWL_TO_PYTHON)
+RDF_TO_PYTHON.update(CUSTOM_TO_PYTHON)
+RDF_COMPATIBLE_TYPES = tuple(x for x in RDF_TO_PYTHON.values())
+RDFCompatibleType = Union[tuple(value for value in RDF_TO_PYTHON.values())]
+
+YML_DATATYPES = {
+    "BOOL": XSD.boolean,
+    "INT": XSD.integer,
+    "FLOAT": XSD.float,
+    "STRING": XSD.string,
 }
-OWL_TO_NUMPY = {item: key for key, item in OWL_TO_NUMPY.items()}
 
 
-def convert_to(x, rdf_datatype):
-    """Convert a value to the given datatype.
+class CustomDataType(ABC):
+
+    @classmethod
+    @abstractmethod
+    def compatible(cls, rdf_datatype: URIRef) -> bool:
+        """Determine whether an RDF datatype can be represented by this class.
+
+        Args:
+            rdf_datatype: The RDF datatype to evaluate.
+
+        Returns:
+            True when such datatype is adequately represented by this class,
+            False when not.
+        """
+        pass
+
+    def __init__(self, value: Union[Literal, Any]):
+        """Take a Python object and convert it to an instance of this datatype.
+
+        Args:
+            value: A Python object or an RDF literal.
+
+        Returns:
+            An instance of this custom datatype.
+        """
+        if isinstance(value, Literal) and not self.compatible(value.datatype):
+            raise TypeError(f"Datatype {value.datatype} not compatible "
+                            f"with {self.__class__}.")
+
+
+NestedSequence = Union[Sequence[Any], Sequence['NestedSequence']]
+NestedMutableSequence = Union[MutableSequence[Any],
+                              MutableSequence['NestedSequence']]
+NestedTuple = Union[Tuple[Any, ...], Tuple['NestedTuple', ...]]
+NestedList = Union[List[Any], List['NestedList']]
+
+
+class Vector(CustomDataType, tuple):
+    _PREFIX: str = str(rdflib_cuba["_datatypes/VECTOR-"])
+
+    @classmethod
+    def compatible(cls, rdf_datatype: URIRef) -> bool:
+        return str(rdf_datatype).startswith(cls._PREFIX)
+
+    def __new__(cls, value: Union[Literal, NestedSequence]):
+        if isinstance(value, Literal):
+            array = Vector._literal_to_array(value)
+        else:  # Assuming NestedSequence.
+            array = Vector._nested_sequence_to_tuple(value)
+        array = tuple(array)
+        return tuple.__new__(cls, array)
+
+    @staticmethod
+    def _literal_to_array(value: Literal) -> NestedTuple:
+        array = ast.literal_eval(str(value))
+        args = str(value.datatype)[len(Vector._PREFIX):].split("-")
+        args = tuple(x for x in args if x)
+        rdf_dtype, shape = Vector._parse_vector_args(args)
+        python_dtype = RDF_TO_PYTHON[rdf_dtype]
+        # Validate shape if specified.
+        if shape:
+            actual_shape = Vector._get_sequence_shape(array)
+            if not actual_shape == shape:
+                raise ValueError(f'Invalid shape {shape} for array {array}.')
+        # Convert to python dtype and nested tuple.
+        array = Vector._nested_sequence_to_tuple(array, python_dtype)
+        return array
+
+    @staticmethod
+    def _parse_vector_args(args: List[str], return_yml_dtypes: bool = False) \
+            -> \
+            Tuple[Union[str, URIRef], Tuple[int]]:
+        """Parse the YAML datatype description of a vector.
+
+        Args:
+            args: The arguments of the vector (shape and datatype of elements).
+            return_yml_dtypes: Whether to return the datatype of the elements
+                as YML string or RDF datatype. Defaults to False.
+
+        Returns:
+            Tuple[Union[str, URIRef], Tuple[int]]: datatype of elements and
+                shape of array
+        """
+        if args:
+            datatype = args[0] if args[0] in YML_DATATYPES else "FLOAT"
+            shape = tuple(map(int, args[1:]))
+        else:
+            datatype = "FLOAT"
+            shape = tuple()
+        if return_yml_dtypes:
+            return datatype, shape
+        return YML_DATATYPES[datatype], shape
+
+    @staticmethod
+    def _get_sequence_shape(seq: Sequence) -> Tuple[int]:
+        # Get previous shape datatype value.
+        shape = []
+        exploration = seq
+        while isinstance(exploration, Sequence):
+            shape.append(len(exploration))
+            exploration = exploration[0]
+        return tuple(shape)
+
+    @staticmethod
+    def _nested_sequence_to_tuple(array: NestedSequence,
+                                  target: Optional[Callable] = None) -> \
+            NestedTuple:
+        new_array = [None] * len(array)
+        for i, x in enumerate(array):
+            if isinstance(x, Sequence):
+                new_array[i] = Vector._nested_sequence_to_tuple(x)
+            else:
+                new_array[i] = x if target is None else target(x)
+        else:
+            return tuple(new_array)
+
+
+class String(CustomDataType, str):
+    _PREFIX = str(rdflib_cuba["_datatypes/STRING-"])
+
+    def __new__(cls, o: object):
+        return str.__new__(cls, o)
+
+    @classmethod
+    def compatible(cls, rdf_datatype: URIRef) -> bool:
+        return str(rdf_datatype).startswith(cls._PREFIX)
+
+
+def normalize_python_object(value: Any, rdf_datatype: URIRef) -> Any:
+    """Convert object to one that is compatible with the target RDF dataype.
 
     Args:
-        x (Any): The value to convert
-        rdf_datatype (URIRef): The datatype to convert to.
+        value: The python object to be converted.
+        rdf_datatype: The RDF datatype with which the result will be compatible.
 
     Raises:
-        RuntimeError: Unknown datatype
+        RuntimeError: Unknown datatype.
 
     Returns:
-        Any: The converted value.
+        A new python object, compatible with the specified `rdf_datatype`.
     """
     try:
-        datatype = get_python_datatype(rdf_datatype)[0]
+        datatype = _get_normalized_python_type(rdf_datatype)
     except KeyError as e:
         raise RuntimeError("unknown datatype %s" % rdf_datatype) \
             from e
-    return datatype(x)
+    return datatype(Literal(value, datatype=rdf_datatype))
 
 
-def convert_from(x, rdf_datatype):
-    """Convert to a python basic type.
+def _get_normalized_python_type(rdf_datatype: URIRef) -> Callable:
+    """Get the python datatype that is compatible with a given RDF datatype.
 
     Args:
-        x (Any): The value to convert
-        rdf_datatype (URIRef): The datatype of x
+        rdf_datatype: The rdf datatype.
 
     Raises:
-        RuntimeError: Unknown datatype provided.
+        RuntimeError: Unknown datatype specified.
 
     Returns:
-        Any: The converted value
+        Type or function to convert to the Python type.
     """
-    try:
-        datatype = get_python_datatype(rdf_datatype)[1]
-    except KeyError as e:
-        raise RuntimeError("unknown datatype %s" % rdf_datatype) \
-            from e
-    return datatype(x)
+    if rdf_datatype is None:
+        return str
+    if rdf_datatype in OWL_TO_PYTHON:
+        return OWL_TO_PYTHON[rdf_datatype]
+    for custom_data_type in [String, Vector]:
+        if custom_data_type.compatible(rdf_datatype):
+            return custom_data_type
+    else:
+        raise RuntimeError(f"Unknown datatype {rdf_datatype}")
 
 
 def to_uid(x):
@@ -194,84 +306,6 @@ def to_string(x, maxsize=None):
     return x
 
 
-def to_vector(x, np_dtype, shape):
-    """Convert the given value to numpy array.
-
-    Args:
-        x (Any): The value to convert
-        np_dtype (np.dtype): The numpy datatype if the array elements.
-        shape (Tuple[int]): The shape of the array
-
-    Returns:
-        np.ndarray: The converted value
-    """
-    if isinstance(x, Literal):
-        if isinstance(x.toPython(), np.ndarray):
-            return x.toPython()
-        x = ast.literal_eval(str(x))
-    x = np.array(x, dtype=np_dtype)
-    return x.reshape([int(x) for x in shape])
-
-
-def from_vector(x):
-    """Convert the given numpy array to a python flat list.
-
-    Args:
-        x (np.ndarray): The value to convert
-
-    Returns:
-        List: The converted value
-    """
-    return x.reshape((-1, )).tolist()
-
-
-RDF_DATATYPES = {
-    XSD.boolean: (bool, bool, np.dtype("bool")),
-    XSD.integer: (int, int, np.dtype("int")),
-    XSD.float: (float, float, np.dtype("float")),
-    XSD.string: (str, str, np.dtype("str")),
-    XSD.double: (float, float, np.dtype("double")),
-    "UID": (to_uid, str, np.dtype("str")),
-    None: (str, str, np.dtype("str"))
-}
-
-
-def get_python_datatype(rdf_datatype):
-    """Get the python datatype for a given rdf datatype.
-
-    Args:
-        rdf_datatype (URIRef): The rdf datatype
-
-    Raises:
-        RuntimeError: Unknown datatype specified.
-
-    Returns:
-        Callable: Type or function to convert to python type
-    """
-    if rdf_datatype in RDF_DATATYPES:
-        return RDF_DATATYPES[rdf_datatype]
-    str_prefix = str(rdflib_cuba["_datatypes/STRING-"])
-    vec_prefix = str(rdflib_cuba["_datatypes/VECTOR-"])
-    if str(rdf_datatype).startswith(str_prefix):
-        maxsize = int(str(rdf_datatype)[len(str_prefix):])
-        return (lambda x: to_string(x, maxsize=maxsize), str, np.dtype("str"))
-    if str(rdf_datatype).startswith(vec_prefix):
-        args = str(rdf_datatype)[len(str_prefix):].split("-")
-        dtype, shape = _parse_vector_args(args)
-        np_dtype = RDF_DATATYPES[dtype][2]
-        return (lambda x: to_vector(x, np_dtype, shape), from_vector, np_dtype)
-    raise RuntimeError(f"Unknown datatype {rdf_datatype}")
-
-
-YML_DATATYPES = {
-    "BOOL": XSD.boolean,
-    "INT": XSD.integer,
-    "FLOAT": XSD.float,
-    "STRING": XSD.string,
-    "UID": "UID"
-}
-
-
 def get_rdflib_datatype(yml_datatype, graph=None):
     """Get rdflib datatype from given YAML datatype.
 
@@ -287,42 +321,20 @@ def get_rdflib_datatype(yml_datatype, graph=None):
         return YML_DATATYPES[yml_datatype]
     args = yml_datatype.split(":")
     if args[0] == "VECTOR":
-        dtype, shape = _parse_vector_args(args[1:], return_yml_dtypes=True)
+        dtype, shape = Vector._parse_vector_args(args[1:],
+                                                 return_yml_dtypes=True)
         return _add_vector_datatype(graph, shape, dtype)
     if args[0] == "STRING" and len(args) == 2:
         length = int(args[1])
         return _add_string_datatype(graph, length)
 
 
-def _parse_vector_args(args, return_yml_dtypes=False):
-    """Parse the YAML datatype description of a vector.
-
-    Args:
-        args (str): The arguments of the vector
-            (shape and datatype of elememts)
-        return_yml_dtypes (bool, optional): Whether to return the datatype of
-            the elements as YML string or rdflib datatype. Defaults to False.
-
-    Returns:
-        Tuple[Union[str, URIRef], Tuple[int]]: datatype of elements and
-            shape of array
-    """
-    datatype = "FLOAT"
-    shape = args
-    if args[0] in YML_DATATYPES:
-        datatype = args[0]
-        shape = args[1:]
-    if return_yml_dtypes:
-        return datatype, list(map(int, shape))
-    return YML_DATATYPES[datatype], list(map(int, shape))
-
-
 def _add_string_datatype(graph, length):
-    """Add a custom string datatype to the graph refering.
+    """Add a custom string datatype to the graph reference.
 
     Args:
         graph (Graph): The graph to add the datatype to
-        length (int): The maximim length of the string
+        length (int): The maximum length of the string
 
     Returns:
         URIRef: The iri of the new datatype

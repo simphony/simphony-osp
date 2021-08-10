@@ -1,12 +1,14 @@
 """A class defined in the ontology."""
+
+import logging
 import uuid
+from typing import Set
 
 import rdflib
+from rdflib import OWL, RDFS, RDF, BNode
 
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.cuba import rdflib_cuba
-import logging
-from rdflib import OWL, RDFS, RDF, BNode
 
 logger = logging.getLogger(__name__)
 
@@ -200,7 +202,8 @@ class OntologyClass(OntologyEntity):
         Combine defaults and given attribute attributes
 
         Args:
-            kwargs (dict[str, Any]): The user specified keyword arguments
+            kwargs (dict[str, Union[Any, Set[Any]]): The user specified
+                keyword arguments.
             _force (bool): Skip checks.
 
         Raises:
@@ -233,6 +236,20 @@ class OntologyClass(OntologyEntity):
                                 attribute.argname)
             elif default is not None:
                 attributes[attribute] = default
+            else:
+                continue
+
+            # Turn attribute into a mutable sequence.
+            if not isinstance(attributes[attribute], Set):
+                attributes[attribute] = [attributes[attribute]]
+            else:
+                attributes[attribute] = list(attributes[attribute])
+
+            # Set the appropriate hashable data type for the arguments.
+            for i, value in enumerate(attributes[attribute]):
+                attributes[attribute][i] = \
+                    rdflib.Literal(attribute.convert_to_datatype(value),
+                                   datatype=attribute.datatype)
 
         # Check validity of arguments
         if not _force and kwargs:

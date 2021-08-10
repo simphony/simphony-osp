@@ -17,7 +17,7 @@ from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.datatypes import CUDS_IRI_PREFIX, \
-    OwlCompatibleType, OWL_COMPATIBLE_TYPES
+    OWLCompatibleType, OWL_COMPATIBLE_TYPES
 from osp.core.session.core_session import core_session
 from osp.core.session.session import Session
 from osp.core.utils.wrapper_development import clone_cuds_object, \
@@ -93,8 +93,8 @@ class Cuds:
     def __setitem__(self,
                     rel: Union[OntologyAttribute, OntologyRelationship],
                     values: Union[
-                        Union["Cuds", OwlCompatibleType],
-                        Iterable[Union["Cuds", OwlCompatibleType]]],
+                        Union["Cuds", OWLCompatibleType],
+                        Iterable[Union["Cuds", OWLCompatibleType]]],
                     ):
         """Manages both CUDS objects object properties and data properties.
 
@@ -418,7 +418,7 @@ class Cuds:
 
     def __init__(self,
                  # Create from oclass and attributes dict.
-                 attributes: Dict[OntologyAttribute, Any],
+                 attributes: Dict[OntologyAttribute, Set[Any]],
                  oclass: Optional[OntologyClass] = None,
                  session: Session = None,
                  iri: URIRef = None,
@@ -447,10 +447,11 @@ class Cuds:
         self._graph = Graph()
         if attributes:
             for k, v in attributes.items():
-                self._graph.add((
-                    self.iri, k.iri, Literal(k.convert_to_datatype(v),
-                                             datatype=k.datatype)
-                ))
+                for e in v:
+                    self._graph.add((
+                        self.iri, k.iri, Literal(k.convert_to_datatype(e),
+                                                 datatype=k.datatype)
+                    ))
         if oclass:
             self._graph.add((
                 self.iri, RDF.type, oclass.iri
@@ -560,8 +561,8 @@ class Cuds:
 
     def __setattr__(self, name: str,
                     values: Union[
-                        Union["Cuds", OwlCompatibleType],
-                        Iterable[Union["Cuds", OwlCompatibleType]]]):
+                        Union["Cuds", OWLCompatibleType],
+                        Iterable[Union["Cuds", OWLCompatibleType]]]):
         """Set an attribute.
 
         Will notify the session of it corresponds to an ontology value.
@@ -605,7 +606,7 @@ class Cuds:
 
     def _add_attributes(self,
                         attribute: OntologyAttribute,
-                        values: Iterable[OwlCompatibleType]):
+                        values: Iterable[OWLCompatibleType]):
         """Add values to a datatype property.
 
         If any of the values provided in `values` have already been assigned,
@@ -640,7 +641,7 @@ class Cuds:
 
     def _delete_attributes(self,
                            attribute: OntologyAttribute,
-                           values: Iterable[OwlCompatibleType]):
+                           values: Iterable[OWLCompatibleType]):
         """Remove values from a datatype property.
 
         If any of the values provided in `values` are not present, they are
@@ -672,7 +673,7 @@ class Cuds:
 
     def _set_attributes(self,
                         attribute: OntologyAttribute,
-                        values: Iterable[OwlCompatibleType]):
+                        values: Iterable[OWLCompatibleType]):
         """Replace values assigned to a datatype property.
 
         Args:
@@ -754,7 +755,7 @@ class Cuds:
         def __repr__(self) -> str:
             """Return repr(self)."""
             return self._underlying_set.__repr__() \
-                + f'<{self._attribute} of CUDS {self._cuds}>'
+                + f' <{self._attribute} of CUDS {self._cuds}>'
 
         def __str__(self) -> str:
             """Return str(self)."""
@@ -809,7 +810,7 @@ class Cuds:
             """Return self>=other."""
             return self._underlying_set.__ge__(other)
 
-        def __and__(self, other: set) -> Set[OwlCompatibleType]:
+        def __and__(self, other: set) -> Set[OWLCompatibleType]:
             """Return self&other."""
             return self._underlying_set.__and__(other)
 
@@ -817,7 +818,7 @@ class Cuds:
             """Return self|other."""
             return self._underlying_set.__or__(other)
 
-        def __sub__(self, other: set) -> Set[OwlCompatibleType]:
+        def __sub__(self, other: set) -> Set[OWLCompatibleType]:
             """Return self-other."""
             return self._underlying_set.__sub__(other)
 
@@ -825,7 +826,7 @@ class Cuds:
             """Return self^other."""
             return self._underlying_set.__xor__(other)
 
-        def __ior__(self, other: Set[OwlCompatibleType]):
+        def __ior__(self, other: Set[OWLCompatibleType]):
             """Return self|=other."""
             self._cuds._add_attributes(self._attribute, other)
             return self
@@ -838,13 +839,13 @@ class Cuds:
             self._cuds._delete_attributes(self._attribute, removed)
             return self
 
-        def __ixor__(self, other: Set[OwlCompatibleType]):
+        def __ixor__(self, other: Set[OWLCompatibleType]):
             """Return self^=other."""
             self._cuds._set_attributes(self._attribute,
                                        self._underlying_set ^ other)
             return self
 
-        def __iadd__(self, other: Set[OwlCompatibleType]):
+        def __iadd__(self, other: Set[OWLCompatibleType]):
             """Return self+=other (equivalent to self|=other)."""
             return self.__ior__(other)
 
@@ -866,7 +867,7 @@ class Cuds:
             """
             self._cuds._set_attributes(self._attribute, set())
 
-        def pop(self) -> OwlCompatibleType:
+        def pop(self) -> OWLCompatibleType:
             """Remove and return an arbitrary set element.
 
             Raises KeyError if the set is empty.
@@ -879,7 +880,7 @@ class Cuds:
             """Return a shallow copy of a set."""
             return self._underlying_set
 
-        def difference(self, other: Iterable) -> Set[OwlCompatibleType]:
+        def difference(self, other: Iterable) -> Set[OWLCompatibleType]:
             """Return the difference of two or more sets as a new set.
 
             (i.e. all elements that are in this set but not the others.)
@@ -898,7 +899,7 @@ class Cuds:
             """
             self._cuds._delete_attributes(self._attribute, {other})
 
-        def intersection(self, other: set) -> Set[OwlCompatibleType]:
+        def intersection(self, other: set) -> Set[OWLCompatibleType]:
             """Return the intersection of two sets as a new set.
 
             (i.e. all elements that are in both sets.)
@@ -917,7 +918,7 @@ class Cuds:
             """Report whether this set contains another set."""
             return self >= other
 
-        def add(self, other: OwlCompatibleType):
+        def add(self, other: OWLCompatibleType):
             """Add an element to a set.
 
             This has no effect if the element is already present.
@@ -1329,8 +1330,8 @@ class Cuds:
         None values at the same position in the result.
 
         Args:
-            uids (List[Union[UUID, URIRef]]): The uids to fetch
-            from the session.
+            uids (List[Union[UUID, URIRef]]): The uids to fetch from the
+                session.
 
         Yields:
             Cuds: The loaded cuds_objects
