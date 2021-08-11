@@ -6,22 +6,22 @@ has attributes and is connected to other cuds objects via relationships.
 
 import logging
 from uuid import uuid4, UUID
-from typing import Any, Iterable, Iterator, Optional, Union, \
-    Dict, List, MutableSet, Set, Tuple
+from typing import Any, Dict, Generator, Iterable, Iterator, List, \
+    MutableSet, Optional, Set, Tuple, Union
 
 from rdflib import BNode, URIRef, RDF, Graph, Literal
 
 from osp.core.namespaces import cuba, from_iri
 from osp.core.neighbor_dict import NeighborDictRel
 from osp.core.ontology.attribute import OntologyAttribute
-from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.ontology.datatypes import CUDS_IRI_PREFIX, RDFCompatibleType, \
+    RDF_COMPATIBLE_TYPES
 from osp.core.ontology.oclass import OntologyClass
-from osp.core.ontology.datatypes import CUDS_IRI_PREFIX, \
-    OWLCompatibleType, OWL_COMPATIBLE_TYPES
+from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.session.core_session import core_session
 from osp.core.session.session import Session
-from osp.core.utils.wrapper_development import clone_cuds_object, \
-    create_from_cuds_object, check_arguments, get_neighbor_diff
+from osp.core.utils.wrapper_development import check_arguments, \
+    clone_cuds_object, create_from_cuds_object, get_neighbor_diff
 
 logger = logging.getLogger("osp.core")
 
@@ -90,11 +90,86 @@ class Cuds:
         """
         return any(oc in oclass.subclasses for oc in self.oclasses)
 
+    def __getattr__(self, name: str) -> RDFCompatibleType:
+        """Retrieve an attribute whose domain matches the CUDS's oclass.
+
+        Args:
+            name: The name of the attribute.
+
+        Raises:
+            AttributeError: Unknown attribute name.
+
+        Returns:
+            The value of the attribute.
+        """
+        # TODO: The current behavior is to fail with non functional attributes.
+        #  However, the check is based on the amount of values set for an
+        #  attribute and not its definition as functional or non-functional
+        #  in the ontology.
+        # TODO: If an attribute whose domain is not explicitly specified was
+        #  already fixed with __setitem__, then this should also give back
+        #  such attributes (this is backwards compatible).
+        try:
+            attr = self._get_ontology_attribute_by_name(name)
+            if self.session:
+                self.session._notify_read(self)
+            values = set(self._attribute_value_generator(attr))
+            if len(values) > 1:
+                raise RuntimeError(f"Tried to fetch values of a "
+                                   f"non-functional attribute {attr} using "
+                                   f"the dot notation. This is not "
+                                   f"supported. "
+                                   f"\n \n"
+                                   f"Please use subscript "
+                                   f"notation instead for such attributes: "
+                                   f"my_cuds[{attr}]. This will return a set "
+                                   f"of values instead of a single one")
+            elif len(values) <= 0:
+                return None
+            else:
+                return values.pop()
+        except AttributeError as e:
+            if (  # check if user calls session's methods on wrapper
+                self.is_a(cuba.Wrapper)
+                and self._session is not None
+                and hasattr(self._session, name)
+            ):
+                logger.warning(
+                    "Trying to get non-defined attribute '%s' "
+                    "of wrapper CUDS object '%s'. Will return attribute of "
+                    "its session '%s' instead." % (name, self, self._session)
+                )
+                return getattr(self._session, name)
+            raise AttributeError(name) from e
+
+    def __setattr__(self, name: str,
+                    values: Union[RDFCompatibleType,
+                                  Set[RDFCompatibleType]]):
+        """Set an attribute.
+
+        Will notify the session if it corresponds to an ontology value.
+
+        Args:
+            name: The name of the attribute.
+            values: The new value(s).
+
+        Raises:
+            AttributeError: Unknown attribute name.
+        """
+        if name.startswith("_"):
+            super().__setattr__(name, values)
+            return
+        attr = self._get_ontology_attribute_by_name(name)
+        values = {values} \
+            if not isinstance(values, (Set, MutableSet)) \
+            else values
+        self._set_attributes(attr, values)
+
     def __setitem__(self,
                     rel: Union[OntologyAttribute, OntologyRelationship],
                     values: Union[
-                        Union["Cuds", OWLCompatibleType],
-                        Iterable[Union["Cuds", OWLCompatibleType]]],
+                        Union["Cuds", RDFCompatibleType],
+                        Set[Union["Cuds", RDFCompatibleType]]],
                     ):
         """Manages both CUDS objects object properties and data properties.
 
@@ -105,13 +180,12 @@ class Cuds:
         - and when `rel` is an OntologyAttribute, to replace the values of
           such attribute.
 
-        Even though this function also accepts any kind of iterable as
-        input, any repeated elements in the iterable will be ignored,
-        as the underlying RDF graph does not accept duplicate statements.
+        This function only accepts a set-like object as input, as the
+        underlying RDF graph does not accept duplicate statements.
 
         Args:
-            rel: Either an ontology attribute or an ontology relationship (
-            OWL datatype property, OWL object property).
+            rel: Either an ontology attribute or an ontology relationship
+            (OWL datatype property, OWL object property).
             values: Either a single element compatible with the OWL standard
             (this includes CUDS objects) or a set of such elements.
 
@@ -121,22 +195,23 @@ class Cuds:
                 something that is neither an OntologyAttribute or an
                 OntologyRelationship as index.
         """
-        values = [values] if not isinstance(values, Iterable) else \
-            tuple(values)
-        check_arguments((Cuds, *OWL_COMPATIBLE_TYPES), *values)
+        values = {values} \
+            if not isinstance(values, (Set, MutableSet)) \
+            else values
+        check_arguments((Cuds, *RDF_COMPATIBLE_TYPES), *values)
         cuds, literals = \
             tuple(filter(lambda x: isinstance(x, Cuds), values)), \
-            tuple(filter(lambda x: isinstance(x, OWL_COMPATIBLE_TYPES),
+            tuple(filter(lambda x: isinstance(x, RDF_COMPATIBLE_TYPES),
                          values))
-        # TODO: validating datatypes first and then splitting by datatypes
+        # TODO: validating data types first and then splitting by data types
         #  sounds like redundancy and decrease in performance.
 
         if isinstance(rel, OntologyRelationship):
-            if len(cuds) < len(values):
+            if len(values) > 0:
                 raise TypeError(f'Trying to assign attributes using an object'
                                 f'property {rel}')
         elif isinstance(rel, OntologyAttribute):
-            if len(literals) < len(values):
+            if len(cuds) > 0:
                 raise TypeError(f'Trying to connect CUDS objects using '
                                 f'a data property {rel}')
 
@@ -520,83 +595,14 @@ class Cuds:
     # Attribute handling
     # ↓ -------------- ↓
 
-    def __getattr__(self, name):
-        """Set the attributes corresponding to ontology values.
-
-        Args:
-            name (str): The name of the attribute
-
-        Raises:
-            AttributeError: Unknown attribute name
-
-        Returns:
-            The value of the attribute: Any
-        """
-        # TODO: Could fail when there is more than one value for an
-        #  attribute. (this is backwards compatible)
-        # TODO: An alternative is, either fail with non functional attributes
-        #  or return the set of attributes like __getitem__ does. (this is NOT
-        #  backwards compatible)
-        # TODO: If an attribute whose domain is not explicitly specified was
-        #  already fixed with __setitem__, then this should also give back
-        #  such attributes (this is backwards compatible).
-        try:
-            attr = self._get_attribute_by_argname(name)
-            if self.session:
-                self.session._notify_read(self)
-            return self._graph.value(self.iri, attr.iri).toPython()
-        except AttributeError as e:
-            if (  # check if user calls session's methods on wrapper
-                self.is_a(cuba.Wrapper)
-                and self._session is not None
-                and hasattr(self._session, name)
-            ):
-                logger.warning(
-                    "Trying to get non-defined attribute '%s' "
-                    "of wrapper CUDS object '%s'. Will return attribute of "
-                    "its session '%s' instead." % (name, self, self._session)
-                )
-                return getattr(self._session, name)
-            raise AttributeError(name) from e
-
-    def __setattr__(self, name: str,
-                    values: Union[
-                        Union["Cuds", OWLCompatibleType],
-                        Iterable[Union["Cuds", OWLCompatibleType]]]):
-        """Set an attribute.
-
-        Will notify the session of it corresponds to an ontology value.
-
-        Args:
-            name: The name of the attribute.
-            values: The new value(s).
-
-        Raises:
-            AttributeError: Unknown attribute name
-        """
-        if name.startswith("_"):
-            super().__setattr__(name, values)
-            return
-        attr = self._get_attribute_by_argname(name)
-        values = [values] if not isinstance(values, Iterable) else \
-            tuple(values)
-        self._set_attributes(attr, values)
-
-    def get_attributes(self) -> Dict:
+    def get_attributes(self) -> Dict[OntologyAttribute,
+                                     Set[RDFCompatibleType]]:
         """Get the attributes as a dictionary."""
-        if self.session:
-            self.session._notify_read(self)
-        result = {}
-        for s, p, o in self._graph.triples((self.iri, None, None)):
-            obj = from_iri(p, raise_error=False)
-            if isinstance(obj, OntologyAttribute):
-                if obj not in result:
-                    result[obj] = {o.toPython()}
-                else:
-                    result[obj] |= {o.toPython()}
-        return result
+        return {attribute: set(value_generator)
+                for attribute, value_generator
+                in self._attribute_and_value_generator()}
 
-    def _get_attribute_by_argname(self, name: str) -> OntologyAttribute:
+    def _get_ontology_attribute_by_name(self, name: str) -> OntologyAttribute:
         """Get the attributes of this CUDS by argname."""
         for oclass in self.oclasses:
             attr = oclass.get_attribute_by_argname(name)
@@ -606,7 +612,7 @@ class Cuds:
 
     def _add_attributes(self,
                         attribute: OntologyAttribute,
-                        values: Iterable[OWLCompatibleType]):
+                        values: Iterable[RDFCompatibleType]):
         """Add values to a datatype property.
 
         If any of the values provided in `values` have already been assigned,
@@ -614,19 +620,20 @@ class Cuds:
 
         Args:
             attribute: The ontology attribute to be used for assignments.
-            values: An iterable of Pyhon types that are compatible with the
-            OWL standard's datatypes for literals.
+            values: An iterable of Pyhon types that are compatible either
+                with the OWL standard's datatypes for literals or compatible
+                with OSP-core as custom datatypes.
 
         Raises:
             TypeError: When Python objects with types incompatible with the
-            OWL standard are given.
+                OWL standard or with OSP-core as custom datatypes are given.
         """
         # TODO: prevent the end result having more than one value than one
         #  depending on ontology cardinality restrictions and/or functional
         #  property criteria.
         values = set(values)
         for x in values:
-            if not isinstance(x, OWL_COMPATIBLE_TYPES):
+            if not isinstance(x, RDF_COMPATIBLE_TYPES):
                 raise TypeError(f"Type '{type(x)}' of object {x} cannot "
                                 f"be set as attribute value, as it is "
                                 f"incompatible with the OWL standard")
@@ -641,7 +648,7 @@ class Cuds:
 
     def _delete_attributes(self,
                            attribute: OntologyAttribute,
-                           values: Iterable[OWLCompatibleType]):
+                           values: Iterable[RDFCompatibleType]):
         """Remove values from a datatype property.
 
         If any of the values provided in `values` are not present, they are
@@ -649,16 +656,17 @@ class Cuds:
 
         Args:
             attribute: The ontology attribute to be used for assignments.
-            values: An iterable of Pyhon types that are compatible with the
-            OWL standard's datatypes for literals.
+            values: An iterable of Pyhon types that are compatible either
+                with the OWL standard's datatypes for literals or compatible
+                with OSP-core as custom datatypes.
 
         Raises:
             TypeError: When Python objects with types incompatible with the
-            OWL standard are given.
+                OWL standard or with OSP-core as custom datatypes are given.
         """
         values = set(values)
         for x in values:
-            if not isinstance(x, OWL_COMPATIBLE_TYPES):
+            if not isinstance(x, RDF_COMPATIBLE_TYPES):
                 logger.warning(f"Type '{type(x)}' of object {x} cannot "
                                f"be an attribute value, as it is "
                                f"incompatible with the OWL standard")
@@ -673,24 +681,25 @@ class Cuds:
 
     def _set_attributes(self,
                         attribute: OntologyAttribute,
-                        values: Iterable[OWLCompatibleType]):
+                        values: Iterable[RDFCompatibleType]):
         """Replace values assigned to a datatype property.
 
         Args:
             attribute: The ontology attribute to be used for assignments.
-            values: An iterable of Pyhon types that are compatible with the
-            OWL standard's datatypes for literals.
+            values: An iterable of Pyhon types that are compatible either
+                with the OWL standard's datatypes for literals or compatible
+                with OSP-core as custom datatypes.
 
         Raises:
             TypeError: When Python objects with types incompatible with the
-            OWL standard are given.
+                OWL standard or with OSP-core as custom datatypes are given.
         """
         # TODO: prevent the end result having more than one value than one
         #  depending on ontology cardinality restrictions and/or functional
         #  property criteria.
         values = set(values)
         for x in values:
-            if not isinstance(x, OWL_COMPATIBLE_TYPES):
+            if not isinstance(x, RDF_COMPATIBLE_TYPES):
                 logger.warning(f"Type '{type(x)}' of object {x} cannot "
                                f"be set as attribute value, as it is "
                                f"incompatible with the OWL standard")
@@ -704,28 +713,66 @@ class Cuds:
         if self.session:
             self.session._notify_update(self)
 
-    def _attribute_generator(self, attribute: OntologyAttribute):
+    def _attribute_value_generator(self,
+                                   attribute: OntologyAttribute,
+                                   _notify_read: bool = True) \
+            -> Generator[RDFCompatibleType, None, None]:
         """Returns a generator of values assigned to the specified attribute.
 
         Args:
             attribute: The ontology attribute query for values.
 
         Returns:
-            Generator[OwlCompatibleType]: Generator that returns the
-                attribute values.
+            Generator that returns the attribute values.
         """
+        if _notify_read and self.session:
+            self.session._notify_read(self)
         for literal in self._graph.objects(self.iri, attribute.iri):
             yield literal.toPython()
+
+    def _attribute_generator(self, _notify_read: bool = True) \
+            -> Generator[OntologyAttribute, None, None]:
+        """Returns a generator of the attributes of this CUDS object.
+
+        The generator only returns the OntologyAttribute objects, NOT the
+        values.
+
+        Returns:
+            Generator that returns the attributes of this CUDS object.
+        """
+        if _notify_read and self.session:
+            self.session._notify_read(self)
+        for predicate in self._graph.predicates(self.iri, None):
+            obj = from_iri(predicate, raise_error=False)
+            if isinstance(obj, OntologyAttribute):
+                yield obj
+
+    def _attribute_and_value_generator(self, _notify_read: bool = True) \
+            -> Generator[Tuple[OntologyAttribute,
+                         Generator[RDFCompatibleType, None, None]],
+                         None, None]:
+        """Returns a generator of the both attributes and their values.
+
+        Returns:
+            Generator that yields tuples, where the first item is the ontology
+            attribute and the second a generator of values for such attribute.
+        """
+        if _notify_read and self.session:
+            self.session._notify_read(self)
+        for attribute in self._attribute_generator(_notify_read=False):
+            yield attribute,\
+                self._attribute_value_generator(attribute,
+                                                _notify_read=False)
 
     class _AttributeSet(MutableSet):
         """A set interface to a CUDS object's attributes.
 
         This class looks like and acts like the standard `set`, but it
         is an interface to the `_add_attributes`, _set_attributes`,
-        `_delete_attributes`, `_attribute_generator` functions.
+        `_delete_attributes`, `_attribute_value_generator` functions.
 
-        When an instance is read, the method `_attribute_generator` is used to
-        fetch the data. When it is modified in-place, the methods
+        When an instance is read, the method `_attribute_value_generator` is
+        used to fetch the data. When it is modified in-place, the methods
         `_add_attributes`, `_set_attributes`, and `_delete_attributes` are used
         to reflect the changes.
 
@@ -744,7 +791,8 @@ class Cuds:
                 The mentioned underlying set.
             """
             return set(
-                self._cuds._attribute_generator(attribute=self._attribute))
+                self._cuds._attribute_value_generator(
+                    attribute=self._attribute))
 
         def __init__(self, attribute: OntologyAttribute, cuds: "Cuds"):
             """Fix the liked OntologyAttribute and CUDS object."""
@@ -781,7 +829,7 @@ class Cuds:
         def __len__(self) -> int:
             """Return len(self)."""
             i = 0
-            for x in self._cuds._attribute_generator(
+            for x in self._cuds._attribute_value_generator(
                     attribute=self._attribute):
                 i += 1
             return i
@@ -810,7 +858,7 @@ class Cuds:
             """Return self>=other."""
             return self._underlying_set.__ge__(other)
 
-        def __and__(self, other: set) -> Set[OWLCompatibleType]:
+        def __and__(self, other: set) -> Set[RDFCompatibleType]:
             """Return self&other."""
             return self._underlying_set.__and__(other)
 
@@ -818,7 +866,7 @@ class Cuds:
             """Return self|other."""
             return self._underlying_set.__or__(other)
 
-        def __sub__(self, other: set) -> Set[OWLCompatibleType]:
+        def __sub__(self, other: set) -> Set[RDFCompatibleType]:
             """Return self-other."""
             return self._underlying_set.__sub__(other)
 
@@ -826,7 +874,7 @@ class Cuds:
             """Return self^other."""
             return self._underlying_set.__xor__(other)
 
-        def __ior__(self, other: Set[OWLCompatibleType]):
+        def __ior__(self, other: Set[RDFCompatibleType]):
             """Return self|=other."""
             self._cuds._add_attributes(self._attribute, other)
             return self
@@ -839,13 +887,13 @@ class Cuds:
             self._cuds._delete_attributes(self._attribute, removed)
             return self
 
-        def __ixor__(self, other: Set[OWLCompatibleType]):
+        def __ixor__(self, other: Set[RDFCompatibleType]):
             """Return self^=other."""
             self._cuds._set_attributes(self._attribute,
                                        self._underlying_set ^ other)
             return self
 
-        def __iadd__(self, other: Set[OWLCompatibleType]):
+        def __iadd__(self, other: Set[RDFCompatibleType]):
             """Return self+=other (equivalent to self|=other)."""
             return self.__ior__(other)
 
@@ -867,7 +915,7 @@ class Cuds:
             """
             self._cuds._set_attributes(self._attribute, set())
 
-        def pop(self) -> OWLCompatibleType:
+        def pop(self) -> RDFCompatibleType:
             """Remove and return an arbitrary set element.
 
             Raises KeyError if the set is empty.
@@ -880,7 +928,7 @@ class Cuds:
             """Return a shallow copy of a set."""
             return self._underlying_set
 
-        def difference(self, other: Iterable) -> Set[OWLCompatibleType]:
+        def difference(self, other: Iterable) -> Set[RDFCompatibleType]:
             """Return the difference of two or more sets as a new set.
 
             (i.e. all elements that are in this set but not the others.)
@@ -899,7 +947,7 @@ class Cuds:
             """
             self._cuds._delete_attributes(self._attribute, {other})
 
-        def intersection(self, other: set) -> Set[OWLCompatibleType]:
+        def intersection(self, other: set) -> Set[RDFCompatibleType]:
             """Return the intersection of two sets as a new set.
 
             (i.e. all elements that are in both sets.)
@@ -918,7 +966,7 @@ class Cuds:
             """Report whether this set contains another set."""
             return self >= other
 
-        def add(self, other: OWLCompatibleType):
+        def add(self, other: RDFCompatibleType):
             """Add an element to a set.
 
             This has no effect if the element is already present.
