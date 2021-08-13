@@ -1,14 +1,15 @@
 """A class defined in the ontology."""
 
 import logging
-import uuid
+from uuid import UUID
 from typing import Set
 
 import rdflib
-from rdflib import OWL, RDFS, RDF, BNode
+from rdflib import OWL, RDFS, RDF, BNode, URIRef
 
-from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.datatypes import UID
+from osp.core.ontology.entity import OntologyEntity
 
 logger = logging.getLogger(__name__)
 
@@ -282,10 +283,10 @@ class OntologyClass(OntologyEntity):
         """Create a Cuds object from this ontology class.
 
         Args:
-            uid (Union[UUID, int], optional): The identifier of the
+            uid (Union[UUID, int, UID], optional): The identifier of the
                 Cuds object. Should be set to None in most cases. Then a new
                 identifier is generated, defaults to None. Defaults to None.
-            iri (Union[URIRef, str], optional): The same as the uid, but
+            iri (Union[URIRef, str, UID], optional): The same as the uid, but
                 exclusively for IRI identifiers.
             session (Session, optional): The session to create the cuds object
                 in, defaults to None. Defaults to None.
@@ -297,13 +298,24 @@ class OntologyClass(OntologyEntity):
         Returns:
             Cuds: The created cuds object
         """
-        # Accept strings as IRI identifiers and integers as UUID identifiers.
-        types_map = {int: lambda x: uuid.UUID(int=x),
-                     str: lambda x: rdflib.URIRef(x),
-                     rdflib.URIRef: lambda x: x,
-                     uuid.UUID: lambda x: x,
-                     type(None): lambda x: x}
-        iri, uid = (types_map[type(x)](x) for x in (iri, uid))
+        if len(set(filter(lambda x: x is not None, (uid, iri)))) > 1:
+            raise ValueError("Tried to initialize a CUDS object specifying, "
+                             "both its IRI and UID. A CUDS object is "
+                             "constrained to have just one UID.")
+        elif uid is not None and not isinstance(uid, (UUID, int, UID)):
+            raise ValueError('Provide either a UUID or a URIRef object'
+                             'as UID.')
+            # NOTE: The error message is not wrong, the user is not meant to
+            #  provide a UID object, only OSP-core itself.
+        elif iri is not None and not isinstance(iri, (URIRef, str, UID)):
+            raise ValueError('Provide either a string or an URIRef object as '
+                             'IRI.')
+            # NOTE: The error message is not wrong, the user is not meant to
+            #  provide a UID object, only OSP-core itself.
+        else:
+            uid = (UID(uid) if uid else None) or \
+                  (UID(iri) if iri else None) or \
+                   UID()
 
         from osp.core.cuds import Cuds
         from osp.core.namespaces import cuba
@@ -321,6 +333,5 @@ class OntologyClass(OntologyEntity):
             attributes=self._get_attributes_values(kwargs, _force=_force),
             oclass=self,
             session=session,
-            iri=iri,
             uid=uid
         )

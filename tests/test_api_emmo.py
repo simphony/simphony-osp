@@ -6,6 +6,7 @@ import uuid
 from osp.core.utils.wrapper_development import create_from_cuds_object
 from osp.core.session.core_session import CoreSession
 from osp.core.namespaces import cuba
+from osp.core.ontology.datatypes import UID
 
 try:
     from osp.core.namespaces import math, holistic, mereotopology
@@ -48,7 +49,7 @@ class TestAPIEmmo(unittest.TestCase):
     def test_uid(self):
         """Tests that the uid variable contains an uid."""
         c = holistic.Process()
-        self.assertIsInstance(c.uid, uuid.UUID)
+        self.assertIsInstance(c.uid, UID)
 
     def test_set_throws_exception(self):
         """Test that setting a value for an invlid key throws an error."""
@@ -95,7 +96,7 @@ class TestAPIEmmo(unittest.TestCase):
         self.assertEqual(get_i_uid, i)
         get_ni_uid = p.get(n.uid, i.uid)
         self.assertEqual(set(get_ni_uid), {n, i})
-        get_new_uid = p.get(uuid.uuid4())
+        get_new_uid = p.get(UID())
         self.assertEqual(get_new_uid, None)
 
         # get(rel)
@@ -228,7 +229,7 @@ class TestAPIEmmo(unittest.TestCase):
         p = math.Real(hasNumericalData=1.2)
         self.assertEqual(
             p.get_attributes(),
-            {math.hasNumericalData: {"1.2"}}  # TODO type conversion
+            {math.hasNumericalData: {1.2}}
         )
 
 

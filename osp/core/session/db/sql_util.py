@@ -1,20 +1,23 @@
 """Object to create backend independent queries, conditions and more."""
 
-import rdflib
-from operator import mul
-from osp.core.ontology.datatypes import Vector, normalize_python_object, to_uid
-from osp.core.ontology.cuba import rdflib_cuba
-from functools import reduce
 from copy import deepcopy
+from functools import reduce
+from operator import mul
+
+import rdflib
+from rdflib import URIRef, Literal
+
+from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.datatypes import Vector
 
 
 VEC_PREFIX = str(rdflib_cuba["_datatypes/VECTOR-"])
 
 
-class SqlQuery():
+class SqlQuery:
     """An sql query."""
 
-    def __init__(self, table_name, columns, datatypes, alias=None):
+    def __init__(self, table_name: str, columns, datatypes, alias=None):
         """Initialize the query."""
         alias = alias or table_name
         columns, datatypes = expand_vector_cols(columns, datatypes)
@@ -70,7 +73,7 @@ class SqlQuery():
         return self
 
 
-class Condition():
+class Condition:
     """The general condition class."""
 
 
@@ -88,8 +91,7 @@ class EqualsCondition(Condition):
         """
         self.table_name = table_name
         self.column = column
-        self.value = normalize_python_object(value, datatype) \
-            if datatype != "UID" else str(to_uid(value))
+        self.value = Literal(value, datatype=datatype).toPython()
         self.datatype = datatype
 
     def __eq__(self, other):
@@ -99,7 +101,7 @@ class EqualsCondition(Condition):
             other (Condition): The other condition.
 
         Returns:
-            bool: Wether the two codnitions are equal.
+            bool: Whether the two conditions are equal.
         """
         return (
             isinstance(other, type(self))
@@ -132,7 +134,7 @@ class JoinCondition(Condition):
             other (Condition): The other condition.
 
         Returns:
-            bool: Wether the two codnitions are equivalent.
+            bool: Whether the two conditions are equivalent.
         """
         return (
             isinstance(other, type(self))
@@ -199,21 +201,24 @@ def determine_datatype(table_name):
         return getattr(rdflib.RDF, table_name[len(prefix + "RDF_"):])
     elif table_name.startswith(prefix + "XSD_"):
         return getattr(rdflib.XSD, table_name[len(prefix + "XSD_"):])
+    elif table_name.startswith(prefix + "CUSTOM_"):
+        return URIRef('http://www.osp-core.com/types#') \
+               + table_name[len(prefix + "CUSTOM_"):]
     else:
         return getattr(rdflib_cuba, "_datatypes/" + table_name[len(prefix):])
 
 
-def get_data_table_name(datatype):
+def get_data_table_name(datatype: URIRef) -> str:
     """Get the name of the table for the given datatype.
 
     Args:
-        datatype (rdflib.URIRef): The datatype of the object column.
+        datatype: The datatype of the object column.
 
     Raises:
         NotImplementedError: The given datatype is not supported.
 
     Returns:
-        str: The name of the table.
+        The name of the table.
     """
     from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
     prefix = SqlWrapperSession.DATA_TABLE_PREFIX
@@ -225,8 +230,9 @@ def get_data_table_name(datatype):
         return prefix + "RDF_" + datatype[len(str(rdflib.RDF)):]
     if datatype.startswith(str(rdflib.RDFS)):
         return prefix + "RDFS_" + datatype[len(str(rdflib.RDFS)):]
-    if datatype.startswith(str(rdflib_cuba) + "_datatypes/"):
-        return prefix + datatype[len(str(rdflib_cuba) + "_datatypes/"):]
+    if datatype.startswith(str(URIRef('http://www.osp-core.com/types#'))):
+        return prefix + "CUSTOM_" + \
+               datatype[len(str(URIRef('http://www.osp-core.com/types#'))):]
     raise NotImplementedError(f"Unsupported datatype {datatype}")
 
 
@@ -316,8 +322,8 @@ def expand_vector_cols(columns, datatypes, values=None):
         datatypes_expanded.update({c: datatype for c in expanded_cols})
         datatypes_expanded[column] = datatypes[column]
         if values:
-            values_expanded.extend(normalize_python_object(values[i],
-                                                           datatypes[column]))
+            values_expanded.extend(Literal(values[i], datatype=datatypes[
+                column]).toPython())
     if values:
         return columns_expanded, datatypes_expanded, values_expanded
     return columns_expanded, datatypes_expanded
@@ -351,8 +357,8 @@ def contract_vector_values(rows, query):
                 continue
 
             if temp_vec:  # add the vector to the result
-                contracted_row.append(normalize_python_object(temp_vec,
-                                                              vector_datatype))
+                contracted_row.append(
+                    Literal(temp_vec, datatype=vector_datatype).toPython())
                 temp_vec = list()
 
             vector_datatype, is_vec_elem = handle_vector_item(
@@ -366,8 +372,8 @@ def contract_vector_values(rows, query):
             contracted_row.append(value)
 
         if temp_vec:  # add the vector to the result
-            contracted_row.append(normalize_python_object(temp_vec,
-                                                          vector_datatype))
+            contracted_row.append(Literal(temp_vec,
+                                          datatype=vector_datatype).toPython())
             temp_vec = list()
         yield contracted_row
 
@@ -462,9 +468,8 @@ def convert_values(rows, query):
         output = []
         for value, (t_alias, column) in zip(row, query.columns):
             output.append(
-                normalize_python_object(value,
-                                        query.datatypes[t_alias][column])
-                if query.datatypes[t_alias][column] != "UID" else
-                to_uid(value)
+                Literal(value,
+                        datatype=query.datatypes[t_alias][column])
+                .toPython()
             )
         yield output

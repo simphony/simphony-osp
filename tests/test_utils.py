@@ -5,14 +5,15 @@ import unittest
 import responses
 import os
 import osp.core
-import rdflib
+from rdflib import RDF, RDFS, URIRef
 from osp.core.namespaces import cuba
 from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.datatypes import CUSTOM_TO_PYTHON
 from osp.core.session.transport.transport_utils import serializable
 from osp.core.session.core_session import CoreSession
 from osp.core.session.buffers import EngineContext
 from osp.core.utils.general import remove_cuds_object,\
-    get_custom_datatype_triples, get_custom_datatypes, post, \
+    get_custom_datatype_triples, post, \
     get_relationships_between, branch, \
     delete_cuds_object_recursively
 from osp.core.utils.schema_validation import validate_tree_against_schema, \
@@ -74,15 +75,13 @@ class TestUtils(unittest.TestCase):
 
     def test_get_custom_datatypes(self):
         """Test the get_custom_datatypes function."""
-        self.assertIn(rdflib_cuba["_datatypes/VECTOR-INT-2"],
-                      get_custom_datatypes())
-        for elem in get_custom_datatypes():
-            self.assertIn(elem, rdflib_cuba)
-        self.assertIn((city.coordinates.iri, rdflib.RDFS.range,
-                       rdflib_cuba["_datatypes/VECTOR-INT-2"]),
+        self.assertIn(URIRef("http://www.osp-core.com/types#Vector"),
+                      CUSTOM_TO_PYTHON)
+        self.assertIn((city.coordinates.iri, RDFS.range,
+                       URIRef("http://www.osp-core.com/types#Vector")),
                       get_custom_datatype_triples())
-        self.assertIn((rdflib_cuba["_datatypes/VECTOR-INT-2"],
-                       rdflib.RDF.type, rdflib.RDFS.Datatype),
+        self.assertIn((URIRef("http://www.osp-core.com/types#Vector"),
+                       RDF.type, RDFS.Datatype),
                       get_custom_datatype_triples())
 
     def test_validate_tree_against_schema(self):
@@ -562,7 +561,7 @@ class TestUtils(unittest.TestCase):
             "  type: city.City",
             "  superclasses: city.City, city.GeographicalPlace, "
             + "city.PopulatedPlace, cuba.Entity",
-            "  values: coordinates: (1, 2)",
+            "  values: coordinates: [1, 2]",
             "  description: ",
             "    To Be Determined",
             "",
@@ -591,11 +590,11 @@ class TestUtils(unittest.TestCase):
             "   |_Relationship city.hasPart:",
             "     -  city.Neighborhood cuds object named <St. Georgen>:",
             "     .  uid: %s" % n2.uid,
-            "     .  coordinates: (3, 4)",
+            "     .  coordinates: [3, 4]",
             "     .   |_Relationship city.hasPart:",
             "     .     -  city.Street cuds object named <Lange Straße>:",
             "     .        uid: %s" % s1.uid,
-            "     .        coordinates: (4, 5)",
+            "     .        coordinates: [4, 5]",
             "     .         |_Relationship city.hasInhabitant:",
             "     .           -  city.Citizen cuds object named <Carlos>:",
             "     .           .  uid: %s" % p2.uid,
@@ -605,7 +604,7 @@ class TestUtils(unittest.TestCase):
             "     .              (already printed)",
             "     -  city.Neighborhood cuds object named <Zähringen>:",
             "        uid: %s" % n1.uid,
-            "        coordinates: (2, 3)",
+            "        coordinates: [2, 3]",
             "         |_Relationship city.hasPart:",
             "           -  city.Street cuds object named <Lange Straße>:",
             "              uid: %s" % s1.uid,

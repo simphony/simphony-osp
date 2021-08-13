@@ -2,7 +2,7 @@
 
 import rdflib
 from copy import deepcopy
-from osp.core.ontology.datatypes import to_uid
+from osp.core.ontology.datatypes import UID
 from osp.core.utils.general import get_relationships_between
 from osp.core.namespaces import cuba
 
@@ -106,7 +106,7 @@ def create_recycle(oclass, kwargs, session, uid,
     """
     from osp.core.session.wrapper_session import WrapperSession
     from osp.core.cuds import Cuds
-    uid = to_uid(uid)
+    uid = UID(uid)
     if isinstance(session, WrapperSession) and uid in session._expired:
         session._expired.remove(uid)
 
@@ -213,7 +213,7 @@ def create_from_triples(triples, neighbor_triples, session,
     if not triples:
         return None
 
-    uid = uid_from_iri(triples[0][0])
+    uid = UID(triples[0][0])
     if isinstance(session, WrapperSession) and uid in session._expired:
         session._expired.remove(uid)
 

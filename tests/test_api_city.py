@@ -8,6 +8,7 @@ from osp.core.utils.wrapper_development import clone_cuds_object,\
 from osp.core.session.core_session import CoreSession
 from osp.core.cuds import Cuds
 from osp.core.namespaces import cuba
+from osp.core.ontology.datatypes import UID
 
 try:
     from osp.core.namespaces import city
@@ -48,9 +49,9 @@ class TestAPICity(unittest.TestCase):
         cuba.Wrapper(session=CoreSession())
 
     def test_uid(self):
-        """Tests that the uid variable contains an uid."""
+        """Tests that the uid variable contains an UID."""
         c = city.City(name="a city")
-        self.assertIsInstance(c.uid, (uuid.UUID, rdflib.URIRef))
+        self.assertIsInstance(c.uid, UID)
 
     def test_set_throws_exception(self):
         """Thest that setting an invalid key throws an exception."""
@@ -125,52 +126,52 @@ class TestAPICity(unittest.TestCase):
         # check if there are unexpected changes in the first session
         # first check active relationships
         self.assertEqual(set(c._neighbors[city.hasInhabitant].keys()),
-                         set([p1.uid, p2.uid, p3.uid]))
-        self.assertEqual(set([p2.uid]),
+                         {p1.uid, p2.uid, p3.uid})
+        self.assertEqual({p2.uid},
                          set(p1._neighbors[city.hasChild].keys()))
-        self.assertEqual(set([p2.uid]),
+        self.assertEqual({p2.uid},
                          set(p3._neighbors[city.hasChild].keys()))
-        self.assertEqual(set([p4.uid]), set(
+        self.assertEqual({p4.uid}, set(
             p2._neighbors[city.hasChild].keys()))
 
         # check passive relationships
         self.assertEqual(
-            set([c.uid]),
+            {c.uid},
             set(p1._neighbors[city.INVERSE_OF_hasInhabitant].keys()))
         self.assertEqual(
-            set([p1.uid, p3.uid]),
+            {p1.uid, p3.uid},
             set(p2._neighbors[city.isChildOf].keys()))
         self.assertEqual(
-            set([c.uid]),
+            {c.uid},
             set(p2._neighbors[city.INVERSE_OF_hasInhabitant].keys()))
         self.assertEqual(
-            set([c.uid]),
+            {c.uid},
             set(p3._neighbors[city.INVERSE_OF_hasInhabitant].keys()))
         self.assertEqual(
-            set([p2.uid]),
+            {p2.uid},
             set(p4._neighbors[city.isChildOf].keys()))
 
         # check if items correctly added in second session
         # active relations
         self.assertEqual(set(cw._neighbors[city.hasInhabitant].keys()),
-                         set([p1w.uid, p2w.uid]))
-        self.assertEqual(set([p2w.uid]),
+                         {p1w.uid, p2w.uid})
+        self.assertEqual({p2w.uid},
                          set(p1w._neighbors[city.hasChild].keys()))
-        self.assertEqual(set([p4w.uid]),
+        self.assertEqual({p4w.uid},
                          set(p2w._neighbors[city.hasChild].keys()))
 
         # passive relations
         self.assertEqual(
-            set([cw.uid]),
+            {cw.uid},
             set(p1w._neighbors[city.INVERSE_OF_hasInhabitant].keys()))
         self.assertEqual(
-            set([p1w.uid]),
+            {p1w.uid},
             set(p2w._neighbors[city.isChildOf].keys()))
         self.assertEqual(
-            set([cw.uid]),
+            {cw.uid},
             set(p2w._neighbors[city.INVERSE_OF_hasInhabitant].keys()))
         self.assertEqual(
-            set([p2w.uid]),
+            {p2w.uid},
             set(p4w._neighbors[city.isChildOf].keys()))
 
     def test_fix_neighbors(self):
@@ -201,10 +202,10 @@ class TestAPICity(unittest.TestCase):
 
         self.assertEqual(
             set(p1w1._neighbors[city.INVERSE_OF_hasInhabitant].keys()),
-            set([c1w1.uid, c2w1.uid, c3w1.uid]))
+            {c1w1.uid, c2w1.uid, c3w1.uid})
         self.assertEqual(
             set(p2w2._neighbors[city.isChildOf].keys()),
-            set([p1w2.uid]))
+            {p1w2.uid})
 
         missing = dict()
         Cuds._fix_neighbors(new_cuds_object=p1w1,
@@ -217,32 +218,31 @@ class TestAPICity(unittest.TestCase):
         self.assertIn(c2w1.uid, missing)
         self.assertEqual(
             set(p1w1._neighbors[city.INVERSE_OF_hasInhabitant].keys()),
-            set([c1w1.uid, c2w1.uid, c3w1.uid,
-                 c4w1.uid]))
+            {c1w1.uid, c2w1.uid, c3w1.uid, c4w1.uid})
         self.assertNotIn(city.isPartOf, p2w2._neighbors)
 
         # check if there are no unexpected other changes
         self.assertEqual(
             set(c1w1._neighbors[city.hasInhabitant].keys()),
-            set([p1w1.uid]))
+            {p1w1.uid})
         self.assertEqual(
             set(c2w1._neighbors[city.hasInhabitant].keys()),
-            set([p1w1.uid]))
+            {p1w1.uid})
         self.assertEqual(
             set(c3w1._neighbors[city.hasInhabitant].keys()),
-            set([p1w1.uid]))
+            {p1w1.uid})
         self.assertNotIn(city.hasInhabitant, c4w1._neighbors)
 
         # check if the parents in w2 have been updated
         self.assertEqual(
             set(c1w2._neighbors[city.hasInhabitant].keys()),
-            set([p1w1.uid]))
+            {p1w1.uid})
         self.assertEqual(
             set(c3w2._neighbors[city.hasInhabitant].keys()),
-            set([p1w1.uid]))
+            {p1w1.uid})
         self.assertEqual(
             set(c4w2._neighbors[city.hasInhabitant].keys()),
-            set([p1w1.uid]))
+            {p1w1.uid})
 
     def test_get(self):
         """Tests the standard, normal behavior of the get() method.
@@ -272,7 +272,7 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(get_q_uid, q)
         get_nq_uid = c.get(n.uid, q.uid)
         self.assertEqual(set(get_nq_uid), {n, q})
-        get_new_uid = c.get(uuid.uuid4())
+        get_new_uid = c.get(UID())
         self.assertEqual(get_new_uid, None)
 
         # get(rel)
@@ -311,11 +311,9 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(get_p_uid, p)
         self.assertEqual(get_p_rel, city.hasInhabitant)
         result = c.get(rel=city.encloses, return_rel=True)
-        self.assertEqual(set(result), set([
-            (p, city.hasInhabitant),
-            (q, city.hasInhabitant),
-            (n, city.hasPart)
-        ]))
+        self.assertEqual(set(result),
+                         {(p, city.hasInhabitant), (q, city.hasInhabitant),
+                          (n, city.hasPart)})
 
     def test_get_throws_exception(self):
         """Tests the get() method for unusual behaviors.
@@ -485,11 +483,9 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(get_p_uid, p)
         self.assertEqual(get_p_rel, city.hasInhabitant)
         result = c.iter(rel=city.encloses, return_rel=True)
-        self.assertEqual(set(result), set([
-            (p, city.hasInhabitant),
-            (q, city.hasInhabitant),
-            (n, city.hasPart)
-        ]))
+        self.assertEqual(set(result),
+                         {(p, city.hasInhabitant), (q, city.hasInhabitant),
+                          (n, city.hasPart)})
 
     # def test_check_valid_add(self):  # TODO
     #     """Check if _check_valid_add throws exceptions when illegal

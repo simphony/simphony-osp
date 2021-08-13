@@ -1,7 +1,7 @@
 """This file provides the unittest for the YAML parser."""
 import os
 import yaml
-import rdflib
+from rdflib import OWL, RDF, RDFS, SKOS, XSD, Literal, URIRef
 import unittest2 as unittest
 import logging
 from rdflib.compare import isomorphic
@@ -43,36 +43,36 @@ class TestYMLParser(unittest.TestCase):
         """Test the validate_entity."""
         # everything should be fine
         for x, t, r in (
-                ("relationshipB", rdflib.OWL.ObjectProperty, "relationship"),
-                ("ClassD", rdflib.OWL.Class, "class"),
-                ("attributeD", rdflib.OWL.DatatypeProperty, "attribute")):
+                ("relationshipB", OWL.ObjectProperty, "relationship"),
+                ("ClassD", OWL.Class, "class"),
+                ("attributeD", OWL.DatatypeProperty, "attribute")):
             self.assertRaises(RuntimeError, self.parser._validate_entity,
                               x, self.ontology_doc[x])
             self.parser._graph.add((self.parser._get_iri(x),
-                                    rdflib.RDF.type,
+                                    RDF.type,
                                     t))
             result = self.parser._validate_entity(x, self.ontology_doc[x])
             self.assertEqual(r, result)
 
         # wrong type
         self.setUp()
-        for x, t in (("relationshipB", rdflib.OWL.Class),
-                     ("ClassD", rdflib.OWL.DatatypeProperty),
-                     ("attributeD", rdflib.OWL.ObjectProperty)):
+        for x, t in (("relationshipB", OWL.Class),
+                     ("ClassD", OWL.DatatypeProperty),
+                     ("attributeD", OWL.ObjectProperty)):
             self.assertRaises(RuntimeError, self.parser._validate_entity,
                               x, self.ontology_doc[x])
             self.parser._graph.add(
-                (self.parser._get_iri(x), rdflib.RDF.type, t))
+                (self.parser._get_iri(x), RDF.type, t))
             self.assertRaises(ValueError, self.parser._validate_entity,
                               x, self.ontology_doc[x])
 
     def test_set_datatype(self):
         """Test the set_datatype method of the YAML parser."""
-        for x, t in (("attributeA", rdflib.XSD.string),
-                     ("attributeD", rdflib.XSD.float)):
+        for x, t in (("attributeA", XSD.string),
+                     ("attributeD", XSD.float)):
             self.parser._set_datatype(x)
             self.assertEqual(list(self.parser._graph), [(
-                self.parser._get_iri(x), rdflib.RDFS.range, t)])
+                self.parser._get_iri(x), RDFS.range, t)])
             self.setUp()
 
         x = "attributeC"
@@ -82,10 +82,10 @@ class TestYMLParser(unittest.TestCase):
         x = "attributeB"
         self.parser._set_datatype(x)
         self.assertEqual(set(self.parser._graph), {
-            (self.parser._get_iri(x), rdflib.RDFS.range,
-             rdflib_cuba["_datatypes/VECTOR-INT-2-2"]),
-            (rdflib_cuba["_datatypes/VECTOR-INT-2-2"], rdflib.RDF.type,
-             rdflib.RDFS.Datatype)})
+            (self.parser._get_iri(x), RDFS.range, 
+             URIRef("http://www.osp-core.com/types#Vector")),
+            (URIRef("http://www.osp-core.com/types#Vector"), 
+             RDF.type, RDFS.Datatype)})
 
     def test_check_default_rel_flag_on_entity(self):
         """Test the check_default_rel_flag_on_entity method."""
@@ -114,7 +114,7 @@ class TestYMLParser(unittest.TestCase):
         self.parser._set_inverse("relationshipC",
                                  self.ontology_doc["relationshipC"])
         self.assertEqual(list(self.parser._graph), [(
-            self.parser._get_iri("relationshipC"), rdflib.OWL.inverseOf,
+            self.parser._get_iri("relationshipC"), OWL.inverseOf,
             self.parser._get_iri("relationshipA")
         )])
 
@@ -130,35 +130,35 @@ class TestYMLParser(unittest.TestCase):
         self.parser._add_attributes("ClassA", self.ontology_doc["ClassA"])
         bnode1 = self.parser._graph.value(self.parser._get_iri("ClassA"),
                                           rdflib_cuba._default)
-        bnode2 = self.parser._graph.value(None, rdflib.RDF.type,
-                                          rdflib.OWL.Restriction)
+        bnode2 = self.parser._graph.value(None, RDF.type,
+                                          OWL.Restriction)
         self.assertEqual(set(self.parser._graph) - pre, {
             (self.parser._get_iri("ClassA"), rdflib_cuba._default, bnode1),
-            (bnode1, rdflib_cuba._default_value, rdflib.Literal("DEFAULT_A")),
+            (bnode1, rdflib_cuba._default_value, Literal("DEFAULT_A")),
             (bnode1, rdflib_cuba._default_attribute,
              self.parser._get_iri("attributeA")),
-            (bnode2, rdflib.OWL.cardinality,
-             rdflib.Literal(1, datatype=rdflib.XSD.integer)),
-            (bnode2, rdflib.RDF.type, rdflib.OWL.Restriction),
-            (self.parser._get_iri("ClassA"), rdflib.RDFS.subClassOf, bnode2),
-            (bnode2, rdflib.OWL.onProperty, self.parser._get_iri("attributeA"))
+            (bnode2, OWL.cardinality,
+             Literal(1, datatype=XSD.integer)),
+            (bnode2, RDF.type, OWL.Restriction),
+            (self.parser._get_iri("ClassA"), RDFS.subClassOf, bnode2),
+            (bnode2, OWL.onProperty, self.parser._get_iri("attributeA"))
         })
 
         # without default
         pre = set(self.parser._graph)
         self.parser._add_attributes("ClassE", self.ontology_doc["ClassE"])
-        for s, _, _ in self.parser._graph.triples((None, rdflib.RDF.type,
-                                                   rdflib.OWL.Restriction)):
+        for s, _, _ in self.parser._graph.triples((None, RDF.type,
+                                                   OWL.Restriction)):
             if s != bnode2:
                 bnode3 = s
 
         self.assertEqual(set(self.parser._graph) - pre, {
-            (bnode3, rdflib.OWL.onProperty,
+            (bnode3, OWL.onProperty,
              self.parser._get_iri("attributeA")),
-            (bnode3, rdflib.OWL.cardinality,
-             rdflib.Literal(1, datatype=rdflib.XSD.integer)),
-            (bnode3, rdflib.RDF.type, rdflib.OWL.Restriction),
-            (self.parser._get_iri("ClassE"), rdflib.RDFS.subClassOf, bnode3)
+            (bnode3, OWL.cardinality,
+             Literal(1, datatype=XSD.integer)),
+            (bnode3, RDF.type, OWL.Restriction),
+            (self.parser._get_iri("ClassE"), RDFS.subClassOf, bnode3)
         })
 
     def test_add_type_triple(self):
@@ -169,13 +169,13 @@ class TestYMLParser(unittest.TestCase):
         pre = set(self.parser._graph)
         self.parser._add_type_triple("ClassA", iri)
         self.assertEqual(set(self.parser._graph) - pre, {(
-            iri, rdflib.RDF.type, rdflib.OWL.Class
+            iri, RDF.type, OWL.Class
         )})
         iri = self.parser._get_iri("ClassC")
         pre = set(self.parser._graph)
         self.parser._add_type_triple("ClassC", iri)
         self.assertEqual(set(self.parser._graph) - pre, {(
-            iri, rdflib.RDF.type, rdflib.OWL.Class
+            iri, RDF.type, OWL.Class
         )})
 
         # Relationship
@@ -183,7 +183,7 @@ class TestYMLParser(unittest.TestCase):
         pre = set(self.parser._graph)
         self.parser._add_type_triple("relationshipC", iri)
         self.assertEqual(set(self.parser._graph) - pre, {(
-            iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty
+            iri, RDF.type, OWL.ObjectProperty
         )})
 
         # Attribute
@@ -191,8 +191,8 @@ class TestYMLParser(unittest.TestCase):
         pre = set(self.parser._graph)
         self.parser._add_type_triple("attributeB", iri)
         self.assertEqual(set(self.parser._graph) - pre, {
-            (iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty),
-            (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty)
+            (iri, RDF.type, OWL.DatatypeProperty),
+            (iri, RDF.type, OWL.FunctionalProperty)
         })
 
     def test_add_superclass(self):
@@ -220,39 +220,39 @@ class TestYMLParser(unittest.TestCase):
         self.parser._graph.parse(CUBA_FILE, format="ttl")
         self.assertEqual(
             self.parser._get_iri("Entity", "CUBA"),
-            rdflib.term.URIRef('http://www.osp-core.com/cuba#Entity'))
+            URIRef('http://www.osp-core.com/cuba#Entity'))
         self.assertEqual(
             self.parser._get_iri("ENTITY", "CUBA"),
-            rdflib.term.URIRef('http://www.osp-core.com/cuba#Entity'))
+            URIRef('http://www.osp-core.com/cuba#Entity'))
         self.assertEqual(
             self.parser._get_iri("ENTITY", "cuba"),
-            rdflib.term.URIRef('http://www.osp-core.com/cuba#Entity'))
+            URIRef('http://www.osp-core.com/cuba#Entity'))
         self.assertEqual(
             self.parser._get_iri("entity", "CUBA"),
-            rdflib.term.URIRef('http://www.osp-core.com/cuba#Entity'))
+            URIRef('http://www.osp-core.com/cuba#Entity'))
         self.assertRaises(AttributeError, self.parser._get_iri, "A", "B")
         self.parser._graph.add((
-            rdflib.term.URIRef('http://www.osp-core.com/ns#MY_CLASS'),
-            rdflib.RDF.type, rdflib.OWL.Class
+            URIRef('http://www.osp-core.com/ns#MY_CLASS'),
+            RDF.type, OWL.Class
         ))
         self.assertEqual(
             self.parser._get_iri("my_class", "NS"),
-            rdflib.term.URIRef('http://www.osp-core.com/ns#MY_CLASS'))
+            URIRef('http://www.osp-core.com/ns#MY_CLASS'))
         self.assertEqual(
             self.parser._get_iri("MY_CLASS", "NS"),
-            rdflib.term.URIRef('http://www.osp-core.com/ns#MY_CLASS'))
+            URIRef('http://www.osp-core.com/ns#MY_CLASS'))
         self.assertEqual(
             self.parser._get_iri("myClass", "ns"),
-            rdflib.term.URIRef('http://www.osp-core.com/ns#MY_CLASS'))
+            URIRef('http://www.osp-core.com/ns#MY_CLASS'))
         self.assertEqual(
             self.parser._get_iri("MyClass", "NS"),
-            rdflib.term.URIRef('http://www.osp-core.com/ns#MY_CLASS'))
+            URIRef('http://www.osp-core.com/ns#MY_CLASS'))
 
         # no entity name --> no checks
         self.assertEqual(self.parser._get_iri(None, "B"),
-                         rdflib.term.URIRef('http://www.osp-core.com/b#'))
+                         URIRef('http://www.osp-core.com/b#'))
         self.assertEqual(self.parser._get_iri(None, "b"),
-                         rdflib.term.URIRef('http://www.osp-core.com/b#'))
+                         URIRef('http://www.osp-core.com/b#'))
 
     def test_load_entity(self):
         """Test the load_entity method of the YAML parser."""
@@ -263,12 +263,12 @@ class TestYMLParser(unittest.TestCase):
         self.parser._parse_entity(name, self.ontology_doc[name])
         iri = self.parser._get_iri(name)
         self.assertEqual(set(self.parser._graph) - pre, {
-            (iri, rdflib.RDF.type, rdflib.OWL.Class),
-            (iri, rdflib.RDFS.isDefinedBy,
-             rdflib.term.Literal("Class A", lang="en")),
-            (iri, rdflib.RDFS.subClassOf, rdflib_cuba.Entity),
-            (iri, rdflib.SKOS.prefLabel,
-             rdflib.term.Literal("ClassA", lang="en"))
+            (iri, RDF.type, OWL.Class),
+            (iri, RDFS.isDefinedBy,
+             Literal("Class A", lang="en")),
+            (iri, RDFS.subClassOf, rdflib_cuba.Entity),
+            (iri, SKOS.prefLabel,
+             Literal("ClassA", lang="en"))
         })
 
         # load relationship
@@ -278,10 +278,10 @@ class TestYMLParser(unittest.TestCase):
         self.parser._parse_entity(name, self.ontology_doc[name])
         iri = self.parser._get_iri(name)
         self.assertEqual(set(self.parser._graph) - pre, {
-            (iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty),
-            (iri, rdflib.RDFS.subPropertyOf, rdflib_cuba.activeRelationship),
-            (iri, rdflib.SKOS.prefLabel,
-             rdflib.term.Literal("relationshipA", lang="en"))
+            (iri, RDF.type, OWL.ObjectProperty),
+            (iri, RDFS.subPropertyOf, rdflib_cuba.activeRelationship),
+            (iri, SKOS.prefLabel,
+             Literal("relationshipA", lang="en"))
         })
 
         # load attribute
@@ -291,11 +291,11 @@ class TestYMLParser(unittest.TestCase):
         self.parser._parse_entity(name, self.ontology_doc[name])
         iri = self.parser._get_iri(name)
         self.assertEqual(set(self.parser._graph) - pre, {
-            (iri, rdflib.RDF.type, rdflib.OWL.DatatypeProperty),
-            (iri, rdflib.RDF.type, rdflib.OWL.FunctionalProperty),
-            (iri, rdflib.RDFS.subPropertyOf, rdflib_cuba.attribute),
-            (iri, rdflib.SKOS.prefLabel,
-             rdflib.term.Literal("attributeA", lang="en"))
+            (iri, RDF.type, OWL.DatatypeProperty),
+            (iri, RDF.type, OWL.FunctionalProperty),
+            (iri, RDFS.subPropertyOf, rdflib_cuba.attribute),
+            (iri, SKOS.prefLabel,
+             Literal("attributeA", lang="en"))
         })
 
     def test_split_name(self):

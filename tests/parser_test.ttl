@@ -52,7 +52,7 @@
     ns1:inverseOf <http://www.osp-core.com/parser_test#relationshipA> ;
     ns3:prefLabel "relationshipC"@en .
 
-<http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2-2> a rdfs:Datatype .
+<http://www.osp-core.com/types#Vector> a rdfs:Datatype .
 
 <http://www.osp-core.com/parser_test#ClassA> a ns1:Class ;
     ns2:_default [ ns2:_default_attribute <http://www.osp-core.com/parser_test#attributeA> ;
@@ -75,7 +75,7 @@
 
 <http://www.osp-core.com/parser_test#attributeB> a ns1:DatatypeProperty,
         ns1:FunctionalProperty ;
-    rdfs:range <http://www.osp-core.com/cuba#_datatypes/VECTOR-INT-2-2> ;
+    rdfs:range <http://www.osp-core.com/types#Vector> ;
     rdfs:subPropertyOf ns2:attribute ;
     ns3:prefLabel "attributeB"@en .
 

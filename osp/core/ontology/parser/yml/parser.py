@@ -7,7 +7,7 @@ from rdflib import BNode, Graph, URIRef, Literal, RDF, RDFS, OWL, XSD, SKOS
 from rdflib.graph import ReadOnlyGraphAggregate
 import yaml
 from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.datatypes import get_rdflib_datatype
+from osp.core.ontology.datatypes import YML_TO_RDF, CUSTOM_TO_PYTHON
 from osp.core.ontology.parser.parser import OntologyParser
 from osp.core.ontology.parser.yml.validator import validate
 from osp.core.ontology.parser.yml.case_insensitivity import \
@@ -495,8 +495,12 @@ class YMLParser(OntologyParser):
         if datatype_def is not None:
             self._graph.add(
                 (self._get_iri(entity_name), RDFS.range,
-                 get_rdflib_datatype(datatype_def, self._graph))
+                 YML_TO_RDF[datatype_def])
             )
+            if YML_TO_RDF[datatype_def] in CUSTOM_TO_PYTHON and self._graph:
+                self._graph.add((YML_TO_RDF[datatype_def],
+                                RDF.type,
+                                RDFS.Datatype))
 
     def _validate_entity(self, entity_name, entity_doc):
         """Validate the yaml definition of an entity.

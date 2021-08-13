@@ -6,7 +6,8 @@ import itertools
 import logging
 import rdflib
 import uuid
-from osp.core.utils.general import uid_from_iri, CUDS_IRI_PREFIX
+from osp.core.utils.general import CUDS_IRI_PREFIX
+from osp.core.ontology.datatypes import UID
 from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
 from osp.core.session.result import returns_query_result
@@ -154,9 +155,9 @@ class DbWrapperSession(WrapperSession):
                                           uids)
 
     def _is_cuds_iri(self, iri):
-        uid = uid_from_iri(rdflib.URIRef(iri))
+        uid = UID(iri)
         return uid in self._registry.keys() or \
-            uid == uuid.UUID(int=0) or iri.startswith(CUDS_IRI_PREFIX)
+            uid == UID(0) or iri.startswith(CUDS_IRI_PREFIX)
 
     @staticmethod
     def _is_cuds_iri_ontology(iri):

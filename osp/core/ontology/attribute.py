@@ -1,14 +1,16 @@
 """An attribute defined in the ontology."""
 
-from osp.core.ontology.entity import OntologyEntity
-from osp.core.ontology.datatypes import normalize_python_object
 import logging
-import rdflib
+
+from rdflib import OWL, RDFS, Literal, URIRef
+
+from osp.core.ontology.entity import OntologyEntity
+
 
 logger = logging.getLogger(__name__)
 
 
-BLACKLIST = {rdflib.OWL.bottomDataProperty, rdflib.OWL.topDataProperty}
+BLACKLIST = {OWL.bottomDataProperty, OWL.topDataProperty}
 
 
 class OntologyAttribute(OntologyEntity):
@@ -20,7 +22,7 @@ class OntologyAttribute(OntologyEntity):
         Args:
             namespace_registry (OntologyNamespaceRegistry): The namespace
                 registry where all namespaces are stored.
-            namespace_iri (rdflib.URIRef): The IRI of the namespace.
+            namespace_iri (URIRef): The IRI of the namespace.
             name (str): The name of the attribute.
             iri_suffix (str): namespace_iri +  namespace_registry make up the
                 namespace of this entity.
@@ -48,11 +50,11 @@ class OntologyAttribute(OntologyEntity):
             RuntimeError: More than one datatype associated with the attribute.
                 # TODO should be allowed
         """
-        blacklist = [rdflib.RDFS.Literal]
+        blacklist = [RDFS.Literal]
         superclasses = self.superclasses
         datatypes = set()
         for superclass in superclasses:
-            triple = (superclass.iri, rdflib.RDFS.range, None)
+            triple = (superclass.iri, RDFS.range, None)
             for _, _, o in self.namespace._graph.triples(triple):
                 if o not in blacklist:
                     datatypes.add(o)
@@ -72,22 +74,22 @@ class OntologyAttribute(OntologyEntity):
         Returns:
             Any: The converted value
         """
-        return normalize_python_object(value, self.datatype)
+        return Literal(value, datatype=self.datatype).toPython()
 
     def _direct_superclasses(self):
-        return self._directly_connected(rdflib.RDFS.subPropertyOf,
+        return self._directly_connected(RDFS.subPropertyOf,
                                         blacklist=BLACKLIST)
 
     def _direct_subclasses(self):
-        return self._directly_connected(rdflib.RDFS.subPropertyOf,
+        return self._directly_connected(RDFS.subPropertyOf,
                                         inverse=True, blacklist=BLACKLIST)
 
     def _superclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
+        yield from self._transitive_hull(RDFS.subPropertyOf,
                                          blacklist=BLACKLIST)
 
     def _subclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
+        yield from self._transitive_hull(RDFS.subPropertyOf,
                                          inverse=True, blacklist=BLACKLIST)

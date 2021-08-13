@@ -2,13 +2,14 @@
 
 import os
 import sys
-import uuid
 import subprocess
 import unittest2 as unittest
 import sqlite3
 import shutil
 import json
 import time
+from uuid import UUID
+from osp.core.ontology.datatypes import UID
 from osp.core.session.transport.transport_utils import (
     move_files, serialize_buffers, deserialize_buffers, get_file_cuds)
 from osp.core.session.transport.communication_engine import \
@@ -176,7 +177,7 @@ class TestFiletransfer(unittest.TestCase):
                 city.Image(path=FILE_PATHS[2])
             )
             result = move_files(images, None, CLIENT_DIR)
-            target = ["%s-%s" % (image.uid.hex, file)
+            target = ["%s-%s" % (image.uid.data.hex, file)
                       for image, file in zip(images, FILES)]
             target_full_path = [os.path.join(CLIENT_DIR, t) for t in target]
 
@@ -197,7 +198,7 @@ class TestFiletransfer(unittest.TestCase):
                 city.Image(path=paths[2])
             )
             result = move_files(images, FILES_DIR, CLIENT_DIR)
-            target = ["%s-%s" % (image.uid.hex, file)
+            target = ["%s-%s" % (image.uid.data.hex, file)
                       for image, file in zip(images, FILES)]
             target_full_path = [os.path.join(CLIENT_DIR, t) for t in target]
             self.assertEqual(set(os.listdir(CLIENT_DIR)), set(target))
@@ -270,7 +271,7 @@ class TestFiletransfer(unittest.TestCase):
             _, result = serialize_buffers(
                 session, buffer_context=BufferContext.USER,
                 target_directory=CLIENT_DIR)
-            target = ["%s-%s" % (image.uid.hex, file)
+            target = ["%s-%s" % (image.uid.data.hex, file)
                       for image, file in zip(images, FILES)]
             target_full_path = [os.path.join(CLIENT_DIR, t) for t in target]
             self.assertEqual(
@@ -300,16 +301,16 @@ class TestFiletransfer(unittest.TestCase):
             self.assertEqual(len(added), 1)
             self.assertEqual(len(updated), 2)
             self.assertEqual(len(deleted), 1)
-            images = images + [added[uuid.UUID(int=3)]]
-            target = ["%s-%s" % (image.uid.hex, file)
+            images = images + [added[UID(3)]]
+            target = ["%s-%s" % (image.uid.data.hex, file)
                       for image, file in zip(images, FILES)]
             target_full_path = [os.path.join(CLIENT_DIR, t) for t in target]
-            self.assertEqual(added[uuid.UUID(int=3)].path,
+            self.assertEqual(added[UID(3)].path,
                              target_full_path[2])
-            self.assertEqual(updated[uuid.UUID(int=1)].path,
+            self.assertEqual(updated[UID(1)].path,
                              target_full_path[0])
             self.assertRaises(AttributeError, getattr,
-                              deleted[uuid.UUID(int=2)], "path")
+                              deleted[UID(2)], "path")
 
     def test_get_file_cuds(self):
         """Test extracting the file cuds from a datatstructure."""
@@ -399,9 +400,9 @@ class TestFiletransfer(unittest.TestCase):
                                     file_destination=CLIENT_DIR) as session:
             images, images_second = self.setup_buffers3(session)
             session.commit()
-            target = ["%s-%s" % (image.uid.hex, file)
+            target = ["%s-%s" % (image.uid.data.hex, file)
                       for image, file in zip(images, FILES)]
-            target_second = ["%s-%s" % (image.uid.hex, file)
+            target_second = ["%s-%s" % (image.uid.data.hex, file)
                              for image, file in zip(images_second, FILES)]
             self.assertEqual(set(os.listdir(SERVER_DIR)),
                              {target[0], target[1], target[2],
@@ -422,9 +423,9 @@ class TestFiletransfer(unittest.TestCase):
                                     file_destination=None) as session:
             images, images_second = self.setup_buffers3(session)
             session.commit()
-            target = ["%s-%s" % (image.uid.hex, file)
+            target = ["%s-%s" % (image.uid.data.hex, file)
                       for image, file in zip(images, FILES)]
-            target_second = ["%s-%s" % (image.uid.hex, file)
+            target_second = ["%s-%s" % (image.uid.data.hex, file)
                              for image, file in zip(images_second, FILES)]
             self.assertEqual(set(os.listdir(SERVER_DIR)),
                              {target[0], target[1], target[2],
@@ -602,7 +603,7 @@ class TestFiletransfer(unittest.TestCase):
         #  /run/user/1000/app/com.jetbrains.PyCharm-Community/tmpgdjc38pd.
         # if os.name == "posix":
         #     self.assertTrue(request[2].startswith("/tmp/tmp"))
-        self.assertTrue(isinstance(request[3], uuid.UUID))
+        self.assertTrue(isinstance(request[3], UUID))
 
 
 if __name__ == "__main__":

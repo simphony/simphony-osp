@@ -1,7 +1,10 @@
 """Test the API of CUDS objects using the foaf ontology."""
+import uuid
+
 import rdflib
 import unittest2 as unittest
-import uuid
+
+from osp.core.ontology.datatypes import UID
 
 try:
     from osp.core.namespaces import foaf
@@ -23,7 +26,7 @@ class TestAPIfoaf(unittest.TestCase):
     def test_uid(self):
         """Test that the uid variable contains an uid."""
         c = foaf.Person()
-        self.assertIsInstance(c.uid, (uuid.UUID, rdflib.URIRef))
+        self.assertIsInstance(c.uid, UID)
 
     def test_relations(self):
         """Test some relationships."""

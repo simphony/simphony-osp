@@ -5,6 +5,7 @@ import logging
 import rdflib
 from abc import abstractmethod
 from osp.core.namespaces import cuba
+from osp.core.ontology.datatypes import UID
 from osp.core.session.session import Session
 from osp.core.session.result import returns_query_result
 from osp.core.utils.wrapper_development import clone_cuds_object, \
@@ -127,7 +128,7 @@ class WrapperSession(Session):
         """
         uids = set()
         for c in cuds_or_uids:
-            if isinstance(c, (uuid.UUID, rdflib.URIRef)):
+            if isinstance(c, UID):
                 uids.add(c)
             else:
                 uids.add(c.uid)

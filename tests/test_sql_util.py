@@ -4,6 +4,7 @@ import unittest2 as unittest
 import numpy as np
 import rdflib
 from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.datatypes import Vector
 from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
 from osp.core.session.db.sql_util import (
     expand_vector_cols,
@@ -130,8 +131,8 @@ class TestSqlUtil(unittest.TestCase):
         self.assertEqual(get_data_table_name(rdflib.RDFS.Literal),
                          data_tbl("RDFS_Literal"))
         self.assertEqual(
-            get_data_table_name(rdflib_cuba["_datatypes/VECTOR-2-2"]),
-            data_tbl("VECTOR-2-2")
+            get_data_table_name(Vector.iri),
+            data_tbl("CUSTOM_Vector")
         )
         self.assertRaises(NotImplementedError,
                           get_data_table_name, rdflib.SKOS.prefLabel)

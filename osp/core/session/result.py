@@ -18,7 +18,7 @@ def returns_query_result(func):
     return f
 
 
-class QueryResult():
+class QueryResult:
     """The result of a query in the session."""
 
     def __init__(self, session, result_iterator):

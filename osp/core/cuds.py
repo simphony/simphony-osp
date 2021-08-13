@@ -15,7 +15,7 @@ from osp.core.namespaces import cuba, from_iri
 from osp.core.neighbor_dict import NeighborDictRel
 from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.datatypes import CUDS_IRI_PREFIX, RDFCompatibleType, \
-    RDF_COMPATIBLE_TYPES
+    RDF_COMPATIBLE_TYPES, UID
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.session.core_session import core_session
@@ -44,11 +44,10 @@ class Cuds:
     @property
     def iri(self) -> URIRef:
         """Get the IRI of the CUDS object."""
-        return self.uid if type(self.uid) is URIRef else \
-            URIRef(CUDS_NAMESPACE_IRI + str(self.uid))
+        return self._uid.to_iri()
 
     @property
-    def uid(self) -> Union[URIRef, UUID]:
+    def uid(self) -> UID:
         """Get the uid of the CUDS object.
 
         This is the public getter of the property.
@@ -314,7 +313,7 @@ class Cuds:
         return result[0] if len(args) == 1 else result
 
     def get(self,
-            *uids: Union[UUID, URIRef],
+            *uids: Union[UUID, URIRef, UID],
             rel: OntologyRelationship = cuba.activeRelationship,
             oclass: OntologyClass = None,
             return_rel: bool = False) -> Union["Cuds", List["Cuds"]]:
@@ -356,7 +355,7 @@ class Cuds:
         return result
 
     def iter(self,
-             *uids: Union[UUID, URIRef],
+             *uids: Union[UUID, URIRef, UID],
              rel: OntologyRelationship = cuba.activeRelationship,
              oclass: OntologyClass = None,
              return_rel: bool = False) -> Iterator["Cuds"]:
@@ -375,7 +374,7 @@ class Cuds:
             The result is ordered randomly.
 
         Args:
-            uids (Union[UUID, URIRef]): uids of the elements.
+            uids (Union[UUID, URIRef, UID]): uids of the elements.
             rel (OntologyRelationship, optional): Only return cuds_object
                 which are connected by subclass of given relationship.
                 Defaults to cuba.activeRelationship.
@@ -496,27 +495,19 @@ class Cuds:
                  attributes: Dict[OntologyAttribute, Set[Any]],
                  oclass: Optional[OntologyClass] = None,
                  session: Session = None,
-                 iri: URIRef = None,
-                 uid: Union[UUID, URIRef] = None,
+                 uid: Optional[UID] = None,
                  # Specify extra triples for the CUDS object.
                  extra_triples: Iterable[
                      Tuple[Union[URIRef, BNode],
                            Union[URIRef, BNode],
                            Union[URIRef, BNode]]] = tuple()):
         """Initialize a CUDS object."""
-        # Set uid. This is a "user-facing" method, so strict types
-        # checks are performed.
-        if len(set(filter(lambda x: x is not None, (uid, iri)))) > 1:
-            raise ValueError("Tried to initialize a CUDS object specifying, "
-                             "both its IRI and UID. A CUDS object is "
-                             "constrained to have just one UID.")
-        elif uid is not None and type(uid) not in (UUID, URIRef):
-            raise ValueError('Provide either a UUID or a URIRef object'
-                             'as UID.')
-        elif iri is not None and type(iri) is not URIRef:
-            raise ValueError('Provide a URIRef object as IRI.')
-        else:
-            self._uid = uid or iri or uuid4()
+        if uid is None:
+            uid = UID()
+        elif not isinstance(uid, UID):
+            raise Exception(f"Tried to initialize a CUDS object with a uid "
+                            f"which is not a UID object.")
+        self._uid = uid
 
         # Create CUDS triples in internal temporary graph.
         self._graph = Graph()
@@ -550,7 +541,7 @@ class Cuds:
         self.session._store(self)
 
     @property
-    def _uid(self) -> Union[URIRef, UUID]:
+    def _uid(self) -> UID:
         """Get the uid of the CUDS object.
 
         This is the private getter of the property.
@@ -558,20 +549,11 @@ class Cuds:
         return self.__uid
 
     @_uid.setter
-    def _uid(self, value: Union[URIRef, UUID, int]):
+    def _uid(self, value: UID):
         """Set the uid of a CUDS object.
 
         This is the private setter of the property.
         """
-        if type(value) is int:
-            value = UUID(int=value)
-        if type(value) is UUID:
-            invalid = value.int == 0
-        else:
-            split = value.split(':')
-            invalid = not len(split) > 1 or any(x == "" for x in split)
-        if invalid:
-            raise ValueError(f"Invalid uid: {value}.")
         self.__uid = value
 
     @property
@@ -1256,7 +1238,7 @@ class Cuds:
                              % type(oclass))
 
         if uids:
-            check_arguments((UUID, URIRef), *uids)
+            check_arguments(UID, *uids)
 
         self.session._notify_read(self)
         # consider either given relationship and subclasses

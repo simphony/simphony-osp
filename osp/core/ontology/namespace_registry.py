@@ -404,7 +404,6 @@ class NamespaceRegistry:
         # If not, found, find it in the namespace registry.
         if not found:
             try:
-                print(ontology.default_relationship)
                 self.from_iri(ontology.default_relationship)
                 found = True
             except KeyError:

@@ -3,7 +3,7 @@
 import uuid
 import rdflib
 from osp.core.utils.wrapper_development import create_from_triples
-from osp.core.utils.general import iri_from_uid, uid_from_iri
+from osp.core.ontology.datatypes import UID
 from osp.core.session.sparql_backend import SPARQLBackend
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from abc import abstractmethod
@@ -49,46 +49,46 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
     # OVERRIDE
     def _load_from_backend(self, uids, expired=None):
         for uid in uids:
-            iri = iri_from_uid(uid)
+            iri = uid.to_iri()
             yield self._load_by_iri(iri)
 
     # OVERRIDE
     def _load_first_level(self):
-        triple = (iri_from_uid(self.root), None, None)
+        triple = (self.root.to_iri(), None, None)
         triple = next(self._substitute_root_iri([triple]))
         iris = {
             o for s, p, o in self._triples(triple)
             if isinstance(o, rdflib.URIRef)
             and self._is_cuds_iri_ontology(o)
-            and uid_from_iri(o) != uuid.UUID(int=0)
+            and UID(o) != uuid.UUID(int=0)
         }
-        iris.add(iri_from_uid(self.root))
+        iris.add(self.root.to_iri())
         for iri in iris:
             self._load_by_iri(iri)
 
     # OVERRIDE
     def _load_by_oclass(self, oclass):
         uids = {
-            uid_from_iri(s)
+            UID(s)
             for s, _, _ in self._triples((None, rdflib.RDF.type, oclass.iri))
         }
-        uids = {x if x != uuid.UUID(int=0) else self. root for x in uids}
+        uids = {x if x != UID(0) else self. root for x in uids}
         yield from self._load_from_backend(uids)
 
     def _substitute_root_iri(self, triples):
         from osp.core.utils.general import CUDS_IRI_PREFIX
         for triple in triples:
-            yield tuple(iri_from_uid(uuid.UUID(int=0))
+            yield tuple(UID(0).to_iri()
                         if x is not None and x.startswith(CUDS_IRI_PREFIX)
-                        and uid_from_iri(x) == self.root else x
+                        and UID(x) == self.root else x
                         for x in triple)
 
     def _substitute_zero_iri(self, triples):
         from osp.core.utils.general import CUDS_IRI_PREFIX
         for triple in triples:
-            yield tuple(iri_from_uid(self.root)
+            yield tuple(self.root.to_iri()
                         if x is not None and x.startswith(CUDS_IRI_PREFIX)
-                        and uid_from_iri(x) == uuid.UUID(int=0) else x
+                        and UID(x) == UID(0) else x
                         for x in triple)
 
     def _load_by_iri(self, iri):
@@ -100,8 +100,8 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
         Returns:
             Cuds - The CUDS object with the given IRI.
         """
-        if iri == iri_from_uid(self.root):
-            iri = iri_from_uid(uuid.UUID(int=0))
+        if iri == self.root.to_iri():
+            iri = UID(0).to_iri()
         triples, neighbor_triples = self._load_triples_for_iri(iri)
 
         triples = self._substitute_zero_iri(triples)

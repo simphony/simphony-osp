@@ -4,15 +4,16 @@ import uuid
 import rdflib
 from osp.core.session.db.sql_util import SqlQuery
 from osp.core.namespaces import get_entity
-from osp.core.utils.general import iri_from_uid
 from osp.core.namespaces import cuba
+from osp.core.ontology.datatypes import UID
 
 INT = rdflib.XSD.integer
 STR = rdflib.XSD.string
 
 versions = {
     "OSP_MASTER": 0,
-    "OSP_V1_CUDS": 1
+    "OSP_V1_CUDS": 1,
+    "OSP_V2_CUDS": 1,
 }
 
 supported_versions = [1]
@@ -169,7 +170,7 @@ class SqlMigrate():
 
     def get_cuds_idx_0_1(self, uid):
         """Get CUDS index when migrating from v0 to v1."""
-        cuds_iri = str(iri_from_uid(uid))
+        cuds_iri = str(UID(uid))
         if cuds_iri not in self.cuds:
             self.cuds[cuds_iri] = self.session._do_db_insert(
                 "OSP_V1_CUDS", ["uid"], [str(uid)],

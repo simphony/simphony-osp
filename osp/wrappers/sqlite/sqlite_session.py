@@ -1,9 +1,11 @@
 """A session to connect osp-core to a SQLite backend."""
 
 import sqlite3
-import rdflib
-from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.session.db.sql_util import EqualsCondition, AndCondition, \
+
+from rdflib import XSD, URIRef
+
+from osp.core.ontology.datatypes import UID, Vector
+from osp.core.session.db.sql_util import AndCondition, EqualsCondition, \
     JoinCondition
 from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
 
@@ -85,6 +87,11 @@ class SqliteSession(SqlWrapperSession):
             ", ".join(columns), ", ".join(tables), cond_pattern
         )
         c = self._engine.cursor()
+        # TODO: Register sqlite3 adapters.
+        cond_values = {key: str(value) if isinstance(value, UID) else value
+                       for key, value in cond_values.items()}
+        cond_values = {key: str(value) if isinstance(value, Vector) else value
+                       for key, value in cond_values.items()}
         c.execute(sql_pattern, cond_values)
         return c
 
@@ -127,6 +134,11 @@ class SqliteSession(SqlWrapperSession):
         sql_pattern = "INSERT INTO `%s` (%s) VALUES (%s);" % (  # nosec
             table_name, ", ".join(columns), val_pattern
         )
+        # TODO: Register sqlite3 adapters.
+        val_values = {key: str(value) if isinstance(value, UID) else value
+                      for key, value in val_values.items()}
+        val_values = {key: str(value) if isinstance(value, Vector) else value
+                      for key, value in val_values.items()}
         c = self._engine.cursor()
         try:
             c.execute(sql_pattern, val_values)
@@ -228,19 +240,17 @@ class SqliteSession(SqlWrapperSession):
         """
         if rdflib_datatype is None:
             return "TEXT"
-        if rdflib_datatype == "UID":
-            return "TEXT"
-        if rdflib_datatype == rdflib.XSD.integer:
+        if rdflib_datatype == URIRef('http://www.osp-core.com/types#UID'):
+            return 'TEXT'
+        if rdflib_datatype == URIRef('http://www.osp-core.com/types#Vector'):
+            return 'TEXT'
+        if rdflib_datatype == XSD.integer:
             return "INTEGER"
-        if rdflib_datatype == rdflib.XSD.boolean:
+        if rdflib_datatype == XSD.boolean:
             return "BOOLEAN"
-        if rdflib_datatype == rdflib.XSD.float:
+        if rdflib_datatype == XSD.float:
             return "REAL"
-        if rdflib_datatype == rdflib.XSD.string:
-            return "REAL"
-        if str(rdflib_datatype).startswith(
-                str(rdflib_cuba["_datatypes/STRING-"])):
+        if rdflib_datatype == XSD.string:
             return "TEXT"
-        else:
-            raise NotImplementedError(f"Unsupported data type "
-                                      f"{rdflib_datatype}!")
+        raise NotImplementedError(f"Unsupported data type "
+                                  f"{rdflib_datatype}!")
