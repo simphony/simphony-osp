@@ -1,17 +1,17 @@
 """An abstract session containing method useful for all database backends."""
 
 from abc import abstractmethod
-from typing import Union
 import itertools
 import logging
-import rdflib
-import uuid
-from osp.core.utils.general import CUDS_IRI_PREFIX
+
+from rdflib import OWL, RDF, URIRef
+
 from osp.core.ontology.datatypes import UID
 from osp.core.ontology.namespace_registry import namespace_registry
-from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
-from osp.core.session.result import returns_query_result
 from osp.core.session.buffers import BufferContext, EngineContext
+from osp.core.session.result import returns_query_result
+from osp.core.session.wrapper_session import WrapperSession, consumes_buffers
+from osp.core.utils.general import CUDS_IRI_PREFIX
 
 logger = logging.getLogger(__name__)
 
@@ -162,14 +162,14 @@ class DbWrapperSession(WrapperSession):
     @staticmethod
     def _is_cuds_iri_ontology(iri):
         for s, p, o in namespace_registry._graph\
-                .triples((rdflib.URIRef(iri), rdflib.RDF.type, None)):
-            if o in frozenset({rdflib.OWL.DatatypeProperty,
-                               rdflib.OWL.ObjectProperty,
-                               rdflib.OWL.Class}):
+                .triples((URIRef(iri), RDF.type, None)):
+            if o in frozenset({OWL.DatatypeProperty,
+                               OWL.ObjectProperty,
+                               OWL.Class}):
                 return False
         return True
 
-    def _unreachable_warning(self, root_obj: Union[rdflib.URIRef, uuid.UUID]):
+    def _unreachable_warning(self, root_obj: UID):
         """Raises a warning when there are unreachable cuds.
 
         Gets a list of all the CUDS objects in the session which are
@@ -177,7 +177,7 @@ class DbWrapperSession(WrapperSession):
         raises a warning that lists some of the unreachable CUDS objects.
 
         Args:
-            root_obj (Union[URIRef, UUID]): The root object with respect to
+            root_obj (UID): The root object with respect to
                 which objects are deemed reachable or unreachable.
         """
         unreachable = self._registry._get_not_reachable(root_obj, rel=None)

@@ -1,14 +1,13 @@
 """Test the API of CUDS objects using the CITY ontology."""
-import rdflib
-import unittest2 as unittest
-import uuid
 
-from osp.core.utils.wrapper_development import clone_cuds_object,\
-    create_from_cuds_object, get_neighbor_diff
-from osp.core.session.core_session import CoreSession
+import unittest2 as unittest
+
 from osp.core.cuds import Cuds
 from osp.core.namespaces import cuba
 from osp.core.ontology.datatypes import UID
+from osp.core.session.core_session import CoreSession
+from osp.core.utils.wrapper_development import clone_cuds_object,\
+    create_from_cuds_object, get_neighbor_diff
 
 try:
     from osp.core.namespaces import city

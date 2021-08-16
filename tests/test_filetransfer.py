@@ -1,30 +1,31 @@
 """Test file upload and download."""
 
-import os
-import sys
-import subprocess
-import unittest2 as unittest
-import sqlite3
-import shutil
 import json
+import os
+import shutil
+import sqlite3
+import subprocess
+import sys
 import time
 from uuid import UUID
+
+import unittest2 as unittest
+
 from osp.core.ontology.datatypes import UID
-from osp.core.session.transport.transport_utils import (
-    move_files, serialize_buffers, deserialize_buffers, get_file_cuds)
+from osp.core.session.buffers import BufferContext
+from osp.wrappers.sqlite import SqliteSession
 from osp.core.session.transport.communication_engine import \
     CommunicationEngineServer
 from osp.core.session.transport.communication_utils import (
     encode_files, receive_files, filter_files, BLOCK_SIZE
 )
-from osp.core.session.buffers import BufferContext
-from osp.wrappers.sqlite import SqliteSession
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
     TransportSessionServer
 from osp.core.session.transport.transport_utils import (
-    get_hash, get_hash_dir, check_hash)
+    check_hash, get_hash, get_hash_dir, move_files, serialize_buffers,
+    deserialize_buffers, get_file_cuds)
 from osp.core.session.transport.communication_engine import LEN_HEADER
 from osp.core.session.transport.communication_utils import (
     encode_header, decode_header, split_message, LEN_FILES_HEADER

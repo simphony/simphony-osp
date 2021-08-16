@@ -1,15 +1,15 @@
 """This file contains tests for the transport session."""
-import unittest2 as unittest
-import uuid
-import json
-import rdflib
-from rdflib.compare import isomorphic
+
 from copy import deepcopy
+import json
+
+import unittest2 as unittest
+from rdflib import Graph, Literal
+from rdflib.compare import isomorphic
+
+from osp.core.ontology.datatypes import UID, Vector
 from osp.core.session.buffers import BufferContext, EngineContext, \
     BufferType
-from osp.core.utils.wrapper_development import create_recycle
-from osp.core.ontology.datatypes import UID
-from osp.core.session.wrapper_session import consumes_buffers
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
@@ -18,18 +18,25 @@ from osp.core.session.transport.transport_utils import (
     deserialize, serializable, deserialize_buffers,
     serialize_buffers, LOAD_COMMAND, INITIALIZE_COMMAND, import_rdf
 )
-from osp.core.utils.wrapper_development import create_from_cuds_object
+from osp.core.utils.wrapper_development import create_from_cuds_object, \
+    create_recycle
+from osp.core.session.wrapper_session import consumes_buffers
+
+# Import `plugins.parsers.jsonld` for rdflib>=6, otherwise
+#  import it from`rdflib_jsonld`.
 from rdflib import __version__ as rdflib_version
 if rdflib_version >= '6':
     from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 else:
     from rdflib_jsonld.parser import to_rdf as json_to_rdf
 
+# Import TestWrapperSession.
 try:
     from .test_session_city import TestWrapperSession
 except ImportError:
     from test_session_city import TestWrapperSession
 
+# Import city if installed, otherwise read it from its source file.
 try:
     from osp.core.namespaces import city
 except ImportError:
@@ -75,7 +82,8 @@ CUDS_LIST_NON_PARTITIONED = {
         '@id': PRFX + '01',
         '@type': 'city:City', 'city:coordinates': {
             '@type': 'http://www.osp-core.com/types#Vector',
-            '@value': '[0, 0]'},
+            '@value': str(Literal(Vector([0, 0]),
+                                  datatype=Vector.iri))},
         'city:name': 'Freiburg',
         'city:hasInhabitant': {'@id': PRFX + '7b'}
     }, {
@@ -126,7 +134,7 @@ CUDS_LIST_PARTITIONED = [[
      "@type": ["http://www.osp-core.com/city#City"],
      "http://www.osp-core.com/city#coordinates": [{
          "@type": "http://www.osp-core.com/types#Vector",
-         "@value": "[0, 0]"}],
+         "@value": str(Literal(Vector([0, 0]), datatype=Vector.iri))}],
      "http://www.osp-core.com/city#hasInhabitant": [
          {"@id": PRFX + "7b"}]},
     {"@id": PRFX + "7b",
@@ -171,7 +179,7 @@ SERIALIZED_BUFFERS = {
              {"@id": PRFX + "7b"}],
          "http://www.osp-core.com/city#coordinates": [
              {"@type": "http://www.osp-core.com/types#Vector",
-              "@value": "[0, 0]"}],  # TODO correct serialization of vector
+              "@value": str(Literal(Vector([0, 0]), datatype=Vector.iri))}],
          "http://www.osp-core.com/city#name": [{"@value": "Paris"}],
          "@type": ["http://www.osp-core.com/city#City"]}
     ]], "updated": [[
@@ -196,7 +204,7 @@ SERIALIZED_BUFFERS2 = {
         {"@id": PRFX + "2a",
          "http://www.osp-core.com/city#coordinates": [
              {"@type": "http://www.osp-core.com/types#Vector",
-              "@value": "[0, 0]"}],
+              "@value": str(Literal(Vector([0, 0]), datatype=Vector.iri))}],
          "http://www.osp-core.com/city#name": [{"@value": "London"}],
          "@type": ["http://www.osp-core.com/city#City"]}]],
     "updated": [], "deleted": [], "expired": []
@@ -226,7 +234,7 @@ SERIALIZED_BUFFERS3 = {
          "http://www.osp-core.com/city#name": [{"@value": "Freiburg"}],
          "http://www.osp-core.com/city#coordinates": [
              {"@type": "http://www.osp-core.com/types#Vector",
-              "@value": "[0, 0]"}]},
+              "@value": str(Literal(Vector([0, 0]), datatype=Vector.iri))}]},
         {"@id": PRFX + "03",
          "@type": ["http://www.osp-core.com/city#CityWrapper"]}]],
     "deleted": [], "expired": [], "result": [[
@@ -238,7 +246,7 @@ SERIALIZED_BUFFERS3 = {
              {"@id": PRFX + "02"}],
          "http://www.osp-core.com/city#coordinates": [
              {"@type": "http://www.osp-core.com/types#Vector",
-              "@value": "[0, 0]"}],
+              "@value": str(Literal(Vector([0, 0]), datatype=Vector.iri))}],
          "@type": ["http://www.osp-core.com/city#City"],
          "http://www.osp-core.com/city#isPartOf": [
              {"@id": PRFX + "03"}]},
@@ -270,8 +278,8 @@ def jsonLdEqual(a, b):
     ) or (
         a and isinstance(a, dict) and "@graph" in a
     ):
-        return isomorphic(json_to_rdf(a, rdflib.Graph()),
-                          json_to_rdf(b, rdflib.Graph()))
+        return isomorphic(json_to_rdf(a, Graph()),
+                          json_to_rdf(b, Graph()))
     elif (
         a and isinstance(a, list) and isinstance(a[0], list)
             and isinstance(a[0][0], dict) and "@id" in a[0][0]
@@ -279,7 +287,7 @@ def jsonLdEqual(a, b):
         a and isinstance(a, list) and isinstance(a[0], dict)
             and "@graph" in a[0]
     ):
-        graph_a, graph_b = rdflib.Graph(), rdflib.Graph()
+        graph_a, graph_b = Graph(), Graph()
         for x in a:
             json_to_rdf(x, graph_a)
         for x in b:
@@ -295,7 +303,15 @@ def jsonLdEqual(a, b):
 
 def assertJsonLdEqual(test_case, a, b):
     """Check if to JSON documents containing JSON LD are equal."""
-    test_case.assertTrue(jsonLdEqual(a, b))
+    # test_case.assertTrue(jsonLdEqual(a, b))
+    # TODO: Comment what is below, uncomment what is above.
+    try:
+        test_case.assertTrue(jsonLdEqual(a, b))
+    except AssertionError as e:
+        pretty_a = json.dumps(a, indent=4)
+        pretty_b = json.dumps(b, indent=4)
+        new_assertion_error = str(e) + '\n' + pretty_a + '\n' * 2 + pretty_b
+        raise AssertionError(new_assertion_error)
 
 
 class TestCommunicationEngineSharedFunctions(unittest.TestCase):
@@ -376,7 +392,7 @@ class TestCommunicationEngineSharedFunctions(unittest.TestCase):
         """Test the import rdf functionality."""
         with TestWrapperSession() as session:
             city.CityWrapper(session=session)
-            g = json_to_rdf(CUDS_LIST_NON_PARTITIONED, rdflib.Graph())
+            g = json_to_rdf(CUDS_LIST_NON_PARTITIONED, Graph())
             cuds_objects = import_rdf(g, session, BufferContext.USER)
             self.assertEqual(len(cuds_objects), 4)
             self.assertEqual(set(map(lambda x: x.oclass, cuds_objects)),

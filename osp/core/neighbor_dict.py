@@ -1,13 +1,14 @@
 """A dictionary interface for the related object of a CUDS."""
 
-import uuid
-import rdflib
 from abc import ABC, abstractmethod
-from osp.core.ontology.datatypes import UID
-from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.oclass import OntologyClass
-from osp.core.ontology.namespace_registry import namespace_registry
+
+from rdflib import OWL, RDF
+
 from osp.core.namespaces import from_iri
+from osp.core.ontology.datatypes import UID
+from osp.core.ontology.namespace_registry import namespace_registry
+from osp.core.ontology.oclass import OntologyClass
+from osp.core.ontology.relationship import OntologyRelationship
 
 
 class NeighborDict(ABC):
@@ -138,8 +139,7 @@ class NeighborDictRel(NeighborDict):
     def __bool__(self):
         """Check if there are elements in the dictionary."""
         for s, p, o in self.graph.triples((self.cuds_object.iri, None, None)):
-            if (p, rdflib.RDF.type, rdflib.OWL.ObjectProperty) in \
-                    namespace_registry._graph:
+            if (p, RDF.type, OWL.ObjectProperty) in namespace_registry._graph:
                 return True
         return False
 
@@ -150,8 +150,7 @@ class NeighborDictRel(NeighborDict):
                                                  None, None))
         ])
         for p in predicates:
-            if (p, rdflib.RDF.type, rdflib.OWL.ObjectProperty) \
-                    in namespace_registry._graph:
+            if (p, RDF.type, OWL.ObjectProperty) in namespace_registry._graph:
                 yield from_iri(p)
 
 
@@ -192,14 +191,14 @@ class NeighborDictTarget(NeighborDict):
         self.cuds_object._check_valid_add(oclasses, self.rel)
         self.graph.add((self.cuds_object.iri, self.rel.iri, iri))
         for oclass in oclasses:
-            self.graph.add((iri, rdflib.RDF.type, oclass.iri))
+            self.graph.add((iri, RDF.type, oclass.iri))
 
     def _getitem(self, uid):
         """Get the oclass of the object with the given UUID."""
         iri = uid.to_iri()
         if (self.cuds_object.iri, self.rel.iri, iri) in self.graph:
             result = list()
-            for _, _, o in self.graph.triples((iri, rdflib.RDF.type, None)):
+            for _, _, o in self.graph.triples((iri, RDF.type, None)):
                 result.append(from_iri(o))
             return result
         raise KeyError(uid)

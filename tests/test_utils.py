@@ -2,32 +2,33 @@
 
 import io
 import unittest
-import responses
 import os
+
+import responses
+from rdflib import RDF, RDFS
+
 import osp.core
-from rdflib import RDF, RDFS, URIRef
+from osp.core.cuds import Cuds
 from osp.core.namespaces import cuba
-from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.datatypes import CUSTOM_TO_PYTHON
-from osp.core.session.transport.transport_utils import serializable
+from osp.core.ontology.datatypes import CUSTOM_TO_PYTHON, Vector
 from osp.core.session.core_session import CoreSession
-from osp.core.session.buffers import EngineContext
+from osp.core.session.buffers import BufferContext, EngineContext
+from osp.core.session.transport.transport_utils import serializable
 from osp.core.utils.general import remove_cuds_object,\
     get_custom_datatype_triples, post, \
     get_relationships_between, branch, \
     delete_cuds_object_recursively
-from osp.core.utils.schema_validation import validate_tree_against_schema, \
-    ConsistencyError, CardinalityError
-from osp.core.utils.wrapper_development import clone_cuds_object, \
-    create_recycle, create_from_cuds_object, check_arguments, \
-    get_neighbor_diff, change_oclass
 from osp.core.utils.simple_search import find_cuds_object_by_uid, \
     find_cuds_objects_by_oclass, find_relationships,\
     find_cuds_objects_by_attribute, find_cuds_object
+from osp.core.utils.schema_validation import validate_tree_against_schema, \
+    ConsistencyError, CardinalityError
 from osp.core.utils.pretty_print import pretty_print
-from osp.core.session.buffers import BufferContext
-from osp.core.cuds import Cuds
+from osp.core.utils.wrapper_development import clone_cuds_object, \
+    create_recycle, create_from_cuds_object, check_arguments, \
+    get_neighbor_diff, change_oclass
 
+# Import TestWrapperSession, asserJsonLdEqual.
 try:
     from .test_session_city import TestWrapperSession
     from .test_transport_session import assertJsonLdEqual
@@ -35,6 +36,7 @@ except ImportError:
     from test_session_city import TestWrapperSession
     from test_transport_session import assertJsonLdEqual
 
+# Import city if installed, otherwise read it from its source file.
 try:
     from osp.core.namespaces import city
 except ImportError:
@@ -75,13 +77,10 @@ class TestUtils(unittest.TestCase):
 
     def test_get_custom_datatypes(self):
         """Test the get_custom_datatypes function."""
-        self.assertIn(URIRef("http://www.osp-core.com/types#Vector"),
-                      CUSTOM_TO_PYTHON)
-        self.assertIn((city.coordinates.iri, RDFS.range,
-                       URIRef("http://www.osp-core.com/types#Vector")),
+        self.assertIn(Vector.iri, CUSTOM_TO_PYTHON)
+        self.assertIn((city.coordinates.iri, RDFS.range, Vector.iri),
                       get_custom_datatype_triples())
-        self.assertIn((URIRef("http://www.osp-core.com/types#Vector"),
-                       RDF.type, RDFS.Datatype),
+        self.assertIn((Vector.iri, RDF.type, RDFS.Datatype),
                       get_custom_datatype_triples())
 
     def test_validate_tree_against_schema(self):
@@ -561,7 +560,7 @@ class TestUtils(unittest.TestCase):
             "  type: city.City",
             "  superclasses: city.City, city.GeographicalPlace, "
             + "city.PopulatedPlace, cuba.Entity",
-            "  values: coordinates: [1, 2]",
+            "  values: coordinates: [1 2]",
             "  description: ",
             "    To Be Determined",
             "",
@@ -590,11 +589,11 @@ class TestUtils(unittest.TestCase):
             "   |_Relationship city.hasPart:",
             "     -  city.Neighborhood cuds object named <St. Georgen>:",
             "     .  uid: %s" % n2.uid,
-            "     .  coordinates: [3, 4]",
+            "     .  coordinates: [3 4]",
             "     .   |_Relationship city.hasPart:",
             "     .     -  city.Street cuds object named <Lange Straße>:",
             "     .        uid: %s" % s1.uid,
-            "     .        coordinates: [4, 5]",
+            "     .        coordinates: [4 5]",
             "     .         |_Relationship city.hasInhabitant:",
             "     .           -  city.Citizen cuds object named <Carlos>:",
             "     .           .  uid: %s" % p2.uid,
@@ -604,7 +603,7 @@ class TestUtils(unittest.TestCase):
             "     .              (already printed)",
             "     -  city.Neighborhood cuds object named <Zähringen>:",
             "        uid: %s" % n1.uid,
-            "        coordinates: [2, 3]",
+            "        coordinates: [2 3]",
             "         |_Relationship city.hasPart:",
             "           -  city.Street cuds object named <Lange Straße>:",
             "              uid: %s" % s1.uid,

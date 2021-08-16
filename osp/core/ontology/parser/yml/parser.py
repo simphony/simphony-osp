@@ -405,8 +405,12 @@ class YMLParser(OntologyParser):
             self._graph.add((class_iri, rdflib_cuba._default, bnode))
             self._graph.add(
                 (bnode, rdflib_cuba._default_attribute, attribute_iri))
+            # Find datatype of attribute.
+            data_type = self._graph.value(attribute_iri, RDFS.range)
+            lexicalized_default = str(Literal(default, datatype=data_type))
             self._graph.add(
-                (bnode, rdflib_cuba._default_value, Literal(default)))
+                (bnode, rdflib_cuba._default_value,
+                 Literal(lexicalized_default, datatype=data_type)))
 
     def _set_inverse(self, entity_name, entity_doc):
         """Set a triple describing the inverse of relationship entity.

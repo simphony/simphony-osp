@@ -1,15 +1,25 @@
 """Utilities used for the transport layer."""
 
+import filecmp
+import hashlib
+import logging
 import json
-import uuid
 import os
 import shutil
-import logging
-import hashlib
-import rdflib
-import ast
-import filecmp
 from typing import Optional, Tuple, Any
+
+from rdflib import OWL, RDF, BNode, Graph, Literal, URIRef
+
+from osp.core.namespaces import get_entity, cuba
+from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.datatypes import UID
+from osp.core.ontology.entity import OntologyEntity
+from osp.core.session.buffers import BufferContext, get_buffer_context_mngr
+from osp.core.utils.wrapper_development import create_from_triples
+from osp.core.utils.general import uid_from_general_iri
+
+# Import `plugins.serializers.jsonld`,`plugins.parsers.jsonld` for rdflib>=6,
+#  otherwise import them from `rdflib_jsonld`.
 from rdflib import __version__ as rdflib_version
 if rdflib_version >= '6':
     from rdflib.plugins.serializers.jsonld import from_rdf as json_from_rdf
@@ -17,13 +27,6 @@ if rdflib_version >= '6':
 else:
     from rdflib_jsonld.serializer import from_rdf as json_from_rdf
     from rdflib_jsonld.parser import to_rdf as json_to_rdf
-from osp.core.namespaces import get_entity, cuba
-from osp.core.ontology.entity import OntologyEntity
-from osp.core.session.buffers import BufferContext, get_buffer_context_mngr
-from osp.core.utils.wrapper_development import create_from_triples
-from osp.core.utils.general import uid_from_general_iri
-from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.datatypes import UID
 
 logger = logging.getLogger(__name__)
 
@@ -341,23 +344,23 @@ def _serializable(cuds_objects, mark_first=False):
     """
     from osp.core.cuds import Cuds
     from osp.core.ontology.namespace_registry import namespace_registry
-    g = rdflib.Graph()
+    g = Graph()
     g.namespace_manager = namespace_registry._graph.namespace_manager
-    g.bind("cuds", rdflib.URIRef("http://www.osp-core.com/cuds#"))
+    g.bind("cuds", URIRef("http://www.osp-core.com/cuds#"))
     if mark_first:
-        g.add((rdflib_cuba._serialization, rdflib.RDF.first,
-               rdflib.Literal(str(next(iter(cuds_objects)).uid))))
+        g.add((rdflib_cuba._serialization, RDF.first,
+               Literal(str(next(iter(cuds_objects)).uid))))
     for cuds_object in cuds_objects:
         if not isinstance(cuds_object, Cuds):
             raise TypeError(f"Called _serializable with non-CUDS object "
                             f"{cuds_object} of type {type(cuds_object)}")
         for s, p, o in cuds_object.get_triples(include_neighbor_types=True):
-            if isinstance(o, rdflib.Literal):
-                x = rdflib.Literal(o.toPython(), datatype=o.datatype)\
+            if isinstance(o, Literal):
+                x = Literal(o.toPython(), datatype=o.datatype)\
                     .toPython()
-                o = rdflib.Literal(x, datatype=o.datatype, lang=o.language)
+                o = Literal(x, datatype=o.datatype, lang=o.language)
             g.add((s, p, o))
-    return json_from_rdf(g, auto_compact=len(cuds_objects) > 1)
+    return json_from_rdf(g)
 
 
 def _to_cuds_object(json_obj, session, buffer_context, _force=False):
@@ -376,23 +379,15 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
         raise ValueError("Not allowed to deserialize CUDS object "
                          "with undefined buffer_context")
     with get_buffer_context_mngr(session, buffer_context):
-        g = json_to_rdf(json_obj, rdflib.Graph())
+        g = json_to_rdf(json_obj, Graph())
         try:
-            this_s = next(s for s, p, _ in g if p != rdflib.RDF.type)
+            this_s = next(s for s, p, _ in g if p != RDF.type)
         except StopIteration:
             this_s = next(s for s, p, _ in g)
 
         triples, neighbor_triples = set(), set()
         for s, p, o in g:
             if s == this_s:
-                # datatype conversion
-                if isinstance(o, rdflib.Literal) \
-                        and o.datatype and o.datatype in rdflib_cuba \
-                        and "VECTOR" in o.datatype.toPython():
-                    x = rdflib.Literal(
-                        ast.literal_eval(o.toPython()), datatype=o.datatype
-                    ).toPython()
-                    o = rdflib.Literal(x, datatype=o.datatype, lang=o.language)
                 triples.add((s, p, o))
             else:
                 neighbor_triples.add((s, p, o))
@@ -406,7 +401,7 @@ def import_rdf(graph, session, buffer_context, return_uid=None):
     """Import RDF Graph to CUDS.
 
     Args:
-        graph (rdflib.Graph): The graph to import.
+        graph (Graph): The graph to import.
         session (Session): The session to add the CUDS objects to.
         buffer_context (BufferContext): add the deserialized cuds objects to
             the selected buffers.
@@ -425,11 +420,10 @@ def import_rdf(graph, session, buffer_context, return_uid=None):
 
     get_buffer_context_mngr(session, buffer_context)
     triples = (triple for triple in graph if _import_rdf_filter(triple))
-    triples = map(_import_rdf_custom_datatypes, triples)
     uid_triples = dict()
     for s, p, o in triples:
-        if isinstance(o, rdflib.URIRef) \
-                and p not in (rdflib.RDF.type, rdflib.OWL.sameAs):
+        if isinstance(o, URIRef) \
+                and p not in (RDF.type, OWL.sameAs):
             _, o = uid_from_general_iri(o, session.graph)
         s_uid, s = uid_from_general_iri(s, session.graph)
         session.graph.add((s, p, o))
@@ -451,30 +445,11 @@ def _import_rdf_filter(triple: Tuple[Any, Any, Any]) \
     Filters triples blank nodes and named individuals.
     """
     s, p, o = triple
-    if isinstance(s, rdflib.BNode) or isinstance(o, rdflib.BNode) \
-            or o == rdflib.OWL.NamedIndividual:
+    if isinstance(s, BNode) or isinstance(o, BNode) \
+            or o == OWL.NamedIndividual:
         return None
     else:
         return triple
-
-
-def _import_rdf_custom_datatypes(triple: Tuple[Any, Any, Any]) \
-        -> Tuple[Any, Any, Any]:
-    """Auxiliary function for `import_rdf`.
-
-    Handles custom datatypes in a triple (if any).
-    """
-    s, p, o = triple
-    # handle custom datatype: VECTORs
-    if isinstance(o, rdflib.Literal) \
-            and o.datatype and o.datatype in rdflib_cuba \
-            and "VECTOR" in o.datatype.toPython():
-        o = rdflib.Literal(
-            rdflib.Literal(ast.literal_eval(o.toPython()),
-                           datatype=o.datatype).toPython(),
-            datatype=o.datatype, lang=o.language
-        )
-    return s, p, o
 
 
 def get_hash_dir(directory_path):

@@ -1,15 +1,19 @@
 """This file provides the unittest for the YAML parser."""
+
+import logging
 import os
+
+import unittest2 as unittest
 import yaml
 from rdflib import OWL, RDF, RDFS, SKOS, XSD, Literal, URIRef
-import unittest2 as unittest
-import logging
 from rdflib.compare import isomorphic
+
 from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.namespace_registry import NamespaceRegistry
+from osp.core.ontology.datatypes import Vector
 from osp.core.ontology.ontology import Ontology
 from osp.core.ontology.parser.owl.parser import OWLParser
 from osp.core.ontology.parser.yml.parser import YMLParser
-from osp.core.ontology.namespace_registry import NamespaceRegistry
 
 
 YML_FILE = os.path.join(
@@ -82,10 +86,8 @@ class TestYMLParser(unittest.TestCase):
         x = "attributeB"
         self.parser._set_datatype(x)
         self.assertEqual(set(self.parser._graph), {
-            (self.parser._get_iri(x), RDFS.range, 
-             URIRef("http://www.osp-core.com/types#Vector")),
-            (URIRef("http://www.osp-core.com/types#Vector"), 
-             RDF.type, RDFS.Datatype)})
+            (self.parser._get_iri(x), RDFS.range, Vector.iri),
+            (Vector.iri, RDF.type, RDFS.Datatype)})
 
     def test_check_default_rel_flag_on_entity(self):
         """Test the check_default_rel_flag_on_entity method."""

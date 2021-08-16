@@ -1,9 +1,6 @@
 """The registry stores all local CUDS objects."""
 
 import logging
-from uuid import UUID
-
-from rdflib import URIRef
 
 from osp.core.ontology.datatypes import UID
 

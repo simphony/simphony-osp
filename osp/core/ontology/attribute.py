@@ -2,8 +2,9 @@
 
 import logging
 
-from rdflib import OWL, RDFS, Literal, URIRef
+from rdflib import OWL, RDFS, XSD, Literal
 
+from osp.core.ontology.datatypes import RDF_TO_PYTHON
 from osp.core.ontology.entity import OntologyEntity
 
 
@@ -74,7 +75,18 @@ class OntologyAttribute(OntologyEntity):
         Returns:
             Any: The converted value
         """
-        return Literal(value, datatype=self.datatype).toPython()
+        # TODO: Very similar to
+        #  `osp.core.session.db.sql_wrapper_session.SqlWrapperSession
+        #  ._convert_to_datatype`. Unify somehow.
+        if isinstance(value, Literal):
+            result = Literal(value.toPython(), datatype=self.datatype,
+                             lang=value.language).toPython()
+            if isinstance(result, Literal):
+                result = RDF_TO_PYTHON[self.datatype or XSD.string](
+                    value.value)
+        else:
+            result = RDF_TO_PYTHON[self.datatype or XSD.string](value)
+        return result
 
     def _direct_superclasses(self):
         return self._directly_connected(RDFS.subPropertyOf,

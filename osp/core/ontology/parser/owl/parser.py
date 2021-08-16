@@ -1,15 +1,16 @@
 """Parses OWL ontologies."""
 
-from typing import Tuple, Set, Dict, Optional
 import io
 import logging
 import os.path
-from rdflib import Graph, URIRef
-import rdflib
+from typing import Dict, Optional, Set, Tuple
+
 import requests
 import yaml
-from osp.core.ontology.parser.parser import OntologyParser
+from rdflib import Graph, URIRef
+
 import osp.core.ontology.parser.owl.keywords as keywords
+from osp.core.ontology.parser.parser import OntologyParser
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,7 @@ class OWLParser(OntologyParser):
     @property
     def active_relationships(self) -> Tuple[URIRef]:
         """Fetch the active relationships from the ontology file."""
-        return tuple(rdflib.URIRef(x) for x in
+        return tuple(URIRef(x) for x in
                      self._yaml_config.get(keywords.ACTIVE_REL_KEY, tuple()))
 
     @property

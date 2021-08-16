@@ -1,12 +1,12 @@
 """Test the API with the EMMO ontology."""
 
 import unittest2 as unittest
-import uuid
 
-from osp.core.utils.wrapper_development import create_from_cuds_object
-from osp.core.session.core_session import CoreSession
 from osp.core.namespaces import cuba
 from osp.core.ontology.datatypes import UID
+from osp.core.session.core_session import CoreSession
+from osp.core.utils.wrapper_development import create_from_cuds_object
+
 
 try:
     from osp.core.namespaces import math, holistic, mereotopology
@@ -229,7 +229,7 @@ class TestAPIEmmo(unittest.TestCase):
         p = math.Real(hasNumericalData=1.2)
         self.assertEqual(
             p.get_attributes(),
-            {math.hasNumericalData: {1.2}}
+            {math.hasNumericalData: {"1.2"}}  # TODO type conversion
         )
 
 

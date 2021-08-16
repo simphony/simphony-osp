@@ -9,8 +9,8 @@ from enum import IntEnum
 
 try:
     from contextlib import nullcontext
-except Exception:  # Python <= 3.6
-    class nullcontext():
+except ImportError:  # Python <= 3.6
+    class nullcontext:
         """ContextManager that does nothing."""
 
         def __enter__(self):
@@ -52,7 +52,7 @@ class BufferContext(IntEnum):
     ENGINE = 1
 
 
-class EngineContext():
+class EngineContext:
     """A context Manager used to switch to the Engine Buffer Context."""
 
     def __init__(self, session):
@@ -80,7 +80,7 @@ class EngineContext():
         self._session._current_context = self._prev_
 
 
-class EngineContextIterator():
+class EngineContextIterator:
     """Enters the Engine BufferContext when an element is returned."""
 
     def __init__(self, session, iterator):
@@ -121,7 +121,7 @@ def get_buffer_context_mngr(session, buffer_context):
             with the context manager.
 
     Returns:
-        ConextManager: A ContextManager that enters the given BufferContext.
+        ContextManager: A ContextManager that enters the given BufferContext.
     """
     if buffer_context == BufferContext.ENGINE:
         return EngineContext(session)

@@ -3,30 +3,32 @@
 These are potentially useful for every user of SimPhoNy.
 """
 
-from typing import Optional, Union, TextIO, List
-import itertools
-import logging
-import requests
 import io
-import pathlib
+import itertools
 import json
-import uuid
+import logging
+import pathlib
+from typing import Optional, Union, TextIO, List
+
+import requests
+from rdflib import OWL, RDF, RDFS, Graph, Literal
 from rdflib.parser import Parser as RDFLib_Parser
-from rdflib.serializer import Serializer as RDFLib_Serializer
 from rdflib.plugin import get as get_plugin
+from rdflib.serializer import Serializer as RDFLib_Serializer
 from rdflib.util import guess_format
-from rdflib import OWL, RDF, RDFS
-from rdflib import URIRef, Literal, Graph
-from rdflib import __version__ as rdflib_version
-if rdflib_version >= '6':
-    from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
-else:
-    from rdflib_jsonld.parser import to_rdf as json_to_rdf
+
 from osp.core.namespaces import cuba
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.datatypes import UID, CUSTOM_TO_PYTHON
 from osp.core.ontology.relationship import OntologyRelationship
 
+# Import `plugins.parsers.jsonld` for rdflib>=6, otherwise import it
+#  from`rdflib_jsonld`.
+from rdflib import __version__ as rdflib_version
+if rdflib_version >= '6':
+    from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
+else:
+    from rdflib_jsonld.parser import to_rdf as json_to_rdf
 
 CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
 logger = logging.getLogger(__name__)
@@ -87,7 +89,7 @@ def _serialize_rdf_graph(format="xml", session=None,
             o = Literal(x, datatype=o.datatype, lang=o.language)
         if not session or type(session) is CoreSession \
                 or not skip_wrapper \
-                or iri_from_uid(session.root) not in {s, o}:
+                or session.root.to_iri() not in {s, o}:
             result.add((s, p, o))
     for prefix, iri in graph.namespaces():
         result.bind(prefix, iri)
@@ -155,9 +157,8 @@ def _serialize_cuds_object_triples(cuds_object,
     for s, p, o in itertools.chain(*(cuds.get_triples()
                                      for cuds in cuds_objects)):
         if isinstance(o, Literal):
-            o = Literal(
-                Literal(o.toPython(), datatype=o.datatype).toPython(),
-                datatype=o.datatype, lang=o.language)
+            x = Literal(o.toPython(), datatype=o.datatype).toPython()
+            o = Literal(x, datatype=o.datatype, lang=o.language)
         graph.add((s, p, o))
     return graph.serialize(format=format, encoding='UTF-8').decode('UTF-8')
 
@@ -268,40 +269,6 @@ def _import_rdf_file(path, format="xml", session=None, buffer_context=None):
     return deserialized
 
 # Internal utilities (not user-facing).
-
-
-def iri_from_uid(uid):
-    """Transform an uid to an IRI.
-
-    Args:
-        uid (Union[UUID, URIRef]): The UUID to transform.
-
-    Returns:
-        URIRef: The IRI of the CUDS object with the given UUID.
-    """
-    if type(uid) is uuid.UUID:
-        return URIRef(CUDS_IRI_PREFIX + str(uid))
-    else:
-        return uid
-
-
-def uid_from_iri(iri):
-    """Transform an IRI to an uid.
-
-    Args:
-        iri (URIRef): The IRI to transform.
-
-    Returns:
-        URIRef: The IRI of the CUDS object with the given uid.
-    """
-    if iri.startswith(CUDS_IRI_PREFIX):
-        try:
-            return uuid.UUID(hex=str(iri)[len(CUDS_IRI_PREFIX):])
-        except ValueError as e:
-            raise ValueError(f"Unable to transform {iri} to uid.") \
-                from e
-    else:
-        return iri
 
 
 def uid_from_general_iri(iri, graph, _visited=frozenset()):

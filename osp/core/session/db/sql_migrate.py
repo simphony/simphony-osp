@@ -1,22 +1,23 @@
 """This file contains a tool for migrating from old to new database schemas."""
 
 import uuid
-import rdflib
-from osp.core.session.db.sql_util import SqlQuery
-from osp.core.namespaces import get_entity
-from osp.core.namespaces import cuba
-from osp.core.ontology.datatypes import UID
 
-INT = rdflib.XSD.integer
-STR = rdflib.XSD.string
+from rdflib import XSD
+
+from osp.core.namespaces import cuba, get_entity
+from osp.core.ontology.datatypes import UID
+from osp.core.session.db.sql_util import SqlQuery
+
+INT = XSD.integer
+STR = XSD.string
 
 versions = {
     "OSP_MASTER": 0,
     "OSP_V1_CUDS": 1,
-    "OSP_V2_CUDS": 1,
+    "OSP_V2_CUDS": 2,
 }
 
-supported_versions = [1]
+supported_versions = [2]
 
 
 def detect_current_schema_version(tables):

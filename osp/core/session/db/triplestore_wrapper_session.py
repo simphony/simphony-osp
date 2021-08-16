@@ -1,12 +1,13 @@
 """A session connecting to a backend which stores the CUDS in triples."""
 
-import uuid
-import rdflib
-from osp.core.utils.wrapper_development import create_from_triples
-from osp.core.ontology.datatypes import UID
-from osp.core.session.sparql_backend import SPARQLBackend
-from osp.core.session.db.db_wrapper_session import DbWrapperSession
 from abc import abstractmethod
+
+from rdflib import RDF, URIRef
+
+from osp.core.ontology.datatypes import UID
+from osp.core.session.db.db_wrapper_session import DbWrapperSession
+from osp.core.session.sparql_backend import SPARQLBackend
+from osp.core.utils.wrapper_development import create_from_triples
 
 
 class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
@@ -58,9 +59,9 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
         triple = next(self._substitute_root_iri([triple]))
         iris = {
             o for s, p, o in self._triples(triple)
-            if isinstance(o, rdflib.URIRef)
+            if isinstance(o, URIRef)
             and self._is_cuds_iri_ontology(o)
-            and UID(o) != uuid.UUID(int=0)
+            and UID(o) != UID(0)
         }
         iris.add(self.root.to_iri())
         for iri in iris:
@@ -70,7 +71,7 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
     def _load_by_oclass(self, oclass):
         uids = {
             UID(s)
-            for s, _, _ in self._triples((None, rdflib.RDF.type, oclass.iri))
+            for s, _, _ in self._triples((None, RDF.type, oclass.iri))
         }
         uids = {x if x != UID(0) else self. root for x in uids}
         yield from self._load_from_backend(uids)
@@ -95,7 +96,7 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
         """Load the CUDS object wit the given IRI.
 
         Args:
-            iri (rdflib.IRI): The IRI of the CUDS object to oad.
+            iri (IRI): The IRI of the CUDS object to oad.
 
         Returns:
             Cuds - The CUDS object with the given IRI.
@@ -154,8 +155,8 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
         triples = set(self._triples((iri, None, None)))
         type_triples_of_neighbors = set()
         for s, p, o in triples:
-            if isinstance(o, rdflib.URIRef):
+            if isinstance(o, URIRef):
                 type_triples_of_neighbors |= set(
-                    self._triples((o, rdflib.RDF.type, None))
+                    self._triples((o, RDF.type, None))
                 )
         return triples, type_triples_of_neighbors

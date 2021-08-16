@@ -1,7 +1,12 @@
 """Abstract Base Class for all Sessions."""
 
-import rdflib
 from abc import ABC, abstractmethod
+from typing import Optional
+
+import rdflib
+
+from osp.core.ontology.datatypes import UID
+from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.session.registry import Registry
 from osp.core.session.result import returns_query_result
 from osp.core.utils.general import uid_from_general_iri
@@ -70,11 +75,11 @@ class Session(ABC):
                            for iri in iris])
 
     @returns_query_result
-    def load(self, *uids):
+    def load(self, *uids: UID):
         """Load the cuds_objects of the given uids.
 
         Args:
-            *uids (UID): The uids of the cuds_objects to load.
+            *uids: The uids of the cuds_objects to load.
 
         Yields:
             Cuds: The fetched Cuds objects.
@@ -85,18 +90,21 @@ class Session(ABC):
             except KeyError:
                 yield None
 
-    def prune(self, rel=None):
+    def prune(self, rel: Optional[OntologyRelationship] = None):
         """Remove all elements not reachable from the sessions root.
 
         Only consider given relationship and its subclasses.
 
         Args:
-            rel (Relationship, optional): Only consider this relationship to
-                calculate reachability.. Defaults to None.
+            rel: Only consider this relationship to calculate reachability.
+                Defaults to None.
         """
         deleted = self._registry._get_not_reachable(self.root, rel=rel)
         for d in deleted:
             self._delete_cuds_triples(d)
+            # TODO (detach cuds from sessions): see
+            #  `self._detach_from_session`'s docstring.
+            self._detach_from_session(d)
 
     def delete_cuds_object(self, cuds_object):
         """Remove a CUDS object.
@@ -112,6 +120,15 @@ class Session(ABC):
         if cuds_object.get(rel=cuba.relationship):
             cuds_object.remove(rel=cuba.relationship)
         self._delete_cuds_triples(cuds_object)
+
+        # TODO (detach cuds from sessions): Workaround to keep the behavior:
+        #  removed CUDS do not have attributes. Think of a better way to
+        #  detach CUDS from sessions.
+        self._detach_from_session(cuds_object)
+
+    def _detach_from_session(self, cuds):
+        if cuds.session == self:
+            cuds._session = None
 
     def _delete_cuds_triples(self, cuds_object):
         """Delete the triples of a given cuds object from the session's graph.

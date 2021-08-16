@@ -5,11 +5,11 @@ has attributes and is connected to other cuds objects via relationships.
 """
 
 import logging
-from uuid import uuid4, UUID
-from typing import Any, Dict, Generator, Iterable, Iterator, List, \
+from typing import Any, Dict, Iterable, Iterator, List, \
     MutableSet, Optional, Set, Tuple, Union
+from uuid import UUID
 
-from rdflib import BNode, URIRef, RDF, Graph, Literal
+from rdflib import BNode, Graph, Literal, RDF, URIRef
 
 from osp.core.namespaces import cuba, from_iri
 from osp.core.neighbor_dict import NeighborDictRel
@@ -109,10 +109,15 @@ class Cuds:
         #  already fixed with __setitem__, then this should also give back
         #  such attributes (this is backwards compatible).
         try:
-            attr = self._get_ontology_attribute_by_name(name)
             if self.session:
+                # Notify the read before getting the attribute by name, as CUDS
+                #  in the deleted buffer may change class to None if done this
+                #  way, making `_get_ontology_attribute_by_name` raise an
+                #  attribute error for such case as it should be.
                 self.session._notify_read(self)
-            values = set(self._attribute_value_generator(attr))
+            attr = self._get_ontology_attribute_by_name(name)
+            values = set(self._attribute_value_generator(attr,
+                                                         _notify_read=False))
             if len(values) > 1:
                 raise RuntimeError(f"Tried to fetch values of a "
                                    f"non-functional attribute {attr} using "
@@ -313,7 +318,7 @@ class Cuds:
         return result[0] if len(args) == 1 else result
 
     def get(self,
-            *uids: Union[UUID, URIRef, UID],
+            *uids: UID,
             rel: OntologyRelationship = cuba.activeRelationship,
             oclass: OntologyClass = None,
             return_rel: bool = False) -> Union["Cuds", List["Cuds"]]:
@@ -355,9 +360,9 @@ class Cuds:
         return result
 
     def iter(self,
-             *uids: Union[UUID, URIRef, UID],
+             *uids: UID,
              rel: OntologyRelationship = cuba.activeRelationship,
-             oclass: OntologyClass = None,
+             oclass: Optional[OntologyClass] = None,
              return_rel: bool = False) -> Iterator["Cuds"]:
         """Iterate over the contained elements.
 
@@ -374,13 +379,12 @@ class Cuds:
             The result is ordered randomly.
 
         Args:
-            uids (Union[UUID, URIRef, UID]): uids of the elements.
-            rel (OntologyRelationship, optional): Only return cuds_object
-                which are connected by subclass of given relationship.
-                Defaults to cuba.activeRelationship.
-            oclass (OntologyClass, optional): Only return elements which are a
+            uids: uids of the elements.
+            rel: Only return cuds_object which are connected by subclass of
+                given relationship. Defaults to cuba.activeRelationship.
+            oclass: Only return elements which are a
                 subclass of the given ontology class. Defaults to None.
-            return_rel (bool, optional): Whether to return the connecting
+            return_rel: Whether to return the connecting
                 relationship. Defaults to False.
 
         Returns:
@@ -407,8 +411,7 @@ class Cuds:
         The updated versions must be associated with a different session.
 
         Args:
-            args (Cuds): The updated versions to use to update the current
-                object.
+            args: The updated versions to use to update the current object.
 
         Raises:
             ValueError: Provided a CUDS objects is not in the container of the
@@ -418,10 +421,9 @@ class Cuds:
                 updated version.
 
         Returns:
-            Union[Cuds, List[Cuds]]: The CUDS objects that have been updated,
-                associated with the session of the current CUDS object.
-                Result type is a list, if more than one CUDS object is
-                returned.
+            The CUDS objects that have been updated, associated with the
+            session of the current CUDS object. Result type is a list,
+            if more than one CUDS object is returned.
         """
         check_arguments(Cuds, *args)
         old_objects = self.get(*[arg.uid for arg in args])
@@ -492,7 +494,8 @@ class Cuds:
 
     def __init__(self,
                  # Create from oclass and attributes dict.
-                 attributes: Dict[OntologyAttribute, Set[Any]],
+                 attributes: Dict[OntologyAttribute,
+                                  Iterable[RDFCompatibleType]],
                  oclass: Optional[OntologyClass] = None,
                  session: Session = None,
                  uid: Optional[UID] = None,
@@ -505,8 +508,8 @@ class Cuds:
         if uid is None:
             uid = UID()
         elif not isinstance(uid, UID):
-            raise Exception(f"Tried to initialize a CUDS object with a uid "
-                            f"which is not a UID object.")
+            raise Exception(f"Tried to initialize a CUDS object with uid "
+                            f"{uid}, which is not a UID object.")
         self._uid = uid
 
         # Create CUDS triples in internal temporary graph.
@@ -539,22 +542,6 @@ class Cuds:
         self._session = session or Cuds._session
         # Copy temporary graph to the session graph and discard it.
         self.session._store(self)
-
-    @property
-    def _uid(self) -> UID:
-        """Get the uid of the CUDS object.
-
-        This is the private getter of the property.
-        """
-        return self.__uid
-
-    @_uid.setter
-    def _uid(self, value: UID):
-        """Set the uid of a CUDS object.
-
-        This is the private setter of the property.
-        """
-        self.__uid = value
 
     @property
     def _neighbors(self):
@@ -602,13 +589,13 @@ class Cuds:
 
         Args:
             attribute: The ontology attribute to be used for assignments.
-            values: An iterable of Pyhon types that are compatible either
-                with the OWL standard's datatypes for literals or compatible
-                with OSP-core as custom datatypes.
+            values: An iterable of Python types that are compatible either
+                with the OWL standard's data types for literals or compatible
+                with OSP-core as custom data types.
 
         Raises:
             TypeError: When Python objects with types incompatible with the
-                OWL standard or with OSP-core as custom datatypes are given.
+                OWL standard or with OSP-core as custom data types are given.
         """
         # TODO: prevent the end result having more than one value than one
         #  depending on ontology cardinality restrictions and/or functional
@@ -638,13 +625,13 @@ class Cuds:
 
         Args:
             attribute: The ontology attribute to be used for assignments.
-            values: An iterable of Pyhon types that are compatible either
-                with the OWL standard's datatypes for literals or compatible
-                with OSP-core as custom datatypes.
+            values: An iterable of Python types that are compatible either
+                with the OWL standard's data types for literals or compatible
+                with OSP-core as custom data types.
 
         Raises:
             TypeError: When Python objects with types incompatible with the
-                OWL standard or with OSP-core as custom datatypes are given.
+                OWL standard or with OSP-core as custom data types are given.
         """
         values = set(values)
         for x in values:
@@ -668,9 +655,9 @@ class Cuds:
 
         Args:
             attribute: The ontology attribute to be used for assignments.
-            values: An iterable of Pyhon types that are compatible either
-                with the OWL standard's datatypes for literals or compatible
-                with OSP-core as custom datatypes.
+            values: An iterable of Python types that are compatible either
+                with the OWL standard's data types for literals or compatible
+                with OSP-core as custom data types.
 
         Raises:
             TypeError: When Python objects with types incompatible with the
@@ -698,7 +685,7 @@ class Cuds:
     def _attribute_value_generator(self,
                                    attribute: OntologyAttribute,
                                    _notify_read: bool = True) \
-            -> Generator[RDFCompatibleType, None, None]:
+            -> Iterator[RDFCompatibleType]:
         """Returns a generator of values assigned to the specified attribute.
 
         Args:
@@ -707,13 +694,30 @@ class Cuds:
         Returns:
             Generator that returns the attribute values.
         """
+        # TODO (detach cuds from sessions): Workaround to keep the behavior:
+        #  removed CUDS do not have attributes. Think of a better way to
+        #  detach CUDS from sessions. `self._graph is not
+        #  self.session.graph` happens when `session._notify_read` is called
+        #  for this cuds, but this is hacky maybe not valid in general for
+        #  all sessions.
+        if self.session is None or\
+                self._graph is not self.session.graph:
+            raise AttributeError(f"The CUDS {self} does not belong to any "
+                                 f"session. None of its attributes are "
+                                 f"accessible.")
+
         if _notify_read and self.session:
             self.session._notify_read(self)
         for literal in self._graph.objects(self.iri, attribute.iri):
+            # TODO: Recreating the literal to get a vector from
+            #  literal.toPython() should not be necessary, find out why it
+            #  is happening.
+            literal = Literal(str(literal), datatype=literal.datatype,
+                              lang=literal.language)
             yield literal.toPython()
 
     def _attribute_generator(self, _notify_read: bool = True) \
-            -> Generator[OntologyAttribute, None, None]:
+            -> Iterator[OntologyAttribute]:
         """Returns a generator of the attributes of this CUDS object.
 
         The generator only returns the OntologyAttribute objects, NOT the
@@ -722,6 +726,15 @@ class Cuds:
         Returns:
             Generator that returns the attributes of this CUDS object.
         """
+        # TODO (detach cuds from sessions): Workaround to keep the behavior:
+        #  removed CUDS do not have attributes. Think of a better way to
+        #  detach CUDS from sessions.
+        if self.session is None or\
+                self._graph is not self.session.graph:
+            raise AttributeError(f"The CUDS {self} does not belong to any "
+                                 f"session. None of its attributes are "
+                                 f"accessible.")
+
         if _notify_read and self.session:
             self.session._notify_read(self)
         for predicate in self._graph.predicates(self.iri, None):
@@ -730,9 +743,8 @@ class Cuds:
                 yield obj
 
     def _attribute_and_value_generator(self, _notify_read: bool = True) \
-            -> Generator[Tuple[OntologyAttribute,
-                         Generator[RDFCompatibleType, None, None]],
-                         None, None]:
+            -> Iterator[Tuple[OntologyAttribute,
+                              Iterator[RDFCompatibleType]]]:
         """Returns a generator of the both attributes and their values.
 
         Returns:
@@ -1132,19 +1144,20 @@ class Cuds:
                 new_cuds_object.oclasses
 
     @staticmethod
-    def _fix_old_neighbors(new_cuds_object, old_cuds_object,
-                           old_neighbors: List[Tuple[Union[UUID, URIRef],
-                                                     OntologyRelationship]],
-                           old_neighbor_diff):
+    def _fix_old_neighbors(new_cuds_object: 'Cuds',
+                           old_cuds_object: Optional['Cuds'],
+                           old_neighbors: Iterable['Cuds'],
+                           old_neighbor_diff: Iterable[
+                               Tuple[UID, OntologyRelationship]]):
         """Fix the relationships of the added Cuds objects.
 
         Fixes relationships to Cuds object that were previously neighbors.
 
         Args:
-            new_cuds_object (Cuds): The added Cuds object
-            old_cuds_object (Cuds, optional): The Cuds object that is going
+            new_cuds_object: The added Cuds object
+            old_cuds_object: The Cuds object that is going
                 to be replaced
-            old_neighbors (Iterator[Cuds]): The Cuds object that were neighbors
+            old_neighbors: The Cuds object that were neighbors
                 before the replacement.
             old_neighbor_diff: The uids of the old neighbors and the
                 relations they are connected with.
@@ -1171,13 +1184,12 @@ class Cuds:
                         new_cuds_object \
                             ._neighbors[relationship][uid] = oclasses
 
-    def _add_direct(self, cuds_object, rel):
+    def _add_direct(self, cuds_object: 'Cuds', rel: OntologyRelationship):
         """Add an cuds_object with a specific relationship.
 
         Args:
-            cuds_object (Cuds): CUDS object to be added
-            rel (OntologyRelationship): relationship with the cuds_object to
-                add.
+            cuds_object: CUDS object to be added
+            rel: relationship with the cuds_object to add.
         """
         # First element, create set
         if rel not in self._neighbors.keys():
@@ -1197,7 +1209,10 @@ class Cuds:
         inverse_rel = rel.inverse
         self._add_direct(cuds_object, inverse_rel)
 
-    def _get(self, *uids, rel=None, oclass=None, return_mapping=False):
+    def _get(self, *uids: UID,
+             rel: Optional[OntologyRelationship] = None,
+             oclass: Optional[OntologyClass] = None,
+             return_mapping: bool = False):
         """Get the uid of contained elements that satisfy the filter.
 
         This filter consists of a certain type, uid or relationship.
@@ -1207,25 +1222,23 @@ class Cuds:
         non-available uids are replaced by None.
 
         Args:
-            uids (Union[UUID, URIRef]): uids of the elements to
-                get.
-            rel (OntologyRelationship, optional): Only return CUDS objects
-                connected with a subclass of relationship. Defaults to None.
-            oclass (OntologyClass, optional): Only return CUDS objects of a
-                subclass of this ontology class. Defaults to None.
-            return_mapping (bool, optional): Whether to return a mapping from
-                uids to relationships, that connect self with the
-                uid. Defaults to False.
+            uids: uids of the elements to get.
+            rel: Only return CUDS objects connected with a subclass of
+                relationship. Defaults to None.
+            oclass: Only return CUDS objects of a subclass of this ontology
+                class. Defaults to None.
+            return_mapping: Whether to return a mapping from uids to
+                relationships, that connect self with the uid. Defaults to
+                False.
 
         Raises:
             TypeError: Specified both uids and oclass.
             ValueError: Wrong type of argument.
 
         Returns:
-            List[Union[UUID, URIRef]] (+ Dict[Union[UUID, URIRef],
-            Set[Relationship]]): list of uids, or None, if not found.
-                (+ Mapping from UUIDs to relationships, which connect self to
-                the respective Cuds object.)
+            List[UID] (+ Dict[UID, Set[Relationship]]): list of uids, or None,
+                if not found. (+ Mapping from UIDs to relationships, which
+                connect self to the respective Cuds object)
         """
         if uids and oclass is not None:
             raise TypeError("Do not specify both uids and oclass.")
@@ -1236,6 +1249,10 @@ class Cuds:
             raise ValueError("Found object of type %s passed to argument "
                              "oclass. Should be an OntologyClass."
                              % type(oclass))
+        # TODO (detach cuds from sessions): Think of a better way to detach
+        #  CUDS from sessions.
+        if not self.session:
+            return []
 
         if uids:
             check_arguments(UID, *uids)
@@ -1261,7 +1278,10 @@ class Cuds:
         return self._get_by_oclass(oclass, consider_relationships,
                                    return_mapping=return_mapping)
 
-    def _get_by_uids(self, uids, relationships, return_mapping):
+    def _get_by_uids(self,
+                     uids: Iterable[UID],
+                     relationships: List[OntologyRelationship],
+                     return_mapping: bool):
         """Check for each given uid if it is connected by a given relationship.
 
         If not, replace it with None.
@@ -1270,18 +1290,16 @@ class Cuds:
         uid.
 
         Args:
-            uids (List[Union[UUID, URIRef]]): The uids to check.
-            relationships (List[Relationship]): Only consider these
-                relationships.
-            return_mapping (bool): Whether to return a mapping from
-                uids to relationships, that connect self with the
-                uid.
+            uids: The uids to check.
+            relationships: Only consider these relationships.
+            return_mapping: Whether to return a mapping from uids to
+                relationships, that connect self with the uid.
 
         Returns:
-            List[Union[UUID, URIRef]] (+ Dict[Union[UUID, URIRef],
-            Set[Relationship]]): list of found uids, None for not found
-                uids (+ Mapping from uids to relationships, which
-                connect self to the respective Cuds object.)
+            List[UID] (+ Dict[UID, Set[OntologyRelationship]]): list of found
+                uids, None for not found uids. (+ Mapping from uids to
+                relationships, which connect self to the respective Cuds
+                object)
         """
         not_found_uids = dict(enumerate(uids)) if uids \
             else None
@@ -1313,7 +1331,9 @@ class Cuds:
             return collected_uid, relationship_mapping
         return collected_uid
 
-    def _get_by_oclass(self, oclass, relationships, return_mapping):
+    def _get_by_oclass(self, oclass: Optional[OntologyClass],
+                       relationships: List[OntologyRelationship],
+                       return_mapping: bool):
         """Get the cuds_objects with given oclass.
 
         Only return objects that are connected to self
@@ -1322,18 +1342,16 @@ class Cuds:
         the cuds_objects with the uid.
 
         Args:
-            oclass (OntologyClass, optional): Filter by the given
-                OntologyClass. None means no filter.
-            relationships (List[Relationship]): Filter by list of
-                relationships.
-            return_mapping (bool): whether to return a mapping from uids
-            to relationships, that connect self with the uid.
+            oclass: Filter by the given OntologyClass. None means no filter.
+            relationships: Filter by list of relationships.
+            return_mapping: whether to return a mapping from uids to
+            relationships, that connect self with the uid.
 
         Returns:
-            List[Union[UUID, URIRef]] (+ Dict[Union[UUID, URIRef],
-            Set[Relationship]]): The uids of the found CUDS objects
-                (+ Mapping from uid to set of relationsships that
-                connect self with the respective cuds_object.)
+            List[UID] (+ Dict[UID, Set[OntologyRelationship]]): The uids of
+                the found CUDS objects. (+ Mapping from uid to set of
+                relationships that connect self with the respective
+                cuds_object)
         """
         relationship_mapping = dict()
         for relationship in relationships:
@@ -1351,7 +1369,7 @@ class Cuds:
             return list(relationship_mapping.keys()), relationship_mapping
         return list(relationship_mapping.keys())
 
-    def _load_cuds_objects(self, uids):
+    def _load_cuds_objects(self, uids: List[UID]) -> Iterator['Cuds']:
         """Load the cuds_objects of the given uids from the session.
 
         Each in cuds_object is at the same position in the result as
@@ -1360,14 +1378,16 @@ class Cuds:
         None values at the same position in the result.
 
         Args:
-            uids (List[Union[UUID, URIRef]]): The uids to fetch from the
-                session.
+            uids: The uids to fetch from the session.
 
         Yields:
-            Cuds: The loaded cuds_objects
+            Generator of loaded cuds_objects.
         """
         without_none = [uid for uid in uids
                         if uid is not None]
+        # TODO: Think of a better way to detach CUDS from sessions.
+        if not self.session:
+            return None
         cuds_objects = self.session.load(*without_none)
         for uid in uids:
             if uid is None:
@@ -1378,23 +1398,23 @@ class Cuds:
                 except StopIteration:
                     return None
 
-    def _remove_direct(self, relationship, uid):
+    def _remove_direct(self, relationship: OntologyRelationship, uid: UID):
         """Remove the direct relationship to the object with given uid.
 
         Args:
-            relationship (OntologyRelationship): The relationship to remove.
-            uid (Union[UUID, URIRef]): The uid to remove.
+            relationship: The relationship to remove.
+            uid: The uid to remove.
         """
         del self._neighbors[relationship][uid]
         if not self._neighbors[relationship]:
             del self._neighbors[relationship]
 
-    def _remove_inverse(self, relationship, uid):
+    def _remove_inverse(self, relationship: OntologyRelationship, uid: UID):
         """Remove the inverse of the given relationship.
 
         Args:
-            relationship (OntologyRelationship): The relationship to remove.
-            uid (Union[UUID, URIRef]): The uid to remove.
+            relationship: The relationship to remove.
+            uid: The uid to remove.
         """
         inverse = relationship.inverse
         self._remove_direct(inverse, uid)

@@ -1,7 +1,5 @@
 """Test the API of CUDS objects using the foaf ontology."""
-import uuid
 
-import rdflib
 import unittest2 as unittest
 
 from osp.core.ontology.datatypes import UID

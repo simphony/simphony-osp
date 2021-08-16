@@ -1,9 +1,10 @@
 """Test the Sqlite Wrapper with the CITY ontology."""
 
 import os
-import uuid
-import unittest2 as unittest
+
 import sqlite3
+import unittest2 as unittest
+
 from osp.core.ontology.datatypes import UID
 from osp.wrappers.sqlite import SqliteSession
 
@@ -202,7 +203,7 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            cs = wrapper.get(c.uid)
+            wrapper.get(c.uid)
             r = session.load_by_oclass(city.Street)
             self.assertRaises(StopIteration, next, r)
 
@@ -231,7 +232,7 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            cs = wrapper.get(c.uid)
+            wrapper.get(c.uid)
             r = session.load_from_iri(UID(1).to_iri())
             self.assertEqual(set(r), {None})
 
@@ -304,7 +305,7 @@ class TestSqliteCity(unittest.TestCase):
         """Test clearing the database."""
         # db is empty (no error occurs)
         with SqliteSession(DB) as session:
-            wrapper = city.CityWrapper(session=session)
+            city.CityWrapper(session=session)
             session._clear_database()
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
@@ -386,12 +387,13 @@ def check_state(test_case, c, p1, p2, db=DB):
         cursor.execute(
             "SELECT name FROM sqlite_master WHERE type='table';")
         result = set(map(lambda x: x[0], cursor))
-        test_case.assertEqual(result, set([
-            RELATIONSHIP_TABLE, data_tbl("CUSTOM_Vector"),
-            data_tbl("CUSTOM_UID"), CUDS_TABLE,
-            NAMESPACES_TABLE, ENTITIES_TABLE, TYPES_TABLE,
-            data_tbl("XSD_boolean"), data_tbl("XSD_float"),
-            data_tbl("XSD_integer"), data_tbl("XSD_string")]))
+        test_case.assertEqual(result,
+                              {RELATIONSHIP_TABLE, data_tbl("CUSTOM_Vector"),
+                               data_tbl("CUSTOM_UID"), CUDS_TABLE,
+                               NAMESPACES_TABLE, ENTITIES_TABLE, TYPES_TABLE,
+                               data_tbl("XSD_boolean"), data_tbl("XSD_float"),
+                               data_tbl("XSD_integer"),
+                               data_tbl("XSD_string")})
 
         cursor.execute(
             "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, `to`.`uid` "
@@ -402,14 +404,14 @@ def check_state(test_case, c, p1, p2, db=DB):
                ENTITIES_TABLE, CUDS_TABLE))
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
-            (str(uuid.UUID(int=0)), 1, "hasPart", str(c.uid)),
+            (str(UID(0)), 1, "hasPart", str(c.uid)),
             (str(c.uid), 1, "hasInhabitant", str(p1.uid)),
             (str(c.uid), 1, "hasInhabitant", str(p2.uid)),
             (str(p1.uid), 1, "INVERSE_OF_hasInhabitant",
              str(c.uid)),
             (str(p2.uid), 1, "INVERSE_OF_hasInhabitant",
              str(c.uid)),
-            (str(c.uid), 1, "isPartOf", str(uuid.UUID(int=0)))
+            (str(c.uid), 1, "isPartOf", str(UID(0)))
         })
 
         cursor.execute(
@@ -431,7 +433,7 @@ def check_state(test_case, c, p1, p2, db=DB):
             (str(c.uid), 1, 'City'),
             (str(p1.uid), 1, 'Citizen'),
             (str(p2.uid), 1, 'Citizen'),
-            (str(uuid.UUID(int=0)), 1, 'CityWrapper')
+            (str(UID(0)), 1, 'CityWrapper')
         })
 
         cursor.execute(
@@ -445,17 +447,6 @@ def check_state(test_case, c, p1, p2, db=DB):
             (str(c.uid), 1, 'name', 'Freiburg'),
             (str(p2.uid), 1, 'name', 'Georg')
         })
-
-        # cursor.execute(
-        #     "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, "
-        #     "`x`.`o___0` , `x`.`o___1` "
-        #     "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `tp` "
-        #     "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`p`=`tp`.`entity_idx` ;"
-        #     % (data_tbl("CUSTOM_Vector"), CUDS_TABLE, ENTITIES_TABLE))
-        # result = set(cursor.fetchall())
-        # test_case.assertEqual(result, {
-        #     (str(c.uid), 1, 'coordinates', 0, 0)
-        # })
 
 
 def check_db_cleared(test_case, db_file):

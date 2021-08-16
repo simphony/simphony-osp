@@ -2,7 +2,7 @@
 
 import sqlite3
 
-from rdflib import XSD, URIRef
+from rdflib import XSD
 
 from osp.core.ontology.datatypes import UID, Vector
 from osp.core.session.db.sql_util import AndCondition, EqualsCondition, \
@@ -87,11 +87,6 @@ class SqliteSession(SqlWrapperSession):
             ", ".join(columns), ", ".join(tables), cond_pattern
         )
         c = self._engine.cursor()
-        # TODO: Register sqlite3 adapters.
-        cond_values = {key: str(value) if isinstance(value, UID) else value
-                       for key, value in cond_values.items()}
-        cond_values = {key: str(value) if isinstance(value, Vector) else value
-                       for key, value in cond_values.items()}
         c.execute(sql_pattern, cond_values)
         return c
 
@@ -134,11 +129,6 @@ class SqliteSession(SqlWrapperSession):
         sql_pattern = "INSERT INTO `%s` (%s) VALUES (%s);" % (  # nosec
             table_name, ", ".join(columns), val_pattern
         )
-        # TODO: Register sqlite3 adapters.
-        val_values = {key: str(value) if isinstance(value, UID) else value
-                      for key, value in val_values.items()}
-        val_values = {key: str(value) if isinstance(value, Vector) else value
-                      for key, value in val_values.items()}
         c = self._engine.cursor()
         try:
             c.execute(sql_pattern, val_values)
@@ -240,10 +230,10 @@ class SqliteSession(SqlWrapperSession):
         """
         if rdflib_datatype is None:
             return "TEXT"
-        if rdflib_datatype == URIRef('http://www.osp-core.com/types#UID'):
+        if rdflib_datatype == UID.iri:
             return 'TEXT'
-        if rdflib_datatype == URIRef('http://www.osp-core.com/types#Vector'):
-            return 'TEXT'
+        if rdflib_datatype == Vector.iri:
+            return 'BLOB'
         if rdflib_datatype == XSD.integer:
             return "INTEGER"
         if rdflib_datatype == XSD.boolean:
