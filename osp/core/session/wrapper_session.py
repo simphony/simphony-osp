@@ -2,6 +2,7 @@
 
 import logging
 from abc import abstractmethod
+from typing import Optional
 
 from rdflib import RDF, Graph
 
@@ -414,15 +415,14 @@ class WrapperSession(Session):
             diff = (diff1 | diff2) - set(uids)
             self._expire(diff)
 
-    def _get_old_cuds_object_clone(self, uid):
+    def _get_old_cuds_object_clone(self, uid: UID) -> Optional[UID]:
         """Get old version of expired cuds object from registry.
 
         Args:
-            uid (Union[UUID, URIRef]): The uid to get the old
-            cuds object.
+            uid: The uid to get the old cuds object.
 
         Returns:
-            Cuds, optional: A clone of the old cuds object
+            A clone of the old cuds object
         """
         clone = None
         if uid in self._registry:

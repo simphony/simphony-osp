@@ -211,7 +211,7 @@ class Cuds:
         #  sounds like redundancy and decrease in performance.
 
         if isinstance(rel, OntologyRelationship):
-            if len(values) > 0:
+            if len(literals) > 0:
                 raise TypeError(f'Trying to assign attributes using an object'
                                 f'property {rel}')
         elif isinstance(rel, OntologyAttribute):
@@ -233,7 +233,7 @@ class Cuds:
 
     def __getitem__(self,
                     rel: Union[OntologyAttribute, OntologyRelationship]) \
-            -> "Cuds._AttributeSet":
+            -> Union["Cuds._AttributeSet", "Cuds"]:
         """Retrieve linked CUDS objects objects or attribute values.
 
         The subscripting syntax `cuds[rel]` allows:
@@ -262,7 +262,7 @@ class Cuds:
         elif isinstance(rel, OntologyRelationship):
             # TODO: Handle them with RelationshipSet as is done with
             #  attributes.
-            return self._get(rel=rel)
+            return self.get(rel=rel)
         else:
             raise TypeError(f'CUDS objects indices must be ontology '
                             f'relationships or ontology attributes, '

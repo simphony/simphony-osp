@@ -5,7 +5,7 @@ import unittest
 import os
 
 import responses
-from rdflib import RDF, RDFS
+from rdflib import RDF, RDFS, Literal
 
 import osp.core
 from osp.core.cuds import Cuds
@@ -218,7 +218,9 @@ class TestUtils(unittest.TestCase):
             self.assertIs(clone.session, aw.session)
             self.assertEqual(clone.uid, aw.uid)
             self.assertIs(aw, session._registry.get(aw.uid))
-            self.assertEqual(clone.name, "Freiburg")
+            # self.assertEqual(clone.name, "Freiburg")
+            self.assertIn((clone.iri, city.name.iri, Literal("Freiburg")),
+                          clone._graph)
 
     def test_create_recycle(self):
         """Test creation of cuds_objects for different session."""
