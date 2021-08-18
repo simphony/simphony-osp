@@ -98,6 +98,9 @@ class Vector(CustomDataType):
     #   - Implement some operations with numpy arrays that return numpy arrays,
     #     just as it was done in the AttributeSet case.
     iri = URIRef('http://www.osp-core.com/types#Vector')
+    _ELEMENT_LEN: int = 3
+    _DTYPE_LEN: int = 1
+    _SHAPE_LEN: int = 1
 
     @property
     def data(self) -> np.ndarray:
@@ -158,29 +161,40 @@ class Vector(CustomDataType):
         blob = bytes()
         # Attach data type.
         blob += len(bytes(self.__dtype.str, encoding='UTF-8'))\
-            .to_bytes(4, 'big')
+            .to_bytes(self._DTYPE_LEN, 'big')
         blob += bytes(self.__dtype.str, encoding='UTF-8')
         # Attach shape.
-        blob += len(bytes(self.__shape)).to_bytes(4, 'big')
-        blob += bytes(self.__shape)
+        blob += len(self.__shape).to_bytes(self._SHAPE_LEN, 'big')
+        for integer in self.__shape:
+            blob += integer.to_bytes(self._ELEMENT_LEN, 'big')
         # Attach array.
         blob += self.__bytes
         return blob
 
-    @staticmethod
-    def from_blob(blob) -> 'Vector':
+    @classmethod
+    def from_blob(cls, blob) -> 'Vector':
         """Convert a bytes representation of a vector into a Vector object."""
         # Get data type.
         start_dtype = 0
-        len_dtype = int.from_bytes(blob[start_dtype:4], 'big')
+        len_dtype = int.from_bytes(
+            blob[start_dtype:cls._DTYPE_LEN], 'big')
         dtype = np.dtype(
-            blob[start_dtype + 4:start_dtype + 4 + len_dtype].decode())
+            blob[start_dtype + cls._DTYPE_LEN:start_dtype
+                 + cls._DTYPE_LEN + len_dtype].decode())
         # Get shape.
-        start_shape = start_dtype + 4 + len_dtype
-        len_shape = int.from_bytes(blob[start_shape:start_shape + 4], 'big')
-        shape = tuple(blob[start_shape + 4:start_shape + 4 + len_shape])
+        start_shape = start_dtype + cls._DTYPE_LEN + len_dtype
+        len_shape = int.from_bytes(
+            blob[start_shape:start_shape + cls._SHAPE_LEN], 'big')
+        shape = tuple(
+            int.from_bytes(
+                blob[start_shape + cls._SHAPE_LEN + i * cls._ELEMENT_LEN:
+                     start_shape + cls._SHAPE_LEN + (i + 1)
+                     * cls._ELEMENT_LEN],
+                'big')
+            for i in range(0, len_shape))
         # Get byte array.
-        start_array = start_shape + 4 + len_shape
+        start_array = start_shape + cls._SHAPE_LEN \
+            + len_shape * cls._ELEMENT_LEN
         byte_array = blob[start_array:]
         array = np.frombuffer(byte_array, dtype=dtype)\
             .reshape(shape)
