@@ -91,7 +91,7 @@ class TestSqliteCity(unittest.TestCase):
                 self.assertEqual(p.get(rel=city.hasInhabitant.inverse), [c])
                 self.assertEqual(p.get(), [])
 
-    def test_migrate_v0(self):
+    def test_migrate_v1(self):
         """Test migration from v1 to v2."""
         self.run_migration(1)
         self.run_test()
