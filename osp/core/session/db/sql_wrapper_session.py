@@ -101,7 +101,6 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         DATA_TABLE_PREFIX: [["s", "p"]]
     }
 
-    # TODO: check this later.
     check_schema = check_supported_schema_version
 
     # GET_TRIPLES
