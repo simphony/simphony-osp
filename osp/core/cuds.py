@@ -5,6 +5,7 @@ has attributes and is connected to other cuds objects via relationships.
 """
 
 import logging
+from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterable, Iterator, List, \
     MutableSet, Optional, Set, Tuple, Union
 from uuid import UUID
@@ -167,13 +168,14 @@ class Cuds:
         values = {values} \
             if not isinstance(values, (Set, MutableSet)) \
             else values
+        # Apparently instances of MutableSet are not instances of Set.
         self._set_attributes(attr, values)
 
     def __setitem__(self,
                     rel: Union[OntologyAttribute, OntologyRelationship],
-                    values: Union[
+                    values: Optional[Union[
                         Union["Cuds", RDFCompatibleType],
-                        Set[Union["Cuds", RDFCompatibleType]]],
+                        Set[Union["Cuds", RDFCompatibleType]]]],
                     ):
         """Manages both CUDS objects object properties and data properties.
 
@@ -199,9 +201,11 @@ class Cuds:
                 something that is neither an OntologyAttribute or an
                 OntologyRelationship as index.
         """
+        values = values or set()
         values = {values} \
             if not isinstance(values, (Set, MutableSet)) \
             else values
+        # Apparently instances of MutableSet are not instances of Set.
         check_arguments((Cuds, *RDF_COMPATIBLE_TYPES), *values)
         cuds, literals = \
             tuple(filter(lambda x: isinstance(x, Cuds), values)), \
@@ -220,10 +224,12 @@ class Cuds:
                                 f'a data property {rel}')
 
         if isinstance(rel, OntologyRelationship):
-            for obj in self.iter(rel=rel):
-                self.remove(obj)
-            for obj in cuds:
-                self.add(obj, rel=rel)
+            cuds_set, set_iter = set(cuds), set(self.iter(rel=rel))
+            to_add = cuds_set.difference(set_iter)
+            self.add(*to_add, rel=rel)
+            to_remove = set_iter.difference(cuds_set)
+            if to_remove:
+                self.remove(rel=rel)
         elif isinstance(rel, OntologyAttribute):
             self._set_attributes(rel, literals)
         else:
@@ -233,7 +239,7 @@ class Cuds:
 
     def __getitem__(self,
                     rel: Union[OntologyAttribute, OntologyRelationship]) \
-            -> Union["Cuds._AttributeSet", "Cuds"]:
+            -> Union["Cuds._AttributeSet", "Cuds._RelationshipSet", "Cuds"]:
         """Retrieve linked CUDS objects objects or attribute values.
 
         The subscripting syntax `cuds[rel]` allows:
@@ -262,11 +268,20 @@ class Cuds:
         elif isinstance(rel, OntologyRelationship):
             # TODO: Handle them with RelationshipSet as is done with
             #  attributes.
-            return self.get(rel=rel)
+            return self._RelationshipSet(cuds=self, relationship=rel)
         else:
             raise TypeError(f'CUDS objects indices must be ontology '
                             f'relationships or ontology attributes, '
                             f'not {type(rel)}')
+
+    def __delitem__(self, rel: Union[OntologyAttribute, OntologyRelationship]):
+        """Delete all attributes or data properties attached through rel.
+
+        Args:
+            rel: Either an ontology attribute or an ontology relationship
+                (OWL datatype property, OWL object property).
+        """
+        self.__setitem__(rel=rel, values=set())
 
     def add(self,
             *args: Any,
@@ -308,7 +323,7 @@ class Cuds:
             if rel in self._neighbors \
                     and arg.uid in self._neighbors[rel]:
                 message = '{!r} is already in the container'
-                raise ValueError(message.format(arg))
+                raise self._ExistingCudsException(message.format(arg))
             if self.session != arg.session:
                 arg = self._recursive_store(arg, next(old_objects))
 
@@ -316,6 +331,10 @@ class Cuds:
             arg._add_inverse(self, rel)
             result.append(arg)
         return result[0] if len(args) == 1 else result
+
+    class _ExistingCudsException(ValueError):
+        """To be raised by `add` when a provided CUDS is already linked."""
+        pass
 
     def get(self,
             *uids: UID,
@@ -758,46 +777,46 @@ class Cuds:
                 self._attribute_value_generator(attribute,
                                                 _notify_read=False)
 
-    class _AttributeSet(MutableSet):
-        """A set interface to a CUDS object's attributes.
+    class _ObjectSet(MutableSet, ABC):
+        """A set interface to a CUDS object's neighbors.
 
         This class looks like and acts like the standard `set`, but it
-        is an interface to the `_add_attributes`, _set_attributes`,
-        `_delete_attributes`, `_attribute_value_generator` functions.
+        is a template to implement classes that use either the attribute
+        interface or the methods `add`, `get`, `remove` from the CUDS API.
 
-        When an instance is read, the method `_attribute_value_generator` is
-        used to fetch the data. When it is modified in-place, the methods
-        `_add_attributes`, `_set_attributes`, and `_delete_attributes` are used
-        to reflect the changes.
+        When an instance is read or when it is modified in-place,
+        the interfaced methods are used to reflect the changes.
 
-        This class does not hold any attribute-related information itself, thus
-        it is safe to spawn multiple instances linked to the same attribute
+        This class does not hold any object-related information itself, thus
+        it is safe to spawn multiple instances linked to the same property
         and CUDS (when single-threading).
         """
-        _attribute: OntologyAttribute
+        _predicate: Union[OntologyAttribute, OntologyRelationship]
         _cuds: "Cuds"
 
+        def __init__(self,
+                     predicate: Union[OntologyAttribute,
+                                      OntologyRelationship],
+                     cuds: "Cuds"):
+            """Fix the liked property and CUDS object."""
+            self._cuds = cuds
+            self._predicate = predicate
+            super().__init__()
+
         @property
+        @abstractmethod
         def _underlying_set(self) -> Set:
-            """The set of values assigned to the attribute `self._attribute`.
+            """The set of values assigned to the property `self._property`.
 
             Returns:
                 The mentioned underlying set.
             """
-            return set(
-                self._cuds._attribute_value_generator(
-                    attribute=self._attribute))
-
-        def __init__(self, attribute: OntologyAttribute, cuds: "Cuds"):
-            """Fix the liked OntologyAttribute and CUDS object."""
-            self._cuds = cuds
-            self._attribute = attribute
-            super().__init__()
+            pass
 
         def __repr__(self) -> str:
             """Return repr(self)."""
             return self._underlying_set.__repr__() \
-                + f' <{self._attribute} of CUDS {self._cuds}>'
+                + f' <{self._predicate} of CUDS {self._cuds}>'
 
         def __str__(self) -> str:
             """Return str(self)."""
@@ -820,13 +839,10 @@ class Cuds:
             for x in self._underlying_set:
                 yield x
 
+        @abstractmethod
         def __len__(self) -> int:
             """Return len(self)."""
-            i = 0
-            for x in self._cuds._attribute_value_generator(
-                    attribute=self._attribute):
-                i += 1
-            return i
+            pass
 
         def __le__(self, other: set) -> bool:
             """Return self<=other."""
@@ -852,7 +868,8 @@ class Cuds:
             """Return self>=other."""
             return self._underlying_set.__ge__(other)
 
-        def __and__(self, other: set) -> Set[RDFCompatibleType]:
+        def __and__(self, other: set) -> Union[Set[RDFCompatibleType],
+                                               Set["Cuds"]]:
             """Return self&other."""
             return self._underlying_set.__and__(other)
 
@@ -868,80 +885,83 @@ class Cuds:
             """Return self^other."""
             return self._underlying_set.__xor__(other)
 
-        def __ior__(self, other: Set[RDFCompatibleType]):
+        @abstractmethod
+        def __ior__(self, other: Union[Set[RDFCompatibleType], Set["Cuds"]]):
             """Return self|=other."""
-            self._cuds._add_attributes(self._attribute, other)
-            return self
+            pass
 
-        def __iand__(self, other: Set):
+        @abstractmethod
+        def __iand__(self, other: Union[Set[RDFCompatibleType], Set["Cuds"]]):
             """Return self&=other."""
-            underlying_set = self._underlying_set
-            intersection = underlying_set.intersection(other)
-            removed = underlying_set.difference(intersection)
-            self._cuds._delete_attributes(self._attribute, removed)
-            return self
+            pass
 
-        def __ixor__(self, other: Set[RDFCompatibleType]):
+        @abstractmethod
+        def __ixor__(self, other: Union[Set[RDFCompatibleType], Set["Cuds"]]):
             """Return self^=other."""
-            self._cuds._set_attributes(self._attribute,
-                                       self._underlying_set ^ other)
-            return self
+            pass
 
         def __iadd__(self, other: Set[RDFCompatibleType]):
             """Return self+=other (equivalent to self|=other)."""
-            return self.__ior__(other)
+            if isinstance(other, (Set, MutableSet)):
+                # Apparently instances of MutableSet are not instances of Set.
+                return self.__ior__(other)
+            else:
+                return self.__ior__({other})
 
-        def __isub__(self, other: set):
+        @abstractmethod
+        def __isub__(self, other: Any):
             """Return self-=other."""
-            self._cuds._delete_attributes(self._attribute,
-                                          self._underlying_set & other)
-            return self
+            pass
 
         def isdisjoint(self, other: set):
             """Return True if two sets have a null intersection."""
             return self._underlying_set.isdisjoint(other)
 
+        @abstractmethod
         def clear(self):
             """Remove all elements from this set.
 
-            This also removed all the values assigned to the attribute
+            This also removes all the values assigned to the property
             linked to this set for the cuds linked to this set.
             """
-            self._cuds._set_attributes(self._attribute, set())
+            pass
 
-        def pop(self) -> RDFCompatibleType:
+        @abstractmethod
+        def pop(self) -> Union[RDFCompatibleType, "Cuds"]:
             """Remove and return an arbitrary set element.
 
             Raises KeyError if the set is empty.
             """
-            result = self._underlying_set.pop()
-            self._cuds._delete_attributes(self._attribute, {result})
-            return result
+            pass
 
         def copy(self):
             """Return a shallow copy of a set."""
             return self._underlying_set
 
-        def difference(self, other: Iterable) -> Set[RDFCompatibleType]:
+        def difference(self, other: Iterable) -> Union[Set[RDFCompatibleType],
+                                                       Set["Cuds"]]:
             """Return the difference of two or more sets as a new set.
 
             (i.e. all elements that are in this set but not the others.)
             """
             return self._underlying_set.difference(other)
 
+        @abstractmethod
         def difference_update(self, other: Iterable):
             """Remove all elements of another set from this set."""
-            self._cuds._delete_attributes(
-                self._attribute, self._underlying_set.intersection(other))
+            pass
 
+        @abstractmethod
         def discard(self, other: Any):
             """Remove an element from a set if it is a member.
 
             If the element is not a member, do nothing.
             """
-            self._cuds._delete_attributes(self._attribute, {other})
+            pass
 
-        def intersection(self, other: set) -> Set[RDFCompatibleType]:
+        @abstractmethod
+        def intersection(self, other: set) -> Union[Set[RDFCompatibleType],
+                                                    Set["Cuds"]]:
             """Return the intersection of two sets as a new set.
 
             (i.e. all elements that are in both sets.)
@@ -960,12 +980,152 @@ class Cuds:
             """Report whether this set contains another set."""
             return self >= other
 
-        def add(self, other: RDFCompatibleType):
+        def add(self, other: Union[RDFCompatibleType, "Cuds"]):
             """Add an element to a set.
 
             This has no effect if the element is already present.
             """
             self.__ior__({other})
+
+        @abstractmethod
+        def remove(self, other: Any):
+            """Remove an element from a set; it must be a member.
+
+            If the element is not a member, raise a KeyError.
+            """
+            pass
+
+        @abstractmethod
+        def update(self, other: Iterable):
+            """Update a set with the union of itself and others."""
+            pass
+
+    class _AttributeSet(_ObjectSet):
+        """A set interface to a CUDS object's attributes.
+
+        This class looks like and acts like the standard `set`, but it
+        is an interface to the `_add_attributes`, _set_attributes`,
+        `_delete_attributes` and `_attribute_value_generator` methods.
+
+        When an instance is read, the method `_attribute_value_generator` is
+        used to fetch the data. When it is modified in-place, the methods
+        `_add_attributes`, `_set_attributes`, and `_delete_attributes` are used
+        to reflect the changes.
+
+        This class does not hold any attribute-related information itself, thus
+        it is safe to spawn multiple instances linked to the same attribute
+        and CUDS (when single-threading).
+        """
+        _predicate: OntologyAttribute
+        _cuds: "Cuds"
+
+        @property
+        def _underlying_set(self) -> Set[RDFCompatibleType]:
+            """The set of values assigned to the attribute `self._predicate`.
+
+            Returns:
+                The mentioned underlying set.
+            """
+            return set(
+                self._cuds._attribute_value_generator(
+                    attribute=self._predicate))
+
+        def __init__(self, attribute: OntologyAttribute, cuds: "Cuds"):
+            """Fix the liked OntologyAttribute and CUDS object."""
+            super().__init__(attribute, cuds)
+
+        def __len__(self) -> int:
+            """Return len(self)."""
+            i = 0
+            for x in self._cuds._attribute_value_generator(
+                    attribute=self._predicate):
+                i += 1
+            return i
+
+        def __and__(self, other: set) -> Set[RDFCompatibleType]:
+            """Return self&other."""
+            return super().__and__(other)
+
+        def __ior__(self, other: Set[RDFCompatibleType]):
+            """Return self|=other."""
+            self._cuds._add_attributes(self._predicate, other)
+            return self
+
+        def __iand__(self, other: Set[RDFCompatibleType]):
+            """Return self&=other."""
+            underlying_set = self._underlying_set
+            intersection = underlying_set.intersection(other)
+            removed = underlying_set.difference(intersection)
+            self._cuds._delete_attributes(self._predicate, removed)
+            return self
+
+        def __ixor__(self, other: Set[RDFCompatibleType]):
+            """Return self^=other."""
+            self._cuds._set_attributes(self._predicate,
+                                       self._underlying_set ^ other)
+            return self
+
+        def __isub__(self, other: Any):
+            """Return self-=other."""
+            if isinstance(other, (Set, MutableSet)):
+                # Apparently instances of MutableSet are not instances of Set.
+                self._cuds._delete_attributes(self._predicate,
+                                              self._underlying_set
+                                              & set(other))
+            else:
+                self._cuds._delete_attributes(self._predicate,
+                                              self._underlying_set & {other})
+            return self
+
+        def clear(self):
+            """Remove all elements from this set.
+
+            This also removed all the values assigned to the attribute
+            linked to this set for the cuds linked to this set.
+            """
+            self._cuds._set_attributes(self._predicate, set())
+
+        def pop(self) -> RDFCompatibleType:
+            """Remove and return an arbitrary set element.
+
+            Raises KeyError if the set is empty.
+            """
+            result = self._underlying_set.pop()
+            self._cuds._delete_attributes(self._predicate, {result})
+            return result
+
+        def difference(self, other: Iterable) -> Set[RDFCompatibleType]:
+            """Return the difference of two or more sets as a new set.
+
+            (i.e. all elements that are in this set but not the others.)
+            """
+            return super().difference(other)
+
+        def difference_update(self, other: Iterable):
+            """Remove all elements of another set from this set."""
+            self._cuds._delete_attributes(
+                self._predicate, self._underlying_set.intersection(other))
+
+        def discard(self, other: Any):
+            """Remove an element from a set if it is a member.
+
+            If the element is not a member, do nothing.
+            """
+            self._cuds._delete_attributes(self._predicate, {other})
+
+        def intersection(self, other: set) -> Set[RDFCompatibleType]:
+            """Return the intersection of two sets as a new set.
+
+            (i.e. all elements that are in both sets.)
+            """
+            return super().intersection(other)
+
+        def add(self, other: RDFCompatibleType):
+            """Add an element to a set.
+
+            This has no effect if the element is already present.
+            """
+            return super().add(other)
 
         def remove(self, other: Any):
             """Remove an element from a set; it must be a member.
@@ -973,17 +1133,170 @@ class Cuds:
             If the element is not a member, raise a KeyError.
             """
             if other in self._underlying_set:
-                self._cuds._delete_attributes(self._attribute, {other})
+                self._cuds._delete_attributes(self._predicate, {other})
             else:
                 raise KeyError(f"{other}")
 
         def update(self, other: Iterable):
             """Update a set with the union of itself and others."""
             self._cuds._add_attributes(
-                self._attribute, set(other).difference(self._underlying_set))
+                self._predicate, set(other).difference(self._underlying_set))
 
     # ↑ -------------- ↑
     # Attribute handling
+
+    class _RelationshipSet(_ObjectSet, MutableSet):
+        """A set interface to a CUDS object's RELATIONSHIPS.
+
+        This class looks like and acts like the standard `set`, but it
+        is an interface to the `add`, `get` and `remove` methods.
+
+        When an instance is read, the method `get` is
+        used to fetch the data. When it is modified in-place, the methods
+        `add` and `remove` are used to reflect the changes.
+
+        This class does not hold any relationship-related information itself,
+        thus it is safe to spawn multiple instances linked to the same
+        relationship and CUDS (when single-threading).
+        """
+        _predicate: OntologyRelationship
+        _cuds: "Cuds"
+
+        @property
+        def _underlying_set(self) -> Set["Cuds"]:
+            """The set of values assigned to the attribute `self._predicate`.
+
+            Returns:
+                The mentioned underlying set.
+            """
+            return set(self._cuds.get(rel=self._predicate))
+
+        def __init__(self, relationship: OntologyRelationship, cuds: "Cuds"):
+            """Fix the liked OntologyAttribute and CUDS object."""
+            super().__init__(relationship, cuds)
+
+        def __len__(self) -> int:
+            """Return len(self)."""
+            i = 0
+            for x in self._cuds.iter(rel=self._predicate):
+                i += 1
+            return i
+
+        def __and__(self, other: set) -> Set['Cuds']:
+            """Return self&other."""
+            return super().__and__(other)
+
+        def __ior__(self, other: Set['Cuds']):
+            """Return self|=other."""
+            # TODO: Avoid the for loop by finding a way to roll back the
+            #  added CUDS?
+            for cuds in other:
+                try:
+                    self._cuds.add(cuds, rel=self._predicate)
+                except Cuds._ExistingCudsException:
+                    pass
+            return self
+
+        def __iand__(self, other: Set["Cuds"]):
+            """Return self&=other."""
+            underlying_set = self._underlying_set
+            intersection = underlying_set.intersection(other)
+            removed = underlying_set.difference(intersection)
+            if removed:
+                self._cuds.remove(*removed, rel=self._predicate)
+            return self
+
+        def __ixor__(self, other: Set["Cuds"]):
+            """Return self^=other."""
+            result = self._underlying_set ^ other
+            to_add = result.difference(self._underlying_set)
+            to_remove = self._underlying_set.difference(result)
+            if to_remove:
+                self._cuds.remove(*to_remove, rel=self._predicate)
+            self._cuds.add(*to_add, rel=self._predicate)
+            return self
+
+        def __isub__(self, other: Any):
+            """Return self-=other."""
+            if isinstance(other, (Set, MutableSet)):
+                # Apparently instances of MutableSet are not instances of Set.
+                to_remove = self._underlying_set & set(other)
+            else:
+                to_remove = self._underlying_set & {other}
+            if to_remove:
+                self._cuds.remove(*to_remove, rel=self._predicate)
+            return self
+
+        def clear(self):
+            """Remove all elements from this set.
+
+            This also removed all the values assigned to the attribute
+            linked to this set for the cuds linked to this set.
+            """
+            self._cuds.remove(rel=self._predicate)
+
+        def pop(self) -> "Cuds":
+            """Remove and return an arbitrary set element.
+
+            Raises KeyError if the set is empty.
+            """
+            result = self._underlying_set.pop()
+            self._cuds.remove(result, rel=self._predicate)
+            return result
+
+        def difference(self, other: Iterable) -> Set["Cuds"]:
+            """Return the difference of two or more sets as a new set.
+
+            (i.e. all elements that are in this set but not the others.)
+            """
+            return super().difference(other)
+
+        def difference_update(self, other: Iterable):
+            """Remove all elements of another set from this set."""
+            to_remove = self._underlying_set.intersection(other)
+            if to_remove:
+                self._cuds.remove(*to_remove, rel=self._predicate)
+
+        def discard(self, other: Any):
+            """Remove an element from a set if it is a member.
+
+            If the element is not a member, do nothing.
+            """
+            try:
+                self._cuds.remove(other, rel=self._predicate)
+            except RuntimeError:
+                pass
+            except TypeError:
+                pass
+
+        def intersection(self, other: set) -> Set["Cuds"]:
+            """Return the intersection of two sets as a new set.
+
+            (i.e. all elements that are in both sets.)
+            """
+            return super().intersection(other)
+
+        def add(self, other: "Cuds"):
+            """Add an element to a set.
+
+            This has no effect if the element is already present.
+            """
+            return super().add(other)
+
+        def remove(self, other: Any):
+            """Remove an element from a set; it must be a member.
+
+            If the element is not a member, raise a KeyError.
+            """
+            to_remove = self._underlying_set & other
+            if to_remove:
+                self._cuds.remove(*to_remove, rel=self._predicate)
+            else:
+                raise KeyError(f"{other}")
+
+        def update(self, other: Iterable):
+            """Update a set with the union of itself and others."""
+            self.__ior__(set(other))
 
     def _recursive_store(self, new_cuds_object, old_cuds_object=None):
         """Recursively store cuds_object and all its children.
