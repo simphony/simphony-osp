@@ -1,8 +1,9 @@
 """This module contains methods for datatype conversions."""
 
 
-import sqlite3
+from base64 import b85encode, b85decode
 import re
+import sqlite3
 from abc import ABC
 from decimal import Decimal
 from fractions import Fraction
@@ -172,7 +173,7 @@ class Vector(CustomDataType):
         return blob
 
     @classmethod
-    def from_blob(cls, blob) -> 'Vector':
+    def from_blob(cls, blob: bytes) -> 'Vector':
         """Convert a bytes representation of a vector into a Vector object."""
         # Get data type.
         start_dtype = 0
@@ -200,12 +201,34 @@ class Vector(CustomDataType):
             .reshape(shape)
         return Vector(array)
 
+    def to_b85(self) -> str:
+        """Convert the vector to a base85 representation.
+
+        Use `from_b85` to convert back to a vector.
+        """
+        return b85encode(self.to_blob()).decode('UTF-8')
+
+    @classmethod
+    def from_b85(cls, string) -> 'Vector':
+        """Convert a base 85 representation of a vector back into a Vector."""
+        return cls.from_blob(b85decode(string.encode('UTF-8')))
+
+    @classmethod
+    def from_blob_or_b85(cls, value: Union[str, bytes]) -> 'Vector':
+        """Restore a vector from a base 85 or bytes representation of it."""
+        if isinstance(value, bytes):
+            return cls.from_blob(value)
+        elif isinstance(value, str):
+            return cls.from_b85(value)
+        else:
+            raise TypeError("Only str and bytes are allowed.")
+
 
 sqlite3.register_adapter(Vector, lambda x: x.to_blob())
 for datatype in (Literal, np.ndarray, Sequence, list, tuple, Vector):
     term.bind(Vector.iri, datatype,
-              lexicalizer=lambda x: Vector(x).to_blob().decode('UTF-8'),
-              constructor=lambda x: Vector.from_blob(x.encode('UTF-8')),
+              lexicalizer=lambda x: Vector(x).to_b85(),
+              constructor=lambda x: Vector.from_blob_or_b85(x),
               datatype_specific=True)
 
 
