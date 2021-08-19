@@ -1,9 +1,9 @@
 """This module contains methods for datatype conversions."""
 
-
-from base64 import b85encode, b85decode
+import logging
 import re
 import sqlite3
+from base64 import b85encode, b85decode
 from abc import ABC
 from decimal import Decimal
 from fractions import Fraction
@@ -11,8 +11,22 @@ from typing import Any, List, Optional, Tuple, Union, Sequence, MutableSequence
 from uuid import uuid4, UUID
 
 import numpy as np
+import rdflib
 from rdflib import XSD, Literal, URIRef, term
 from rdflib.term import Identifier
+
+
+# Ignore RDFLib binding warning.
+class _BindingWarningFilter(logging.Filter):
+    """Filters datatype rebinding warnings from RDFLib."""
+
+    def filter(self, record):
+        """Checks that the string is not contained in the message."""
+        return ' was already bound. Rebinding.' not in record.getMessage()
+
+
+rdflib_term_logger = logging.getLogger(rdflib.term.__name__)
+rdflib_term_logger.addFilter(_BindingWarningFilter())
 
 # --- Various type hints --- #
 NestedSequence = Union[Sequence[Any], Sequence['NestedSequence']]
