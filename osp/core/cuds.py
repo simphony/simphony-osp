@@ -186,7 +186,14 @@ class Cuds:
         - and when `rel` is an OntologyAttribute, to replace the values of
           such attribute.
 
-        This function only accepts a set-like object as input, as the
+        The subscripting syntax `cuds[rel, :] = `, even though not
+        considered on the type hints is also accepted. However, but the effect
+        it produces is the same. It is nevertheless required with in-place
+        operators such as `+=` or `&=` if one wants to operate on the set of
+        attributes values rather than on the attribute. See the docstring of
+        `__getitem__` for more details.
+
+        This function only accepts hashable objects as input, as the
         underlying RDF graph does not accept duplicate statements.
 
         Args:
@@ -201,6 +208,8 @@ class Cuds:
                 something that is neither an OntologyAttribute or an
                 OntologyRelationship as index.
         """
+        if isinstance(rel, tuple) and rel[1] == slice(None, None, None):
+            rel = rel[0]
         values = values or set()
         values = {values} \
             if not isinstance(values, (Set, MutableSet)) \
@@ -238,41 +247,83 @@ class Cuds:
                             f'not {type(rel)}')
 
     def __getitem__(self,
-                    rel: Union[OntologyAttribute, OntologyRelationship]) \
-            -> Union["Cuds._AttributeSet", "Cuds._RelationshipSet", "Cuds"]:
+                    value: Union[OntologyAttribute, OntologyRelationship,
+                                 Tuple[Union[OntologyAttribute,
+                                             OntologyRelationship],
+                                       slice]]) \
+            -> Optional[
+                Union["Cuds._AttributeSet", "Cuds._RelationshipSet", "Cuds"]]:
         """Retrieve linked CUDS objects objects or attribute values.
 
         The subscripting syntax `cuds[rel]` allows:
+        - When `rel` is an OntologyAttribute, to obtain one
+          (non-deterministic) value of such attribute.
+        - When `rel` is an OntologyRelationship, to obtain one
+          (non-deterministic) CUDS object of all the CUDS objects linked to
+          cuds through the `rel` relationship.
 
-        - When `rel` is an OntologyRelationship, to obtain a set containing
-          all CUDS objects that are connected to `cuds` through rel. Such
-          set can be modified in-place to modify the existing connections.
+        The subscripting syntax `cuds[rel, :]` allows:
         - When `rel` is an OntologyAttribute, to obtain a set containing all
           the values assigned to the specified attribute. Such set can be
           modified in-place to change the assigned values.
+        - When `rel` is an OntologyRelationship, to obtain a set containing
+          all CUDS objects that are connected to `cuds` through rel. Such
+          set can be modified in-place to modify the existing connections.
 
         The reason why a set is returned and not a list, or any other
         container allowing repeated elements, is that the underlying RDF
         graph does not accept duplicate statements.
 
         Args:
-            rel: Either an ontology attribute or an ontology relationship (
-            OWL datatype property, OWL object property).
+            value: Two possibilities,
+                - Just an ontology attribute or an ontology relationship
+                  (OWL datatype property, OWL object property). Then only one
+                  CUDS object or attribute value is returned.
+                - A tuple (multiple keys specified). The first element of the
+                  tuple is expected to be such attribute or relationship, and
+                  the second a `slice` object. When `slice(None, None, None)`
+                  (equivalent to `:`) is provided, a set-like object of
+                  values is returned. This is the the only kind of slice
+                  supported.
 
         Raises:
             TypeError: Trying to use something that is neither an
                 OntologyAttribute or an OntologyRelationship as index.
+            IndexError: When invalid slicing is provided.
         """
+        if isinstance(value, tuple):
+            rel, slicing = value
+        else:
+            rel, slicing = value, None
+
         if isinstance(rel, OntologyAttribute):
-            return self._AttributeSet(cuds=self, attribute=rel)
+            class_ = self._AttributeSet
         elif isinstance(rel, OntologyRelationship):
-            # TODO: Handle them with RelationshipSet as is done with
-            #  attributes.
-            return self._RelationshipSet(cuds=self, relationship=rel)
+            class_ = self._RelationshipSet
         else:
             raise TypeError(f'CUDS objects indices must be ontology '
                             f'relationships or ontology attributes, '
                             f'not {type(rel)}')
+
+        if slicing is None:
+            try:
+                return set(class_(rel, self)).pop()
+            except KeyError:
+                return None
+        elif slicing == slice(None, None, None):
+            return class_(rel, self)
+        elif not isinstance(slicing, slice):
+            raise IndexError(f"Invalid slicing {slicing}.")
+        else:
+            raise IndexError(
+                f'Invalid index [{rel}, '
+                f'{slicing.start if slicing.start is not None else ""}:'
+                f'{slicing.stop if slicing.stop is not None else ""}'
+                f'{":" if slicing.step is not None else ""}'
+                f'{slicing.step if slicing.step is not None else ""}'
+                f']. \n'
+                f'Only slicing of the kind [{rel}, :], or no slicing, '
+                f'i.e. [{rel}] is supported.')
 
     def __delitem__(self, rel: Union[OntologyAttribute, OntologyRelationship]):
         """Delete all attributes or data properties attached through rel.
