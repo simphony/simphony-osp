@@ -418,9 +418,12 @@ class TestSqlWrapperSession(unittest.TestCase):
             data_tbl("VECTOR-INT-2"))
         np.testing.assert_equal(v, (1, 42, np.array([1, 2])))
         v = self.session._get_values(
-            (iri_from_uid(uuid.UUID(int=1)), rdflib.XSD.type,
+            (iri_from_uid(uuid.UUID(int=1)),
+             rdflib.XSD.anyURI,
              city.City.iri),
             TYPES_TABLE)
+        # The next assertion should pass using any value for the predicate
+        # in the previous function.
         self.assertEqual(v, (1, 42))
 
 

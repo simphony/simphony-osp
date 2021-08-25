@@ -369,17 +369,23 @@ class OntologyNamespace():
             Union[str, rdflib.Literal]: Either the text of the label or the
                                         rdflib.Literal representing the label.
         """
-        labels = (label_tuple
-                  for prop in self._label_properties
-                  for label_tuple in
-                  self._graph.preferredLabel(iri, lang=lang,
-                                             labelProperties=(prop,))
-                  if label_tuple is not None)
+        def filter_language(literal):
+            if lang is None:
+                return True
+            elif lang == "":
+                return literal.language is None
+            else:
+                return literal.language == lang
+        labels = filter(lambda label_tuple: filter_language(label_tuple[1]),
+                        ((prop, literal) for prop in self._label_properties
+                         for literal in self._graph.objects(iri, prop))
+                        )
+
         if not _return_literal:
             labels = ((prop, literal.toPython())
                       for prop, literal in labels)
         if not _return_label_property:
-            return (label[1] for label in labels)
+            return (literal for prop, literal in labels)
         else:
             return labels
 
