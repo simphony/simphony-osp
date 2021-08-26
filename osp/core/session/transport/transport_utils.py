@@ -10,8 +10,13 @@ import rdflib
 import ast
 import filecmp
 from typing import Optional, Tuple, Any
-from rdflib_jsonld.serializer import from_rdf as json_from_rdf
-from rdflib_jsonld.parser import to_rdf as json_to_rdf
+from rdflib import __version__ as rdflib_version
+if rdflib_version >= '6':
+    from rdflib.plugins.serializers.jsonld import from_rdf as json_from_rdf
+    from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
+else:
+    from rdflib_jsonld.serializer import from_rdf as json_from_rdf
+    from rdflib_jsonld.parser import to_rdf as json_to_rdf
 from osp.core.namespaces import get_entity, cuba
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity

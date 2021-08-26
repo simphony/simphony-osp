@@ -103,7 +103,11 @@ class TestSqlUtil(unittest.TestCase):
         self.assertEqual(determine_datatype(data_tbl("XSD_integer")),
                          rdflib.XSD.integer)
         self.assertEqual(determine_datatype(data_tbl("OWL_rational")),
-                         rdflib.OWL.rational)
+                         rdflib.URIRef('http://www.w3.org/2002/07/owl'
+                                       '#rational'))
+        # Replaced rdflib.OWL.rational with URIRef('...'), as it seems to
+        # have disappeared in rdflib 6.0.0.
+        # TODO: return to original form when a fix for rdflib is available.
         self.assertEqual(determine_datatype(data_tbl("RDF_PlainLiteral")),
                          rdflib.RDF.PlainLiteral)
         self.assertEqual(determine_datatype(data_tbl("RDFS_Literal")),
@@ -115,8 +119,12 @@ class TestSqlUtil(unittest.TestCase):
         """Test getting the name of a data table from data type."""
         self.assertEqual(get_data_table_name(rdflib.XSD.integer),
                          data_tbl("XSD_integer"))
-        self.assertEqual(get_data_table_name(rdflib.OWL.rational),
-                         data_tbl("OWL_rational"))
+        self.assertEqual(get_data_table_name(
+            rdflib.URIRef('http://www.w3.org/2002/07/owl#rational')),
+            data_tbl("OWL_rational"))
+        # Replaced rdflib.OWL.rational with URIRef('...'), as it seems to
+        # have disappeared in rdflib 6.0.0.
+        # TODO: return to original form when a fix for rdflib is available.
         self.assertEqual(get_data_table_name(rdflib.RDF.PlainLiteral),
                          data_tbl("RDF_PlainLiteral"))
         self.assertEqual(get_data_table_name(rdflib.RDFS.Literal),
