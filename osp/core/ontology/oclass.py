@@ -1,12 +1,13 @@
 """A class defined in the ontology."""
+
+import logging
 import uuid
 
 import rdflib
+from rdflib import OWL, RDF, RDFS, BNode
 
-from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.cuba import rdflib_cuba
-import logging
-from rdflib import OWL, RDFS, RDF, BNode
+from osp.core.ontology.entity import OntologyEntity
 
 logger = logging.getLogger(__name__)
 

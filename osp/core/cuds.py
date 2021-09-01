@@ -5,9 +5,13 @@ has attributes and is connected to other cuds objects via relationships.
 """
 
 import logging
+from copy import deepcopy
 from uuid import uuid4, UUID
-from typing import Union, List, Iterator, Dict, Any, Optional, Tuple, Iterable
+from typing import Any, Dict, Hashable, Iterable, Iterator, List, Optional, \
+    Tuple, Union
+import rdflib
 from rdflib import URIRef, BNode, RDF, Graph, Literal
+import osp.core.warnings as warning_settings
 from osp.core.namespaces import cuba, from_iri
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.attribute import OntologyAttribute
@@ -179,7 +183,9 @@ class Cuds:
         for s, p, o in self._graph.triples((self.iri, None, None)):
             obj = from_iri(p, raise_error=False)
             if isinstance(obj, OntologyAttribute):
-                result[obj] = o.toPython()
+                value = self._rdflib_5_inplace_modification_prevention_filter(
+                    o.toPython(), obj)
+                result[obj] = value
         return result
 
     def is_a(self, oclass):
@@ -870,7 +876,9 @@ class Cuds:
             attr = self._get_attribute_by_argname(name)
             if self.session:
                 self.session._notify_read(self)
-            return self._graph.value(self.iri, attr.iri).toPython()
+            value = self._rdflib_5_inplace_modification_prevention_filter(
+                self._graph.value(self.iri, attr.iri).toPython(), attr)
+            return value
         except AttributeError as e:
             if (  # check if user calls session's methods on wrapper
                 self.is_a(cuba.Wrapper)
@@ -892,6 +900,37 @@ class Cuds:
             if attr is not None:
                 return attr
         raise AttributeError(name)
+
+    @staticmethod
+    def _rdflib_5_inplace_modification_prevention_filter(
+            value: Any, attribute: OntologyAttribute) -> Any:
+        if rdflib.__version__ < "6.0.0" and not isinstance(value,
+                                                           Hashable):
+            value = deepcopy(value)
+            if warning_settings.attributes_cannot_modify_in_place:
+                warning_settings.attributes_cannot_modify_in_place = False
+                logger.warning(f"Attribute {attribute} references the mutable "
+                               f"object {value} of type {type(value)}. Please "
+                               f"note that if you modify this object "
+                               f"in-place, the changes will not be reflected "
+                               f"on the cuds object's attribute. \n"
+                               f"For example, executing "
+                               f"`fr = city.City(name='Freiburg', "
+                               f"coordinates=[1, 2]); fr.coordinates[0]=98; "
+                               f"fr.coordinates` would yield `array([1, 2])` "
+                               f"instead of `array([98, 2])`, as you could "
+                               f"expect. Use `fr.coordinates = [98, 2]` "
+                               f"instead, or save the attribute to a "
+                               f"different variable, i.e. `value = "
+                               f"fr.coordinates; value[0] = 98, "
+                               f"fr.coordinates = value`."
+                               f"\n"
+                               f"You will not see this kind of warning again "
+                               f"during this session. You can turn off the "
+                               f"warning by running `import osp.core.warnings "
+                               f"as warning_settings; warning_settings."
+                               f"attributes_cannot_modify_in_place = False`.")
+        return value
 
     def __setattr__(self, name, new_value):
         """Set an attribute.
