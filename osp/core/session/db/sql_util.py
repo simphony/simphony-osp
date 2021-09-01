@@ -188,7 +188,11 @@ def determine_datatype(table_name):
     prefix = SqlWrapperSession.DATA_TABLE_PREFIX
 
     if table_name.startswith(prefix + "OWL_"):
-        return getattr(rdflib.OWL, table_name[len(prefix + "OWL_"):])
+        return rdflib.URIRef(f'http://www.w3.org/2002/07/owl#'
+                             f'{table_name[len(prefix + "OWL_"):]}')
+        # Replaced rdflib.OWL with URIRef('...'), as rdflib.OWL.rational seems
+        # to have disappeared in rdflib 6.0.0.
+        # TODO: return to original form when a fix for rdflib is available.
     elif table_name.startswith(prefix + "RDFS_"):
         return getattr(rdflib.RDFS, table_name[len(prefix + "RDFS_"):])
     elif table_name.startswith(prefix + "RDF_"):
