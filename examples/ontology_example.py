@@ -101,11 +101,11 @@ print(city.name.is_subclass_of(cuba.attribute))
 
 # Type specific operations
 print("\nYou can get the attributes of an ontology class and their defaults")
-print(city.Citizen.attributes)
+print(city.Citizen.attribute_declaration)
 
 print("\nYou can get the non-inherited attributes and their defaults")
-print(city.Citizen.own_attributes)
-print(city.LivingBeing.own_attributes)
+print(city.Citizen._direct_attributes)
+print(city.LivingBeing._direct_attributes)
 
 print("\nWeb Ontology Language Restrictions and Compositions are supported."
       "The `axioms` property returns them.")

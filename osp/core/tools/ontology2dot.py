@@ -107,7 +107,7 @@ class Ontology2Dot:
             graph (graphviz.Digraph): The graphviz graph to add the node to.
         """
         attr = ""
-        for key, value in oclass.attributes.items():
+        for key, value in oclass.attribute_declaration.items():
             attr += self.attribute.format(key.argname, value[0])
         label = self.label.format(str(oclass), attr)
         if oclass.namespace in self._namespaces:

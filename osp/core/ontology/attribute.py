@@ -1,79 +1,63 @@
 """An attribute defined in the ontology."""
 
 import logging
+from typing import Any, Iterator, Optional, TYPE_CHECKING
 
-from rdflib import OWL, RDFS, XSD, Literal
+from rdflib import RDFS, XSD, Literal, URIRef
 
-from osp.core.ontology.datatypes import RDF_TO_PYTHON
+from osp.core.ontology.datatypes import RDF_TO_PYTHON, UID
 from osp.core.ontology.entity import OntologyEntity
 
+if TYPE_CHECKING:
+    from osp.core.session.session import Session
 
 logger = logging.getLogger(__name__)
-
-
-BLACKLIST = {OWL.bottomDataProperty, OWL.topDataProperty}
 
 
 class OntologyAttribute(OntologyEntity):
     """An attribute defined in the ontology."""
 
-    def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
+    @property
+    def datatype(self) -> Optional[URIRef]:
+        """Get the data type of the attribute.
+
+        Returns:
+            IRI of the datatype.
+
+        Raises:
+            NotImplementedError: More than one data type associated with the
+                attribute.
+        """
+        data_types = set(o
+                         for superclass in self.superclasses
+                         for o in self.session.graph.triples(
+                            (superclass.iri, RDFS.range, None)))
+        result = set(data_types)
+        if len(result) > 1:
+            raise NotImplementedError(
+                f"More than one datatype associated to {self}: {data_types}.")
+        return result.pop() if len(result) > 0 else None
+
+    def __init__(self,
+                 uid: UID,
+                 session: Optional['Session'] = None) -> None:
         """Initialize the ontology attribute.
 
         Args:
-            namespace_registry (OntologyNamespaceRegistry): The namespace
-                registry where all namespaces are stored.
-            namespace_iri (URIRef): The IRI of the namespace.
-            name (str): The name of the attribute.
-            iri_suffix (str): namespace_iri +  namespace_registry make up the
-                namespace of this entity.
+            uid: UID identifying the entity.
+            session: Session where the entity is stored.
         """
-        super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
-        logger.debug("Created ontology data property %s" % self)
+        super().__init__(uid, session)
+        logger.debug("Instantiated ontology attribute %s." % self)
 
-    @property
-    def argname(self):
-        """Get the name of the attribute when used as an argument.
-
-        This name is used when construction a cuds object or accessing
-        the attributes of a CUDS object.
-        """
-        return super().name
-
-    @property
-    def datatype(self):
-        """Get the datatype of the attribute.
-
-        Returns:
-            URIRef: IRI of the datatype
-
-        Raises:
-            RuntimeError: More than one datatype associated with the attribute.
-                # TODO should be allowed
-        """
-        blacklist = [RDFS.Literal]
-        superclasses = self.superclasses
-        datatypes = set()
-        for superclass in superclasses:
-            triple = (superclass.iri, RDFS.range, None)
-            for _, _, o in self.namespace._graph.triples(triple):
-                if o not in blacklist:
-                    datatypes.add(o)
-        if len(datatypes) == 1:
-            return datatypes.pop()
-        if len(datatypes) == 0:
-            return None
-        raise RuntimeError(f"More than one datatype associated to {self}:"
-                           f" {datatypes}")
-
-    def convert_to_datatype(self, value):
-        """Convert to the datatype of the value.
+    def convert_to_datatype(self, value: Any) -> Any:
+        """Convert the value to the Python datatype of the attribute.
 
         Args:
-            value(Any): The value to convert
+            value: The value to convert.
 
         Returns:
-            Any: The converted value
+            The converted value.
         """
         # TODO: Very similar to
         #  `osp.core.session.db.sql_wrapper_session.SqlWrapperSession
@@ -88,20 +72,54 @@ class OntologyAttribute(OntologyEntity):
             result = RDF_TO_PYTHON[self.datatype or XSD.string](value)
         return result
 
-    def _direct_superclasses(self):
-        return self._directly_connected(RDFS.subPropertyOf,
-                                        blacklist=BLACKLIST)
+    def _get_direct_superclasses(self) -> Iterator[OntologyEntity]:
+        """Get all the direct superclasses of this attribute.
 
-    def _direct_subclasses(self):
-        return self._directly_connected(RDFS.subPropertyOf,
-                                        inverse=True, blacklist=BLACKLIST)
+        Returns:
+            The direct superattributes.
+        """
+        return (self.session.from_identifier(o) for o in
+                self.session.graph.objects(self.iri, RDFS.subPropertyOf))
 
-    def _superclasses(self):
+    def _get_direct_subclasses(self) -> Iterator[OntologyEntity]:
+        """Get all the direct subclasses of this attribute.
+
+        Returns:
+            The direct subattributes.
+        """
+        return (self.session.from_identifier(s) for s in
+                self.session.graph.subjects(RDFS.subPropertyOf, self.iri))
+
+    def _get_superclasses(self) -> Iterator[OntologyEntity]:
+        """Get all the superclasses of this attribute.
+
+        Yields:
+            The superattributes.
+        """
         yield self
-        yield from self._transitive_hull(RDFS.subPropertyOf,
-                                         blacklist=BLACKLIST)
 
-    def _subclasses(self):
+        def closure(node, graph):
+            for o in graph.objects(node, RDFS.subPropertyOf):
+                yield o
+
+        yield from (
+            self.session.from_identifier(x)
+            for x in self.session.graph.transitiveClosure(closure,
+                                                          self.identifier))
+
+    def _get_subclasses(self) -> Iterator[OntologyEntity]:
+        """Get all the subclasses of this attribute.
+
+        Yields:
+            The subattributes.
+        """
         yield self
-        yield from self._transitive_hull(RDFS.subPropertyOf,
-                                         inverse=True, blacklist=BLACKLIST)
+
+        def closure(node, graph):
+            for s in graph.subjects(RDFS.subPropertyOf, node):
+                yield s
+
+        yield from (
+            self.session.from_identifier(x)
+            for x in self.session.graph.transitiveClosure(closure,
+                                                          self.identifier))

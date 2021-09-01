@@ -368,14 +368,14 @@ class Cuds:
         result = list()
         # update cuds objects if they are already in the session
         old_objects = self._session.load(
-            *[arg.uid for arg in args if arg.session != self.session])
+            *[arg.uid for arg in args if arg.ontology != self.session])
         for arg in args:
             # Recursively add the children to the registry
             if rel in self._neighbors \
                     and arg.uid in self._neighbors[rel]:
                 message = '{!r} is already in the container'
                 raise self._ExistingCudsException(message.format(arg))
-            if self.session != arg.session:
+            if self.session != arg.ontology:
                 arg = self._recursive_store(arg, next(old_objects))
 
             self._add_direct(arg, rel)
@@ -1376,10 +1376,10 @@ class Cuds:
             old_cuds_object = clone_cuds_object(old_cuds_object)
             new_child_getter = new_cuds_object
             new_cuds_object = create_from_cuds_object(new_cuds_object,
-                                                      add_to.session)
+                                                      add_to.ontology)
             # fix the connections to the neighbors
             add_to._fix_neighbors(new_cuds_object, old_cuds_object,
-                                  add_to.session, missing)
+                                  add_to.ontology, missing)
             result = result or new_cuds_object
 
             for outgoing_rel in new_cuds_object._neighbors:

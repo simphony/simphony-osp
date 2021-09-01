@@ -215,7 +215,7 @@ class TestUtils(unittest.TestCase):
             aw = w.add(a)
             clone = clone_cuds_object(aw)
             self.assertIsNot(aw, None)
-            self.assertIs(clone.session, aw.session)
+            self.assertIs(clone.ontology, aw.ontology)
             self.assertEqual(clone.uid, aw.uid)
             self.assertIs(aw, session._registry.get(aw.uid))
             # self.assertEqual(clone.name, "Freiburg")
@@ -227,7 +227,7 @@ class TestUtils(unittest.TestCase):
         default_session = CoreSession()
         osp.core.cuds.Cuds._session = default_session
         a = city.City(name="Freiburg")
-        self.assertIs(a.session, default_session)
+        self.assertIs(a.ontology, default_session)
         with TestWrapperSession() as session:
             w = city.CityWrapper(session=session)
             with EngineContext(session):
@@ -284,7 +284,7 @@ class TestUtils(unittest.TestCase):
         default_session = CoreSession()
         Cuds._session = default_session
         a = city.City(name="Freiburg")
-        self.assertIs(a.session, default_session)
+        self.assertIs(a.ontology, default_session)
         with TestWrapperSession() as session:
             w = city.CityWrapper(session=session)
             with EngineContext(session):

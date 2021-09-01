@@ -149,7 +149,7 @@ def create_from_cuds_object(cuds_object, session):
     Returns:
         Cuds: A copy of self with the given session.
     """
-    assert cuds_object.session is not session
+    assert cuds_object.ontology is not session
     kwargs = {k.argname: v for k, v in cuds_object.get_attributes().items()}
     clone = create_recycle(oclass=cuds_object.oclass,
                            kwargs=kwargs,
@@ -177,7 +177,7 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
     Returns:
         Cuds: The cuds object with the changed oclass
     """
-    cuds_object.session._notify_read(cuds_object)
+    cuds_object.ontology._notify_read(cuds_object)
     # change oclass
     if cuds_object.oclass != new_oclass:
         for neighbor in cuds_object.get(rel=cuba.relationship):
@@ -186,7 +186,7 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
                     [new_oclass]
 
     # update attributes
-    attributes = new_oclass._get_attributes_values(kwargs, _force=_force)
+    attributes = new_oclass.attributes(kwargs, _force=_force)
     cuds_object._graph.remove((cuds_object.iri, None, None))
     cuds_object._graph.add((
         cuds_object.iri, RDF.type, new_oclass.iri
@@ -197,7 +197,7 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
                 cuds_object.iri, k.iri,
                 Literal(k.convert_to_datatype(e), datatype=k.datatype)
             ))
-    cuds_object.session._notify_update(cuds_object)
+    cuds_object.ontology._notify_update(cuds_object)
 
 
 def create_from_triples(triples, neighbor_triples, session,
@@ -226,7 +226,7 @@ def create_from_triples(triples, neighbor_triples, session,
     # recycle old object
     if uid in session._registry:
         cuds_object = session._registry.get(uid)
-        cuds_object.session._notify_read(cuds_object)
+        cuds_object.ontology._notify_read(cuds_object)
         if fix_neighbors:
             rels = set(cuds_object._neighbors.keys())
             for rel in rels:

@@ -5,8 +5,8 @@ import unittest2 as unittest
 import tempfile
 import rdflib
 from rdflib.compare import isomorphic
-from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.namespace_registry import NamespaceRegistry
+from osp.core.ontology.cuba import cuba_namespace
+from osp.core.ontology.namespace_registry import OntologySession
 from osp.core.ontology.installation import OntologyInstallationManager
 from osp.core.ontology import OntologyClass, OntologyRelationship, \
     OntologyAttribute
@@ -24,7 +24,7 @@ class TestNamespaces(unittest.TestCase):
     def setUp(self):
         """Set up some temporary directories."""
         self.tempdir = tempfile.TemporaryDirectory()
-        self.namespace_registry = NamespaceRegistry()
+        self.namespace_registry = OntologySession()
         self.namespace_registry._load_cuba()
         self.installer = OntologyInstallationManager(
             namespace_registry=self.namespace_registry,
@@ -87,7 +87,7 @@ class TestNamespaces(unittest.TestCase):
         self.namespace_registry.update_namespaces()
         self.namespace_registry.store(self.tempdir.name)
 
-        nr = NamespaceRegistry()
+        nr = OntologySession()
         nr.load_graph_file(self.tempdir.name)
         self.assertTrue(isomorphic(nr._graph, self.graph))
         self.assertIn("parser_test", nr)
@@ -106,15 +106,15 @@ class TestNamespaces(unittest.TestCase):
         hasPart_iri = ns_iri + "hasPart"
         self.modify_labels()
 
-        c = self.namespace_registry.from_iri(rdflib_cuba.Entity)
+        c = self.namespace_registry.from_iri(cuba_namespace.Entity)
         self.assertIsInstance(c, OntologyClass)
         self.assertEqual(c.namespace.get_name(), "cuba")
         self.assertEqual(c.name, "Entity")
-        r = self.namespace_registry.from_iri(rdflib_cuba.relationship)
+        r = self.namespace_registry.from_iri(cuba_namespace.relationship)
         self.assertIsInstance(r, OntologyRelationship)
         self.assertEqual(r.namespace.get_name(), "cuba")
         self.assertEqual(r.name, "relationship")
-        a = self.namespace_registry.from_iri(rdflib_cuba.attribute)
+        a = self.namespace_registry.from_iri(cuba_namespace.attribute)
         self.assertIsInstance(a, OntologyAttribute)
         self.assertEqual(a.namespace.get_name(), "cuba")
         self.assertEqual(a.name, "attribute")
@@ -133,14 +133,14 @@ class TestNamespaces(unittest.TestCase):
                 self.namespace_registry
             from_iri = self.namespace_registry.from_iri
 
-            c = from_iri(rdflib_cuba.Entity)
+            c = from_iri(cuba_namespace.Entity)
             self.assertIsInstance(c, OntologyClass)
             self.assertEqual(c.namespace.get_name(), "cuba")
             self.assertEqual(c.name, "Entity")
 
             self.graph.add((
                 ns_iri,
-                rdflib_cuba._reference_by_label,
+                cuba_namespace._reference_by_label,
                 rdflib.Literal(True)
             ))
             self.namespace_registry.from_iri.cache_clear()
@@ -486,7 +486,7 @@ class TestNamespaces(unittest.TestCase):
 
         self.graph.add((
             ns_iri,
-            rdflib_cuba._reference_by_label,
+            cuba_namespace._reference_by_label,
             rdflib.Literal(True)
         ))
 
@@ -507,7 +507,7 @@ class TestNamespaces(unittest.TestCase):
 
         self.graph.add((
             ns_iri,
-            rdflib_cuba._reference_by_label,
+            cuba_namespace._reference_by_label,
             rdflib.Literal(True)
         ))
 

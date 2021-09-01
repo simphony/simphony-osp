@@ -26,8 +26,8 @@ class NeighborDict(ABC):
 
     def __iter__(self):
         """Notify on iteration."""
-        if self.cuds_object.session:
-            self.cuds_object.session._notify_read(self.cuds_object)
+        if self.cuds_object.ontology:
+            self.cuds_object.ontology._notify_read(self.cuds_object)
         return self._iter()
         # TODO maybe it's more secure to notify read after each iteration step?
 
@@ -35,8 +35,8 @@ class NeighborDict(ABC):
         """Notify on read."""
         if not self.key_check(key):
             raise ValueError("Invalid key %s" % key)
-        if self.cuds_object.session:
-            self.cuds_object.session._notify_read(self.cuds_object)
+        if self.cuds_object.ontology:
+            self.cuds_object.ontology._notify_read(self.cuds_object)
         return self._getitem(key)
 
     def __setitem__(self, key, value):
@@ -45,22 +45,22 @@ class NeighborDict(ABC):
             raise ValueError("Invalid key %s" % key)
         if not self.value_check(value):
             raise ValueError("Invalid value %s" % value)
-        if self.cuds_object.session:
-            self.cuds_object.session._notify_read(self.cuds_object)
+        if self.cuds_object.ontology:
+            self.cuds_object.ontology._notify_read(self.cuds_object)
         r = self._setitem(key, value)
-        if self.cuds_object.session:
-            self.cuds_object.session._notify_update(self.cuds_object)
+        if self.cuds_object.ontology:
+            self.cuds_object.ontology._notify_update(self.cuds_object)
         return r
 
     def __delitem__(self, key):
         """Notify on deletion."""
         if not self.key_check(key):
             raise ValueError("Invalid key %s" % key)
-        if self.cuds_object.session:
-            self.cuds_object.session._notify_read(self.cuds_object)
+        if self.cuds_object.ontology:
+            self.cuds_object.ontology._notify_read(self.cuds_object)
         r = self._delitem(key)
-        if self.cuds_object.session:
-            self.cuds_object.session._notify_update(self.cuds_object)
+        if self.cuds_object.ontology:
+            self.cuds_object.ontology._notify_update(self.cuds_object)
         return r
 
     def __eq__(self, E):

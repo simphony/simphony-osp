@@ -1,15 +1,22 @@
 """A class defined in the ontology."""
 
 import logging
+from functools import cache
+from typing import Any, Dict, Iterator, List, Optional, Set, \
+    Tuple, TYPE_CHECKING, Union
 from uuid import UUID
-from typing import Any, Dict, List, Optional, Set, Union
 
 from rdflib import OWL, RDFS, RDF, BNode, URIRef
+from rdflib.term import Identifier
 
-from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.datatypes import UID
-from osp.core.ontology.attribute import OntologyAttribute
+from osp.core.ontology.cuba import cuba_namespace
+from osp.core.ontology.datatypes import UID, RDFCompatibleType
 from osp.core.ontology.entity import OntologyEntity
+
+if TYPE_CHECKING:
+    from osp.core.ontology.attribute import OntologyAttribute
+    from osp.core.ontology.oclass_restriction import Restriction
+    from osp.core.session.session import Session
 
 logger = logging.getLogger(__name__)
 
@@ -20,227 +27,262 @@ BLACKLIST = {OWL.Nothing, OWL.Thing,
 class OntologyClass(OntologyEntity):
     """A class defined in the ontology."""
 
-    def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
+    def __init__(self,
+                 uid: UID,
+                 session: Optional['Session'] = None) -> None:
         """Initialize the ontology class.
 
         Args:
-            namespace_registry (OntologyNamespaceRegistry): The namespace
-                registry where all namespaces are stored.
-            namespace_iri (URIRef): The IRI of the namespace.
-            name (str): The name of the class.
-            iri_suffix (str): namespace_iri +  namespace_registry make up the
-                namespace of this entity.
+            uid: UID identifying the ontology class.
+            session: Session where the entity is stored.
         """
-        super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
-        logger.debug("Created ontology class %s" % self)
-        self._cached_axioms = None
+        super().__init__(uid, session)
+        logger.debug("Instantiated ontology class %s" % self)
 
     @property
-    def attributes(self):
-        """Get all the attributes of this oclass.
+    def attributes(self) -> Dict[OntologyAttribute, Set[Any]]:
+        """Get the class attributes.
+
+        Non-mandatory attributes or attributes without a default value will
+        not be returned. Mandatory attributes without a default value will
+        have None as value.
 
         Returns:
-            Dict[OntologyAttribute, str]: Mapping from attribute to default
+            The resulting attributes.
         """
-        attributes = dict()
-        for superclass in self.superclasses:
-            for attr, v in self._get_attributes(superclass.iri).items():
-                x = attributes.get(attr, (None, None, None))
-                x = (x[0] or v[0], False if x[0] or v[0] else x[1] or v[1],
-                     x[2] or v[2])
-                attributes[attr] = x
-        return attributes
+        attributes = self.attribute_declaration
+        result = dict()
+        for attribute, (default, mandatory) \
+                in self.attribute_declaration.items():
+            if default is not None or mandatory:
+                attributes[attribute] = default
+        return result
 
     @property
-    def own_attributes(self):
-        """Get the non-inherited attributes of this oclass.
-
-        Returns:
-            Dict[OntologyAttribute, str]: Mapping from attribute to default
-        """
-        return self._get_attributes(self.iri)
-
-    @property
-    def axioms(self):
+    @cache
+    def axioms(self) -> Tuple['Restriction']:
         """Get all the axioms for the ontology class.
 
         Include axioms of superclasses.
 
         Returns:
-            List[Restriction]: The list of axioms for the ontology class.
+            Tuple of axioms for the ontology class.
         """
-        if self._cached_axioms is None:
-            for superclass in self.superclasses:
-                iri = superclass.iri
-                self._compute_axioms(iri, RDFS.subClassOf)
-                self._compute_axioms(iri, OWL.equivalentClass)
-        return self._cached_axioms
+        axioms = tuple()
+        for superclass in self.superclasses:
+            axioms += self._compute_axioms(
+                superclass.identifier, RDFS.subClassOf)
+            axioms += self._compute_axioms(
+                superclass.identifier, OWL.equivalentClass)
+        return tuple(axioms)
 
-    def _compute_axioms(self, iri, rdflib_predicate):
-        """Compute the axioms for the class with the given IRI.
+    def _compute_axioms(self,
+                        identifier: Identifier,
+                        predicate: URIRef) -> Tuple['Restriction']:
+        """Compute the axioms for the class with the given identifier.
 
         Does not include superclasses.
 
         Args:
-            iri (UriRef): The IRI of the class.
-            rdflib_predicate (UriRef): The predicate to which the class is
-                connected to axioms (subclass or equivalentClass).
+            identifier: The IRI of the class.
+            predicate: The predicate to which the class is connected to
+                axioms (subclass or equivalentClass).
+
+        Returns:
+            Tuple of computed axioms.
         """
-        self._cached_axioms = self._cached_axioms or []
-        triple = (iri, rdflib_predicate, None)
-        for _, _, o in self.namespace._graph.triples(triple):
+        axioms = tuple()
+        for o in self.session.graph.objects(identifier, predicate):
             if not isinstance(o, BNode):
                 continue
             try:
-                self._cached_axioms.append(
-                    self._namespace_registry.from_bnode(o)
-                )
+                axioms += (self.session.from_identifier(o), )
             except KeyError:
                 pass
+        return axioms
 
-    def _get_attributes(self, iri):
-        """Get the non-inherited attributes of the oclass with the given iri.
-
-        Args:
-            iri (URIRef): The iri of the oclass.
+    @property
+    def attribute_declaration(self) -> Dict['OntologyAttribute',
+                                            Tuple[Optional[RDFCompatibleType], bool]]:
+        """Get the attributes of this ontology class, and their settings.
 
         Returns:
-            Dict[OntologyAttribute, str]: Mapping from attribute to default
+            Mapping from attributes to default attribute values and whether
+            they are mandatory or not.
         """
-        graph = self._namespace_registry._graph
+        attributes = self._direct_attributes
+        for superclass in self.direct_superclasses:
+            for attribute, (new_default, new_mandatory) in \
+                    superclass.attribute_declaration.items():
+                default, mandatory = attributes.get(attribute, (None, False))
+                default, mandatory = default or new_default, \
+                    False if default or new_default else \
+                    mandatory or new_mandatory
+                attributes[attribute] = default, mandatory
+        return attributes
+
+    @property
+    def _direct_attributes(self) -> Dict['OntologyAttribute',
+                                         Tuple[Optional[RDFCompatibleType],
+                                               bool]]:
+        """Get the non-inherited attributes of this ontology class.
+
+        Returns:
+            Mapping from attributes to a tuple indicating:
+            - default value of the attribute,
+            - whether the attribute is mandatory or not,
+            - IRI of the attribute datatype.
+        """
+        identifier = self.identifier
+        graph = self.session.graph
         attributes = dict()
 
+        # Case 1: class is part of the domain of a DatatypeProperty.
         blacklist = [OWL.topDataProperty, OWL.bottomDataProperty]
-        # Case 1: domain of Datatype
-        triple = (None, RDFS.domain, iri)
-        for a_iri, _, _ in self.namespace._graph.triples(triple):
-            triple = (a_iri, RDF.type, OWL.DatatypeProperty)
-            if triple not in graph or isinstance(a_iri, BNode) \
-                    or a_iri in blacklist:
+        for s in graph.subjects(RDFS.domain, self.identifier):
+            if (s, RDF.type, OWL.DatatypeProperty) not in graph\
+                    or s in blacklist:
                 continue
-            a = self.namespace._namespace_registry.from_iri(a_iri)
-            default = self._get_default(a, iri)
-            attributes[a] = (default, False, None)
+            attribute = self.session.from_identifier(s)
+            default = self._get_default_python_object(attribute)
+            attributes[attribute] = (default, False)
 
-        # Case 2: axioms
-        triple = (iri, RDFS.subClassOf, None)
-        for _, _, o in self.namespace._graph.triples(triple):
-            if (o, RDF.type, OWL.Restriction) not in graph:
+        # Case 2: from axioms.
+        for r in graph.objects(identifier, RDFS.subClassOf):
+            # Must be a restriction.
+            if (r, RDF.type, OWL.Restriction) not in graph:
                 continue
-            a_iri = graph.value(o, OWL.onProperty)
-            triple = (a_iri, RDF.type, OWL.DatatypeProperty)
-            if triple not in graph or isinstance(a_iri, BNode):
+
+            # Must the property must be a DatatypeProperty.
+            a = graph.value(r, OWL.onProperty)
+            if (a, RDF.type, OWL.DatatypeProperty) not in graph:
                 continue
-            a = self.namespace._namespace_registry.from_iri(a_iri)
-            cuba_default = self._get_default(a, iri)
-            restriction_default = graph.value(o, OWL.hasValue)
+
+            attribute = self.session.from_identifier(a)
+            cuba_default = self._get_default_python_object(attribute)
+
+            # TODO: Move restriction default and obligatory logic to
+            #  restriction class?
+            # restriction = self.session.from_identifier(r)
+            restriction_default = graph.value(r, OWL.hasValue)
+            obligatory = any((
+                self.session.graph.value(r, OWL.someValuesFrom),
+                self.session.graph.value(r, OWL.allValuesFrom),
+                self.session.graph.value(r, OWL.hasValue),
+                self.session.graph.value(r, OWL.cardinality) != 0,
+                self.session.graph.value(r, OWL.minCardinality != 0)
+            ))
+
             default = cuba_default or restriction_default
-            dt, obligatory = self._get_datatype_for_restriction(o)
             obligatory = default is None and obligatory
-            attributes[a] = (default, obligatory, dt)
+
+            attributes[attribute] = (default, obligatory)
 
         # TODO more cases
         return attributes
 
-    def _get_datatype_for_restriction(self, r):
-        obligatory = False
-        dt = None
-        g = self.namespace._graph
-
-        dt = g.value(r, OWL.someValuesFrom)
-        obligatory = dt is not None
-        dt = dt or g.value(r, OWL.allValuesFrom)
-        dt = dt or g.value(r, OWL.hasValue)
-        obligatory = obligatory or (r, OWL.cardinality) != 0
-        obligatory = obligatory or (r, OWL.minCardinality) != 0
-        return dt, obligatory
-
-    def _get_default(self,
-                     attribute: OntologyAttribute,
-                     superclass_iri: URIRef):
-        """Get the default of the attribute with the given iri.
+    def _get_default_python_object(self,
+                                   attribute: OntologyAttribute) \
+            -> RDFCompatibleType:
+        """Get the default python object for the given attribute.
 
         Args:
-            attribute_iri: The attribute.
-            superclass_iri: IRI of the superclass that defines the default.
+            attribute: The attribute.
 
         Returns:
-            Any: the default
+            The default python object.
         """
-        triple = (superclass_iri, rdflib_cuba._default, None)
-        for _, _, bnode in self.namespace._graph.triples(triple):
-            x = (bnode, rdflib_cuba._default_attribute, attribute.iri)
-            if x in self.namespace._graph:
-                in_graph = self.namespace._graph.value(
-                    bnode, rdflib_cuba._default_value)
-                return attribute.convert_to_datatype(in_graph) \
-                    if in_graph is not None \
+        for bnode in self.session.graph.objects(self.iri,
+                                                cuba_namespace._default):
+            if (bnode, cuba_namespace.default_attribute, attribute.iri) in \
+                    self.session.graph:
+                literal = self.session.graph.value(
+                    bnode, cuba_namespace._default_value)
+                return attribute.convert_to_datatype(literal) \
+                    if literal is not None \
                     else None
 
-    def get_attribute_by_argname(self, name):
-        """Get the attribute object with the argname of the object.
-
-        Args:
-            name (str): The argname of the attribute
+    def _get_direct_superclasses(self) -> Iterator[OntologyEntity]:
+        """Get all the direct superclasses of this ontology class.
 
         Returns:
-            OntologyAttribute: The attribute
+            The direct superclasses.
         """
-        for attribute in self.attributes:
-            if attribute.argname == name:
-                return attribute
-            elif attribute.argname.lower() == name:
-                logger.warning(
-                    f"Attribute {attribute.argname} is referenced "
-                    f"with '{attribute.argname.lower()}'. "
-                    f"Note that you must match the case of the definition in "
-                    f"the ontology in future releases. Additionally, entity "
-                    f"names defined in YAML ontology are no longer required "
-                    f"to be ALL_CAPS. You can use the yaml2camelcase "
-                    f"commandline tool to transform entity names to CamelCase."
-                )
-                return attribute
+        return (self.session.from_identifier(o) for o in
+                self.session.graph.objects(self.iri, RDFS.subClassOf))
 
-    def _get_attributes_values(self,
-                               kwargs: Dict[str, Union[Any, Set[Any]]],
-                               _force: bool) -> Dict[OntologyAttribute,
-                                                     List[Any]]:
-        """Get the cuds object's attributes from the given kwargs.
+    def _get_direct_subclasses(self) -> Iterator[OntologyEntity]:
+        """Get all the direct subclasses of this ontology class.
 
-        Combine defaults and given attribute attributes
+        Returns:
+            The direct subclasses.
+        """
+        return (self.session.from_identifier(s) for s in
+                self.session.graph.subjects(RDFS.subClassOf, self.iri))
+
+    def _get_superclasses(self) -> Iterator[OntologyEntity]:
+        """Get all the superclasses of this ontology class.
+
+        Yields:
+            The superclasses.
+        """
+        yield self
+
+        def closure(node, graph):
+            for o in graph.objects(node, RDFS.subClassOf):
+                yield o
+
+        yield from (
+            self.session.from_identifier(x)
+            for x in self.session.graph.transitiveClosure(closure,
+                                                          self.identifier))
+
+    def _get_subclasses(self) -> Iterator[OntologyEntity]:
+        """Get all the subclasses of this ontology class.
+
+        Yields:
+            The subclasses.
+        """
+        yield self
+
+        def closure(node, graph):
+            for s in graph.subjects(RDFS.subClassOf, node):
+                yield s
+
+        yield from (
+            self.session.from_identifier(x)
+            for x in self.session.graph.transitiveClosure(closure,
+                                                          self.identifier))
+
+    def _kwargs_to_attributes(self,
+                              kwargs,
+                              _skip_checks: bool) -> Dict[OntologyAttribute,
+                                                         Set[Any]]:
+        """Combine class attributes with the ones from the given kwargs.
 
         Args:
             kwargs: The user specified keyword arguments.
-            _force: Skip checks.
+            _skip_checks: When true, allow mandatory attributes to be left
+                undefined.
 
         Raises:
             TypeError: Unexpected keyword argument.
             TypeError: Missing keyword argument.
 
         Returns:
-            The resulting attributes.
+            The resulting mixture.
         """
         kwargs = dict(kwargs)
         attributes = dict()
-        for attribute, (default, obligatory, dt) in self.attributes.items():
-            if attribute.argname in kwargs:
-                attributes[attribute] = kwargs[attribute.argname]
-                del kwargs[attribute.argname]
-            elif attribute.argname.lower() in kwargs:
-                attributes[attribute] = kwargs[attribute.argname.lower()]
-                del kwargs[attribute.argname.lower()]
-                logger.warning(
-                    f"Attribute {attribute.argname} is referenced "
-                    f"with '{attribute.argname.lower()}'. "
-                    f"Note that you must match the case of the definition in "
-                    f"the ontology in future releases. Additionally, entity "
-                    f"names defined in YAML ontology are no longer required "
-                    f"to be ALL_CAPS. You can use the yaml2camelcase "
-                    f"commandline tool to transform entity names to CamelCase."
-                )
-            elif not _force and obligatory:
+        for attribute, (default, obligatory) \
+                in self.attribute_declaration.items():
+            if attribute.label is not None \
+                    and attribute.label in kwargs:
+                attributes[attribute] = kwargs[attribute.label]
+                del kwargs[attribute.label]
+            elif not _skip_checks and obligatory:
                 raise TypeError("Missing keyword argument: %s" %
-                                attribute.argname)
+                                attribute.label)
             elif default is not None:
                 attributes[attribute] = default
             else:
@@ -257,30 +299,10 @@ class OntologyClass(OntologyEntity):
                 attributes[attribute][i] = attribute.convert_to_datatype(value)
 
         # Check validity of arguments
-        if not _force and kwargs:
+        if not _skip_checks and kwargs:
             raise TypeError("Unexpected keyword arguments: %s"
                             % kwargs.keys())
         return attributes
-
-    def _direct_superclasses(self):
-        return self._directly_connected(RDFS.subClassOf,
-                                        blacklist=BLACKLIST)
-
-    def _direct_subclasses(self):
-        return self._directly_connected(RDFS.subClassOf,
-                                        inverse=True, blacklist=BLACKLIST)
-
-    def _superclasses(self):
-        yield self
-        yield from self._transitive_hull(
-            RDFS.subClassOf,
-            blacklist=BLACKLIST)
-
-    def _subclasses(self):
-        yield self
-        yield from self._transitive_hull(
-            RDFS.subClassOf, inverse=True,
-            blacklist=BLACKLIST)
 
     def __call__(self,
                  session=None,
@@ -305,6 +327,7 @@ class OntologyClass(OntologyEntity):
         Returns:
             Cuds, The created cuds object
         """
+        # TODO: Create ontology individuals, NOT CUDS objects.
         if len(set(filter(lambda x: x is not None, (uid, iri)))) > 1:
             raise ValueError("Tried to initialize a CUDS object specifying, "
                              "both its IRI and UID. A CUDS object is "
@@ -337,7 +360,7 @@ class OntologyClass(OntologyEntity):
         # build attributes dictionary by combining
         # kwargs and defaults
         return Cuds(
-            attributes=self._get_attributes_values(kwargs, _force=_force),
+            attributes=self._kwargs_to_attributes(kwargs, _skip_checks=_force),
             oclass=self,
             session=session,
             uid=uid

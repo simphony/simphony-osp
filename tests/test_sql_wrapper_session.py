@@ -4,7 +4,7 @@ import numpy as np
 import unittest2 as unittest
 from rdflib import RDF, XSD, Literal
 
-from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.cuba import cuba_namespace
 from osp.core.ontology.datatypes import UID, Vector
 from osp.core.session import SqlWrapperSession
 from osp.core.session.db.sql_util import AndCondition, JoinCondition, \
@@ -39,9 +39,9 @@ class TestSqlWrapperSession(unittest.TestCase):
         """Create the session."""
         self.session = MockSqlWrapperSession()
         # , str(city.get_iri()): 2}
-        self.session._ns_to_idx = {str(rdflib_cuba): 1}
+        self.session._ns_to_idx = {str(cuba_namespace): 1}
         # , 2: str(city.get_iri())}
-        self.session._idx_to_ns = {1: str(rdflib_cuba)}
+        self.session._idx_to_ns = {1: str(cuba_namespace)}
 
     def test_queries_subject_given(self):
         """Test computing the queries corresponding to a triple pattern."""

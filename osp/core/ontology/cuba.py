@@ -42,4 +42,4 @@ class _CubaNamespace(ClosedNamespace):
         return name in ENTITIES or name in HIDDEN
 
 
-rdflib_cuba = _CubaNamespace()
+cuba_namespace = _CubaNamespace()

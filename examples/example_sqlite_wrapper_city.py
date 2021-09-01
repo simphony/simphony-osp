@@ -25,7 +25,7 @@ try:
     with SqliteWrapperSession("test.db") as session:
         wrapper = city.CityWrapper(session=session)
         wrapper.add(c)
-        wrapper.session.commit()
+        wrapper.ontology.commit()
 
     print("Reconnect and check if data is still there")
     with SqliteWrapperSession("test.db") as session:
@@ -38,7 +38,7 @@ try:
         wrapper = city.CityWrapper(session=session)
         c = wrapper.get(oclass=city.City)[0]
         c.name = "Paris"
-        wrapper.session.commit()
+        wrapper.ontology.commit()
 
     print("Reconnect and check if changes were successful")
     with SqliteWrapperSession("test.db") as session:
@@ -51,8 +51,8 @@ try:
         wrapper = city.CityWrapper(session=session)
         c = wrapper.get(oclass=city.City)[0]
         wrapper.remove(c)
-        wrapper.session.prune()
-        wrapper.session.commit()
+        wrapper.ontology.prune()
+        wrapper.ontology.commit()
 
     print("Reconnect and check if deletion was successful")
     with SqliteWrapperSession("test.db") as session:

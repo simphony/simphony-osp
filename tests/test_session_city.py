@@ -117,18 +117,18 @@ class TestSessionCity(unittest.TestCase):
         cw.add(n)
         cw.remove(n.uid)
         cw.name = "city 2"
-        w.session.prune()
+        w.ontology.prune()
 
         self.assertEqual(session._buffers, [
             [{cw.uid: cw}, {w.uid: w}, dict()],
             [dict(), dict(), dict()]])
 
-        w.session._reset_buffers(BufferContext.USER)
+        w.ontology._reset_buffers(BufferContext.USER)
         c2 = city.City(name="city3")
         w.add(c2)
         cw2 = w.get(c2.uid)
         w.remove(cw.uid)
-        w.session.prune()
+        w.ontology.prune()
 
         self.assertEqual(session._buffers, [
             [{cw2.uid: cw2}, {w.uid: w}, {cw.uid: cw}],
@@ -147,17 +147,17 @@ class TestSessionCity(unittest.TestCase):
                     madrid = city.City(name='Madrid')
                     with TestSession() as session4:
                         beijing = city.City(name='北京')
-                        self.assertIs(freiburg.session, session1)
-                        self.assertIs(berlin.session, session2)
-                        self.assertIs(madrid.session, session3)
-                        self.assertIs(beijing.session, session4)
+                        self.assertIs(freiburg.ontology, session1)
+                        self.assertIs(berlin.ontology, session2)
+                        self.assertIs(madrid.ontology, session3)
+                        self.assertIs(beijing.ontology, session4)
                 paris = city.City(name='Paris')
-                self.assertIs(berlin.session, paris.session)
-                self.assertIsNot(berlin.session, beijing.session)
+                self.assertIs(berlin.ontology, paris.ontology)
+                self.assertIsNot(berlin.ontology, beijing.ontology)
         tokyo = city.City(name='Tokyo')
         # Test default session restore.
-        self.assertIs(bern.session, tokyo.session)
-        self.assertIs(bern.session, default_session)
+        self.assertIs(bern.ontology, tokyo.ontology)
+        self.assertIs(bern.ontology, default_session)
 
     # def test_parse_cardinality(self):
     #     """Test parsing cardinality from the ontology."""

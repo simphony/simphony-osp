@@ -129,65 +129,65 @@ class TestOntologyEntity(unittest.TestCase):
 
     def test_oclass_attributes(self):
         """Test the attributes of ontology classes."""
-        self.assertEqual(city.City.attributes, {
+        self.assertEqual(city.City.attribute_declaration, {
             city.name: (None, True, None),
             city.coordinates: (Vector([0, 0]), False, None),
         })
-        self.assertEqual(city.City.own_attributes, {})
-        self.assertEqual(city.GeographicalPlace.own_attributes, {
+        self.assertEqual(city.City._direct_attributes, {})
+        self.assertEqual(city.GeographicalPlace._direct_attributes, {
             city.name: (None, True, None),
         })
         self.maxDiff = None
-        self.assertEqual(city.LivingBeing.own_attributes, {
+        self.assertEqual(city.LivingBeing._direct_attributes, {
             city.name: ("John Smith", False, None),
             city.age: (25, False, None)
         })
-        self.assertEqual(city.Person.attributes, {
+        self.assertEqual(city.Person.attribute_declaration, {
             city.name: ("John Smith", False, None),
             city.age: (25, False, None)
         })
-        self.assertEqual(city.PopulatedPlace.attributes, {
+        self.assertEqual(city.PopulatedPlace.attribute_declaration, {
             city.name: (None, True, None),
             city.coordinates: ([0, 0], False, None)
         })
-        self.assertEqual(city.GeographicalPlace.attributes, {
+        self.assertEqual(city.GeographicalPlace.attribute_declaration, {
             city.name: (None, True, None),
         })
 
     def test_oclass_get_default(self):
         """Test getting the default values of attributes."""
-        self.assertEqual(city.City._get_default(city.name,
-                                                city.City.iri),
+        self.assertEqual(city.City._get_default_python_object(city.name,
+                                                              city.City.iri),
                          None)
-        self.assertEqual(city.City._get_default(city.name,
-                                                city.GeographicalPlace.iri),
+        self.assertEqual(city.City._get_default_python_object(city.name,
+                                                              city.GeographicalPlace.iri),
                          None)
-        self.assertEqual(city.City._get_default(city.coordinates,
-                                                city.City.iri),
+        self.assertEqual(city.City._get_default_python_object(city.coordinates,
+                                                              city.City.iri),
                          None)
-        self.assertEqual(city.City._get_default(city.coordinates,
-                                                city.PopulatedPlace.iri),
+        self.assertEqual(city.City._get_default_python_object(city.coordinates,
+                                                              city.PopulatedPlace.iri),
                          [0, 0])
 
     def test_get_attribute_values(self):
         """Test getting the values of attributes."""
-        self.assertRaises(TypeError, city.City._get_attributes_values,
+        self.assertRaises(TypeError, city.City.attributes,
                           kwargs={}, _force=False)
-        self.assertRaises(TypeError, city.City._get_attributes_values,
+        self.assertRaises(TypeError, city.City.attributes,
                           kwargs={"name": "name", "invalid": "invalid"},
                           _force=False)
-        self.assertEqual(city.City._get_attributes_values(kwargs={},
-                                                          _force=True),
+        self.assertEqual(city.City.attributes(kwargs={},
+                                              _force=True),
                          {city.coordinates: [[0, 0]]})
-        self.assertEqual(city.City._get_attributes_values(kwargs={},
-                                                          _force=True),
+        self.assertEqual(city.City.attributes(kwargs={},
+                                              _force=True),
                          {city.coordinates: [[0, 0]]})
-        self.assertEqual(city.City._get_attributes_values(
+        self.assertEqual(city.City.attributes(
             kwargs={"name": "Freiburg"}, _force=True),
             {city.name: ["Freiburg"],
              city.coordinates: [[0, 0]]}
         )
-        self.assertEqual(city.City._get_attributes_values(
+        self.assertEqual(city.City.attributes(
             kwargs={"name": "Freiburg", "coordinates": [1, 1]}, _force=True),
             {city.name: ["Freiburg"],
              city.coordinates: [[1, 1]]}

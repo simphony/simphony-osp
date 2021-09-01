@@ -3,7 +3,7 @@
 import os
 import logging
 import rdflib
-from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.cuba import cuba_namespace
 from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
@@ -229,7 +229,7 @@ class NamespaceRegistry:
             bool: Whether entities should be referenced by label
         """
         return (
-            ns_iri, rdflib_cuba._reference_by_label, rdflib.Literal(True)
+                   ns_iri, cuba_namespace._reference_by_label, rdflib.Literal(True)
         ) in self._graph
 
     def _get_entity_name(self, entity_iri, ns_iri):

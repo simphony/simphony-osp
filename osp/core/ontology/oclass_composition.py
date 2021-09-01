@@ -2,7 +2,18 @@
 
 import logging
 from enum import Enum
+from functools import cache
+from typing import Iterable, List, Optional, TYPE_CHECKING, Tuple, Union
+
 from rdflib import OWL, BNode, RDF
+
+from osp.core.ontology.datatypes import UID
+from osp.core.ontology.entity import OntologyEntity
+
+if TYPE_CHECKING:
+    from osp.core.ontology.oclass import OntologyClass
+    from osp.core.ontology.oclass_restriction import Restriction
+    from osp.core.session.session import Session
 
 logger = logging.getLogger(__name__)
 
@@ -14,85 +25,102 @@ class OPERATOR(Enum):
     NOT = 3  # owl:complementOf
 
 
-class Composition():
+class Composition(OntologyEntity):
     """Combine multiple classes using logical formulae."""
 
-    def __init__(self, bnode, namespace_registry):
+    def __init__(self,
+                 uid: UID,
+                 session: Optional['Session'] = None) -> None:
         """Initialize the class composition."""
-        self._bnode = bnode
-        self._graph = namespace_registry._graph
-        self._namespace_registry = namespace_registry
-        self._cached_operator = None
-        self._cached_operands = None
+        if not isinstance(uid.data, BNode):
+            raise ValueError(f"Compositions are anonymous class descriptions, "
+                             f"and thus, they can only have blank nodes as "
+                             f"UIDs, not {type(uid.data)}.")
+        super().__init__(uid, session)
 
-    def __str__(self):
-        """Transform to a Protege like string."""
+    def __str__(self) -> str:
+        """Transform to a Protege-like string."""
         s = f" {self.operator} ".join(map(str, self.operands))
         if self.operator == OPERATOR.NOT:
             s = f"{self.operator} {s}"
         return f"({s})"
 
     @property
-    def operator(self):
+    def operator(self) -> OPERATOR:
         """The operator that connects the different classes in the formula.
 
         Returns:
-            OPERATOR: The operator Enum.
+            The operator Enum.
         """
-        if self._cached_operator is None:
-            self._compute()
-        return self._cached_operator
+        operator, _ = self._get_operator_and_operands
+        return operator
 
     @property
-    def operands(self):
+    def operands(self) -> Tuple[Union['OntologyClass',
+                                      'Composition',
+                                      'Restriction']]:
         """The individual classes the formula is composed of.
 
         Returns:
-            Union[OntologyClass, Composition, Restriction]: The operands.
+            The operands.
         """
-        if self._cached_operands is None:
-            self._compute()
-        return self._cached_operands
+        _, operands = self._get_operator_and_operands
+        return tuple(operands)
 
-    def _compute(self):
+    @cache
+    def _get_operator_and_operands(self) -> \
+            Tuple[Optional[OPERATOR],
+                  List[Union['OntologyClass',
+                             'Composition',
+                             'Restriction']]]:
         """Look up operator and operands in the graph."""
-        for rdflib_predicate, operator in [
+        for predicate, operator in [
             (OWL.unionOf, OPERATOR.OR),
             (OWL.intersectionOf, OPERATOR.AND),
             (OWL.complementOf, OPERATOR.NOT)
         ]:
-            if self._check_operator(rdflib_predicate, operator):
-                return True
+            operands = []
+            o = self.session.graph.value(self.identifier, predicate)
+            if operator == OPERATOR.NOT:
+                operand = self._get_operand(o)
+                operands += [operand] if operand is not None else []
+                return operator, operands
+            x = self.session.graph.value(o, RDF.first)
+            while x:
+                operand = self._get_operand(x)
+                operands += [operand] if operand is not None else []
+                o = self.session.graph.value(o, RDF.rest)
+                x = self.session.graph.value(o, RDF.first)
+            return operator, operands
 
-    def _check_operator(self, rdflib_predicate, operator):
-        """Check if given operator is used and what the operands are."""
-        self._cached_operands = list()
-        o = self._graph.value(self._bnode, rdflib_predicate)
-        if operator == OPERATOR.NOT:
-            self._add_operand(operator, o)
-            return True
-        x = self._graph.value(o, RDF.first)
-        while x:
-            self._add_operand(operator, x)
-            o = self._graph.value(o, RDF.rest)
-            x = self._graph.value(o, RDF.first)
-        return self._cached_operator is not None
-
-    def _add_operand(self, operator, x):
-        """Add a single operand to the list."""
-        self._cached_operator = operator
+    def _get_operand(self, identifier) -> Optional[Union['OntologyClass',
+                                                         'Composition',
+                                                         'Restriction']]:
+        """Get an operand to the from an identifier."""
         try:
-            self._cached_operands.append(
-                self._namespace_registry.from_bnode(x)
-                if isinstance(x, BNode)
-                else self._namespace_registry.from_iri(x)
-            )
+            return self.session.from_identifier(identifier)
         except KeyError:
             pass
 
+    def _get_direct_superclasses(self) -> Iterable['OntologyEntity']:
+        """Compositions have no superclasses."""
+        return iter(())
 
-def get_composition(bnode, namespace_registry):
-    """Return the restriction object represented by given bnode (or None)."""
-    c = Composition(bnode, namespace_registry)
+    def _get_direct_subclasses(self) -> Iterable['OntologyEntity']:
+        """Compositions have no subclasses."""
+        return iter(())
+
+    def _get_superclasses(self) -> Iterable['OntologyEntity']:
+        """Compositions have no superclasses."""
+        return iter(())
+
+    def _get_subclasses(self) -> Iterable['OntologyEntity']:
+        """Compositions have no subclasses."""
+        return iter(())
+
+
+def get_composition(identifier: BNode, session: 'Session'):
+    """Return the restriction object represented by given BNode (or None)."""
+    c = Composition(UID(identifier), session)
     if c.operands and c.operator:
         return c

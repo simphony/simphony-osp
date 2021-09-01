@@ -12,7 +12,7 @@ from uuid import uuid4, UUID
 
 import numpy as np
 import rdflib
-from rdflib import XSD, Literal, URIRef, term
+from rdflib import XSD, BNode, Literal, URIRef, term
 from rdflib.term import Identifier
 
 
@@ -256,7 +256,7 @@ class UID(CustomDataType):
     welcome to use this custom data type.
     """
     iri = URIRef('http://www.osp-core.com/types#UID')
-    data: Union[UUID, URIRef]
+    data: Union[BNode, URIRef, UUID]
 
     def __init__(self,
                  value: Optional[Union['UID', UUID, str,
@@ -317,8 +317,16 @@ class UID(CustomDataType):
 
     def to_iri(self) -> URIRef:
         """Convert the UID to an IRI."""
-        return self.data if isinstance(self.data, URIRef) else \
-            URIRef(CUDS_IRI_PREFIX + str(self.data))
+        if isinstance(self.data, BNode):
+            raise TypeError(f"The UID {self} cannot be converted to an IRI, "
+                            f"as it is a blank node.")
+        elif isinstance(self.data, URIRef):
+            return_iri = self.data
+        elif isinstance(self.data, UUID):
+            return_iri = URIRef(CUDS_IRI_PREFIX + str(self.data))
+        else:
+            raise RuntimeError(f"Illegal UID type {type(self.data)}.")
+        return return_iri
 
     def to_uuid(self) -> UUID:
         """Convert the UID to an UUID.
@@ -327,9 +335,12 @@ class UID(CustomDataType):
         """
         if not isinstance(self.data, UUID):
             raise Exception(f'Tried to get the UUID of the UID object '
-                            f'{self}, but this object is an IRI.')
+                            f'{self}, but this object is not a UUID.')
         return self.data
 
+    def to_identifier(self) -> Identifier:
+        """Convert the UID to an rdflib Identifier."""
+        return self.to_iri() if isinstance(self.data, UUID) else self.data
 
 sqlite3.register_adapter(UID, lambda x: str(x))
 for datatype in (UID, UUID, URIRef, str, int, bytes):

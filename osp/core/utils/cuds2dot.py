@@ -78,7 +78,7 @@ class Cuds2dot():
             )
         if uid == self._root_uid:
             attr += self.attribute.format("session",
-                                          type(self._root.session).__name__)
+                                          type(self._root.ontology).__name__)
             label = self.label.format(uid, attr)
             self._graph.node(uid, label=label,
                              color="lightblue", style="filled")

@@ -1,6 +1,6 @@
 """This file exists for backwards compatibility reasons."""
 
-from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.cuba import cuba_namespace
 
 
 def get_case_insensitive_alternative(name, is_cuba):
@@ -38,18 +38,18 @@ def get_case_insensitive_alternative(name, is_cuba):
 
             name += x.upper() if upper else x.lower()
             upper = False
-        if name in rdflib_cuba:
+        if name in cuba_namespace:
             return name
         name = name[0].lower() + name[1:]
-        if name in rdflib_cuba:
+        if name in cuba_namespace:
             return name
 
     elif is_cuba and given[0].isupper():
         name = given[0].lower() + given[1:]
-        if name in rdflib_cuba:
+        if name in cuba_namespace:
             return name
 
     elif is_cuba and given[0].islower():
         name = given[0].upper() + given[1:]
-        if name in rdflib_cuba:
+        if name in cuba_namespace:
             return name

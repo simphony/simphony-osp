@@ -10,7 +10,7 @@ import responses
 from rdflib.compare import isomorphic
 from osp.core.ontology.parser import Parser
 from osp.core.ontology.parser.parser import OntologyParser
-from osp.core.ontology.namespace_registry import NamespaceRegistry
+from osp.core.ontology.namespace_registry import OntologySession
 
 
 RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -28,7 +28,7 @@ class TestParser(unittest.TestCase):
 
     def setUp(self):
         """Set up Graph and Parser."""
-        self.namespace_registry = NamespaceRegistry()
+        self.namespace_registry = OntologySession()
         self.graph = self.namespace_registry._graph
         self.parser = Parser(parser_namespace_registry=self.namespace_registry)
         with open(YML_FILE, 'r') as file:

@@ -8,8 +8,8 @@ import yaml
 from rdflib import OWL, RDF, RDFS, SKOS, XSD, Literal, URIRef
 from rdflib.compare import isomorphic
 
-from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.namespace_registry import NamespaceRegistry
+from osp.core.ontology.cuba import cuba_namespace
+from osp.core.ontology.namespace_registry import OntologySession
 from osp.core.ontology.datatypes import Vector
 from osp.core.ontology.ontology import Ontology
 from osp.core.ontology.parser.owl.parser import OWLParser
@@ -38,7 +38,7 @@ class TestYMLParser(unittest.TestCase):
         with open(YML_FILE, "r") as f:
             self.yml_doc = yaml.safe_load(f)
         self.ontology_doc = self.yml_doc["ontology"]
-        self.namespace_registry = NamespaceRegistry()
+        self.namespace_registry = OntologySession()
         self.graph = self.namespace_registry._graph
         self.parser = YMLParser(YML_FILE)
         self.parser._ontology_doc = self.ontology_doc
@@ -131,13 +131,13 @@ class TestYMLParser(unittest.TestCase):
         pre = set(self.parser._graph)
         self.parser._add_attributes("ClassA", self.ontology_doc["ClassA"])
         bnode1 = self.parser._graph.value(self.parser._get_iri("ClassA"),
-                                          rdflib_cuba._default)
+                                          cuba_namespace._default)
         bnode2 = self.parser._graph.value(None, RDF.type,
                                           OWL.Restriction)
         self.assertEqual(set(self.parser._graph) - pre, {
-            (self.parser._get_iri("ClassA"), rdflib_cuba._default, bnode1),
-            (bnode1, rdflib_cuba._default_value, Literal("DEFAULT_A")),
-            (bnode1, rdflib_cuba._default_attribute,
+            (self.parser._get_iri("ClassA"), cuba_namespace._default, bnode1),
+            (bnode1, cuba_namespace._default_value, Literal("DEFAULT_A")),
+            (bnode1, cuba_namespace._default_attribute,
              self.parser._get_iri("attributeA")),
             (bnode2, OWL.cardinality,
              Literal(1, datatype=XSD.integer)),
@@ -268,7 +268,7 @@ class TestYMLParser(unittest.TestCase):
             (iri, RDF.type, OWL.Class),
             (iri, RDFS.isDefinedBy,
              Literal("Class A", lang="en")),
-            (iri, RDFS.subClassOf, rdflib_cuba.Entity),
+            (iri, RDFS.subClassOf, cuba_namespace.Entity),
             (iri, SKOS.prefLabel,
              Literal("ClassA", lang="en"))
         })
@@ -281,7 +281,7 @@ class TestYMLParser(unittest.TestCase):
         iri = self.parser._get_iri(name)
         self.assertEqual(set(self.parser._graph) - pre, {
             (iri, RDF.type, OWL.ObjectProperty),
-            (iri, RDFS.subPropertyOf, rdflib_cuba.activeRelationship),
+            (iri, RDFS.subPropertyOf, cuba_namespace.activeRelationship),
             (iri, SKOS.prefLabel,
              Literal("relationshipA", lang="en"))
         })
@@ -295,7 +295,7 @@ class TestYMLParser(unittest.TestCase):
         self.assertEqual(set(self.parser._graph) - pre, {
             (iri, RDF.type, OWL.DatatypeProperty),
             (iri, RDF.type, OWL.FunctionalProperty),
-            (iri, RDFS.subPropertyOf, rdflib_cuba.attribute),
+            (iri, RDFS.subPropertyOf, cuba_namespace.attribute),
             (iri, SKOS.prefLabel,
              Literal("attributeA", lang="en"))
         })

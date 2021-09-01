@@ -1,71 +1,93 @@
 """Defines an ontology."""
-from copy import deepcopy
-from typing import Union, Set, Dict, Tuple, Optional, Iterable
+
+import itertools
 import logging
-from rdflib import RDF, RDFS, OWL, Graph, URIRef, Literal
+from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
+
 import rdflib
-from osp.core.ontology.cuba import rdflib_cuba
+from rdflib import RDF, RDFS, OWL, Graph, URIRef, Literal
+
+from osp.core.ontology.cuba import cuba_namespace
+from osp.core.ontology.datatypes import UID
 from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.parser.parser import OntologyParser
+from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.session.session import Session
 
 logger = logging.getLogger(__name__)
 
 
-class Ontology:
-    """Defines an ontology.
+class Ontology(Session):
+    """Represents an ontology.
 
-    Sets the basis for editable ontologies. This object is the one meant to be
-    loaded by the namespace registry.
+    The Ontology class extends the Session class, as it is not merely a graph,
+    but has a few more characteristics that define it, such as an identifier,
+    a list of namespaces included in the ontology, dependencies on other
+    ontologies...
+
+    The most notable difference between an Ontology and a session is that it
+    not only has a `_graph` attribute like the session, but also an additional
+    `_overlay` graph, that contains this metadata.
     """
 
-    identifier: str
-    namespaces: Dict[str, URIRef]
+    identifier: Optional[str]
+    namespaces: List[OntologyNamespace]
     requirements: Set[str]
-    _ontology_graph: Graph
-    _ontology_overlay: Graph
+    _graph: Graph
+    _overlay: Graph
 
     @property
-    def active_relationships(self) -> Tuple[URIRef]:
+    def active_relationships(self) -> Tuple[OntologyRelationship]:
         """Get the active relationships defined in the ontology."""
-        return tuple(iri for iri in self._ontology_overlay.subjects(
-            RDFS.subPropertyOf, rdflib_cuba.activeRelationship))
+        # TODO: Transitive closure.
+        return tuple(OntologyRelationship(UID(s), self) for s in
+                     self._overlay.subjects(RDFS.subPropertyOf,
+                                            cuba_namespace.activeRelationship))
 
     @active_relationships.setter
-    def active_relationships(self, value: Tuple[URIRef]):
+    def active_relationships(self, value: Iterable[OntologyRelationship]):
         """Set the active relationships defined in the ontology."""
-        for triple in self._ontology_overlay.triples(
-                (None, RDFS.subPropertyOf, rdflib_cuba.activeRelationship)):
-            self._ontology_overlay.remove(triple)
+        for triple in self._overlay.triples(
+                (None, RDFS.subPropertyOf, cuba_namespace.activeRelationship)):
+            self._overlay.remove(triple)
         for relationship in value:
-            self._ontology_overlay.add((relationship, RDFS.subPropertyOf,
-                                        rdflib_cuba.activeRelationship))
+            self._overlay.add((relationship.iri, RDFS.subPropertyOf,
+                               cuba_namespace.activeRelationship))
 
     @property
-    def default_relationship(self) -> Optional[URIRef]:
+    def default_relationship(self) -> Optional[OntologyRelationship]:
         """Get the default relationship defined in the ontology."""
-        default_relationships = (o for s, o in
-                                 self._ontology_overlay.subject_objects(
-                                     rdflib_cuba._default_rel)
-                                 if s in self.namespaces.values())
-        try:
-            default_relationship = next(default_relationships)
-        except StopIteration:
+        namespace_iris = tuple(ns.iri for ns in self.namespaces)
+        default_relationships = (OntologyRelationship(UID(o), self)
+                                 for s, o in
+                                 self._overlay.subject_objects(
+                                     cuba_namespace._default_rel)
+                                 if s in namespace_iris)
+        default_relationships = tuple(
+            itertools.islice(default_relationships, 2))
+        if len(default_relationships) > 1:
+            raise ValueError(f"Multiple default relationships for ontology"
+                             f"{self}.")
+        elif len(default_relationships) == 0:
             default_relationship = None
+        else:
+            default_relationship = default_relationships[0]
         return default_relationship
 
     @default_relationship.setter
-    def default_relationship(self, value: Optional[URIRef]):
+    def default_relationship(self, value: Optional[OntologyRelationship]):
         """Set the default relationship defined in the ontology."""
+        namespace_iris = tuple(ns.iri for ns in self.namespaces)
         default_relationships = (o for s, o in
-                                 self._ontology_overlay.subject_objects(
-                                     rdflib_cuba._default_rel)
-                                 if s in self.namespaces.values())
-        for triple in default_relationships:
-            self._ontology_overlay.remove(triple)
+                                 self._overlay.subject_objects(
+                                     cuba_namespace._default_rel)
+                                 if s in namespace_iris)
+        for o in default_relationships:
+            self._overlay.remove((None, cuba_namespace._default_rel, o))
         if value is not None:
-            for iri in self.namespaces.values():
-                self._ontology_overlay.add((iri, rdflib_cuba._default_rel,
-                                            value))
+            for iri in namespace_iris:
+                self._overlay.add((iri, cuba_namespace._default_rel,
+                                   value.iri))
 
     @property
     def reference_style(self) -> bool:
@@ -73,69 +95,117 @@ class Ontology:
 
         Can be either by label (True) or by iri suffix (False).
         """
+        namespace_iris = tuple(ns.iri for ns in self.namespaces)
         true_reference_styles = (s for s in
-                                 self._ontology_overlay.subjects(
-                                     rdflib_cuba._reference_by_label,
+                                 self._overlay.subjects(
+                                     cuba_namespace._reference_by_label,
                                      Literal(True))
-                                 if s in self.namespaces.values())
-        try:
-            default_relationship = next(true_reference_styles)
-        except StopIteration:
-            default_relationship = None
-        return default_relationship
+                                 if s in namespace_iris)
+        true_reference_styles = tuple(
+            itertools.islice(true_reference_styles, 2))
+        if len(true_reference_styles) > 1:
+            raise ValueError(f"Multiple reference styles for ontology"
+                             f"{self}.")
+        elif len(true_reference_styles) == 0:
+            reference_style = False
+        else:
+            reference_style = True
+        return reference_style
 
     @reference_style.setter
-    def reference_style(self, value: bool) -> bool:
+    def reference_style(self, value: bool):
         """Set the reference style defined in the ontology.
 
         Can be either by label (True) or by iri suffix (False).
         """
+        namespace_iris = tuple(ns.iri for ns in self.namespaces)
         reference_style_triples = (
-            (s, p, o) for s, p, o in self._ontology_overlay.triples(
-                (None, rdflib_cuba._reference_by_label, Literal(True)))
-            if s in self.namespaces.values()
+            (s, p, o) for s, p, o in self._overlay.triples(
+                (None, cuba_namespace._reference_by_label, Literal(True)))
+            if s in namespace_iris
         )
         for triple in reference_style_triples:
-            self._ontology_overlay.remove(triple)
-        for iri in self.namespaces.values():
-            self._ontology_overlay.add((iri, rdflib_cuba._reference_by_label,
-                                        Literal(value)))
+            self._overlay.remove(triple)
+        for iri in namespace_iris:
+            self._overlay.add((iri, cuba_namespace._reference_by_label,
+                               Literal(value)))
 
     @property
     def graph(self) -> Graph:
         """Get the ontology graph."""
-        return self._ontology_graph + self._ontology_overlay
+        return self._graph + self._overlay
 
-    def __init__(self, identifier: str = None,
-                 namespaces: Dict[str, str] = None,
+    def get_namespace(self, name: Union[str, URIRef]) -> OntologyNamespace:
+        """Get a namespace registered with the ontology.
+
+        Args:
+            name: The namespace name to search for.
+
+        Returns:
+            The ontology namespace.
+
+        Raises:
+            KeyError: Namespace not found.
+        """
+        coincidences = iter(tuple())
+        if isinstance(name, URIRef):
+            coincidences_iri = (x for x in self.namespaces if x.iri == name)
+            coincidences = itertools.chain(coincidences, coincidences_iri)
+        elif isinstance(name, str):
+            coincidences_name = (x for x in self.namespaces if x.name == name)
+            coincidences = itertools.chain(coincidences, coincidences_name)
+            # Last resort: user provided string but may be an IRI.
+            coincidences_fallback = (x for x in self.namespaces
+                                     if x.iri == URIRef(name))
+            coincidences = itertools.chain(coincidences, coincidences_fallback)
+
+        result = next(coincidences, None)
+        if result is None:
+            raise KeyError(f"Namespace {name} not found in ontology {self}.")
+        return result
+
+    def __init__(self,
+                 identifier: Optional[str] = None,
+                 namespaces: Dict[str, URIRef] = None,
                  requirements: Iterable[str] = None,
-                 from_parser: OntologyParser = None):
+                 from_parser: Optional[OntologyParser] = None):
         """Initialize the ontology.
 
         A few metadata can be specified, but the ontology will be essentially
         empty unless it is created from a parser object.
         """
+        super().__init__()
         if from_parser:  # Compute ontology graph from an ontology parser.
             parser = from_parser
-            self._ontology_graph = deepcopy(parser.graph)
-            self._ontology_overlay = self._overlay_from_parser(parser)
-            for attr in ('identifier', 'namespaces', 'requirements'):
+            self._graph += parser.graph
+            self._overlay = self._overlay_from_parser(parser)
+            self.namespaces = [OntologyNamespace(iri=iri,
+                                                 ontology=self,
+                                                 name=name)
+                               for name, iri in parser.namespaces.items()]
+            for attr in ('identifier', 'requirements'):
                 setattr(self, attr, getattr(parser, attr))
         else:  # Create an empty ontology.
-            self._ontology_graph = Graph()
-            self._ontology_overlay = Graph()
-            self.identifier = identifier if identifier else ''
-            self.namespaces = namespaces if namespaces else dict()
+            self._overlay = Graph()
+            self.identifier = identifier
+            self.namespaces = [
+                OntologyNamespace(iri=value, name=key, ontology=self)
+                for key, value in namespaces.keys()] \
+                if namespaces else list()
             self.requirements = requirements if requirements else set()
 
+    def __str__(self):
+        """Human readable string representation for the ontology object."""
+        return f"{self.identifier}"
+
     def _update_overlay(self) -> Graph:
-        graph = self._ontology_graph
+        graph = self._graph
         overlay = Graph()
-        for namespace, iri in self.namespaces.items():
+        for namespace, iri in ((ns, ns.iri) for ns in self.namespaces):
             # Look for duplicate labels.
             if self.reference_style:
                 _check_duplicate_labels(graph, iri)
-        _check_namespaces(self.namespaces.values(), graph)
+        _check_namespaces((ns.iri for ns in self.namespaces), graph)
         self._overlay_add_cuba_triples(self, overlay)
         self._overlay_add_default_rel_triples(self, overlay)
         self._overlay_add_reference_style_triples(self, overlay)
@@ -170,7 +240,7 @@ class Ontology:
         for namespace in parser.namespaces.values():
             overlay.add((
                 URIRef(namespace),
-                rdflib_cuba._default_rel,
+                cuba_namespace._default_rel,
                 URIRef(parser.default_relationship)
             ))
 
@@ -191,7 +261,7 @@ class Ontology:
                 # (NamespaceRegistry._check_default_relationship_installed).
             overlay.add(
                 (iri, RDFS.subPropertyOf,
-                 rdflib_cuba.activeRelationship)
+                 cuba_namespace.activeRelationship)
             )
 
     @staticmethod
@@ -209,9 +279,21 @@ class Ontology:
             if parser.reference_style:
                 overlay.add((
                     URIRef(namespace),
-                    rdflib_cuba._reference_by_label,
+                    cuba_namespace._reference_by_label,
                     Literal(True)
                 ))
+
+    def _notify_delete(self, cuds_object):
+        pass
+
+    def _notify_update(self, cuds_object):
+        pass
+
+    def _notify_read(self, cuds_object):
+        pass
+
+    def _get_full_graph(self):
+        pass
 
 
 def _check_duplicate_labels(graph: Graph, namespace: Union[str, URIRef]):
@@ -272,3 +354,6 @@ def _check_namespaces(namespace_iris: Iterable[URIRef],
             break
     for namespace in namespaces:
         logger.warning(f"There exists no entity for namespace {namespace}.")
+
+
+tbox = Ontology()

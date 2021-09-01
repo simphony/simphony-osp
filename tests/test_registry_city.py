@@ -37,7 +37,7 @@ class TestRegistryCity(unittest.TestCase):
         c.add(p, rel=city.hasInhabitant)
         c.add(n)
         n.add(s)
-        registry = c.session._registry
+        registry = c.ontology._registry
         self.assertEqual(
             registry.get_subtree(c.uid),
             set([c, p, n, s]))
@@ -63,7 +63,7 @@ class TestRegistryCity(unittest.TestCase):
                 for k in range(2):
                     s = city.Street(name="street %s %s %s" % (i, j, k))
                     n.add(s)
-        registry = cities[0].session._registry
+        registry = cities[0].ontology._registry
         registry.prune(*[c.uid for c in cities[0:2]])
         self.assertEqual(
             set([k.name for k in registry.values()]),
@@ -93,7 +93,7 @@ class TestRegistryCity(unittest.TestCase):
                 for k in range(2):
                     s = city.Street(name="street %s %s %s" % (i, j, k))
                     n.add(s)
-        registry = cities[0].session._registry
+        registry = cities[0].ontology._registry
         result = registry._get_not_reachable(cities[2].uid)
         self.assertEqual(
             set([k.name for k in result]),

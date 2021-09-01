@@ -31,7 +31,7 @@ class TestSPARQL(unittest.TestCase):
         freiburg = city.City(name='Freiburg')
         karl = city.Citizen(name="Karl", age=47)
         freiburg.add(karl, rel=city.hasInhabitant)
-        core_session = freiburg.session
+        core_session = freiburg.ontology
         query = f"""SELECT ?city_name ?citizen ?citizen_age ?citizen_name
                     WHERE {{ ?city a <{city.City.iri}> .
                              ?city <{city.name.iri}> ?city_name .

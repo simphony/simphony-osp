@@ -45,7 +45,7 @@ class TestSqliteCity(unittest.TestCase):
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
-            wrapper.session.commit()
+            wrapper.ontology.commit()
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
@@ -62,7 +62,7 @@ class TestSqliteCity(unittest.TestCase):
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
-            wrapper.session.commit()
+            wrapper.ontology.commit()
 
         check_state(self, c, p1, p2)
 
@@ -309,7 +309,7 @@ class TestSqliteCity(unittest.TestCase):
             session._clear_database()
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            wrapper.session.commit()
+            wrapper.ontology.commit()
             session._clear_database()
 
         # db is not empty

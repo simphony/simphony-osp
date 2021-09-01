@@ -11,7 +11,7 @@ from typing import Optional, Tuple, Any
 from rdflib import OWL, RDF, BNode, Graph, Literal, URIRef
 
 from osp.core.namespaces import get_entity, cuba
-from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.cuba import cuba_namespace
 from osp.core.ontology.datatypes import UID
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.buffers import BufferContext, get_buffer_context_mngr
@@ -197,7 +197,7 @@ def move_files(file_cuds, temp_directory, target_directory,
                 target_path = os.path.join(os.path.dirname(target_path),
                                            name + ext)
             shutil.copyfile(path, target_path)
-            assert cuds.uid not in cuds.session._expired
+            assert cuds.uid not in cuds.ontology._expired
             cuds.path = target_path
             logger.debug(
                 "Copy file %s to %s" % (repr(path), repr(target_path))
@@ -348,7 +348,7 @@ def _serializable(cuds_objects, mark_first=False):
     g.namespace_manager = namespace_registry._graph.namespace_manager
     g.bind("cuds", URIRef("http://www.osp-core.com/cuds#"))
     if mark_first:
-        g.add((rdflib_cuba._serialization, RDF.first,
+        g.add((cuba_namespace._serialization, RDF.first,
                Literal(str(next(iter(cuds_objects)).uid))))
     for cuds_object in cuds_objects:
         if not isinstance(cuds_object, Cuds):

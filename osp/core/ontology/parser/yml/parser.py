@@ -6,7 +6,7 @@ import logging
 from rdflib import BNode, Graph, URIRef, Literal, RDF, RDFS, OWL, XSD, SKOS
 from rdflib.graph import ReadOnlyGraphAggregate
 import yaml
-from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.cuba import cuba_namespace
 from osp.core.ontology.datatypes import YML_TO_RDF, CUSTOM_TO_PYTHON
 from osp.core.ontology.parser.parser import OntologyParser
 from osp.core.ontology.parser.yml.validator import validate
@@ -59,7 +59,7 @@ class YMLParser(OntologyParser):
     def active_relationships(self) -> Tuple[URIRef]:
         """Fetch the active relationships from the ontology file."""
         return tuple(iri for iri in self.graph.subjects(
-            RDFS.subPropertyOf, rdflib_cuba.activeRelationship))
+            RDFS.subPropertyOf, cuba_namespace.activeRelationship))
 
     @property
     def default_relationship(self) -> Optional[URIRef]:
@@ -402,14 +402,14 @@ class YMLParser(OntologyParser):
 
         if default is not None:
             bnode = BNode()
-            self._graph.add((class_iri, rdflib_cuba._default, bnode))
+            self._graph.add((class_iri, cuba_namespace._default, bnode))
             self._graph.add(
-                (bnode, rdflib_cuba._default_attribute, attribute_iri))
+                (bnode, cuba_namespace._default_attribute, attribute_iri))
             # Find datatype of attribute.
             data_type = self._graph.value(attribute_iri, RDFS.range)
             lexicalized_default = str(Literal(default, datatype=data_type))
             self._graph.add(
-                (bnode, rdflib_cuba._default_value,
+                (bnode, cuba_namespace._default_value,
                  Literal(lexicalized_default, datatype=data_type)))
 
     def _set_inverse(self, entity_name, entity_doc):

@@ -100,10 +100,10 @@ class TestAPICity(unittest.TestCase):
         w = city.CityWrapper(session=second_session)
         cw = w.add(c)
         p1w = cw.get(p1.uid)
-        self.assertIs(cw.session, second_session)
-        self.assertIs(p1w.session, second_session)
-        self.assertIsNot(c.session, second_session)
-        self.assertIsNot(p1.session, second_session)
+        self.assertIs(cw.ontology, second_session)
+        self.assertIs(p1w.ontology, second_session)
+        self.assertIsNot(c.ontology, second_session)
+        self.assertIsNot(p1.ontology, second_session)
         self.assertTrue(c._stored)
         self.assertTrue(p1._stored)
         self.assertTrue(w._stored)
@@ -209,7 +209,7 @@ class TestAPICity(unittest.TestCase):
         missing = dict()
         Cuds._fix_neighbors(new_cuds_object=p1w1,
                             old_cuds_object=p1w2,
-                            session=p1w2.session,
+                            session=p1w2.ontology,
                             missing=missing)
 
         # check if connections cuds_objects that are no

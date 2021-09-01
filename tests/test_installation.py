@@ -7,7 +7,7 @@ import rdflib
 import shutil
 from osp.core.ontology.installation import OntologyInstallationManager, \
     pico_migrate
-from osp.core.ontology.namespace_registry import NamespaceRegistry
+from osp.core.ontology.namespace_registry import OntologySession
 
 FILES = [
     os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -23,7 +23,7 @@ class TestInstallation(unittest.TestCase):
     def setUp(self):
         """Set up some temporary directories."""
         self.tempdir = tempfile.TemporaryDirectory()
-        self.namespace_registry = NamespaceRegistry()
+        self.namespace_registry = OntologySession()
         self.namespace_registry._load_cuba()
         self.installer = OntologyInstallationManager(
             namespace_registry=self.namespace_registry,
