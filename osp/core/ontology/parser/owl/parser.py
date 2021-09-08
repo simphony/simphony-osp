@@ -210,7 +210,7 @@ class OWLParser(OntologyParser):
         else:
             rdf_file_location = os.path.join(os.path.dirname(yaml_config_path),
                                              rdf_file_location)
-            file_like = open(rdf_file_location)
+            file_like = open(rdf_file_location, 'rb')
         graph = Graph()
         graph.parse(file_like,
                     format=file_format)
