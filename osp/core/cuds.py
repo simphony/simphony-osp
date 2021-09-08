@@ -911,7 +911,8 @@ class Cuds:
                 warning_settings.attributes_cannot_modify_in_place = False
                 logger.warning(f"Attribute {attribute} references the mutable "
                                f"object {value} of type {type(value)}. Please "
-                               f"note that if you modify this object "
+                               f"note that because you have `rdflib < 6.0.0` "
+                               f"installed, if you modify this object "
                                f"in-place, the changes will not be reflected "
                                f"on the cuds object's attribute. \n"
                                f"For example, executing "
