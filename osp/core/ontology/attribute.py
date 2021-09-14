@@ -1,11 +1,11 @@
 """An attribute defined in the ontology."""
 
 import logging
-from typing import Any, Iterator, Optional, TYPE_CHECKING
+from typing import Any, Iterable, Iterator, Optional, TYPE_CHECKING
 
 from rdflib import RDFS, XSD, Literal, URIRef
 
-from osp.core.ontology.datatypes import RDF_TO_PYTHON, UID
+from osp.core.ontology.datatypes import RDF_TO_PYTHON, Triple, UID
 from osp.core.ontology.entity import OntologyEntity
 
 if TYPE_CHECKING:
@@ -28,10 +28,10 @@ class OntologyAttribute(OntologyEntity):
             NotImplementedError: More than one data type associated with the
                 attribute.
         """
-        data_types = set(o
-                         for superclass in self.superclasses
-                         for o in self.session.graph.triples(
-                            (superclass.iri, RDFS.range, None)))
+        data_types = set(
+            o for superclass in self.superclasses
+            for o in self.session.graph.objects(
+                superclass.iri, RDFS.range))
         result = set(data_types)
         if len(result) > 1:
             raise NotImplementedError(
@@ -40,14 +40,15 @@ class OntologyAttribute(OntologyEntity):
 
     def __init__(self,
                  uid: UID,
-                 session: Optional['Session'] = None) -> None:
+                 session: Optional['Session'] = None,
+                 triples: Optional[Iterable[Triple]] = None) -> None:
         """Initialize the ontology attribute.
 
         Args:
             uid: UID identifying the entity.
             session: Session where the entity is stored.
         """
-        super().__init__(uid, session)
+        super().__init__(uid, session, triples)
         logger.debug("Instantiated ontology attribute %s." % self)
 
     def convert_to_datatype(self, value: Any) -> Any:
@@ -60,7 +61,7 @@ class OntologyAttribute(OntologyEntity):
             The converted value.
         """
         # TODO: Very similar to
-        #  `osp.core.session.db.sql_wrapper_session.SqlWrapperSession
+        #  `osp.core.session.interfaces.sql_wrapper_session.SqlWrapperSession
         #  ._convert_to_datatype`. Unify somehow.
         if isinstance(value, Literal):
             result = Literal(value.toPython(), datatype=self.datatype,

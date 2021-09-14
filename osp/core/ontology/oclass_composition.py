@@ -2,12 +2,12 @@
 
 import logging
 from enum import Enum
-from functools import cache
+from functools import lru_cache
 from typing import Iterable, List, Optional, TYPE_CHECKING, Tuple, Union
 
 from rdflib import OWL, BNode, RDF
 
-from osp.core.ontology.datatypes import UID
+from osp.core.ontology.datatypes import Triple, UID
 from osp.core.ontology.entity import OntologyEntity
 
 if TYPE_CHECKING:
@@ -30,13 +30,14 @@ class Composition(OntologyEntity):
 
     def __init__(self,
                  uid: UID,
-                 session: Optional['Session'] = None) -> None:
+                 session: Optional['Session'] = None,
+                 triples: Optional[Iterable[Triple]] = None) -> None:
         """Initialize the class composition."""
         if not isinstance(uid.data, BNode):
             raise ValueError(f"Compositions are anonymous class descriptions, "
                              f"and thus, they can only have blank nodes as "
                              f"UIDs, not {type(uid.data)}.")
-        super().__init__(uid, session)
+        super().__init__(uid, session, triples)
 
     def __str__(self) -> str:
         """Transform to a Protege-like string."""
@@ -67,7 +68,7 @@ class Composition(OntologyEntity):
         _, operands = self._get_operator_and_operands
         return tuple(operands)
 
-    @cache
+    @lru_cache
     def _get_operator_and_operands(self) -> \
             Tuple[Optional[OPERATOR],
                   List[Union['OntologyClass',

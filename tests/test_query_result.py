@@ -1,7 +1,7 @@
 """This file contains tests for the QueryResult class."""
 
 import unittest2 as unittest
-from osp.core.session.core_session import CoreSession
+from osp.core.session.interfaces.core_session import CoreSession
 from osp.core.session.result import QueryResult, ResultEmptyError, \
     MultipleResultsError
 

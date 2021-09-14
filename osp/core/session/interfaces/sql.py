@@ -1,25 +1,317 @@
 """An abstract session containing method useful for all SQL backends."""
 
 from abc import abstractmethod
-from typing import Any, Dict, Iterable, Iterator, Optional, Tuple
+from typing import Any, Dict, Iterable, Iterator, Optional, TYPE_CHECKING, \
+    Tuple
 
-from rdflib import RDF, XSD, URIRef, Literal
+from rdflib import RDF, RDFS, OWL, XSD, URIRef, Literal
 
 from osp.core.ontology import OntologyRelationship
 from osp.core.ontology.datatypes import CUSTOM_TO_PYTHON,\
     RDFCompatibleType, RDF_TO_PYTHON, SimpleTriple, SimplePattern, UID
-from osp.core.session.buffers import BufferContext
-from osp.core.session.db.sql_migrate import check_supported_schema_version
-from osp.core.session.db.sql_util import (
-    AndCondition, EqualsCondition, JoinCondition, SqlQuery, check_characters,
-    determine_datatype, get_data_table_name
-)
-from osp.core.session.db.triplestore_wrapper_session import \
-    TripleStoreWrapperSession
+from osp.core.session.session import Session
+# from osp.core.session.db.sql_migrate import check_supported_schema_version
+
 from osp.core.utils.general import CUDS_IRI_PREFIX
 
+from osp.core.session.interfaces.triplestore import TriplestoreInterface, \
+    TriplestoreStore
 
-class SqlWrapperSession(TripleStoreWrapperSession):
+if TYPE_CHECKING:
+    from osp.core.ontology import OntologyEntity
+
+default_ontology = Session.ontology
+
+class SqlQuery:
+    """An sql query."""
+
+    def __init__(self, table_name: str, columns, datatypes, alias=None):
+        """Initialize the query."""
+        alias = alias or table_name
+        check_characters(table_name, columns, datatypes, alias)
+
+        self.order = [alias]
+        self.tables = {alias: table_name}
+        self._columns = {alias: columns}
+        self.datatypes = {alias: datatypes}
+        self.condition = None
+
+    @property
+    def columns(self):
+        """Return the columns that are selected."""
+        for alias in self.order:
+            for column in self._columns[alias]:
+                yield (alias, column)
+
+    def where(self, condition):
+        """Filter the results."""
+        check_characters(condition)
+        if condition is None:
+            return self
+        if self.condition is None:
+            self.condition = condition
+            return self
+        if isinstance(self.condition, AndCondition):
+            if isinstance(condition, AndCondition):
+                self.condition.conditions |= condition.conditions
+            else:
+                self.condition.conditions.add(condition)
+        else:
+            if isinstance(condition, AndCondition):
+                condition.conditions.add(self.condition)
+                self.condition = condition
+            else:
+                self.condition = AndCondition(self.condition, condition)
+        return self
+
+    def join(self, table_name, columns, datatypes, alias=None):
+        """Join with another table."""
+        alias = alias or table_name
+        check_characters(table_name, columns, datatypes, alias)
+
+        if alias in self.tables:
+            raise ValueError(f"{alias} already in query: {self.tables}")
+        self.order.append(alias)
+        self.tables[alias] = table_name
+        self._columns[alias] = columns
+        self.datatypes[alias] = datatypes
+        return self
+
+
+class Condition:
+    """The general condition class."""
+
+
+class EqualsCondition(Condition):
+    """An SQL Equals condition."""
+
+    def __init__(self, table_name, column, value, datatype):
+        """Initialize the condition.
+
+        Args:
+            table_name (str): The name of the table.
+            column (str): The column object.
+            value (Any): The value for that column.
+            datatype (str): The datatype of the column.
+        """
+        self.table_name = table_name
+        self.column = column
+        self.value = Literal(value, datatype=datatype).toPython()
+        self.datatype = datatype
+
+    def __eq__(self, other):
+        """Check if two conditions are equal.
+
+        Args:
+            other (Condition): The other condition.
+
+        Returns:
+            bool: Whether the two conditions are equal.
+        """
+        return (
+            isinstance(other, type(self))
+            and self.table_name == other.table_name
+            and self.column == other.column
+            and self.value == other.value
+            and self.datatype == other.datatype
+        )
+
+    def __hash__(self):
+        """Compute hash."""
+        return hash(self.table_name + self.column
+                    + str(self.value) + str(self.datatype))
+
+
+class JoinCondition(Condition):
+    """Join two tables with this condition."""
+
+    def __init__(self, table_name1, column1, table_name2, column2):
+        """Initialize the condition."""
+        self.table_name1 = table_name1
+        self.table_name2 = table_name2
+        self.column1 = column1
+        self.column2 = column2
+
+    def __eq__(self, other):
+        """Check if two conditions are equal.
+
+        Args:
+            other (Condition): The other condition.
+
+        Returns:
+            bool: Whether the two conditions are equivalent.
+        """
+        return (
+            isinstance(other, type(self))
+            and self.table_name1 == other.table_name1
+            and self.table_name2 == other.table_name2
+            and self.column1 == other.column1
+            and self.column2 == other.column2
+        )
+
+    def __hash__(self):
+        """Compute hash."""
+        return hash(self.table_name1 + self.table_name2
+                    + self.column1 + self.column2)
+
+
+class AndCondition(Condition):
+    """An SQL AND condition."""
+
+    def __init__(self, *conditions):
+        """Initialize the condition with several subconditions."""
+        conditions = set(c for c in conditions if c is not None)
+        if not all(isinstance(c, Condition) for c in conditions):
+            raise ValueError(f"Invalid conditions: {conditions}")
+        self.conditions = conditions
+
+    def __eq__(self, other):
+        """Check if two conditions are equal.
+
+        Args:
+            other (Condition): The other condition.
+
+        Returns:
+            bool: Whether the two conditions are equivalent.
+        """
+        return isinstance(other, type(self)) \
+            and set(self.conditions) == set(other.conditions)
+
+    def __hash__(self):
+        """Compute hash."""
+        return hash("".join([str(hash(c)) for c in self.conditions]))
+
+
+def determine_datatype(table_name: str) -> URIRef:
+    """Determine the datatype of column o for the table with given table name.
+
+    Args:
+        table_name (str): The name of the data table.
+
+    Returns:
+        URIRef: The datatype of the object column.
+    """
+    prefix = SQLInterface.DATA_TABLE_PREFIX
+
+    if table_name.startswith(prefix + "OWL_"):
+        return URIRef(f'http://www.w3.org/2002/07/owl#'
+                      f'{table_name[len(prefix + "OWL_"):]}')
+        # Replaced OWL with URIRef('...'), as OWL.rational seems
+        # to have disappeared in rdflib 6.0.0.
+        # TODO: return to original form when a fix for rdflib is available.
+    elif table_name.startswith(prefix + "RDFS_"):
+        return getattr(RDFS, table_name[len(prefix + "RDFS_"):])
+    elif table_name.startswith(prefix + "RDF_"):
+        return getattr(RDF, table_name[len(prefix + "RDF_"):])
+    elif table_name.startswith(prefix + "XSD_"):
+        return getattr(XSD, table_name[len(prefix + "XSD_"):])
+    elif table_name.startswith(prefix + "CUSTOM_"):
+        return URIRef('http://www.osp-core.com/types#') \
+            + table_name[len(prefix + "CUSTOM_"):]
+    else:
+        raise NotImplementedError(f"Table name {table_name} does not match "
+                                  f"any known datatype.")
+
+
+def get_data_table_name(datatype: URIRef) -> str:
+    """Get the name of the table for the given datatype.
+
+    Args:
+        datatype: The datatype of the object column.
+
+    Raises:
+        NotImplementedError: The given datatype is not supported.
+
+    Returns:
+        The name of the table.
+    """
+    prefix = SQLInterface.DATA_TABLE_PREFIX
+    if datatype.startswith(str(XSD)):
+        return prefix + "XSD_" + datatype[len(str(XSD)):]
+    if datatype.startswith(str(OWL)):
+        return prefix + "OWL_" + datatype[len(str(OWL)):]
+    if datatype.startswith(str(RDF)):
+        return prefix + "RDF_" + datatype[len(str(RDF)):]
+    if datatype.startswith(str(RDFS)):
+        return prefix + "RDFS_" + datatype[len(str(RDFS)):]
+    if datatype.startswith(str(URIRef('http://www.osp-core.com/types#'))):
+        return prefix + "CUSTOM_" + \
+            datatype[len(str(URIRef('http://www.osp-core.com/types#'))):]
+    raise NotImplementedError(f"Unsupported datatype {datatype}")
+
+
+def check_characters(*to_check):
+    """Check if column or table names contain invalid characters.
+
+    Args:
+        *to_check: The names to check.
+
+    Raises:
+        ValueError: Invalid character detected.
+
+    """
+    forbidden_chars = [";", "\0", "\r", "\x08", "\x09", "\x1a", "\n",
+                       "\r", "\"", "'", "`", "\\", "%"]
+    to_check = list(to_check)
+    str_to_check = str(to_check)
+    for c in forbidden_chars:
+        while to_check:
+            s = to_check.pop()
+            if isinstance(s, str):
+                s = s.encode("utf-8", "strict").decode("utf-8")
+                if c in s:
+                    raise ValueError(
+                        "Forbidden character %s [chr(%s)] in %s"
+                        % (c, ord(c), s)
+                    )
+            elif isinstance(s, (list, tuple)):
+                to_check += list(s)
+            elif isinstance(s, dict):
+                to_check += list(s.keys())
+                to_check += list(s.values())
+            elif isinstance(s, AndCondition):
+                to_check += list(s.conditions)
+            elif isinstance(s, EqualsCondition):
+                to_check += [s.table_name, s.column, s.datatype]
+            elif isinstance(s, JoinCondition):
+                to_check += [s.table_name1, s.column1,
+                             s.table_name2, s.column2]
+            elif s is None:
+                pass
+            else:
+                raise ValueError("%s - %s" % (s, str_to_check))
+
+
+def convert_values(rows, query):
+    """Convert the values in the database to the correct datatype.
+
+    Args:
+        rows(Iterator[Iterator[Any]]): The rows of the database.
+        query(SqlQuery): The corresponding query.
+
+    Yields:
+        The rows with converted values.
+    """
+    for row in rows:
+        output = []
+        for value, (t_alias, column) in zip(row, query.columns):
+            output.append(
+                Literal(value,
+                        datatype=query.datatypes[t_alias][column])
+                .toPython()
+            )
+        yield output
+
+
+class SQLStore(TriplestoreStore):
+    """The abstraction of the TriplestoreStore is sufficient."""
+
+    _interface: "SQLInterface"
+
+    pass
+
+
+class SQLInterface(TriplestoreInterface):
     """Abstract class for an SQL DB Wrapper Session."""
 
     NAMESPACES_TABLE = "OSP_V2_NAMESPACES"
@@ -101,11 +393,15 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         DATA_TABLE_PREFIX: [["s", "p"]]
     }
 
-    check_schema = check_supported_schema_version
+    # check_schema = check_supported_schema_version
 
-    # GET_TRIPLES
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._initialize()
 
-    def _triples(self, pattern: SimplePattern) -> Iterator[SimpleTriple]:
+    # GET TRIPLES
+
+    def triples(self, pattern: SimplePattern) -> Iterator[SimpleTriple]:
         """Generator that yields database triples matching a pattern.
 
         Args:
@@ -330,9 +626,26 @@ class SqlWrapperSession(TripleStoreWrapperSession):
             return UID(iri)
         elif self._is_cuds_iri(iri):
             return UID(iri)
-        from osp.core.ontology.namespace_registry import namespace_registry
-        ns_iri = namespace_registry._get_namespace_name_and_iri(iri)[1]
+        from osp.core.session.session import Session
+        default_ontology = Session.default_session
+        ns_iri = next((x.iri for x in default_ontology.namespaces if iri in x),
+                      None)
         return self._get_ns_idx(ns_iri), str(iri[len(ns_iri):])
+
+    def _is_cuds_iri(self, iri):
+        return UID(iri) == UID(0) or iri.startswith(CUDS_IRI_PREFIX) or \
+               self._is_cuds_iri_ontology(iri)
+
+    @staticmethod
+    def _is_cuds_iri_ontology(iri):
+        for s, p, o in default_ontology.ontology_graph\
+                .triples((URIRef(iri), RDF.type, None)):
+            if o in frozenset({OWL.DatatypeProperty,
+                               OWL.ObjectProperty,
+                               OWL.Class,
+                               OWL.Restriction}):
+                return False
+        return True
 
     def _get_ns_idx(self, ns_iri):
         ns_iri = str(ns_iri)
@@ -372,7 +685,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         type_triples_of_neighbors = set()
         for s, p, o in triples:
             type_triples_of_neighbors |= set(
-                self._triples((o, RDF.type, None))
+                self.triples((o, RDF.type, None))
             )
 
         triples |= set(
@@ -382,7 +695,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
 
     # ADD
 
-    def _add(self, *triples):
+    def add(self, *triples):
         for triple in triples:
             table_name, datatypes = self._determine_table(triple)
             values = self._get_values(triple, table_name)
@@ -442,7 +755,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
 
     # REMOVE
 
-    def _remove(self, pattern):
+    def remove(self, pattern):
         for c, t, _ in self._queries(pattern, mode="delete"):
             self._do_db_delete(t, c)
 
@@ -477,114 +790,7 @@ class SqlWrapperSession(TripleStoreWrapperSession):
         self._idx_to_ns = dict(self._default_select(self.NAMESPACES_TABLE))
         self._ns_to_idx = {v: k for k, v in self._idx_to_ns.items()}
 
-    # INITIALIZE
-    # OVERRIDE
-    def _initialize(self):
-        self.check_schema()
-        self._default_create(self.NAMESPACES_TABLE)
-        self._default_create(self.CUDS_TABLE)
-        self._default_create(self.ENTITIES_TABLE)
-        self._default_create(self.TYPES_TABLE)
-        self._default_create(self.RELATIONSHIP_TABLE)
-        self._load_namespace_indexes()
-
-        datatypes = set(CUSTOM_TO_PYTHON.keys()) | {
-            XSD.integer, XSD.boolean, XSD.float,
-            XSD.string
-        }
-        for datatype in datatypes:
-            self._do_db_create(
-                table_name=get_data_table_name(
-                    datatype),
-                columns=self.TRIPLESTORE_COLUMNS,
-                datatypes={"o": datatype,
-                           **self.DATATYPES[self.DATA_TABLE_PREFIX]},
-                primary_key=self.PRIMARY_KEY[self.DATA_TABLE_PREFIX],
-                generate_pk=self.DATA_TABLE_PREFIX in self.GENERATE_PK,
-                foreign_key=self.FOREIGN_KEY[self.DATA_TABLE_PREFIX],
-                indexes=self.INDEXES[self.DATA_TABLE_PREFIX]
-            )
-
-    @abstractmethod
-    def _db_create(self, table_name, columns, datatypes,
-                   primary_key, generate_pk, foreign_key, indexes):
-        """Create a new table with the given name and columns.
-
-        Args:
-            table_name (str): The name of the new table.
-            columns (List[str]): The name of the columns.
-            datatypes (Dict): Maps columns to datatypes specified in ontology.
-            primary_key (List[str]): List of columns that belong to the
-                primary key.
-            foreign_key (Dict[str, Tuple[str (table), str (column)]]): mapping
-                from column to other tables column.
-            generate_pk (bool): Whether primary key should be automatically
-                generated by the database
-                (e.g. be an automatically incrementing integer).
-            indexes (List(str)): List of indexes. Each index is a list of
-                column names for which an index should be built.
-        """
-
-    @abstractmethod
-    def _db_select(self, query):
-        """Get data from the table of the given names.
-
-        Args:
-            query (SqlQuery): A object describing the SQL query.
-        """
-
-    @abstractmethod
-    def _db_insert(self, table_name, columns, values, datatypes):
-        """Insert data into the table with the given name.
-
-        Args:
-            table_name(str): The table name.
-            columns(List[str]): The names of the columns.
-            values(List[Any]): The data to insert.
-            datatypes(Dict): Maps column names to datatypes.
-
-        Returns:
-            The auto-generated primary key of the inserted row,
-            if such exists.
-        """
-
-    @abstractmethod
-    def _db_update(self, table_name, columns, values, condition, datatypes):
-        """Update the data in the given table.
-
-        Args:
-            table_name(str): The name of the table.
-            columns(List[str]): The names of the columns.
-            values(List[Any]): The new updated values.
-            condition(str): Only update rows that satisfy the condition.
-            datatypes(Dict): Maps column names to datatypes.
-        """
-
-    @abstractmethod
-    def _db_delete(self, table_name, condition):
-        """Drop the entire table.
-
-        Args:
-            table_name (str): The name of the table.
-            condition (SqlCondition): The condition specifying the values to
-                delete.
-        """
-
-    @abstractmethod
-    def _db_drop(self, table_name):
-        """Drop the table with the given name.
-
-        Args:
-            table_name(str): The name of the table.
-        """
-
-    @abstractmethod
-    def _get_table_names(self, prefix):
-        """Get all tables in the database with the given prefix.
-
-        Args:
-            prefix(str): Only return tables with the given prefix
-        """
+    # OTHER
 
     def _do_db_create(self, table_name, columns, datatypes,
                       primary_key, generate_pk, foreign_key, indexes):
@@ -668,25 +874,12 @@ class SqlWrapperSession(TripleStoreWrapperSession):
 
     def _clear_database(self):
         """Delete the contents of every table."""
-        self._init_transaction()
+        self.init_transaction()
         try:
-            # clear local datastructure
-            from osp.core.namespaces import cuba
-            self._reset_buffers(BufferContext.USER)
-            root = self._registry.get(self.root)
-
-            # Delete relationships of root.
-            if root.get(rel=cuba.relationship):
-                root.remove(rel=cuba.relationship)
-
-            for uid in list(self._registry.keys()):
-                if uid != self.root:
-                    self._delete_cuds_triples(self._registry.get(uid))
-            self._reset_buffers(BufferContext.USER)
 
             # delete the data
             for table_name in self._get_table_names(
-                    SqlWrapperSession.DATA_TABLE_PREFIX):
+                    SQLInterface.DATA_TABLE_PREFIX):
                 self._do_db_delete(table_name, None)
             self._do_db_delete(self.TYPES_TABLE, None)
             self._do_db_delete(self.RELATIONSHIP_TABLE, None)
@@ -703,3 +896,126 @@ class SqlWrapperSession(TripleStoreWrapperSession):
     def _sparql(self, query_string):
         """Perform a sparql query on the database."""
         raise NotImplementedError()
+
+    # INITIALIZE
+
+    def _initialize(self):
+        # self.check_schema()
+        self._default_create(self.NAMESPACES_TABLE)
+        self._default_create(self.CUDS_TABLE)
+        self._default_create(self.ENTITIES_TABLE)
+        self._default_create(self.TYPES_TABLE)
+        self._default_create(self.RELATIONSHIP_TABLE)
+        self._load_namespace_indexes()
+
+        datatypes = set(CUSTOM_TO_PYTHON.keys()) | {
+            XSD.integer, XSD.boolean, XSD.float,
+            XSD.string
+        }
+        for datatype in datatypes:
+            self._do_db_create(
+                table_name=get_data_table_name(
+                    datatype),
+                columns=self.TRIPLESTORE_COLUMNS,
+                datatypes={"o": datatype,
+                           **self.DATATYPES[self.DATA_TABLE_PREFIX]},
+                primary_key=self.PRIMARY_KEY[self.DATA_TABLE_PREFIX],
+                generate_pk=self.DATA_TABLE_PREFIX in self.GENERATE_PK,
+                foreign_key=self.FOREIGN_KEY[self.DATA_TABLE_PREFIX],
+                indexes=self.INDEXES[self.DATA_TABLE_PREFIX]
+            )
+
+    # ABSTRACT METHODS
+
+    @abstractmethod
+    def _db_create(self, table_name, columns, datatypes,
+                   primary_key, generate_pk, foreign_key, indexes):
+        """Create a new table with the given name and columns.
+
+        Args:
+            table_name (str): The name of the new table.
+            columns (List[str]): The name of the columns.
+            datatypes (Dict): Maps columns to datatypes specified in ontology.
+            primary_key (List[str]): List of columns that belong to the
+                primary key.
+            foreign_key (Dict[str, Tuple[str (table), str (column)]]): mapping
+                from column to other tables column.
+            generate_pk (bool): Whether primary key should be automatically
+                generated by the database
+                (e.g. be an automatically incrementing integer).
+            indexes (List(str)): List of indexes. Each index is a list of
+                column names for which an index should be built.
+        """
+
+    @abstractmethod
+    def _db_select(self, query):
+        """Get data from the table of the given names.
+
+        Args:
+            query (SqlQuery): A object describing the SQL query.
+        """
+
+    @abstractmethod
+    def _db_insert(self, table_name, columns, values, datatypes):
+        """Insert data into the table with the given name.
+
+        Args:
+            table_name(str): The table name.
+            columns(List[str]): The names of the columns.
+            values(List[Any]): The data to insert.
+            datatypes(Dict): Maps column names to datatypes.
+
+        Returns:
+            The auto-generated primary key of the inserted row,
+            if such exists.
+        """
+
+    @abstractmethod
+    def _db_update(self, table_name, columns, values, condition, datatypes):
+        """Update the data in the given table.
+
+        Args:
+            table_name(str): The name of the table.
+            columns(List[str]): The names of the columns.
+            values(List[Any]): The new updated values.
+            condition(str): Only update rows that satisfy the condition.
+            datatypes(Dict): Maps column names to datatypes.
+        """
+
+    @abstractmethod
+    def _db_delete(self, table_name, condition):
+        """Drop the entire table.
+
+        Args:
+            table_name (str): The name of the table.
+            condition (SqlCondition): The condition specifying the values to
+                delete.
+        """
+
+    @abstractmethod
+    def _db_drop(self, table_name):
+        """Drop the table with the given name.
+
+        Args:
+            table_name(str): The name of the table.
+        """
+
+    @abstractmethod
+    def _get_table_names(self, prefix):
+        """Get all tables in the database with the given prefix.
+
+        Args:
+            prefix(str): Only return tables with the given prefix
+        """
+
+    @abstractmethod
+    def commit(self):
+        pass
+
+    @abstractmethod
+    def init_transaction(self):
+        pass
+
+    @abstractmethod
+    def rollback_transaction(self):
+        pass

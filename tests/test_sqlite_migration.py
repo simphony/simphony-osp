@@ -9,7 +9,7 @@ from pathlib import Path
 from osp.core.session.db.sql_migrate import check_supported_schema_version, \
     detect_current_schema_version, versions
 from osp.core.session.db.sql_migrate import SqlMigrate
-from osp.wrappers.sqlite import SqliteSession
+from osp.wrappers.sqlite import SQLiteInterface
 
 try:
     from osp.core.namespaces import city
@@ -19,8 +19,8 @@ except ImportError:
     Parser().parse("city")
     city = namespace_registry.city
 
-DB_TEMPLATE = str(Path(__file__).parent / "test_sqlite_migration_template.db")
-DB = str(Path(__file__).parent / "test_sqlite_migration.db")
+DB_TEMPLATE = str(Path(__file__).parent / "test_sqlite_migration_template.interfaces")
+DB = str(Path(__file__).parent / "test_sqlite_migration.interfaces")
 
 
 class TestSqliteCity(unittest.TestCase):
@@ -36,24 +36,24 @@ class TestSqliteCity(unittest.TestCase):
         shutil.copy(DB_TEMPLATE, DB)
 
         self.assertRaises(RuntimeError, check_supported_schema_version,
-                          SqliteSession(DB))
+                          SQLiteInterface(DB))
         self.assertRaises(RuntimeError, city.CityWrapper,
-                          session=SqliteSession(DB))
+                          session=SQLiteInterface(DB))
         self.assertEqual(detect_current_schema_version(
-            SqliteSession(DB)._get_table_names("")), schema_version
+            SQLiteInterface(DB)._get_table_names("")), schema_version
         )
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             m = SqlMigrate(session)
             m.run()
             self.assertEqual(detect_current_schema_version(
-                SqliteSession(DB)._get_table_names("")), max(versions.values())
+                SQLiteInterface(DB)._get_table_names("")), max(versions.values())
             )
-            self.assertTrue(check_supported_schema_version(SqliteSession(DB)))
+            self.assertTrue(check_supported_schema_version(SQLiteInterface(DB)))
 
     def run_test(self):
         """Test whether all data can be loaded correctly."""
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             w = city.CityWrapper(session=session)
             cities = w.get(rel=city.hasPart)
             self.assertEqual(len(cities), 1)

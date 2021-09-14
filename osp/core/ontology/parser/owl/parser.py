@@ -93,7 +93,7 @@ class OWLParser(OntologyParser):
     def __init__(self, path: str):
         """Initialize the OWL ontology parser."""
         self._yaml_config = self._load_yaml_config(path)
-        self._file_path = path
+        self._file_path = self.parse_file_path(path)
 
     def install(self, destination: str):
         """Store the parsed files at the given destination.

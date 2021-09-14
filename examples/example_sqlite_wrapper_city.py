@@ -22,32 +22,32 @@ try:
     c.add(n).add(s).add(b).add(a)
 
     print("Connect to DB via sqlite session")
-    with SqliteWrapperSession("test.db") as session:
+    with SqliteWrapperSession("test.interfaces") as session:
         wrapper = city.CityWrapper(session=session)
         wrapper.add(c)
         wrapper.ontology.commit()
 
     print("Reconnect and check if data is still there")
-    with SqliteWrapperSession("test.db") as session:
+    with SqliteWrapperSession("test.interfaces") as session:
         wrapper = city.CityWrapper(session=session)
         c = wrapper.get(oclass=city.City)[0]
         pretty_print(c)
 
     print("Reconnect and make some changes")
-    with SqliteWrapperSession("test.db") as session:
+    with SqliteWrapperSession("test.interfaces") as session:
         wrapper = city.CityWrapper(session=session)
         c = wrapper.get(oclass=city.City)[0]
         c.name = "Paris"
         wrapper.ontology.commit()
 
     print("Reconnect and check if changes were successful")
-    with SqliteWrapperSession("test.db") as session:
+    with SqliteWrapperSession("test.interfaces") as session:
         wrapper = city.CityWrapper(session=session)
         c = wrapper.get(oclass=city.City)[0]
         pretty_print(c)
 
     print("Delete the city")
-    with SqliteWrapperSession("test.db") as session:
+    with SqliteWrapperSession("test.interfaces") as session:
         wrapper = city.CityWrapper(session=session)
         c = wrapper.get(oclass=city.City)[0]
         wrapper.remove(c)
@@ -55,10 +55,10 @@ try:
         wrapper.ontology.commit()
 
     print("Reconnect and check if deletion was successful")
-    with SqliteWrapperSession("test.db") as session:
+    with SqliteWrapperSession("test.interfaces") as session:
         wrapper = city.CityWrapper(session=session)
         print("All cities:", wrapper.get(oclass=city.City))
 
 finally:
-    if os.path.exists("test.db"):
-        os.remove("test.db")
+    if os.path.exists("test.interfaces"):
+        os.remove("test.interfaces")

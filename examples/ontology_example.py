@@ -18,7 +18,7 @@ print('The dot notation can be used to fetch entities by suffix given that '
 print(city.Citizen)
 
 print('Alternative method useful for suffixes with special characters.')
-print(city.get_from_suffix('Citizen'))
+print(city.from_suffix('Citizen'))
 
 # Suffixes are case sensitive:
 # city.citizen -> Fails.
@@ -34,7 +34,7 @@ print(math['Integer'])
 
 # Accessing entities by IRI.
 
-print(math.get_from_iri('http://emmo.info/emmo/middle/math#'
+print(math.from_iri('http://emmo.info/emmo/middle/math#'
                         'EMMO_f8bd64d5_5d3e_4ad4_a46e_c30714fecb7f'))
 
 # Accessing entitites using a string (only useful in rare cases).

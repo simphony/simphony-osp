@@ -11,7 +11,7 @@ import osp.core
 from osp.core.cuds import Cuds
 from osp.core.namespaces import cuba
 from osp.core.ontology.datatypes import CUSTOM_TO_PYTHON, Vector
-from osp.core.session.core_session import CoreSession
+from osp.core.session.interfaces.core_session import CoreSession
 from osp.core.session.buffers import BufferContext, EngineContext
 from osp.core.session.transport.transport_utils import serializable
 from osp.core.utils.general import remove_cuds_object,\

@@ -7,7 +7,7 @@ import unittest2 as unittest
 import sqlite3
 import logging
 import time
-from osp.wrappers.sqlite import SqliteSession
+from osp.wrappers.sqlite import SQLiteInterface
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.wrappers.dataspace import DataspaceSession
@@ -31,7 +31,7 @@ except ImportError:
 HOST = "127.0.0.1"
 PORT = 8681
 URI = f"ws://{HOST}:{PORT}"
-DB = "dataspace.db"
+DB = "dataspace.interfaces"
 
 
 class TestDataspaceWrapper(unittest.TestCase):
@@ -125,7 +125,7 @@ class TestDataspaceWrapper(unittest.TestCase):
         """Test parameterizing the dataspace as a client."""
         with TransportSessionClient(
             DbWrapperSession,
-            URI, path="dataspace.db"
+            URI, path="dataspace.interfaces"
         ) as session:
             self.assertRaises(RuntimeError, city.CityWrapper, session=session)
 
@@ -136,7 +136,7 @@ if __name__ == "__main__":
             "osp.core.session.transport.transport_session_server"
         ).addFilter(lambda record: False)
         server = TransportSessionServer(
-            SqliteSession, HOST, PORT, session_kwargs={
+            SQLiteInterface, HOST, PORT, session_kwargs={
                 "path": DB
             })
         print("ready", flush=True)

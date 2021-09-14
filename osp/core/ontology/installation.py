@@ -5,6 +5,8 @@ import glob
 import logging
 import shutil
 import tempfile
+from typing import Any, Hashable, Set, Tuple
+
 from osp.core.ontology.parser.parser import OntologyParser
 
 logger = logging.getLogger(__name__)
@@ -252,3 +254,41 @@ def pico_migrate_v3_5_3_1(path, migration_version_file,
     ontology_installer.uninstall()
     with open(os.path.join(path, migration_version_file), "w") as version_file:
         version_file.write("3.5.3.1" + '\n')
+
+
+def topological_sort(edges: Set[Tuple[Hashable, Hashable]]):
+    """Kanh's algorithm for topological sort.
+
+    Kahn, Arthur B. (1962), "Topological sorting of large networks",
+    Communications of the ACM, 5 (11): 558–562, doi:10.1145/368996.369025,
+    S2CID 16728233
+
+    Args:
+        edges: A set of directed edge pairs (the first element is the tail
+            and the second the head).
+    """
+    # Structure the graph as a dict for fast lookup.
+    graph = dict()
+    for x, y in edges:
+        if x not in graph:
+            graph[x] = {y}
+        else:
+            graph[x] |= {y}
+        if y not in graph:
+            graph[y] = set()
+
+    result = []
+    no_incoming_edges = set(graph.keys()) - {x for s in graph.values()
+                                             for x in s}
+    while no_incoming_edges:
+        node = no_incoming_edges.pop()
+        result += [node]
+        for m in set(graph[node]):
+            graph[node].remove(m)
+            if m not in {x for s in graph.values() for x in s}:
+                no_incoming_edges.add(m)
+
+    if {y for x in graph.values() for y in x}:
+        raise ValueError(f"The provided set of edges has cycles, therefore "
+                         f"topological sorting is unfeasible.")
+    return tuple(result)

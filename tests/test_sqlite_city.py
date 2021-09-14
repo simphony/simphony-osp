@@ -6,7 +6,7 @@ import sqlite3
 import unittest2 as unittest
 
 from osp.core.ontology.datatypes import UID
-from osp.wrappers.sqlite import SqliteSession
+from osp.wrappers.sqlite import SQLiteInterface
 
 try:
     from osp.core.namespaces import city
@@ -16,14 +16,14 @@ except ImportError:
     Parser().parse("city")
     city = namespace_registry.city
 
-DB = "test_sqlite.db"
+DB = "test_sqlite.interfaces"
 
-CUDS_TABLE = SqliteSession.CUDS_TABLE
-ENTITIES_TABLE = SqliteSession.ENTITIES_TABLE
-TYPES_TABLE = SqliteSession.TYPES_TABLE
-NAMESPACES_TABLE = SqliteSession.NAMESPACES_TABLE
-RELATIONSHIP_TABLE = SqliteSession.RELATIONSHIP_TABLE
-DATA_TABLE_PREFIX = SqliteSession.DATA_TABLE_PREFIX
+CUDS_TABLE = SQLiteInterface.CUDS_TABLE
+ENTITIES_TABLE = SQLiteInterface.ENTITIES_TABLE
+TYPES_TABLE = SQLiteInterface.TYPES_TABLE
+NAMESPACES_TABLE = SQLiteInterface.NAMESPACES_TABLE
+RELATIONSHIP_TABLE = SQLiteInterface.RELATIONSHIP_TABLE
+DATA_TABLE_PREFIX = SQLiteInterface.DATA_TABLE_PREFIX
 
 
 def data_tbl(suffix):
@@ -42,12 +42,12 @@ class TestSqliteCity(unittest.TestCase):
     def test_vector(self):
         """Test capabilities to store vectors."""
         c = city.City(name="Frankfurt", coordinates=[42, 24])
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             wrapper.ontology.commit()
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.get(c.uid)
             self.assertEqual(cw.coordinates, [42, 24])
@@ -59,7 +59,7 @@ class TestSqliteCity(unittest.TestCase):
         p2 = city.Citizen(name="Georg")
         c.add(p1, p2, rel=city.hasInhabitant)
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             wrapper.ontology.commit()
@@ -72,7 +72,7 @@ class TestSqliteCity(unittest.TestCase):
         p1 = city.Citizen(name="Peter")
         c.add(p1, rel=city.hasInhabitant)
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
             session.commit()
@@ -92,7 +92,7 @@ class TestSqliteCity(unittest.TestCase):
         p3 = city.Citizen(name="Hans")
         c.add(p1, p2, p3, rel=city.hasInhabitant)
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
             session.commit()
@@ -114,12 +114,12 @@ class TestSqliteCity(unittest.TestCase):
         p1.add(p3, rel=city.hasChild)
         p2.add(p3, rel=city.hasChild)
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
                              {c.uid, wrapper.uid})
@@ -143,12 +143,12 @@ class TestSqliteCity(unittest.TestCase):
         p1.add(p3, rel=city.hasChild)
         p2.add(p3, rel=city.hasChild)
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
                              {c.uid, wrapper.uid})
@@ -186,12 +186,12 @@ class TestSqliteCity(unittest.TestCase):
         p1.add(p3, rel=city.hasChild)
         p2.add(p3, rel=city.hasChild)
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             cs = wrapper.get(c.uid)
             r = session.load_by_oclass(city.City)
@@ -201,7 +201,7 @@ class TestSqliteCity(unittest.TestCase):
             r = session.load_by_oclass(city.Person)
             self.assertEqual(set(r), {p1, p2, p3})
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.get(c.uid)
             r = session.load_by_oclass(city.Street)
@@ -217,12 +217,12 @@ class TestSqliteCity(unittest.TestCase):
         p1.add(p3, rel=city.hasChild)
         p2.add(p3, rel=city.hasChild)
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             cs = wrapper.get(c.uid)
             r = session.load_from_iri(cs.iri)
@@ -230,7 +230,7 @@ class TestSqliteCity(unittest.TestCase):
             r = session.load_from_iri(p1.iri, p2.iri, p3.iri)
             self.assertEqual(set(r), {p1, p2, p3})
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.get(c.uid)
             r = session.load_from_iri(UID(1).to_iri())
@@ -246,7 +246,7 @@ class TestSqliteCity(unittest.TestCase):
         p1.add(p3, rel=city.hasChild)
         p2.add(p3, rel=city.hasChild)
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
             p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)
@@ -279,7 +279,7 @@ class TestSqliteCity(unittest.TestCase):
         p1.add(p3, rel=city.hasChild)
         p2.add(p3, rel=city.hasChild)
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
             p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)
@@ -303,16 +303,16 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_clear_database(self):
         """Test clearing the database."""
-        # db is empty (no error occurs)
-        with SqliteSession(DB) as session:
+        # interfaces is empty (no error occurs)
+        with SQLiteInterface(DB) as session:
             city.CityWrapper(session=session)
             session._clear_database()
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.ontology.commit()
             session._clear_database()
 
-        # db is not empty
+        # interfaces is not empty
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
@@ -321,7 +321,7 @@ class TestSqliteCity(unittest.TestCase):
         p1.add(p3, rel=city.hasChild)
         p2.add(p3, rel=city.hasChild)
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
@@ -331,7 +331,7 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_sql_list_pattern(self):
         """Test transformation of value lists to SQLite patterns."""
-        p, v = SqliteSession._sql_list_pattern("pre", [42, "yo", 1.2, "hey"])
+        p, v = SQLiteInterface._sql_list_pattern("pre", [42, "yo", 1.2, "hey"])
         self.assertEqual(p, ":pre_0, :pre_1, :pre_2, :pre_3")
         self.assertEqual(v, {
             "pre_0": 42,
@@ -342,13 +342,13 @@ class TestSqliteCity(unittest.TestCase):
 
     def test_multiple_users(self):
         """Test what happens if multiple users access the database."""
-        with SqliteSession(DB) as session1:
+        with SQLiteInterface(DB) as session1:
             wrapper1 = city.CityWrapper(session=session1)
             city1 = city.City(name="Freiburg")
             wrapper1.add(city1)
             session1.commit()
 
-            with SqliteSession(DB) as session2:
+            with SQLiteInterface(DB) as session2:
                 wrapper2 = city.CityWrapper(session=session2)
                 wrapper2.add(city.City(name="Offenburg"))
                 session2.commit()
@@ -367,12 +367,12 @@ class TestSqliteCity(unittest.TestCase):
         c = city.City(name="Freiburg", iri="http://example.org/namespace"
                                            "#Freiburg")
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
                              {c.uid, wrapper.uid})
@@ -466,7 +466,7 @@ def check_db_cleared(test_case, db_file):
         test_case.assertEqual(list(cursor), list())
 
         # DATA TABLES
-        with SqliteSession(DB) as s:
+        with SQLiteInterface(DB) as s:
             table_names = s._get_table_names(DATA_TABLE_PREFIX)
         for table_name in table_names:
             cursor.execute(f"SELECT * FROM `{table_name}`;")

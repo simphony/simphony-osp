@@ -8,7 +8,8 @@ import itertools
 import json
 import logging
 import pathlib
-from typing import Optional, TYPE_CHECKING, Union, TextIO, List
+from typing import Optional, Set, TYPE_CHECKING, Tuple, Union, \
+    TextIO, List
 
 import requests
 from rdflib import OWL, RDF, RDFS, Graph, Literal
@@ -82,7 +83,7 @@ def _serialize_rdf_graph(format="xml", session=None,
                          skip_custom_datatypes=False, skip_ontology=True,
                          skip_wrapper=True):
     """Serialize an RDF graph and take care of custom data types."""
-    from osp.core.session.core_session import CoreSession
+    from osp.core.session.interfaces.core_session import CoreSession
     graph = _get_rdf_graph(session, skip_custom_datatypes, skip_ontology)
     result = Graph()
     for s, p, o in graph:
@@ -270,8 +271,8 @@ def _import_rdf_file(path, format="xml", session=None, buffer_context=None):
     )
     return deserialized
 
-# Internal utilities (not user-facing).
 
+# Internal utilities (not user-facing).
 
 def uid_from_general_iri(iri, graph, _visited=frozenset()):
     """Get a UUID from a general (not containing a UUID) IRI.

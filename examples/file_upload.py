@@ -2,7 +2,7 @@
 
 import sys
 import logging
-from osp.wrappers.sqlite import SqliteSession
+from osp.wrappers.sqlite import SQLiteInterface
 from osp.core.session import TransportSessionServer
 from osp.core.namespaces import cuba
 from osp.wrappers.dataspace import DataspaceSession
@@ -24,7 +24,7 @@ else:
     print("Starting server now.")
     print("Please call 'python %s client' to connect" % __file__)
     TransportSessionServer(
-        SqliteSession, "localhost", 4587,
-        session_kwargs={"path": "test.db"},
+        SQLiteInterface, "localhost", 4587,
+        session_kwargs={"path": "test.interfaces"},
         file_destination=file_destination
     ).startListening()

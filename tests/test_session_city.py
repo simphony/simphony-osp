@@ -5,7 +5,7 @@ from osp.core.namespaces import cuba
 from osp.core.session.session import Session
 from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.buffers import BufferContext
-from osp.core.session.core_session import CoreSession
+from osp.core.session.interfaces.core_session import CoreSession
 from osp.core.cuds import Cuds
 
 try:

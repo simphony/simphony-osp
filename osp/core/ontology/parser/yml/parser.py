@@ -12,9 +12,10 @@ from osp.core.ontology.parser.parser import OntologyParser
 from osp.core.ontology.parser.yml.validator import validate
 from osp.core.ontology.parser.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
-from osp.core.ontology.namespace_registry import namespace_registry
 import osp.core.ontology.parser.yml.keywords as keywords
+from osp.core.session.session import Session
 
+default_ontology = Session.ontology
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +183,7 @@ class YMLParser(OntologyParser):
             superclass_iri = self._get_iri(name, namespace, entity_name)
             triple = (superclass_iri, RDF.type, None)
             for _, _, o in (ReadOnlyGraphAggregate(
-                    [self._graph, namespace_registry._graph]).triples(triple)):
+                    [self._graph, default_ontology.graph]).triples(triple)):
                 if o in {OWL.Class, OWL.ObjectProperty,
                          OWL.DatatypeProperty,
                          OWL.FunctionalProperty}:
@@ -213,7 +214,7 @@ class YMLParser(OntologyParser):
                                            entity_name)
             predicate = RDFS.subPropertyOf
             if (iri, RDF.type, OWL.Class) in ReadOnlyGraphAggregate(
-                    [self._graph, namespace_registry._graph]):
+                    [self._graph, default_ontology.graph]):
                 predicate = RDFS.subClassOf
 
             self._graph.add((iri, predicate, superclass_iri))
@@ -270,7 +271,7 @@ class YMLParser(OntologyParser):
         ) or (
             namespace != self._namespace
             and (iri, None, None) not in ReadOnlyGraphAggregate(
-                [self._graph, namespace_registry._graph])
+                [self._graph, default_ontology.graph])
         )):
             if _case_sensitive and not _for_default_rel:
                 raise AttributeError(
@@ -376,7 +377,7 @@ class YMLParser(OntologyParser):
                                           entity_name)
             x = (attribute_iri, RDF.type, OWL.DatatypeProperty)
             if x not in ReadOnlyGraphAggregate([self._graph,
-                                                namespace_registry._graph]):
+                                                default_ontology.graph]):
                 raise ValueError(f"Invalid attribute {attribute_namespace}."
                                  f"{attribute_name} of entity {entity_name}")
             self._add_attribute(iri, attribute_iri, default)
@@ -527,11 +528,11 @@ class YMLParser(OntologyParser):
         attr_triple = (iri, RDF.type, OWL.DatatypeProperty)
         status = (
             class_triple in ReadOnlyGraphAggregate(
-                [self._graph, namespace_registry._graph]),
+                [self._graph, default_ontology.graph]),
             rel_triple in ReadOnlyGraphAggregate(
-                [self._graph, namespace_registry._graph]),
+                [self._graph, default_ontology.graph]),
             attr_triple in ReadOnlyGraphAggregate(
-                [self._graph, namespace_registry._graph])
+                [self._graph, default_ontology.graph])
         )
         if sum(status) != 1:
             raise RuntimeError(f"Couldn't determine type of {entity_name}")

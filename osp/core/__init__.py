@@ -1,7 +1,4 @@
 import logging as _logging
-import sys as _sys
-
-import rdflib as _rdflib
 
 _logging.getLogger("rdflib").setLevel(_logging.WARNING)
 
@@ -28,3 +25,9 @@ except ModuleNotFoundError:
         "\t- Otherwise you can reinstall using "
         "`pip install <path/to/osp-core/repo>`."
     )
+
+# Load the tbox when importing any submodule.
+import osp.core.namespaces
+
+# Set the default session when importing any submodule.
+import osp.core.session

@@ -79,8 +79,8 @@ class SqlMigrate:
 
     def migrate_1_2(self):
         """Migrate from version 1 to 2."""
-        commit = self.session._commit  # avoid commit during initialization.
-        self.session._commit = lambda: True
+        commit = self.session.commit  # avoid commit during initialization.
+        self.session.commit = lambda: True
         self.session.check_schema = lambda: True
         cuba.Wrapper(session=self.session)
         try:
@@ -114,7 +114,7 @@ class SqlMigrate:
             self.migrate_1_2_standard_data_types()
             commit()
         except Exception as e:
-            self.session._rollback_transaction()
+            self.session.rollback_transaction()
             raise e
 
     migrate_1_2_YML_numpy = {
@@ -295,7 +295,7 @@ class SqlMigrate:
 
 
 if __name__ == "__main__":
-    from osp.wrappers.sqlite import SqliteSession
-    session = SqliteSession("test.db")
+    from osp.wrappers.sqlite import SQLiteInterface
+    session = SQLiteInterface("test.interfaces")
     m = SqlMigrate(session)
     m.run()

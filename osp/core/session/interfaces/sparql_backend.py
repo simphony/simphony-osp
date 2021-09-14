@@ -2,7 +2,8 @@
 from abc import ABC, abstractmethod
 
 from osp.core.ontology.datatypes import UID
-from osp.core.utils.general import CUDS_IRI_PREFIX
+
+CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
 
 
 class SPARQLBackend(ABC):

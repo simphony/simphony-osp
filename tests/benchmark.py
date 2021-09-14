@@ -39,7 +39,7 @@ class Benchmark(ABC):
         """The process time of the benchmark.
 
         The process time is calculated using the time module from the Python
-        Standard Library. Check its definition on the library's docs
+        Standard Library. Check its definition on the library's files
         https://docs.python.org/dev/library/time.html#time.process_time .
         """
         return sum(float(x) for x in self._iter_times if x is not None)

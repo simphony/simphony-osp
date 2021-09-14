@@ -25,7 +25,7 @@ except ImportError:
 HOST = "127.0.0.1"
 PORT = 8689
 URI = f"ws://{HOST}:{PORT}"
-TABLE = "transport.db"
+TABLE = "transport.interfaces"
 
 SERVER_STARTED = False
 

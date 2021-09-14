@@ -31,7 +31,7 @@ setup(
         exclude=("examples",
                  "tests")),
     package_data={
-        "osp.core.ontology.docs": ["*.yml", "*.ttl", "*.xml", "EMMO/*.owl"],
+        "osp.core.ontology.files": ["*.yml", "*.ttl", "*.xml", "*.owl"],
     },
     include_package_data=True,
     python_requires=">=3.6",
@@ -50,18 +50,11 @@ setup(
         "requests",
         "numpy",
         "graphviz",
+        "rdflib",  # Redundant, but some IDEs do not understand what is below.
         "rdflib >= 5.0.0, < 6.0.0; python_version < '3.7'",
         "rdflib >= 6.0.0, < 7.0.0; python_version >= '3.7'",
         "rdflib-jsonld; python_version < '3.7'",
     ],
     setup_requires=[
-        "PyYaml",
-        "websockets",
-        "requests",
-        "numpy",
-        "graphviz",
-        "rdflib >= 5.0.0, < 6.0.0; python_version < '3.7'",
-        "rdflib >= 6.0.0, < 7.0.0; python_version >= '3.7'",
-        "rdflib-jsonld; python_version < '3.7'",
     ],
 )

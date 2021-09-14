@@ -5,7 +5,7 @@ import subprocess
 import unittest2 as unittest
 import sqlite3
 import time
-from osp.wrappers.sqlite import SqliteSession
+from osp.wrappers.sqlite import SQLiteInterface
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
@@ -27,7 +27,7 @@ except ImportError:
 HOST = "127.0.0.1"
 PORT = 8687
 URI = f"ws://{HOST}:{PORT}"
-DB = "transport.db"
+DB = "transport.interfaces"
 
 
 class TestTransportSqliteCity(unittest.TestCase):
@@ -73,7 +73,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p2 = city.Citizen(name="Georg")
         c.add(p1, p2, rel=city.hasInhabitant)
 
-        with TransportSessionClient(SqliteSession, URI, path=DB) \
+        with TransportSessionClient(SQLiteInterface, URI, path=DB) \
                 as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
@@ -87,7 +87,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1 = city.Citizen(name="Peter")
         c.add(p1, rel=city.hasInhabitant)
 
-        with TransportSessionClient(SqliteSession, URI, path=DB) \
+        with TransportSessionClient(SQLiteInterface, URI, path=DB) \
                 as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
@@ -108,7 +108,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p3 = city.Citizen(name="Hans")
         c.add(p1, p2, p3, rel=city.hasInhabitant)
 
-        with TransportSessionClient(SqliteSession, URI, path=DB) \
+        with TransportSessionClient(SQLiteInterface, URI, path=DB) \
                 as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
@@ -130,12 +130,12 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1.add(p3, rel=city.hasChild)
         p2.add(p3, rel=city.hasChild)
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, URI, path=DB) \
+        with TransportSessionClient(SQLiteInterface, URI, path=DB) \
                 as session:
             wrapper = city.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
@@ -161,12 +161,12 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1.add(p3, rel=city.hasChild)
         p2.add(p3, rel=city.hasChild)
 
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, URI, path=DB) \
+        with TransportSessionClient(SQLiteInterface, URI, path=DB) \
                 as session:
             wrapper = city.CityWrapper(session=session)
             self.assertEqual(set(session._registry.keys()),
@@ -196,7 +196,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             )
 
     def test_expiring(self):
-        """Test expiring with transport + db session."""
+        """Test expiring with transport + interfaces session."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
@@ -205,7 +205,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1.add(p3, rel=city.hasChild)
         p2.add(p3, rel=city.hasChild)
 
-        with TransportSessionClient(SqliteSession, URI, path=DB)\
+        with TransportSessionClient(SQLiteInterface, URI, path=DB)\
                 as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
@@ -227,7 +227,7 @@ class TestTransportSqliteCity(unittest.TestCase):
             self.assertNotIn(p3w.uid, session._registry)
 
     def test_load_by_oclass(self):
-        """Load elements by ontology class via transport + db session."""
+        """Load elements by ontology class via transport + interfaces session."""
         c = city.City(name="Freiburg")
         p1 = city.Citizen(name="Peter")
         p2 = city.Citizen(name="Anna")
@@ -236,12 +236,12 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1.add(p3, rel=city.hasChild)
         p2.add(p3, rel=city.hasChild)
 
-        with TransportSessionClient(SqliteSession, URI, path=DB) as session:
+        with TransportSessionClient(SQLiteInterface, URI, path=DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, URI, path=DB) as session:
+        with TransportSessionClient(SQLiteInterface, URI, path=DB) as session:
             wrapper = city.CityWrapper(session=session)
             cs = wrapper.get(c.uid)
             r = session.load_by_oclass(city.City)
@@ -261,7 +261,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1.add(p3, rel=city.hasChild)
         p2.add(p3, rel=city.hasChild)
 
-        with TransportSessionClient(SqliteSession, URI, path=DB) \
+        with TransportSessionClient(SQLiteInterface, URI, path=DB) \
                 as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
@@ -287,7 +287,7 @@ class TestTransportSqliteCity(unittest.TestCase):
 
 if __name__ == "__main__":
     if sys.argv[-1] == "server":
-        server = TransportSessionServer(SqliteSession, HOST, PORT)
+        server = TransportSessionServer(SQLiteInterface, HOST, PORT)
         print("ready", flush=True)
         server.startListening()
     else:

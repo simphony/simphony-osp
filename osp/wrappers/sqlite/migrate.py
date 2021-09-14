@@ -3,7 +3,7 @@
 import os
 import argparse
 import logging
-from osp.wrappers.sqlite import SqliteSession
+from osp.wrappers.sqlite import SQLiteInterface
 from osp.core.session.db.sql_migrate import SqlMigrate
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ def install_from_terminal():
     if not os.path.exists(args.db_file):
         raise FileNotFoundError(args.db_file)
 
-    with SqliteSession(args.db_file) as session:
+    with SQLiteInterface(args.db_file) as session:
         m = SqlMigrate(session)
         m.run()
 

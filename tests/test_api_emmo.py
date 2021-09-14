@@ -4,7 +4,7 @@ import unittest2 as unittest
 
 from osp.core.namespaces import cuba
 from osp.core.ontology.datatypes import UID
-from osp.core.session.core_session import CoreSession
+from osp.core.session.interfaces.core_session import CoreSession
 from osp.core.utils.wrapper_development import create_from_cuds_object
 
 

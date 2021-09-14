@@ -13,7 +13,7 @@ from osp.core.ontology import OntologyClass, OntologyRelationship, \
 from osp.core.namespaces import cuba
 
 CUBA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                         "..", "osp", "core", "ontology", "docs", "cuba.ttl")
+                         "..", "osp", "core", "ontology", "files", "cuba.ttl")
 RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "parser_test.ttl")
 

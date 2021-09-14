@@ -13,7 +13,7 @@ import unittest2 as unittest
 
 from osp.core.ontology.datatypes import UID
 from osp.core.session.buffers import BufferContext
-from osp.wrappers.sqlite import SqliteSession
+from osp.wrappers.sqlite import SQLiteInterface
 from osp.core.session.transport.communication_engine import \
     CommunicationEngineServer
 from osp.core.session.transport.communication_utils import (
@@ -48,7 +48,7 @@ except ImportError:
 HOST = "127.0.0.1"
 PORT = 8645
 URI = f"ws://{HOST}:{PORT}"
-DB = "filetransfer.db"
+DB = "filetransfer.interfaces"
 
 FILES_DIR = os.path.abspath(os.path.join(
     os.path.dirname(__file__), "filetransfer_files"))
@@ -169,7 +169,7 @@ class TestFiletransfer(unittest.TestCase):
 
     def test_move_files(self):
         """Test moving the files."""
-        with TransportSessionClient(SqliteSession, URI) as session:
+        with TransportSessionClient(SQLiteInterface, URI) as session:
             # Image path is full path
             wrapper = city.CityWrapper(session=session)
             images = wrapper.add(
@@ -256,7 +256,7 @@ class TestFiletransfer(unittest.TestCase):
     def test_serialize_buffers(self):
         """Test correct handling of files when serializing the buffers."""
         # without providing target path
-        with TransportSessionClient(SqliteSession, URI) as session:
+        with TransportSessionClient(SQLiteInterface, URI) as session:
             self.setup_buffers1(session)
             _, result = serialize_buffers(
                 session, buffer_context=BufferContext.USER,
@@ -267,7 +267,7 @@ class TestFiletransfer(unittest.TestCase):
             )
 
         # provide target path --> move files
-        with TransportSessionClient(SqliteSession, URI) as session:
+        with TransportSessionClient(SQLiteInterface, URI) as session:
             images = self.setup_buffers1(session)
             _, result = serialize_buffers(
                 session, buffer_context=BufferContext.USER,
@@ -293,7 +293,7 @@ class TestFiletransfer(unittest.TestCase):
 
     def test_deserialize_buffers(self):
         """Test correct file handling when deserializing buffers."""
-        with TransportSessionClient(SqliteSession, URI) as session:
+        with TransportSessionClient(SQLiteInterface, URI) as session:
             images = self.setup_buffers2(session)
             deserialize_buffers(session, buffer_context=BufferContext.USER,
                                 data=SERIALIZED_BUFFERS, temp_directory=None,
@@ -397,7 +397,7 @@ class TestFiletransfer(unittest.TestCase):
     def test_upload(self):
         """Test full upload routine."""
         # with given file destination on client
-        with TransportSessionClient(SqliteSession, URI,
+        with TransportSessionClient(SQLiteInterface, URI,
                                     file_destination=CLIENT_DIR) as session:
             images, images_second = self.setup_buffers3(session)
             session.commit()
@@ -420,7 +420,7 @@ class TestFiletransfer(unittest.TestCase):
         self.setUp()
 
         # With no given file destination on client
-        with TransportSessionClient(SqliteSession, URI,
+        with TransportSessionClient(SQLiteInterface, URI,
                                     file_destination=None) as session:
             images, images_second = self.setup_buffers3(session)
             session.commit()
@@ -437,12 +437,12 @@ class TestFiletransfer(unittest.TestCase):
 
     def test_download(self):
         """Test full download routine."""
-        with TransportSessionClient(SqliteSession, URI,
+        with TransportSessionClient(SQLiteInterface, URI,
                                     file_destination=None) as session:
             images = self.setup_buffers1(session)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, URI,
+        with TransportSessionClient(SQLiteInterface, URI,
                                     file_destination=CLIENT_DIR) as session:
             city.CityWrapper(session=session)
             session.load(images[0].uid)
@@ -455,7 +455,7 @@ class TestFiletransfer(unittest.TestCase):
         # and that the duplicates are still
         # in the download folder (and not more)
         number_of_downloaded_files = len(os.listdir(CLIENT_DIR))
-        with TransportSessionClient(SqliteSession, URI,
+        with TransportSessionClient(SQLiteInterface, URI,
                                     file_destination=CLIENT_DIR) as session:
             city.CityWrapper(session=session)
             session.load(images[0].uid)
@@ -472,20 +472,20 @@ class TestFiletransfer(unittest.TestCase):
         Created due to issue #652.
         """
         # Upload file and retrieve twice. Both paths should be correct.
-        with TransportSessionClient(SqliteSession, URI,
+        with TransportSessionClient(SQLiteInterface, URI,
                                     file_destination=CLIENT_DIR) as session:
             wrapper = city.CityWrapper(session=session)
             file = cuba.File(path=FILE_PATHS[1])  # `f1.jpg`
             wrapper.add(file)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, URI,
+        with TransportSessionClient(SQLiteInterface, URI,
                                     file_destination=CLIENT_DIR) as session:
             wrapper = city.CityWrapper(session=session)
             file = wrapper.get(file.uid)
             path1 = file.path
 
-        with TransportSessionClient(SqliteSession, URI,
+        with TransportSessionClient(SQLiteInterface, URI,
                                     file_destination=CLIENT_DIR) as session:
             wrapper = city.CityWrapper(session=session)
             file = wrapper.get(file.uid)
@@ -497,7 +497,7 @@ class TestFiletransfer(unittest.TestCase):
         # Upload two identical instances of the same file, also upload two
         # different files with the same name.
         # The CLIENT_DIR is not cleaned up on purpose.
-        with TransportSessionClient(SqliteSession, URI,
+        with TransportSessionClient(SQLiteInterface, URI,
                                     file_destination=CLIENT_DIR) as session:
             wrapper = city.CityWrapper(session=session)
             file1 = cuba.File(path=FILE_PATHS[0])  # `f0`
@@ -508,7 +508,7 @@ class TestFiletransfer(unittest.TestCase):
             wrapper.add(file1, file2, file3, file4)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, URI,
+        with TransportSessionClient(SQLiteInterface, URI,
                                     file_destination=CLIENT_DIR) as session:
             wrapper = city.CityWrapper(session=session)
             path1 = wrapper.get(file1.uid).path
@@ -525,7 +525,7 @@ class TestFiletransfer(unittest.TestCase):
         # files, that is, the path is correct for the server).
         for file in os.listdir(CLIENT_DIR):
             os.remove(os.path.join(CLIENT_DIR, file))
-        with TransportSessionClient(SqliteSession, URI,
+        with TransportSessionClient(SQLiteInterface, URI,
                                     file_destination=CLIENT_DIR) as session:
             wrapper = city.CityWrapper(session=session)
             path1 = wrapper.get(file1.uid).path
@@ -609,7 +609,7 @@ class TestFiletransfer(unittest.TestCase):
 
 if __name__ == "__main__":
     if sys.argv[-1] == "server":
-        server = TransportSessionServer(SqliteSession, HOST, PORT,
+        server = TransportSessionServer(SQLiteInterface, HOST, PORT,
                                         session_kwargs={"path": DB},
                                         file_destination=SERVER_DIR)
         print("ready", flush=True)

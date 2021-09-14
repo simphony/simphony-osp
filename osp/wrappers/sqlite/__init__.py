@@ -1,1 +1,1 @@
-from osp.wrappers.sqlite.sqlite_session import SqliteSession
+from osp.wrappers.sqlite.interface import SQLiteInterface

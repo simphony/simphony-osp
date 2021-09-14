@@ -5,18 +5,18 @@ import sqlite3
 from rdflib import XSD
 
 from osp.core.ontology.datatypes import UID, Vector
-from osp.core.session.db.sql_util import AndCondition, EqualsCondition, \
+from osp.core.session.interfaces.sql import AndCondition, EqualsCondition, \
     JoinCondition
-from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
+from osp.core.session.interfaces.sql import SQLInterface
 
 
-class SqliteSession(SqlWrapperSession):
+class SQLiteInterface(SQLInterface):
     """A session to connect osp-core to a SQLite backend.
 
     This SQLite backend can be used to store CUDS in an SQLite database.
     """
 
-    def __init__(self, path, check_same_thread=True, **kwargs):
+    def __init__(self, path, check_same_thread=True, *args, **kwargs):
         """Initialize the SqliteSession.
 
         Args:
@@ -25,10 +25,11 @@ class SqliteSession(SqlWrapperSession):
             check_same_thread (bool, optional): Argument of sqlite.
                 Defaults to True.
         """
-        conn = sqlite3.connect(path,
-                               isolation_level=None,
-                               check_same_thread=check_same_thread)
-        super().__init__(engine=conn, **kwargs)
+        self._engine = sqlite3.connect(
+            path,
+            isolation_level=None,
+            check_same_thread=check_same_thread)
+        super().__init__(*args, **kwargs)
 
     def __str__(self):
         """Convert the Session to a static string."""
@@ -40,19 +41,22 @@ class SqliteSession(SqlWrapperSession):
         self._engine.close()
 
     # OVERRIDE
-    def _commit(self):
+    def commit(self):
         """Commit the data to the SQLite database."""
         self._engine.commit()
 
     # OVERRIDE
-    def _init_transaction(self):
+    def init_transaction(self):
         c = self._engine.cursor()
         c.execute("BEGIN;")
 
     # OVERRIDE
-    def _rollback_transaction(self):
+    def rollback_transaction(self):
         c = self._engine.cursor()
         c.execute("ROLLBACK;")
+
+    def rollback(self):
+        self._engine.rollback()
 
     @staticmethod
     def _sql_list_pattern(prefix, values, join_pattern=True):
@@ -162,7 +166,7 @@ class SqliteSession(SqlWrapperSession):
 
     # OVERRIDE
     def _db_drop(self, table_name):
-        sql_command = (f"DROP TABLE IF EXISTS `{table_name}`")
+        sql_command = f"DROP TABLE IF EXISTS `{table_name}`"
         c = self._engine.cursor()
         c.execute(sql_command)
 

@@ -2,19 +2,21 @@
 
 import itertools
 import logging
-from collections.abc import Iterable
-from typing import Any, Iterator, Optional, TYPE_CHECKING, Union
+from typing import Any, Iterable, Iterator, Optional, TYPE_CHECKING, \
+    Tuple, Union
 
 import rdflib
-from rdflib import BNode, Literal, URIRef
+from rdflib import RDFS, BNode, Literal, URIRef
 from rdflib.term import Identifier
 
 from osp.core.ontology.parser.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
 
 if TYPE_CHECKING:
+    from osp.core.ontology.datatypes import UID
     from osp.core.ontology.entity import OntologyEntity
-    from osp.core.ontology.ontology import Ontology
+    from osp.core.ontology.relationship import OntologyRelationship
+    from osp.core.session.session import Session
 
 
 logger = logging.getLogger(__name__)
@@ -26,16 +28,66 @@ class OntologyNamespace:
     @property
     def name(self) -> Optional[str]:
         """The name of this namespace."""
-        return self._name
+        return self.ontology.get_namespace_bind(self)
 
     @property
     def iri(self) -> URIRef:
         """The IRI of this namespace."""
         return self._iri
 
+    @property
+    def active_relationships(self) -> Tuple['OntologyRelationship']:
+        """Get the active relationships defined in the ontology.
+
+        Only returns the relationships that belong to this namespace.
+        """
+        return tuple(x
+                     for x in self.ontology.active_relationships
+                     if x in self)
+
+    @active_relationships.setter
+    def active_relationships(self, value: Union[None,
+                                                Iterable[
+                                                    'OntologyRelationship']]):
+        """Set the active relationships defined in the ontology.
+
+        Only replaces and sets relationships that belong to this namespace.
+        """
+        value = iter(()) if value is None else value
+
+        # Keep existing relationships not belonging to this namespace.
+        relationships_to_keep = (x for x in self.ontology.active_relationships
+                                 if x not in self)
+        self.ontology.active_relationships = itertools.chain(
+            relationships_to_keep,
+            value
+        )
+
+    @property
+    def default_relationship(self) -> Optional['OntologyRelationship']:
+        """Get the default relationship for this namespace."""
+        return self.ontology.default_relationships.get(self)
+
+    @default_relationship.setter
+    def default_relationship(self,
+                             value: Optional['OntologyRelationship']):
+        """Set the default relationship for this namespace."""
+        self.ontology.default_relationships = \
+            self.ontology.default_relationships.update(
+                {self: value}
+            )
+
+    @property
+    def reference_style(self) -> bool:
+        return self.ontology.reference_styles[self]
+
+    @property
+    def ontology(self) -> 'Ontology':
+        return self._ontology
+
     def __init__(self,
-                 iri: URIRef,
-                 ontology: 'Ontology',
+                 iri: Union[str, URIRef],
+                 ontology: 'Session',
                  name: Optional[str] = None):
         """Initialize the namespace.
 
@@ -44,9 +96,9 @@ class OntologyNamespace:
             ontology: The ontology to which the namespace is connected.
             name: The name of the namespace
         """
-        self._name = name
-        self._iri = iri
-        self.ontology = ontology
+        self._iri = URIRef(iri)
+        self._ontology = ontology
+        ontology.bind(name, iri)
 
     def __str__(self) -> str:
         """Transform the namespace to a human readable string.
@@ -54,7 +106,7 @@ class OntologyNamespace:
         Returns:
             The resulting string.
         """
-        return "%s (%s)" % (self._name, self._iri)
+        return "%s (%s)" % (self.name, self.iri)
 
     def __repr__(self) -> str:
         """Transform the namespace to a string.
@@ -62,7 +114,7 @@ class OntologyNamespace:
         Returns:
             The resulting string.
         """
-        return "<%s: %s>" % (self._name, self._iri)
+        return "<%s: %s>" % (self.name, self.iri)
 
     def __eq__(self, other: 'OntologyNamespace') -> bool:
         """Check whether the two namespace objects are the same.
@@ -76,6 +128,14 @@ class OntologyNamespace:
         return isinstance(other, OntologyNamespace) and \
             self.ontology is other.ontology and \
             self.iri == other.iri
+
+    def __hash__(self) -> int:
+        """Hash the namespace.
+
+        The namespace is defined by its IRI and its underlying data
+        structure (the ontology), which are immutable attributes.
+        """
+        return hash((self.ontology, self.iri))
 
     # Query content stored in the linked session's bag
     # ↓-----------------------------------------------↓
@@ -92,14 +152,14 @@ class OntologyNamespace:
         Returns:
             The ontology entity.
         """
-        if self.ontology.reference_style:
+        if self.reference_style:
             try:
-                return self.get_from_label(name)
+                return self.from_label(name)
             except KeyError as e:
                 raise AttributeError(str(e)) from e
         else:
             try:
-                return self.get_from_suffix(name)
+                return self.from_suffix(name)
             except KeyError as e:
                 raise AttributeError(str(e)) from e
 
@@ -133,7 +193,7 @@ class OntologyNamespace:
         if next(iterator, exception) is not exception:
             raise exception
 
-        return self.get_from_label(label, lang, case_sensitive=True)
+        return self.from_label(label, lang, case_sensitive=True)
 
     def __dir__(self) -> Iterable[str]:
         """Attributes available for the OntologyNamespace class.
@@ -143,15 +203,11 @@ class OntologyNamespace:
             the ontology entities in the namespace.
         """
         entity_autocompletion = self._iter_labels() \
-            if self.ontology.reference_style else self._iter_suffixes()
+            if self.reference_style else self._iter_suffixes()
         return itertools.chain(dir(super()), entity_autocompletion)
 
-    def __hash__(self) -> int:
-        """Compute a hash value."""
-        # TODO: the session can be changed, should the namespace be hashable?
-        return hash(self.iri)
-
-    def get(self, name: str, default: Optional[Any] = None) -> OntologyEntity:
+    def get(self, name: str,
+            default: Optional[Any] = None) -> "OntologyEntity":
         """Get an ontology entity from the registry by suffix or label.
 
         Args:
@@ -166,7 +222,7 @@ class OntologyNamespace:
         except AttributeError:
             return default
 
-    def get_from_iri(self, iri: Union[str, URIRef]) -> 'OntologyEntity':
+    def from_iri(self, iri: Union[str, URIRef]) -> 'OntologyEntity':
         """Get an ontology entity directly from its IRI.
 
         For consistency, this method only returns entities from this namespace.
@@ -187,7 +243,7 @@ class OntologyNamespace:
             raise KeyError(f"The IRI {iri} does not belong to the namespace"
                            f"{self}.")
 
-    def get_from_suffix(self, suffix: str, case_sensitive: bool = False) -> \
+    def from_suffix(self, suffix: str, case_sensitive: bool = False) -> \
             'OntologyEntity':
         """Get an ontology entity from its namespace suffix.
 
@@ -199,63 +255,43 @@ class OntologyNamespace:
         """
         iri = URIRef(str(self._iri) + suffix)
         try:
-            return self.get_from_iri(iri)
+            return self.from_iri(iri)
         except KeyError as e:
             if not case_sensitive:
                 return self._get_case_insensitive(suffix,
-                                                  self.get_from_suffix)
+                                                  self.from_suffix)
             raise e
 
-    def get_from_label(self,
-                       label: str,
-                       lang: Optional[str] = None,
-                       case_sensitive: bool = False) -> 'OntologyEntity':
-        """Get an ontology entity from the registry by label.
-
-        Args:
-            label: The label of the ontology entity.
-            lang: The language of the label.
-            case_sensitive: when false, look for similar labels with
-                different capitalization.
-
-        Raises:
-            KeyError: Unknown label.
-
-        Returns:
-            OntologyEntity: The ontology entity.
-        """
-        results = []
-        for identifier in self.ontology.iter_identifiers():
-            entity_labels = self.ontology.iter_labels(identifier,
-                                                      lang=lang,
-                                                      return_literal=True)
-            if case_sensitive is False:
-                entity_labels = (Literal(label.lower(),
-                                         lang=label.lang,
-                                         datatype=label.datatype)
-                                 for label in entity_labels)
-                comp_label = label.lower()
-            else:
-                comp_label = label
-            if comp_label in entity_labels:
-                results.append(self.get_from_iri(identifier))
-        if len(results) == 0:
+    def from_label(self,
+                   label: str,
+                   lang: Optional[str] = None,
+                   case_sensitive: bool = False) -> 'OntologyEntity':
+        try:
+            entities = set(
+                entity
+                for entity in self.ontology.from_label(
+                    label, lang=lang, case_sensitive=case_sensitive)
+                if entity in self
+            )
+        except KeyError:
+            entities = set()
+        if len(entities) == 0:
             error = "No element with label %s was found in namespace %s."\
                     % (label, self)
             raise KeyError(error)
-        elif len(results) >= 2:
-            element_suffixes = (r.iri[len(self.iri):] for r in results)
+        elif len(entities) >= 2:
+            element_suffixes = (r.iri[len(self.iri):] for r in entities)
             error = (f"There are multiple elements "
                      f"({', '.join(element_suffixes)}) with label"
                      f" {label} for namespace {self}."
                      f"\n"
                      f"Please refer to a specific element of the "
-                     f"list by calling get_from_iri(IRI) for "
+                     f"list by calling from_iri(IRI) for "
                      f"namespace {self} for one of the following "
                      f"IRIs: " + "{iris}.")\
-                .format(iris=', '.join(entity.iri for entity in results))
+                .format(iris=', '.join(entity.iri for entity in entities))
             raise KeyError(error)
-        return results[0]
+        return entities.pop()
 
     def _iter_labels(self) -> Iterator[str]:
         """Iterate over the labels of the ontology entities in the namespace.
@@ -314,18 +350,20 @@ class OntologyNamespace:
         """
         from osp.core.ontology.entity import OntologyEntity
 
-        if not isinstance(item, (rdflib.URIRef, rdflib.BNode)):
+        if not isinstance(item, (rdflib.URIRef, rdflib.BNode, OntologyEntity)):
             raise TypeError(f'in {type(self)} requires, '
-                            f'{Identifier} or  {OntologyEntity} as left '
+                            f'{Identifier} or {OntologyEntity} as left '
                             f'operand, not {type(item)}.')
 
         if isinstance(item, BNode):
             return False
         elif isinstance(item, URIRef):
-            return str(item).startswith(self.iri)
+            return item.startswith(self.iri)
         elif isinstance(item, Identifier):
-            return item in self._iter_identifiers()
-        elif isinstance(item, OntologyEntity) and item.session is self.ontology:
+            # Is there an Identifier which is not a BNode or URIRef?.
+            return False
+        elif isinstance(item, OntologyEntity) \
+                and item.session is self.ontology:
             if isinstance(item.identifier, BNode):
                 return item.identifier in self._iter_identifiers()
             else:
@@ -340,7 +378,7 @@ class OntologyNamespace:
     # ↓----------------------↓
 
     def _get_case_insensitive(self, name: str,
-                              method: callable) -> OntologyEntity:
+                              method: callable) -> "OntologyEntity":
         """Get by trying alternative naming convention of given name.
 
         Args:
@@ -353,10 +391,10 @@ class OntologyNamespace:
         Raises:
             KeyError: Reference to unknown entity.
         """
-        alternative = alt(name, self._name == "cuba")
+        alternative = alt(name, self.name == "cuba")
         if alternative is None:
             raise KeyError(
-                f"Unknown entity '{name}' in namespace {self._name}."
+                f"Unknown entity '{name}' in namespace {self.name}."
             )
 
         r = None
@@ -381,7 +419,7 @@ class OntologyNamespace:
             )
         else:
             raise KeyError(
-                f"Unknown entity '{name}' in namespace {self._name}. "
+                f"Unknown entity '{name}' in namespace {self.name}. "
                 f"For backwards compatibility reasons we also "
                 f"looked for {alternative} and failed."
             ) from exception

@@ -1,0 +1,8 @@
+identifier: cuba
+ontology_file: cuba.ttl
+format: 'turtle'
+reference_by_label: False
+namespaces:
+    cuba: http://www.osp-core.com/cuba#
+active_relationships:
+    - http://www.osp-core.com/cuba#activeRelationship

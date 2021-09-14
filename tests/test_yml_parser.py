@@ -18,12 +18,12 @@ from osp.core.ontology.parser.yml.parser import YMLParser
 
 YML_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
-    "..", "osp", "core", "ontology", "docs", "parser_test.ontology.yml"
+    "..", "osp", "core", "ontology", "files", "parser_test.ontology.yml"
 )
 CUBA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                         "..", "osp", "core", "ontology", "docs", "cuba.ttl")
+                         "..", "osp", "core", "ontology", "files", "cuba.ttl")
 EMMO_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                         "..", "osp", "core", "ontology", "docs", "emmo.yml")
+                         "..", "osp", "core", "ontology", "files", "emmo.yml")
 RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "parser_test.ttl")
 YML_CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),

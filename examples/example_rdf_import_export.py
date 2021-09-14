@@ -13,7 +13,7 @@ import uuid
 import re
 import os
 from rdflib import URIRef
-from osp.wrappers.sqlite import SqliteSession
+from osp.wrappers.sqlite import SQLiteInterface
 from osp.core.namespaces import city
 from osp.core.utils import import_cuds, export_cuds, branch, pretty_print
 
@@ -39,7 +39,7 @@ with open("test.rdf", encoding="utf-8") as f:
         print("\t", line.strip())
 
 # Export from a Wrapper session
-with SqliteSession(path="test.db") as session:
+with SQLiteInterface(path="test.interfaces") as session:
     w = city.CityWrapper(session=session)
     w.add(c)
     export_cuds(session, path="test.rdf", format="ttl")
@@ -70,14 +70,14 @@ with SqliteSession(path="test.db") as session:
                 print(line, end="", file=f2)
 
 # Create new session and import file
-with SqliteSession(path="test2.db") as session:
+with SQLiteInterface(path="test2.interfaces") as session:
     w = city.CityWrapper(session=session)  # wrapper will be skipped for export
     import_cuds("test2.rdf", format="ttl", session=session)
     w.add(session.load_from_iri(URIRef("http://city.com/Freiburg")).one())
     print("Imported data:")
     pretty_print(w)
 
-os.remove("test.db")
-os.remove("test2.db")
+os.remove("test.interfaces")
+os.remove("test2.interfaces")
 os.remove("test.rdf")
 os.remove("test2.rdf")

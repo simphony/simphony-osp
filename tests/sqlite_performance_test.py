@@ -5,7 +5,7 @@ import gc
 import os
 import time
 import unittest2 as unittest
-from osp.wrappers.sqlite import SqliteSession
+from osp.wrappers.sqlite import SQLiteInterface
 from osp.core.utils.simple_search import find_cuds_object
 
 try:
@@ -17,7 +17,7 @@ except ImportError:
     city = namespace_registry.city
 
 RUN_PERFORMANCE_TEST = False
-DB = "performance_test.db"
+DB = "performance_test.interfaces"
 
 
 class TestPerformance(unittest.TestCase):
@@ -28,11 +28,11 @@ class TestPerformance(unittest.TestCase):
         if not RUN_PERFORMANCE_TEST:
             return
         self.iterations = 1000
-        with SqliteSession(DB) as session:
+        with SQLiteInterface(DB) as session:
             w = city.CityWrapper(session=session)
             self.fill_db(w, random_uid=False)
             session.commit()
-        self.session = SqliteSession(DB)
+        self.session = SQLiteInterface(DB)
         self.w = city.CityWrapper(session=self.session)
         gc.collect()
         self.start = time.time()
@@ -75,7 +75,7 @@ class TestPerformance(unittest.TestCase):
             c = c.add(city.Street(name="", uid=next(uids)), rel=city.hasPart)
 
     def test_fill_db_one_commit(self):
-        """Tests filling the db with lots of data with one commit."""
+        """Tests filling the interfaces with lots of data with one commit."""
         if not RUN_PERFORMANCE_TEST:
             return
         print("Test filling database one commit")
@@ -85,7 +85,7 @@ class TestPerformance(unittest.TestCase):
         """Traverse the graph."""
         if not RUN_PERFORMANCE_TEST:
             return
-        print("Traverse db")
+        print("Traverse interfaces")
         for i in range(self.iterations):
             find_cuds_object(lambda x: True, self.w, rel=city.encloses,
                              find_all=True, max_depth=10)

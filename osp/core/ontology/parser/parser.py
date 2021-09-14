@@ -89,7 +89,7 @@ class OntologyParser(ABC):
         """Get the correct file path for a given identifier.
 
         For a given one, i.e. translate non
-        paths to osp/core/ontology/docs/*.yml
+        paths to osp/core/ontology/files/*.yml
 
         Args:
             file_identifier (str): A filepath or file identifier
@@ -101,11 +101,11 @@ class OntologyParser(ABC):
             return file_identifier
         file_identifier = file_identifier.lower()
         a = os.path.join(
-            os.path.dirname(__file__), "../docs",
+            os.path.dirname(__file__), "../files",
             f"{file_identifier}.ontology.yml"
         )
         b = os.path.join(
-            os.path.dirname(__file__), "../docs",
+            os.path.dirname(__file__), "../files",
             f"{file_identifier}.yml"
         )
         if os.path.exists(a):

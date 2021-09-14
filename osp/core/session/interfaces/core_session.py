@@ -1,7 +1,13 @@
 """The core session used as default when no backend is connected."""
+
 import logging
-from .session import Session
-from .sparql_backend import SparqlResult, SparqlBindingSet, SPARQLBackend
+from typing import TYPE_CHECKING
+
+from osp.core.session.session import Session
+from osp.core.session.interfaces.sparql_backend import SparqlResult, SparqlBindingSet, SPARQLBackend
+
+if TYPE_CHECKING:
+    from osp.core.ontology.entity import OntologyEntity
 
 logger = logging.getLogger(__name__)
 
@@ -14,17 +20,17 @@ class CoreSession(Session, SPARQLBackend):
         """Convert the core session object to string."""
         return "<CoreSession object>"
 
-    # OVERRIDE
-    def _notify_update(self, cuds_object):
+    def _notify_update(self, entity: 'OntologyEntity'):
         pass
 
-    # OVERRIDE
-    def _notify_delete(self, cuds_object):
+    def _notify_delete(self, entity: 'OntologyEntity'):
+        super()._notify_delete(entity)
+
+    def _notify_read(self, entity: 'OntologyEntity'):
         pass
 
-    # OVERRIDE
-    def _notify_read(self, cuds_object):
-        pass
+    def _notify_store(self, entity: 'OntologyEntity'):
+        super()._notify_store(entity)
 
     def _get_full_graph(self):
         """Get the triples in the core session."""

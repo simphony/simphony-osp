@@ -6,7 +6,7 @@ import subprocess
 import unittest2 as unittest
 import hashlib
 import time
-from osp.wrappers.sqlite import SqliteSession
+from osp.wrappers.sqlite import SQLiteInterface
 from osp.core.session.transport.transport_session_client import \
     TransportSessionClient
 from osp.core.session.transport.transport_session_server import \
@@ -27,10 +27,10 @@ URI_WRONG1 = f"ws://username:wrong@{HOST}:{PORT1}"
 PORT2 = 8471
 URI_CORRECT2 = f"ws://username:correct@{HOST}:{PORT2}"
 URI_WRONG2 = f"ws://username:wrong@{HOST}:{PORT2}"
-DB = "transport.db"
+DB = "transport.interfaces"
 
 
-class AuthSession(SqliteSession):
+class AuthSession(SQLiteInterface):
     """Session used for testing authentication."""
 
     DB_SALT = "salt"
@@ -89,12 +89,12 @@ class AuthSession(SqliteSession):
         """
         conn_salt, db_salt = handshake
         salted_pw = (password + db_salt).encode("utf-8")
-        pwd_hash = hashlib.sha256(salted_pw).hexdigest()  # that's in the db
+        pwd_hash = hashlib.sha256(salted_pw).hexdigest()  # that's in the interfaces
         auth = (pwd_hash + conn_salt).encode("utf-8")
         return [username, hashlib.sha256(auth).hexdigest()]
 
 
-class SimpleAuthSession(SqliteSession):
+class SimpleAuthSession(SQLiteInterface):
     """A simple session for testing authentication."""
 
     DB_USERNAME = "username"

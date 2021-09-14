@@ -16,7 +16,7 @@ from osp.core.ontology.namespace_registry import OntologySession
 RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "parser_test.ttl")
 CUBA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                         "..", "osp", "core", "ontology", "docs", "cuba.ttl")
+                         "..", "osp", "core", "ontology", "files", "cuba.ttl")
 YML_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "parser_test.yml")
 with open(YML_FILE) as f:
@@ -137,21 +137,21 @@ class TestParser(unittest.TestCase):
             OntologyParser.parse_file_path("my_file").lower(),
             os.path.abspath(os.path.relpath(os.path.join(
                 os.path.dirname(__file__), "..", "osp", "core", "ontology",
-                "docs", "my_file.yml"
+                "files", "my_file.yml"
             ))).lower()
         )
         self.assertEqual(
             OntologyParser.parse_file_path("emmo").lower(),
             os.path.abspath(os.path.relpath(os.path.join(
                 os.path.dirname(__file__), "..", "osp", "core", "ontology",
-                "docs", "emmo.yml"
+                "files", "emmo.yml"
             ))).lower()
         )
         self.assertEqual(
             OntologyParser.parse_file_path("city").lower(),
             os.path.abspath(os.path.relpath(os.path.join(
                 os.path.dirname(__file__), "..", "osp", "core", "ontology",
-                "docs", "city.ontology.yml"
+                "files", "city.ontology.yml"
             ))).lower()
         )
 

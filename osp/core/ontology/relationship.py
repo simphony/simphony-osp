@@ -1,11 +1,11 @@
 """A relationship defined in the ontology."""
 
 import logging
-from typing import Iterator, Optional, TYPE_CHECKING
+from typing import Iterable, Iterator, Optional, TYPE_CHECKING
 
 from rdflib import OWL, RDFS, XSD, Literal, URIRef
 
-from osp.core.ontology.datatypes import UID
+from osp.core.ontology.datatypes import Triple, UID
 from osp.core.ontology.entity import OntologyEntity
 
 if TYPE_CHECKING:
@@ -21,14 +21,15 @@ class OntologyRelationship(OntologyEntity):
 
     def __init__(self,
                  uid: UID,
-                 session: Optional['Session'] = None) -> None:
+                 session: Optional['Session'] = None,
+                 triples: Optional[Iterable[Triple]] = None) -> None:
         """Initialize the ontology relationship.
 
         Args:
             uid: UID identifying the entity.
             session: Session where the entity is stored.
         """
-        super().__init__(uid, session)
+        super().__init__(uid, session, triples)
         logger.debug("Create ontology relationship property %s" % self)
 
     def _get_direct_superclasses(self) -> Iterator[OntologyEntity]:

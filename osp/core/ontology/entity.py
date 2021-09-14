@@ -14,6 +14,7 @@ from osp.core.ontology.datatypes import Triple, UID
 if TYPE_CHECKING:
     from osp.core.session.session import Session
 
+
 logger = logging.getLogger(__name__)
 
 # The properties of the instances of the class OntologyEntity defined below
@@ -26,18 +27,8 @@ entity_cache_size = 1024
 class OntologyEntity(ABC):
     """Abstract superclass of any entity in the ontology."""
 
-    @property
-    def uid(self) -> UID:
-        return self._uid
-
-    @uid.setter
-    def uid(self, value: UID) -> None:
-        self._uid = value
-
-    @property
-    def identifier(self) -> Identifier:
-        """Get the Identifier (URIRef or BNode) representing the entity."""
-        return self.uid.to_identifier()
+    # Public API
+    # ↓ ------ ↓
 
     @property
     def iri(self) -> URIRef:
@@ -50,14 +41,117 @@ class OntologyEntity(ABC):
         return self.uid.to_iri()
 
     @property
+    def identifier(self) -> Identifier:
+        """Get the Identifier (URIRef or BNode) representing the entity."""
+        return self.uid.to_identifier()
+
+    @property
     def label(self) -> Optional[str]:
         """Get the preferred label of this entity, if it exists.
 
         See the docstring for `label_literal` for more information on the
         definition of preferred label.
         """
-        return str(self.label_literal)\
+        return str(self.label_literal) \
             if self.label_literal is not None else None
+
+    @property
+    def session(self) -> 'Session':
+        """The session where the entity is stored."""
+        return self._session
+
+    @session.setter
+    def session(self, value: 'Session') -> None:
+        """Change the session where the entity is stored.
+
+        Equivalent to removing the item from the previous session and adding it
+        to the new session.
+        """
+        # THIS SETTER IS ONLY FOR THE USER. DO NOT USE IT AS DEVELOPER,
+        # USE `Session.store` instead, the responsibility of storing should
+        # be on the session not on the entity.
+        value.store(self)
+        if self._session is not value:
+            self._session.delete(self)
+        self._session = value
+
+    @property
+    @lru_cache(maxsize=entity_cache_size)
+    def direct_superclasses(self) -> Set['OntologyEntity']:
+        """Get the direct superclasses of the entity.
+
+        Returns:
+            The direct superclasses of the entity.
+        """
+        return set(self._get_direct_superclasses())
+
+    @property
+    @lru_cache(maxsize=entity_cache_size)
+    def direct_subclasses(self) -> Set['OntologyEntity']:
+        """Get the direct subclasses of the entity.
+
+        Returns:
+            The direct subclasses of the entity.
+        """
+        return set(self._get_direct_subclasses())
+
+    @property
+    @lru_cache(maxsize=entity_cache_size)
+    def superclasses(self) -> Set[Union['OntologyEntity']]:
+        """Get the superclass of the entity.
+
+        Returns:
+            The direct superclasses of the entity.
+
+        """
+        return set(self._get_superclasses())
+
+    @property
+    @lru_cache(maxsize=entity_cache_size)
+    def subclasses(self) -> Set['OntologyEntity']:
+        """Get the subclasses of the entity.
+
+        Returns:
+            The direct subclasses of the entity
+
+        """
+        return set(self._get_subclasses())
+
+    def is_superclass_of(self, other: 'OntologyEntity') -> bool:
+        """Perform a superclass check.
+
+        Args:
+            other: The other ontology entity.
+
+        Returns:
+            Whether self is a superclass of other.
+        """
+        return self in other.superclasses
+
+    def is_subclass_of(self, other: 'OntologyEntity') -> bool:
+        """Perform a subclass check.
+
+        Args:
+            other: The other entity.
+
+        Returns:
+            bool: Whether self is a subclass of other.
+
+        """
+        return self in other.subclasses
+
+    # ↑ ------ ↑
+    # Public API
+
+    @property
+    def uid(self) -> UID:
+        """Get the unique identifier that OSP-core uses for this entity."""
+        return self._uid
+
+    @uid.setter
+    def uid(self, value: UID) -> None:
+        """Set the unique identifier that OSP-core uses for this entity."""
+        self._uid = value
 
     @property
     def label_lang(self) -> Optional[str]:
@@ -86,10 +180,10 @@ class OntologyEntity(ABC):
         # Sort by label property preference, and length.
         labels = sorted(labels,
                         key=lambda x:
-                        (self.session.label_properties.index(x),
-                         len(x)))
+                        (self.session.label_properties.index(x[1]),
+                         len(x[0])))
         # Return the first label
-        return labels[0] if len(labels) > 0 else None
+        return labels[0][0] if len(labels) > 0 else None
 
     def iter_labels(self,
                     lang: Optional[str] = None,
@@ -118,129 +212,77 @@ class OntologyEntity(ABC):
                                         return_prop=return_prop)
 
     @property
-    def session(self) -> 'Session':
-        """The session where the entity is stored."""
-        return self._session
-
-    @session.setter
-    def session(self, value: 'Session') -> None:
-        """Change the session where the entity is stored.
-
-        Equivalent to removing the item from the previous session and adding it
-        to the new session.
-        """
-        # THIS SETTER IS ONLY FOR THE USER. DO NOT USE IT AS DEVELOPER,
-        # USE `Session.store` instead, the responsibility of storing should
-        # be on the session not on the entity.
-        value.store(self)
-        if self._session is not value:
-            self._session.remove(self)
-        self._session = value
-
-    @property
-    @lru_cache(maxsize=entity_cache_size)
-    def direct_superclasses(self) -> Set['OntologyEntity']:
-        """Get the direct superclasses of the entity.
-
-        Returns:
-            The direct superclasses of the entity.
-        """
-        return set(self._get_direct_superclasses())
+    def triples(self) -> Set[Triple]:
+        """Get the triples defining the entity."""
+        if self.__graph is not None:
+            return set(self.__graph.triples((None, None, None)))
+        else:
+            return set(self.session.graph.triples((self.identifier, None,
+                                                   None)))
 
     @abstractmethod
     def _get_direct_superclasses(self) -> Iterable['OntologyEntity']:
         """Direct superclass getter specific to the type of ontology entity."""
         pass
 
-    @property
-    @lru_cache(maxsize=entity_cache_size)
-    def direct_subclasses(self) -> Set['OntologyEntity']:
-        """Get the direct subclasses of the entity.
-
-        Returns:
-            The direct subclasses of the entity.
-        """
-        return set(self._get_direct_subclasses())
-
     @abstractmethod
     def _get_direct_subclasses(self) -> Iterable['OntologyEntity']:
         """Direct subclass getter specific to the type of ontology entity."""
         pass
-
-    @property
-    @lru_cache(maxsize=entity_cache_size)
-    def superclasses(self) -> Set[Union['OntologyEntity']]:
-        """Get the superclass of the entity.
-
-        Returns:
-            The direct superclasses of the entity.
-
-        """
-        return set(self._get_superclasses())
 
     @abstractmethod
     def _get_superclasses(self) -> Iterable['OntologyEntity']:
         """Superclass getter specific to the type of ontology entity."""
         pass
 
-    @property
-    @lru_cache(maxsize=entity_cache_size)
-    def subclasses(self) -> Set['OntologyEntity']:
-        """Get the subclasses of the entity.
-
-        Returns:
-            Set[OntologyEntity]: The direct subclasses of the entity
-
-        """
-        return set(self._get_subclasses())
-
     @abstractmethod
     def _get_subclasses(self) -> Iterable['OntologyEntity']:
         """Subclass getter specific to the type of ontology entity."""
         pass
 
-    @property
-    def triples(self) -> Tuple[Triple]:
-        """Get the triples defining the entity."""
-        return tuple(self.session.graph.triples((self.identifier, None, None)))
-
-    def is_superclass_of(self, other: 'OntologyEntity') -> bool:
-        """Perform a superclass check.
-
-        Args:
-            other: The other ontology entity.
-
-        Returns:
-            Whether self is a superclass of other.
-        """
-        return self in other.superclasses
-
-    def is_subclass_of(self, other: 'OntologyEntity') -> bool:
-        """Perform a subclass check.
-
-        Args:
-            other: The other entity.
-
-        Returns:
-            bool: Whether self is a subclass of other.
-
-        """
-        return self in other.subclasses
+    __graph: Optional[Graph] = None  # Only exists during initialization.
 
     @abstractmethod
     def __init__(self,
                  uid: UID,
-                 session: Optional['Session'] = None) -> None:
+                 session: Optional['Session'] = None,
+                 triples: Optional[Iterable[Triple]] = None) -> None:
         """Initialize the ontology entity.
 
         Args:
             uid: UID identifying the entity.
             session: Session where the entity is stored.
         """
+        if uid is None:
+            uid = UID()
+        elif not isinstance(uid, UID):
+            raise Exception(f"Tried to initialize an ontology entity with "
+                            f"uid {uid}, which is not a UID object.")
         self._uid = uid
-        # TODO: create session and attach it to this entity if it has no
-        #  session.
+
+        # While the entity is being initialized, it belongs to no session.
+        # The extra triples are added to the `__graph` attribute. While such
+        # attribute exists, it is the preferred way to access the entity's
+        # triples using the `triples` property.
+        self._session = None
+        if triples is not None:
+            self.__graph = Graph()
+            for s, p, o in triples:
+                if s != self.identifier:
+                    raise ValueError("Trying to add extra triples to an "
+                                     "ontology entity with a subject that "
+                                     "does not match the individual's "
+                                     "identifier.")
+                self.__graph.add((s, p, o))
+        if session is None:
+            from osp.core.session.session import Session
+            session = Session.default_session
+        if self.__graph is not None:
+            # Only change what is stored in the session if custom triples were
+            # provided.
+            session.store(self)
         self._session = session
+        self.__graph = None
 
     def __str__(self) -> str:
         """Transform the entity into a human readable string."""
@@ -261,8 +303,9 @@ class OntologyEntity(ABC):
         """
         # TODO: Blank nodes with different IDs.
         return isinstance(other, OntologyEntity) \
+            and self.session == other.session \
             and self.uid == other.uid
 
     def __hash__(self) -> int:
         """Make the entity hashable."""
-        return hash((self.iri, ))
+        return hash((self.uid, self.session))

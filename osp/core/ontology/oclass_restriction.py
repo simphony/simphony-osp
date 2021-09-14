@@ -2,14 +2,14 @@
 
 import logging
 from enum import Enum
-from functools import cache
+from functools import lru_cache
 from typing import Iterable, Optional, TYPE_CHECKING, Tuple, Union
 
 from rdflib import OWL, BNode, URIRef
 from rdflib.term import Identifier
 
 from osp.core.ontology.attribute import OntologyAttribute
-from osp.core.ontology.datatypes import UID
+from osp.core.ontology.datatypes import Triple, UID
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.relationship import OntologyRelationship
 
@@ -41,7 +41,8 @@ class Restriction(OntologyEntity):
 
     def __init__(self,
                  uid: UID,
-                 session: Optional['Session'] = None) -> None:
+                 session: Optional['Session'] = None,
+                 triples: Optional[Iterable[Triple]] = None) -> None:
         """Initialize the restriction class.
 
         Args:
@@ -53,7 +54,7 @@ class Restriction(OntologyEntity):
             raise ValueError(f"Restrictions are anonymous class descriptions, "
                              f"and thus, they can only have blank nodes as "
                              f"UID, not {type(uid.data)}.")
-        super().__init__(uid, session)
+        super().__init__(uid, session, triples)
 
     def __str__(self) -> str:
         """Transform to string."""
@@ -62,7 +63,7 @@ class Restriction(OntologyEntity):
                                   self.target)))
 
     @property
-    # @cache  # _get_quantifier_and_target already cached
+    # @lru_cache  # _get_quantifier_and_target already cached
     def quantifier(self) -> QUANTIFIER:
         """Get the quantifier of the restriction.
 
@@ -73,8 +74,8 @@ class Restriction(OntologyEntity):
         return quantifier
 
     @property
-    # @cache  # _get_quantifier_and_target already cached
-    def target(self) -> Union[OntologyClass, URIRef]:
+    # @lru_cache  # _get_quantifier_and_target already cached
+    def target(self) -> Union["OntologyClass", URIRef]:
         """The target ontology class or datatype.
 
         Returns:
@@ -87,7 +88,7 @@ class Restriction(OntologyEntity):
             pass
         return target
 
-    @cache
+    @lru_cache
     def _get_quantifier_and_target(self) -> Tuple[Optional[QUANTIFIER],
                                                   Optional[Identifier]]:
         """Get both the quantifier and the target of the restriction.
@@ -116,7 +117,7 @@ class Restriction(OntologyEntity):
             return None, None
 
     @property
-    # @cache  # _property already cached
+    # @lru_cache  # _property already cached
     def relationship(self) -> OntologyRelationship:
         """The relationship the RELATIONSHIP_RESTRICTION acts on.
 
@@ -131,7 +132,7 @@ class Restriction(OntologyEntity):
         return self._property
 
     @property
-    # @cache  # _property already cached
+    # @lru_cache  # _property already cached
     def attribute(self) -> OntologyAttribute:
         """The attribute the restriction acts on.
 
@@ -148,7 +149,7 @@ class Restriction(OntologyEntity):
         return self._property
 
     @property
-    @cache
+    @lru_cache
     def rtype(self) -> RTYPE:
         """Return the type of restriction.
 
@@ -163,11 +164,12 @@ class Restriction(OntologyEntity):
         elif isinstance(prop, OntologyAttribute):
             return RTYPE.ATTRIBUTE_RESTRICTION
         else:
-            raise RuntimeError(f"Invalid property {prop} for restriction "
-                               f"{self}.")
+            raise RuntimeError(f"Invalid property {prop} for restriction. "
+                               f"{OntologyRelationship} or {OntologyAttribute}"
+                               f" were expected.")
 
     @property
-    @cache
+    @lru_cache
     def _property(self) -> Union[OntologyRelationship, OntologyAttribute]:
         """The relationship or attribute the restriction acts on.
 
@@ -177,10 +179,11 @@ class Restriction(OntologyEntity):
         """
         prop = self.session.graph.value(self.identifier, OWL.onProperty)
         if prop and not isinstance(prop, BNode):
+            # TODO: handle inverse properties defined as blank nodes.
             return self.session.from_identifier(prop)
         else:
-            raise RuntimeError(f"Invalid property {prop} for restriction "
-                               f"{self}.")
+            raise RuntimeError(f"Property {prop} is not within any installed "
+                               f"ontology.")
 
     def _get_direct_superclasses(self) -> Iterable['OntologyEntity']:
         """Restrictions have no superclasses."""
@@ -203,5 +206,4 @@ def get_restriction(identifier: BNode, session: 'Session') \
         -> Optional[Restriction]:
     """Return the restriction object represented by given BNode (or None)."""
     r = Restriction(UID(identifier), session)
-    if r.rtype and r.target:
-        return r
+    return r

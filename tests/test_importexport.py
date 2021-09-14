@@ -6,7 +6,7 @@ import rdflib
 import json
 from pathlib import Path
 from osp.core.cuds import Cuds
-from osp.core.session.core_session import CoreSession
+from osp.core.session.interfaces.core_session import CoreSession
 from osp.core.utils.general import import_cuds, export_cuds, branch
 from .test_transport_session import assertJsonLdEqual
 

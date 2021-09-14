@@ -13,7 +13,7 @@ FILES = [
     os.path.join(os.path.dirname(os.path.abspath(__file__)),
                  "parser_test.yml"),
     os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                 "..", "osp", "core", "ontology", "docs", "city.ontology.yml"),
+                 "..", "osp", "core", "ontology", "files", "city.ontology.yml"),
 ]
 
 

@@ -12,7 +12,7 @@ from uuid import uuid4, UUID
 
 import numpy as np
 import rdflib
-from rdflib import XSD, BNode, Literal, URIRef, term
+from rdflib import RDFS, XSD, BNode, Literal, URIRef, term
 from rdflib.term import Identifier
 
 
@@ -270,6 +270,8 @@ class UID(CustomDataType):
             value = value.data
         elif isinstance(value, UUID):
             invalid = value.int == 0
+        elif isinstance(value, BNode):
+            value = value
         elif isinstance(value, (str, URIRef)):
             if value.startswith(CUDS_IRI_PREFIX):
                 value = value[len(CUDS_IRI_PREFIX):]
@@ -285,13 +287,13 @@ class UID(CustomDataType):
             value = UUID(int=value)
         elif isinstance(value, bytes):
             value = UUID(bytes=value)
-        if invalid or not isinstance(value, (UUID, URIRef)):
+        if invalid or not isinstance(value, (UUID, URIRef, BNode)):
             raise ValueError(f"Invalid uid: {value}.")
         self.data = value
 
     def __hash__(self):
         """Get the uid's hash."""
-        return self.data.__hash__()
+        return hash(self.data)
 
     def __eq__(self, other):
         """Compare the uid to other uids.
@@ -414,7 +416,7 @@ CustomCompatibleType = Union[tuple(value for value in
     CUSTOM_TO_PYTHON else None
 # All RDF data types compatible with OSP-core, automatically generated from
 #  the previous mappings.
-RDF_TO_PYTHON = {}
+RDF_TO_PYTHON = {RDFS.Literal: str}
 RDF_TO_PYTHON.update(OWL_TO_PYTHON)
 RDF_TO_PYTHON.update(CUSTOM_TO_PYTHON)
 RDF_COMPATIBLE_TYPES = tuple(x for x in RDF_TO_PYTHON.values())

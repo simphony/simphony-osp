@@ -1,8 +1,8 @@
 """A class defined in the ontology."""
 
 import logging
-from functools import cache
-from typing import Any, Dict, Iterator, List, Optional, Set, \
+from functools import lru_cache
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, \
     Tuple, TYPE_CHECKING, Union
 from uuid import UUID
 
@@ -10,7 +10,7 @@ from rdflib import OWL, RDFS, RDF, BNode, URIRef
 from rdflib.term import Identifier
 
 from osp.core.ontology.cuba import cuba_namespace
-from osp.core.ontology.datatypes import UID, RDFCompatibleType
+from osp.core.ontology.datatypes import UID, RDFCompatibleType, Triple
 from osp.core.ontology.entity import OntologyEntity
 
 if TYPE_CHECKING:
@@ -29,18 +29,19 @@ class OntologyClass(OntologyEntity):
 
     def __init__(self,
                  uid: UID,
-                 session: Optional['Session'] = None) -> None:
+                 session: Optional['Session'] = None,
+                 triples: Optional[Iterable[Triple]] = None) -> None:
         """Initialize the ontology class.
 
         Args:
             uid: UID identifying the ontology class.
             session: Session where the entity is stored.
         """
-        super().__init__(uid, session)
+        super().__init__(uid, session, triples)
         logger.debug("Instantiated ontology class %s" % self)
 
     @property
-    def attributes(self) -> Dict[OntologyAttribute, Set[Any]]:
+    def attributes(self) -> Dict["OntologyAttribute", Set[Any]]:
         """Get the class attributes.
 
         Non-mandatory attributes or attributes without a default value will
@@ -59,7 +60,7 @@ class OntologyClass(OntologyEntity):
         return result
 
     @property
-    @cache
+    @lru_cache
     def axioms(self) -> Tuple['Restriction']:
         """Get all the axioms for the ontology class.
 
@@ -103,7 +104,8 @@ class OntologyClass(OntologyEntity):
 
     @property
     def attribute_declaration(self) -> Dict['OntologyAttribute',
-                                            Tuple[Optional[RDFCompatibleType], bool]]:
+                                            Tuple[Optional[RDFCompatibleType],
+                                                  bool]]:
         """Get the attributes of this ontology class, and their settings.
 
         Returns:
@@ -182,7 +184,7 @@ class OntologyClass(OntologyEntity):
         return attributes
 
     def _get_default_python_object(self,
-                                   attribute: OntologyAttribute) \
+                                   attribute: "OntologyAttribute") \
             -> RDFCompatibleType:
         """Get the default python object for the given attribute.
 
@@ -192,11 +194,11 @@ class OntologyClass(OntologyEntity):
         Returns:
             The default python object.
         """
-        for bnode in self.session.graph.objects(self.iri,
-                                                cuba_namespace._default):
-            if (bnode, cuba_namespace.default_attribute, attribute.iri) in \
+        for bnode in self.session.ontology_graph.objects(
+                self.iri, cuba_namespace._default):
+            if (bnode, cuba_namespace._default_attribute, attribute.iri) in \
                     self.session.graph:
-                literal = self.session.graph.value(
+                literal = self.session.ontology_graph.value(
                     bnode, cuba_namespace._default_value)
                 return attribute.convert_to_datatype(literal) \
                     if literal is not None \
@@ -208,8 +210,11 @@ class OntologyClass(OntologyEntity):
         Returns:
             The direct superclasses.
         """
-        return (self.session.from_identifier(o) for o in
-                self.session.graph.objects(self.iri, RDFS.subClassOf))
+        return filter(lambda x: isinstance(x, OntologyClass),
+                      (self.session.from_identifier(o)
+                       for o in self.session.graph.objects(self.iri,
+                                                           RDFS.subClassOf))
+                      )
 
     def _get_direct_subclasses(self) -> Iterator[OntologyEntity]:
         """Get all the direct subclasses of this ontology class.
@@ -217,8 +222,10 @@ class OntologyClass(OntologyEntity):
         Returns:
             The direct subclasses.
         """
-        return (self.session.from_identifier(s) for s in
-                self.session.graph.subjects(RDFS.subClassOf, self.iri))
+        return filter(lambda x: isinstance(x, OntologyClass),
+                      (self.session.from_identifier(s) for s in
+                       self.session.graph.subjects(RDFS.subClassOf, self.iri))
+                      )
 
     def _get_superclasses(self) -> Iterator[OntologyEntity]:
         """Get all the superclasses of this ontology class.
@@ -232,10 +239,12 @@ class OntologyClass(OntologyEntity):
             for o in graph.objects(node, RDFS.subClassOf):
                 yield o
 
-        yield from (
-            self.session.from_identifier(x)
-            for x in self.session.graph.transitiveClosure(closure,
-                                                          self.identifier))
+        yield from filter(lambda x: isinstance(x, OntologyClass),
+                          (self.session.from_identifier(x)
+                           for x in
+                           self.session.graph.transitiveClosure(
+                               closure, self.identifier))
+                          )
 
     def _get_subclasses(self) -> Iterator[OntologyEntity]:
         """Get all the subclasses of this ontology class.
@@ -249,15 +258,17 @@ class OntologyClass(OntologyEntity):
             for s in graph.subjects(RDFS.subClassOf, node):
                 yield s
 
-        yield from (
-            self.session.from_identifier(x)
-            for x in self.session.graph.transitiveClosure(closure,
-                                                          self.identifier))
+        yield from filter(lambda x: isinstance(x, OntologyClass),
+                          (self.session.from_identifier(x)
+                           for x in
+                           self.session.graph.transitiveClosure(
+                               closure, self.identifier))
+                          )
 
     def _kwargs_to_attributes(self,
                               kwargs,
-                              _skip_checks: bool) -> Dict[OntologyAttribute,
-                                                         Set[Any]]:
+                              _skip_checks: bool) -> Dict["OntologyAttribute",
+                                                          Set[Any]]:
         """Combine class attributes with the ones from the given kwargs.
 
         Args:
@@ -347,8 +358,8 @@ class OntologyClass(OntologyEntity):
                 (UID(iri) if iri else None) or \
                 UID()
 
-        from osp.core.cuds import Cuds
         from osp.core.namespaces import cuba
+        from osp.core.ontology.individual import OntologyIndividual
 
         if self.is_subclass_of(cuba.Wrapper) and session is None:
             raise TypeError("Missing keyword argument 'session' for wrapper.")
@@ -359,9 +370,9 @@ class OntologyClass(OntologyEntity):
 
         # build attributes dictionary by combining
         # kwargs and defaults
-        return Cuds(
+        return OntologyIndividual(
             attributes=self._kwargs_to_attributes(kwargs, _skip_checks=_force),
-            oclass=self,
+            class_=self,
             session=session,
             uid=uid
         )
