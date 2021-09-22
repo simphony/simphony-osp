@@ -46,20 +46,20 @@ setup(
     },
     install_requires=[
         "PyYaml",
-        "websockets",
+        "websockets < 10",
         "requests",
         "numpy",
         "graphviz",
         "rdflib >= 5.0.0, < 6.0.0",
-        "rdflib-jsonld"
+        "rdflib-jsonld == 0.6.1",
     ],
     setup_requires=[
         "PyYaml",
-        "websockets",
+        "websockets < 10",
         "requests",
         "numpy",
         "graphviz",
         "rdflib >= 5.0.0, < 6.0.0",
-        "rdflib-jsonld"
+        "rdflib-jsonld == 0.6.1",
     ]
 )
