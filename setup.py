@@ -46,7 +46,7 @@ setup(
     },
     install_requires=[
         "PyYaml",
-        "websockets",
+        "websockets < 10",
         "requests",
         "numpy",
         "graphviz",
@@ -56,7 +56,7 @@ setup(
     ],
     setup_requires=[
         "PyYaml",
-        "websockets",
+        "websockets < 10",
         "requests",
         "numpy",
         "graphviz",
