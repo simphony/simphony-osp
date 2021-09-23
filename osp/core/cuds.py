@@ -1339,7 +1339,7 @@ class Cuds:
 
             If the element is not a member, raise a KeyError.
             """
-            to_remove = self._underlying_set & other
+            to_remove = self._underlying_set & {other}
             if to_remove:
                 self._cuds.remove(*to_remove, rel=self._predicate)
             else:
