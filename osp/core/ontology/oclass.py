@@ -1,14 +1,14 @@
 """A class defined in the ontology."""
 
 import logging
-from uuid import UUID
 from typing import Any, Dict, List, Optional, Set, Union
+from uuid import UUID
 
 from rdflib import OWL, RDFS, RDF, BNode, URIRef
 
+from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.datatypes import UID
-from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.entity import OntologyEntity
 
 logger = logging.getLogger(__name__)
