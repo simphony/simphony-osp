@@ -17,9 +17,7 @@ from osp.core.utils.general import CUDS_IRI_PREFIX
 from osp.core.session.interfaces.triplestore import TriplestoreInterface, \
     TriplestoreStore
 
-if TYPE_CHECKING:
-    from osp.core.ontology import OntologyEntity
-
+# TODO: The SQLInterface is dependent on the TBox, should not be the case.
 
 class SqlQuery:
     """An sql query."""

@@ -1,3 +1,5 @@
+"""Test the interface API to communicate with external software."""
+
 import tempfile
 import unittest
 import os
@@ -21,35 +23,47 @@ if TYPE_CHECKING:
 
 
 class TestDummyInterface(unittest.TestCase):
-    """Test that the RDFLib store interface works as expected."""
+    """Test that the InterfaceStore RDFLib store works as expected."""
 
     graph: Graph
 
     DummyStore = InterfaceStore
 
     class DummyInterface(Interface):
+        """A sample interface (based on an RDFLib Graph.
+
+        It has the sole purpose of being used an interface for testing the
+        InterfaceStore.
+        """
 
         def __init__(self):
+            """Set up a graph to use as underlying backend."""
             super().__init__()
             self._graph = Graph()
 
-        def __str__(self):
-            return "Dummy interface"
-
         def apply_added(self, entity: "OntologyEntity") -> None:
+            """Convert received entity to triples and add them to the graph."""
             for triple in entity.triples:
                 self._graph.add(triple)
 
         def apply_updated(self, entity: "OntologyEntity") -> None:
+            """Update entity in the graph.
+
+            Since all the triples for an entity are received, the update
+            consists on removing all the existing triples and adding the
+            ones provided by the updated version of the entity.
+            """
             self._graph.remove((entity.identifier, None, None))
             for triple in entity.triples:
                 self._graph.add(triple)
 
         def apply_deleted(self, entity: "OntologyEntity") -> None:
+            """Remove all triples that have the received entity as subject."""
             self._graph.remove((entity.identifier, None, None))
 
         def _load_from_backend(self, uid: UID) -> \
                 Optional["OntologyIndividual"]:
+            """Spawn an ontology individual matching the received uid."""
             triples = set(self._graph.triples(
                 (uid.to_identifier(), None, None)))
             if triples:
@@ -60,13 +74,15 @@ class TestDummyInterface(unittest.TestCase):
                 return None
 
         def open(self, configuration: str):
+            """Not needed, but an implementation is expected."""
             pass
 
         def close(self):
+            """Not needed, but an implementation is expected."""
             pass
 
     def setUp(self) -> None:
-        """Create an interface, a store and assign them to a session."""
+        """Create an interface, a store and assign them to a graph."""
         interface = self.DummyInterface()
         store = self.DummyStore(interface=interface)
         self.graph = Graph(store)
@@ -150,10 +166,9 @@ class TestDummyInterface(unittest.TestCase):
 
 
 class TestTriplestoreInterface(unittest.TestCase):
+    """Test an actual TriplestoreInterface, the SQLiteInterface."""
 
-    file_name: str = "TestSQLiteInterface"
-
-    graph: Graph
+    file_name: str = "TestSQLiteInterface"  # Filename for database file.
 
     FOAF: str = """
     format: xml
@@ -164,24 +179,40 @@ class TestTriplestoreInterface(unittest.TestCase):
     reference_by_label: false
     """
 
+    graph: Graph
+    yml_path: str
+    prev_default_ontology: Session
+
+    @classmethod
+    def setUpClass(cls):
+        """Create a TBox only containing CUBA and FOAF.
+
+        Such TBox is set as the default TBox.
+        """
+        with tempfile.NamedTemporaryFile('w', suffix='.yml', delete=False) \
+                as file:
+            cls.yml_path = file.name
+            file.write(cls.FOAF)
+            file.seek(0)
+        ontology = Session(identifier='test-tbox', ontology=True)
+        for parser in (OWLParser('cuba'), OWLParser(cls.yml_path)):
+            ontology.load_parser(parser)
+        cls.prev_default_ontology = Session.ontology
+        Session.ontology = ontology
+
+    @classmethod
+    def tearDownClass(cls):
+        """Restore the previous default TBox."""
+        Session.ontology = cls.prev_default_ontology
+
     def setUp(self) -> None:
-        """Create an interface, a store and assign them to a session."""
+        """Create an interface, a store and assign them to a graph."""
         self.interface = SQLiteInterface(self.file_name)
         self.store = SQLStore(interface=self.interface)
         self.graph = Graph(self.store)
 
-        # Use FOAF ontology as example.
-        with tempfile.NamedTemporaryFile('w', suffix='.yml', delete=False) \
-                as file:
-            self.yml_path = file.name
-            file.write(self.FOAF)
-            file.seek(0)
-        foaf_parser = OWLParser(self.yml_path)
-        self.ontology = Session(from_parser=foaf_parser,
-                                ontology=True)
-        self.foaf = self.ontology.get_namespace("foaf")
-
     def tearDown(self) -> None:
+        """Remove the database file."""
         try:
             self.interface.close()
             os.remove(self.file_name)
@@ -189,10 +220,15 @@ class TestTriplestoreInterface(unittest.TestCase):
             pass
 
     def test_basic(self):
-        """Tests basic functionality."""
+        """Tests basic functionality.
+
+        - Adding triples.
+        - Removing triples.
+        """
+        from osp.core.namespaces import foaf
         self.assertTrue(os.path.exists(self.file_name))
 
-        person = self.foaf['Person']()
+        person = foaf['Person']()
 
         # Test add.
         for triple in person.triples:
@@ -207,10 +243,11 @@ class TestTriplestoreInterface(unittest.TestCase):
                             set(self.graph.triples((None, None, None))))
 
     def test_retrieval(self):
-
+        """Tests retrieving stored triples from the interface."""
+        from osp.core.namespaces import foaf
         self.assertTrue(os.path.exists(self.file_name))
 
-        person = self.foaf['Person']()
+        person = foaf['Person']()
 
         # Add some triples, commit and close the store.
         for triple in person.triples:
@@ -241,35 +278,51 @@ class TestTriplestoreInterface(unittest.TestCase):
 
 
 class TestTriplestoreWrapper(unittest.TestCase):
+    """Test the full end-user experience of using a triplestore wrapper.
+
+    The wrapper used for the test is the `sqlite` wrapper.
+    """
 
     file_name: str = "TestSQLiteSession"
 
-    def setUp(self) -> None:
-        """Create an interface, a store and assign them to a session."""
-        self.ontology = Session(identifier='test_tbox',
-                                ontology=True)
-        cuba_parser = OWLParser('cuba')
-        self.ontology.load_parser(cuba_parser)
-        owl_parser = OWLParser('owl')
-        self.ontology.load_parser(owl_parser)
-        city_parser = YMLParser('city')
-        self.ontology.load_parser(city_parser)
-        self.city = self.ontology.get_namespace('city')
+    prev_default_ontology: Session
+
+    @classmethod
+    def setUpClass(cls):
+        """Create a TBox with the CUBA, OWL and city ontologies.
+
+        Such TBox is set as the default TBox.
+        """
+        ontology = Session(identifier='test_tbox', ontology=True)
+        for parser in (OWLParser('cuba'),
+                       OWLParser('owl'),
+                       YMLParser('city')):
+            ontology.load_parser(parser)
+        cls.prev_default_ontology = Session.ontology
+        Session.ontology = ontology
+
+    @classmethod
+    def tearDownClass(cls):
+        """Restore the previous default TBox."""
+        Session.ontology = cls.prev_default_ontology
 
     def tearDown(self) -> None:
+        """Remove the database file."""
         try:
             os.remove(self.file_name)
         except FileNotFoundError:
             pass
 
     def test_city(self) -> None:
+        """Test adding some entities from the city ontology."""
+        from osp.core.namespaces import city
 
-        with sqlite(self.file_name, ontology=self.ontology) as session:
-            freiburg = self.city.City(name='Freiburg', coordinates=[20, 58])
+        with sqlite(self.file_name) as session:
+            freiburg = city.City(name='Freiburg', coordinates=[20, 58])
             freiburg_identifier = freiburg.identifier
-            marco = self.city.Citizen(name='Marco', age=50)
-            matthias = self.city.Citizen(name='Matthias', age=37)
-            freiburg[self.city.hasInhabitant] = {marco, matthias}
+            marco = city.Citizen(name='Marco', age=50)
+            matthias = city.Citizen(name='Matthias', age=37)
+            freiburg[city.hasInhabitant] = {marco, matthias}
 
             self.assertEqual(freiburg.name, 'Freiburg')
             self.assertEqual(freiburg.coordinates, [20, 58])
@@ -281,9 +334,9 @@ class TestTriplestoreWrapper(unittest.TestCase):
             freiburg.coordinates = Vector([22, 58])
             self.assertEqual(freiburg.coordinates, [22, 58])
 
-        with sqlite(self.file_name, ontology=self.ontology) as session:
+        with sqlite(self.file_name) as session:
             freiburg = session.from_identifier(freiburg_identifier)
-            citizens = freiburg[self.city.hasInhabitant, :]
+            citizens = freiburg[city.hasInhabitant, :]
 
             self.assertEqual('Freiburg', freiburg.name)
             self.assertEqual([20, 58], freiburg.coordinates)
