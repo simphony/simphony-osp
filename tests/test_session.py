@@ -36,19 +36,20 @@ class TestFOAFOntology(unittest.TestCase):
     reference_by_label: false
     """
 
-    def setUp(self) -> None:
-        """Set up Graph and Parser."""
+    @classmethod
+    def setUpClass(cls):
+        """Create a TBox only containing FOAF."""
         with tempfile.NamedTemporaryFile('w', suffix='.yml', delete=False) \
                 as file:
-            self.yml_path = file.name
-            file.write(self.FOAF_MODIFIED)
+            cls.yml_path = file.name
+            file.write(cls.FOAF_MODIFIED)
             file.seek(0)
 
-        foaf_parser = OWLParser(self.yml_path)
-        self.ontology = Session(from_parser=foaf_parser,
-                                ontology=True)
+        cls.ontology = Session(from_parser=OWLParser(cls.yml_path),
+                               ontology=True)
 
     def tearDown(self) -> None:
+        """Clean up the custom FOAF yml config file that was created."""
         try:
             os.remove(self.yml_path)
         except FileNotFoundError:
@@ -56,64 +57,66 @@ class TestFOAFOntology(unittest.TestCase):
 
     def test_ontology(self):
         """Tests the Ontology class."""
+        ontology = self.ontology
 
         # Get relationships, attributes and classes with `from_identifier`
         # method of `Session objects`.
-        member = self.ontology.from_identifier(
+        member = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/member'))
         self.assertTrue(isinstance(member, OntologyRelationship))
-        knows = self.ontology.from_identifier(
+        knows = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/knows'))
         self.assertTrue(isinstance(knows, OntologyRelationship))
-        name = self.ontology.from_identifier(
+        name = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/name'))
         self.assertTrue(isinstance(name, OntologyAttribute))
 
         # Test `active_relationships property`.
-        self.assertIn(member, self.ontology.active_relationships)
-        self.ontology.active_relationships = (knows, )
-        self.assertIn(knows, self.ontology.active_relationships)
-        self.assertNotIn(member, self.ontology.active_relationships)
-        self.ontology.active_relationships = (knows, member)
-        self.assertIn(knows, self.ontology.active_relationships)
-        self.assertIn(member, self.ontology.active_relationships)
-        self.ontology.active_relationships = (member, )
+        self.assertIn(member, ontology.active_relationships)
+        ontology.active_relationships = (knows, )
+        self.assertIn(knows, ontology.active_relationships)
+        self.assertNotIn(member, ontology.active_relationships)
+        ontology.active_relationships = (knows, member)
+        self.assertIn(knows, ontology.active_relationships)
+        self.assertIn(member, ontology.active_relationships)
+        ontology.active_relationships = (member, )
 
         # Test the `get_namespace` method.
-        self.assertRaises(KeyError, self.ontology.get_namespace, 'fake')
-        foaf_namespace = self.ontology.get_namespace('foaf')
+        self.assertRaises(KeyError, ontology.get_namespace, 'fake')
+        foaf_namespace = ontology.get_namespace('foaf')
         self.assertTrue(isinstance(foaf_namespace, OntologyNamespace))
         self.assertEqual(foaf_namespace.name, 'foaf')
         self.assertEqual(foaf_namespace.iri,
                          URIRef('http://xmlns.com/foaf/0.1/'))
 
         # Test `default_relationship` property.
-        self.assertIn(knows, self.ontology.default_relationships.values())
-        self.ontology.default_relationships = {foaf_namespace: member}
-        self.assertIn(member, self.ontology.default_relationships.values())
-        self.ontology.default_relationships = None
-        self.assertDictEqual(self.ontology.default_relationships, dict())
-        self.ontology.default_relationships = {foaf_namespace: knows}
-        self.assertIn(knows, self.ontology.default_relationships.values())
+        self.assertIn(knows, ontology.default_relationships.values())
+        ontology.default_relationships = {foaf_namespace: member}
+        self.assertIn(member, ontology.default_relationships.values())
+        ontology.default_relationships = None
+        self.assertDictEqual(ontology.default_relationships, dict())
+        ontology.default_relationships = {foaf_namespace: knows}
+        self.assertIn(knows, ontology.default_relationships.values())
 
         # Test `reference_styles` property.
-        self.assertFalse(self.ontology.reference_styles[foaf_namespace])
-        self.ontology.reference_styles = {foaf_namespace: True}
-        self.assertTrue(self.ontology.reference_styles[foaf_namespace])
-        self.ontology.reference_styles = {foaf_namespace: False}
-        self.assertFalse(self.ontology.reference_styles[foaf_namespace])
+        self.assertFalse(ontology.reference_styles[foaf_namespace])
+        ontology.reference_styles = {foaf_namespace: True}
+        self.assertTrue(ontology.reference_styles[foaf_namespace])
+        ontology.reference_styles = {foaf_namespace: False}
+        self.assertFalse(ontology.reference_styles[foaf_namespace])
 
         # Test the `graph` property.
-        self.assertTrue(isinstance(self.ontology.graph, Graph))
+        self.assertTrue(isinstance(ontology.graph, Graph))
 
     def test_attribute(self):
         """Tests the OntologyAttribute subclass.
 
         Includes methods inherited from OntologyEntity.
         """
+        ontology = self.ontology
 
         # Test with foaf:name attribute.
-        name = self.ontology.from_identifier(
+        name = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/name'))
         self.assertTrue(isinstance(name, OntologyAttribute))
 
@@ -163,7 +166,7 @@ class TestFOAFOntology(unittest.TestCase):
                                   return_prop=False)))
 
         # Test `session` property.
-        self.assertIs(name.session, self.ontology)
+        self.assertIs(name.session, ontology)
         # TODO: Test setter.
 
         # Test `direct_superclasses` property.
@@ -213,7 +216,7 @@ class TestFOAFOntology(unittest.TestCase):
 
         # Test `is_superclass_of` method.
         # self.assertTrue(name.is_superclass_of(name))
-        nick = self.ontology.from_identifier(
+        nick = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/nick'))
         self.assertTrue(isinstance(nick, OntologyAttribute))
         # self.assertFalse(name.is_superclass_of(nick))
@@ -240,8 +243,10 @@ class TestFOAFOntology(unittest.TestCase):
 
         Does NOT include methods inherited from OntologyEntity.
         """
+        ontology = self.ontology
+
         # Test with foaf:Person class.
-        person = self.ontology.from_identifier(
+        person = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/Person'))
         self.assertTrue(isinstance(person, OntologyClass))
 
@@ -253,7 +258,7 @@ class TestFOAFOntology(unittest.TestCase):
 
         # Test the `attribute declaration` .
         expected = {
-            self.ontology.from_identifier(
+            ontology.from_identifier(
                 URIRef(f'http://xmlns.com/foaf/0.1/{suffix}')): (None,
                                                                  False)
             for suffix in ('firstName', 'lastName', 'geekcode', 'plan',
@@ -272,8 +277,10 @@ class TestFOAFOntology(unittest.TestCase):
 
         Does NOT include methods inherited from OntologyEntity.
         """
+        ontology = self.ontology
+
         # Test with foaf:member class.
-        member = self.ontology.from_identifier(
+        member = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/member'))
         self.assertTrue(isinstance(member, OntologyRelationship))
 
@@ -295,8 +302,10 @@ class TestFOAFOntology(unittest.TestCase):
 
     def test_namespace(self):
         """Tests the OntologyNamespace class."""
+        ontology = self.ontology
+
         # Get the namespace from the ontology.
-        foaf_namespace = self.ontology.get_namespace('foaf')
+        foaf_namespace = ontology.get_namespace('foaf')
         self.assertTrue(isinstance(foaf_namespace, OntologyNamespace))
 
         # Test the `name` property.
@@ -307,16 +316,16 @@ class TestFOAFOntology(unittest.TestCase):
                          URIRef('http://xmlns.com/foaf/0.1/'))
 
         # Test the `__eq__` method.
-        self.assertEqual(self.ontology.get_namespace('foaf'),
+        self.assertEqual(ontology.get_namespace('foaf'),
                          foaf_namespace)
 
         # Test the `__getattr__` method.
-        member = self.ontology.from_identifier(
+        member = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/member'))
         self.assertEqual(member, getattr(foaf_namespace, 'member'))
 
         # Test the `__getitem__` method.
-        name = self.ontology.from_identifier(
+        name = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/name'))
         self.assertFalse(foaf_namespace.reference_style)
         self.assertEqual(name, foaf_namespace['name'])
@@ -341,25 +350,26 @@ class TestFOAFOntology(unittest.TestCase):
 
         DOES include methods inherited from OntologyEntity.
         """
+        ontology = self.ontology
 
-        person_class = self.ontology.from_identifier(
+        person_class = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/Person'))
         self.assertTrue(isinstance(person_class, OntologyClass))
-        organization_class = self.ontology.from_identifier(
+        organization_class = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/Organization'))
         self.assertTrue(isinstance(organization_class, OntologyClass))
-        agent_class = self.ontology.from_identifier(
+        agent_class = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/Agent'))
         self.assertTrue(isinstance(agent_class, OntologyClass))
-        age_attribute = self.ontology.from_identifier(
+        age_attribute = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/age'))
         self.assertTrue(isinstance(age_attribute, OntologyAttribute))
-        knows_relationship = self.ontology.from_identifier(
+        knows_relationship = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/knows'))
         self.assertTrue(isinstance(knows_relationship, OntologyRelationship))
 
         # Test the `__init__` method by creating a new individual.
-        person = person_class(session=self.ontology)
+        person = person_class(session=ontology)
 
         # Test the class related methods `oclass`, `oclasses`, `is_a`.
         self.assertTrue(isinstance(person,
@@ -392,8 +402,8 @@ class TestFOAFOntology(unittest.TestCase):
         del person[age_attribute]
         self.assertIsNone(person.age)
 
-        another_person = person_class(session=self.ontology)
-        one_more_person = person_class(session=self.ontology)
+        another_person = person_class(session=ontology)
+        one_more_person = person_class(session=ontology)
         person[knows_relationship] = another_person
         self.assertEqual(person[knows_relationship], another_person)
         person[knows_relationship, :] += {one_more_person}
