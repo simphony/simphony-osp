@@ -238,7 +238,7 @@ class Cuds:
             self.add(*to_add, rel=rel)
             to_remove = set_iter.difference(cuds_set)
             if to_remove:
-                self.remove(rel=rel)
+                self.remove(*to_remove, rel=rel)
         elif isinstance(rel, OntologyAttribute):
             self._set_attributes(rel, literals)
         else:
