@@ -89,7 +89,6 @@ class TestDummyInterface(unittest.TestCase):
 
     def test_buffered(self):
         """Tests the store without committing the changes."""
-
         self.assertTrue(isinstance(self.graph.store, self.DummyStore))
         self.assertRaises(NotImplementedError,
                           lambda x: set(self.graph.triples(x)),
@@ -128,7 +127,6 @@ class TestDummyInterface(unittest.TestCase):
 
     def test_commit(self):
         """Tests the store committing the changes."""
-
         # Add triples from a cuba entity to the store.
         entity = cuba.Entity()
         self.assertTrue(entity.is_a(cuba.Entity))

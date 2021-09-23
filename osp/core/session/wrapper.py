@@ -1,20 +1,25 @@
+"""A user-facing class creating a session using a specific interface."""
+
 from abc import ABC, abstractmethod
-from typing import Optional, TYPE_CHECKING, Type, Union
+from typing import Optional, Type, Union
 
 from .session import Session
 
 from osp.core.session.interfaces.interface import Interface
 
-if TYPE_CHECKING:
-    from osp.core.session.session import Session
-
 
 class Wrapper(ABC, Session):
+    """A user-facing class creating a session using a specific interface."""
 
     def __init__(self,
                  *args,
                  ontology: Optional[Union[Session, bool]] = None,
                  **kwargs):
+        """Initialize the session using the wrapper's interface type.
+
+        Creates an interface and a store using that interface. Then
+        initialize the session using such store.
+        """
         interface_instance = self._interface(*args,
                                              **kwargs)
         store = self._interface.store_class(
@@ -25,4 +30,5 @@ class Wrapper(ABC, Session):
     @property
     @abstractmethod
     def _interface(self) -> Type[Interface]:
+        """The type of interface that the instantiated session will use."""
         pass

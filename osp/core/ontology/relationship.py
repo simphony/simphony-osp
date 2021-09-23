@@ -3,7 +3,7 @@
 import logging
 from typing import Iterable, Iterator, Optional, TYPE_CHECKING
 
-from rdflib import OWL, RDFS, XSD, Literal, URIRef
+from rdflib import RDFS
 
 from osp.core.ontology.datatypes import Triple, UID
 from osp.core.ontology.entity import OntologyEntity
@@ -28,6 +28,7 @@ class OntologyRelationship(OntologyEntity):
         Args:
             uid: UID identifying the entity.
             session: Session where the entity is stored.
+            triples: Construct the relationship with the provided triples.
         """
         super().__init__(uid, session, triples)
         logger.debug("Create ontology relationship property %s" % self)

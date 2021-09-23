@@ -4,7 +4,8 @@ import logging
 from typing import TYPE_CHECKING
 
 from osp.core.session.session import Session
-from osp.core.session.interfaces.sparql_backend import SparqlResult, SparqlBindingSet, SPARQLBackend
+from osp.core.session.interfaces.sparql_backend import SparqlResult,\
+    SparqlBindingSet, SPARQLBackend
 
 if TYPE_CHECKING:
     from osp.core.ontology.entity import OntologyEntity

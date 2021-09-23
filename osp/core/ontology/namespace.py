@@ -6,14 +6,13 @@ from typing import Any, Iterable, Iterator, Optional, TYPE_CHECKING, \
     Tuple, Union
 
 import rdflib
-from rdflib import RDFS, BNode, Literal, URIRef
+from rdflib import BNode, URIRef
 from rdflib.term import Identifier
 
 from osp.core.ontology.parser.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
 
 if TYPE_CHECKING:
-    from osp.core.ontology.datatypes import UID
     from osp.core.ontology.entity import OntologyEntity
     from osp.core.ontology.relationship import OntologyRelationship
     from osp.core.session.session import Session
@@ -79,10 +78,17 @@ class OntologyNamespace:
 
     @property
     def reference_style(self) -> bool:
+        """Returns the reference style for the namespace.
+
+        Returns:
+            True when the references are made by label, false when made by
+            suffix.
+        """
         return self.ontology.reference_styles[self]
 
     @property
-    def ontology(self) -> 'Ontology':
+    def ontology(self) -> 'Session':
+        """Returns the session that the namespace is bound to."""
         return self._ontology
 
     def __init__(self,
@@ -266,6 +272,7 @@ class OntologyNamespace:
                    label: str,
                    lang: Optional[str] = None,
                    case_sensitive: bool = False) -> 'OntologyEntity':
+        """Get an ontology entity from its label."""
         try:
             entities = set(
                 entity
@@ -330,7 +337,6 @@ class OntologyNamespace:
         Returns:
             An iterator of IRIs.
         """
-
         return iter(filter(lambda x: isinstance(x, URIRef),
                            self._iter_identifiers()))
 

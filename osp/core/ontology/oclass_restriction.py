@@ -49,6 +49,7 @@ class Restriction(OntologyEntity):
             uid: An UID whose data attribute is the blank node that represents
                 the restriction.
             session: Session where the restriction is stored.
+            triples: Construct the restriction with the provided triples.
         """
         if not isinstance(uid.data, BNode):
             raise ValueError(f"Restrictions are anonymous class descriptions, "

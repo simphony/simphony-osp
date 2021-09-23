@@ -3,10 +3,10 @@
 import itertools
 import logging
 from abc import ABC, abstractmethod
-from typing import (Any, Dict, Iterable, Iterator, List, MutableSet, Optional,
+from typing import (Any, Dict, Iterable, Iterator, MutableSet, Optional,
                     Set, TYPE_CHECKING, Tuple, Union)
 
-from rdflib import OWL, RDF, RDFS, XSD, BNode, Graph, Literal, URIRef
+from rdflib import RDF, Literal
 
 from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.datatypes import (UID, RDFCompatibleType,
@@ -66,6 +66,7 @@ class OntologyIndividual(OntologyEntity):
         return any(oc in oclass.subclasses for oc in self.oclasses)
 
     def __dir__(self) -> Iterable[str]:
+        """Show the individual's attributes as autocompletion suggestions."""
         result = iter(())
         attributes_and_namespaces = (
             (attr, ns)
@@ -418,7 +419,7 @@ class OntologyIndividual(OntologyEntity):
             return self._underlying_set.__ge__(other)
 
         def __and__(self, other: set) -> Union[Set[RDFCompatibleType],
-                                               Set["Cuds"]]:
+                                               Set["OntologyIndividual"]]:
             """Return self&other."""
             return self._underlying_set.__and__(other)
 
@@ -435,17 +436,20 @@ class OntologyIndividual(OntologyEntity):
             return self._underlying_set.__xor__(other)
 
         @abstractmethod
-        def __ior__(self, other: Union[Set[RDFCompatibleType], Set["Cuds"]]):
+        def __ior__(self, other: Union[Set[RDFCompatibleType],
+                                       Set["OntologyIndividual"]]):
             """Return self|=other."""
             pass
 
         @abstractmethod
-        def __iand__(self, other: Union[Set[RDFCompatibleType], Set["Cuds"]]):
+        def __iand__(self, other: Union[Set[RDFCompatibleType],
+                                        Set["OntologyIndividual"]]):
             """Return self&=other."""
             pass
 
         @abstractmethod
-        def __ixor__(self, other: Union[Set[RDFCompatibleType], Set["Cuds"]]):
+        def __ixor__(self, other: Union[Set[RDFCompatibleType],
+                                        Set["OntologyIndividual"]]):
             """Return self^=other."""
             pass
 
@@ -476,7 +480,7 @@ class OntologyIndividual(OntologyEntity):
             pass
 
         @abstractmethod
-        def pop(self) -> Union[RDFCompatibleType, "Cuds"]:
+        def pop(self) -> Union[RDFCompatibleType, "OntologyIndividual"]:
             """Remove and return an arbitrary set element.
 
             Raises KeyError if the set is empty.
@@ -487,8 +491,8 @@ class OntologyIndividual(OntologyEntity):
             """Return a shallow copy of a set."""
             return self._underlying_set
 
-        def difference(self, other: Iterable) -> Union[Set[RDFCompatibleType],
-                                                       Set["Cuds"]]:
+        def difference(self, other: Iterable) -> Union[
+                Set[RDFCompatibleType], Set["OntologyIndividual"]]:
             """Return the difference of two or more sets as a new set.
 
             (i.e. all elements that are in this set but not the others.)
@@ -510,7 +514,7 @@ class OntologyIndividual(OntologyEntity):
 
         @abstractmethod
         def intersection(self, other: set) -> Union[Set[RDFCompatibleType],
-                                                    Set["Cuds"]]:
+                                                    Set["OntologyIndividual"]]:
             """Return the intersection of two sets as a new set.
 
             (i.e. all elements that are in both sets.)
@@ -529,7 +533,7 @@ class OntologyIndividual(OntologyEntity):
             """Report whether this set contains another set."""
             return self >= other
 
-        def add(self, other: Union[RDFCompatibleType, "Cuds"]):
+        def add(self, other: Union[RDFCompatibleType, "OntologyIndividual"]):
             """Add an element to a set.
 
             This has no effect if the element is already present.
@@ -721,7 +725,7 @@ class OntologyIndividual(OntologyEntity):
                 self._individual._connect(individual, rel=self._predicate)
             return self
 
-        def __iand__(self, other: Set["Cuds"]):
+        def __iand__(self, other: Set["OntologyIndividual"]):
             """Return self&=other."""
             underlying_set = self._underlying_set
             intersection = underlying_set.intersection(other)
@@ -730,7 +734,7 @@ class OntologyIndividual(OntologyEntity):
                 self._individual._disconnect(individual, rel=self._predicate)
             return self
 
-        def __ixor__(self, other: Set["Cuds"]):
+        def __ixor__(self, other: Set["OntologyIndividual"]):
             """Return self^=other."""
             result = self._underlying_set ^ other
             to_add = result.difference(self._underlying_set)
@@ -789,14 +793,14 @@ class OntologyIndividual(OntologyEntity):
             """
             self._individual._disconnect(other, rel=self._predicate)
 
-        def intersection(self, other: set) -> Set["Cuds"]:
+        def intersection(self, other: set) -> Set["OntologyIndividual"]:
             """Return the intersection of two sets as a new set.
 
             (i.e. all elements that are in both sets.)
             """
             return super().intersection(other)
 
-        def add(self, other: "Cuds"):
+        def add(self, other: "OntologyIndividual"):
             """Add an element to a set.
 
             This has no effect if the element is already present.
@@ -1163,14 +1167,9 @@ class OntologyIndividual(OntologyEntity):
                  attributes: Optional[
                      Dict['OntologyAttribute',
                           Iterable[RDFCompatibleType]]] = None,
-                 extra_triples:  Iterable[Triple] = tuple(),
+                 extra_triples: Iterable[Triple] = tuple(),
                  ) -> None:
-        """Initialize the ontology class.
-
-        Args:
-            uid: UID identifying the ontology individual.
-            session: Session where the entity is stored.
-        """
+        """Initialize the ontology individual."""
         if uid is None:
             uid = UID()
         elif not isinstance(uid, UID):

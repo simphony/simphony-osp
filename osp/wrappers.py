@@ -1,3 +1,14 @@
+"""Lets interfaces be used in an user-friendly way.
+
+It scans the installed interfaces and adds their names to __dir__.
+
+When an the name of an interface requested, the returned object is a
+`_WrapperSpawner` class, which is a `Wrapper` class from
+osp.core.session.wrapper that has a default interface set. The `Wrapper`
+class is in fact a subclass of the session, that assigns a predefined
+store for the session's graph when initialized.
+"""
+
 import importlib as _importlib
 import os as _os
 import pkgutil as _pkgutil

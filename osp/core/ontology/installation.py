@@ -5,7 +5,7 @@ import glob
 import logging
 import shutil
 import tempfile
-from typing import Any, Hashable, Set, Tuple
+from typing import Hashable, Set, Tuple
 
 from osp.core.ontology.parser.parser import OntologyParser
 
@@ -289,6 +289,6 @@ def topological_sort(edges: Set[Tuple[Hashable, Hashable]]):
                 no_incoming_edges.add(m)
 
     if {y for x in graph.values() for y in x}:
-        raise ValueError(f"The provided set of edges has cycles, therefore "
-                         f"topological sorting is unfeasible.")
+        raise ValueError("The provided set of edges has cycles, therefore "
+                         "topological sorting is unfeasible.")
     return tuple(result)

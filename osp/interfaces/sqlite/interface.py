@@ -16,45 +16,43 @@ class SQLiteInterface(SQLInterface):
     This SQLite backend can be used to store CUDS in an SQLite database.
     """
 
-    def __init__(self, path, check_same_thread=True, *args, **kwargs):
-        """Initialize the SqliteSession.
+    def __init__(self,
+                 path: str,
+                 check_same_thread: bool = True,
+                 *args,
+                 **kwargs):
+        """Initialize the SQLiteInterface.
 
         Args:
-            path (str): The path to the sqlite database file. Will be created
+            path: The path to the sqlite database file. Will be created
                 if it doesn't exist.
-            check_same_thread (bool, optional): Argument of sqlite.
-                Defaults to True.
+            check_same_thread: Argument of sqlite. Defaults to True.
         """
         self._engine = sqlite3.connect(
             path,
             check_same_thread=check_same_thread)
         super().__init__(*args, **kwargs)
 
-    def __str__(self):
-        """Convert the Session to a static string."""
-        return "Sqlite Wrapper Session"
-
-    # OVERRIDE
     def close(self):
         """Close the connection to the SQLite database."""
         self._engine.close()
 
-    # OVERRIDE
     def commit(self):
         """Commit the data to the SQLite database."""
         self._engine.commit()
 
-    # OVERRIDE
     def init_transaction(self):
+        """Initialize the transaction."""
         c = self._engine.cursor()
         c.execute("BEGIN;")
 
-    # OVERRIDE
     def rollback_transaction(self):
+        """Cancel the transaction."""
         c = self._engine.cursor()
         c.execute("ROLLBACK;")
 
     def rollback(self):
+        """Discard uncommitted changes."""
         self._engine.rollback()
 
     @staticmethod

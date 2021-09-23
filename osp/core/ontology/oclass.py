@@ -2,8 +2,8 @@
 
 import logging
 from functools import lru_cache
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, \
-    Tuple, TYPE_CHECKING, Union
+from typing import Any, Dict, Iterable, Iterator, Optional, Set, Tuple, \
+    TYPE_CHECKING, Union
 from uuid import UUID
 
 from rdflib import OWL, RDFS, RDF, BNode, URIRef
@@ -36,6 +36,7 @@ class OntologyClass(OntologyEntity):
         Args:
             uid: UID identifying the ontology class.
             session: Session where the entity is stored.
+            triples: Construct the class with the provided triples.
         """
         super().__init__(uid, session, triples)
         logger.debug("Instantiated ontology class %s" % self)

@@ -1,7 +1,5 @@
 """Abstract Base Class for all Sessions."""
 
-from abc import ABC, abstractmethod
-from functools import lru_cache
 import itertools
 from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Set, \
     TYPE_CHECKING, \
@@ -46,6 +44,7 @@ class Session:
 
     @property
     def namespaces(self) -> List[OntologyNamespace]:
+        """Get all the namespaces bound to the session."""
         return [OntologyNamespace(iri=iri,
                                   name=name,
                                   ontology=self.ontology)
@@ -72,7 +71,7 @@ class Session:
     def unbind(self, name: Union[str, URIRef]):
         """Unbind a namespace from this ontology.
 
-        args:
+        Args:
             name: the name to which the namespace is already bound, or the
                 IRI of the namespace.
         """
@@ -104,9 +103,9 @@ class Session:
         self._overlay = Graph()
         if from_parser:  # Compute session graph from an ontology parser.
             if self.ontology is not self:
-                raise RuntimeError(f"Cannot load parsers in sessions which "
-                                   f"are not their own ontology. Load the "
-                                   f"parser on the ontology instead.")
+                raise RuntimeError("Cannot load parsers in sessions which "
+                                   "are not their own ontology. Load the "
+                                   "parser on the ontology instead.")
             self.load_parser(from_parser)
             self.identifier = identifier or from_parser.identifier
         else:  # Create an empty session.
@@ -312,9 +311,11 @@ class Session:
         pass
 
     def __contains__(self, item: 'OntologyEntity'):
+        """Check whether an ontology entity is sotred on the session."""
         return item.session is self
 
     def __iter__(self) -> Iterator['OntologyEntity']:
+        """Iterate over all the ontology entities in the session."""
         # Warning: entities can be repeated.
         return (self.from_identifier(identifier)
                 for identifier in self.iter_identifiers())
@@ -420,6 +421,7 @@ class Session:
         return results
 
     def commit(self) -> None:
+        """Commit the changes made to the session's graph."""
         self._graph.commit()
         if self.ontology is not self:
             self.ontology.commit()
@@ -431,15 +433,19 @@ class Session:
 
     @property
     def graph(self) -> Graph:
+        """Returns the session's graph."""
         return self._graph
 
     @property
     def ontology_graph(self) -> Graph:
+        """Returns an aggregate of the session's graph and overlay."""
         return ReadOnlyGraphAggregate([self.ontology._graph,
                                        self.ontology._overlay])
 
     def iter_identifiers(self) -> Iterator[Identifier]:
+        """Iterate over all the identifiers in the session."""
         # Warning: identifiers can be repeated.
+        # TODO: Aren't identifiers of ontology individuals omitted?
         supported_types = frozenset({OWL.DatatypeProperty,
                                      OWL.ObjectProperty,
                                      OWL.Class,
@@ -458,6 +464,7 @@ class Session:
                                         str,
                                         Tuple[Literal, URIRef],
                                         Tuple[str, URIRef]]]:
+        """Iterate over all the labels of the entities in the session."""
         from osp.core.ontology.entity import OntologyEntity
         if isinstance(entity, OntologyEntity):
             entity = entity.identifier
@@ -484,9 +491,11 @@ class Session:
             return ((x[1], x[0]) for x in labels)
 
     def get_identifiers(self) -> Set[Identifier]:
+        """Get all the identifiers in the session."""
         return set(self.iter_identifiers())
 
     def get_entities(self) -> Set['OntologyEntity']:
+        """Get all the entities stored in the session."""
         return set(x for x in self)
 
     def store(self, entity: 'OntologyEntity') -> None:
@@ -505,6 +514,7 @@ class Session:
         self._graph.remove((entity.identifier, None, None))
 
     def clear(self):
+        """Clear all the data stored in the session."""
         self._graph.remove((None, None, None))
 
     def __str__(self):
@@ -568,7 +578,7 @@ class Session:
             ))
 
     @staticmethod
-    def _overlay_add_cuba_triples(parser: Union[OntologyParser, 'Ontology'],
+    def _overlay_add_cuba_triples(parser: Union[OntologyParser, 'Session'],
                                   overlay: Graph):
         """Add the triples to connect the owl ontology to CUBA."""
         for iri in parser.active_relationships:
@@ -589,7 +599,7 @@ class Session:
 
     @staticmethod
     def _overlay_add_reference_style_triples(parser: Union[OntologyParser,
-                                                           'Ontology'],
+                                                           'Session'],
                                              overlay: Graph):
         """Add a triple to store how the user should reference the entities.
 

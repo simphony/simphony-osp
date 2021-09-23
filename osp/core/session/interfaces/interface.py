@@ -10,7 +10,6 @@ from rdflib.store import Store
 from rdflib.term import Identifier
 
 from osp.core.ontology.datatypes import Triple, UID
-from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.session import Session
 
 if TYPE_CHECKING:
@@ -56,10 +55,10 @@ class InterfaceStore(Store):
         follows.
         """
         if interface is None:
-            raise ValueError(f"No interface provided.")
+            raise ValueError("No interface provided.")
         if not isinstance(interface, Interface):
             raise TypeError(
-                f"Object provided as interface is not an interface.")
+                "Object provided as interface is not an interface.")
         self._interface = interface
         self._buffers = {buffer_type: SimpleMemory()
                          for buffer_type in BufferType}

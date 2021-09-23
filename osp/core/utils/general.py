@@ -8,8 +8,7 @@ import itertools
 import json
 import logging
 import pathlib
-from typing import Optional, Set, TYPE_CHECKING, Tuple, Union, \
-    TextIO, List
+from typing import Optional, TYPE_CHECKING, Union, TextIO, List
 
 import requests
 from rdflib import OWL, RDF, RDFS, Graph, Literal

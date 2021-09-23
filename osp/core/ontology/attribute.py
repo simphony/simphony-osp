@@ -47,6 +47,7 @@ class OntologyAttribute(OntologyEntity):
         Args:
             uid: UID identifying the entity.
             session: Session where the entity is stored.
+            triples: Construct the attribute with the provided triples.
         """
         super().__init__(uid, session, triples)
         logger.debug("Instantiated ontology attribute %s." % self)

@@ -72,6 +72,17 @@ def __dir__():
 
 # `from_iri` as gateway to `_tbox.from_identifier`.
 def from_iri(iri: _Union[str, _URIRef]):
+    """Get an entity from its IRI from the default TBox.
+
+    Args:
+        iri: The IRI of the entity.
+
+    Raises:
+        KeyError: The ontology entity is not stored in the default TBox.
+
+    Returns:
+        The OntologyEntity.
+    """
     if type(iri) is str:
         iri = _URIRef(str)
     if not isinstance(iri, _URIRef):
@@ -81,4 +92,15 @@ def from_iri(iri: _Union[str, _URIRef]):
 
 # `from_identifier` as gateway to `_tbox.from_identifier`.
 def from_identifier(identifier: _Identifier) -> 'OntologyEntity':
+    """Get an entity from its identifier from the default TBox.
+
+    Args:
+        identifier: The identifier of the entity.
+
+    Raises:
+        KeyError: The ontology entity is not stored in the default TBox.
+
+    Returns:
+        The OntologyEntity.
+    """
     return _Session.ontology.from_identifier(identifier)

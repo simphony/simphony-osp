@@ -344,6 +344,7 @@ class UID(CustomDataType):
         """Convert the UID to an rdflib Identifier."""
         return self.to_iri() if isinstance(self.data, UUID) else self.data
 
+
 sqlite3.register_adapter(UID, lambda x: str(x))
 for datatype in (UID, UUID, URIRef, str, int, bytes):
     if datatype in (int, bytes):

@@ -6,7 +6,7 @@ from functools import lru_cache
 from typing import Iterable, Iterator, Optional, Set, Tuple, TYPE_CHECKING,\
     Union
 
-from rdflib import OWL, RDF, RDFS, SKOS, XSD, BNode, Graph, Literal, URIRef
+from rdflib import Graph, Literal, URIRef
 from rdflib.term import Identifier
 
 from osp.core.ontology.datatypes import Triple, UID
@@ -252,6 +252,7 @@ class OntologyEntity(ABC):
         Args:
             uid: UID identifying the entity.
             session: Session where the entity is stored.
+            triples: Construct the entity with the provided triples.
         """
         if uid is None:
             uid = UID()

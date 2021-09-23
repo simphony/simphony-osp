@@ -5,7 +5,7 @@ import unittest
 import os
 from typing import Hashable
 
-from rdflib import URIRef, Graph, Literal, RDF, RDFS, SKOS, OWL
+from rdflib import URIRef, Graph, Literal, RDFS
 
 from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.datatypes import UID
@@ -416,7 +416,7 @@ class TestFOAFOntology(unittest.TestCase):
 
 
 class TestLoadParsers(unittest.TestCase):
-    """Test merging ontology packages in the ontology"""
+    """Test merging ontology packages in the ontology."""
 
     def setUp(self) -> None:
         """Set up ontology."""
@@ -425,7 +425,6 @@ class TestLoadParsers(unittest.TestCase):
 
     def test_loading_packages(self):
         """Test merging several ontology packages."""
-
         parsers = (
             OWLParser('foaf'),
             OWLParser('emmo'),
