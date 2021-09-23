@@ -315,6 +315,28 @@ class TestYMLParser(unittest.TestCase):
         self.assertEqual(self.parser._file_path, YML_FILE)
         self.assertEqual(self.parser._namespace, "parser_test")
 
+    def test_parse_guess_format(self):
+        """Test the parsing a file without providing the format."""
+        modified_yml_config_path = Path(YML_FILE)
+        modified_yml_config_path = str(modified_yml_config_path.with_name(
+            modified_yml_config_path.stem + '_mod'
+            + modified_yml_config_path.suffix))
+        try:
+            # Create a copy of YML_FILE and remove the 'format' keyword.
+            with open(modified_yml_config_path, 'w') as modified_yml_config:
+                with open(YML_FILE, 'r') as yml_config:
+                    modified_yml_config.write(
+                        re.sub(r'^[\s]*format:[\s].*', '',
+                               yml_config.read(), flags=re.MULTILINE))
+
+            parser = OntologyParser.get_parser(modified_yml_config_path)
+            g1 = rdflib.Graph()
+            g1.parse(RDF_FILE, format="ttl")
+            self.assertTrue(parser.graph, g1)
+        finally:
+            if os.path.exists(modified_yml_config_path):
+                os.remove(modified_yml_config_path)
+
 
 if __name__ == "__main__":
     unittest.main()

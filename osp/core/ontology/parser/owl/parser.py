@@ -8,6 +8,7 @@ from typing import Dict, Optional, Set, Tuple
 import requests
 import yaml
 from rdflib import Graph, URIRef
+from rdflib.util import guess_format
 
 import osp.core.ontology.parser.owl.keywords as keywords
 from osp.core.ontology.parser.parser import OntologyParser
@@ -83,8 +84,7 @@ class OWLParser(OntologyParser):
     def graph(self) -> Graph:
         """Fetch the ontology graph from the ontology file."""
         if not self._graph:
-            file_format = self._yaml_config.get(keywords.FILE_FORMAT_KEY,
-                                                'xml')
+            file_format = self._yaml_config.get(keywords.FILE_FORMAT_KEY, None)
             self._graph = self._read_ontology_graph(self._yaml_config,
                                                     self._file_path,
                                                     file_format)
@@ -180,24 +180,28 @@ class OWLParser(OntologyParser):
                              "identifier: %s." % doc[keywords.IDENTIFIER_KEY])
 
     @staticmethod
-    def _read_ontology_graph(yaml_config_doc: list,
+    def _read_ontology_graph(yaml_config_doc: dict,
                              yaml_config_path: str,
-                             file_format: str) -> Graph:
+                             file_format: Optional[str] = None) -> Graph:
         """Get the ontology from the file specified in the configuration file.
 
         Args:
-            yaml_config_doc (list): The YAML doc resulting from loading the
+            yaml_config_doc: The YAML doc resulting from loading the
                 a YAML config file for OWL ontologies. The doc must have been
                 validated with `_validate_yaml_config` before being passed to
                 this function.
-            yaml_config_path (str): the path where the YAML config file was
+            yaml_config_path: The path where the YAML config file was
                 read. It is used to resolve the relative path to the ontology
                 file.
+            file_format: The format of the file containing the ontology graph.
+                When not provided, it will be guessed using `guess_format`
+                from `rdflib.util`.
 
         Returns:
             Graph: The ontology graph.
         """
         rdf_file_location = yaml_config_doc[keywords.RDF_FILE_KEY]
+        file_format = file_format or guess_format(rdf_file_location)
         if rdf_file_location.startswith(('http://', 'https://')):
             logger.info(f"Downloading {rdf_file_location}.")
             content = requests.get(rdf_file_location).content.decode('utf-8')
@@ -205,7 +209,7 @@ class OWLParser(OntologyParser):
         else:
             rdf_file_location = os.path.join(os.path.dirname(yaml_config_path),
                                              rdf_file_location)
-            file_like = open(rdf_file_location)
+            file_like = open(rdf_file_location, 'rb')
         graph = Graph()
         graph.parse(file_like,
                     format=file_format)
