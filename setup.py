@@ -51,7 +51,6 @@ setup(
         "numpy",
         "graphviz",
         "rdflib",  # Redundant, but some IDEs do not understand what is below.
-        "rdflib >= 5.0.0, < 6.0.0",
         "rdflib >= 6.0.0, < 7.0.0",
     ],
     setup_requires=[
