@@ -673,6 +673,161 @@ class TestAPICity(unittest.TestCase):
         self.assertRaises(TypeError,
                           Cuds, oclass=None, attributes={})
 
+    def test_bracket_notation(self):
+        """Tests the functionality of the bracket notation."""
+        paris = city.City(name='Paris')
+        marc = city.Citizen(name='Marc')
+        aimee = city.Citizen(name='Aimée')
+
+        # Test relationships without slice.
+        self.assertIsNone(paris[city.hasMajor])
+        paris[city.hasMajor] = marc
+        self.assertEqual(marc, paris[city.hasMajor])
+        paris[city.hasMajor] = aimee
+        self.assertEqual(aimee, paris[city.hasMajor])
+        paris[city.hasMajor] = None
+        self.assertIsNone(paris[city.hasMajor])
+        paris[city.hasMajor] = aimee
+        del paris[city.hasMajor]
+        self.assertIsNone(paris[city.hasMajor])
+        self.assertRaises(TypeError,
+                          lambda x: paris.__setitem__(city.hasMajor, x),
+                          'String')
+
+        # Test attributes without slice -> goto
+        # test_api_foaf.TestAPIfoaf.test_bracket_notation.
+
+        # Test slice for relationships.
+        self.assertSetEqual(set(), paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] = {marc}
+        self.assertSetEqual({marc}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] = set()
+        self.assertEqual(set(), paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] = {marc}
+        paris[city.hasInhabitant, :] = None
+        self.assertEqual(set(), paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] = {marc}
+        del paris[city.hasInhabitant, :]
+        self.assertEqual(set(), paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] = {marc}
+        paris[city.hasInhabitant, :].clear()
+        self.assertEqual(set(), paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] = {marc}
+        self.assertIn(marc, paris[city.hasInhabitant, :])
+        self.assertNotIn(aimee, paris[city.hasInhabitant, :])
+        self.assertSetEqual({marc}, set(paris[city.hasInhabitant, :]))
+        self.assertEqual(1, len(paris[city.hasInhabitant, :]))
+        self.assertLessEqual(paris[city.hasInhabitant, :], {marc})
+        self.assertLessEqual(paris[city.hasInhabitant, :], {marc, aimee})
+        self.assertFalse(paris[city.hasInhabitant, :] <= set())
+        self.assertLess(paris[city.hasInhabitant, :], {marc, aimee})
+        self.assertFalse(paris[city.hasInhabitant, :] < {marc})
+        self.assertEqual({marc}, paris[city.hasInhabitant, :])
+        self.assertNotEqual(paris[city.hasInhabitant, :], {marc, aimee})
+        self.assertNotEqual(paris[city.hasInhabitant, :], set())
+        self.assertGreater(paris[city.hasInhabitant, :], set())
+        self.assertGreaterEqual(paris[city.hasInhabitant, :], set())
+        self.assertGreaterEqual(paris[city.hasInhabitant, :], {marc})
+        self.assertFalse(paris[city.hasInhabitant, :] >= {marc, aimee})
+        self.assertSetEqual(set(), paris[city.hasInhabitant, :] & set())
+        self.assertSetEqual({marc}, paris[city.hasInhabitant, :] & {marc})
+        self.assertSetEqual(set(), paris[city.hasInhabitant, :] & {aimee})
+        self.assertSetEqual({marc, aimee},
+                            paris[city.hasInhabitant, :] | {aimee})
+        self.assertSetEqual({marc},
+                            paris[city.hasInhabitant, :] | {marc})
+        self.assertSetEqual({marc},
+                            paris[city.hasInhabitant, :] | set())
+        self.assertSetEqual(set(),
+                            paris[city.hasInhabitant, :] - {marc})
+        self.assertSetEqual({marc},
+                            paris[city.hasInhabitant, :] - {aimee})
+        self.assertSetEqual({marc, aimee},
+                            paris[city.hasInhabitant, :] ^ {aimee})
+        self.assertSetEqual(set(),
+                            paris[city.hasInhabitant, :] ^ {marc})
+        self.assertTrue(paris[city.hasInhabitant, :].isdisjoint({aimee}))
+        self.assertFalse(paris[city.hasInhabitant, :].isdisjoint({marc}))
+        self.assertTrue(paris[city.hasInhabitant, :].isdisjoint(set()))
+        self.assertEqual(marc, paris[city.hasInhabitant, :].pop())
+        self.assertSetEqual(set(), paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] = {marc}
+        self.assertIsNot(paris[city.hasInhabitant, :],
+                         paris[city.hasInhabitant, :].copy())
+        self.assertTrue(
+            all(
+                any(x is y for y in paris[city.hasInhabitant, :].copy())
+                for x in paris[city.hasInhabitant, :]))
+        self.assertSetEqual(set(),
+                            paris[city.hasInhabitant, :].difference({marc}))
+        self.assertSetEqual({marc},
+                            paris[city.hasInhabitant, :].difference({aimee}))
+        paris[city.hasInhabitant, :].difference_update({aimee})
+        self.assertSetEqual({marc}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :].difference_update({marc})
+        self.assertSetEqual(set(), paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] = {marc}
+        paris[city.hasInhabitant, :].discard(aimee)
+        self.assertSetEqual({marc}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :].discard(marc)
+        self.assertSetEqual(set(), paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] = {marc}
+        self.assertSetEqual({marc},
+                            paris[city.hasInhabitant, :].intersection({marc}))
+        self.assertSetEqual(set(),
+                            paris[city.hasInhabitant, :].intersection({aimee}))
+        self.assertSetEqual(set(),
+                            paris[city.hasInhabitant, :].intersection(set()))
+        paris[city.hasInhabitant, :].intersection_update({marc})
+        self.assertSetEqual({marc}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :].intersection_update({aimee})
+        self.assertSetEqual(set(), paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] = {marc}
+        paris[city.hasInhabitant, :].add(aimee)
+        self.assertSetEqual({aimee, marc}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :].remove(aimee)
+        self.assertSetEqual({marc}, paris[city.hasInhabitant, :])
+        self.assertRaises(KeyError,
+                          lambda x: paris[city.hasInhabitant, :].remove(x),
+                          aimee)
+        paris[city.hasInhabitant, :].update({aimee})
+        self.assertSetEqual({aimee, marc}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] |= {aimee}
+        self.assertSetEqual({aimee, marc}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] = {}
+        paris[city.hasInhabitant, :] |= {aimee}
+        self.assertSetEqual({aimee}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] &= {aimee}
+        self.assertSetEqual({aimee}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] &= {marc}
+        self.assertSetEqual(set(), paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] = {aimee}
+        paris[city.hasInhabitant, :] ^= {marc}
+        self.assertSetEqual({aimee, marc}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] ^= set()
+        self.assertSetEqual({aimee, marc}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] ^= {aimee}
+        self.assertSetEqual({marc}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] += {aimee}
+        self.assertSetEqual({marc, aimee}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] -= {marc}
+        self.assertSetEqual({aimee}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] += marc
+        paris[city.hasInhabitant, :] += aimee
+        self.assertSetEqual({marc, aimee}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] -= marc
+        self.assertSetEqual({aimee}, paris[city.hasInhabitant, :])
+        paris[city.hasInhabitant, :] -= aimee
+        self.assertSetEqual(set(), paris[city.hasInhabitant, :])
+        self.assertRaises(TypeError,
+                          lambda x: paris.__setitem__(
+                              (city.hasInhabitant, slice(None, None, None)),
+                              x),
+                          {'String'})
+
+        # Test slice for attributes -> goto
+        # test_api_foaf.TestAPIfoaf.test_bracket_notation.
+
 
 if __name__ == '__main__':
     unittest.main()
