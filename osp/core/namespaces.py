@@ -3,13 +3,18 @@
 import logging as _logging
 import os as _os
 from typing import Union as _Union
+from typing import TYPE_CHECKING as _TYPE_CHECKING
 
 from rdflib import URIRef as _URIRef
+from rdflib.term import Identifier as _Identifier
 
 from osp.core.ontology.installation import topological_sort as \
     _topological_sort
 from osp.core.ontology.parser import OntologyParser as _OntologyParser
 from osp.core.session.session import Session as _Session
+
+if _TYPE_CHECKING:
+    from osp.core.ontology.entity import OntologyEntity
 
 self = __import__(__name__)
 
@@ -56,13 +61,13 @@ except RuntimeError:
 
 def __getattr__(name: str):
     try:
-        return _default_ontology.get_namespace(name)
+        return _Session.ontology.get_namespace(name)
     except KeyError as e:
         raise AttributeError from e
 
 
 def __dir__():
-    return list((x.name for x in _default_ontology.namespaces))
+    return list((x.name for x in _Session.ontology.namespaces))
 
 
 # `from_iri` as gateway to `_tbox.from_identifier`.
@@ -71,8 +76,9 @@ def from_iri(iri: _Union[str, _URIRef]):
         iri = _URIRef(str)
     if not isinstance(iri, _URIRef):
         raise TypeError(f"Expected {str} or {_URIRef}, not {type(iri)}.")
-    return _default_ontology.from_identifier(iri)
+    return _Session.ontology.from_identifier(iri)
 
 
 # `from_identifier` as gateway to `_tbox.from_identifier`.
-from_identifier = _default_ontology.from_identifier
+def from_identifier(identifier: _Identifier) -> 'OntologyEntity':
+    return _Session.ontology.from_identifier(identifier)
