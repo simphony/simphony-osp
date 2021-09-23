@@ -291,8 +291,8 @@ class Session:
         # Force default relationships to be installed before installing a new
         # ontology.
         self._check_default_relationship_installed(parser)
-        self.ontology._overlay += self._overlay_from_parser(parser)
         self.ontology._graph += parser.graph
+        self.ontology._overlay += self._overlay_from_parser(parser)
         for name, iri in parser.namespaces.items():
             self.bind(name, iri)
 
@@ -541,9 +541,9 @@ class Session:
         self._overlay_add_reference_style_triples(parser, overlay)
         return overlay
 
-    @staticmethod
-    def _overlay_add_default_rel_triples(parser: Union[OntologyParser,
-                                                       'Ontology'],
+    def _overlay_add_default_rel_triples(self,
+                                         parser: Union[OntologyParser,
+                                                       'Session'],
                                          overlay: Graph):
         """Add the triples to the graph that indicate the default rel.
 
@@ -555,6 +555,12 @@ class Session:
         if parser.default_relationship is None:
             return
         for namespace in parser.namespaces.values():
+            self._graph.remove((URIRef(namespace),
+                                cuba_namespace._default_rel,
+                                None))
+            overlay.remove((URIRef(namespace),
+                            cuba_namespace._default_rel,
+                            None))
             overlay.add((
                 URIRef(namespace),
                 cuba_namespace._default_rel,
