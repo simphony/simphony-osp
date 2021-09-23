@@ -629,7 +629,6 @@ class SQLInterface(TriplestoreInterface):
             return UID(iri)
         elif self._is_cuds_iri(iri):
             return UID(iri)
-        print(iri, list(x.iri for x in default_ontology.namespaces))
         ns_iri = next((x.iri for x in default_ontology.namespaces if iri in x),
                       None)
         return self._get_ns_idx(ns_iri), str(iri[len(ns_iri):])
@@ -710,7 +709,6 @@ class SQLInterface(TriplestoreInterface):
     def add(self, *triples):
         for triple in triples:
             table_name, datatypes = self._determine_table(triple)
-            print(triple, table_name)
             values = self._get_values(triple, table_name)
             columns = self.TRIPLESTORE_COLUMNS
             if table_name == self.TYPES_TABLE:
