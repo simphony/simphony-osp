@@ -1,14 +1,13 @@
-
+"""Interface API for interface/wrapper developers."""
 
 from abc import ABC, abstractmethod
 from enum import IntEnum
 from itertools import chain
-from typing import Iterable, Iterator, Dict, List, Optional, Set, \
-    TYPE_CHECKING, Union
+from typing import Iterable, Dict, Optional, Set, TYPE_CHECKING
 
 from rdflib.plugins.stores.memory import SimpleMemory
-from rdflib.store import Store, VALID_STORE, NO_STORE
-from rdflib.term import Identifier, URIRef
+from rdflib.store import Store
+from rdflib.term import Identifier
 
 from osp.core.ontology.datatypes import Triple, UID
 from osp.core.ontology.entity import OntologyEntity
@@ -21,10 +20,10 @@ __all__ = ["InterfaceStore", "Interface"]
 
 
 class BufferType(IntEnum):
-    """The three types of buffers.
+    """The two types of buffers.
 
-    - ADDED: For objects that have been added.
-    - DELETED: For objects that have been deleted.
+    - ADDED: For triples that have been added.
+    - DELETED: For triples that have been deleted.
     """
 
     ADDED = 0
@@ -50,33 +49,60 @@ class InterfaceStore(Store):
     _buffers: Dict[BufferType, SimpleMemory]
 
     def __init__(self, *args, interface=None, **kwargs):
+        """Initialize the InterfaceStore.
+
+        The initialization assigns an interface to the store and creates
+        buffers for the store. Then the usual RDFLib's store initialization
+        follows.
+        """
         if interface is None:
             raise ValueError(f"No interface provided.")
         if not isinstance(interface, Interface):
             raise TypeError(
-                f"Object provided as interface is not a Wrapper.")
+                f"Object provided as interface is not an interface.")
         self._interface = interface
         self._buffers = {buffer_type: SimpleMemory()
                          for buffer_type in BufferType}
         super().__init__(*args, **kwargs)
 
-    def open(self, configuration: str, create=False):
+    def open(self, configuration: str, create: bool = False):
+        """Asks the interface, to open the data source.
+
+        For now, the create argument is not implemented. The interface is free
+        to do whatever it wants in this regard.
+        """
         if create:
             raise NotImplementedError
         self._interface.open(configuration)
 
-    def close(self, commit_pending_transaction=False):
+    def close(self, commit_pending_transaction: bool = False):
+        """Tells the interface to close the data source.
+
+        Args:
+            commit_pending_transaction: commits uncommitted changes when
+            true before closing the data source.
+        """
         if commit_pending_transaction:
             self.commit()
         self._interface.close()
 
     def add(self, triple, context, quoted=False):
+        """Adds triples to the store.
+
+        Since the actual addition happens during a commit, this method just
+        buffers the changes.
+        """
         self._buffers[BufferType.DELETED]\
             .remove(triple, context=context)
         self._buffers[BufferType.ADDED]\
             .add(triple, context, quoted=quoted)
 
     def remove(self, triple_pattern, context=None):
+        """Remove triples from the store.
+
+        Since the actual removal happens during a commit, this method just
+        buffers the changes.
+        """
         self._buffers[BufferType.ADDED]\
             .remove(triple_pattern, context=context)
         existing_triples_to_delete = (
@@ -87,6 +113,10 @@ class InterfaceStore(Store):
                 .add(triple, context, quoted=False)
 
     def triples(self, triple_pattern, context=None):
+        """Query triples patterns.
+
+        Merges the buffered changes with the data stored on the interface.
+        """
         # Existing minus added and deleted triples.
         triple_pool = filter(
             lambda x: x not in chain(
@@ -106,6 +136,7 @@ class InterfaceStore(Store):
             yield triple, iter(())
 
     def _interface_triples(self, triple_pattern) -> Iterable[Triple]:
+        """Helper method that gets triples stored in the backend."""
         s, p, o = triple_pattern
         if s is None:
             # self._wrapper.load_everything_from_backend()
@@ -116,27 +147,38 @@ class InterfaceStore(Store):
             yield from self._interface.load({s})
 
     def __len__(self, context=None):
+        """Get the number of triples in the store.
+
+        For more details, check RDFLib's documentation.
+        """
         raise NotImplementedError
 
     def bind(self, prefix, namespace):
+        """Bind a namespace to a prefix."""
         raise NotImplementedError
 
     def namespace(self, prefix):
+        """Bind a namespace to a prefix."""
         raise NotImplementedError
 
     def prefix(self, prefix):
+        """Get a bound namespace's prefix."""
         raise NotImplementedError
 
     def namespaces(self):
+        """Get the bound namespaces."""
         raise NotImplementedError
 
     def query(self, *args, **kwargs):
+        """Perform a SPARQL query on the store."""
         return super().query(*args, **kwargs)
 
     def update(self, *args, **kwargs):
+        """Perform a SPARQL update query on the store."""
         return super().update(*args, **kwargs)
 
     def commit(self):
+        """Commit buffered changes."""
         # Create a temporary session to store ontology entities.
         session = Session()
 
@@ -196,34 +238,37 @@ class InterfaceStore(Store):
                          for buffer_type in BufferType}
 
     def rollback(self):
+        """Discard uncommitted changes."""
         self._buffers = {buffer_type: SimpleMemory()
                          for buffer_type in BufferType}
 
 
 class Interface(ABC):
+    """To be implemented by interface/wrapper developers.
+
+    This is the most general API provided for an interface.
+    """
 
     store_class = InterfaceStore
 
     @abstractmethod
-    def __str__(self) -> str:
-        pass
-
-    @abstractmethod
     def apply_added(self, entity: "OntologyEntity") -> None:
+        """Receive added ontology entities and apply changes to the backend."""
         pass
 
     @abstractmethod
     def apply_updated(self, entity: "OntologyEntity") -> None:
+        """Receive updated entities and apply the changes to the backend."""
         pass
 
     @abstractmethod
     def apply_deleted(self, entity: "OntologyEntity") -> None:
+        """Receive deleted entities and apply the changes to the backend."""
         pass
 
     @abstractmethod
-    def _load_from_backend(self, uid: UID) \
-            -> Optional["OntologyEntity"]:
-        """For each element in uids, an element should be returned.
+    def _load_from_backend(self, uid: UID) -> Optional["OntologyEntity"]:
+        """Load the entity with the specified uid from the backend.
 
         When the element cannot be found, it should return None.
         """
@@ -231,15 +276,36 @@ class Interface(ABC):
 
     @abstractmethod
     def open(self, configuration: str):
+        """Open the data source that the interface interacts with."""
         pass
 
     @abstractmethod
     def close(self):
+        """Close the data source that the interface interacts with.
+
+        This method should NOT commit uncommitted changes.
+        """
         pass
 
     def load(self, identifiers: Iterable[Identifier]) -> Set[Triple]:
-        session = Session()
-        with session:
+        """Load multiple ontology entities from the backend.
+
+        This method encapsulates _load_from_backend. Note that it is not an
+        abstract method, and this is it not meant to be implemented by the
+        interface developer.
+
+        It basically sets a new session where items loaded from the backend
+        are to be stored, so that the interface developer does not have to
+        worry about it. Once all the entities have been spawned,
+        their triples are returned.
+
+        Args:
+            identifiers: the identifiers of the entities that are to be loaded.
+
+        Returns:
+            Triples describing the ontology entities provided by the backend.
+        """
+        with Session():
             triples = set()
             entities = (
                 self._load_from_backend(UID(x))
@@ -248,12 +314,3 @@ class Interface(ABC):
                 if entity is not None:
                     triples |= set(entity.triples)
         return triples
-
-    # @wrapper_session
-    # def load_everything_from_backend(self) -> Iterable[OntologyEntity]:
-    #     return self._load_everything_from_backend()
-
-    # @abstractmethod
-    # def _load_everything_from_backend(self) -> Iterable[OntologyEntity]:
-    #     pass
-
