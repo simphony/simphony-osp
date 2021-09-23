@@ -6,12 +6,10 @@ has attributes and is connected to other cuds objects via relationships.
 
 import logging
 from abc import ABC, abstractmethod
-from copy import deepcopy
-from typing import Any, Dict, Hashable, Iterable, Iterator, List, \
+from typing import Any, Dict, Iterable, Iterator, List, \
     MutableSet, Optional, Set, Tuple, Union
-from uuid import uuid4, UUID
+from uuid import UUID
 
-import rdflib
 from rdflib import BNode, Graph, Literal, RDF, URIRef
 
 from osp.core.namespaces import cuba, from_iri
@@ -639,7 +637,6 @@ class Cuds:
     def get_attributes(self) -> Dict[OntologyAttribute,
                                      Set[RDFCompatibleType]]:
         """Get the attributes as a dictionary."""
-
         return {attribute: set(value_generator)
                 for attribute, value_generator
                 in self._attribute_and_value_generator()}
