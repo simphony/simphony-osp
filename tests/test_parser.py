@@ -2,15 +2,18 @@
 
 import logging
 import os
+import re
 import unittest
+from pathlib import Path
 
 import yaml
-from rdflib import OWL, RDF, RDFS, SKOS, XSD, Literal, URIRef
+from rdflib import OWL, RDF, RDFS, SKOS, XSD, Graph, Literal, URIRef
 from rdflib.compare import isomorphic
 
 from osp.core.ontology.cuba import cuba_namespace
 from osp.core.ontology.datatypes import Vector
 from osp.core.ontology.parser.owl.parser import OWLParser
+from osp.core.ontology.parser.parser import OntologyParser
 from osp.core.ontology.parser.yml.parser import YMLParser
 from osp.core.session.session import Session
 
@@ -330,7 +333,7 @@ class TestYMLParser(unittest.TestCase):
                                yml_config.read(), flags=re.MULTILINE))
 
             parser = OntologyParser.get_parser(modified_yml_config_path)
-            g1 = rdflib.Graph()
+            g1 = Graph()
             g1.parse(RDF_FILE, format="ttl")
             self.assertTrue(parser.graph, g1)
         finally:

@@ -1,9 +1,9 @@
 import tempfile
 import unittest
 import os
-from typing import Hashable, Iterable, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
-from rdflib import URIRef, Graph, Literal, RDF, RDFS, SKOS, OWL
+from rdflib import RDF, URIRef, Graph
 
 from osp.core.namespaces import cuba
 from osp.core.ontology.datatypes import UID, Vector
