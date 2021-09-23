@@ -1,9 +1,0 @@
-active_relationships:
-  - http://xmlns.com/foaf/0.1/member
-default_relationship: http://xmlns.com/foaf/0.1/knows
-format: xml
-identifier: foaf
-namespaces:
-  foaf: http://xmlns.com/foaf/0.1/
-ontology_file: test_ontology_foaf.xml
-reference_by_label: false

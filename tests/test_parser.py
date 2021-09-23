@@ -1,219 +1,319 @@
-"""Test the default parser used for parsing OWL ontologies."""
+"""This file provides the unittest for the YAML parser."""
 
+import logging
 import os
+import unittest
+
 import yaml
-import rdflib
-import shutil
-import unittest2 as unittest
-import tempfile
-import responses
+from rdflib import OWL, RDF, RDFS, SKOS, XSD, Literal, URIRef
 from rdflib.compare import isomorphic
-from osp.core.ontology.parser import Parser
-from osp.core.ontology.parser.parser import OntologyParser
-from osp.core.ontology.namespace_registry import OntologySession
+
+from osp.core.ontology.cuba import cuba_namespace
+from osp.core.ontology.datatypes import Vector
+from osp.core.ontology.parser.owl.parser import OWLParser
+from osp.core.ontology.parser.yml.parser import YMLParser
+from osp.core.session.session import Session
 
 
-RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                        "parser_test.ttl")
+YML_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "test_parser.ontology.yml")
 CUBA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          "..", "osp", "core", "ontology", "files", "cuba.ttl")
-YML_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                        "parser_test.yml")
-with open(YML_FILE) as f:
-    YML_DOC = yaml.safe_load(f)
+EMMO_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "..", "osp", "core", "ontology", "files", "emmo.yml")
+RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "test_parser.ttl")
+YML_CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "test_parser.yml")
 
 
-class TestParser(unittest.TestCase):
-    """Test the default parser used for parsing OWL ontologies."""
+class TestYMLParser(unittest.TestCase):
+    """Test cases for YAML parser."""
 
     def setUp(self):
-        """Set up Graph and Parser."""
-        self.namespace_registry = OntologySession()
+        """Set up the test."""
+        with open(YML_FILE, "r") as f:
+            self.yml_doc = yaml.safe_load(f)
+        self.ontology_doc = self.yml_doc["ontology"]
+        self.namespace_registry = Session(ontology=True)
         self.graph = self.namespace_registry._graph
-        self.parser = Parser(parser_namespace_registry=self.namespace_registry)
-        with open(YML_FILE, 'r') as file:
-            self.config_file = yaml.safe_load(file)
+        self.parser = YMLParser(YML_FILE)
+        self.parser._ontology_doc = self.ontology_doc
 
-    def test_parse_rdf(self):
-        """Test parsing an rdf file."""
-        with tempfile.TemporaryDirectory() as tempdir:
-            new_config = self.config_file
-            new_config['namespaces'] = {}
-            new_yml_path = os.path.join(tempdir,
-                                        os.path.basename(YML_FILE))
-            new_ttl_path = os.path.join(tempdir,
-                                        os.path.basename(RDF_FILE))
-            with open(new_yml_path, 'w') as file:
-                yaml.dump(new_config, file)
-            shutil.copy(RDF_FILE, new_ttl_path)
-            self.assertRaises(TypeError, new_yml_path, self.parser.parse)
-        with tempfile.TemporaryDirectory() as tempdir:
-            new_config = self.config_file
-            new_config['identifier'] = 'x'
-            new_yml_path = os.path.join(tempdir,
-                                        os.path.basename(YML_FILE))
-            new_ttl_path = os.path.join(tempdir,
-                                        os.path.basename(RDF_FILE))
-            with open(new_yml_path, 'w') as file:
-                yaml.dump(new_config, file)
-            shutil.copy(RDF_FILE, new_ttl_path)
-            self.assertRaises(TypeError, new_yml_path, self.parser.parse)
-        with tempfile.TemporaryDirectory() as tempdir:
-            new_config = self.config_file
-            new_config['namespaces'] = {}
-            new_config['identifier'] = 'x'
-            new_config['invalid'] = True
-            new_yml_path = os.path.join(tempdir,
-                                        os.path.basename(YML_FILE))
-            new_ttl_path = os.path.join(tempdir,
-                                        os.path.basename(RDF_FILE))
-            with open(new_yml_path, 'w') as file:
-                yaml.dump(new_config, file)
-            shutil.copy(RDF_FILE, new_ttl_path)
-            self.assertRaises(TypeError, new_yml_path, self.parser.parse)
-        with tempfile.TemporaryDirectory() as tempdir:
-            config = dict(
-                identifier="parser_test",
-                ontology_file=RDF_FILE,
-                namespaces={
-                    "parser_test": "http://www.osp-core.com/parser_test"
-                },
-                format="ttl",
-                file='file.ttl'
-            )
-            new_yml_path = os.path.join(tempdir, 'file.yml')
-            new_ttl_path = os.path.join(tempdir, 'file.ttl')
-            with open(new_yml_path, 'w') as file:
-                yaml.dump(config, file)
-            shutil.copy(RDF_FILE, new_ttl_path)
-            rdf = rdflib.Graph()
-            rdf.parse(RDF_FILE, format="ttl")
-            parser = OntologyParser.get_parser(new_yml_path)
-            graph = parser.graph
-        self.assertEqual(len(graph), len(rdf))
-        self.assertTrue(isomorphic(graph, rdf))
-        self.assertIn(rdflib.URIRef("http://www.osp-core.com/parser_test#"),
-                      list(parser.namespaces.values()))
+    def test_validate_entity(self):
+        """Test the validate_entity."""
+        # everything should be fine
+        for x, t, r in (
+                ("relationshipB", OWL.ObjectProperty, "relationship"),
+                ("ClassD", OWL.Class, "class"),
+                ("attributeD", OWL.DatatypeProperty, "attribute")):
+            self.assertRaises(RuntimeError, self.parser._validate_entity,
+                              x, self.ontology_doc[x])
+            self.parser._graph.add((self.parser._get_iri(x),
+                                    RDF.type,
+                                    t))
+            result = self.parser._validate_entity(x, self.ontology_doc[x])
+            self.assertEqual(r, result)
 
-    def test_parse_yml(self):
-        """Test parsing the yaml file."""
-        with tempfile.TemporaryDirectory() as tempdir:
-            yml_path = os.path.join(tempdir, 'test.yml')
-            with open(yml_path, 'w') as file:
-                invalid = dict(YML_DOC)
-                invalid["identifier"] = "parser.test"
-                yaml.safe_dump(invalid, file)
-            self.assertRaises(ValueError, OntologyParser.get_parser,
-                              yml_path)
+        # wrong type
+        self.setUp()
+        for x, t in (("relationshipB", OWL.Class),
+                     ("ClassD", OWL.DatatypeProperty),
+                     ("attributeD", OWL.ObjectProperty)):
+            self.assertRaises(RuntimeError, self.parser._validate_entity,
+                              x, self.ontology_doc[x])
+            self.parser._graph.add(
+                (self.parser._get_iri(x), RDF.type, t))
+            self.assertRaises(ValueError, self.parser._validate_entity,
+                              x, self.ontology_doc[x])
 
-    @responses.activate
-    def test_parse_yml_download(self):
-        """Test downloading owl ontologies."""
-        def request_callback(request):
-            headers = {'request-id': '728d329e-0e86-11e4-a748-0c84dc037c13'}
-            return 200, headers, "<ns1:a> <ns1:b> <ns1:c> ."
+    def test_set_datatype(self):
+        """Test the set_datatype method of the YAML parser."""
+        for x, t in (("attributeA", XSD.string),
+                     ("attributeD", XSD.float)):
+            self.parser._set_datatype(x)
+            self.assertEqual(list(self.parser._graph), [(
+                self.parser._get_iri(x), RDFS.range, t)])
+            self.setUp()
 
-        url = "http://my_ontology.com/ontology.owl"
-        responses.add_callback(
-            responses.GET, url,
-            callback=request_callback,
-            content_type='text/plain',
+        x = "attributeC"
+        self.parser._set_datatype(x)
+        self.assertEqual(len(self.parser._graph), 0)
+
+        x = "attributeB"
+        self.parser._set_datatype(x)
+        self.assertEqual(set(self.parser._graph), {
+            (self.parser._get_iri(x), RDFS.range, Vector.iri),
+            (Vector.iri, RDF.type, RDFS.Datatype)})
+
+    def test_check_default_rel_flag_on_entity(self):
+        """Test the check_default_rel_flag_on_entity method."""
+        self.parser._check_default_rel_flag_on_entity(
+            "relationshipB",
+            self.ontology_doc["relationshipB"]
         )
-        doc = dict(YML_DOC)
-        doc["ontology_file"] = url
-        with tempfile.TemporaryDirectory() as tempdir:
-            yml_path = os.path.join(tempdir, 'parser_test.yml')
-            with open(yml_path, 'w') as file:
-                yaml.safe_dump(doc, file)
-            parser = OntologyParser.get_parser(yml_path)
-            self.assertIn((rdflib.URIRef("ns1:a"), rdflib.URIRef("ns1:b"),
-                           rdflib.URIRef("ns1:c")), parser.graph)
+        self.assertEqual(list(self.parser._graph), [])
+        self.parser._check_default_rel_flag_on_entity(
+            "relationshipA",
+            self.ontology_doc["relationshipA"]
+        )
+        # This is now done by the Ontology class.
+        # self.assertEqual(set(self.parser._graph), {(
+        #     self.parser._get_iri(), rdflib_cuba._default_rel,
+        #     self.parser._get_iri("relationshipA")
+        # )})
 
-    def test_get_file_path(self):
-        """Test the get_file_path method."""
-        self.assertEqual(OntologyParser.parse_file_path("test/my_file.yml"),
-                         "test/my_file.yml")
+    def test_set_inverse(self):
+        """Test the set_inverse method of the YAML parser."""
+        self.parser._set_inverse("relationshipA",
+                                 self.ontology_doc["relationshipA"])
+        self.parser._set_inverse("relationshipB",
+                                 self.ontology_doc["relationshipB"])
+        self.assertEqual(list(self.parser._graph), [])
+        self.parser._set_inverse("relationshipC",
+                                 self.ontology_doc["relationshipC"])
+        self.assertEqual(list(self.parser._graph), [(
+            self.parser._get_iri("relationshipC"), OWL.inverseOf,
+            self.parser._get_iri("relationshipA")
+        )])
+
+    def test_add_attributes(self):
+        """Test the add_attributes method of the YAML parser."""
+        self.assertRaises(ValueError, self.parser._add_attributes,
+                          "ClassA", self.ontology_doc["ClassA"])
+        self.parser._parse_entity("attributeA",
+                                  self.ontology_doc["attributeA"])
+
+        # with default
+        pre = set(self.parser._graph)
+        self.parser._add_attributes("ClassA", self.ontology_doc["ClassA"])
+        bnode1 = self.parser._graph.value(self.parser._get_iri("ClassA"),
+                                          cuba_namespace._default)
+        bnode2 = self.parser._graph.value(None, RDF.type,
+                                          OWL.Restriction)
+        self.assertEqual(set(self.parser._graph) - pre, {
+            (self.parser._get_iri("ClassA"), cuba_namespace._default, bnode1),
+            (bnode1, cuba_namespace._default_value, Literal("DEFAULT_A")),
+            (bnode1, cuba_namespace._default_attribute,
+             self.parser._get_iri("attributeA")),
+            (bnode2, OWL.cardinality,
+             Literal(1, datatype=XSD.integer)),
+            (bnode2, RDF.type, OWL.Restriction),
+            (self.parser._get_iri("ClassA"), RDFS.subClassOf, bnode2),
+            (bnode2, OWL.onProperty, self.parser._get_iri("attributeA"))
+        })
+
+        # without default
+        pre = set(self.parser._graph)
+        self.parser._add_attributes("ClassE", self.ontology_doc["ClassE"])
+        for s, _, _ in self.parser._graph.triples((None, RDF.type,
+                                                   OWL.Restriction)):
+            if s != bnode2:
+                bnode3 = s
+
+        self.assertEqual(set(self.parser._graph) - pre, {
+            (bnode3, OWL.onProperty,
+             self.parser._get_iri("attributeA")),
+            (bnode3, OWL.cardinality,
+             Literal(1, datatype=XSD.integer)),
+            (bnode3, RDF.type, OWL.Restriction),
+            (self.parser._get_iri("ClassE"), RDFS.subClassOf, bnode3)
+        })
+
+    def test_add_type_triple(self):
+        """Test the add_type_triple method of the YAML parser.."""
+        iri = self.parser._get_iri("ClassA")
+
+        # Class
+        pre = set(self.parser._graph)
+        self.parser._add_type_triple("ClassA", iri)
+        self.assertEqual(set(self.parser._graph) - pre, {(
+            iri, RDF.type, OWL.Class
+        )})
+        iri = self.parser._get_iri("ClassC")
+        pre = set(self.parser._graph)
+        self.parser._add_type_triple("ClassC", iri)
+        self.assertEqual(set(self.parser._graph) - pre, {(
+            iri, RDF.type, OWL.Class
+        )})
+
+        # Relationship
+        iri = self.parser._get_iri("relationshipC")
+        pre = set(self.parser._graph)
+        self.parser._add_type_triple("relationshipC", iri)
+        self.assertEqual(set(self.parser._graph) - pre, {(
+            iri, RDF.type, OWL.ObjectProperty
+        )})
+
+        # Attribute
+        iri = self.parser._get_iri("attributeB")
+        pre = set(self.parser._graph)
+        self.parser._add_type_triple("attributeB", iri)
+        self.assertEqual(set(self.parser._graph) - pre, {
+            (iri, RDF.type, OWL.DatatypeProperty),
+            (iri, RDF.type, OWL.FunctionalProperty)
+        })
+
+    def test_add_superclass(self):
+        """Test the add_superclass method of the YAML parser."""
+        iri = self.parser._get_iri("ClassD")
+        self.assertRaises(AttributeError, self.parser._add_superclass,
+                          "ClassD", iri, "parser_test.Invalid")
+        self.assertRaises(AttributeError, self.parser._add_superclass,
+                          "ClassD", iri, "cuba.Invalid")
+        self.assertRaises(AttributeError, self.parser._add_superclass,
+                          "ClassD", iri, "invalid.ClassA")
+        self.parser._add_superclass("ClassD", iri, "parser_test.ClassA")
+        iri = self.parser._get_iri("relationshipB")
+        self.parser._add_superclass("relationshipB", iri,
+                                    "parser_test.relationshipA")
+        iri = self.parser._get_iri("attributeB")
+        self.parser._add_superclass("attributeB", iri,
+                                    "parser_test.attributeA")
+
+    def test_get_iri(self):
+        """Test the get_iri method of the YAML parser."""
+        logging.getLogger(
+            "osp.core.ontology.yml.yml_parser"
+        ).addFilter(lambda record: False)
+        self.parser._graph.parse(CUBA_FILE, format="ttl")
         self.assertEqual(
-            OntologyParser.parse_file_path("my_file").lower(),
-            os.path.abspath(os.path.relpath(os.path.join(
-                os.path.dirname(__file__), "..", "osp", "core", "ontology",
-                "files", "my_file.yml"
-            ))).lower()
-        )
+            self.parser._get_iri("Entity", "CUBA"),
+            URIRef('http://www.osp-core.com/cuba#Entity'))
         self.assertEqual(
-            OntologyParser.parse_file_path("emmo").lower(),
-            os.path.abspath(os.path.relpath(os.path.join(
-                os.path.dirname(__file__), "..", "osp", "core", "ontology",
-                "files", "emmo.yml"
-            ))).lower()
-        )
+            self.parser._get_iri("ENTITY", "CUBA"),
+            URIRef('http://www.osp-core.com/cuba#Entity'))
         self.assertEqual(
-            OntologyParser.parse_file_path("city").lower(),
-            os.path.abspath(os.path.relpath(os.path.join(
-                os.path.dirname(__file__), "..", "osp", "core", "ontology",
-                "files", "city.ontology.yml"
-            ))).lower()
-        )
+            self.parser._get_iri("ENTITY", "cuba"),
+            URIRef('http://www.osp-core.com/cuba#Entity'))
+        self.assertEqual(
+            self.parser._get_iri("entity", "CUBA"),
+            URIRef('http://www.osp-core.com/cuba#Entity'))
+        self.assertRaises(AttributeError, self.parser._get_iri, "A", "B")
+        self.parser._graph.add((
+            URIRef('http://www.osp-core.com/ns#MY_CLASS'),
+            RDF.type, OWL.Class
+        ))
+        self.assertEqual(
+            self.parser._get_iri("my_class", "NS"),
+            URIRef('http://www.osp-core.com/ns#MY_CLASS'))
+        self.assertEqual(
+            self.parser._get_iri("MY_CLASS", "NS"),
+            URIRef('http://www.osp-core.com/ns#MY_CLASS'))
+        self.assertEqual(
+            self.parser._get_iri("myClass", "ns"),
+            URIRef('http://www.osp-core.com/ns#MY_CLASS'))
+        self.assertEqual(
+            self.parser._get_iri("MyClass", "NS"),
+            URIRef('http://www.osp-core.com/ns#MY_CLASS'))
 
-    def test_get_identifier(self):
-        """Test the get_identifier method."""
-        self.assertEqual(OntologyParser.get_parser(YML_FILE).identifier,
-                         "parser_test")
-        self.assertEqual(OntologyParser.get_parser("parser_test").identifier,
-                         "parser_test")
-        self.assertEqual(OntologyParser.get_parser("emmo").identifier, "emmo")
+        # no entity name --> no checks
+        self.assertEqual(self.parser._get_iri(None, "B"),
+                         URIRef('http://www.osp-core.com/b#'))
+        self.assertEqual(self.parser._get_iri(None, "b"),
+                         URIRef('http://www.osp-core.com/b#'))
 
-    def test_get_namespace_name(self):
-        """Test the get_namespace_name method."""
-        self.assertItemsEqual(OntologyParser
-                              .get_parser(YML_FILE).namespaces.keys(),
-                              ["parser_test"])
-        self.assertItemsEqual(OntologyParser
-                              .get_parser("parser_test").namespaces.keys(),
-                              ["parser_test"])
-        self.assertItemsEqual(OntologyParser
-                              .get_parser("emmo").namespaces.keys(),
-                              ['mereotopology', 'physical', 'top', 'semiotics',
-                               'perceptual', 'reductionistic', 'holistic',
-                               'physicalistic', 'math', 'properties',
-                               'materials', 'metrology', 'models',
-                               'manufacturing', 'isq', 'siunits'])
+    def test_load_entity(self):
+        """Test the load_entity method of the YAML parser."""
+        # load class
+        name = "ClassA"
+        self.parser._graph.parse(CUBA_FILE, format="ttl")
+        pre = set(self.parser._graph)
+        self.parser._parse_entity(name, self.ontology_doc[name])
+        iri = self.parser._get_iri(name)
+        self.assertEqual(set(self.parser._graph) - pre, {
+            (iri, RDF.type, OWL.Class),
+            (iri, RDFS.isDefinedBy,
+             Literal("Class A", lang="en")),
+            (iri, RDFS.subClassOf, cuba_namespace.Entity),
+            (iri, SKOS.prefLabel,
+             Literal("ClassA", lang="en"))
+        })
 
-    def test_get_requirements(self):
-        """Test the get_requirements() method."""
-        self.assertEqual(OntologyParser.get_parser(YML_FILE).requirements,
-                         set())
-        self.assertEqual(OntologyParser.get_parser("parser_test").requirements,
-                         {"city"})
+        # load relationship
+        name = "relationshipA"
+        self.parser._graph.parse(CUBA_FILE, format="ttl")
+        pre = set(self.parser._graph)
+        self.parser._parse_entity(name, self.ontology_doc[name])
+        iri = self.parser._get_iri(name)
+        self.assertEqual(set(self.parser._graph) - pre, {
+            (iri, RDF.type, OWL.ObjectProperty),
+            (iri, RDFS.subPropertyOf, cuba_namespace.activeRelationship),
+            (iri, SKOS.prefLabel,
+             Literal("relationshipA", lang="en"))
+        })
 
-    def test_install(self):
-        """Test the store method."""
-        parser = OntologyParser.get_parser(YML_FILE)
-        with tempfile.TemporaryDirectory() as destination:
-            parser.install(destination)
-            self.assertItemsEqual(os.listdir(destination),
-                                  ["parser_test.xml", "parser_test.yml"])
-            with open(os.path.join(destination, "parser_test.yml")) as f:
-                yml_doc = yaml.safe_load(f)
-                self.assertEqual(yml_doc["ontology_file"], "parser_test.xml")
-                yml_doc["ontology_file"] = YML_DOC["ontology_file"]
-                self.assertEqual(yml_doc["format"], "xml")
-                copy = YML_DOC.copy()
-                del yml_doc["format"]
-                del copy["format"]
-                self.assertEqual(yml_doc, copy)
-            g = rdflib.Graph()
-            g.parse(os.path.join(destination, "parser_test.xml"),
-                    format="xml")
-            self.assertTrue(
-                isomorphic(g, parser.graph))
+        # load attribute
+        name = "attributeA"
+        self.parser._graph.parse(CUBA_FILE, format="ttl")
+        pre = set(self.parser._graph)
+        self.parser._parse_entity(name, self.ontology_doc[name])
+        iri = self.parser._get_iri(name)
+        self.assertEqual(set(self.parser._graph) - pre, {
+            (iri, RDF.type, OWL.DatatypeProperty),
+            (iri, RDF.type, OWL.FunctionalProperty),
+            (iri, RDFS.subPropertyOf, cuba_namespace.attribute),
+            (iri, SKOS.prefLabel,
+             Literal("attributeA", lang="en"))
+        })
+
+    def test_split_name(self):
+        """Test the split_name method of the YAML parser."""
+        self.assertEqual(("a", "B"), self.parser.split_name("A.B"))
+        self.assertEqual(("a", "b"), self.parser.split_name("a.b"))
+        self.assertRaises(ValueError, self.parser.split_name, "B")
 
     def test_parse(self):
-        """Test the parsing a file."""
-        parser = OntologyParser.get_parser(YML_FILE)
-        g1 = rdflib.Graph()
-        g1.parse(RDF_FILE, format="ttl")
-        self.assertTrue(parser.graph, g1)
+        """Test the parse method of the YAML parser."""
+        ontology_yml = Session(from_parser=YMLParser(YML_FILE),
+                               ontology=True)
+        ontology_owl = Session(from_parser=OWLParser(YML_CONFIG_FILE),
+                               ontology=True)
+        self.assertTrue(isomorphic(ontology_owl.ontology_graph,
+                                   ontology_yml.ontology_graph))
+        self.assertEqual(self.parser._file_path, YML_FILE)
+        self.assertEqual(self.parser._namespace, "parser_test")
 
 
 if __name__ == "__main__":

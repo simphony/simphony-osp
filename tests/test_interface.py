@@ -6,13 +6,15 @@ from typing import Hashable, Iterable, Optional, TYPE_CHECKING
 from rdflib import URIRef, Graph, Literal, RDF, RDFS, SKOS, OWL
 
 from osp.core.namespaces import cuba
-from osp.core.ontology.datatypes import UID
+from osp.core.ontology.datatypes import UID, Vector
 from osp.core.ontology.individual import OntologyIndividual
 from osp.core.ontology.parser.owl.parser import OWLParser
+from osp.core.ontology.parser.yml.parser import YMLParser
 from osp.core.session.interfaces.interface import Interface, InterfaceStore
 from osp.core.session.interfaces.sql import SQLStore
-from osp.wrappers.sqlite.interface import SQLiteInterface
 from osp.core.session.session import Session
+from osp.interfaces.sqlite.interface import SQLiteInterface
+from osp.wrappers import sqlite
 
 if TYPE_CHECKING:
     from osp.core.ontology.entity import OntologyEntity
@@ -236,6 +238,63 @@ class TestTriplestoreInterface(unittest.TestCase):
         graph = Graph(store)
         self.assertSetEqual(set(),
                             set(graph.triples((None, None, None))))
+
+
+class TestTriplestoreWrapper(unittest.TestCase):
+
+    file_name: str = "TestSQLiteSession"
+
+    def setUp(self) -> None:
+        """Create an interface, a store and assign them to a session."""
+        self.ontology = Session(identifier='test_tbox',
+                                ontology=True)
+        cuba_parser = OWLParser('cuba')
+        self.ontology.load_parser(cuba_parser)
+        owl_parser = OWLParser('owl')
+        self.ontology.load_parser(owl_parser)
+        city_parser = YMLParser('city')
+        self.ontology.load_parser(city_parser)
+        self.city = self.ontology.get_namespace('city')
+
+    def tearDown(self) -> None:
+        try:
+            os.remove(self.file_name)
+        except FileNotFoundError:
+            pass
+
+    def test_city(self) -> None:
+
+        with sqlite(self.file_name, ontology=self.ontology) as session:
+            freiburg = self.city.City(name='Freiburg', coordinates=[20, 58])
+            freiburg_identifier = freiburg.identifier
+            marco = self.city.Citizen(name='Marco', age=50)
+            matthias = self.city.Citizen(name='Matthias', age=37)
+            freiburg[self.city.hasInhabitant] = {marco, matthias}
+
+            self.assertEqual(freiburg.name, 'Freiburg')
+            self.assertEqual(freiburg.coordinates, [20, 58])
+            self.assertEqual(marco.name, 'Marco')
+            self.assertEqual(marco.age, 50)
+            self.assertEqual(matthias.name, 'Matthias')
+            self.assertEqual(matthias.age, 37)
+            session.commit()
+            freiburg.coordinates = Vector([22, 58])
+            self.assertEqual(freiburg.coordinates, [22, 58])
+
+        with sqlite(self.file_name, ontology=self.ontology) as session:
+            freiburg = session.from_identifier(freiburg_identifier)
+            citizens = freiburg[self.city.hasInhabitant, :]
+
+            self.assertEqual('Freiburg', freiburg.name)
+            self.assertEqual([20, 58], freiburg.coordinates)
+            self.assertSetEqual(
+                {'Marco', 'Matthias'},
+                {citizen.name for citizen in citizens}
+            )
+            self.assertSetEqual(
+                {50, 37},
+                {citizen.age for citizen in citizens}
+            )
 
 
 if __name__ == "__main__":

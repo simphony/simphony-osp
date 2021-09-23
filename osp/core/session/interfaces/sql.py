@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 default_ontology = Session.ontology
 
+
 class SqlQuery:
     """An sql query."""
 
@@ -313,6 +314,8 @@ class SQLStore(TriplestoreStore):
 
 class SQLInterface(TriplestoreInterface):
     """Abstract class for an SQL DB Wrapper Session."""
+
+    store_class = SQLStore
 
     NAMESPACES_TABLE = "OSP_V2_NAMESPACES"
     ENTITIES_TABLE = "OSP_V2_ENTITIES"
@@ -626,8 +629,7 @@ class SQLInterface(TriplestoreInterface):
             return UID(iri)
         elif self._is_cuds_iri(iri):
             return UID(iri)
-        from osp.core.session.session import Session
-        default_ontology = Session.default_session
+        print(iri, list(x.iri for x in default_ontology.namespaces))
         ns_iri = next((x.iri for x in default_ontology.namespaces if iri in x),
                       None)
         return self._get_ns_idx(ns_iri), str(iri[len(ns_iri):])
@@ -643,9 +645,19 @@ class SQLInterface(TriplestoreInterface):
             if o in frozenset({OWL.DatatypeProperty,
                                OWL.ObjectProperty,
                                OWL.Class,
-                               OWL.Restriction}):
+                               OWL.Restriction,
+                               URIRef("http://www.osp-core.com/cuba#"
+                                      "attribute"),
+                               URIRef("http://www.osp-core.com/cuba#"
+                                      "relationship"),
+                               URIRef("http://www.osp-core.com/cuba#"
+                                      "Entity")
+                               }) \
+                    or str(OWL) in o or str(RDF) in o or str(RDFS) in o:
                 return False
-        return True
+            else:
+                return True
+        return False
 
     def _get_ns_idx(self, ns_iri):
         ns_iri = str(ns_iri)
@@ -698,6 +710,7 @@ class SQLInterface(TriplestoreInterface):
     def add(self, *triples):
         for triple in triples:
             table_name, datatypes = self._determine_table(triple)
+            print(triple, table_name)
             values = self._get_values(triple, table_name)
             columns = self.TRIPLESTORE_COLUMNS
             if table_name == self.TYPES_TABLE:

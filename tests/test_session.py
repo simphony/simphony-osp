@@ -106,10 +106,6 @@ class TestFOAFOntology(unittest.TestCase):
         # Test the `graph` property.
         self.assertTrue(isinstance(self.ontology.graph, Graph))
 
-    @unittest.skip(reason="OntologyEntity is an abstract class.")
-    def test_entity(self):
-        raise NotImplementedError(f"Not testing an abstract class.")
-
     def test_attribute(self):
         """Tests the OntologyAttribute subclass.
 

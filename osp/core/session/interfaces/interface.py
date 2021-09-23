@@ -202,6 +202,8 @@ class InterfaceStore(Store):
 
 class Interface(ABC):
 
+    store_class = InterfaceStore
+
     @abstractmethod
     def __str__(self) -> str:
         pass

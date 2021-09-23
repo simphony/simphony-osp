@@ -295,7 +295,7 @@ class SqlMigrate:
 
 
 if __name__ == "__main__":
-    from osp.wrappers.sqlite import SQLiteInterface
+    from osp.interfaces.sqlite import SQLiteInterface
     session = SQLiteInterface("test.interfaces")
     m = SqlMigrate(session)
     m.run()

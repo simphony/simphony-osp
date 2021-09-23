@@ -1,6 +1,6 @@
 """Test methods that ensure backwards compatibility to old ontologies."""
 
-import unittest2 as unittest
+import unittest
 from osp.core.ontology.parser.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
 

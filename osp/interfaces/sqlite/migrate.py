@@ -3,7 +3,7 @@
 import os
 import argparse
 import logging
-from osp.wrappers.sqlite import SQLiteInterface
+from osp.interfaces.sqlite import SQLiteInterface
 from osp.core.session.db.sql_migrate import SqlMigrate
 
 logger = logging.getLogger(__name__)

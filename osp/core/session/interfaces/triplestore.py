@@ -47,6 +47,8 @@ class TriplestoreStore(InterfaceStore):
 class TriplestoreInterface(Interface):
     """A session connecting to a backend which stores the CUDS in triples."""
 
+    store_class = TriplestoreStore
+
     @abstractmethod
     def triples(self, pattern: Pattern) -> Iterator[Triple]:
         pass

@@ -1,1 +1,0 @@
-from osp.wrappers.sqlite.interface import SQLiteInterface

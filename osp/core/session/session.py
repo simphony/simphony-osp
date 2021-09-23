@@ -300,6 +300,7 @@ class Session:
         """Enter session context manager."""
         self._previous_session = Session.default_session or self
         Session.default_session = self
+        return self
 
     def __exit__(self, *args):
         """Close the connection to the backend."""

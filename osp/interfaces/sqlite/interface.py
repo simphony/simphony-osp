@@ -27,7 +27,6 @@ class SQLiteInterface(SQLInterface):
         """
         self._engine = sqlite3.connect(
             path,
-            isolation_level=None,
             check_same_thread=check_same_thread)
         super().__init__(*args, **kwargs)
 
