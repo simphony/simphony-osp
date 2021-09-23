@@ -68,7 +68,7 @@ class Composition(OntologyEntity):
         _, operands = self._get_operator_and_operands
         return tuple(operands)
 
-    @lru_cache
+    @lru_cache(maxsize=None)
     def _get_operator_and_operands(self) -> \
             Tuple[Optional[OPERATOR],
                   List[Union['OntologyClass',

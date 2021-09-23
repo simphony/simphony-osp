@@ -60,7 +60,7 @@ class OntologyClass(OntologyEntity):
         return result
 
     @property
-    @lru_cache
+    @lru_cache(maxsize=None)
     def axioms(self) -> Tuple['Restriction']:
         """Get all the axioms for the ontology class.
 

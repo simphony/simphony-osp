@@ -63,7 +63,7 @@ class Restriction(OntologyEntity):
                                   self.target)))
 
     @property
-    # @lru_cache  # _get_quantifier_and_target already cached
+    # @lru_cache(maxsize=None)  # _get_quantifier_and_target already cached
     def quantifier(self) -> QUANTIFIER:
         """Get the quantifier of the restriction.
 
@@ -74,7 +74,7 @@ class Restriction(OntologyEntity):
         return quantifier
 
     @property
-    # @lru_cache  # _get_quantifier_and_target already cached
+    # @lru_cache(maxsize=None)  # _get_quantifier_and_target already cached
     def target(self) -> Union["OntologyClass", URIRef]:
         """The target ontology class or datatype.
 
@@ -88,7 +88,7 @@ class Restriction(OntologyEntity):
             pass
         return target
 
-    @lru_cache
+    @lru_cache(maxsize=None)
     def _get_quantifier_and_target(self) -> Tuple[Optional[QUANTIFIER],
                                                   Optional[Identifier]]:
         """Get both the quantifier and the target of the restriction.
@@ -117,7 +117,7 @@ class Restriction(OntologyEntity):
             return None, None
 
     @property
-    # @lru_cache  # _property already cached
+    # @lru_cache(maxsize=None)  # _property already cached
     def relationship(self) -> OntologyRelationship:
         """The relationship the RELATIONSHIP_RESTRICTION acts on.
 
@@ -132,7 +132,7 @@ class Restriction(OntologyEntity):
         return self._property
 
     @property
-    # @lru_cache  # _property already cached
+    # @lru_cache(maxsize=None)  # _property already cached
     def attribute(self) -> OntologyAttribute:
         """The attribute the restriction acts on.
 
@@ -149,7 +149,7 @@ class Restriction(OntologyEntity):
         return self._property
 
     @property
-    @lru_cache
+    @lru_cache(maxsize=None)
     def rtype(self) -> RTYPE:
         """Return the type of restriction.
 
@@ -169,7 +169,7 @@ class Restriction(OntologyEntity):
                                f" were expected.")
 
     @property
-    @lru_cache
+    @lru_cache(maxsize=None)
     def _property(self) -> Union[OntologyRelationship, OntologyAttribute]:
         """The relationship or attribute the restriction acts on.
 
