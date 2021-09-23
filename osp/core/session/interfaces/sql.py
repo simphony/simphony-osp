@@ -20,8 +20,6 @@ from osp.core.session.interfaces.triplestore import TriplestoreInterface, \
 if TYPE_CHECKING:
     from osp.core.ontology import OntologyEntity
 
-default_ontology = Session.ontology
-
 
 class SqlQuery:
     """An sql query."""
@@ -629,7 +627,7 @@ class SQLInterface(TriplestoreInterface):
             return UID(iri)
         elif self._is_cuds_iri(iri):
             return UID(iri)
-        ns_iri = next((x.iri for x in default_ontology.namespaces if iri in x),
+        ns_iri = next((x.iri for x in Session.ontology.namespaces if iri in x),
                       None)
         return self._get_ns_idx(ns_iri), str(iri[len(ns_iri):])
 
@@ -639,7 +637,7 @@ class SQLInterface(TriplestoreInterface):
 
     @staticmethod
     def _is_cuds_iri_ontology(iri):
-        for s, p, o in default_ontology.ontology_graph\
+        for s, p, o in Session.ontology.ontology_graph\
                 .triples((URIRef(iri), RDF.type, None)):
             if o in frozenset({OWL.DatatypeProperty,
                                OWL.ObjectProperty,
