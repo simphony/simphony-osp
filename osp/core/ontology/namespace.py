@@ -93,7 +93,7 @@ class OntologyNamespace:
 
     def __init__(self,
                  iri: Union[str, URIRef],
-                 ontology: 'Session',
+                 ontology: Optional['Session'] = None,
                  name: Optional[str] = None):
         """Initialize the namespace.
 
@@ -102,6 +102,8 @@ class OntologyNamespace:
             ontology: The ontology to which the namespace is connected.
             name: The name of the namespace
         """
+        from osp.core.session.session import Session
+        ontology = ontology or Session.default_session
         self._iri = URIRef(iri)
         self._ontology = ontology
         ontology.bind(name, iri)

@@ -50,8 +50,9 @@ class Session:
                                   ontology=self.ontology)
                 for iri, name in self.ontology._namespaces.items()]
 
-    def bind(self, name: Optional[str], iri: Union[str,
-                                                   URIRef]):
+    def bind(self,
+             name: Optional[str],
+             iri: Union[str, URIRef]):
         """Bind a namespace to this ontology.
 
         Args:
@@ -75,7 +76,7 @@ class Session:
             name: the name to which the namespace is already bound, or the
                 IRI of the namespace.
         """
-        for key, value in dict(self.ontology._namespaces).values():
+        for key, value in dict(self.ontology._namespaces).items():
             if value == name or key == URIRef(name):
                 del self.ontology._namespaces[key]
 
@@ -115,7 +116,7 @@ class Session:
                 self.bind(key, value)
 
     def get_namespace_bind(self,
-                           namespace: Union[OntologyNamespace, URIRef]) \
+                           namespace: Union[OntologyNamespace, URIRef, str]) \
             -> Optional[str]:
         """Returns the name used to bind a namespace to the ontology.
 
@@ -125,11 +126,12 @@ class Session:
         Raises:
             KeyError: Namespace not bound to to the ontology.
         """
+        ontology = self.ontology
         if isinstance(namespace, OntologyNamespace):
             ontology = namespace.ontology
             namespace = namespace.iri
         else:
-            ontology = self.ontology
+            namespace = URIRef(namespace)
 
         not_bound_error = KeyError(f"Namespace {namespace} not bound to "
                                    f"ontology {self}.")
