@@ -37,6 +37,7 @@ class Container(OntologyIndividual):
                  attributes: Optional[
                      Dict['OntologyAttribute',
                           Iterable[RDFCompatibleType]]] = None,
+                 merge: bool = False,
                  ) -> None:
         """Initialize the container."""
         super().__init__(uid=uid,
@@ -44,6 +45,7 @@ class Container(OntologyIndividual):
                          triples=triples,
                          class_=cuba.Container,
                          attributes=attributes,
+                         merge=merge,
                          )
         logger.debug("Instantiated container %s" % self)
 
@@ -197,7 +199,7 @@ class Container(OntologyIndividual):
                     environment = self._container_contexts[-1]
                 except IndexError:
                     # No container context, use default session.
-                    environment = Session.default_session
+                    environment = Session.get_default_session()
             else:
                 environment = self.opens_in
 
@@ -264,8 +266,7 @@ class Container(OntologyIndividual):
         Essentially just opens self without arguments.
         """
         self.open()
-        self._previous_sessions.append(Session.default_session)
-        Session.default_session = self._session_linked
+        self._session_linked.__enter__()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -273,10 +274,8 @@ class Container(OntologyIndividual):
 
         Essentially just closes self.
         """
-        Session.default_session = self._previous_sessions.pop()
+        self._session_linked.__exit__()
         self.close()
-
-    _previous_sessions: List['Session'] = []
 
     # Methods that require the container to be open.
     # --------------------------------------------------------------

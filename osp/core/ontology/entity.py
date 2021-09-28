@@ -14,6 +14,7 @@ from osp.core.ontology.datatypes import Triple, UID
 if TYPE_CHECKING:
     from osp.core.ontology.interactive.container import Container
     from osp.core.session.session import Session
+    from osp.core.session.wrapper import Wrapper
 
 
 logger = logging.getLogger(__name__)
@@ -246,14 +247,20 @@ class OntologyEntity(ABC):
     @abstractmethod
     def __init__(self,
                  uid: UID,
-                 session: Optional[Union['Session', 'Container']] = None,
-                 triples: Optional[Iterable[Triple]] = None) -> None:
+                 session: Optional[Union['Session',
+                                         'Container',
+                                         'Wrapper']] = None,
+                 triples: Optional[Iterable[Triple]] = None,
+                 merge: bool = False) -> None:
         """Initialize the ontology entity.
 
         Args:
             uid: UID identifying the entity.
             session: Session where the entity is stored.
             triples: Construct the entity with the provided triples.
+            merge: Whether overwrite the potentially existing entity in the
+                session with the provided triples or just merge them with
+                the existing ones.
         """
         if uid is None:
             uid = UID()
@@ -276,19 +283,27 @@ class OntologyEntity(ABC):
                                      "does not match the individual's "
                                      "identifier.")
                 self.__graph.add((s, p, o))
+
+        from osp.core.session.wrapper import Wrapper
         if session is None:
             from osp.core.ontology.interactive.container import Container
             from osp.core.session.session import Session
             environment = Container.get_current_container_context() or \
-                Session.default_session
+                Session.get_default_session()
             with environment:
-                session = Session.default_session
+                session = Session.get_default_session()
             if isinstance(environment, Container):
                 environment.connect(self.identifier)
+        elif isinstance(session, Wrapper):
+            session.container.connect(self.identifier)
+            session = session.session
         if self.__graph is not None:
             # Only change what is stored in the session if custom triples were
             # provided.
-            session.store(self)
+            if not merge:
+                session.store(self)
+            else:
+                session.merge(self)
         self._session = session
         self.__graph = None
 
@@ -317,3 +332,7 @@ class OntologyEntity(ABC):
     def __hash__(self) -> int:
         """Make the entity hashable."""
         return hash((self.uid, self.session))
+
+    def __bool__(self):
+        """Returns the boolean value of the entity, always true."""
+        return True

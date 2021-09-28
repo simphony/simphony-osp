@@ -43,7 +43,8 @@ class TestContainer(unittest.TestCase):
         self.assertEqual(container.num_references, 0)
 
         with container:
-            self.assertIs(Session.default_session, container.session_linked)
+            self.assertIs(Session.get_default_session(),
+                          container.session_linked)
             self.assertTrue(container.is_open)
         self.assertIsNone(container.session_linked)
         self.assertFalse(container.is_open)
@@ -68,7 +69,8 @@ class TestContainer(unittest.TestCase):
         self.assertRaises(RuntimeError, another_container.open)
         container.open()
         with another_container:
-            self.assertIs(Session.default_session, container.session_linked)
+            self.assertIs(Session.get_default_session(),
+                          container.session_linked)
             self.assertIs(container.session_linked,
                           another_container.session_linked)
         container.close()
@@ -76,7 +78,7 @@ class TestContainer(unittest.TestCase):
         fr_session = Session()
         fr = city.City(name='Freiburg', session=fr_session)
         container.references = {fr.iri}
-        default_session = Session.default_session
+        default_session = Session.get_default_session()
 
         self.assertIn(fr.iri, container.references)
         self.assertEqual(container.num_references, 1)
@@ -136,7 +138,7 @@ class TestContainer(unittest.TestCase):
 
         container = cuba.Container()
 
-        default_session = Session.default_session
+        default_session = Session.get_default_session()
         session_1 = Session()
         session_2 = Session()
 
@@ -170,3 +172,7 @@ class TestContainer(unittest.TestCase):
             with container:
                 klaus_from_container = set(container).pop()
                 self.assertEqual(klaus_from_container.age, 20)
+
+
+if __name__ == "__main__":
+    unittest.main()

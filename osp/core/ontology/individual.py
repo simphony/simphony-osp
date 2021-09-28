@@ -1175,6 +1175,7 @@ class OntologyIndividual(OntologyEntity):
                  attributes: Optional[
                      Dict['OntologyAttribute',
                           Iterable[RDFCompatibleType]]] = None,
+                 merge: bool = False
                  ) -> None:
         """Initialize the ontology individual."""
         if uid is None:
@@ -1182,7 +1183,6 @@ class OntologyIndividual(OntologyEntity):
         elif not isinstance(uid, UID):
             raise Exception(f"Tried to initialize an ontology individual with "
                             f"uid {uid}, which is not a UID object.")
-
         self._ontology_classes = []
         triples = set(triples) if triples is not None else set()
         # Attribute triples.
@@ -1212,5 +1212,5 @@ class OntologyIndividual(OntologyEntity):
             # pass
 
         # When the construction is complete, the session is switched.
-        super().__init__(uid, session, triples or None)
+        super().__init__(uid, session, triples or None, merge=merge)
         logger.debug("Instantiated ontology individual %s" % self)

@@ -29,12 +29,25 @@ class Session:
 
     Defines the common standard API and sets the registry.
     """
-    default_session: Optional['Session'] = None
-    _previous_session: Optional['Session'] = None
-
+    _session_stack: List['Session'] = []
+    _times_opened: int = 0
     _namespaces: Dict[URIRef, str]
     _graph: Graph
     _overlay: Graph
+
+    @classmethod
+    def get_default_session(cls) -> Optional['Session']:
+        """Returns the default session."""
+        return cls._session_stack[-1] if len(cls._session_stack) > 0 else None
+
+    @classmethod
+    def set_default_session(cls, session: 'Session'):
+        """Adds a session to the stack of sessions.
+
+        This effectively makes it the default. As the session stack is private,
+        calling this command from outside this class is irreversible.
+        """
+        cls._session_stack.append(session)
 
     # Public API
     # ↓ ------ ↓
@@ -87,6 +100,7 @@ class Session:
                  namespaces: Dict[str, URIRef] = None,
                  from_parser: Optional[OntologyParser] = None):
         """Initialize the session."""
+        self._times_opened = 1
         self._graph = Graph() if store is None else Graph(store)
 
         if isinstance(ontology, Session):
@@ -299,21 +313,27 @@ class Session:
 
     def __enter__(self):
         """Enter session context manager."""
-        self._previous_session = Session.default_session or self
-        Session.default_session = self
+        self._session_stack.append(self)
         return self
 
     def __exit__(self, *args):
         """Close the connection to the backend."""
-        self.close()
-        Session.default_session = self._previous_session
+        if self is not self._session_stack[-1]:
+            raise RuntimeError("Trying to exit the context manager of a "
+                               "session that was not the latest session "
+                               "context manager to be entered.")
+        self._session_stack.pop()
+        if self not in self._session_stack:
+            self.close()
 
     def close(self):
         """Close the connection to the backend."""
-        pass
+        self._times_opened -= 1
+        if self._times_opened <= 0:
+            self.graph.close()
 
     def __contains__(self, item: 'OntologyEntity'):
-        """Check whether an ontology entity is sotred on the session."""
+        """Check whether an ontology entity is stored on the session."""
         return item.session is self
 
     def __iter__(self) -> Iterator['OntologyEntity']:
@@ -516,6 +536,19 @@ class Session:
             for t in entity.triples:
                 self._graph.add(t)
 
+    def merge(self, entity: 'OntologyEntity') -> None:
+        """Merge a given ontology entity with what is in the session.
+
+        Copies the ontology entity to the session, but does not remove any
+        old triples referring to the entity.
+
+        Args:
+            entity: The ontology entity to store.
+        """
+        if entity not in self:
+            for t in entity.triples:
+                self._graph.add(t)
+
     def delete(self, entity: 'OntologyEntity'):
         """Remove the ontology entity from the session."""
         self._graph.remove((entity.identifier, None, None))
@@ -527,7 +560,7 @@ class Session:
     def __str__(self):
         """Convert the session to a string."""
         # TODO: Return the kind of rdflib store attached.
-        return f"Session {self.identifier}"
+        return f"Session {self.identifier} at {hex(id(self))}"
 
 # Legacy code
 # ↓ ------- ↓
@@ -720,6 +753,6 @@ def _check_namespaces(namespace_iris: Iterable[URIRef],
 # ↑ ------- ↑
 
 
-Session.default_session = Session()
+Session.set_default_session(Session())
 Session.ontology = Session(identifier='installed_ontologies',
                            ontology=True)

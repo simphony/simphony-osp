@@ -103,7 +103,7 @@ class OntologyNamespace:
             name: The name of the namespace
         """
         from osp.core.session.session import Session
-        ontology = ontology or Session.default_session
+        ontology = ontology or Session.get_default_session()
         self._iri = URIRef(iri)
         self._ontology = ontology
         ontology.bind(name, iri)
