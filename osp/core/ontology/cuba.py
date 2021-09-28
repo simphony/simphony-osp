@@ -9,7 +9,7 @@ NAMESPACE_IRI = "http://www.osp-core.com/cuba#"
 ENTITIES = [
     "activeRelationship", "Entity", "File", "Nothing",
     "passiveRelationship", "path", "Wrapper", "attribute",
-    "relationship", "Class"
+    "relationship", "Class", "Container", "contains",
 ]
 
 HIDDEN = [

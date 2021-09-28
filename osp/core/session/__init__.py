@@ -9,7 +9,3 @@
 # TransportSessionClient
 # from osp.core.session.transport.transport_session_server import
 # TransportSessionServer
-
-from osp.core.session.session import Session as _Session
-
-_Session.default_session = _Session()

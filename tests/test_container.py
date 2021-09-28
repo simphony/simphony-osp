@@ -28,16 +28,12 @@ class TestContainer(unittest.TestCase):
         """Restore the previous default TBox."""
         Session.ontology = cls.prev_default_ontology
 
-    def test_container_general(self):
-        """Temporary test while development is ongoing."""
-        # TODO: remove this test once development is complete. Possibly by
-        #  splitting it into smaller test, and above all, using the end-user
-        #  interface to create containers.
-        from osp.core.ontology.interactive.container import Container
-        from osp.core.ontology.datatypes import UID
+    def test_container(self):
+        """Test the container ontology individual."""
+        cuba = Session.ontology.get_namespace('cuba')
         city = Session.ontology.get_namespace('city')
 
-        container = Container(uid=UID())
+        container = cuba.Container()
 
         self.assertIsNone(container.opens_in)
         self.assertIsNone(container.session_linked)
@@ -66,7 +62,7 @@ class TestContainer(unittest.TestCase):
                           lambda x: setattr(container, 'opens_in', x), 8)
         container.opens_in = None
 
-        another_container = Container(uid=UID())
+        another_container = cuba.Container()
 
         another_container.opens_in = container
         self.assertRaises(RuntimeError, another_container.open)
@@ -122,3 +118,55 @@ class TestContainer(unittest.TestCase):
         with container:
             self.assertEqual(container.num_references, 1)
             self.assertSetEqual(set(), set(container))
+
+        with fr_session:
+            with container:
+                self.assertSetEqual({fr}, set(container))
+                pr = city.City(name='Paris')
+                self.assertSetEqual({fr, pr}, set(container))
+
+    def test_container_multiple_sessions(self):
+        """Test opening the container in different sessions.
+
+        Each session is meant to contain a different version of the same
+        individual.
+        """
+        cuba = Session.ontology.get_namespace('cuba')
+        city = Session.ontology.get_namespace('city')
+
+        container = cuba.Container()
+
+        default_session = Session.default_session
+        session_1 = Session()
+        session_2 = Session()
+
+        klaus = city.Citizen(name='Klaus', age=5)
+        session_1.store(klaus)
+        session_2.store(klaus)
+        klaus_1 = session_1.from_identifier(klaus.identifier)
+        klaus_1.age = 10
+        klaus_2 = session_2.from_identifier(klaus.identifier)
+        klaus_2.age = 20
+
+        self.assertIs(klaus.session, default_session)
+        self.assertIs(klaus_1.session, session_1)
+        self.assertIs(klaus_2.session, session_2)
+        self.assertEqual(klaus.age, 5)
+        self.assertEqual(klaus_1.age, 10)
+        self.assertEqual(klaus_2.age, 20)
+
+        container.connect(klaus.identifier)
+
+        with container:
+            klaus_from_container = set(container).pop()
+            self.assertEqual(klaus_from_container.age, 5)
+
+        with session_1:
+            with container:
+                klaus_from_container = set(container).pop()
+                self.assertEqual(klaus_from_container.age, 10)
+
+        with session_2:
+            with container:
+                klaus_from_container = set(container).pop()
+                self.assertEqual(klaus_from_container.age, 20)

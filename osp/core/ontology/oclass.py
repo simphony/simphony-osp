@@ -322,7 +322,7 @@ class OntologyClass(OntologyEntity):
                  uid: Optional[Union[UUID, str, UID]] = None,
                  _force: bool = False,
                  **kwargs):
-        """Create a Cuds object from this ontology class.
+        """Create an OntologyIndividual object from this ontology class.
 
         Args:
             uid: The identifier of the Cuds object. Should be set to None in
@@ -369,11 +369,21 @@ class OntologyClass(OntologyEntity):
             raise TypeError("Cannot instantiate cuds object for ontology class"
                             " cuba.Nothing.")
 
+        if self.is_subclass_of(cuba.Container):
+            from osp.core.ontology.interactive.container import Container
+            result = Container(uid=uid,
+                               session=session,
+                               attributes=self._kwargs_to_attributes(
+                                   kwargs, _skip_checks=_force),
+                               )
+            # TODO: Multiclass individuals.
+            return result
+
         # build attributes dictionary by combining
         # kwargs and defaults
         return OntologyIndividual(
-            attributes=self._kwargs_to_attributes(kwargs, _skip_checks=_force),
-            class_=self,
+            uid=uid,
             session=session,
-            uid=uid
+            class_=self,
+            attributes=self._kwargs_to_attributes(kwargs, _skip_checks=_force),
         )

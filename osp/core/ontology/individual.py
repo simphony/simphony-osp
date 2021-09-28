@@ -1183,10 +1183,8 @@ class OntologyIndividual(OntologyEntity):
             raise Exception(f"Tried to initialize an ontology individual with "
                             f"uid {uid}, which is not a UID object.")
 
-        triples = triples or tuple()
-
         self._ontology_classes = []
-        triples = set()
+        triples = set(triples) if triples is not None else set()
         # Attribute triples.
         attributes = attributes or dict()
         triples |= set((uid.to_iri(), k.iri, Literal(k.convert_to_datatype(e),

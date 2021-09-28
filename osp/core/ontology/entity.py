@@ -12,6 +12,7 @@ from rdflib.term import Identifier
 from osp.core.ontology.datatypes import Triple, UID
 
 if TYPE_CHECKING:
+    from osp.core.ontology.interactive.container import Container
     from osp.core.session.session import Session
 
 
@@ -245,7 +246,7 @@ class OntologyEntity(ABC):
     @abstractmethod
     def __init__(self,
                  uid: UID,
-                 session: Optional['Session'] = None,
+                 session: Optional[Union['Session', 'Container']] = None,
                  triples: Optional[Iterable[Triple]] = None) -> None:
         """Initialize the ontology entity.
 
@@ -276,8 +277,14 @@ class OntologyEntity(ABC):
                                      "identifier.")
                 self.__graph.add((s, p, o))
         if session is None:
+            from osp.core.ontology.interactive.container import Container
             from osp.core.session.session import Session
-            session = Session.default_session
+            environment = Container.get_current_container_context() or \
+                Session.default_session
+            with environment:
+                session = Session.default_session
+            if isinstance(environment, Container):
+                environment.connect(self.identifier)
         if self.__graph is not None:
             # Only change what is stored in the session if custom triples were
             # provided.

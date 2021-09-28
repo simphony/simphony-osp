@@ -339,10 +339,6 @@ class Session:
         from osp.core.ontology.oclass_restriction import \
             get_restriction
         # TODO: make return type hint more specific.
-        supported_types = frozenset({OWL.DatatypeProperty,
-                                     OWL.ObjectProperty,
-                                     OWL.Class,
-                                     OWL.Restriction})
 
         # Try to instantiate classes, attributes, relationships,
         # restrictions, compositions.
@@ -360,7 +356,7 @@ class Session:
                                         self.ontology)
                 except ValueError:
                     x = None
-                return x or OntologyClass(UID(identifier),
+                return x or OntologyClass(uid=UID(identifier),
                                           session=self.ontology)
             elif o == OWL.Restriction:
                 x = get_restriction(identifier,
@@ -374,12 +370,21 @@ class Session:
         # Try to instantiate an ontology individual.
         for o in self._graph.objects(identifier, RDF.type):
             try:
-                self.ontology.from_identifier(o)
+                entity = self.ontology.from_identifier(o)
             except KeyError:
                 continue
-            return OntologyIndividual(uid=UID(identifier),
-                                      session=self)
+            if any(sp.identifier == cuba_namespace.Container for sp in
+                   entity.superclasses):
+                from osp.core.ontology.interactive.container import Container
+                return Container(uid=UID(identifier))
+            else:
+                return OntologyIndividual(uid=UID(identifier),
+                                          session=self)
 
+        supported_types = frozenset({OWL.DatatypeProperty,
+                                     OWL.ObjectProperty,
+                                     OWL.Class,
+                                     OWL.Restriction})
         raise KeyError(f"Identifier {identifier} not found in graph, "
                        f"not an ontology individual from any of the "
                        f"installed ontologies nor any entity "
@@ -715,5 +720,6 @@ def _check_namespaces(namespace_iris: Iterable[URIRef],
 # ↑ ------- ↑
 
 
+Session.default_session = Session()
 Session.ontology = Session(identifier='installed_ontologies',
                            ontology=True)

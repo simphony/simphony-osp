@@ -1,16 +1,19 @@
 """Special kind of ontology individual designed to organize entities."""
 
 import logging
+from typing import (Dict, Iterable, Iterator, List, Optional, TYPE_CHECKING,
+                    Tuple, Union)
 from weakref import ReferenceType, ref
 
 from rdflib import URIRef
 
-from typing import (Iterable, Iterator, List, Optional, Tuple, Union)
-
 from osp.core.namespaces import cuba
-from osp.core.ontology.datatypes import UID, Triple
+from osp.core.ontology.datatypes import UID, RDFCompatibleType, Triple
 from osp.core.ontology.individual import OntologyIndividual
 from osp.core.session.session import Session
+
+if TYPE_CHECKING:
+    from osp.core.ontology.attribute import OntologyAttribute
 
 logger = logging.getLogger(__name__)
 
@@ -18,21 +21,30 @@ logger = logging.getLogger(__name__)
 class Container(OntologyIndividual):
     """Special kind of ontology individual designed to organize entities."""
 
-    def __init__(self,
-                 uid: UID,
-                 session: Optional[Session] = None,
-                 triples: Optional[Iterable[Triple]] = None) -> None:
-        """Initialize the container.
+    @classmethod
+    def get_current_container_context(cls) -> Optional['Container']:
+        """Returns the most recently opened container (if any is open).
 
-        Args:
-            uid: UID identifying the container.
-            session: Session where the container is stored.
-            triples: Construct the container with the provided triples.
+        When no container is currently opened, it returns none.
         """
+        return cls._container_contexts[-1] \
+            if len(cls._container_contexts) > 0 else None
+
+    def __init__(self,
+                 uid: Optional[UID] = None,
+                 session: Optional['Session'] = None,
+                 triples: Optional[Iterable[Triple]] = None,
+                 attributes: Optional[
+                     Dict['OntologyAttribute',
+                          Iterable[RDFCompatibleType]]] = None,
+                 ) -> None:
+        """Initialize the container."""
         super().__init__(uid=uid,
                          session=session,
+                         triples=triples,
                          class_=cuba.Container,
-                         triples=triples)
+                         attributes=attributes,
+                         )
         logger.debug("Instantiated container %s" % self)
 
     @property
