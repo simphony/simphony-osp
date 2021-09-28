@@ -69,7 +69,7 @@ class TestDummyInterface(unittest.TestCase):
             if triples:
                 return OntologyIndividual(
                     uid=uid,
-                    extra_triples=triples)
+                    triples=triples)
             else:
                 return None
 

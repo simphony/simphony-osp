@@ -29,8 +29,8 @@ class Session:
 
     Defines the common standard API and sets the registry.
     """
-    default_session: 'Session' = None
-    _previous_session: 'Session' = None
+    default_session: Optional['Session'] = None
+    _previous_session: Optional['Session'] = None
 
     _namespaces: Dict[URIRef, str]
     _graph: Graph
