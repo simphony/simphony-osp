@@ -308,9 +308,9 @@ class OntologyNamespace:
         Returns:
             An iterator of strings containing the labels.
         """
-        return itertools.chain(*(self.session.iter_labels(iri,
-                                                          return_literal=False)
-                                 for iri in self._iter_identifiers()))
+        return itertools.chain(
+            *(self.ontology.iter_labels(iri, return_literal=False)
+              for iri in self._iter_identifiers()))
 
     def _iter_suffixes(self) -> Iterator[str]:
         """Iterate over suffixes of the ontology entities in the namespace.

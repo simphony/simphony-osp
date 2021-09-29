@@ -3,8 +3,8 @@
 import logging
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import Iterable, Iterator, Optional, Set, Tuple, TYPE_CHECKING,\
-    Union
+from typing import (Iterable, Iterator, List, Optional, Set, Tuple,
+                    TYPE_CHECKING, Union)
 
 from rdflib import Graph, Literal, URIRef
 from rdflib.term import Identifier
@@ -56,6 +56,39 @@ class OntologyEntity(ABC):
         """
         return str(self.label_literal) \
             if self.label_literal is not None else None
+
+    @label.setter
+    def label(self, value: str) -> None:
+        """Replace the preferred label of this entity.
+
+        When such preferred label does not exist, it is created.
+
+        See the docstring for `label_literal` for more information on the
+        definition of preferred label.
+        """
+        language = self.label_literal.language \
+            if self.label_literal is not None else None
+        self.label_literal = Literal(value, lang=language) \
+            if value is not None else None
+
+    @property
+    def label_lang(self) -> Optional[str]:
+        """Get the language of the preferred label of this entity.
+
+        See the docstring for `label_literal` for more information on the
+        definition of preferred label.
+        """
+        return self.label_literal.language \
+            if self.label_literal is not None else None
+
+    @label_lang.setter
+    def label_lang(self, value: str) -> None:
+        """Set the language of the preferred label of this entity.
+
+        See the docstring for `label_literal` for more information on the
+        definition of preferred label.
+        """
+        self.label_literal = Literal(self.label_literal, lang=value)
 
     @property
     def session(self) -> 'Session':
@@ -156,16 +189,6 @@ class OntologyEntity(ABC):
         self._uid = value
 
     @property
-    def label_lang(self) -> Optional[str]:
-        """Get the language of the preferred label of this entity.
-
-        See the docstring for `label_literal` for more information on the
-        definition of preferred label.
-        """
-        return self.label_literal.language \
-            if self.label_literal is not None else None
-
-    @property
     def label_literal(self) -> Optional[Literal]:
         """Get the preferred label for this entity.
 
@@ -179,13 +202,71 @@ class OntologyEntity(ABC):
         """
         labels = self.iter_labels(return_literal=True,
                                   return_prop=True)
+        labels = self._sort_labels_and_properties_by_preference(labels)
+        # Return the first label
+        return labels[0][0] if len(labels) > 0 else None
+
+    @label_literal.setter
+    def label_literal(self, value: Optional[Literal]) -> None:
+        """Replace the preferred label for this entity.
+
+        The labels are first sorted by the property defining them (which is
+        an attribute of the session that this entity is stored on), and then by
+        their length.
+
+        Args:
+            value: the preferred label to replace the current one with. If
+                None, then all labels for this entity are deleted.
+        """
+        labels = self.iter_labels(return_literal=True,
+                                  return_prop=True)
+        labels = self._sort_labels_and_properties_by_preference(labels)
+
+        preferred_label = labels[0] if len(labels) > 0 else None
+
+        # Label deletion.
+        if value is None:
+            for label_prop in self.session.label_properties:
+                self.session.graph.remove((self.identifier,
+                                           label_prop,
+                                           None))
+        elif preferred_label is not None:
+            self.session.graph.remove((self.identifier,
+                                       preferred_label[1],
+                                       preferred_label[0]))
+
+        # Label creation.
+        if value is not None:
+            if preferred_label is not None:
+                self.session.graph.add((self.identifier,
+                                        preferred_label[1],
+                                        value))
+            else:
+                self.session.graph.add((self.identifier,
+                                        self.session.label_properties[0],
+                                        value))
+
+    def _sort_labels_and_properties_by_preference(
+            self,
+            labels: Iterator[Tuple[Literal, URIRef]]) \
+            -> List[Tuple[Literal, URIRef]]:
+        """Sort the labels for this entity in order of preference.
+
+        The labels are first sorted by the property defining them (which is
+        an attribute of the session that this entity is stored on), and then by
+        their length.
+
+        Args:
+            labels: an iterator of tuples where the first element is an
+                assigned label literal (the label) and the second one the
+                property used for this assignment.
+        """
         # Sort by label property preference, and length.
         labels = sorted(labels,
                         key=lambda x:
                         (self.session.label_properties.index(x[1]),
                          len(x[0])))
-        # Return the first label
-        return labels[0][0] if len(labels) > 0 else None
+        return labels
 
     def iter_labels(self,
                     lang: Optional[str] = None,
