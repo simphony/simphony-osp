@@ -42,7 +42,9 @@ class Restriction(OntologyEntity):
     def __init__(self,
                  uid: UID,
                  session: Optional['Session'] = None,
-                 triples: Optional[Iterable[Triple]] = None) -> None:
+                 triples: Optional[Iterable[Triple]] = None,
+                 merge: bool = False,
+                 ) -> None:
         """Initialize the restriction class.
 
         Args:
@@ -50,12 +52,15 @@ class Restriction(OntologyEntity):
                 the restriction.
             session: Session where the restriction is stored.
             triples: Construct the restriction with the provided triples.
+            merge: Whether overwrite the potentially existing entity in the
+                session with the provided triples or just merge them with
+                the existing ones.
         """
         if not isinstance(uid.data, BNode):
             raise ValueError(f"Restrictions are anonymous class descriptions, "
                              f"and thus, they can only have blank nodes as "
                              f"UID, not {type(uid.data)}.")
-        super().__init__(uid, session, triples)
+        super().__init__(uid, session, triples, merge=merge)
 
     def __str__(self) -> str:
         """Transform to string."""

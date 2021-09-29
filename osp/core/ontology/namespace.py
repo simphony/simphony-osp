@@ -346,6 +346,10 @@ class OntologyNamespace:
         """Iterate over the ontology entities in the namespace."""
         return (entity for entity in iter(self.ontology) if entity in self)
 
+    def __len__(self) -> int:
+        """Return the number of entities in the namespace."""
+        return sum(1 for _ in self)
+
     def __contains__(self, item: Union['OntologyEntity', Identifier]) -> bool:
         """Check whether the given entity is part of the namespace.
 

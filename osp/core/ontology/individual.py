@@ -1171,11 +1171,11 @@ class OntologyIndividual(OntologyEntity):
                  uid: Optional[UID] = None,
                  session: Optional['Session'] = None,
                  triples: Optional[Iterable[Triple]] = None,
+                 merge: bool = False,
                  class_: Optional['OntologyClass'] = None,
                  attributes: Optional[
                      Dict['OntologyAttribute',
                           Iterable[RDFCompatibleType]]] = None,
-                 merge: bool = False
                  ) -> None:
         """Initialize the ontology individual."""
         if uid is None:

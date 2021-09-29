@@ -248,6 +248,7 @@ class Interface(ABC):
     This is the most general API provided for an interface.
     """
 
+    root: Optional[Identifier] = None
     store_class = InterfaceStore
 
     @abstractmethod

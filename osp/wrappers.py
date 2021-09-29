@@ -15,7 +15,7 @@ import pkgutil as _pkgutil
 from typing import Type as _Type
 
 from osp.core.session.interfaces.interface import Interface as _Interface
-from osp.core.session.wrapper import Wrapper as _Wrapper
+from osp.core.session.wrapper import WrapperSpawner as _Wrapper
 
 _self = __import__(__name__)
 
@@ -47,8 +47,8 @@ def __getattr__(name: str):
     try:
         class _WrapperSpawner(_Wrapper):
 
-            @property
-            def _interface(self) -> _Type[_Interface]:
+            @classmethod
+            def _get_interface(cls) -> _Type[_Interface]:
                 return _interfaces[name]
 
         return _WrapperSpawner

@@ -31,13 +31,15 @@ class Composition(OntologyEntity):
     def __init__(self,
                  uid: UID,
                  session: Optional['Session'] = None,
-                 triples: Optional[Iterable[Triple]] = None) -> None:
+                 triples: Optional[Iterable[Triple]] = None,
+                 merge: bool = False,
+                 ) -> None:
         """Initialize the class composition."""
         if not isinstance(uid.data, BNode):
             raise ValueError(f"Compositions are anonymous class descriptions, "
                              f"and thus, they can only have blank nodes as "
                              f"UIDs, not {type(uid.data)}.")
-        super().__init__(uid, session, triples)
+        super().__init__(uid, session, triples, merge=merge)
 
     def __str__(self) -> str:
         """Transform to a Protege-like string."""

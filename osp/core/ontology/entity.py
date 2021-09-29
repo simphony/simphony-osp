@@ -376,7 +376,6 @@ class OntologyEntity(ABC):
             if isinstance(environment, Container):
                 environment.connect(self.identifier)
         elif isinstance(session, Wrapper):
-            session.container.connect(self.identifier)
             session = session.session
         if self.__graph is not None:
             # Only change what is stored in the session if custom triples were

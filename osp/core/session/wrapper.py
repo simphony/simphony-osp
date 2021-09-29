@@ -1,115 +1,139 @@
 """A user-facing class creating a session using a specific interface."""
 
 from abc import ABC, abstractmethod
-from typing import Optional, Set, Type, TYPE_CHECKING, Union
+from typing import Optional, Set, Type, Union
 
 from rdflib.term import Identifier
 
 from .session import Session
 from osp.core.ontology.datatypes import UID
-from osp.core.ontology.interactive.container import Container
+from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.interfaces.interface import Interface
 
-if TYPE_CHECKING:
-    from osp.core.ontology.entity import OntologyEntity
-    from osp.core.ontology.individual import OntologyIndividual
+
+class Wrapper:
+    """A user-facing class for managing a session.
+
+    The idea is to create hybrid subclasses from this class, for example
+    ontology entities that are also able to manage sessions.
+
+    Anything that has a `_session` attribute may be used to manage a session.
+    """
+
+    # Any class combined with the wrapper is expected to provide the two
+    # properties below.
+    session: Session
+    _session: Session
+
+    def __enter__(self):
+        """Enter the associated session's context."""
+        self._session.__enter__()
+        return self
+
+    def __exit__(self, *args):
+        """Exit the associated session's context."""
+        self._session.__exit__(*args)
+
+    def commit(self) -> None:
+        """Commit the changes made to the backend."""
+        return self._session.commit()
+
+    def close(self) -> None:
+        """Close the connection to the backend."""
+        return self._session.close()
 
 
-class Wrapper(ABC):
-    """A user-facing class for managing a session."""
+class WrapperSpawner(ABC, Wrapper):
+    """A user-facing class for spawning a session."""
 
-    # Public API
-    # ↓ ------ ↓
+    @classmethod
+    @abstractmethod
+    def _get_interface(cls) -> Type[Interface]:
+        """The type of interface that the instantiated session will use."""
+        pass
+
+    def __new__(cls,
+                *args,
+                ontology: Optional[Union[Session, bool]] = None,
+                root: Optional[Union[str,
+                                     Identifier,
+                                     'OntologyEntity']] = None,
+                **kwargs) -> Union['WrapperSpawner', OntologyEntity]:
+        """Initialize the session using the wrapper's interface type.
+
+        Creates an interface and a store using that interface. Then
+        initialize the session using such store.
+        """
+        interface_class = cls._get_interface()
+        if all(x is not None for x in (root, interface_class.root)):
+            raise ValueError("This Wrapper has a fixed root ontology "
+                             "entity, which can not be changed.")
+        root = interface_class.root or root
+
+        # Initialize the session.
+        interface_instance = interface_class(*args, **kwargs)
+        store = cls._get_interface().store_class(interface=interface_instance)
+        session = Session(store=store, ontology=ontology)
+
+        # Decide whether to return the WrapperSpawner or a WrappingEntity.
+        if root is None:
+            wrapper = super(WrapperSpawner, cls).__new__(cls)
+            wrapper._session = session
+            return wrapper
+        else:
+            if isinstance(root, OntologyEntity):
+                session.store(root)
+                class_ = root.__class__
+                uid = UID(root.identifier)
+            else:
+                class_ = session.from_identifier(root).__class__
+                uid = UID(root)
+            class_ = type(f"Wrapping{class_.__name__}",
+                          (class_, Wrapper),
+                          {})
+            entity = class_(uid=uid, session=session, merge=True)
+            return entity
 
     @property
     def session(self) -> Session:
-        """Returns the session connected to the wrapper."""
+        """Returns the session that the wrapper is connected to."""
         return self._session
 
-    def from_identifier(self, identifier: Identifier) -> 'OntologyEntity':
+    def add(self, *other: OntologyEntity):
+        """Add an item to the session connected to the wrapper."""
+        for entity in other:
+            self._session.store(entity)
+
+    def delete(self, *other: OntologyEntity):
+        """Remove an item from the session connected to the wrapper."""
+        for entity in other:
+            self._session.delete(entity)
+
+    def __contains__(self, item: OntologyEntity):
+        """Determine whether an entity is contained in the wrapper session."""
+        return item in self._session
+
+    def __iter__(self):
+        """Iterate over all the entities in the wrapper's session.
+
+        This operation can be computationally VERY expensive.
+        """
+        return self._session.__iter__()
+
+    def __len__(self):
+        """Calculate the number of entities in the bag's session.
+
+        This operation can be computationally VERY expensive.
+        """
+        return sum(1 for _ in self)
+
+    def from_identifier(self, identifier: Identifier) -> OntologyEntity:
         """Get an entity from its identifier."""
         return self._session.from_identifier(identifier)
 
     def from_label(self,
                    label: str,
                    lang: Optional[str] = None,
-                   case_sensitive: bool = False) -> Set['OntologyEntity']:
+                   case_sensitive: bool = False) -> Set[OntologyEntity]:
         """Get an ontology entity from the session by label."""
         return self._session.from_label(label, lang, case_sensitive)
-
-    def commit(self) -> None:
-        """Commit the changes made to the wrapper."""
-        return self._session.commit()
-
-    def close(self):
-        """Close the connection to the backend."""
-        self.container.close()
-        self._session.close()
-
-    def __enter__(self):
-        """Enter the wrapper's context."""
-        self._session.__enter__()
-        self.container.__enter__()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Exit the wrapper's context."""
-        self.container.__exit__(exc_type, exc_val, exc_tb)
-        self._session.__exit__(exc_type, exc_val, exc_tb)
-        self.close()
-
-    def add(self, *individuals: 'OntologyIndividual'):
-        """Add an element to the wrapper."""
-        self.container.add(*individuals)
-
-    def remove(self, *individuals: 'OntologyIndividual'):
-        """Remove an element from the wrapper."""
-        self.container.remove(*individuals)
-
-    def __iter__(self):
-        """Yields entities from the wrapper."""
-        yield from self.container.__iter__()
-
-    def __contains__(self, item: 'OntologyIndividual'):
-        """Determines whether an entity is contained in the wrapper."""
-        return self.container.__contains__(item)
-
-    def __len__(self):
-        """Returns the number of elements in the wrapper."""
-        return self.container.__len__()
-
-    # ↑ ------ ↑
-    # Public API
-
-    container: Container = None
-    _session: Session = None
-
-    @property
-    @abstractmethod
-    def _interface(self) -> Type[Interface]:
-        """The type of interface that the instantiated session will use."""
-        pass
-
-    def __init__(self,
-                 *args,
-                 ontology: Optional[Union[Session, bool]] = None,
-                 **kwargs):
-        """Initialize the session using the wrapper's interface type.
-
-        Creates an interface and a store using that interface. Then
-        initialize the session using such store.
-        """
-        # Initialize the session.
-        interface_instance = self._interface(*args,
-                                             **kwargs)
-        store = self._interface.store_class(
-            interface=interface_instance)
-        self._session = Session(store=store, ontology=ontology)
-
-        # Initialize the container.
-        self.container = Container(uid=UID(0),
-                                   session=self._session,
-                                   merge=True)
-        self.container.opens_in = self._session
-        self.container.open()
-        # -> Container must be closed when 'wrapper' is closed.

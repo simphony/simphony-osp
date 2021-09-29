@@ -53,7 +53,9 @@ class TestWrapper(unittest.TestCase):
         with sqlite(self.file_name) as wrapper:
             freiburg = city.City(name='Freiburg', coordinates=[20, 58])
             freiburg_identifier = freiburg.identifier
-            marco = city.Citizen(name='Marco', age=50)
+            marco = city.Citizen(iri='http://example.org/citizens#Marco',
+                                 name='Marco',
+                                 age=50)
             matthias = city.Citizen(name='Matthias', age=37)
             freiburg[city.hasInhabitant] = {marco, matthias}
 
@@ -95,12 +97,13 @@ class TestWrapper(unittest.TestCase):
             self.assertSetEqual(everything, set(wrapper))
             self.assertTrue(len(wrapper), 3)
 
-            wrapper.remove(freiburg)
-            self.assertEqual(len(wrapper), 2)
-            self.assertEqual(len(freiburg[city.hasInhabitant, :]), 2)
-            wrapper.remove(*citizens)
+            wrapper.delete(*citizens)
+            self.assertEqual(len(wrapper), 1)
+            self.assertEqual(len(freiburg[city.hasInhabitant, :]), 0)
+
+            wrapper.delete(freiburg)
             self.assertEqual(len(wrapper), 0)
-            self.assertEqual(len(freiburg[city.hasInhabitant, :]), 2)
+
             wrapper.commit()
 
         pr = city.City(name='Paris')
@@ -114,6 +117,37 @@ class TestWrapper(unittest.TestCase):
             self.assertEqual(len(wrapper), 1)
             paris = set(wrapper).pop()
             self.assertEqual(paris.name, 'Paris')
+
+    def test_wrapper_root(self) -> None:
+        """Test using an ontology entity as wrapper."""
+        from osp.core.namespaces import city
+        from osp.wrappers import sqlite
+
+        fr = city.City(iri='http://example.org/Freiburg', name='Freiburg')
+
+        with sqlite(self.file_name, root=fr) as freiburg_as_wrapper_1:
+            marco = city.Citizen(iri='http://example.org/citizens#Marco',
+                                 name='Marco',
+                                 age=50)
+            matthias = city.Citizen(name='Matthias', age=37)
+
+            freiburg_as_wrapper_1[city.hasInhabitant, :] = {marco, matthias}
+
+            freiburg_as_wrapper_1.commit()
+
+        with sqlite(self.file_name, root='http://example.org/Freiburg') \
+                as freiburg_as_wrapper_2:
+            citizens = list(freiburg_as_wrapper_2[city.hasInhabitant, :])
+
+            self.assertEqual('Freiburg', freiburg_as_wrapper_2.name)
+            self.assertSetEqual(
+                {'Marco', 'Matthias'},
+                {citizen.name for citizen in citizens}
+            )
+            self.assertSetEqual(
+                {50, 37},
+                {citizen.age for citizen in citizens}
+            )
 
 
 if __name__ == "__main__":

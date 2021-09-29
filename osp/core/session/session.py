@@ -337,7 +337,10 @@ class Session:
         return item.session is self
 
     def __iter__(self) -> Iterator['OntologyEntity']:
-        """Iterate over all the ontology entities in the session."""
+        """Iterate over all the ontology entities in the session.
+
+        This operation can be computationally VERY expensive.
+        """
         # Warning: entities can be repeated.
         return (self.from_identifier(identifier)
                 for identifier in self.iter_identifiers())
@@ -472,13 +475,20 @@ class Session:
     def iter_identifiers(self) -> Iterator[Identifier]:
         """Iterate over all the identifiers in the session."""
         # Warning: identifiers can be repeated.
-        # TODO: Aren't identifiers of ontology individuals omitted?
         supported_types = frozenset({OWL.DatatypeProperty,
                                      OWL.ObjectProperty,
                                      OWL.Class,
                                      OWL.Restriction})
-        return (s for t in supported_types
-                for s in self._graph.subjects(RDF.type, t))
+        blacklist = frozenset({RDFS.Class,
+                               RDF.Property})
+        for t in supported_types:
+            for s in (s for s in self.ontology.graph.subjects(RDF.type, t)
+                      if s not in blacklist):
+                if self.ontology is self:
+                    yield s
+                if not isinstance(s, BNode):
+                    for i in self._graph.subjects(RDF.type, s):
+                        yield i
 
     def iter_labels(self,
                     entity: Optional[Union[
@@ -552,6 +562,7 @@ class Session:
     def delete(self, entity: 'OntologyEntity'):
         """Remove the ontology entity from the session."""
         self._graph.remove((entity.identifier, None, None))
+        self._graph.remove((None, None, entity.identifier))
 
     def clear(self):
         """Clear all the data stored in the session."""

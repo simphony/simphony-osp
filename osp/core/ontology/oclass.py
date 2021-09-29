@@ -30,15 +30,20 @@ class OntologyClass(OntologyEntity):
     def __init__(self,
                  uid: UID,
                  session: Optional['Session'] = None,
-                 triples: Optional[Iterable[Triple]] = None) -> None:
+                 triples: Optional[Iterable[Triple]] = None,
+                 merge: bool = False,
+                 ) -> None:
         """Initialize the ontology class.
 
         Args:
             uid: UID identifying the ontology class.
             session: Session where the entity is stored.
             triples: Construct the class with the provided triples.
+            merge: Whether overwrite the potentially existing entity in the
+                session with the provided triples or just merge them with
+                the existing ones.
         """
-        super().__init__(uid, session, triples)
+        super().__init__(uid, session, triples, merge=merge)
         logger.debug("Instantiated ontology class %s" % self)
 
     @property
