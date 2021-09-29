@@ -1,6 +1,7 @@
 """Test methods that ensure backwards compatibility to old ontologies."""
 
 import unittest
+
 from osp.core.ontology.parser.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
 
@@ -27,7 +28,7 @@ class TestCaseInsensitivity(unittest.TestCase):
         self.assertEqual(alt("SOME_ENTITY", False), "SOME_ENTITY")
 
         from osp.core.namespaces import cuba
-        self.assertEqual(cuba.wrapper, cuba.Wrapper)
+        self.assertEqual(cuba.container, cuba.Container)
 
 
 if __name__ == "__main__":

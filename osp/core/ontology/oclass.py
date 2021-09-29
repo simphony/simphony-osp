@@ -362,9 +362,6 @@ class OntologyClass(OntologyEntity):
         from osp.core.namespaces import cuba
         from osp.core.ontology.individual import OntologyIndividual
 
-        if self.is_subclass_of(cuba.Wrapper) and session is None:
-            raise TypeError("Missing keyword argument 'session' for wrapper.")
-
         if self.is_subclass_of(cuba.Nothing):
             raise TypeError("Cannot instantiate cuds object for ontology class"
                             " cuba.Nothing.")

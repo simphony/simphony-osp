@@ -62,7 +62,7 @@ ontology:
 
   CityWrapper:
     subclass_of:
-    - cuba.Wrapper
+    - cuba.Container
     - city.hasPart:
         range: city.City
         cardinality: 1+

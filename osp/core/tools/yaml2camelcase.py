@@ -128,7 +128,7 @@ class Yaml2CamelCaseConverter():
                     "CUBA.PASSIVE_RELATIONSHIP", "CUBA.ATTRIBUTE",
                     "CUBA.PATH"]:
             return False
-        if word in ["CUBA.WRAPPER", "CUBA.NOTHING", "CUBA.FILE"]:
+        if word in ["CUBA.CONTAINER", "CUBA.NOTHING", "CUBA.FILE"]:
             return True
         if word == "CUBA.ENTITY":
             return None if internal else True
