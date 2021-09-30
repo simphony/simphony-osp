@@ -69,6 +69,7 @@ class OntologyIndividual(OntologyEntity):
             *individuals: 'OntologyIndividual',
             rel: Optional[OntologyRelationship] = None) -> \
             Union['OntologyIndividual', List['OntologyIndividual']]:
+        """Add an ontology individual to this one."""
         if rel is None:
             from osp.core.namespaces import cuba
             rel = cuba.activeRelationship
@@ -89,6 +90,7 @@ class OntologyIndividual(OntologyEntity):
                oclass: 'OntologyClass' = None) -> \
             Optional[Union['OntologyIndividual',
                            List['OntologyIndividual']]]:
+        """Detach an ontology individual from this one."""
         if rel is None:
             from osp.core.namespaces import cuba
             rel = cuba.activeRelationship
@@ -105,6 +107,7 @@ class OntologyIndividual(OntologyEntity):
             rel: Optional[OntologyRelationship] = None,
             oclass: 'OntologyClass' = None) -> \
             Optional[Union['OntologyIndividual', List['OntologyIndividual']]]:
+        """Get ontology individuals attached to this one."""
         if rel is None:
             from osp.core.namespaces import cuba
             rel = cuba.activeRelationship
@@ -113,10 +116,10 @@ class OntologyIndividual(OntologyEntity):
         return result.pop() if len(uids) == 1 else result
 
     def iter(self,
-            *uids: UID,
-            rel: Optional[OntologyRelationship] = None,
-            oclass: 'OntologyClass' = None) -> \
-            Optional[Union['OntologyIndividual', List['OntologyIndividual']]]:
+             *uids: UID,
+             rel: Optional[OntologyRelationship] = None,
+             oclass: 'OntologyClass' = None) -> Iterable['OntologyIndividual']:
+        """Yield ontology individuals attached to this one."""
         if rel is None:
             from osp.core.namespaces import cuba
             rel = cuba.activeRelationship
@@ -1061,14 +1064,16 @@ class OntologyIndividual(OntologyEntity):
         # TODO (detach cuds from sessions): Workaround to keep the behavior:
         #  removed CUDS do not have attributes. Think of a better way to
         #  detach CUDS from sessions.
-        if self.session is None or\
-                self._graph is not self.session.graph:
+        if self.session is None:
             raise AttributeError(f"The CUDS {self} does not belong to any "
                                  f"session. None of its attributes are "
                                  f"accessible.")
 
         for predicate in self.session.graph.predicates(self.iri, None):
-            obj = self.session.from_identifier(predicate)
+            try:
+                obj = self.session.from_identifier(predicate)
+            except KeyError:
+                obj = None
             if isinstance(obj, OntologyAttribute):
                 yield obj
 

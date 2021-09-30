@@ -38,7 +38,7 @@ setup(
     entry_points={
         'console_scripts': {
             'pico = osp.core.tools.pico:pico',
-            'ontology2dot = osp.core.tools.ontology2dot:run_from_terminal',
+            'semantic2dot = osp.core.tools.semantic2dot:run_from_terminal',
         }
     },
     install_requires=[
