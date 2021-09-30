@@ -22,15 +22,20 @@ class OntologyRelationship(OntologyEntity):
     def __init__(self,
                  uid: UID,
                  session: Optional['Session'] = None,
-                 triples: Optional[Iterable[Triple]] = None) -> None:
+                 triples: Optional[Iterable[Triple]] = None,
+                 merge: bool = False,
+                 ) -> None:
         """Initialize the ontology relationship.
 
         Args:
             uid: UID identifying the entity.
             session: Session where the entity is stored.
             triples: Construct the relationship with the provided triples.
+            merge: Whether overwrite the potentially existing entity in the
+                session with the provided triples or just merge them with
+                the existing ones.
         """
-        super().__init__(uid, session, triples)
+        super().__init__(uid, session, triples, merge=merge)
         logger.debug("Create ontology relationship property %s" % self)
 
     def _get_direct_superclasses(self) -> Iterator[OntologyEntity]:

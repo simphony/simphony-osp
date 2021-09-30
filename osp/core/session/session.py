@@ -29,12 +29,25 @@ class Session:
 
     Defines the common standard API and sets the registry.
     """
-    default_session: 'Session' = None
-    _previous_session: 'Session' = None
-
+    _session_stack: List['Session'] = []
+    _times_opened: int = 0
     _namespaces: Dict[URIRef, str]
     _graph: Graph
     _overlay: Graph
+
+    @classmethod
+    def get_default_session(cls) -> Optional['Session']:
+        """Returns the default session."""
+        return cls._session_stack[-1] if len(cls._session_stack) > 0 else None
+
+    @classmethod
+    def set_default_session(cls, session: 'Session'):
+        """Adds a session to the stack of sessions.
+
+        This effectively makes it the default. As the session stack is private,
+        calling this command from outside this class is irreversible.
+        """
+        cls._session_stack.append(session)
 
     # Public API
     # ↓ ------ ↓
@@ -87,6 +100,7 @@ class Session:
                  namespaces: Dict[str, URIRef] = None,
                  from_parser: Optional[OntologyParser] = None):
         """Initialize the session."""
+        self._times_opened = 1
         self._graph = Graph() if store is None else Graph(store)
 
         if isinstance(ontology, Session):
@@ -299,25 +313,34 @@ class Session:
 
     def __enter__(self):
         """Enter session context manager."""
-        self._previous_session = Session.default_session or self
-        Session.default_session = self
+        self._session_stack.append(self)
         return self
 
     def __exit__(self, *args):
         """Close the connection to the backend."""
-        self.close()
-        Session.default_session = self._previous_session
+        if self is not self._session_stack[-1]:
+            raise RuntimeError("Trying to exit the context manager of a "
+                               "session that was not the latest session "
+                               "context manager to be entered.")
+        self._session_stack.pop()
+        if self not in self._session_stack:
+            self.close()
 
     def close(self):
         """Close the connection to the backend."""
-        pass
+        self._times_opened -= 1
+        if self._times_opened <= 0:
+            self.graph.close()
 
     def __contains__(self, item: 'OntologyEntity'):
-        """Check whether an ontology entity is sotred on the session."""
+        """Check whether an ontology entity is stored on the session."""
         return item.session is self
 
     def __iter__(self) -> Iterator['OntologyEntity']:
-        """Iterate over all the ontology entities in the session."""
+        """Iterate over all the ontology entities in the session.
+
+        This operation can be computationally VERY expensive.
+        """
         # Warning: entities can be repeated.
         return (self.from_identifier(identifier)
                 for identifier in self.iter_identifiers())
@@ -339,10 +362,6 @@ class Session:
         from osp.core.ontology.oclass_restriction import \
             get_restriction
         # TODO: make return type hint more specific.
-        supported_types = frozenset({OWL.DatatypeProperty,
-                                     OWL.ObjectProperty,
-                                     OWL.Class,
-                                     OWL.Restriction})
 
         # Try to instantiate classes, attributes, relationships,
         # restrictions, compositions.
@@ -360,7 +379,7 @@ class Session:
                                         self.ontology)
                 except ValueError:
                     x = None
-                return x or OntologyClass(UID(identifier),
+                return x or OntologyClass(uid=UID(identifier),
                                           session=self.ontology)
             elif o == OWL.Restriction:
                 x = get_restriction(identifier,
@@ -374,12 +393,21 @@ class Session:
         # Try to instantiate an ontology individual.
         for o in self._graph.objects(identifier, RDF.type):
             try:
-                self.ontology.from_identifier(o)
+                entity = self.ontology.from_identifier(o)
             except KeyError:
                 continue
-            return OntologyIndividual(uid=UID(identifier),
-                                      session=self)
+            if any(sp.identifier == cuba_namespace.Container for sp in
+                   entity.superclasses):
+                from osp.core.ontology.interactive.container import Container
+                return Container(uid=UID(identifier))
+            else:
+                return OntologyIndividual(uid=UID(identifier),
+                                          session=self)
 
+        supported_types = frozenset({OWL.DatatypeProperty,
+                                     OWL.ObjectProperty,
+                                     OWL.Class,
+                                     OWL.Restriction})
         raise KeyError(f"Identifier {identifier} not found in graph, "
                        f"not an ontology individual from any of the "
                        f"installed ontologies nor any entity "
@@ -447,13 +475,20 @@ class Session:
     def iter_identifiers(self) -> Iterator[Identifier]:
         """Iterate over all the identifiers in the session."""
         # Warning: identifiers can be repeated.
-        # TODO: Aren't identifiers of ontology individuals omitted?
         supported_types = frozenset({OWL.DatatypeProperty,
                                      OWL.ObjectProperty,
                                      OWL.Class,
                                      OWL.Restriction})
-        return (s for t in supported_types
-                for s in self._graph.subjects(RDF.type, t))
+        blacklist = frozenset({RDFS.Class,
+                               RDF.Property})
+        for t in supported_types:
+            for s in (s for s in self.ontology.graph.subjects(RDF.type, t)
+                      if s not in blacklist):
+                if self.ontology is self:
+                    yield s
+                if not isinstance(s, BNode):
+                    for i in self._graph.subjects(RDF.type, s):
+                        yield i
 
     def iter_labels(self,
                     entity: Optional[Union[
@@ -511,9 +546,23 @@ class Session:
             for t in entity.triples:
                 self._graph.add(t)
 
+    def merge(self, entity: 'OntologyEntity') -> None:
+        """Merge a given ontology entity with what is in the session.
+
+        Copies the ontology entity to the session, but does not remove any
+        old triples referring to the entity.
+
+        Args:
+            entity: The ontology entity to store.
+        """
+        if entity not in self:
+            for t in entity.triples:
+                self._graph.add(t)
+
     def delete(self, entity: 'OntologyEntity'):
         """Remove the ontology entity from the session."""
         self._graph.remove((entity.identifier, None, None))
+        self._graph.remove((None, None, entity.identifier))
 
     def clear(self):
         """Clear all the data stored in the session."""
@@ -522,7 +571,7 @@ class Session:
     def __str__(self):
         """Convert the session to a string."""
         # TODO: Return the kind of rdflib store attached.
-        return f"Session {self.identifier}"
+        return f"Session {self.identifier} at {hex(id(self))}"
 
 # Legacy code
 # ↓ ------- ↓
@@ -715,5 +764,6 @@ def _check_namespaces(namespace_iris: Iterable[URIRef],
 # ↑ ------- ↑
 
 
+Session.set_default_session(Session())
 Session.ontology = Session(identifier='installed_ontologies',
                            ontology=True)

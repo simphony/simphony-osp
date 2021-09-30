@@ -333,7 +333,7 @@ class TestFOAFOntology(unittest.TestCase):
         # Test the `__dir__` method.
         self.assertIn('birthday', dir(foaf_namespace))
 
-        # Test the `__iter__` methhod.
+        # Test the `__iter__` method.
         self.assertEqual(73, len(tuple(foaf_namespace)))
         self.assertIn(name, tuple(foaf_namespace))
         self.assertIn(member, tuple(foaf_namespace))

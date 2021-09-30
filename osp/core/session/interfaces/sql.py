@@ -640,24 +640,20 @@ class SQLInterface(TriplestoreInterface):
 
     @staticmethod
     def _is_cuds_iri_ontology(iri):
+        def blacklisted(_iri):
+            return _iri in frozenset(
+                {OWL.DatatypeProperty, OWL.ObjectProperty, OWL.Class,
+                 OWL.Restriction,
+                 URIRef("http://www.osp-core.com/cuba#attribute"),
+                 URIRef("http://www.osp-core.com/cuba#relationship"),
+                 }) \
+                or str(OWL) in _iri or str(RDF) in _iri or str(RDFS) in _iri
+
         for s, p, o in Session.ontology.ontology_graph\
                 .triples((URIRef(iri), RDF.type, None)):
-            if o in frozenset({OWL.DatatypeProperty,
-                               OWL.ObjectProperty,
-                               OWL.Class,
-                               OWL.Restriction,
-                               URIRef("http://www.osp-core.com/cuba#"
-                                      "attribute"),
-                               URIRef("http://www.osp-core.com/cuba#"
-                                      "relationship"),
-                               URIRef("http://www.osp-core.com/cuba#"
-                                      "Entity")
-                               }) \
-                    or str(OWL) in o or str(RDF) in o or str(RDFS) in o:
+            if blacklisted(o):
                 return False
-            else:
-                return True
-        return False
+        return not blacklisted(iri)
 
     def _get_ns_idx(self, ns_iri):
         ns_iri = str(ns_iri)

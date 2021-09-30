@@ -69,7 +69,7 @@ class TestDummyInterface(unittest.TestCase):
             if triples:
                 return OntologyIndividual(
                     uid=uid,
-                    extra_triples=triples)
+                    triples=triples)
             else:
                 return None
 
@@ -315,7 +315,7 @@ class TestTriplestoreWrapper(unittest.TestCase):
         """Test adding some entities from the city ontology."""
         from osp.core.namespaces import city
 
-        with sqlite(self.file_name) as session:
+        with sqlite(self.file_name) as wrapper:
             freiburg = city.City(name='Freiburg', coordinates=[20, 58])
             freiburg_identifier = freiburg.identifier
             marco = city.Citizen(name='Marco', age=50)
@@ -328,12 +328,12 @@ class TestTriplestoreWrapper(unittest.TestCase):
             self.assertEqual(marco.age, 50)
             self.assertEqual(matthias.name, 'Matthias')
             self.assertEqual(matthias.age, 37)
-            session.commit()
+            wrapper.commit()
             freiburg.coordinates = Vector([22, 58])
             self.assertEqual(freiburg.coordinates, [22, 58])
 
-        with sqlite(self.file_name) as session:
-            freiburg = session.from_identifier(freiburg_identifier)
+        with sqlite(self.file_name) as wrapper:
+            freiburg = wrapper.from_identifier(freiburg_identifier)
             citizens = freiburg[city.hasInhabitant, :]
 
             self.assertEqual('Freiburg', freiburg.name)

@@ -103,7 +103,7 @@ class OntologyNamespace:
             name: The name of the namespace
         """
         from osp.core.session.session import Session
-        ontology = ontology or Session.default_session
+        ontology = ontology or Session.get_default_session()
         self._iri = URIRef(iri)
         self._ontology = ontology
         ontology.bind(name, iri)
@@ -308,9 +308,9 @@ class OntologyNamespace:
         Returns:
             An iterator of strings containing the labels.
         """
-        return itertools.chain(*(self.session.iter_labels(iri,
-                                                          return_literal=False)
-                                 for iri in self._iter_identifiers()))
+        return itertools.chain(
+            *(self.ontology.iter_labels(iri, return_literal=False)
+              for iri in self._iter_identifiers()))
 
     def _iter_suffixes(self) -> Iterator[str]:
         """Iterate over suffixes of the ontology entities in the namespace.
@@ -345,6 +345,10 @@ class OntologyNamespace:
     def __iter__(self) -> Iterator['OntologyEntity']:
         """Iterate over the ontology entities in the namespace."""
         return (entity for entity in iter(self.ontology) if entity in self)
+
+    def __len__(self) -> int:
+        """Return the number of entities in the namespace."""
+        return sum(1 for _ in self)
 
     def __contains__(self, item: Union['OntologyEntity', Identifier]) -> bool:
         """Check whether the given entity is part of the namespace.

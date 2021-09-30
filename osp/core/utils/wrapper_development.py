@@ -84,9 +84,6 @@ def clone_cuds_object(cuds_object):
     clone = deepcopy(cuds_object)
     # TODO: Potential inefficiency spotted, what graph is exactly being
     #  copied?.
-    # print('Potential inefficiency',
-    #       clone._graph is not session.graph,
-    #       len(clone._graph), len(session.graph))
     clone._session = session
     # clone._graph = session.graph  # Causes bug with expiration mechanism.
     return clone

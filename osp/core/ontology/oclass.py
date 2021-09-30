@@ -30,15 +30,20 @@ class OntologyClass(OntologyEntity):
     def __init__(self,
                  uid: UID,
                  session: Optional['Session'] = None,
-                 triples: Optional[Iterable[Triple]] = None) -> None:
+                 triples: Optional[Iterable[Triple]] = None,
+                 merge: bool = False,
+                 ) -> None:
         """Initialize the ontology class.
 
         Args:
             uid: UID identifying the ontology class.
             session: Session where the entity is stored.
             triples: Construct the class with the provided triples.
+            merge: Whether overwrite the potentially existing entity in the
+                session with the provided triples or just merge them with
+                the existing ones.
         """
-        super().__init__(uid, session, triples)
+        super().__init__(uid, session, triples, merge=merge)
         logger.debug("Instantiated ontology class %s" % self)
 
     @property
@@ -322,7 +327,7 @@ class OntologyClass(OntologyEntity):
                  uid: Optional[Union[UUID, str, UID]] = None,
                  _force: bool = False,
                  **kwargs):
-        """Create a Cuds object from this ontology class.
+        """Create an OntologyIndividual object from this ontology class.
 
         Args:
             uid: The identifier of the Cuds object. Should be set to None in
@@ -362,18 +367,25 @@ class OntologyClass(OntologyEntity):
         from osp.core.namespaces import cuba
         from osp.core.ontology.individual import OntologyIndividual
 
-        if self.is_subclass_of(cuba.Wrapper) and session is None:
-            raise TypeError("Missing keyword argument 'session' for wrapper.")
-
         if self.is_subclass_of(cuba.Nothing):
             raise TypeError("Cannot instantiate cuds object for ontology class"
                             " cuba.Nothing.")
 
+        if self.is_subclass_of(cuba.Container):
+            from osp.core.ontology.interactive.container import Container
+            result = Container(uid=uid,
+                               session=session,
+                               attributes=self._kwargs_to_attributes(
+                                   kwargs, _skip_checks=_force),
+                               )
+            # TODO: Multiclass individuals.
+            return result
+
         # build attributes dictionary by combining
         # kwargs and defaults
         return OntologyIndividual(
-            attributes=self._kwargs_to_attributes(kwargs, _skip_checks=_force),
-            class_=self,
+            uid=uid,
             session=session,
-            uid=uid
+            class_=self,
+            attributes=self._kwargs_to_attributes(kwargs, _skip_checks=_force),
         )

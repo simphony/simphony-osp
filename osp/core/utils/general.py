@@ -178,7 +178,7 @@ def _serialize_session_json(session, json_dumps=True):
     """
     from osp.core.session.transport.transport_utils import serializable
     cuds_objects = list(cuds for cuds in session._registry.values()
-                        if not cuds.is_a(cuba.Wrapper))
+                        if not cuds.is_a(cuba.Container))
     result = serializable(cuds_objects, partition_cuds=False, mark_first=False)
     if json_dumps:
         return json.dumps(result)

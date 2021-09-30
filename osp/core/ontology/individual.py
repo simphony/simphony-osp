@@ -141,12 +141,19 @@ class OntologyIndividual(OntologyEntity):
             super().__setattr__(name, value)
             return
 
-        attr = self._get_ontology_attribute_by_name(name)
-        value = {value} \
-            if not isinstance(value, (Set, MutableSet)) \
-            else value
-        # Apparently instances of MutableSet are not instances of Set.
-        self._set_attributes(attr, value)
+        try:
+            attr = self._get_ontology_attribute_by_name(name)
+            value = {value} \
+                if not isinstance(value, (Set, MutableSet)) \
+                else value
+            # Apparently instances of MutableSet are not instances of Set.
+            self._set_attributes(attr, value)
+        except AttributeError as e:
+            # Might still be an attribute of a subclass of OntologyIndividual.
+            if hasattr(self, name):
+                super().__setattr__(name, value)
+            else:
+                raise e
 
     def __getitem__(self,
                     value: Union['OntologyAttribute', 'OntologyRelationship',
@@ -288,7 +295,7 @@ class OntologyIndividual(OntologyEntity):
 
         if isinstance(rel, OntologyRelationship):
             if len(literals) > 0:
-                raise TypeError(f'Trying to assign attributes using an object'
+                raise TypeError(f'Trying to assign attributes using an object '
                                 f'property {rel}.')
         elif isinstance(rel, OntologyAttribute):
             if len(individuals) > 0:
@@ -1163,11 +1170,12 @@ class OntologyIndividual(OntologyEntity):
     def __init__(self,
                  uid: Optional[UID] = None,
                  session: Optional['Session'] = None,
+                 triples: Optional[Iterable[Triple]] = None,
+                 merge: bool = False,
                  class_: Optional['OntologyClass'] = None,
                  attributes: Optional[
                      Dict['OntologyAttribute',
                           Iterable[RDFCompatibleType]]] = None,
-                 extra_triples: Iterable[Triple] = tuple(),
                  ) -> None:
         """Initialize the ontology individual."""
         if uid is None:
@@ -1175,30 +1183,34 @@ class OntologyIndividual(OntologyEntity):
         elif not isinstance(uid, UID):
             raise Exception(f"Tried to initialize an ontology individual with "
                             f"uid {uid}, which is not a UID object.")
-
         self._ontology_classes = []
-        triples = set()
+        triples = set(triples) if triples is not None else set()
+        # Attribute triples.
         attributes = attributes or dict()
         triples |= set((uid.to_iri(), k.iri, Literal(k.convert_to_datatype(e),
                                                      datatype=k.datatype))
                        for k, v in attributes.items() for e in v)
+        # Class triples.
         if class_:
             triples |= {(uid.to_iri(), RDF.type, class_.iri)}
             self._ontology_classes += [class_]
-        extra_class = False
-        for s, p, o in extra_triples:
-            if p == RDF.type:
-                extra_class = True
+        # extra_class = False
+        # Extra triples
+        for s, p, o in triples:
+            # if p == RDF.type:
+            #     extra_class = True
             triples.add((s, p, o))
             # TODO: grab extra class from tbox, add it to _ontology_classes.
-        class_assigned = bool(class_) or extra_class
-        if not class_assigned:
+
+        # Determine whether class was assigned (currently unused).
+        # class_assigned = bool(class_) or extra_class
+        # if not class_assigned:
             # raise TypeError(f"No ontology class associated with {self}! "
             #                 f"Did you install the required ontology?")
             # logger.warning(f"No ontology class associated with {self}! "
             #               f"Did you install the required ontology?")
-            pass
+            # pass
 
         # When the construction is complete, the session is switched.
-        super().__init__(uid, session, triples or None)
+        super().__init__(uid, session, triples or None, merge=merge)
         logger.debug("Instantiated ontology individual %s" % self)

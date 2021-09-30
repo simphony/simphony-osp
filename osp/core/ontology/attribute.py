@@ -41,15 +41,20 @@ class OntologyAttribute(OntologyEntity):
     def __init__(self,
                  uid: UID,
                  session: Optional['Session'] = None,
-                 triples: Optional[Iterable[Triple]] = None) -> None:
+                 triples: Optional[Iterable[Triple]] = None,
+                 merge: bool = False,
+                 ) -> None:
         """Initialize the ontology attribute.
 
         Args:
             uid: UID identifying the entity.
             session: Session where the entity is stored.
             triples: Construct the attribute with the provided triples.
+            merge: Whether overwrite the potentially existing entity in the
+                session with the provided triples or just merge them with
+                the existing ones.
         """
-        super().__init__(uid, session, triples)
+        super().__init__(uid, session, triples, merge=merge)
         logger.debug("Instantiated ontology attribute %s." % self)
 
     def convert_to_datatype(self, value: Any) -> Any:
