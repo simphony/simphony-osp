@@ -3,7 +3,7 @@
 import itertools
 import logging
 from abc import ABC, abstractmethod
-from typing import (Any, Dict, Iterable, Iterator, MutableSet, Optional,
+from typing import (Any, Dict, Iterable, Iterator, List, MutableSet, Optional,
                     Set, TYPE_CHECKING, Tuple, Union)
 
 from rdflib import RDF, Literal
@@ -64,6 +64,64 @@ class OntologyIndividual(OntologyEntity):
                 class.
         """
         return any(oc in oclass.subclasses for oc in self.oclasses)
+
+    def add(self,
+            *individuals: 'OntologyIndividual',
+            rel: Optional[OntologyRelationship] = None) -> \
+            Union['OntologyIndividual', List['OntologyIndividual']]:
+        if rel is None:
+            from osp.core.namespaces import cuba
+            rel = cuba.activeRelationship
+        individuals_set = set(individuals)
+        existing_set = set(self._iter(rel=rel))
+        individuals_in_this_session = set()
+        for individual in individuals_set.difference(existing_set):
+            self._connect(individual, rel=rel)
+            individuals_in_this_session.add(
+                self.session.from_identifier(individual.identifier))
+        return individuals_in_this_session.pop() \
+            if len(individuals_in_this_session) == 1 else \
+            list(individuals_in_this_session)
+
+    def remove(self,
+               *args: Union[UID, 'OntologyIndividual'],
+               rel: Optional[OntologyRelationship] = None,
+               oclass: 'OntologyClass' = None) -> \
+            Optional[Union['OntologyIndividual',
+                           List['OntologyIndividual']]]:
+        if rel is None:
+            from osp.core.namespaces import cuba
+            rel = cuba.activeRelationship
+        args = set(arg.uid if isinstance(arg, OntologyIndividual) else arg
+                   for arg in args)
+        individuals_and_relationships = filter(
+            lambda x: x[0].uid in args if args else True,
+            self._iter(rel=rel, oclass=oclass, return_rel=True))
+        for individual, relationship in individuals_and_relationships:
+            self._disconnect(individual, rel=relationship)
+
+    def get(self,
+            *uids: UID,
+            rel: Optional[OntologyRelationship] = None,
+            oclass: 'OntologyClass' = None) -> \
+            Optional[Union['OntologyIndividual', List['OntologyIndividual']]]:
+        if rel is None:
+            from osp.core.namespaces import cuba
+            rel = cuba.activeRelationship
+        result = list(filter(lambda x: x.uid in uids if uids else True,
+                             self._iter(rel=rel, oclass=oclass)))
+        return result.pop() if len(uids) == 1 else result
+
+    def iter(self,
+            *uids: UID,
+            rel: Optional[OntologyRelationship] = None,
+            oclass: 'OntologyClass' = None) -> \
+            Optional[Union['OntologyIndividual', List['OntologyIndividual']]]:
+        if rel is None:
+            from osp.core.namespaces import cuba
+            rel = cuba.activeRelationship
+        yield from filter(lambda x: x.uid in uids if uids else True,
+                          self._iter(rel=rel, oclass=oclass))
 
     def __dir__(self) -> Iterable[str]:
         """Show the individual's attributes as autocompletion suggestions."""
@@ -639,7 +697,8 @@ class OntologyIndividual(OntologyEntity):
 
     def _iter(self,
               rel: Optional[OntologyRelationship] = None,
-              oclass: Optional['OntologyClass'] = None) \
+              oclass: Optional['OntologyClass'] = None,
+              return_rel: bool = False) \
             -> Iterator["OntologyIndividual"]:
         """Iterate over the contained elements.
 
@@ -667,19 +726,25 @@ class OntologyIndividual(OntologyEntity):
         Returns:
             Iterator[Cuds]: The queried objects.
         """
-        from osp.core.namespaces import cuba
-        rel = rel or cuba.activeRelationship
+        if rel is None:
+            from osp.core.namespaces import cuba
+            rel = cuba.activeRelationship
 
-        entities = (self.session.from_identifier(x)
-                    for sub in rel.subclasses
-                    for x in self.session.graph.objects(self.identifier,
-                                                        sub.identifier))
+        entities_and_relationships = (
+            (self.session.from_identifier(x), sub)
+            for sub in rel.subclasses
+            for x in self.session.graph.objects(self.identifier,
+                                                sub.identifier))
         if oclass:
-            entities = (entity
-                        for entity in entities
-                        if oclass in entity.superclasses)
+            entities_and_relationships = (
+                (entity, relationship)
+                for entity, relationship in entities_and_relationships
+                if oclass in entity.superclasses)
 
-        yield from entities
+        if return_rel:
+            yield from entities_and_relationships
+        else:
+            yield from map(lambda x: x[0], entities_and_relationships)
 
     class _RelationshipSet(_ObjectSet, MutableSet):
         """A set interface to a CUDS object's RELATIONSHIPS.
