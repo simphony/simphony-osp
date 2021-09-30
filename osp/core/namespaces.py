@@ -1,17 +1,16 @@
 """You can import the installed namespaces from this module."""
 
 import logging as _logging
-import os as _os
 from typing import Union as _Union
 from typing import TYPE_CHECKING as _TYPE_CHECKING
 
 from rdflib import URIRef as _URIRef
 from rdflib.term import Identifier as _Identifier
 
-from osp.core.ontology.installation import topological_sort as \
-    _topological_sort
 from osp.core.ontology.parser import OntologyParser as _OntologyParser
 from osp.core.session.session import Session as _Session
+from osp.core.tools.pico import OntologyInstallationManager \
+    as _OntologyInstallationManager
 
 if _TYPE_CHECKING:
     from osp.core.ontology.entity import OntologyEntity
@@ -22,13 +21,7 @@ _logger = _logging.getLogger(__name__)
 
 # --- Load installed ontologies --
 # Set ontology directory and create it if nonexistent
-_osp_ontologies_dir = _os.environ.get("OSP_ONTOLOGIES_DIR") \
-    or _os.path.expanduser("~")
-_path = _os.path.join(
-    _osp_ontologies_dir,
-    ".osp_ontologies"
-)
-_os.makedirs(_path, exist_ok=True)
+
 # Load the ontologies.
 _default_ontology = _Session.ontology
 try:
@@ -39,16 +32,8 @@ try:
     _default_ontology.load_parser(_parser)
 
     # Sort installed ontologies for loading (topological sort).
-    _paths = {_os.path.join(_path, _yml) for _yml in
-              (x for x in _os.listdir(_path)
-               if 'yml' in _os.path.splitext(x)[1])}
-    _parsers = {_OntologyParser.get_parser(path) for path in _paths}
-    _directed_edges = {(requirement, parser.identifier)
-                       for parser in _parsers
-                       for requirement in parser.requirements or (None, )}
-    _sorted_identifiers = _topological_sort(_directed_edges)
-    _parsers = sorted(_parsers,
-                      key=lambda x: _sorted_identifiers.index(x.identifier))
+    _InstallationManager = _OntologyInstallationManager()
+    _parsers = _InstallationManager.topologically_sorted_parsers
 
     # Load installed ontologies.
     for _parser in _parsers:
