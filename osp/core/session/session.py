@@ -29,28 +29,9 @@ class Session:
 
     Defines the common standard API and sets the registry.
     """
-    _session_stack: List['Session'] = []
-    _times_opened: int = 0
-    _namespaces: Dict[URIRef, str]
-    _graph: Graph
-    _overlay: Graph
 
-    @classmethod
-    def get_default_session(cls) -> Optional['Session']:
-        """Returns the default session."""
-        return cls._session_stack[-1] if len(cls._session_stack) > 0 else None
-
-    @classmethod
-    def set_default_session(cls, session: 'Session'):
-        """Adds a session to the stack of sessions.
-
-        This effectively makes it the default. As the session stack is private,
-        calling this command from outside this class is irreversible.
-        """
-        cls._session_stack.append(session)
-
-    # Public API
-    # ↓ ------ ↓
+    # Instance API
+    # ↓ -------- ↓
     identifier: Optional[str]
     ontology: Optional['Session'] = None
     label_properties: Tuple[URIRef] = (SKOS.prefLabel, RDFS.label)
@@ -93,41 +74,34 @@ class Session:
             if value == name or key == URIRef(name):
                 del self.ontology._namespaces[key]
 
-    def __init__(self,
-                 store: Store = None,
-                 ontology: Optional[Union['Session', bool]] = None,
-                 identifier: Optional[str] = None,
-                 namespaces: Dict[str, URIRef] = None,
-                 from_parser: Optional[OntologyParser] = None):
-        """Initialize the session."""
-        self._times_opened = 1
-        self._graph = Graph() if store is None else Graph(store)
+    def get_namespace(self, name: Union[str, URIRef]) -> OntologyNamespace:
+        """Get a namespace registered with the ontology.
 
-        if isinstance(ontology, Session):
-            self.ontology = ontology
-        elif ontology is True:
-            self.ontology = self
-        elif not isinstance(ontology, bool) and ontology is not None:
-            raise TypeError(f"Invalid ontology argument: {ontology}."
-                            f"Expected either a `Session` or `bool` object, "
-                            f"got {type(ontology)} instead.")
+        Args:
+            name: The namespace name to search for.
 
-        self._storing = list()
+        Returns:
+            The ontology namespace.
 
-        self._namespaces = dict()
-        self._overlay = Graph()
-        if from_parser:  # Compute session graph from an ontology parser.
-            if self.ontology is not self:
-                raise RuntimeError("Cannot load parsers in sessions which "
-                                   "are not their own ontology. Load the "
-                                   "parser on the ontology instead.")
-            self.load_parser(from_parser)
-            self.identifier = identifier or from_parser.identifier
-        else:  # Create an empty session.
-            self.identifier = identifier
-            namespaces = namespaces if namespaces is not None else dict()
-            for key, value in namespaces.items():
-                self.bind(key, value)
+        Raises:
+            KeyError: Namespace not found.
+        """
+        coincidences = iter(tuple())
+        if isinstance(name, URIRef):
+            coincidences_iri = (x for x in self.namespaces if x.iri == name)
+            coincidences = itertools.chain(coincidences, coincidences_iri)
+        elif isinstance(name, str):
+            coincidences_name = (x for x in self.namespaces if x.name == name)
+            coincidences = itertools.chain(coincidences, coincidences_name)
+            # Last resort: user provided string but may be an IRI.
+            coincidences_fallback = (x for x in self.namespaces
+                                     if x.iri == URIRef(name))
+            coincidences = itertools.chain(coincidences, coincidences_fallback)
+
+        result = next(coincidences, None)
+        if result is None:
+            raise KeyError(f"Namespace {name} not found in ontology {self}.")
+        return result
 
     def get_namespace_bind(self,
                            namespace: Union[OntologyNamespace, URIRef, str]) \
@@ -268,35 +242,6 @@ class Session:
             self.ontology._overlay.add(
                 (key.iri, cuba_namespace._reference_by_label, Literal(value)))
 
-    def get_namespace(self, name: Union[str, URIRef]) -> OntologyNamespace:
-        """Get a namespace registered with the ontology.
-
-        Args:
-            name: The namespace name to search for.
-
-        Returns:
-            The ontology namespace.
-
-        Raises:
-            KeyError: Namespace not found.
-        """
-        coincidences = iter(tuple())
-        if isinstance(name, URIRef):
-            coincidences_iri = (x for x in self.namespaces if x.iri == name)
-            coincidences = itertools.chain(coincidences, coincidences_iri)
-        elif isinstance(name, str):
-            coincidences_name = (x for x in self.namespaces if x.name == name)
-            coincidences = itertools.chain(coincidences, coincidences_name)
-            # Last resort: user provided string but may be an IRI.
-            coincidences_fallback = (x for x in self.namespaces
-                                     if x.iri == URIRef(name))
-            coincidences = itertools.chain(coincidences, coincidences_fallback)
-
-        result = next(coincidences, None)
-        if result is None:
-            raise KeyError(f"Namespace {name} not found in ontology {self}.")
-        return result
-
     def load_parser(self, parser: OntologyParser):
         """Merge ontology packages with this ontology from a parser object.
 
@@ -311,9 +256,58 @@ class Session:
         for name, iri in parser.namespaces.items():
             self.bind(name, iri)
 
+    def __init__(self,
+                 store: Store = None,  # The store must be OPEN already.
+                 ontology: Optional[Union['Session', bool]] = None,
+                 identifier: Optional[str] = None,
+                 namespaces: Dict[str, URIRef] = None,
+                 from_parser: Optional[OntologyParser] = None):
+        """Initialize the session."""
+        self._times_opened = 1
+        if store is not None:
+            if hasattr(store, 'session') and store.session is None:
+                store.session = self
+            self._graph = Graph(store)
+        else:
+            self._graph = Graph()
+        self.creation_set = set()
+
+        if isinstance(ontology, Session):
+            self.ontology = ontology
+        elif ontology is True:
+            self.ontology = self
+        elif not isinstance(ontology, bool) and ontology is not None:
+            raise TypeError(f"Invalid ontology argument: {ontology}."
+                            f"Expected either a `Session` or `bool` object, "
+                            f"got {type(ontology)} instead.")
+
+        self._storing = list()
+
+        self._namespaces = dict()
+        self._overlay = Graph()
+        if from_parser:  # Compute session graph from an ontology parser.
+            if self.ontology is not self:
+                raise RuntimeError("Cannot load parsers in sessions which "
+                                   "are not their own ontology. Load the "
+                                   "parser on the ontology instead.")
+            self.load_parser(from_parser)
+            self.identifier = identifier or from_parser.identifier
+        else:  # Create an empty session.
+            self.identifier = identifier
+            namespaces = namespaces if namespaces is not None else dict()
+            for key, value in namespaces.items():
+                self.bind(key, value)
+
+    def close(self):
+        """Close the connection to the backend."""
+        self._times_opened -= 1
+        if self._times_opened <= 0:
+            self.graph.close()
+
     def __enter__(self):
         """Enter session context manager."""
         self._session_stack.append(self)
+        self.creation_set = set()
         return self
 
     def __exit__(self, *args):
@@ -325,12 +319,6 @@ class Session:
         self._session_stack.pop()
         if self not in self._session_stack:
             self.close()
-
-    def close(self):
-        """Close the connection to the backend."""
-        self._times_opened -= 1
-        if self._times_opened <= 0:
-            self.graph.close()
 
     def __contains__(self, item: 'OntologyEntity'):
         """Check whether an ontology entity is stored on the session."""
@@ -399,7 +387,11 @@ class Session:
             if any(sp.identifier == cuba_namespace.Container for sp in
                    entity.superclasses):
                 from osp.core.ontology.interactive.container import Container
-                return Container(uid=UID(identifier))
+                return Container(uid=UID(identifier), merge=True)
+            elif any(sp.identifier == cuba_namespace.File for sp in
+                     entity.superclasses):
+                from osp.core.ontology.interactive.file import File
+                return File(uid=UID(identifier), merge=True)
             else:
                 return OntologyIndividual(uid=UID(identifier),
                                           session=self)
@@ -457,9 +449,81 @@ class Session:
             self.ontology.commit()
         else:
             self._overlay.commit()
+        self.creation_set = set()
 
-    # ↑ ------ ↑
-    # Public API
+    def run(self) -> None:
+        """Run simulations on supported graph stores."""
+        from osp.core.session.interfaces.remote.client import RemoteStoreClient
+        if hasattr(self._graph.store, 'run'):
+            self.commit()
+            self._graph.store.interface.run()
+        elif isinstance(self._graph.store, RemoteStoreClient):
+            self._graph.store.execute_method('run')
+        else:
+            raise AttributeError(f'Session {self} is not attached to a '
+                                 f'simulation engine. Thus, the attribute '
+                                 f'`run` is not available.')
+
+    def update(self, entity: 'OntologyEntity') -> None:
+        """Store a copy of given ontology entity in the session.
+
+        Args:
+            entity: The ontology entity to store.
+        """
+        if entity not in self:
+            self._track_identifiers(entity.identifier)
+            triples = set(entity.triples)
+            self._graph.remove((entity.identifier, None, None))
+            for t in triples:
+                self._graph.add(t)
+
+    def merge(self, entity: 'OntologyEntity') -> None:
+        """Merge a given ontology entity with what is in the session.
+
+        Copies the ontology entity to the session, but does not remove any
+        old triples referring to the entity.
+
+        Args:
+            entity: The ontology entity to store.
+        """
+        if entity not in self:
+            self._track_identifiers(entity.identifier)
+            for t in entity.triples:
+                self._graph.add(t)
+
+    def delete(self, entity: 'OntologyEntity'):
+        """Remove the ontology entity from the session."""
+        self._track_identifiers(entity.identifier, delete=True)
+        self._graph.remove((entity.identifier, None, None))
+        self._graph.remove((None, None, entity.identifier))
+
+    def clear(self):
+        """Clear all the data stored in the session."""
+        self._graph.remove((None, None, None))
+
+    # ↑ -------- ↑
+    # Instance API
+
+    creation_set: Set[Identifier]
+    _session_stack: List['Session'] = []
+    _times_opened: int = 0
+    _namespaces: Dict[URIRef, str]
+    _graph: Graph
+    _overlay: Graph
+
+    @classmethod
+    def get_default_session(cls) -> Optional['Session']:
+        """Returns the default session."""
+        return cls._session_stack[-1] if len(cls._session_stack) > 0 else None
+
+    @classmethod
+    def set_default_session(cls, session: 'Session'):
+        """Adds a session to the stack of sessions.
+
+        This effectively makes it the default. As the session stack is private,
+        calling this command from outside this class is irreversible.
+        """
+        cls._session_stack.append(session)
 
     @property
     def graph(self) -> Graph:
@@ -535,43 +599,24 @@ class Session:
         """Get all the entities stored in the session."""
         return set(x for x in self)
 
-    def store(self, entity: 'OntologyEntity') -> None:
-        """Store a copy of given ontology entity in the session.
-
-        Args:
-            entity: The ontology entity to store.
-        """
-        if entity not in self:
-            self._graph.remove((entity.identifier, None, None))
-            for t in entity.triples:
-                self._graph.add(t)
-
-    def merge(self, entity: 'OntologyEntity') -> None:
-        """Merge a given ontology entity with what is in the session.
-
-        Copies the ontology entity to the session, but does not remove any
-        old triples referring to the entity.
-
-        Args:
-            entity: The ontology entity to store.
-        """
-        if entity not in self:
-            for t in entity.triples:
-                self._graph.add(t)
-
-    def delete(self, entity: 'OntologyEntity'):
-        """Remove the ontology entity from the session."""
-        self._graph.remove((entity.identifier, None, None))
-        self._graph.remove((None, None, entity.identifier))
-
-    def clear(self):
-        """Clear all the data stored in the session."""
-        self._graph.remove((None, None, None))
-
     def __str__(self):
         """Convert the session to a string."""
         # TODO: Return the kind of rdflib store attached.
-        return f"Session {self.identifier} at {hex(id(self))}"
+        return f"<{self.__class__.__module__}.{self.__class__.__name__}: " \
+               f"{self.identifier if self.identifier is not None else ''} " \
+               f"at {hex(id(self))}>"
+
+    def _track_identifiers(self, identifier, delete=False):
+        # Keep track of new additions while inside context manager.
+        if delete:
+            self.creation_set.discard(identifier)
+        else:
+            entity_triples_exist = next(
+                self._graph.triples(
+                    (identifier, None, None)), None
+            ) is not None
+            if not entity_triples_exist:
+                self.creation_set.add(identifier)
 
 # Legacy code
 # ↓ ------- ↓

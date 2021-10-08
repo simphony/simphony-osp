@@ -1,22 +1,23 @@
-"""An abstract session containing method useful for all SQL backends."""
+"""An abstract interface containing methods useful for all SQL backends."""
 
 from abc import abstractmethod
-from typing import Any, Dict, List, Iterable, Iterator, Optional, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
-from rdflib import RDF, RDFS, OWL, XSD, URIRef, Literal
+from rdflib import Literal, URIRef
+from rdflib import RDF, RDFS, OWL, XSD
 
-from osp.core.ontology import OntologyRelationship
-from osp.core.ontology.datatypes import CUSTOM_TO_PYTHON,\
-    RDFCompatibleType, RDF_TO_PYTHON, SimpleTriple, SimplePattern, UID
+from osp.core.ontology.datatypes import (
+    CUSTOM_TO_PYTHON, RDFCompatibleType, RDF_TO_PYTHON, SimpleTriple,
+    SimplePattern, UID)
+from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.session.interfaces.triplestore import (
+    TriplestoreInterface, TriplestoreStore)
 from osp.core.session.session import Session
-# from osp.core.session.db.sql_migrate import check_supported_schema_version
-
 from osp.core.utils.general import CUDS_IRI_PREFIX
 
-from osp.core.session.interfaces.triplestore import TriplestoreInterface, \
-    TriplestoreStore
 
-# TODO: The SQLInterface is dependent on the TBox, should not be the case.
+# TODO: The SQLInterface is dependent on the TBox, which should not be the
+#  case. This prevents it from functioning just like a generic triplestore.
 
 
 class SqlQuery:
@@ -303,13 +304,198 @@ def convert_values(rows, query):
 class SQLStore(TriplestoreStore):
     """The abstraction of the TriplestoreStore is sufficient."""
 
-    _interface: "SQLInterface"
-
-    pass
+    interface: "SQLInterface"
 
 
 class SQLInterface(TriplestoreInterface):
     """Abstract class for an SQL DB Wrapper Session."""
+
+    # Definition of:
+    #  SQLInterface
+    # ↓ ---------- ↓
+
+    @abstractmethod
+    def commit(self) -> None:
+        """Commit pending changes to the SQL database.
+
+        Usually, you have a similar method on your database connection
+        object (that one should get in `open`) that you can just call.
+        """
+        pass
+
+    @abstractmethod
+    def rollback(self) -> None:
+        """Discard uncommitted changes to the SQL database.
+
+        Usually, you have a similar method on your database connection
+        object (that one should get in `open`) that you can just call.
+        """
+        pass
+
+    @abstractmethod
+    def open(self, configuration: str) -> None:
+        """Open the SQL database.
+
+        You can expect calls to this method even when the database is
+        already open, therefore, an implementation like the following is
+        recommended (note the call to super() at the end, it must be included).
+
+        def open(self, configuration: str):
+            if your_database_is_already_open:
+                return
+                # To improve the user experience you can check if the
+                # configuration string leads to a resource different from
+                # the current one and raise an error informing the user.
+
+            # Connect to your database and get a connection/engine object...
+            # your_database_is_already_open is for now True.
+            super().open(configuration)
+        """
+        self._initialize()
+
+    @abstractmethod
+    def close(self) -> None:
+        """Close the SQL database.
+
+        This method should NOT commit uncommitted changes.
+
+        This method should close the connection that was obtained in `open`,
+        and free any locked up resources.
+
+        You can expect calls to this method even when the database is already
+        closed. Therefore, an implementation like the following is recommended.
+
+        def close(self):
+            if your_database_is_already_closed:
+                return
+
+            # Close the connection to your database.
+            # your_database_is_already_open is for now True
+        """
+        pass
+
+    @abstractmethod
+    def init_transaction(self) -> None:
+        """Initialize the transaction.
+
+        Usually, database have cursor objects. In this method you would execute
+        a command like "BEGIN;" or similar with a cursor.
+        """
+        pass
+
+    @abstractmethod
+    def rollback_transaction(self) -> None:
+        """Cancel the transaction.
+
+        Usually, database have cursor objects. In this method you would execute
+        a command like "ROLLBACK;" or similar with a cursor.
+        """
+        pass
+
+    @abstractmethod
+    def _db_create(self,
+                   table_name: str,
+                   columns: List[str],
+                   datatypes: dict,
+                   primary_key: List[str],
+                   generate_pk: bool,
+                   foreign_key: Dict[str, Tuple[str, str]],
+                   indexes: List[str]) -> None:
+        """Create a new table with the given name and columns.
+
+        Args:
+            table_name: The name of the new table.
+            columns: The name of the columns.
+            datatypes: Maps columns to datatypes specified in ontology.
+            primary_key: List of columns that belong to the
+                primary key.
+            foreign_key: mapping from column (dict key) to other tables
+                (dict value[0]) column (dict value[1]).
+            generate_pk: Whether primary key should be automatically
+                generated by the database
+                (e.g. be an automatically incrementing integer).
+            indexes: List of indexes. Each index is a list of
+                column names for which an index should be built.
+        """
+
+    @abstractmethod
+    def _db_select(self, query: SqlQuery) -> Any:
+        """Get data from the tables with the given names.
+
+        Args:
+            query: A object describing the SQL query.
+
+        Returns:
+            A cursor object that executed the select query. Such cursor
+            object is specific to the database being implemented.
+        """
+
+    @abstractmethod
+    def _db_insert(self,
+                   table_name: str,
+                   columns: List[str],
+                   values: List[Any],
+                   datatypes: dict) -> None:
+        """Insert data into the table with the given name.
+
+        Args:
+            table_name: The table name.
+            columns: The names of the columns.
+            values: The data to insert.
+            datatypes: Maps column names to datatypes.
+
+        Returns:
+            The auto-generated primary key of the inserted row, if such exists.
+        """
+
+    @abstractmethod
+    def _db_update(self,
+                   table_name: str,
+                   columns: List[str],
+                   values: List[Any],
+                   condition: str,
+                   datatypes: dict) -> None:
+        """Update the data in the given table.
+
+        Args:
+            table_name: The name of the table.
+            columns: The names of the columns.
+            values: The new updated values.
+            condition: Only update rows that satisfy the condition.
+            datatypes: Maps column names to datatypes.
+        """
+
+    @abstractmethod
+    def _db_delete(self, table_name: str, condition: Condition) -> None:
+        """Drop the entire table.
+
+        Args:
+            table_name: The name of the table.
+            condition: The condition specifying the values to delete.
+        """
+        pass
+
+    @abstractmethod
+    def _db_drop(self, table_name: str) -> None:
+        """Drop the table with the given name.
+
+        Args:
+            table_name: The name of the table.
+        """
+        pass
+
+    @abstractmethod
+    def _get_table_names(self, prefix: str) -> Iterable[str]:
+        """Get all tables in the database with the given prefix.
+
+        Args:
+            prefix: Only return tables with the given prefix
+        """
+        pass
+
+    # ↑ ---------- ↑
+    # Definition of:
+    #  SQLInterface
 
     store_class = SQLStore
 
@@ -401,7 +587,6 @@ class SQLInterface(TriplestoreInterface):
         calling `_initialize` to set up the database tables.
         """
         super().__init__(*args, **kwargs)
-        self._initialize()
 
     # GET TRIPLES
 
@@ -933,117 +1118,3 @@ class SQLInterface(TriplestoreInterface):
                 foreign_key=self.FOREIGN_KEY[self.DATA_TABLE_PREFIX],
                 indexes=self.INDEXES[self.DATA_TABLE_PREFIX]
             )
-
-    # ABSTRACT METHODS
-
-    @abstractmethod
-    def _db_create(self,
-                   table_name: str,
-                   columns: List[str],
-                   datatypes: dict,
-                   primary_key: List[str],
-                   generate_pk: bool,
-                   foreign_key: Dict[str, Tuple[str, str]],
-                   indexes: List[str]):
-        """Create a new table with the given name and columns.
-
-        Args:
-            table_name: The name of the new table.
-            columns: The name of the columns.
-            datatypes: Maps columns to datatypes specified in ontology.
-            primary_key: List of columns that belong to the
-                primary key.
-            foreign_key: mapping from column (dict key) to other tables
-                (dict value[0]) column (dict value[1]).
-            generate_pk: Whether primary key should be automatically
-                generated by the database
-                (e.g. be an automatically incrementing integer).
-            indexes: List of indexes. Each index is a list of
-                column names for which an index should be built.
-        """
-
-    @abstractmethod
-    def _db_select(self, query: SqlQuery):
-        """Get data from the table of the given names.
-
-        Args:
-            query: A object describing the SQL query.
-        """
-
-    @abstractmethod
-    def _db_insert(self,
-                   table_name: str,
-                   columns: List[str],
-                   values: List[Any],
-                   datatypes: dict):
-        """Insert data into the table with the given name.
-
-        Args:
-            table_name: The table name.
-            columns: The names of the columns.
-            values: The data to insert.
-            datatypes: Maps column names to datatypes.
-
-        Returns:
-            The auto-generated primary key of the inserted row, if such exists.
-        """
-
-    @abstractmethod
-    def _db_update(self,
-                   table_name: str,
-                   columns: List[str],
-                   values: List[Any],
-                   condition: str,
-                   datatypes: dict):
-        """Update the data in the given table.
-
-        Args:
-            table_name: The name of the table.
-            columns: The names of the columns.
-            values: The new updated values.
-            condition: Only update rows that satisfy the condition.
-            datatypes: Maps column names to datatypes.
-        """
-
-    @abstractmethod
-    def _db_delete(self, table_name: str, condition: Condition):
-        """Drop the entire table.
-
-        Args:
-            table_name: The name of the table.
-            condition: The condition specifying the values to delete.
-        """
-        pass
-
-    @abstractmethod
-    def _db_drop(self, table_name: str):
-        """Drop the table with the given name.
-
-        Args:
-            table_name: The name of the table.
-        """
-        pass
-
-    @abstractmethod
-    def _get_table_names(self, prefix: str):
-        """Get all tables in the database with the given prefix.
-
-        Args:
-            prefix: Only return tables with the given prefix
-        """
-        pass
-
-    @abstractmethod
-    def commit(self):
-        """Commit buffered changes."""
-        pass
-
-    @abstractmethod
-    def init_transaction(self):
-        """Initialize the transaction (SQL Specific)."""
-        pass
-
-    @abstractmethod
-    def rollback_transaction(self):
-        """Cancel the transaction (SQL Specific)."""
-        pass

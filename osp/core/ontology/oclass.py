@@ -378,8 +378,20 @@ class OntologyClass(OntologyEntity):
                                attributes=self._kwargs_to_attributes(
                                    kwargs, _skip_checks=_force),
                                )
-            # TODO: Multiclass individuals.
             return result
+        elif self.is_subclass_of(cuba.File):
+            from osp.core.ontology.interactive.file import File
+            path = kwargs.get('path', None)
+            if 'path' in kwargs:
+                del kwargs['path']
+            result = File(uid=uid,
+                          session=session,
+                          attributes=self._kwargs_to_attributes(
+                              kwargs, _skip_checks=_force),
+                          )
+            result[cuba.path] = path
+            return result
+        # TODO: Multiclass individuals.
 
         # build attributes dictionary by combining
         # kwargs and defaults

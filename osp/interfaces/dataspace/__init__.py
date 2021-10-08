@@ -1,0 +1,1 @@
+from osp.interfaces.dataspace.interface import DataspaceInterface

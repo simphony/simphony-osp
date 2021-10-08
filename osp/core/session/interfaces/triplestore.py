@@ -1,59 +1,52 @@
 """A session connecting to a backend which stores the CUDS in triples."""
 
-from abc import abstractmethod
-from typing import Iterator, Optional, TYPE_CHECKING
+from abc import ABC, abstractmethod
+from typing import Iterator
 
-from osp.core.ontology.datatypes import Pattern, Triple, UID
-from osp.core.session.interfaces.interface import Interface, InterfaceStore
-
-if TYPE_CHECKING:
-    from osp.core.ontology import OntologyEntity
+from osp.core.ontology.datatypes import Pattern, Triple
+from osp.core.session.interfaces.interface import Interface
+from osp.core.session.interfaces.generic import GenericInterfaceStore
 
 
-class TriplestoreStore(InterfaceStore):
+class TriplestoreStore(GenericInterfaceStore):
     """RDFLib store, communicates with the TripleStoreInterface."""
 
-    transaction_aware = True
-
-    _interface: "TriplestoreInterface"
+    interface: "TriplestoreInterface"
 
     def __init__(self, *args, interface=None, **kwargs):
         """Initialize the TriplestoreStore."""
-        if interface is None:
-            raise ValueError("No interface provided.")
-        if not isinstance(interface, Interface):
-            raise TypeError(
-                "Object provided as interface is not an interface.")
-        # TODO: Do not create the buffers in the first place.
         super().__init__(*args, interface=interface, **kwargs)
+        # TODO: Do not create the buffers in the first place.
         del self._buffers
 
     def add(self, triple, context, quoted=False):
         """Adds triples to the store."""
-        self._interface.add(triple)
+        self.interface.add(triple)
 
     def remove(self, triple_pattern, context=None):
         """Remove triples from the store."""
-        self._interface.remove(triple_pattern)
+        self.interface.remove(triple_pattern)
 
     def triples(self, triple_pattern, context=None):
         """Query triples patterns."""
-        for triple in self._interface.triples(triple_pattern):
+        for triple in self.interface.triples(triple_pattern):
             yield triple, iter(())
 
     def commit(self):
         """Commit buffered changes."""
-        self._interface.commit()
+        self.interface.commit()
 
     def rollback(self):
         """Discard uncommitted changes."""
-        self._interface.rollback()
+        self.interface.rollback()
 
 
-class TriplestoreInterface(Interface):
+class TriplestoreInterface(ABC, Interface):
     """A session connecting to a backend which stores the CUDS in triples."""
 
-    store_class = TriplestoreStore
+    # Definition of:
+    # TriplestoreInterface
+    # ↓ ---------------- ↓
 
     @abstractmethod
     def triples(self, pattern: Pattern) -> Iterator[Triple]:
@@ -71,40 +64,74 @@ class TriplestoreInterface(Interface):
         pass
 
     @abstractmethod
-    def commit(self):
-        """Commit changes to the triple store."""
+    def commit(self) -> None:
+        """Commit pending changes to the triple store.
+
+        Usually, you have a similar method on your database connection
+        object (that one should get in `open`) that you can just call.
+        """
         pass
 
     @abstractmethod
     def rollback(self):
-        """Discard uncommitted changes to the triple store."""
-        pass
+        """Discard uncommitted changes to the triple store.
 
-    def open(self, configuration: str):
-        """Open the triplestore."""
-        pass
-
-    def close(self):
-        """Close the triplestore."""
-        pass
-
-    def apply_added(self, entity: "OntologyEntity") -> None:
-        """Receive added ontology entities and apply changes to the backend."""
-        self.add(*entity.triples)
-
-    def apply_updated(self, entity: "OntologyEntity") -> None:
-        """Receive updated entities and apply the changes to the backend."""
-        self.remove((entity.identifier, None, None))
-        self.add(*entity.triples)
-
-    def apply_deleted(self, entity: "OntologyEntity") -> None:
-        """Receive deleted entities and apply the changes to the backend."""
-        self.remove((entity.identifier, None, None))
-
-    def _load_from_backend(self, uid: UID) \
-            -> Optional["OntologyEntity"]:
-        """Load the entity with the specified uid from the backend.
-
-        When the element cannot be found, it should return None.
+        Usually, you have a similar method on your database connection
+        object (that one should get in `open`) that you can just call.
         """
-        raise NotImplementedError
+        pass
+
+    @abstractmethod
+    def open(self, configuration: str):
+        """Open a connection to the triplestore.
+
+        You can expect calls to this method even when the triplestore is
+        already open, therefore, an implementation like the following is
+        recommended.
+
+        def open(self, configuration: str):
+            if your_triplestore_is_already_open:
+                return
+                # To improve the user experience you can check if the
+                # configuration string leads to a resource different from
+                # the current one and raise an error informing the user.
+
+            # Connect to your triplestore and get a connection/engine object...
+            # your_triplestore_is_already_open is for now True.
+        """
+        pass
+
+    @abstractmethod
+    def close(self):
+        """Close the connection to the triplestore.
+
+        This method should NOT commit uncommitted changes.
+
+        This method should close the connection that was obtained in `open`,
+        and free any locked up resources.
+
+        You can expect calls to this method even when the triplestore is
+        already closed. Therefore, an implementation like the following is
+        recommended.
+
+        def close(self):
+            if your_triplestore_is_already_closed:
+                return
+
+            # Close the connection to your triplestore.
+            # your_triplestore_is_already_closed is for now True
+        """
+
+    # + Methods and properties from definition of: Interface.
+
+    # ↑ ---------------- ↑
+    # Definition of:
+    # TriplestoreInterface
+
+    store_class = TriplestoreStore
+
+    def __init__(self):
+        """Initialize the TripleStoreInterface."""
+        super().__init__()
+        # TODO: Do not create the session in the first place.
+        self.session = None

@@ -347,7 +347,7 @@ class OntologyIndividual(OntologyEntity):
         # TODO: Check arguments.
         # TODO: validating data types first and then splitting by data types
         #  sounds like redundancy and decrease in performance.
-        # check_arguments((Cuds, *RDF_COMPATIBLE_TYPES), *values)
+        # check_arguments((Cuds, *RDF_COMPATIBLE_TYPES), *values)  (from utils)
         individuals, literals = \
             tuple(
                 filter(lambda x: isinstance(x, OntologyIndividual), values)), \
@@ -665,7 +665,7 @@ class OntologyIndividual(OntologyEntity):
                 returned.
         """
         if other.triples:
-            self.session.store(other)
+            self.session.update(other)
         self.session.graph.add(
             (self.identifier, rel.identifier, other.identifier))
         return self.session.from_identifier(other.identifier)
@@ -1019,7 +1019,7 @@ class OntologyIndividual(OntologyEntity):
                                f"incompatible with the OWL standard")
 
         self.session.graph.remove((self.iri, attribute.iri, None))
-        for value in values:
+        for value in filter(lambda v: v is not None, values):
             self.session.graph.add(
                 (self.iri, attribute.iri,
                  Literal(attribute.convert_to_datatype(value),

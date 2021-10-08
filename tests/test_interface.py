@@ -1,18 +1,25 @@
 """Test the interface API to communicate with external software."""
 
-import tempfile
-import unittest
+import filecmp
+import multiprocessing
 import os
+import shutil
+import socket
+import tempfile
+import time
+import unittest
 from typing import Optional, TYPE_CHECKING
 
-from rdflib import RDF, URIRef, Graph
+from rdflib import RDF, Graph, URIRef
 
 from osp.core.namespaces import cuba
 from osp.core.ontology.datatypes import UID, Vector
-from osp.core.ontology.individual import OntologyIndividual
 from osp.core.ontology.parser.owl.parser import OWLParser
 from osp.core.ontology.parser.yml.parser import YMLParser
-from osp.core.session.interfaces.interface import Interface, InterfaceStore
+from osp.core.session.interfaces.generic import GenericInterface,\
+    GenericInterfaceStore
+from osp.core.session.interfaces.remote.client import RemoteStoreClient
+from osp.core.session.interfaces.remote.server import RemoteStoreServer
 from osp.core.session.interfaces.sql import SQLStore
 from osp.core.session.session import Session
 from osp.interfaces.sqlite.interface import SQLiteInterface
@@ -27,9 +34,9 @@ class TestDummyInterface(unittest.TestCase):
 
     graph: Graph
 
-    DummyStore = InterfaceStore
+    DummyStore = GenericInterfaceStore
 
-    class DummyInterface(Interface):
+    class DummyInterface(GenericInterface):
         """A sample interface (based on an RDFLib Graph.
 
         It has the sole purpose of being used an interface for testing the
@@ -43,8 +50,7 @@ class TestDummyInterface(unittest.TestCase):
 
         def apply_added(self, entity: "OntologyEntity") -> None:
             """Convert received entity to triples and add them to the graph."""
-            for triple in entity.triples:
-                self._graph.add(triple)
+            pass
 
         def apply_updated(self, entity: "OntologyEntity") -> None:
             """Update entity in the graph.
@@ -53,25 +59,20 @@ class TestDummyInterface(unittest.TestCase):
             consists on removing all the existing triples and adding the
             ones provided by the updated version of the entity.
             """
-            self._graph.remove((entity.identifier, None, None))
-            for triple in entity.triples:
-                self._graph.add(triple)
+            pass
 
         def apply_deleted(self, entity: "OntologyEntity") -> None:
             """Remove all triples that have the received entity as subject."""
-            self._graph.remove((entity.identifier, None, None))
+            pass
 
-        def _load_from_backend(self, uid: UID) -> \
-                Optional["OntologyIndividual"]:
+        def update_from_backend(self, entity: "OntologyEntity") -> \
+                Optional["OntologyEntity"]:
             """Spawn an ontology individual matching the received uid."""
-            triples = set(self._graph.triples(
-                (uid.to_identifier(), None, None)))
-            if triples:
-                return OntologyIndividual(
-                    uid=uid,
-                    triples=triples)
-            else:
-                return None
+            return entity
+
+        def load_from_backend(self, uid: UID) -> Optional["OntologyEntity"]:
+            """An entity that previously did not exist is requested."""
+            return None
 
         def open(self, configuration: str):
             """Not needed, but an implementation is expected."""
@@ -90,9 +91,6 @@ class TestDummyInterface(unittest.TestCase):
     def test_buffered(self):
         """Tests the store without committing the changes."""
         self.assertTrue(isinstance(self.graph.store, self.DummyStore))
-        self.assertRaises(NotImplementedError,
-                          lambda x: set(self.graph.triples(x)),
-                          (None, None, None))
 
         # Add triples from a cuba entity to the store.
         entity = cuba.Entity()
@@ -205,9 +203,10 @@ class TestTriplestoreInterface(unittest.TestCase):
 
     def setUp(self) -> None:
         """Create an interface, a store and assign them to a graph."""
-        self.interface = SQLiteInterface(self.file_name)
+        self.interface = SQLiteInterface()
         self.store = SQLStore(interface=self.interface)
         self.graph = Graph(self.store)
+        self.graph.open(self.file_name)
 
     def tearDown(self) -> None:
         """Remove the database file."""
@@ -256,9 +255,10 @@ class TestTriplestoreInterface(unittest.TestCase):
         self.graph.close()
 
         # Use a new interface to reopen the file and retrieve the data.
-        interface = SQLiteInterface(self.file_name)
+        interface = SQLiteInterface()
         store = SQLStore(interface=interface)
         graph = Graph(store)
+        graph.open(self.file_name)
         self.assertSetEqual(set(person.triples),
                             set(graph.triples((None, None, None))))
 
@@ -268,9 +268,10 @@ class TestTriplestoreInterface(unittest.TestCase):
         graph.close()
 
         # Again reopen in a new interface and check that the commit went well.
-        interface = SQLiteInterface(self.file_name)
+        interface = SQLiteInterface()
         store = SQLStore(interface=interface)
         graph = Graph(store)
+        graph.open(self.file_name)
         self.assertSetEqual(set(),
                             set(graph.triples((None, None, None))))
 
@@ -346,6 +347,351 @@ class TestTriplestoreWrapper(unittest.TestCase):
                 {50, 37},
                 {citizen.age for citizen in citizens}
             )
+
+
+class TestRemoteStoreSQLite(unittest.TestCase):
+    """Test the RemoteStoreClient store."""
+
+    server_proc = None
+    host: str = "127.0.0.1"
+    port: int = 4745
+    db_file: str = 'test_db_file.db'
+    server_files_dir: Optional[str] = None
+    server_files_dir_object: Optional[tempfile.TemporaryDirectory] = None
+
+    prev_default_ontology: Session
+
+    @classmethod
+    def setUpClass(cls):
+        """Create a TBox with the CUBA, OWL and city ontologies.
+
+        Such TBox is set as the default TBox.
+        """
+        ontology = Session(identifier='test_tbox', ontology=True)
+        for parser in (OWLParser('cuba'),
+                       OWLParser('owl'),
+                       YMLParser('city')):
+            ontology.load_parser(parser)
+        cls.prev_default_ontology = Session.ontology
+        Session.ontology = ontology
+
+    @classmethod
+    def tearDownClass(cls):
+        """Restore the previous default TBox."""
+        Session.ontology = cls.prev_default_ontology
+
+    def setUp(self) -> None:
+        """Start a RemoteStoreServer for a new test."""
+        self.start_server(files_uid=False)
+
+    def tearDown(self):
+        """Stop a RemoteStoreServer after a test."""
+        self.stop_server()
+
+    @staticmethod
+    def server_store_generator(configuration_string: str) -> SQLStore:
+        """Produces a store for the server from a configuration string."""
+        interface = SQLiteInterface()
+        store = SQLStore(interface=interface)
+        store.open(configuration_string or f"{TestRemoteStoreSQLite.db_file}")
+        return store
+
+    def start_server(self, files_uid: bool = False):
+        """Start a RemoteStoreServer."""
+        if self.server_proc:
+            self.server_proc.terminate()
+            self.server_proc.join(30)
+            self.server_proc.kill()
+            self.server_proc.join()
+            self.server_proc.close()
+        self.server_files_dir_object = tempfile.TemporaryDirectory()
+        self.server_files_dir = self.server_files_dir_object.name
+        self.server_proc = multiprocessing.Process(
+            target=self.launch_server, kwargs={'files_uid': files_uid})
+        self.server_proc.start()
+        s = socket.socket()
+        connected = False
+        tries = 0
+        while not connected and tries < 1000:
+            time.sleep(0.3)
+            tries += 1
+            try:
+                s.connect((self.host, int(self.port)))
+                connected = True
+            except socket.error:
+                pass
+            finally:
+                s.close()
+
+    def launch_server(self, files_uid: bool = False):
+        """Launch a RemoteStoreServer."""
+        server = RemoteStoreServer(host=self.host,
+                                   port=self.port,
+                                   generate_store=self.server_store_generator,
+                                   file_destination=self.server_files_dir,
+                                   file_uid=files_uid)
+        server.start()
+        exit(0)
+
+    def stop_server(self):
+        """Stop a running RemoteStoreServer."""
+        if self.server_proc:
+            self.server_proc.terminate()
+            self.server_proc.join(30)
+            self.server_proc.kill()
+            self.server_proc.join()
+            self.server_proc.close()
+        for file in os.listdir():
+            if self.db_file in file:
+                os.remove(file)
+        if self.server_files_dir_object is not None:
+            self.server_files_dir_object.cleanup()
+            self.server_files_dir_object = None
+            self.server_files_dir = None
+        self.server_proc = None
+
+    def client_session_generator(self) -> Session:
+        """Generate sessions based on a RemoteStoreClient."""
+        client_files_dir = tempfile.TemporaryDirectory()
+        store = RemoteStoreClient(file_destination=client_files_dir.name)
+        store.client_files_dir = client_files_dir
+        session = Session(store=store)
+        session.graph.open(f'ws://username:password@{self.host}:{self.port}')
+        return session
+
+    def test_city(self):
+        """Test adding some entities from the city ontology."""
+        from osp.core.namespaces import city
+
+        with self.client_session_generator() as session:
+            freiburg = city.City(name='Freiburg')
+            klaus = city.Citizen(name='Klaus', age=30)
+            freiburg[city.hasInhabitant] = klaus
+            freiburg_identifier = freiburg.identifier
+            session.commit()
+        del freiburg
+
+        with self.client_session_generator() as session:
+            freiburg = session.from_identifier(freiburg_identifier)
+            klaus = freiburg[city.hasInhabitant]
+            self.assertEqual(freiburg.name, 'Freiburg')
+            self.assertEqual(klaus.name, 'Klaus')
+            self.assertEqual(klaus.age, 30)
+            session.delete(klaus)
+            self.assertIsNone(freiburg[city.hasInhabitant])
+            session.commit()
+        del freiburg
+
+        with self.client_session_generator() as session:
+            freiburg = session.from_identifier(freiburg_identifier)
+            self.assertIsNone(freiburg[city.hasInhabitant])
+
+    def test_files(self):
+        """Test handling files (no download)."""
+        from osp.core.namespaces import cuba
+
+        with tempfile.NamedTemporaryFile('w', suffix='.txt') as os_file:
+            os_file.write('text')
+            with self.client_session_generator() as session:
+                file = cuba.File(path=os_file.name)
+                file_identifier = file.identifier
+                self.assertEqual(file.path, os_file.name)
+                self.assertFalse(
+                    os.path.exists(
+                        os.path.join(self.server_files_dir,
+                                     os.path.basename(os_file.name)))
+                )
+                session.commit()
+                self.assertTrue(
+                    filecmp.cmp(
+                        os_file.name,
+                        os.path.join(self.server_files_dir,
+                                     os.path.basename(os_file.name)),
+                        shallow=False
+                    )
+                )
+
+            with self.client_session_generator() as session:
+                file = session.from_identifier(file_identifier)
+                self.assertEqual(file.path,
+                                 os.path.join(
+                                     session.graph.store.client_files_dir.name,
+                                     os.path.basename(os_file.name)))
+                file.path = None
+                self.assertIsNone(file.path)
+                self.assertIn(os.path.basename(os_file.name),
+                              os.listdir(self.server_files_dir))
+                session.commit()
+                self.assertNotIn(os.path.basename(os_file.name),
+                                 os.listdir(self.server_files_dir))
+                session.delete(file)
+                self.assertRaises(KeyError,
+                                  session.from_identifier,
+                                  file_identifier)
+                session.commit()
+
+            with self.client_session_generator() as session:
+                self.assertRaises(KeyError,
+                                  session.from_identifier,
+                                  file_identifier)
+
+            with tempfile.TemporaryDirectory() as temp_dir:
+                with open(os.path.join(temp_dir, 'file1.txt'), 'w') as file_1:
+                    file_1.write('CONTENT1')
+                with open(os.path.join(temp_dir, 'file2.txt'), 'w') as file_2:
+                    file_2.write('CONTENT2')
+
+                with self.client_session_generator() as session:
+                    file = cuba.File(path=os.path.join(temp_dir, 'file1.txt'))
+                    self.assertEqual(file.path,
+                                     os.path.join(temp_dir, 'file1.txt'))
+                    session.commit()
+                    self.assertEqual(file.path,
+                                     os.path.join(temp_dir, 'file1.txt'))
+                    self.assertTrue(
+                        filecmp.cmp(
+                            os.path.join(temp_dir, 'file1.txt'),
+                            os.path.join(self.server_files_dir,
+                                         'file1.txt'),
+                            shallow=False
+                        )
+                    )
+                    self.assertNotIn('file2.txt',
+                                     os.listdir(self.server_files_dir))
+
+                    file.path = os.path.join(temp_dir, 'file2.txt')
+                    self.assertTrue(
+                        filecmp.cmp(
+                            os.path.join(temp_dir, 'file1.txt'),
+                            os.path.join(self.server_files_dir,
+                                         'file1.txt'),
+                            shallow=False
+                        )
+                    )
+                    self.assertNotIn('file2.txt',
+                                     os.listdir(self.server_files_dir))
+
+                    session.commit()
+                    self.assertEqual(file.path,
+                                     os.path.join(temp_dir, 'file2.txt'))
+                    self.assertNotIn('file1.txt',
+                                     os.listdir(self.server_files_dir))
+                    self.assertTrue(
+                        filecmp.cmp(
+                            os.path.join(temp_dir, 'file2.txt'),
+                            os.path.join(self.server_files_dir,
+                                         'file2.txt'),
+                            shallow=False
+                        )
+                    )
+
+                    # Move the existing file, it should not be re-uploaded as
+                    # the hash coincides. (TODO: test automatically that it is
+                    #  actually not re-uploaded).
+                    shutil.move(os.path.join(temp_dir, 'file2.txt'),
+                                os.path.join(temp_dir, 'file.txt'))
+                    file.path = os.path.join(temp_dir, 'file.txt')
+                    session.commit()
+                    self.assertEqual(os.path.join(temp_dir, 'file.txt'),
+                                     file.path)
+                    file_identifier = file.identifier
+
+                with self.client_session_generator() as session:
+                    file = session.from_identifier(file_identifier)
+                    self.assertEqual(
+                        os.path.join(session.graph.store.client_files_dir.name,
+                                     'file.txt'),
+                        file.path
+                    )
+                    session.delete(file)
+                    session.commit()
+
+                self.stop_server()
+                self.start_server(files_uid=True)
+
+                with self.client_session_generator() as session:
+                    file = cuba.File(path=os.path.join(temp_dir, 'file.txt'))
+                    self.assertEqual(
+                        os.path.join(temp_dir, 'file.txt'),
+                        file.path
+                    )
+                    self.assertNotIn('file.txt',
+                                     os.listdir(self.server_files_dir))
+                    self.assertNotIn(f'({file.uid.to_uuid()}) file.txt',
+                                     os.listdir(self.server_files_dir))
+                    session.commit()
+                    self.assertNotIn('file.txt',
+                                     os.listdir(self.server_files_dir))
+                    self.assertIn(f'({file.uid.to_uuid()}) file.txt',
+                                  os.listdir(self.server_files_dir))
+                    self.assertEqual(
+                        os.path.join(temp_dir, 'file.txt'),
+                        file.path
+                    )
+                    file_identifier = file.identifier
+                with self.client_session_generator() as session:
+                    file = session.from_identifier(file_identifier)
+                    self.assertEqual(
+                        os.path.join(session.graph.store.client_files_dir.name,
+                                     'file.txt'),
+                        file.path
+                    )
+
+    def test_files_download_upload(self):
+        """Test instant download and upload of files."""
+        from osp.core.namespaces import cuba
+
+        self.stop_server()
+        self.start_server(files_uid=True)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with open(os.path.join(temp_dir, 'file.txt'), 'w') as file:
+                file.write('CONTENT')
+            with open(os.path.join(temp_dir, 'file_other.txt'), 'w') as file:
+                file.write('CONTENT')
+
+            with self.client_session_generator() as session:
+                file = cuba.File(path=os.path.join(temp_dir, 'file.txt'))
+                file_identifier = file.identifier
+                session.commit()
+
+            with self.client_session_generator() as session:
+                file = session.from_identifier(file_identifier)
+                print(file)
+                self.assertEqual(
+                    session.graph.store.client_files_dir.name,
+                    os.path.dirname(file.path)
+                )
+                self.assertFalse(os.path.exists(file.path))
+                filepath = file.path
+                file.download()
+                self.assertTrue(os.path.exists(file.path))
+                with tempfile.TemporaryDirectory() as download_dir:
+                    file.download(
+                        os.path.join(download_dir,
+                                     os.path.basename(filepath))
+                    )
+                    self.assertTrue(os.path.exists(
+                        os.path.join(download_dir,
+                                     os.path.basename(file.path))
+                    ))
+
+            with self.client_session_generator() as session:
+                file = cuba.File(path=os.path.join(temp_dir, 'file_other.txt'))
+                self.assertFalse(os.path.exists(
+                    os.path.join(self.server_files_dir,
+                                 f'({file.uid.to_uuid()}) file_other.txt')
+                ))
+                file.upload()
+                self.assertTrue(os.path.exists(
+                    os.path.join(self.server_files_dir,
+                                 f'({file.uid.to_uuid()}) file_other.txt')
+                ))
+                session.commit()
+                self.assertTrue(os.path.exists(
+                    os.path.join(self.server_files_dir,
+                                 f'({file.uid.to_uuid()}) file_other.txt')
+                ))
 
 
 if __name__ == "__main__":

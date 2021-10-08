@@ -1,45 +1,45 @@
-"""A session to connect osp-core to a SQLite backend."""
+"""An interface to communicate with a SQLite backend."""
 
-import sqlite3
+from sqlite3 import Connection, IntegrityError, connect
+from typing import Optional
 
 from rdflib import XSD
 
 from osp.core.ontology.datatypes import UID, Vector
-from osp.core.session.interfaces.sql import AndCondition, EqualsCondition, \
-    JoinCondition
-from osp.core.session.interfaces.sql import SQLInterface
+from osp.core.session.interfaces.sql import (
+    AndCondition, EqualsCondition, JoinCondition, SQLInterface)
 
 
 class SQLiteInterface(SQLInterface):
-    """A session to connect osp-core to a SQLite backend.
+    """An interface to communicate with a SQLite backend.
 
-    This SQLite backend can be used to store CUDS in an SQLite database.
+    Such SQLite backend can be used to ontology entitites
+    in an SQLite  database.
     """
 
-    def __init__(self,
-                 path: str,
-                 check_same_thread: bool = True,
-                 *args,
-                 **kwargs):
-        """Initialize the SQLiteInterface.
-
-        Args:
-            path: The path to the sqlite database file. Will be created
-                if it doesn't exist.
-            check_same_thread: Argument of sqlite. Defaults to True.
-        """
-        self._engine = sqlite3.connect(
-            path,
-            check_same_thread=check_same_thread)
-        super().__init__(*args, **kwargs)
-
-    def close(self):
-        """Close the connection to the SQLite database."""
-        self._engine.close()
+    # Implementation of:
+    #    SQLInterface
+    # ↓ -------------- ↓
 
     def commit(self):
-        """Commit the data to the SQLite database."""
+        """Commit pending changes to the SQL database."""
         self._engine.commit()
+
+    def rollback(self):
+        """Discard uncommitted changes to the SQL database."""
+        self._engine.rollback()
+
+    def open(self, configuration: str = ''):
+        """Open the SQL database."""
+        self._engine = connect(
+            configuration or self._path,
+            check_same_thread=self._check_same_thread)
+        super().open(configuration)
+
+    def close(self):
+        """Close the SQL database."""
+        self._engine.close()
+        super().close()
 
     def init_transaction(self):
         """Initialize the transaction."""
@@ -51,47 +51,6 @@ class SQLiteInterface(SQLInterface):
         c = self._engine.cursor()
         c.execute("ROLLBACK;")
 
-    def rollback(self):
-        """Discard uncommitted changes."""
-        self._engine.rollback()
-
-    @staticmethod
-    def _sql_list_pattern(prefix, values, join_pattern=True):
-        """Transform a list of values to corresponding pattern and value dict.
-
-        Args:
-            prefix (str): The prefix to use for the pattern
-            values (List[Any]): The list of values
-            join_pattern (bool): Whether to join the pattern by a comma,
-                defaults to True
-
-
-        Returns:
-            Tuple[str, Dict]: The pattern and the value dict.
-        """
-        pattern = [":%s_%s" % (prefix, i) for i in range(len(values))]
-        if join_pattern:
-            pattern = ", ".join(pattern)
-        values = {
-            ("%s_%s" % (prefix, i)): val for i, val in enumerate(values)
-        }
-        return pattern, values
-
-    # OVERRIDE
-    def _db_select(self, query):
-        cond_pattern, cond_values = self._get_condition_pattern(
-            query.condition)
-        columns = ["`%s`.`%s`" % (a, c) for a, c in query.columns]
-        tables = ["`%s` AS `%s`" % (t, a)
-                  for a, t in query.tables.items()]
-        sql_pattern = "SELECT %s FROM %s WHERE %s;" % (  # nosec
-            ", ".join(columns), ", ".join(tables), cond_pattern
-        )
-        c = self._engine.cursor()
-        c.execute(sql_pattern, cond_values)
-        return c
-
-    # OVERRIDE
     def _db_create(self, table_name, columns, datatypes,
                    primary_key, generate_pk, foreign_key, indexes):
         columns = [
@@ -123,7 +82,19 @@ class SQLiteInterface(SQLInterface):
             )
             c.execute(sql)
 
-    # OVERRIDE
+    def _db_select(self, query):
+        cond_pattern, cond_values = self._get_condition_pattern(
+            query.condition)
+        columns = ["`%s`.`%s`" % (a, c) for a, c in query.columns]
+        tables = ["`%s` AS `%s`" % (t, a)
+                  for a, t in query.tables.items()]
+        sql_pattern = "SELECT %s FROM %s WHERE %s;" % (  # nosec
+            ", ".join(columns), ", ".join(tables), cond_pattern
+        )
+        c = self._engine.cursor()
+        c.execute(sql_pattern, cond_values)
+        return c
+
     def _db_insert(self, table_name, columns, values, datatypes):
         val_pattern, val_values = self._sql_list_pattern("val", values)
         columns = map(lambda x: "`%s`" % x, columns)
@@ -134,12 +105,11 @@ class SQLiteInterface(SQLInterface):
         try:
             c.execute(sql_pattern, val_values)
             return c.lastrowid
-        except sqlite3.IntegrityError as e:
+        except IntegrityError as e:
             if "UNIQUE constraint failed" in str(e):
                 return
             raise e
 
-    # OVERRIDE
     def _db_update(self, table_name, columns, values, condition, datatypes):
         cond_pattern, cond_values = self._get_condition_pattern(condition)
         val_pattern, val_values = self._sql_list_pattern("val", values, False)
@@ -153,7 +123,6 @@ class SQLiteInterface(SQLInterface):
         c = self._engine.cursor()
         c.execute(sql_pattern, sql_values)
 
-    # OVERRIDE
     def _db_delete(self, table_name, condition):
         cond_pattern, cond_values = self._get_condition_pattern(condition)
         sql_pattern = ("DELETE FROM `%s` WHERE %s;"  # nosec
@@ -161,18 +130,60 @@ class SQLiteInterface(SQLInterface):
         c = self._engine.cursor()
         c.execute(sql_pattern, cond_values)
 
-    # OVERRIDE
     def _db_drop(self, table_name):
         sql_command = f"DROP TABLE IF EXISTS `{table_name}`"
         c = self._engine.cursor()
         c.execute(sql_command)
 
-    # OVERRIDE
     def _get_table_names(self, prefix):
         c = self._engine.cursor()
         sql = "SELECT name FROM sqlite_master WHERE type='table';"
         tables = c.execute(sql)
         return set([x[0] for x in tables if x[0].startswith(prefix)])
+
+    # ↑ -------------- ↑
+    # Implementation of:
+    #    SQLInterface
+
+    _engine: Optional[Connection] = None
+
+    def __init__(self,
+                 path: str = '',
+                 check_same_thread: bool = True,
+                 *args,
+                 **kwargs):
+        """Initialize the SQLiteInterface.
+
+        Args:
+            path: The path to the sqlite database file. Will be created
+                if it doesn't exist.
+            check_same_thread: Argument of sqlite. Defaults to True.
+        """
+        self._path = path
+        self._check_same_thread = check_same_thread
+        super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def _sql_list_pattern(prefix, values, join_pattern=True):
+        """Transform a list of values to corresponding pattern and value dict.
+
+        Args:
+            prefix (str): The prefix to use for the pattern
+            values (List[Any]): The list of values
+            join_pattern (bool): Whether to join the pattern by a comma,
+                defaults to True
+
+
+        Returns:
+            Tuple[str, Dict]: The pattern and the value dict.
+        """
+        pattern = [":%s_%s" % (prefix, i) for i in range(len(values))]
+        if join_pattern:
+            pattern = ", ".join(pattern)
+        values = {
+            ("%s_%s" % (prefix, i)): val for i, val in enumerate(values)
+        }
+        return pattern, values
 
     def _get_condition_pattern(self, condition, prefix="cond"):
         """Convert the given condition.

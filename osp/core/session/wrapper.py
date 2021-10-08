@@ -53,6 +53,7 @@ class WrapperSpawner(ABC, Wrapper):
         pass
 
     def __new__(cls,
+                configuration_string: str = '',
                 *args,
                 ontology: Optional[Union[Session, bool]] = None,
                 root: Optional[Union[str,
@@ -71,8 +72,11 @@ class WrapperSpawner(ABC, Wrapper):
         root = interface_class.root or root
 
         # Initialize the session.
-        interface_instance = interface_class(*args, **kwargs)
+        interface_instance = interface_class(configuration_string,
+                                             *args,
+                                             **kwargs)
         store = cls._get_interface().store_class(interface=interface_instance)
+        store.open(configuration_string)
         session = Session(store=store, ontology=ontology)
 
         # Decide whether to return the WrapperSpawner or a WrappingEntity.
@@ -82,7 +86,7 @@ class WrapperSpawner(ABC, Wrapper):
             return wrapper
         else:
             if isinstance(root, OntologyEntity):
-                session.store(root)
+                session.update(root)
                 class_ = root.__class__
                 uid = UID(root.identifier)
             else:
@@ -102,7 +106,7 @@ class WrapperSpawner(ABC, Wrapper):
     def add(self, *other: OntologyEntity):
         """Add an item to the session connected to the wrapper."""
         for entity in other:
-            self._session.store(entity)
+            self._session.update(entity)
 
     def delete(self, *other: OntologyEntity):
         """Remove an item from the session connected to the wrapper."""

@@ -143,8 +143,8 @@ class TestContainer(unittest.TestCase):
         session_2 = Session()
 
         klaus = city.Citizen(name='Klaus', age=5)
-        session_1.store(klaus)
-        session_2.store(klaus)
+        session_1.update(klaus)
+        session_2.update(klaus)
         klaus_1 = session_1.from_identifier(klaus.identifier)
         klaus_1.age = 10
         klaus_2 = session_2.from_identifier(klaus.identifier)

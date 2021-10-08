@@ -102,10 +102,7 @@ class OntologyEntity(ABC):
         Equivalent to removing the item from the previous session and adding it
         to the new session.
         """
-        # THIS SETTER IS ONLY FOR THE USER. DO NOT USE IT AS DEVELOPER,
-        # USE `Session.store` instead, the responsibility of storing should
-        # be on the session not on the entity.
-        value.store(self)
+        value.update(self)
         if self._session is not value:
             self._session.delete(self)
         self._session = value
@@ -381,7 +378,7 @@ class OntologyEntity(ABC):
             # Only change what is stored in the session if custom triples were
             # provided.
             if not merge:
-                session.store(self)
+                session.update(self)
             else:
                 session.merge(self)
         self._session = session

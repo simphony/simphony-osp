@@ -303,7 +303,7 @@ class Container(OntologyIndividual):
         """
         with self:
             for individual in individuals:
-                self._session_linked.store(individual)
+                self._session_linked.update(individual)
                 self.session.graph.add((self.identifier,
                                         cuba.contains.identifier,
                                         individual.identifier))
