@@ -188,7 +188,7 @@ class CommunicationEngineServer:
                  port: int,
                  handle_request: Callable,
                  handle_disconnect: Callable,
-                 **kwargs: dict[str, Any]) -> None:
+                 **kwargs: Dict[str, Any]) -> None:
         """Construct the communication engine's server.
 
         Args:
@@ -308,7 +308,7 @@ class CommunicationEngineClient:
     def __init__(self,
                  uri: str,
                  handle_response: Callable,
-                 **kwargs: dict[str, Any]):
+                 **kwargs: Dict[str, Any]):
         """Construct the communication engine's client.
 
         Args:
