@@ -22,8 +22,15 @@ from rdflib import __version__ as rdflib_version
 if rdflib_version >= '6':
     from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 else:
-    from rdflib_jsonld.parser import to_rdf as json_to_rdf
+    import warnings
 
+    def silent_warn(*args, **kwargs) -> None:
+        pass
+
+    warn = warnings.warn
+    warnings.warn = silent_warn
+    from rdflib_jsonld.parser import to_rdf as json_to_rdf
+    warnings.warn = warn
 try:
     from .test_session_city import TestWrapperSession
 except ImportError:

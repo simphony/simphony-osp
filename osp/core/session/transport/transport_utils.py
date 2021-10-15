@@ -15,8 +15,16 @@ if rdflib_version >= '6':
     from rdflib.plugins.serializers.jsonld import from_rdf as json_from_rdf
     from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 else:
+    import warnings
+
+    def silent_warn(*args, **kwargs) -> None:
+        pass
+
+    warn = warnings.warn
+    warnings.warn = silent_warn
     from rdflib_jsonld.serializer import from_rdf as json_from_rdf
     from rdflib_jsonld.parser import to_rdf as json_to_rdf
+    warnings.warn = warn
 from osp.core.namespaces import get_entity, cuba
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
