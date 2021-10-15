@@ -17,11 +17,12 @@ if rdflib_version >= '6':
 else:
     import warnings
 
-    def silent_warn(*args, **kwargs) -> None:
+    def _silent_warn(*args, **kwargs) -> None:
+        """Function to replace `warnings.warn`, silences forced warnings."""
         pass
 
     warn = warnings.warn
-    warnings.warn = silent_warn
+    warnings.warn = _silent_warn
     from rdflib_jsonld.serializer import from_rdf as json_from_rdf
     from rdflib_jsonld.parser import to_rdf as json_to_rdf
     warnings.warn = warn
