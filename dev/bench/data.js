@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1634280792990,
+  "lastUpdate": 1634628197596,
   "repoUrl": "https://github.com/simphony/osp-core",
   "entries": {
     "Benchmark": [
@@ -4488,6 +4488,142 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.0005528457066410992",
             "extra": "mean: 1.9709058580000944 msec\nrounds: 500"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "43052541+kysrpex@users.noreply.github.com",
+            "name": "José Manuel Domínguez",
+            "username": "kysrpex"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7b4000209bb0aeabac22217343bad3998b21cbcb",
+          "message": "Remove packages from `setup_requires` as the setup only requires `os`, `setuptools`, and modules included in the package itself. (#711)\n\n* Remove packages from `setup_requires` as the setup only requires `os`, `setuptools`, and modules included in the package itself.\r\n\r\n* Remove `setup_requires` parameter.",
+          "timestamp": "2021-10-19T09:19:59+02:00",
+          "tree_id": "65a21324a3ea9064a52340d83214a79d3ed341fa",
+          "url": "https://github.com/simphony/osp-core/commit/7b4000209bb0aeabac22217343bad3998b21cbcb"
+        },
+        "date": 1634628195987,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_create",
+            "value": 265.60945772977595,
+            "unit": "iter/sec",
+            "range": "stddev: 0.005878905701575975",
+            "extra": "mean: 3.7649261760000035 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_add_default",
+            "value": 153.60672906988813,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0031172612508623427",
+            "extra": "mean: 6.510131463999986 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_add_rel",
+            "value": 146.53466403673417,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0035106093744788677",
+            "extra": "mean: 6.824323832000012 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_get_byuiduuid",
+            "value": 277.14693407878053,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0010627740329946947",
+            "extra": "mean: 3.6081943440000117 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byuiduriref",
+            "value": 361.5266453181568,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0009106169897095788",
+            "extra": "mean: 2.7660478499999996 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byrel",
+            "value": 528.3832742464327,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00039788320743744604",
+            "extra": "mean: 1.8925655839999393 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byoclass",
+            "value": 21.50620576953016,
+            "unit": "iter/sec",
+            "range": "stddev: 0.007306975442516702",
+            "extra": "mean: 46.49820664400008 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byuiduuid",
+            "value": 505.87462130820893,
+            "unit": "iter/sec",
+            "range": "stddev: 0.04275954642688003",
+            "extra": "mean: 1.9767743979999752 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byuiduriref",
+            "value": 859.4102805375226,
+            "unit": "iter/sec",
+            "range": "stddev: 0.024493120490925422",
+            "extra": "mean: 1.163588594000231 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byrel",
+            "value": 589.5141667316257,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0002395102908306377",
+            "extra": "mean: 1.6963120760001118 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_iter_byoclass",
+            "value": 22.367731436105814,
+            "unit": "iter/sec",
+            "range": "stddev: 0.006658596912751217",
+            "extra": "mean: 44.707260673999684 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_is_a",
+            "value": 7901.403630639957,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00006554345094014916",
+            "extra": "mean: 126.55979199976741 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_oclass",
+            "value": 9945.906403136369,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00002008389799930892",
+            "extra": "mean: 100.5438780003658 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_uid",
+            "value": 16712.574995911607,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00001622094493128321",
+            "extra": "mean: 59.83518400034882 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iri",
+            "value": 15078.324962199145,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000017056249487159153",
+            "extra": "mean: 66.32036399977892 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_attributes",
+            "value": 553.6075287646394,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0003264537910682764",
+            "extra": "mean: 1.806333816000432 msec\nrounds: 500"
           }
         ]
       }
