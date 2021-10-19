@@ -95,8 +95,7 @@ class TestInstallation(unittest.TestCase):
         """
         FOAF = """
         identifier: foaf_TEST
-        ontology_file: https://web.archive.org/web/20210829023239/""" \
-        + """http://xmlns.com/foaf/spec/index.rdf
+        ontology_file: http://xmlns.com/foaf/spec/index.rdf
         reference_by_label: True
         namespaces:
             foaf_TEST: "http://xmlns.com/foaf/0.1/"
