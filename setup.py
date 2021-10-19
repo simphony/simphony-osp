@@ -56,6 +56,4 @@ setup(
         "rdflib >= 6.0.0, < 7.0.0; python_version >= '3.7'",
         "rdflib-jsonld == 0.6.1; python_version < '3.7'",
     ],
-    setup_requires=[
-    ],
 )
