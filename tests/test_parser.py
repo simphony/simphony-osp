@@ -1,16 +1,20 @@
 """Test the default parser used for parsing OWL ontologies."""
 
 import os
-import yaml
-import rdflib
+import re
 import shutil
-import unittest2 as unittest
 import tempfile
+import yaml
+from pathlib import Path
+
 import responses
+import rdflib
+import unittest2 as unittest
 from rdflib.compare import isomorphic
+
+from osp.core.ontology.namespace_registry import NamespaceRegistry
 from osp.core.ontology.parser import Parser
 from osp.core.ontology.parser.parser import OntologyParser
-from osp.core.ontology.namespace_registry import NamespaceRegistry
 
 
 RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -214,6 +218,28 @@ class TestParser(unittest.TestCase):
         g1 = rdflib.Graph()
         g1.parse(RDF_FILE, format="ttl")
         self.assertTrue(parser.graph, g1)
+
+    def test_parse_guess_format(self):
+        """Test the parsing a file without providing the format."""
+        modified_yml_config_path = Path(YML_FILE)
+        modified_yml_config_path = str(modified_yml_config_path.with_name(
+            modified_yml_config_path.stem + '_mod'
+            + modified_yml_config_path.suffix))
+        try:
+            # Create a copy of YML_FILE and remove the 'format' keyword.
+            with open(modified_yml_config_path, 'w') as modified_yml_config:
+                with open(YML_FILE, 'r') as yml_config:
+                    modified_yml_config.write(
+                        re.sub(r'^[\s]*format:[\s].*', '',
+                               yml_config.read(), flags=re.MULTILINE))
+
+            parser = OntologyParser.get_parser(modified_yml_config_path)
+            g1 = rdflib.Graph()
+            g1.parse(RDF_FILE, format="ttl")
+            self.assertTrue(parser.graph, g1)
+        finally:
+            if os.path.exists(modified_yml_config_path):
+                os.remove(modified_yml_config_path)
 
 
 if __name__ == "__main__":

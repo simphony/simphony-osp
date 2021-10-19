@@ -21,7 +21,16 @@ from rdflib import __version__ as rdflib_version
 if rdflib_version >= '6':
     from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 else:
+    import warnings
+
+    def _silent_warn(*args, **kwargs) -> None:
+        """Function to replace `warnings.warn`, silences forced warnings."""
+        pass
+
+    warn = warnings.warn
+    warnings.warn = _silent_warn
     from rdflib_jsonld.parser import to_rdf as json_to_rdf
+    warnings.warn = warn
 from osp.core.namespaces import cuba
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.relationship import OntologyRelationship
