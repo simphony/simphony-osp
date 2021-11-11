@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Iterable, Iterator, Optional, TYPE_CHECKING
 
-from rdflib import RDFS, XSD, Literal, URIRef
+from rdflib import RDFS, URIRef
 
 from osp.core.ontology.datatypes import Triple, UID, rdf_to_python
 from osp.core.ontology.entity import OntologyEntity
