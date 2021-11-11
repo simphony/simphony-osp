@@ -2,13 +2,14 @@
 
 import tempfile
 import unittest
-import os
+from decimal import Decimal
 from typing import Hashable
 
-from rdflib import URIRef, Graph, Literal, RDFS
+from rdflib import RDFS, XSD, Graph, Literal, URIRef
 
 from osp.core.ontology.attribute import OntologyAttribute
-from osp.core.ontology.datatypes import UID
+from osp.core.utils.datatypes import UID
+from osp.core.ontology.annotation import OntologyAnnotation
 from osp.core.ontology.individual import OntologyIndividual
 from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.relationship import OntologyRelationship
@@ -21,42 +22,46 @@ from osp.core.session.session import Session
 class TestFOAFOntology(unittest.TestCase):
     """Tests classes related to the ontology management using FOAF ontology."""
 
-    yml_path: str
     ontology: Session
-
-    FOAF_MODIFIED: str = """
-    active_relationships:
-      - http://xmlns.com/foaf/0.1/member
-    default_relationship: http://xmlns.com/foaf/0.1/knows
-    format: xml
-    identifier: foaf
-    namespaces:
-      foaf: http://xmlns.com/foaf/0.1/
-    ontology_file: http://xmlns.com/foaf/spec/index.rdf
-    reference_by_label: false
-    """
+    prev_default_ontology: Session
 
     @classmethod
     def setUpClass(cls):
-        """Create a TBox only containing FOAF."""
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains CUBA, OWL, RDFS and FOAF.
+        """
         with tempfile.NamedTemporaryFile('w', suffix='.yml', delete=False) \
                 as file:
-            cls.yml_path = file.name
-            file.write(cls.FOAF_MODIFIED)
+            foaf_modified: str = """
+            active_relationships:
+              - http://xmlns.com/foaf/0.1/member
+            default_relationship: http://xmlns.com/foaf/0.1/knows
+            format: xml
+            identifier: foaf
+            namespaces:
+              foaf: http://xmlns.com/foaf/0.1/
+            ontology_file: http://xmlns.com/foaf/spec/index.rdf
+            reference_by_label: false
+            """
+            file.write(foaf_modified)
             file.seek(0)
+            yml_path = file.name
 
-        cls.ontology = Session(from_parser=OWLParser(cls.yml_path),
-                               ontology=True)
+        cls.ontology = Session(identifier='test-tbox', ontology=True)
+        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
+                       OWLParser(yml_path)):
+            cls.ontology.load_parser(parser)
+        cls.prev_default_ontology = Session.ontology
+        Session.ontology = cls.ontology
 
-    def tearDown(self) -> None:
-        """Clean up the custom FOAF yml config file that was created."""
-        try:
-            os.remove(self.yml_path)
-        except FileNotFoundError:
-            pass
+    @classmethod
+    def tearDownClass(cls):
+        """Restore the previous default TBox."""
+        Session.ontology = cls.prev_default_ontology
 
     def test_ontology(self):
-        """Tests the Ontology class."""
+        """Tests the Session class used as an ontology."""
         ontology = self.ontology
 
         # Get relationships, attributes and classes with `from_identifier`
@@ -170,17 +175,16 @@ class TestFOAFOntology(unittest.TestCase):
         # TODO: Test setter.
 
         # Test `direct_superclasses` property.
-        # TODO: Fix.
-        # self.assertSetEqual(set(), name.direct_superclasses)
+        self.assertSetEqual(set(), name.direct_superclasses)
 
         # Test `direct_subclasses` property.
-        # self.assertSetEqual(set(), name.direct_subclasses)
+        self.assertSetEqual(set(), name.direct_subclasses)
 
         # Test `superclasses` property.
-        # self.assertSetEqual({name}, name.superclasses)
+        self.assertSetEqual({name}, name.superclasses)
 
         # Test `subclasses` property.
-        # self.assertSetEqual({name}, name.subclasses)
+        self.assertSetEqual({name}, name.subclasses)
 
         # Test `triples` property.
         self.assertSetEqual({
@@ -215,15 +219,15 @@ class TestFOAFOntology(unittest.TestCase):
             name.triples)
 
         # Test `is_superclass_of` method.
-        # self.assertTrue(name.is_superclass_of(name))
+        self.assertTrue(name.is_superclass_of(name))
         nick = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/nick'))
         self.assertTrue(isinstance(nick, OntologyAttribute))
-        # self.assertFalse(name.is_superclass_of(nick))
+        self.assertFalse(name.is_superclass_of(nick))
 
         # Test `ìs_subclass_of` method.
-        # self.assertTrue(name.is_subclass_of(name))
-        # self.assertFalse(name.is_subclass_of(nick))
+        self.assertTrue(name.is_subclass_of(name))
+        self.assertFalse(name.is_subclass_of(nick))
 
         # Test `__eq__` method.
         self.assertEqual(name, name)
@@ -233,10 +237,12 @@ class TestFOAFOntology(unittest.TestCase):
         self.assertTrue(isinstance(name, Hashable))
 
         # Test `datatype` property.
-        # self.assertIsNone(name.datatype)
+        self.assertEqual(
+            name.datatype,
+            URIRef('http://www.w3.org/2000/01/rdf-schema#Literal'))
 
         # Test `convert_to_datatype` method.
-        # self.assertEqual('a_name', name.convert_to_datatype('a_name'))
+        self.assertEqual('a_name', name.convert_to_datatype('a_name'))
 
     def test_oclass(self):
         """Tests the OntologyClass subclass.
@@ -283,6 +289,18 @@ class TestFOAFOntology(unittest.TestCase):
         member = ontology.from_identifier(
             URIRef('http://xmlns.com/foaf/0.1/member'))
         self.assertTrue(isinstance(member, OntologyRelationship))
+
+    def test_annotation(self):
+        """Tests the OntologyAnnotation subclass.
+
+        Does NOT include methods inherited from OntologyEntity.
+        """
+        ontology = self.ontology
+
+        # Test with foaf:membershipClass annotation property.
+        membership_class = ontology.from_identifier(
+            URIRef('http://xmlns.com/foaf/0.1/membershipClass'))
+        self.assertTrue(isinstance(membership_class, OntologyAnnotation))
 
     def test_oclass_composition(self):
         """Tests the Compsition subclass.
@@ -334,7 +352,7 @@ class TestFOAFOntology(unittest.TestCase):
         self.assertIn('birthday', dir(foaf_namespace))
 
         # Test the `__iter__` method.
-        self.assertEqual(73, len(tuple(foaf_namespace)))
+        self.assertEqual(162, len(tuple(foaf_namespace)))
         self.assertIn(name, tuple(foaf_namespace))
         self.assertIn(member, tuple(foaf_namespace))
 
@@ -351,34 +369,19 @@ class TestFOAFOntology(unittest.TestCase):
         DOES include methods inherited from OntologyEntity.
         """
         ontology = self.ontology
-
-        person_class = ontology.from_identifier(
-            URIRef('http://xmlns.com/foaf/0.1/Person'))
-        self.assertTrue(isinstance(person_class, OntologyClass))
-        organization_class = ontology.from_identifier(
-            URIRef('http://xmlns.com/foaf/0.1/Organization'))
-        self.assertTrue(isinstance(organization_class, OntologyClass))
-        agent_class = ontology.from_identifier(
-            URIRef('http://xmlns.com/foaf/0.1/Agent'))
-        self.assertTrue(isinstance(agent_class, OntologyClass))
-        age_attribute = ontology.from_identifier(
-            URIRef('http://xmlns.com/foaf/0.1/age'))
-        self.assertTrue(isinstance(age_attribute, OntologyAttribute))
-        knows_relationship = ontology.from_identifier(
-            URIRef('http://xmlns.com/foaf/0.1/knows'))
-        self.assertTrue(isinstance(knows_relationship, OntologyRelationship))
+        from osp.core.namespaces import foaf
 
         # Test the `__init__` method by creating a new individual.
-        person = person_class(session=ontology)
+        person = foaf.Person(session=ontology)
 
         # Test the class related methods `oclass`, `oclasses`, `is_a`.
         self.assertTrue(isinstance(person,
                                    OntologyIndividual))
-        self.assertEqual(person.oclass, person_class)
-        self.assertSetEqual(set(person.oclasses), {person_class})
-        self.assertTrue(person.is_a(person_class))
-        self.assertFalse(person.is_a(organization_class))
-        self.assertTrue(person.is_a(agent_class))
+        self.assertEqual(person.oclass, foaf.Person)
+        self.assertSetEqual(set(person.oclasses), {foaf.Person})
+        self.assertTrue(person.is_a(foaf.Person))
+        self.assertFalse(person.is_a(foaf.Organization))
+        self.assertTrue(person.is_a(foaf.Agent))
 
         # Test the `__dir__` method.
         self.assertTrue('age' in dir(person))
@@ -389,30 +392,46 @@ class TestFOAFOntology(unittest.TestCase):
         self.assertEqual(person.age, '25')
 
         # Test the `__getitem__`, `__setitem__` and `__delitem__` methods.
-        self.assertEqual(person[age_attribute], '25')
-        del person[age_attribute]
+        self.assertEqual(person[foaf.age], '25')
+        del person[foaf.age]
         self.assertIsNone(person.age)
-        person[age_attribute, :] = {'26'}
-        self.assertEqual(person[age_attribute], '26')
-        self.assertSetEqual(person[age_attribute, :], {'26'})
-        person[age_attribute, :] += '57'
-        self.assertSetEqual(person[age_attribute, :], {'26', '57'})
-        person[age_attribute, :] -= '26'
-        self.assertSetEqual(person[age_attribute, :], {'57'})
-        del person[age_attribute]
+        person[foaf.age, :] = {'26'}
+        self.assertEqual(person[foaf.age], '26')
+        self.assertSetEqual(person[foaf.age, :], {'26'})
+        person[foaf.age, :] += '57'
+        self.assertSetEqual(person[foaf.age, :], {'26', '57'})
+        person[foaf.age, :] -= '26'
+        self.assertSetEqual(person[foaf.age, :], {'57'})
+        del person[foaf.age]
         self.assertIsNone(person.age)
 
-        another_person = person_class(session=ontology)
-        one_more_person = person_class(session=ontology)
-        person[knows_relationship] = another_person
-        self.assertEqual(person[knows_relationship], another_person)
-        person[knows_relationship, :] += {one_more_person}
-        self.assertSetEqual(person[knows_relationship, :], {another_person,
-                                                            one_more_person})
-        person[knows_relationship, :] -= {another_person}
-        self.assertSetEqual(person[knows_relationship, :], {one_more_person})
-        person[knows_relationship, :].clear()
-        self.assertSetEqual(person[knows_relationship, :], set())
+        # Test subscripting notation for ontology individuals.
+        another_person = foaf.Person(session=ontology)
+        one_more_person = foaf.Person(session=ontology)
+        person[foaf.knows] = another_person
+        self.assertEqual(person[foaf.knows], another_person)
+        person[foaf.knows, :] += {one_more_person}
+        self.assertSetEqual(person[foaf.knows, :], {another_person,
+                                                    one_more_person})
+        person[foaf.knows, :] -= {another_person}
+        self.assertSetEqual(person[foaf.knows, :], {one_more_person})
+        person[foaf.knows, :].clear()
+        self.assertSetEqual(person[foaf.knows, :], set())
+
+        # Test annotation of ontology individuals.
+        group = foaf.Group()
+        group[foaf.member, :] = {person, another_person, one_more_person}
+        group[foaf.membershipClass] = foaf.Person
+        self.assertSetEqual({foaf.Person},
+                            group[foaf.membershipClass, :])
+        group[foaf.membershipClass, :] += 18
+        group[foaf.membershipClass, :] += 'a string'
+        group[foaf.membershipClass, :] += group
+        self.assertSetEqual({foaf.Person, 18, 'a string', group},
+                            group[foaf.membershipClass, :])
+        group[foaf.membershipClass, :] = Literal('15', datatype=XSD.decimal)
+        self.assertEqual(Decimal,
+                         type(group[foaf.membershipClass]))
 
 
 class TestLoadParsers(unittest.TestCase):
@@ -439,6 +458,7 @@ class TestLoadParsers(unittest.TestCase):
         foaf_namespaces = {'foaf': "http://xmlns.com/foaf/0.1/"}
         dcat2_namespaces = {'dcat2': "http://www.w3.org/ns/dcat#"}
         emmo_namespaces = {
+            'annotations': 'http://emmo.info/emmo/top/annotations#',
             'holistic': "http://emmo.info/emmo/middle/holistic#",
             'isq': "http://emmo.info/emmo/middle/isq#",
             'manufacturing': "http://emmo.info/emmo/middle/manufacturing#",

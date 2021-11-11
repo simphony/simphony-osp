@@ -13,7 +13,7 @@ from typing import Optional, TYPE_CHECKING
 from rdflib import RDF, Graph, URIRef
 
 from osp.core.namespaces import cuba
-from osp.core.ontology.datatypes import UID, Vector
+from osp.core.utils.datatypes import UID, Vector
 from osp.core.ontology.parser.owl.parser import OWLParser
 from osp.core.ontology.parser.yml.parser import YMLParser
 from osp.core.session.interfaces.generic import GenericInterface,\
@@ -33,6 +33,9 @@ class TestDummyInterface(unittest.TestCase):
     """Test that the InterfaceStore RDFLib store works as expected."""
 
     graph: Graph
+
+    # Define a dummy store and dummy interface.
+    # ↓ ------------------------------------- ↓
 
     DummyStore = GenericInterfaceStore
 
@@ -81,6 +84,9 @@ class TestDummyInterface(unittest.TestCase):
         def close(self):
             """Not needed, but an implementation is expected."""
             pass
+
+    # ↑ ------------------------------------- ↑
+    # Define a dummy store and dummy interface.
 
     def setUp(self) -> None:
         """Create an interface, a store and assign them to a graph."""
@@ -166,32 +172,34 @@ class TestTriplestoreInterface(unittest.TestCase):
 
     file_name: str = "TestSQLiteInterface"  # Filename for database file.
 
-    FOAF: str = """
-    format: xml
-    identifier: foaf
-    namespaces:
-      foaf: http://xmlns.com/foaf/0.1/
-    ontology_file: http://xmlns.com/foaf/spec/index.rdf
-    reference_by_label: false
-    """
-
     graph: Graph
-    yml_path: str
     prev_default_ontology: Session
 
     @classmethod
     def setUpClass(cls):
-        """Create a TBox only containing CUBA and FOAF.
+        """Create a TBox and set it as the default ontology.
 
-        Such TBox is set as the default TBox.
+        The new TBox contains CUBA, OWL, RDFS and FOAF.
         """
+        # Create a temporary FOAF YML file in order to load it into the TBox.
         with tempfile.NamedTemporaryFile('w', suffix='.yml', delete=False) \
                 as file:
-            cls.yml_path = file.name
-            file.write(cls.FOAF)
+            foaf: str = """
+            format: xml
+            identifier: foaf
+            namespaces:
+              foaf: http://xmlns.com/foaf/0.1/
+            ontology_file: http://xmlns.com/foaf/spec/index.rdf
+            reference_by_label: false
+            """
+            file.write(foaf)
             file.seek(0)
+            yml_path = file.name
+
+        # Create the TBox.
         ontology = Session(identifier='test-tbox', ontology=True)
-        for parser in (OWLParser('cuba'), OWLParser(cls.yml_path)):
+        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
+                       OWLParser(yml_path)):
             ontology.load_parser(parser)
         cls.prev_default_ontology = Session.ontology
         Session.ontology = ontology
@@ -288,13 +296,12 @@ class TestTriplestoreWrapper(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Create a TBox with the CUBA, OWL and city ontologies.
+        """Create a TBox and set it as the default ontology.
 
-        Such TBox is set as the default TBox.
+        The new TBox contains CUBA, OWL, RDFS and City.
         """
         ontology = Session(identifier='test_tbox', ontology=True)
-        for parser in (OWLParser('cuba'),
-                       OWLParser('owl'),
+        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
                        YMLParser('city')):
             ontology.load_parser(parser)
         cls.prev_default_ontology = Session.ontology
@@ -350,7 +357,10 @@ class TestTriplestoreWrapper(unittest.TestCase):
 
 
 class TestRemoteStoreSQLite(unittest.TestCase):
-    """Test the RemoteStoreClient store."""
+    """Test the RemoteStoreClient store.
+
+    The wrapper used for the test on the remote side is the `sqlite` wrapper.
+    """
 
     server_proc = None
     host: str = "127.0.0.1"
@@ -363,13 +373,12 @@ class TestRemoteStoreSQLite(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Create a TBox with the CUBA, OWL and city ontologies.
+        """Create a TBox and set it as the default ontology.
 
-        Such TBox is set as the default TBox.
+        The new TBox contains CUBA, OWL, RDFS and City.
         """
         ontology = Session(identifier='test_tbox', ontology=True)
-        for parser in (OWLParser('cuba'),
-                       OWLParser('owl'),
+        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
                        YMLParser('city')):
             ontology.load_parser(parser)
         cls.prev_default_ontology = Session.ontology

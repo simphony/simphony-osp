@@ -20,10 +20,10 @@ from rdflib.serializer import Serializer as RDFLib_Serializer
 from rdflib.util import guess_format
 
 from osp.core.namespaces import cuba
-from osp.core.ontology.cuba import cuba_namespace
-from osp.core.ontology.datatypes import CUSTOM_TO_PYTHON
 from osp.core.ontology.individual import OntologyIndividual
 from osp.core.session.session import Session
+from osp.core.utils.cuba_namespace import cuba_namespace
+from osp.core.utils.datatypes import CUSTOM_TO_PYTHON
 
 if TYPE_CHECKING:
     from osp.core.ontology.relationship import OntologyRelationship
@@ -132,7 +132,7 @@ def _serialize_individual_json(individual, rel=cuba.activeRelationship,
     Returns:
         Union[str, List]: The serialized cuds object.
     """
-    from osp.core.utils.simple_search import find_cuds_object
+    from osp.core.tools.simple_search import find_cuds_object
     cuds_objects = find_cuds_object(criterion=lambda _: True,
                                     root=individual,
                                     rel=rel,
@@ -161,7 +161,7 @@ def _serialize_individual_triples(individual,
     Returns:
         str: The CUDS object serialized as a RDF file.
     """
-    from osp.core.utils.simple_search import find_cuds_object
+    from osp.core.tools.simple_search import find_cuds_object
     individuals = find_cuds_object(criterion=lambda _: True,
                                    root=individual,
                                    rel=rel,
@@ -217,7 +217,7 @@ def _deserialize_json(json_doc,
         Cuds: The deserialized Cuds.
     """
     from osp.core.session.session import Session
-    from osp.core.ontology.cuba import cuba_namespace
+    from osp.core.utils.cuba_namespace import cuba_namespace
     if isinstance(json_doc, str):
         json_doc = json.loads(json_doc)
 
@@ -343,7 +343,7 @@ def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
         max_depth (int, optional):The maximum depth of the recursion.
             Defaults to float("inf"). Defaults to float("inf").
     """
-    from osp.core.utils.simple_search import find_cuds_object
+    from osp.core.tools.simple_search import find_cuds_object
     cuds_objects = find_cuds_object(criterion=lambda x: True, root=cuds_object,
                                     rel=rel,
                                     find_all=True,
@@ -601,8 +601,7 @@ def sparql(query_string: str, session: Optional = None):
     Raises:
         NotImplementedError: when the session does not support SPARQL queries.
     """
-    from osp.core.cuds import Cuds
-    session = session or Cuds._session
+    session = session or Session.get_default_session()
     try:
         return session.sparql(query_string)
     except AttributeError or NotImplementedError:

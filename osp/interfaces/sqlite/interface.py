@@ -5,9 +5,9 @@ from typing import Optional
 
 from rdflib import XSD
 
-from osp.core.ontology.datatypes import UID, Vector
 from osp.core.session.interfaces.sql import (
     AndCondition, EqualsCondition, JoinCondition, SQLInterface)
+from osp.core.utils.datatypes import UID, Vector
 
 
 class SQLiteInterface(SQLInterface):

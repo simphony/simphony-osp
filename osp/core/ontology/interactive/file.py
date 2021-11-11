@@ -5,17 +5,17 @@ import os
 import os.path
 import shutil
 import tempfile
-from typing import Dict, Iterable, Optional, TYPE_CHECKING
+from typing import Dict, Iterable, Optional
 
 from rdflib import Literal
 
 from osp.core.namespaces import cuba
-from osp.core.ontology.datatypes import UID, RDFCompatibleType, Triple
+from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.individual import OntologyIndividual
 from osp.core.session.session import Session
+from osp.core.utils.cuba_namespace import cuba_namespace
+from osp.core.utils.datatypes import UID, RDFCompatibleType, Triple
 
-if TYPE_CHECKING:
-    from osp.core.ontology.attribute import OntologyAttribute
 
 logger = logging.getLogger(__name__)
 
@@ -23,12 +23,14 @@ logger = logging.getLogger(__name__)
 class File(OntologyIndividual):
     """Ontology individual representing a file."""
 
+    rdf_type = cuba_namespace.File
+
     def __init__(self,
                  uid: Optional[UID] = None,
-                 session: Optional['Session'] = None,
+                 session: Optional[Session] = None,
                  triples: Optional[Iterable[Triple]] = None,
                  attributes: Optional[
-                     Dict['OntologyAttribute',
+                     Dict[OntologyAttribute,
                           Iterable[RDFCompatibleType]]] = None,
                  merge: bool = False,
                  ) -> None:

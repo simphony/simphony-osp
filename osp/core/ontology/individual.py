@@ -4,18 +4,20 @@ import itertools
 import logging
 from abc import ABC, abstractmethod
 from typing import (Any, Dict, Iterable, Iterator, List, MutableSet, Optional,
-                    Set, TYPE_CHECKING, Tuple, Union)
+                    Set, TYPE_CHECKING, Tuple, Type, Union)
 
-from rdflib import RDF, Literal
+from rdflib import RDF, Literal, URIRef
+from rdflib.term import Identifier
 
+from osp.core.ontology.annotation import OntologyAnnotation
 from osp.core.ontology.attribute import OntologyAttribute
-from osp.core.ontology.datatypes import (UID, RDFCompatibleType,
-                                         RDF_COMPATIBLE_TYPES, Triple)
 from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.utils.datatypes import (
+    UID, RDFCompatibleType, RDF_COMPATIBLE_TYPES, Triple)
 
 if TYPE_CHECKING:
-    from osp.core.ontology.oclass import OntologyClass
     from osp.core.session.session import Session
 
 logger = logging.getLogger(__name__)
@@ -23,6 +25,8 @@ logger = logging.getLogger(__name__)
 
 class OntologyIndividual(OntologyEntity):
     """An ontology individual."""
+
+    rdf_identifier = Identifier
 
     # Public API
     # ↓ ------ ↓
@@ -47,9 +51,7 @@ class OntologyIndividual(OntologyEntity):
             A tuple with all the ontology classes of the ontology
             individual. When the individual has no classes, the tuple is empty.
         """
-        # TODO: Why only from `tbox`? Think of assigning a specific ontology
-        #  as TBox to a session for example.
-        return tuple(self.session.from_identifier(o)
+        return tuple(self.session.ontology.from_identifier(o)
                      for o in self.session.graph.objects(self.identifier,
                                                          RDF.type))
 
@@ -216,33 +218,53 @@ class OntologyIndividual(OntologyEntity):
             else:
                 raise e
 
-    def __getitem__(self,
-                    value: Union['OntologyAttribute', 'OntologyRelationship',
-                                 Tuple[
-                                     Union['OntologyAttribute',
-                                           'OntologyRelationship'],
-                                     slice]]) \
-            -> Optional[
-                Union['OntologyIndividual._AttributeSet',
-                      'OntologyIndividual._RelationshipSet',
-                      'OntologyIndividual',
-                      RDFCompatibleType]]:
+    def __getitem__(
+            self,
+            value: Union[OntologyAttribute, OntologyRelationship,
+                         OntologyAnnotation,
+                         Tuple[Union[OntologyAttribute, OntologyRelationship,
+                                     OntologyAnnotation],
+                               slice,
+                               ]
+                         ]
+    ) -> Optional[Union[
+        OntologyAnnotation,                     # Annotation Properties
+        OntologyAttribute,                      # Annotation Properties
+        'OntologyClass',                        # Annotation Properties
+        'OntologyIndividual',                   # Object Properties,
+                                                # Annotation Properties
+        OntologyRelationship,                   # Annotation Properties
+        RDFCompatibleType,                      # Datatype Properties,
+                                                # Annotation Properties
+        'OntologyIndividual._AttributeSet',     # Datatype Properties
+        'OntologyIndividual._RelationshipSet',  # Object Properties
+        'OntologyIndividual._AnnotationSet',    # Annotation Properties
+        URIRef,                                 # Annotation Properties
+    ]]:
         """Retrieve linked ontology individuals or attribute values.
 
         The subscripting syntax `individual[rel]` allows:
-        - When `rel` is an OntologyAttribute, to obtain ONLY ONE
-          (non-deterministic) value of such attribute.
         - When `rel` is an OntologyRelationship, to obtain ONLY ONE
           (non-deterministic) ontology individual of all the ontology
           individuals linked to `individual` through the `rel` relationship.
+        - When `rel` is an OntologyAttribute, to obtain ONLY ONE
+          (non-deterministic) value of such attribute.
+        - When `rel` is an OntologyAnnotation, to obtain ONLY ONE
+          (non-deterministic) annotation value from all the annotation values
+          linked to `individual` through the `rel` annotation property.
 
         The subscripting syntax `individual[rel, :]` allows:
+        - When `rel` is an OntologyRelationship, to obtain a set containing
+          all ontology individuals objects that are connected to `individual`
+          through rel. Such set can be modified in-place to modify the
+          existing connections.
         - When `rel` is an OntologyAttribute, to obtain a set containing all
           the values assigned to the specified attribute. Such set can be
           modified in-place to change the assigned values.
-        - When `rel` is an OntologyRelationship, to obtain a set containing
-          all CUDS objects that are connected to `individual` through rel.
-          Such set can be modified in-place to modify the existing connections.
+        - When `rel` is an OntologyAnnotation, to obtain a set containing
+          all the annotation values assigned to the specified annotation
+          property. Such set can be modified in-place to modify the existing
+          connections.
 
         The reason why a set is returned and not a list, or any other
         container allowing repeated elements, is that the underlying RDF
@@ -250,35 +272,43 @@ class OntologyIndividual(OntologyEntity):
 
         Args:
             value: Two possibilities,
-                - Just an ontology attribute or an ontology relationship
-                  (OWL datatype property, OWL object property). Then only one
-                  CUDS object or attribute value is returned.
+                - Just an ontology relationship, an ontology attribute,
+                  or an ontology annotation (OWL datatype property,
+                  OWL object property, OWL annotation property). Then only one
+                  ontology individual, attribute value or annotation value is
+                  returned.
                 - A tuple (multiple keys specified). The first element of the
-                  tuple is expected to be such attribute or relationship, and
-                  the second a `slice` object. When `slice(None, None, None)`
-                  (equivalent to `:`) is provided, a set-like object of
-                  values is returned. This is the the only kind of slice
-                  supported.
+                  tuple is expected to be such attribute, relationship,
+                  or annotation property, and the second a `slice` object.
+                  When `slice(None, None, None)` (equivalent to `:`) is
+                  provided, a set-like object of values is returned.
+                  This is the the only kind of slice supported.
 
         Raises:
             TypeError: Trying to use something that is neither an
-                OntologyAttribute or an OntologyRelationship as index.
+                OntologyAttribute, an OntologyRelationship or an
+                OntologyAnnotation as index.
             IndexError: When invalid slicing is provided.
         """
+        # Translate input between brackets to slicing syntax.
         if isinstance(value, tuple):
             rel, slicing = value
         else:
             rel, slicing = value, None
 
+        # Select the appropriate set to handle the query.
         if isinstance(rel, OntologyAttribute):
             class_ = self._AttributeSet
         elif isinstance(rel, OntologyRelationship):
             class_ = self._RelationshipSet
+        elif isinstance(rel, OntologyAnnotation):
+            class_ = self._AnnotationSet
         else:
             raise TypeError(f'Ontology individual indices must be ontology '
-                            f'relationships or ontology attributes, '
-                            f'not {type(rel)}')
+                            f'relationships, ontology attributes, '
+                            f'or ontology annotations, not {type(rel)}.')
 
+        # Return the result of the query.
         if slicing is None:
             try:
                 return set(class_(rel, self)).pop()
@@ -299,20 +329,46 @@ class OntologyIndividual(OntologyEntity):
                 f'Only slicing of the kind [{rel}, :], or no slicing, '
                 f'i.e. [{rel}] is supported.')
 
-    def __setitem__(self,
-                    rel: Union[OntologyAttribute, 'OntologyRelationship'],
-                    values: Optional[Union[
-                        Union['OntologyIndividual', RDFCompatibleType],
-                        Set[Union['OntologyIndividual', RDFCompatibleType]]]],
-                    ) -> None:
+    def __setitem__(
+            self,
+            rel: Union[OntologyAttribute, OntologyRelationship,
+                       OntologyAnnotation],
+            values: Optional[Union[
+                Union[OntologyAnnotation,    # Annotation Properties
+                      OntologyAttribute,     # Annotation Properties
+                      'OntologyClass',       # Annotation Properties
+                      'OntologyIndividual',  # Object Properties,
+                                             # Annotation Properties
+                      OntologyRelationship,  # Annotation Properties
+                      RDFCompatibleType,     # Datatype Properties,
+                                             # Annotation Properties
+                      URIRef,                # Annotation Properties
+                      Literal,               # Annotation Properties
+                      ],
+                Set[Union[
+                    OntologyAnnotation,      # Annotation Properties
+                    OntologyAttribute,       # Annotation Properties
+                    OntologyClass,           # Annotation Properties
+                    'OntologyIndividual',    # Object Properties,
+                                             # Annotation Properties
+                    OntologyRelationship,    # Annotation Properties
+                    RDFCompatibleType,       # Datatype Properties,
+                                             # Annotation Properties
+                    URIRef,                  # Annotation Properties
+                    Literal,                 # Annotation Properties
+                ]],
+            ]]
+    ) -> None:
         """Manages both individuals object properties and data properties.
 
         The subscripting syntax `individual[rel] = ` allows,
 
-        - when `rel` is an OntologyRelationship, to replace the list of
-          ontology individuals that are connected to `individual` through rel,
-        - and when `rel` is an OntologyAttribute, to replace the values of
+        - When `rel` is an OntologyRelationship, to replace the list of
+          ontology individuals that are connected to `individual` through rel.
+        - When `rel` is an OntologyAttribute, to replace the values of
           such attribute.
+        - When `rel` is an OntologyAnnotation, to replace the annotation
+          values of such annotation property.
 
         The subscripting syntax `individual[rel, :] = `, even though not
         considered on the type hints is also accepted. However, but the effect
@@ -325,8 +381,9 @@ class OntologyIndividual(OntologyEntity):
         underlying RDF graph does not accept duplicate statements.
 
         Args:
-            rel: Either an ontology attribute or an ontology relationship
-                (OWL datatype property, OWL object property).
+            rel: Either an ontology attribute, an ontology relationship or
+                an ontology annotation (OWL datatype property, OWL object
+                property).
             values: Either a single element compatible with the OWL standard
                 (this includes ontology individuals objects) or a set of such
                 elements.
@@ -337,56 +394,75 @@ class OntologyIndividual(OntologyEntity):
                 trying to use something that is neither an OntologyAttribute
                 or an OntologyRelationship as index.
         """
+        # Get relationship from input between brackets. Slices are ignored.
         if isinstance(rel, tuple) and rel[1] == slice(None, None, None):
             rel = rel[0]
+
+        # Put values in set form.
         values = values or set()
+        # Apparently instances of MutableSet are not instances of Set.
         values = {values} \
             if not isinstance(values, (Set, MutableSet)) \
             else values
-        # Apparently instances of MutableSet are not instances of Set.
-        # TODO: Check arguments.
-        # TODO: validating data types first and then splitting by data types
-        #  sounds like redundancy and decrease in performance.
-        # check_arguments((Cuds, *RDF_COMPATIBLE_TYPES), *values)  (from utils)
-        individuals, literals = \
-            tuple(
-                filter(lambda x: isinstance(x, OntologyIndividual), values)), \
-            tuple(
-                filter(lambda x: isinstance(x, RDF_COMPATIBLE_TYPES), values))
 
+        # Classify the values.
+        values = self._classify_annotation_values(values)
+
+        # Prevent illegal assignments.
         if isinstance(rel, OntologyRelationship):
-            if len(literals) > 0:
-                raise TypeError(f'Trying to assign attributes using an object '
+            if ((len(values) > 0 and OntologyIndividual not in values)
+                    or len(values) > 1):
+                raise TypeError(f'Trying to assign python objects which are '
+                                f'not ontology individuals using an object '
                                 f'property {rel}.')
         elif isinstance(rel, OntologyAttribute):
-            if len(individuals) > 0:
-                raise TypeError(f'Trying to connect ontology individuals '
+            if ((len(values) > 0
+                 and all(x not in values
+                         for x in (RDF_COMPATIBLE_TYPES, Literal)))
+                    or len(values) > 2):
+                raise TypeError(f'Trying to assign python objects which '
+                                f'cannot be interpreted as literals '
                                 f'using a data property {rel}.')
+        elif isinstance(rel, OntologyAnnotation):
+            pass
+        else:
+            raise TypeError(f'Expected one of %s, not {type(rel)}.'
+                            % ', '.join(map(str,
+                                            [OntologyAnnotation,
+                                             OntologyAttribute,
+                                             OntologyRelationship]))
+                            )
 
+        # Perform assignments.
         if isinstance(rel, OntologyRelationship):
-            individuals_set = set(individuals)
+            individuals_set = set(values.get(OntologyIndividual, set()))
             existing_set = set(self._iter(rel=rel))
-
-            to_connect = individuals_set.difference(existing_set)
+            to_connect = individuals_set - existing_set
             for individual in to_connect:
                 self._connect(individual, rel=rel)
-
-            to_disconnect = existing_set.difference(individuals_set)
+            to_disconnect = existing_set - individuals_set
             for individual in to_disconnect:
                 self._disconnect(individual, rel=rel)
         elif isinstance(rel, OntologyAttribute):
-            self._set_attributes(rel, literals)
+            self._set_attributes(rel,
+                                 set(values.get(RDF_COMPATIBLE_TYPES, set()))
+                                 | set(values.get(Literal, set())))
+        elif isinstance(rel, OntologyAnnotation):
+            self._set_annotations(rel, values)
         else:
             raise TypeError(f'Ontology individual indices must be ontology '
-                            f'relationships or ontology attributes, '
-                            f'not {type(rel)}.')
+                            f'relationships, ontology attributes or ontology '
+                            f'annotations not {type(rel)}.')
 
-    def __delitem__(self, rel: Union[OntologyAttribute, OntologyRelationship]):
-        """Delete all attributes or data properties attached through rel.
+    def __delitem__(self, rel: Union[OntologyAnnotation,
+                                     OntologyAttribute,
+                                     OntologyRelationship]):
+        """Delete all objects attached through rel.
 
         Args:
-            rel: Either an ontology attribute or an ontology relationship
-                (OWL datatype property, OWL object property).
+            rel: Either an ontology attribute, an ontology relationship or
+                an ontology annotation (OWL datatype property, OWL object
+                property, OWL annotation property).
         """
         self.__setitem__(rel=rel, values=set())
 
@@ -408,12 +484,14 @@ class OntologyIndividual(OntologyEntity):
         it is safe to spawn multiple instances linked to the same property
         and ontology individual (when single-threading).
         """
-        _predicate: Union[OntologyAttribute, OntologyRelationship]
+        _predicate: Union[OntologyAttribute, OntologyRelationship,
+                          OntologyAnnotation]
         _individual: "OntologyIndividual"
 
         def __init__(self,
                      predicate: Union[OntologyAttribute,
-                                      OntologyRelationship],
+                                      OntologyRelationship,
+                                      OntologyAnnotation],
                      individual: "OntologyIndividual"):
             """Fix the liked property and CUDS object."""
             self._individual = individual
@@ -433,7 +511,7 @@ class OntologyIndividual(OntologyEntity):
         def __repr__(self) -> str:
             """Return repr(self)."""
             return self._underlying_set.__repr__() \
-                + f' <{self._predicate} of ontology individual ' \
+                + f' <({self._predicate.__repr__()}) of ontology individual ' \
                   f'{self._individual}>'
 
         def __str__(self) -> str:
@@ -642,8 +720,7 @@ class OntologyIndividual(OntologyEntity):
 
     def _connect(self,
                  other: "OntologyIndividual",
-                 rel: OntologyRelationship) -> \
-            'OntologyIndividual':
+                 rel: OntologyRelationship) -> 'OntologyIndividual':
         """Connect an ontology individual to this one.
 
         If the connected object is associated with the same session, only a
@@ -783,10 +860,7 @@ class OntologyIndividual(OntologyEntity):
 
         def __len__(self) -> int:
             """Return len(self)."""
-            i = 0
-            for x in self._individual._iter(rel=self._predicate):
-                i += 1
-            return i
+            return sum(1 for _ in self._individual._iter(rel=self._predicate))
 
         def __and__(self, other: set) -> Set['OntologyIndividual']:
             """Return self&other."""
@@ -900,6 +974,289 @@ class OntologyIndividual(OntologyEntity):
     # ↑ ----------------- ↑
     # Relationship handling
 
+    # Annotation handling
+    # ↓ --------------- ↓
+
+    class _AnnotationSet(_ObjectSet, MutableSet):
+        _predicate: OntologyAnnotation
+        _individual: "OntologyIndividual"
+
+        @property
+        def _underlying_set(self) -> Set[Union[
+            OntologyAnnotation,
+            OntologyAttribute,
+            OntologyClass,
+            'OntologyIndividual',
+            OntologyRelationship,
+            RDFCompatibleType,
+            URIRef,
+        ]]:
+            """The set of values assigned to the linked annotation.
+
+            Returns:
+                The mentioned underlying set.
+            """
+            return set(
+                self._individual._annotation_value_generator(
+                    annotation=self._predicate
+                ))
+
+        def __init__(self,
+                     annotation: OntologyAnnotation,
+                     individual: "OntologyIndividual") -> None:
+            """Fix the linked OntologyAnnotation and ontology individual."""
+            super().__init__(annotation, individual)
+
+        def __len__(self):
+            """Return len(self)."""
+            return sum(
+                1 for _ in self._individual._annotation_value_generator(
+                    annotation=self._predicate))
+
+        def __ior__(self,
+                    other: Set[Union[
+                        OntologyAnnotation,
+                        OntologyAttribute,
+                        OntologyClass,
+                        'OntologyIndividual',
+                        OntologyRelationship,
+                        RDFCompatibleType,
+                        URIRef,
+                    ]]) -> 'OntologyIndividual._AnnotationSet':
+            """Return self|=other."""
+            self._individual._set_annotations(annotation=self._predicate,
+                                              values=self | other)
+            return self
+
+        def __iand__(self,
+                     other: Set[Union[
+                         OntologyAnnotation,
+                         OntologyAttribute,
+                         OntologyClass,
+                         'OntologyIndividual',
+                         OntologyRelationship,
+                         RDFCompatibleType,
+                         URIRef,
+                     ]]) -> 'OntologyIndividual._AnnotationSet':
+            """Return self&=other."""
+            self._individual._set_annotations(annotation=self._predicate,
+                                              values=self & other)
+            return self
+
+        def __ixor__(self,
+                     other: Set[Union[
+                         OntologyAnnotation,
+                         OntologyAttribute,
+                         OntologyClass,
+                         'OntologyIndividual',
+                         OntologyRelationship,
+                         RDFCompatibleType,
+                         URIRef,
+                     ]]) -> 'OntologyIndividual._AnnotationSet':
+            """Return self^=other."""
+            self._individual._set_annotations(annotation=self._predicate,
+                                              values=self ^ other)
+            return self
+
+        def __isub__(self,
+                     other: Any) -> 'OntologyIndividual._AnnotationSet':
+            """Return self-=other."""
+            if isinstance(other, (Set, MutableSet)):
+                # Apparently instances of MutableSet are not instances of Set.
+                self._individual._set_annotations(annotation=self._predicate,
+                                                  values=self - other)
+            else:
+                self._individual._set_annotations(annotation=self._predicate,
+                                                  values=self - {other})
+            return self
+
+        def clear(self) -> None:
+            """Remove all elements from this set.
+
+            This also removed all the values assigned to the annotation
+            linked to this set for the individual linked to this set.
+            """
+            self._individual._set_annotations(annotation=self._predicate,
+                                              values=set())
+
+        def pop(self) -> Union[
+            OntologyAnnotation,
+            OntologyAttribute,
+            OntologyClass,
+            'OntologyIndividual',
+            OntologyRelationship,
+            RDFCompatibleType,
+            URIRef,
+        ]:
+            """Remove and return an arbitrary set element.
+
+            Raises KeyError if the set is empty.
+            """
+            result = self._underlying_set.pop()
+            self._individual._set_annotations(annotation=self._predicate,
+                                              values=self - {result})
+            return result
+
+        def difference_update(self, other: Iterable):
+            """Remove all elements of another set from this set."""
+            self._individual._set_annotations(annotation=self._predicate,
+                                              values=self - set(other))
+
+        def discard(self, other: Any):
+            """Remove an element from a set if it is a member.
+
+            If the element is not a member, do nothing.
+            """
+            self._individual._set_annotations(annotation=self._predicate,
+                                              values=self - {other})
+
+        def intersection(self, other: set) -> Set[Union[
+            OntologyAnnotation,
+            OntologyAttribute,
+            OntologyClass,
+            'OntologyIndividual',
+            OntologyRelationship,
+            RDFCompatibleType,
+            URIRef,
+        ]]:
+            """Return the intersection of two sets as a new set.
+
+            (i.e. all elements that are in both sets.)
+            """
+            return super().intersection(other)
+
+        def remove(self, other: Any):
+            """Remove an element from a set; it must be a member.
+
+            If the element is not a member, raise a KeyError.
+            """
+            if other in self._underlying_set:
+                self._individual._set_annotations(annotation=self._predicate,
+                                                  values=self - {other})
+            else:
+                raise KeyError(f"{other}")
+
+        def update(self, other: Iterable):
+            """Update a set with the union of itself and others."""
+            self._individual._set_annotations(annotation=self._predicate,
+                                              values=self | set(other))
+
+    @staticmethod
+    def _classify_annotation_values(
+            values: Set[Union[
+                OntologyAnnotation,      # Annotation Properties
+                OntologyAttribute,       # Annotation Properties
+                OntologyClass,           # Annotation Properties
+                'OntologyIndividual',    # Object Properties,
+                                         # Annotation Properties
+                OntologyRelationship,    # Annotation Properties
+                RDFCompatibleType,       # Datatype Properties,
+                                         # Annotation Properties
+                URIRef,                  # Annotation Properties
+                Literal,                 # Annotation Properties
+            ]]
+    ):
+        values = {type_: tuple(filter(lambda x: isinstance(x, type_), values))
+                  for type_ in (OntologyAnnotation, OntologyAttribute,
+                                OntologyClass, OntologyIndividual,
+                                OntologyRelationship, RDF_COMPATIBLE_TYPES,
+                                URIRef, Literal)}
+        values = {key: value
+                  for key, value in values.items()
+                  if value}
+        return values
+
+    def _set_annotations(self,
+                         annotation: OntologyAnnotation,
+                         values: Union[
+                             Dict[
+                                 Union[
+                                     Type[OntologyAnnotation],
+                                     Type[OntologyAttribute],
+                                     Type[OntologyClass],
+                                     Type['OntologyIndividual'],
+                                     Type[OntologyRelationship],
+                                     Type[Literal],
+                                     Type[RDFCompatibleType],
+                                     Type[URIRef],
+                                 ],
+                                 Union[
+                                     Iterable[OntologyAnnotation],
+                                     Iterable[OntologyAttribute],
+                                     Iterable[OntologyClass],
+                                     Iterable['OntologyIndividual'],
+                                     Iterable[OntologyRelationship],
+                                     Iterable[Literal],
+                                     Iterable[RDFCompatibleType],
+                                     Iterable[URIRef]
+                                 ],
+                             ],
+                             Set[Union[
+                                 OntologyAnnotation,
+                                 OntologyAttribute,
+                                 OntologyClass,
+                                 'OntologyIndividual',
+                                 OntologyRelationship,
+                                 RDFCompatibleType,
+                                 URIRef,
+                                 Literal,
+                             ]]
+                         ]) -> None:
+        if not isinstance(values, dict):
+            values = self._classify_annotation_values(values)
+
+        self.session.graph.remove((self.iri, annotation.iri, None))
+        for value in itertools.chain(*(values.get(key, set())
+                                       for key in (OntologyAnnotation,
+                                                   OntologyAttribute,
+                                                   OntologyClass,
+                                                   OntologyIndividual,
+                                                   OntologyRelationship))
+                                     ):
+            self.session.graph.add((self.iri, annotation.iri, value.iri))
+        for value in values.get(Literal, set()):
+            self.session.graph.add(
+                (self.iri, annotation.iri,
+                 value)
+            )
+        for value in values.get(RDF_COMPATIBLE_TYPES, set()):
+            self.session.graph.add(
+                (self.iri, annotation.iri,
+                 Literal(value))
+            )
+        for value in values.get(URIRef, set()):
+            self.session.graph.add((self.iri, annotation.iri, value))
+
+    def _annotation_value_generator(self,
+                                    annotation: OntologyAnnotation) \
+            -> Iterator[Union[
+                OntologyAnnotation,
+                OntologyAttribute,
+                OntologyClass,
+                'OntologyIndividual',
+                OntologyRelationship,
+                RDFCompatibleType,
+                URIRef
+            ]]:
+        for obj in self.session.graph.objects(self.iri, annotation.iri):
+            if isinstance(obj, URIRef):
+                try:
+                    yield self.session.from_identifier(obj)
+                    continue
+                except KeyError:
+                    pass
+                try:
+                    yield self.session.ontology.from_identifier(obj)
+                    continue
+                except KeyError:
+                    pass
+                yield obj
+            elif isinstance(obj, Literal):
+                yield obj.toPython()
+
+    # ↑ --------------- ↑
+    # Annotation handling
+
     # Attribute handling
     # ↓ -------------- ↓
 
@@ -995,7 +1352,8 @@ class OntologyIndividual(OntologyEntity):
 
     def _set_attributes(self,
                         attribute: OntologyAttribute,
-                        values: Iterable[RDFCompatibleType]):
+                        values: Iterable[Union[RDFCompatibleType,
+                                               Literal]]):
         """Replace values assigned to a datatype property.
 
         Args:
@@ -1006,14 +1364,13 @@ class OntologyIndividual(OntologyEntity):
 
         Raises:
             TypeError: When Python objects with types incompatible with the
-                OWL standard or with OSP-core as custom datatypes are given.
+                OWL standard or with OSP-core as custom data types are given.
         """
         # TODO: prevent the end result having more than one value than one
         #  depending on ontology cardinality restrictions and/or functional
         #  property criteria.
-        values = set(values)
         for x in values:
-            if not isinstance(x, RDF_COMPATIBLE_TYPES):
+            if not isinstance(x, (RDF_COMPATIBLE_TYPES, Literal)):
                 logger.warning(f"Type '{type(x)}' of object {x} cannot "
                                f"be set as attribute value, as it is "
                                f"incompatible with the OWL standard")
@@ -1123,16 +1480,14 @@ class OntologyIndividual(OntologyEntity):
         def __init__(self,
                      attribute: OntologyAttribute,
                      individual: "OntologyIndividual"):
-            """Fix the liked OntologyAttribute and ontology individual."""
+            """Fix the linked OntologyAttribute and ontology individual."""
             super().__init__(attribute, individual)
 
         def __len__(self) -> int:
             """Return len(self)."""
-            i = 0
-            for x in self._individual._attribute_value_generator(
-                    attribute=self._predicate):
-                i += 1
-            return i
+            return sum(
+                1 for _ in self._individual._attribute_value_generator(
+                    attribute=self._predicate))
 
         def __and__(self, other: set) -> Set[RDFCompatibleType]:
             """Return self&other."""

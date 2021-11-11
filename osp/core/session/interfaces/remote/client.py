@@ -14,8 +14,6 @@ from rdflib.term import Identifier
 from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 from rdflib.plugins.stores.memory import SimpleMemory
 
-from osp.core.ontology.cuba import cuba_namespace
-from osp.core.ontology.datatypes import Triple, Pattern
 from osp.core.session.interfaces.generic import BufferType
 from osp.core.session.interfaces.remote.communication_engine import \
     CommunicationEngineClient
@@ -25,6 +23,8 @@ from osp.core.session.interfaces.remote.utils import (
     LOGIN_COMMAND, REMOVE_TRIPLES_COMMAND, RENAME_FILES_COMMAND,
     UPDATE_FILES_COMMAND, get_hash,
 )
+from osp.core.utils.cuba_namespace import cuba_namespace
+from osp.core.utils.datatypes import Triple, Pattern
 
 
 class RemoteStoreClient(Store):

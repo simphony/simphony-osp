@@ -37,7 +37,7 @@ setup(
     python_requires=">=3.7",
     entry_points={
         'console_scripts': {
-            'pico = osp.core.tools.pico:pico',
+            'pico = osp.core.utils.pico:pico',
             'semantic2dot = osp.core.tools.semantic2dot:run_from_terminal',
         }
     },

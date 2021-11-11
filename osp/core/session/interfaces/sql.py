@@ -3,16 +3,16 @@
 from abc import abstractmethod
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
-from rdflib import Literal, URIRef
+from rdflib import BNode, Literal, URIRef
 from rdflib import RDF, RDFS, OWL, XSD
 
-from osp.core.ontology.datatypes import (
-    CUSTOM_TO_PYTHON, RDFCompatibleType, RDF_TO_PYTHON, SimpleTriple,
-    SimplePattern, UID)
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.session.interfaces.triplestore import (
     TriplestoreInterface, TriplestoreStore)
 from osp.core.session.session import Session
+from osp.core.utils.datatypes import (
+    CUSTOM_TO_PYTHON, RDFCompatibleType, RDF_TO_PYTHON, SimpleTriple,
+    SimplePattern, UID)
 from osp.core.utils.general import CUDS_IRI_PREFIX
 
 
@@ -599,6 +599,10 @@ class SQLInterface(TriplestoreInterface):
         Yields:
             Triples (see SimpleTriple description) without blank nodes.
         """
+        if any(isinstance(x, BNode) for x in pattern):
+            # This interface does not enable the storage of blank nodes,
+            # therefore such patterns should never return triples.
+            return
         for q, t, dt in self._queries(pattern):
             c = self._do_db_select(q)
             yield from self._rows_to_triples(cursor=c,

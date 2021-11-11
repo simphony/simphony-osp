@@ -10,8 +10,8 @@ import yaml
 from rdflib import OWL, RDF, RDFS, SKOS, XSD, Graph, Literal, URIRef
 from rdflib.compare import isomorphic
 
-from osp.core.ontology.cuba import cuba_namespace
-from osp.core.ontology.datatypes import Vector
+from osp.core.utils.cuba_namespace import cuba_namespace
+from osp.core.utils.datatypes import Vector
 from osp.core.ontology.parser.owl.parser import OWLParser
 from osp.core.ontology.parser.parser import OntologyParser
 from osp.core.ontology.parser.yml.parser import YMLParser

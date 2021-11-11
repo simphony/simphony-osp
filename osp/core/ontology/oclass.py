@@ -9,9 +9,9 @@ from uuid import UUID
 from rdflib import OWL, RDFS, RDF, BNode, URIRef
 from rdflib.term import Identifier
 
-from osp.core.ontology.cuba import cuba_namespace
-from osp.core.ontology.datatypes import UID, RDFCompatibleType, Triple
 from osp.core.ontology.entity import OntologyEntity
+from osp.core.utils.cuba_namespace import cuba_namespace
+from osp.core.utils.datatypes import UID, RDFCompatibleType, Triple
 
 if TYPE_CHECKING:
     from osp.core.ontology.attribute import OntologyAttribute
@@ -26,6 +26,9 @@ BLACKLIST = {OWL.Nothing, OWL.Thing,
 
 class OntologyClass(OntologyEntity):
     """A class defined in the ontology."""
+
+    rdf_type = {OWL.Class, RDFS.Class}
+    rdf_identifier = URIRef
 
     def __init__(self,
                  uid: UID,
@@ -47,7 +50,7 @@ class OntologyClass(OntologyEntity):
         logger.debug("Instantiated ontology class %s" % self)
 
     @property
-    def attributes(self) -> Dict["OntologyAttribute", Set[Any]]:
+    def attributes(self) -> Dict['OntologyAttribute', Set[Any]]:
         """Get the class attributes.
 
         Non-mandatory attributes or attributes without a default value will

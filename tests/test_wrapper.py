@@ -8,7 +8,7 @@ import time
 import unittest
 from typing import Optional
 
-from osp.core.ontology.datatypes import Vector
+from osp.core.utils.datatypes import Vector
 from osp.core.ontology.parser.owl.parser import OWLParser
 from osp.core.ontology.parser.yml.parser import YMLParser
 from osp.core.session.interfaces.remote.server import RemoteStoreServer
@@ -29,13 +29,12 @@ class TestWrapper(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Create a TBox with the CUBA, OWL and city ontologies.
+        """Create a TBox and set it as the default ontology.
 
-        Such TBox is set as the default TBox.
+        The new TBox contains CUBA, OWL, RDFS and City.
         """
         ontology = Session(identifier='test_tbox', ontology=True)
-        for parser in (OWLParser('cuba'),
-                       OWLParser('owl'),
+        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
                        YMLParser('city')):
             ontology.load_parser(parser)
         cls.prev_default_ontology = Session.ontology
@@ -173,13 +172,12 @@ class TestDataspaceWrapper(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Create a TBox with the CUBA, OWL and city ontologies.
+        """Create a TBox and set it as the default ontology.
 
-        Such TBox is set as the default TBox.
+        The new TBox contains CUBA, OWL, RDFS and City.
         """
         ontology = Session(identifier='test_tbox', ontology=True)
-        for parser in (OWLParser('cuba'),
-                       OWLParser('owl'),
+        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
                        YMLParser('city')):
             ontology.load_parser(parser)
         cls.prev_default_ontology = Session.ontology

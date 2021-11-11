@@ -2,19 +2,18 @@
 
 import itertools
 import logging
-from typing import Any, Iterable, Iterator, Optional, TYPE_CHECKING, \
-    Tuple, Union
+from typing import Any, Iterable, Iterator, Optional, TYPE_CHECKING, Tuple, \
+    Union
 
-import rdflib
 from rdflib import BNode, URIRef
 from rdflib.term import Identifier
 
+from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.parser.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
 
 if TYPE_CHECKING:
-    from osp.core.ontology.entity import OntologyEntity
-    from osp.core.ontology.relationship import OntologyRelationship
     from osp.core.session.session import Session
 
 
@@ -35,7 +34,7 @@ class OntologyNamespace:
         return self._iri
 
     @property
-    def active_relationships(self) -> Tuple['OntologyRelationship']:
+    def active_relationships(self) -> Tuple[OntologyRelationship]:
         """Get the active relationships defined in the ontology.
 
         Only returns the relationships that belong to this namespace.
@@ -47,7 +46,7 @@ class OntologyNamespace:
     @active_relationships.setter
     def active_relationships(self, value: Union[None,
                                                 Iterable[
-                                                    'OntologyRelationship']]):
+                                                    OntologyRelationship]]):
         """Set the active relationships defined in the ontology.
 
         Only replaces and sets relationships that belong to this namespace.
@@ -63,13 +62,13 @@ class OntologyNamespace:
         )
 
     @property
-    def default_relationship(self) -> Optional['OntologyRelationship']:
+    def default_relationship(self) -> Optional[OntologyRelationship]:
         """Get the default relationship for this namespace."""
         return self.ontology.default_relationships.get(self)
 
     @default_relationship.setter
     def default_relationship(self,
-                             value: Optional['OntologyRelationship']):
+                             value: Optional[OntologyRelationship]):
         """Set the default relationship for this namespace."""
         self.ontology.default_relationships = \
             self.ontology.default_relationships.update(
@@ -148,7 +147,7 @@ class OntologyNamespace:
     # Query content stored in the linked session's bag
     # ↓-----------------------------------------------↓
 
-    def __getattr__(self, name: str) -> 'OntologyEntity':
+    def __getattr__(self, name: str) -> OntologyEntity:
         """Get an ontology entity from the associated ontology.
 
         Args:
@@ -171,7 +170,7 @@ class OntologyNamespace:
             except KeyError as e:
                 raise AttributeError(str(e)) from e
 
-    def __getitem__(self, label: str) -> 'OntologyEntity':
+    def __getitem__(self, label: str) -> OntologyEntity:
         """Get an ontology entity from the associated ontology by label.
 
         Useful for entities whose labels contains characters which are not
@@ -215,7 +214,7 @@ class OntologyNamespace:
         return itertools.chain(dir(super()), entity_autocompletion)
 
     def get(self, name: str,
-            default: Optional[Any] = None) -> "OntologyEntity":
+            default: Optional[Any] = None) -> OntologyEntity:
         """Get an ontology entity from the registry by suffix or label.
 
         Args:
@@ -230,7 +229,7 @@ class OntologyNamespace:
         except AttributeError:
             return default
 
-    def from_iri(self, iri: Union[str, URIRef]) -> 'OntologyEntity':
+    def from_iri(self, iri: Union[str, URIRef]) -> OntologyEntity:
         """Get an ontology entity directly from its IRI.
 
         For consistency, this method only returns entities from this namespace.
@@ -252,7 +251,7 @@ class OntologyNamespace:
                            f"{self}.")
 
     def from_suffix(self, suffix: str, case_sensitive: bool = False) -> \
-            'OntologyEntity':
+            OntologyEntity:
         """Get an ontology entity from its namespace suffix.
 
         Args:
@@ -273,7 +272,7 @@ class OntologyNamespace:
     def from_label(self,
                    label: str,
                    lang: Optional[str] = None,
-                   case_sensitive: bool = False) -> 'OntologyEntity':
+                   case_sensitive: bool = False) -> OntologyEntity:
         """Get an ontology entity from its label."""
         try:
             entities = set(
@@ -350,7 +349,9 @@ class OntologyNamespace:
         """Return the number of entities in the namespace."""
         return sum(1 for _ in self)
 
-    def __contains__(self, item: Union['OntologyEntity', Identifier]) -> bool:
+    def __contains__(self, item: Union[OntologyEntity,
+                                       BNode,
+                                       URIRef]) -> bool:
         """Check whether the given entity is part of the namespace.
 
         Args:
@@ -360,28 +361,18 @@ class OntologyNamespace:
             Whether the given entity name or IRI is part of the namespace.
             Blank nodes are never part of a namespace.
         """
-        from osp.core.ontology.entity import OntologyEntity
-
-        if not isinstance(item, (rdflib.URIRef, rdflib.BNode, OntologyEntity)):
-            raise TypeError(f'in {type(self)} requires, '
-                            f'{Identifier} or {OntologyEntity} as left '
-                            f'operand, not {type(item)}.')
-
         if isinstance(item, BNode):
             return False
         elif isinstance(item, URIRef):
             return item.startswith(self.iri)
-        elif isinstance(item, Identifier):
-            # Is there an Identifier which is not a BNode or URIRef?.
-            return False
-        elif isinstance(item, OntologyEntity) \
-                and item.session is self.ontology:
-            if isinstance(item.identifier, BNode):
-                return item.identifier in self._iter_identifiers()
-            else:
-                return item.identifier in self
+        elif isinstance(item, OntologyEntity):
+            return item.identifier in self \
+                if item.session is self.ontology else \
+                False
         else:
-            return False
+            raise TypeError(f'in {type(self)} requires, '
+                            f'{Identifier} or {OntologyEntity} as left '
+                            f'operand, not {type(item)}.')
 
     # Query content stored in the linked session's bag
     # ↑-----------------------------------------------↑
@@ -390,7 +381,7 @@ class OntologyNamespace:
     # ↓----------------------↓
 
     def _get_case_insensitive(self, name: str,
-                              method: callable) -> "OntologyEntity":
+                              method: callable) -> OntologyEntity:
         """Get by trying alternative naming convention of given name.
 
         Args:

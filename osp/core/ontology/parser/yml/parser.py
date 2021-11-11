@@ -1,19 +1,21 @@
 """Parses YAML ontologies."""
 
-from typing import Tuple, Set, Dict, Optional
 import os
 import logging
+from typing import Dict, Tuple, Optional, Set
+
+import yaml
 from rdflib import BNode, Graph, URIRef, Literal, RDF, RDFS, OWL, XSD, SKOS
 from rdflib.graph import ReadOnlyGraphAggregate
-import yaml
-from osp.core.ontology.cuba import cuba_namespace
-from osp.core.ontology.datatypes import YML_TO_RDF, CUSTOM_TO_PYTHON
+
 from osp.core.ontology.parser.parser import OntologyParser
 from osp.core.ontology.parser.yml.validator import validate
 from osp.core.ontology.parser.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
 import osp.core.ontology.parser.yml.keywords as keywords
 from osp.core.session.session import Session
+from osp.core.utils.cuba_namespace import cuba_namespace
+from osp.core.utils.datatypes import YML_TO_RDF, CUSTOM_TO_PYTHON
 
 default_ontology = Session.ontology
 

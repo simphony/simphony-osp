@@ -9,9 +9,9 @@ from rdflib import OWL, BNode, URIRef
 from rdflib.term import Identifier
 
 from osp.core.ontology.attribute import OntologyAttribute
-from osp.core.ontology.datatypes import Triple, UID
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.utils.datatypes import Triple, UID
 
 if TYPE_CHECKING:
     from osp.core.ontology.oclass import OntologyClass
@@ -38,6 +38,9 @@ class RTYPE(Enum):
 
 class Restriction(OntologyEntity):
     """A class to represent restrictions on ontology classes."""
+
+    rdf_type = OWL.Restriction
+    rdf_identifier = BNode
 
     def __init__(self,
                  uid: UID,

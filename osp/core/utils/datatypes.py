@@ -431,6 +431,9 @@ for iri, data_type in RDF_TO_PYTHON.items():
         continue
     term.bind(iri, data_type)
 
+# --- PYTHON TO RDF --- #
+# TODO: Automatically done by RDFLib, but additional bindings might be
+#  necessary, just like it was done for the custom data types.
 
 # --- YML TO RDF --- #
 YML_TO_RDF = {
