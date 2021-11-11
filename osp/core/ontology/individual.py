@@ -953,8 +953,9 @@ class OntologyIndividual(OntologyEntity):
         for x in values:
             if not isinstance(x, RDF_COMPATIBLE_TYPES):
                 raise TypeError(f"Type '{type(x)}' of object {x} cannot "
-                                f"be set as attribute value, as it is "
-                                f"incompatible with the OWL standard")
+                                f"be set as attribute value, as it is either"
+                                f"incompatible with the OWL standard or not "
+                                f"yet supported by OSP-core.")
 
         for value in values:
             self.session.graph.add(

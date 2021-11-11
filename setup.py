@@ -47,8 +47,7 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "rdflib",  # Redundant, but some IDEs do not understand what is below.
-        "rdflib >= 6.0.0, < 7.0.0",
+        "rdflib >= 6.0.2, < 7.0.0",
     ],
     setup_requires=[
     ],

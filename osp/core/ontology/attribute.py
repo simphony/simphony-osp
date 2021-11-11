@@ -5,7 +5,7 @@ from typing import Any, Iterable, Iterator, Optional, TYPE_CHECKING
 
 from rdflib import RDFS, XSD, Literal, URIRef
 
-from osp.core.ontology.datatypes import RDF_TO_PYTHON, Triple, UID
+from osp.core.ontology.datatypes import Triple, UID, rdf_to_python
 from osp.core.ontology.entity import OntologyEntity
 
 if TYPE_CHECKING:
@@ -66,18 +66,7 @@ class OntologyAttribute(OntologyEntity):
         Returns:
             The converted value.
         """
-        # TODO: Very similar to
-        #  `osp.core.session.interfaces.sql_wrapper_session.SqlWrapperSession
-        #  ._convert_to_datatype`. Unify somehow.
-        if isinstance(value, Literal):
-            result = Literal(value.toPython(), datatype=self.datatype,
-                             lang=value.language).toPython()
-            if isinstance(result, Literal):
-                result = RDF_TO_PYTHON[self.datatype or XSD.string](
-                    value.value)
-        else:
-            result = RDF_TO_PYTHON[self.datatype or XSD.string](value)
-        return result
+        return rdf_to_python(value, self.datatype)
 
     def _get_direct_superclasses(self) -> Iterator[OntologyEntity]:
         """Get all the direct superclasses of this attribute.
