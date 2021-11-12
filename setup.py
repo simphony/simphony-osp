@@ -8,11 +8,12 @@ from packageinfo import VERSION, NAME
 
 
 # Read description
-with open('README.md', 'r') as readme:
+with open('README.md', 'r', encoding="utf8") as readme:
     README_TEXT = readme.read()
 
-with open("packageinfo.py", "r") as packageinfo:
-    with open(os.path.join("osp", "core", "packageinfo.py"), "w") as f:
+with open("packageinfo.py", "r", encoding="utf8") as packageinfo:
+    with open(os.path.join("osp", "core", "packageinfo.py"),
+              "w", encoding="utf8") as f:
         for line in packageinfo:
             print(line, file=f, end="")
         for i in range(10):
@@ -52,8 +53,12 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "rdflib >= 5.0.0, < 6.0.0; python_version < '3.7'",
         "rdflib >= 6.0.0, < 7.0.0; python_version >= '3.7'",
+        # ↓ --- Python 3.6 support. --- ↓ #
+        "rdflib >= 5.0.0, < 6.0.0; python_version < '3.7'",
         "rdflib-jsonld == 0.6.1; python_version < '3.7'",
+        "pyparsing < 3.0.0; python_version < '3.7'",
+        # 🠕 Required by rdflib >= 5.0.0, < 6.0.0, otherwise no SPARQL support.
+        # ↑ --- Python 3.6 support. --- ↑ #
     ],
 )
