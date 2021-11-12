@@ -8,11 +8,12 @@ from packageinfo import VERSION, NAME
 
 
 # Read description
-with open('README.md', 'r') as readme:
+with open('README.md', 'r', encoding="utf8") as readme:
     README_TEXT = readme.read()
 
-with open("packageinfo.py", "r") as packageinfo:
-    with open(os.path.join("osp", "core", "packageinfo.py"), "w") as f:
+with open("packageinfo.py", "r", encoding="utf8") as packageinfo:
+    with open(os.path.join("osp", "core", "packageinfo.py"),
+              "w", encoding="utf8") as f:
         for line in packageinfo:
             print(line, file=f, end="")
         for i in range(10):
