@@ -3,9 +3,9 @@ LABEL org.opencontainers.image.authors="pablo.de.andres@fraunhofer.iwm.de, jose.
 
 RUN apt-get update && \
     apt-get install -y python3.7 python3-pip
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.6 1
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.7 2
-RUN update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 2
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 2
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 RUN python -m pip install --upgrade pip
 
 ADD . /simphony/osp-core

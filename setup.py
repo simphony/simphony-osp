@@ -53,8 +53,12 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "rdflib >= 5.0.0, < 6.0.0; python_version < '3.7'",
         "rdflib >= 6.0.0, < 7.0.0; python_version >= '3.7'",
+        # ↓ --- Python 3.6 support. --- ↓ #
+        "rdflib >= 5.0.0, < 6.0.0; python_version < '3.7'",
         "rdflib-jsonld == 0.6.1; python_version < '3.7'",
+        "pyparsing < 3.0.0; python_version < '3.7'",
+        # 🠕 Required by rdflib >= 5.0.0, < 6.0.0, otherwise no SPARQL support.
+        # ↑ --- Python 3.6 support. --- ↑ #
     ],
 )
