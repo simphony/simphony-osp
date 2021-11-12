@@ -34,17 +34,14 @@ setup(
         exclude=("examples",
                  "tests")),
     package_data={
-        "osp.core.ontology.docs": ["*.yml", "*.ttl", "*.xml", "EMMO/*.owl"],
+        "osp.core.ontology.files": ["*.yml", "*.ttl", "*.xml", "*.owl"],
     },
     include_package_data=True,
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     entry_points={
-        'wrappers': 'osp-core = osp.core.session.core_session:CoreSession',
         'console_scripts': {
-            'owl2yml = osp.core.tools.owl2yml:run_from_terminal',
-            'pico = osp.core.pico:install_from_terminal',
-            'ontology2dot = osp.core.tools.ontology2dot:run_from_terminal',
-            'yaml2camelcase = osp.core.tools.yaml2camelcase:run_from_terminal'
+            'pico = osp.core.tools.pico:pico',
+            'semantic2dot = osp.core.tools.semantic2dot:run_from_terminal',
         }
     },
     install_requires=[
@@ -53,8 +50,9 @@ setup(
         "requests",
         "numpy",
         "graphviz",
-        "rdflib >= 5.0.0, < 6.0.0; python_version < '3.7'",
-        "rdflib >= 6.0.0, < 7.0.0; python_version >= '3.7'",
-        "rdflib-jsonld == 0.6.1; python_version < '3.7'",
+        "rdflib",  # Redundant, but some IDEs do not understand what is below.
+        "rdflib >= 6.0.0, < 7.0.0",
+    ],
+    setup_requires=[
     ],
 )

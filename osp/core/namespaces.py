@@ -1,41 +1,91 @@
 """You can import the installed namespaces from this module."""
 
-import os as _os
 import logging as _logging
-from osp.core.ontology.namespace_registry import namespace_registry \
-    as _namespace_registry
+from typing import Union as _Union
+from typing import TYPE_CHECKING as _TYPE_CHECKING
+
+from rdflib import URIRef as _URIRef
+from rdflib.term import Identifier as _Identifier
+
+from osp.core.ontology.parser import OntologyParser as _OntologyParser
+from osp.core.session.session import Session as _Session
+from osp.core.tools.pico import OntologyInstallationManager \
+    as _OntologyInstallationManager
+
+if _TYPE_CHECKING:
+    from osp.core.ontology.entity import OntologyEntity
+
+self = __import__(__name__)
 
 _logger = _logging.getLogger(__name__)
 
-# load installed ontologies
-_osp_ontologies_dir = _os.environ.get("OSP_ONTOLOGIES_DIR") \
-    or _os.path.expanduser("~")
-_path = _os.path.join(
-    _osp_ontologies_dir,
-    ".osp_ontologies"
-)
-_os.makedirs(_path, exist_ok=True)
+# --- Load installed ontologies --
+# Set ontology directory and create it if nonexistent
 
-
+# Load the ontologies.
+_default_ontology = _Session.ontology
 try:
-    _namespace_registry.load_graph_file(_path)
+    # Load built-in ontologies.
+    _parser = _OntologyParser.get_parser('cuba')
+    _default_ontology.load_parser(_parser)
+    _parser = _OntologyParser.get_parser('owl')
+    _default_ontology.load_parser(_parser)
+
+    # Sort installed ontologies for loading (topological sort).
+    _InstallationManager = _OntologyInstallationManager()
+    _parsers = _InstallationManager.topologically_sorted_parsers
+
+    # Load installed ontologies.
+    for _parser in _parsers:
+        _default_ontology.load_parser(_parser)
 except RuntimeError:
     _logger.critical("Could not load installed ontologies.", exc_info=1)
 
 
-def get_entity(name):
-    """Get an entity by the given name.
+# Access namespaces from this module.
+
+def __getattr__(name: str):
+    try:
+        return _Session.ontology.get_namespace(name)
+    except KeyError as e:
+        raise AttributeError from e
+
+
+def __dir__():
+    return list((x.name for x in _Session.ontology.namespaces))
+
+
+# `from_iri` as gateway to `_tbox.from_identifier`.
+def from_iri(iri: _Union[str, _URIRef]):
+    """Get an entity from its IRI from the default TBox.
 
     Args:
-        name (str): namespace.entity_name
+        iri: The IRI of the entity.
+
+    Raises:
+        KeyError: The ontology entity is not stored in the default TBox.
 
     Returns:
-        OntologyEntity: The entity with the given name.
+        The OntologyEntity.
     """
-    ns, n = name.split(".")
-    return _namespace_registry._get(ns)._get(n)
+    if type(iri) is str:
+        iri = _URIRef(str)
+    if not isinstance(iri, _URIRef):
+        raise TypeError(f"Expected {str} or {_URIRef}, not {type(iri)}.")
+    return _Session.ontology.from_identifier(iri)
 
 
-from_iri = _namespace_registry.from_iri
+# `from_identifier` as gateway to `_tbox.from_identifier`.
+def from_identifier(identifier: _Identifier) -> 'OntologyEntity':
+    """Get an entity from its identifier from the default TBox.
 
-__getattr__ = _namespace_registry.__getattr__
+    Args:
+        identifier: The identifier of the entity.
+
+    Raises:
+        KeyError: The ontology entity is not stored in the default TBox.
+
+    Returns:
+        The OntologyEntity.
+    """
+    return _Session.ontology.from_identifier(identifier)

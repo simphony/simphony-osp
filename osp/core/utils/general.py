@@ -3,39 +3,38 @@
 These are potentially useful for every user of SimPhoNy.
 """
 
-from typing import Optional, Union, TextIO, List
-import itertools
-import logging
-import requests
 import io
-import pathlib
+import itertools
 import json
-import uuid
+import logging
+import pathlib
+from typing import Optional, TYPE_CHECKING, Union, TextIO, List
+from uuid import UUID
+
+import requests
+from rdflib import OWL, RDF, RDFS, Graph, Literal
+from rdflib.graph import ReadOnlyGraphAggregate
 from rdflib.parser import Parser as RDFLib_Parser
-from rdflib.serializer import Serializer as RDFLib_Serializer
 from rdflib.plugin import get as get_plugin
+from rdflib.serializer import Serializer as RDFLib_Serializer
 from rdflib.util import guess_format
-from rdflib import OWL, RDF, RDFS
-from rdflib import URIRef, Literal, Graph
+
+from osp.core.namespaces import cuba
+from osp.core.ontology.cuba import cuba_namespace
+from osp.core.ontology.datatypes import CUSTOM_TO_PYTHON
+from osp.core.ontology.individual import OntologyIndividual
+from osp.core.session.session import Session
+
+if TYPE_CHECKING:
+    from osp.core.ontology.relationship import OntologyRelationship
+
+# Import `plugins.parsers.jsonld` for rdflib>=6, otherwise import it
+#  from`rdflib_jsonld`.
 from rdflib import __version__ as rdflib_version
 if rdflib_version >= '6':
     from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 else:
-    import warnings
-
-    def _silent_warn(*args, **kwargs) -> None:
-        """Function to replace `warnings.warn`, silences forced warnings."""
-        pass
-
-    warn = warnings.warn
-    warnings.warn = _silent_warn
     from rdflib_jsonld.parser import to_rdf as json_to_rdf
-    warnings.warn = warn
-from osp.core.namespaces import cuba
-from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.datatypes import convert_from
-
 
 CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
 logger = logging.getLogger(__name__)
@@ -43,72 +42,86 @@ logger = logging.getLogger(__name__)
 # Private utilities (not user-facing and only used in this same file).
 
 
-def _get_rdf_graph(session=None, skip_custom_datatypes=False,
-                   skip_ontology=True):
-    """Get the RDF Graph from a session.
+def _serializable(obj: Union[OntologyIndividual,
+                             UUID,
+                             List[OntologyIndividual],
+                             List[UUID],
+                             None],
+                  partition_cuds=True, mark_first=False):
+    """Make given object json serializable.
 
-    If no session is given, the core session will be used.
+    The object can be a cuds_object, a list of cuds_objects,
+    a uid or a list od uids.
 
     Args:
-        session (Session, optional): The session to compute the RDF Graph of.
-            Defaults to None.
-        skip_custom_datatypes (bool): Whether triples concerining custom
-            datatypes should be skipped in export.
-        skip_ontology (bool): Whether to have the ontology triples in the
-            result graph.
+        obj (): The
+            object to make serializable.
 
-    Returns:
-        Graph: The resulting rdf Graph
+    Raises:
+        ValueError: Given object could not be made serializable.
+
+    Return:
+        Union[Dict, List, str, None]: The serializable object.
     """
-    from osp.core.session.session import Session
-    if session is not None:
-        if not isinstance(session, Session):
-            raise TypeError(
-                f"Invalid argument: {session}."
-                f"Function can only be called on (sub)classes of {Session}."""
-            )
-    from osp.core.ontology.namespace_registry import namespace_registry
-    from osp.core.cuds import Cuds
-    session = session or Cuds._session
-    result = session._get_full_graph()
-    if not skip_ontology:
-        result = result | namespace_registry._graph
-        # The union includes namespace bindings.
-    else:
-        # Still bind the installed namespaces
-        for prefix, iri in namespace_registry._graph.namespaces():
-            result.bind(prefix, iri)
-    if skip_custom_datatypes:
-        return result - get_custom_datatype_triples()
-    return result
+    from osp.core.ontology.entity import OntologyEntity
+    if obj is None:
+        return obj
+    if isinstance(obj, (str, int, float)):
+        return obj
+    if isinstance(obj, UUID):
+        return {"UID": str(obj)}
+    if isinstance(obj, OntologyEntity):
+        return {"ENTITY": str(obj)}
+    if isinstance(obj, OntologyEntity):
+        return _serializable([obj])
+    if isinstance(obj, dict):
+        return {k: _serializable(v) for k, v in obj.items()}
+    if not partition_cuds:  # TODO this should be the default
+        try:
+            return _serializable(obj, mark_first=mark_first)
+        except TypeError:
+            pass
+    try:
+        return [_serializable(x) for x in obj]
+    except TypeError as e:
+        raise ValueError("Could not serialize %s." % obj) \
+            from e
 
 
-def _serialize_rdf_graph(format="xml", session=None,
-                         skip_custom_datatypes=False, skip_ontology=True,
-                         skip_wrapper=True):
+def _serialize_session_triples(format="xml",
+                               session=None,
+                               skip_custom_datatypes=False,
+                               skip_ontology=True):
     """Serialize an RDF graph and take care of custom data types."""
-    from osp.core.session.core_session import CoreSession
-    graph = _get_rdf_graph(session, skip_custom_datatypes, skip_ontology)
+    from osp.core.session.session import Session
+    session = session or Session.get_default_session()
+
+    graph = session.graph
+    if not skip_ontology:
+        graph = ReadOnlyGraphAggregate([graph, session.ontology.graph])
+    custom_datatype_triples = get_custom_datatype_triples(session) \
+        if skip_custom_datatypes else Graph()
+
     result = Graph()
     for s, p, o in graph:
         if isinstance(o, Literal):
-            o = Literal(convert_from(o.toPython(), o.datatype),
-                        datatype=o.datatype, lang=o.language)
-        if not session or type(session) is CoreSession \
-                or not skip_wrapper \
-                or iri_from_uid(session.root) not in {s, o}:
-            result.add((s, p, o))
+            x = Literal(o.toPython(), datatype=o.datatype).toPython()
+            o = Literal(x, datatype=o.datatype, lang=o.language)
+        if (s, p, o) in custom_datatype_triples and skip_custom_datatypes:
+            continue
+        result.add((s, p, o))
+
     for prefix, iri in graph.namespaces():
         result.bind(prefix, iri)
     return result.serialize(format=format, encoding='UTF-8').decode('UTF-8')
 
 
-def _serialize_cuds_object_json(cuds_object, rel=cuba.activeRelationship,
-                                max_depth=float("inf"), json_dumps=True):
+def _serialize_individual_json(individual, rel=cuba.activeRelationship,
+                               max_depth=float("inf"), json_dumps=True):
     """Serialize a cuds objects and all of its contents recursively.
 
     Args:
-        cuds_object (Cuds): The cuds object to serialize
+        individual (Cuds): The cuds object to serialize
         rel (OntologyRelationship, optional): The relationships to follow when
             serializing recursively. Defaults to cuba.activeRelationship.
         max_depth (int, optional): The maximum recursion depth.
@@ -119,27 +132,26 @@ def _serialize_cuds_object_json(cuds_object, rel=cuba.activeRelationship,
     Returns:
         Union[str, List]: The serialized cuds object.
     """
-    from osp.core.session.transport.transport_utils import serializable
     from osp.core.utils.simple_search import find_cuds_object
     cuds_objects = find_cuds_object(criterion=lambda _: True,
-                                    root=cuds_object,
+                                    root=individual,
                                     rel=rel,
                                     find_all=True,
                                     max_depth=max_depth)
-    result = serializable(cuds_objects, partition_cuds=False, mark_first=True)
+    result = _serializable(cuds_objects, partition_cuds=False, mark_first=True)
     if json_dumps:
         return json.dumps(result)
     return result
 
 
-def _serialize_cuds_object_triples(cuds_object,
-                                   rel=cuba.activeRelationship,
-                                   max_depth=float("inf"),
-                                   format: str = 'ttl'):
+def _serialize_individual_triples(individual,
+                                  rel=cuba.activeRelationship,
+                                  max_depth=float("inf"),
+                                  format: str = 'ttl'):
     """Serialize a CUDS object as triples.
 
     Args:
-        cuds_object (Cuds): the cuds object to serialize.
+        individual (Cuds): the cuds object to serialize.
         rel (OntologyRelationship): the ontology relationship to use as
             containment relationship.
         max_depth (float): the maximum depth to search for children CUDS
@@ -149,23 +161,22 @@ def _serialize_cuds_object_triples(cuds_object,
     Returns:
         str: The CUDS object serialized as a RDF file.
     """
-    from osp.core.ontology.namespace_registry import namespace_registry
     from osp.core.utils.simple_search import find_cuds_object
-    cuds_objects = find_cuds_object(criterion=lambda _: True,
-                                    root=cuds_object,
-                                    rel=rel,
-                                    find_all=True,
-                                    max_depth=max_depth)
+    individuals = find_cuds_object(criterion=lambda _: True,
+                                   root=individual,
+                                   rel=rel,
+                                   find_all=True,
+                                   max_depth=max_depth)
     graph = Graph()
-    graph.add((rdflib_cuba._serialization, RDF.first,
-               Literal(str(cuds_object.uid))))
-    for prefix, iri in namespace_registry._graph.namespaces():
+    graph.add((cuba_namespace._serialization, RDF.first,
+               individual.identifier))
+    for prefix, iri in individual.session.ontology.graph.namespaces():
         graph.bind(prefix, iri)
-    for s, p, o in itertools.chain(*(cuds.get_triples()
-                                     for cuds in cuds_objects)):
+    for s, p, o in itertools.chain(*(individual.triples
+                                     for individual in individuals)):
         if isinstance(o, Literal):
-            o = Literal(convert_from(o.toPython(), o.datatype),
-                        datatype=o.datatype, lang=o.language)
+            x = Literal(o.toPython(), datatype=o.datatype).toPython()
+            o = Literal(x, datatype=o.datatype, lang=o.language)
         graph.add((s, p, o))
     return graph.serialize(format=format, encoding='UTF-8').decode('UTF-8')
 
@@ -181,16 +192,17 @@ def _serialize_session_json(session, json_dumps=True):
     Returns:
         Union[str, List]: The serialized session.
     """
-    from osp.core.session.transport.transport_utils import serializable
-    cuds_objects = list(cuds for cuds in session._registry.values()
-                        if not cuds.is_a(cuba.Wrapper))
-    result = serializable(cuds_objects, partition_cuds=False, mark_first=False)
+    entitites = list(session)
+    result = _serializable(entitites,
+                           partition_cuds=False,
+                           mark_first=False)
     if json_dumps:
         return json.dumps(result)
     return result
 
 
-def _deserialize_cuds_object(json_doc, session=None, buffer_context=None):
+def _deserialize_json(json_doc,
+                      session=None):
     """Deserialize the given json objects (to CUDS).
 
     Will add the CUDS objects to the buffers.
@@ -200,40 +212,35 @@ def _deserialize_cuds_object(json_doc, session=None, buffer_context=None):
             Either string or already loaded json object.
         session (Session, optional): The session to add the CUDS objects to.
             Defaults to the CoreSession.
-        buffer_context (BufferContext): Whether to add the objects to the
-            buffers of the user or the engine. Default is equivalent of
-            the user creating the CUDS objects by hand.
 
     Returns:
         Cuds: The deserialized Cuds.
     """
-    from osp.core.cuds import Cuds
-    from osp.core.session.transport.transport_utils import import_rdf
-    from osp.core.session.buffers import BufferContext
-    from osp.core.ontology.cuba import rdflib_cuba
+    from osp.core.session.session import Session
+    from osp.core.ontology.cuba import cuba_namespace
     if isinstance(json_doc, str):
         json_doc = json.loads(json_doc)
-    session = session or Cuds._session
-    buffer_context = buffer_context or BufferContext.USER
-    g = json_to_rdf(json_doc, Graph())
+
+    temp_session = Session()
+    json_to_rdf(json_doc, temp_session.graph)
+
+    session = session or Session.get_default_session()
+    results = []
+    for entity in list(temp_session):
+        session.merge(entity)
+        results += [entity]
+
     # only return first (when a cuds instead of a session was exported)
-    first = g.value(rdflib_cuba._serialization, RDF.first)
-    if first:  # return the element marked as first later
-        try:
-            first = uuid.UUID(hex=first)
-        except ValueError:
-            first = URIRef(first)
-        g.remove((rdflib_cuba._serialization, RDF.first, None))
-    deserialized = import_rdf(
-        graph=g,
-        session=session,
-        buffer_context=buffer_context,
-        return_uid=first
-    )
-    return deserialized
+    first = temp_session.graph.value(cuba_namespace._serialization, RDF.first)
+    if first:
+        return session.from_identifier(first)
+
+    return results
 
 
-def _import_rdf_file(path, format="xml", session=None, buffer_context=None):
+def _import_rdf_file(path,
+                     format="xml",
+                     session=None):
     """Import rdf from file.
 
     Args:
@@ -242,130 +249,30 @@ def _import_rdf_file(path, format="xml", session=None, buffer_context=None):
         format (str, optional): The file format of the file. Defaults to "xml".
         session (Session, optional): The session to add the CUDS objects to.
             Defaults to the CoreSession.
-        buffer_context (BufferContext, optional): Whether to add the objects
-            to the buffers of the user or the engine. Default is equivalent of
-            the user creating the CUDS objects by hand.. Defaults to None.
     """
-    from osp.core.cuds import Cuds
-    from osp.core.session.transport.transport_utils import import_rdf
-    from osp.core.session.buffers import BufferContext
-    g = Graph()
-    g.parse(path, format=format)
-    test_triples = [
-        (None, RDF.type, OWL.Class),
-        (None, RDF.type, OWL.DatatypeProperty),
-        (None, RDF.type, OWL.ObjectProperty)
-    ]
-    if any(t in g for t in test_triples):
-        raise ValueError("Data contains class or property definitions. "
-                         "Please install ontologies using pico and use the "
-                         "rdf import only for individuals!")
-    onto_iri = g.value(None, RDF.type, OWL.Ontology)
-    if onto_iri:
-        g.remove((onto_iri, None, None))
+    temp_session = Session()
+    temp_session.graph.parse(path, format=format)
+    # remove OWL.NamedIndividual type statements as we do not need them
+    temp_session.graph.remove((None, RDF.type, OWL.NamedIndividual))
+
+    session = session or Session.get_default_session()
+    results = []
+    for entity in list(temp_session):
+        session.merge(entity)
+        results += [entity]
+
     # only return first (when a cuds instead of a session was exported)
-    first = g.value(rdflib_cuba._serialization, RDF.first)
-    if first:  # return the element marked as first later
-        try:
-            first = uuid.UUID(hex=first)
-        except ValueError:
-            first = URIRef(first)
-        g.remove((rdflib_cuba._serialization, RDF.first, None))
-    session = session or Cuds._session
-    buffer_context = buffer_context or BufferContext.USER
-    deserialized = import_rdf(
-        graph=g,
-        session=session,
-        buffer_context=buffer_context,
-        return_uid=first
-    )
-    return deserialized
+    first = temp_session.graph.value(cuba_namespace._serialization, RDF.first)
+    if first:
+        return session.from_identifier(first)
+
+    return results
+
 
 # Internal utilities (not user-facing).
 
 
-def iri_from_uid(uid):
-    """Transform an uid to an IRI.
-
-    Args:
-        uid (Union[UUID, URIRef]): The UUID to transform.
-
-    Returns:
-        URIRef: The IRI of the CUDS object with the given UUID.
-    """
-    if type(uid) is uuid.UUID:
-        return URIRef(CUDS_IRI_PREFIX + str(uid))
-    else:
-        return uid
-
-
-def uid_from_iri(iri):
-    """Transform an IRI to an uid.
-
-    Args:
-        iri (URIRef): The IRI to transform.
-
-    Returns:
-        URIRef: The IRI of the CUDS object with the given uid.
-    """
-    if iri.startswith(CUDS_IRI_PREFIX):
-        try:
-            return uuid.UUID(hex=str(iri)[len(CUDS_IRI_PREFIX):])
-        except ValueError as e:
-            raise ValueError(f"Unable to transform {iri} to uid.") \
-                from e
-    else:
-        return iri
-
-
-def uid_from_general_iri(iri, graph, _visited=frozenset()):
-    """Get a UUID from a general (not containing a UUID) IRI.
-
-    Args:
-        iri (UriRef): The IRI to convert to UUID.
-        graph (Graph): The rdflib Graph to look for different IRIs for the
-            same individual.
-        _visited (Frozenset): Used for recursive calls.
-
-    Returns:
-        Tuple[UUID, URIRef]: The UUID and an IRI containing this UUID.
-    """
-    if str(iri).startswith(CUDS_IRI_PREFIX):
-        return uid_from_iri(iri), iri
-
-    for _, _, x in graph.triples((iri, OWL.sameAs, None)):
-        if x not in _visited:
-            return uid_from_general_iri(x, graph, _visited | {iri})
-    for x, _, _ in graph.triples((None, OWL.sameAs, iri)):
-        if x not in _visited:
-            return uid_from_general_iri(x, graph, _visited | {iri})
-    uid = uuid.uuid4()
-    new_iri = iri_from_uid(uid)
-    # The order is important.
-    # (iri, OWL.sameAs, iri_new) would produce new CUDS.
-    graph.add((new_iri, OWL.sameAs, iri))
-    return uid, new_iri
-
-
-def get_custom_datatypes():
-    """Get the set of all custom datatypes used in the ontology.
-
-    Custom datatypes are non standard ones, defined in the CUBA namespace.
-
-    Returns:
-        Set[IRI]: The set of IRI of custom datatypes.
-    """
-    from osp.core.ontology.cuba import rdflib_cuba
-    from osp.core.ontology.namespace_registry import namespace_registry
-    pattern = (None, RDF.type, RDFS.Datatype)
-    result = set()
-    for s, p, o in namespace_registry._graph.triples(pattern):
-        if s in rdflib_cuba:
-            result.add(s)
-    return result
-
-
-def get_custom_datatype_triples():
+def get_custom_datatype_triples(session):
     """Get the set of triples in the ontology that include custom datatypes.
 
     Custom datatypes are non standard ones, defined in the CUBA namespace.
@@ -374,13 +281,12 @@ def get_custom_datatype_triples():
         Graph: A graph containing all the triples concerning custom
             datatypes.
     """
-    custom_datatypes = get_custom_datatypes()
-    from osp.core.ontology.namespace_registry import namespace_registry
+    custom_datatypes = CUSTOM_TO_PYTHON.keys()
     result = Graph()
     for d in custom_datatypes:
         result.add((d, RDF.type, RDFS.Datatype))
         pattern = (None, RDFS.range, d)
-        for s, p, o in namespace_registry._graph.triples(pattern):
+        for s, p, o in session.ontology.graph.triples(pattern):
             result.add((s, p, o))
     return result
 
@@ -443,7 +349,7 @@ def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
                                     find_all=True,
                                     max_depth=max_depth)
     for obj in cuds_objects:
-        obj.session.delete_cuds_object(obj)
+        obj.ontology.delete_cuds_object(obj)
 
 
 def remove_cuds_object(cuds_object):
@@ -553,27 +459,25 @@ def import_cuds(path_or_filelike: Union[str, TextIO, dict, List[dict]],
                                  'argument.')
 
     # Import the contents.
-    from osp.core.cuds import Cuds
-    session = session or Cuds._session
+    session = session or Session.get_default_session()
     if format == 'application/ld+json':
-        results = _deserialize_cuds_object(contents, session=session,
-                                           buffer_context=None)
+        results = _deserialize_json(contents, session=session)
     else:
-        results = _import_rdf_file(io.StringIO(contents), format=format,
-                                   session=session,
-                                   buffer_context=None)
+        results = _import_rdf_file(io.StringIO(contents),
+                                   format=format,
+                                   session=session)
     return results
 
 
-def export_cuds(cuds_or_session: Optional = None,
+def export_cuds(individual_or_session: Optional = None,
                 file: Optional[Union[str, TextIO]] = None,
                 format: str = 'text/turtle',
-                rel: OntologyRelationship = cuba.activeRelationship,
+                rel: 'OntologyRelationship' = cuba.activeRelationship,
                 max_depth: float = float("inf")) -> Union[str, None]:
     """Exports CUDS in a variety of formats (see the `format` argument).
 
     Args:
-        cuds_or_session (Union[Cuds, Session], optional): the
+        individual_or_session (Union[Cuds, Session], optional): the
             (Cuds) CUDS object to export, or
             (Session) a session to serialize all of its CUDS objects.
             If no item is specified, then the current session is exported.
@@ -589,9 +493,8 @@ def export_cuds(cuds_or_session: Optional = None,
     """
     # Choose default session if not specified.
     from osp.core.session.session import Session
-    from osp.core.cuds import Cuds
-    if cuds_or_session is None:
-        cuds_or_session = Cuds._session
+    individual_or_session = individual_or_session or \
+        Session.get_default_session()
 
     # Check the validity of the requested format and raise useful exceptions.
     if format not in ('json', 'application/ld+json'):
@@ -614,24 +517,26 @@ def export_cuds(cuds_or_session: Optional = None,
                     f'/rdflib/plugin.py`. Look for lines of the form '
                     f'`register(".*", Serializer, ".*", ".*")`.') from e
 
-    if isinstance(cuds_or_session, Cuds):
+    if isinstance(individual_or_session, OntologyIndividual):
         if format in ('json', 'application/ld+json'):
-            result = _serialize_cuds_object_json(cuds_or_session, rel=rel,
-                                                 max_depth=max_depth,
-                                                 json_dumps=True)
+            result = _serialize_individual_json(individual_or_session,
+                                                rel=rel,
+                                                max_depth=max_depth,
+                                                json_dumps=True)
         else:
-            result = _serialize_cuds_object_triples(cuds_or_session, rel=rel,
-                                                    max_depth=max_depth,
-                                                    format=format)
-    elif isinstance(cuds_or_session, Session):
+            result = _serialize_individual_triples(individual_or_session,
+                                                   rel=rel,
+                                                   max_depth=max_depth,
+                                                   format=format)
+    elif isinstance(individual_or_session, Session):
         if format in ('json', 'application/ld+json'):
-            result = _serialize_session_json(cuds_or_session, json_dumps=True)
+            result = _serialize_session_json(individual_or_session,
+                                             json_dumps=True)
         else:
-            result = _serialize_rdf_graph(format=format,
-                                          session=cuds_or_session,
-                                          skip_custom_datatypes=False,
-                                          skip_ontology=True,
-                                          skip_wrapper=True)
+            result = _serialize_session_triples(format=format,
+                                                session=individual_or_session,
+                                                skip_custom_datatypes=False,
+                                                skip_ontology=True, )
     else:
         raise ValueError('Specify either a CUDS object or a session to '
                          'be exported.')
@@ -668,8 +573,8 @@ def post(url, cuds_object, rel=cuba.activeRelationship,
     Returns:
         Server response
     """
-    serialized = _serialize_cuds_object_json(cuds_object, max_depth=max_depth,
-                                             rel=rel)
+    serialized = _serialize_individual_json(cuds_object, max_depth=max_depth,
+                                            rel=rel)
     return requests.post(url=url,
                          data=serialized,
                          headers={"content_type": "application/ld+json"})

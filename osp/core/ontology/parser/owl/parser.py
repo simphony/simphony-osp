@@ -3,9 +3,8 @@
 import io
 import logging
 import os.path
-from typing import Dict, Set, Tuple, Optional
+from typing import Dict, Optional, Set, Tuple
 
-import rdflib
 import requests
 import yaml
 from rdflib import Graph, URIRef
@@ -66,7 +65,7 @@ class OWLParser(OntologyParser):
     @property
     def active_relationships(self) -> Tuple[URIRef]:
         """Fetch the active relationships from the ontology file."""
-        return tuple(rdflib.URIRef(x) for x in
+        return tuple(URIRef(x) for x in
                      self._yaml_config.get(keywords.ACTIVE_REL_KEY, tuple()))
 
     @property
@@ -94,7 +93,7 @@ class OWLParser(OntologyParser):
     def __init__(self, path: str):
         """Initialize the OWL ontology parser."""
         self._yaml_config = self._load_yaml_config(path)
-        self._file_path = path
+        self._file_path = self.parse_file_path(path)
 
     def install(self, destination: str):
         """Store the parsed files at the given destination.

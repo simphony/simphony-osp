@@ -1,108 +1,91 @@
 """A relationship defined in the ontology."""
 
-from osp.core.ontology.entity import OntologyEntity
 import logging
-import rdflib
+from typing import Iterable, Iterator, Optional, TYPE_CHECKING
+
+from rdflib import RDFS
+
+from osp.core.ontology.datatypes import Triple, UID
+from osp.core.ontology.entity import OntologyEntity
+
+if TYPE_CHECKING:
+    from osp.core.session.session import Session
 
 logger = logging.getLogger(__name__)
 
 # TODO characteristics
 
-BLACKLIST = {rdflib.OWL.bottomObjectProperty,
-             rdflib.OWL.topObjectProperty}
-
 
 class OntologyRelationship(OntologyEntity):
     """A relationship defined in the ontology."""
 
-    def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
+    def __init__(self,
+                 uid: UID,
+                 session: Optional['Session'] = None,
+                 triples: Optional[Iterable[Triple]] = None,
+                 merge: bool = False,
+                 ) -> None:
         """Initialize the ontology relationship.
 
         Args:
-            namespace_registry (OntologyNamespaceRegistry): The namespace
-                registry where all namespaces are stored.
-            namespace_iri (rdflib.URIRef): The IRI of the namespace.
-            name (str): The name of the relationship.
-            iri_suffix (str): namespace_iri +  namespace_registry make up the
-                namespace of this entity.
+            uid: UID identifying the entity.
+            session: Session where the entity is stored.
+            triples: Construct the relationship with the provided triples.
+            merge: Whether overwrite the potentially existing entity in the
+                session with the provided triples or just merge them with
+                the existing ones.
         """
-        super().__init__(namespace_registry, namespace_iri, name, iri_suffix)
-        logger.debug("Create ontology object property %s" % self)
+        super().__init__(uid, session, triples, merge=merge)
+        logger.debug("Create ontology relationship property %s" % self)
 
-    @property
-    def inverse(self):
-        """Get the inverse of this relationship.
-
-        If it doesn't exist, add one to the graph.
+    def _get_direct_superclasses(self) -> Iterator[OntologyEntity]:
+        """Get all the direct superclasses of this relationship.
 
         Returns:
-            OntologyRelationship: The inverse relationship.
+            The direct superrelationships.
         """
-        triple1 = (self.iri, rdflib.OWL.inverseOf, None)
-        triple2 = (None, rdflib.OWL.inverseOf, self.iri)
-        for _, _, o in self.namespace._graph.triples(triple1):
-            if not isinstance(o, rdflib.BNode):
-                return self.namespace._namespace_registry.from_iri(o)
-        for s, _, _ in self.namespace._graph.triples(triple2):
-            if not isinstance(s, rdflib.BNode):
-                return self.namespace._namespace_registry.from_iri(s)
-        return self._add_inverse()
+        return (self.session.from_identifier(o) for o in
+                self.session.graph.objects(self.iri, RDFS.subPropertyOf))
 
-    def _direct_superclasses(self):
+    def _get_direct_subclasses(self) -> Iterator[OntologyEntity]:
         """Get all the direct subclasses of this relationship.
 
         Returns:
             OntologyRelationship: The direct subrelationships
         """
-        return self._directly_connected(rdflib.RDFS.subPropertyOf,
-                                        blacklist=BLACKLIST)
+        return (self.session.from_identifier(s) for s in
+                self.session.graph.subjects(RDFS.subPropertyOf, self.iri))
 
-    def _direct_subclasses(self):
-        """Get all the direct subclasses of this relationship.
-
-        Returns:
-            OntologyRelationship: The direct subrelationships
-        """
-        return self._directly_connected(rdflib.RDFS.subPropertyOf,
-                                        inverse=True, blacklist=BLACKLIST)
-
-    def _superclasses(self):
+    def _get_superclasses(self) -> Iterator[OntologyEntity]:
         """Get all the superclasses of this relationship.
 
         Yields:
-            OntologyRelationship: The superrelationships.
+            The superrelationships.
         """
         yield self
-        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
-                                         blacklist=BLACKLIST)
 
-    def _subclasses(self):
+        def closure(node, graph):
+            for o in graph.objects(node, RDFS.subPropertyOf):
+                yield o
+
+        yield from (
+            self.session.from_identifier(x)
+            for x in self.session.graph.transitiveClosure(closure,
+                                                          self.identifier))
+
+    def _get_subclasses(self) -> Iterator[OntologyEntity]:
         """Get all the subclasses of this relationship.
 
         Yields:
-            OntologyRelationship: The subrelationships.
+            The subrelationships.
         """
         yield self
-        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
-                                         inverse=True, blacklist=BLACKLIST)
 
-    def _add_inverse(self):
-        """Add the inverse of this relationship to the path.
+        def closure(node, graph):
+            for s in graph.subjects(RDFS.subPropertyOf, node):
+                yield s
 
-        Returns:
-            OntologyRelationship: The inverse relationship.
-        """
-        o = rdflib.URIRef(self.namespace.get_iri() + "INVERSE_OF_" + self.name)
-        x = (self.iri, rdflib.OWL.inverseOf, o)
-        y = (o, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
-        z = (o, rdflib.SKOS.prefLabel,
-             rdflib.Literal("INVERSE_OF_" + self.name, lang="en"))
-
-        self.namespace._graph.add(x)
-        self.namespace._graph.add(y)
-        self.namespace._graph.add(z)
-        for superclass in self.direct_superclasses:
-            self.namespace._graph.add((
-                o, rdflib.RDFS.subPropertyOf, superclass.inverse.iri
-            ))
-        return self._namespace_registry.from_iri(o)
+        yield from (
+            self.session.from_identifier(x)
+            for x in self.session.graph.transitiveClosure(closure,
+                                                          self.identifier))

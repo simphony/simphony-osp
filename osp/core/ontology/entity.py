@@ -1,13 +1,25 @@
 """Abstract superclass of any entity in the ontology."""
 
+import logging
 from abc import ABC, abstractmethod
 from functools import lru_cache
-import rdflib
-import logging
+from typing import (Iterable, Iterator, List, Optional, Set, Tuple,
+                    TYPE_CHECKING, Union)
+
+from rdflib import Graph, Literal, URIRef
+from rdflib.term import Identifier
+
+from osp.core.ontology.datatypes import Triple, UID
+
+if TYPE_CHECKING:
+    from osp.core.ontology.interactive.container import Container
+    from osp.core.session.session import Session
+    from osp.core.session.wrapper import Wrapper
+
 
 logger = logging.getLogger(__name__)
 
-# The properties of the instances of the metaclass OntologyEntity defined below
+# The properties of the instances of the class OntologyEntity defined below
 # may be cached by applying the decorator @lru_cache after the @property
 # decorator. The following parameter fixes the maximum number of different
 # instances of OntologyEntity for which a property may be cached.
@@ -17,145 +29,142 @@ entity_cache_size = 1024
 class OntologyEntity(ABC):
     """Abstract superclass of any entity in the ontology."""
 
-    @abstractmethod
-    def __init__(self, namespace_registry, namespace_iri, name, iri_suffix):
-        """Initialise the ontology entity.
-
-        Args:
-            namespace_registry (OntologyNamespaceRegistry): The namespace
-                registry.
-            namespace_iri (rdflib.URIRef): The namespace of the entity
-            name (str): The name of the entity
-            iri_suffix (str): namespace_iri + iri_suffix is namespace of the
-                entity.
-        """
-        self._name = name
-        self._iri_suffix = iri_suffix
-        self._namespace_iri = namespace_iri
-        self._namespace_registry = namespace_registry
+    # Public API
+    # ↓ ------ ↓
 
     @property
-    def _namespace_name(self):
-        return self._namespace_registry._get_namespace_name_and_iri(
-            self.iri
-        )[0]
+    def iri(self) -> URIRef:
+        """Get the IRI of the Entity.
 
-    def __str__(self):
-        """Transform the entity into a human readable string."""
-        return "%s.%s" % (self._namespace_name, self._name)
+        Raises:
+            TypeError: When the identifier of the ontology entity is a blank
+                node.
+        """
+        return self.uid.to_iri()
 
-    def __repr__(self):
-        """Transform the entity into a string."""
-        return "<%s %s.%s>" % (self.__class__.__name__,
-                               self._namespace_name, self._name)
+    @property
+    def identifier(self) -> Identifier:
+        """Get the Identifier (URIRef or BNode) representing the entity."""
+        return self.uid.to_identifier()
 
-    def __eq__(self, other):
-        """Check whether two entities are the same.
+    @property
+    def label(self) -> Optional[str]:
+        """Get the preferred label of this entity, if it exists.
 
-        Args:
-            other (OntologyEntity): The other entity.
+        See the docstring for `label_literal` for more information on the
+        definition of preferred label.
+        """
+        return str(self.label_literal) \
+            if self.label_literal is not None else None
+
+    @label.setter
+    def label(self, value: str) -> None:
+        """Replace the preferred label of this entity.
+
+        When such preferred label does not exist, it is created.
+
+        See the docstring for `label_literal` for more information on the
+        definition of preferred label.
+        """
+        language = self.label_literal.language \
+            if self.label_literal is not None else None
+        self.label_literal = Literal(value, lang=language) \
+            if value is not None else None
+
+    @property
+    def label_lang(self) -> Optional[str]:
+        """Get the language of the preferred label of this entity.
+
+        See the docstring for `label_literal` for more information on the
+        definition of preferred label.
+        """
+        return self.label_literal.language \
+            if self.label_literal is not None else None
+
+    @label_lang.setter
+    def label_lang(self, value: str) -> None:
+        """Set the language of the preferred label of this entity.
+
+        See the docstring for `label_literal` for more information on the
+        definition of preferred label.
+        """
+        self.label_literal = Literal(self.label_literal, lang=value)
+
+    @property
+    def session(self) -> 'Session':
+        """The session where the entity is stored."""
+        return self._session
+
+    @session.setter
+    def session(self, value: 'Session') -> None:
+        """Change the session where the entity is stored.
+
+        Equivalent to removing the item from the previous session and adding it
+        to the new session.
+        """
+        value.update(self)
+        if self._session is not value:
+            self._session.delete(self)
+        self._session = value
+
+    @property
+    @lru_cache(maxsize=entity_cache_size)
+    def direct_superclasses(self) -> Set['OntologyEntity']:
+        """Get the direct superclasses of the entity.
 
         Returns:
-            bool: Whether the two entities are the same.
+            The direct superclasses of the entity.
         """
-        return isinstance(other, OntologyEntity) and self.iri == other.iri
+        return set(self._get_direct_superclasses())
 
     @property
-    def name(self):
-        """Get the name of the entity."""
-        return self._name
-
-    @property
-    def iri(self):
-        """Get the IRI of the Entity."""
-        return rdflib.URIRef(self._namespace_iri + self._iri_suffix)
-
-    @property
-    def tblname(self):
-        """Get the name used in storage backends to store instances."""
-        return "%s___%s" % (self._namespace_name, self._iri_suffix)
-
-    @property
-    def namespace(self):
-        """Get the namespace object of the entity."""
-        return self._namespace_registry.namespace_from_iri(self._namespace_iri)
-
-    @property
-    def direct_superclasses(self):
-        """Get the direct superclass of the entity.
-
-        Returns:
-            List[OntologyEntity]: The direct superclasses of the entity
-
-        """
-        return set(self._direct_superclasses())
-
-    @property
-    def direct_subclasses(self):
+    @lru_cache(maxsize=entity_cache_size)
+    def direct_subclasses(self) -> Set['OntologyEntity']:
         """Get the direct subclasses of the entity.
 
         Returns:
-            Set[OntologyEntity]: The direct subclasses of the entity
-
+            The direct subclasses of the entity.
         """
-        return set(self._direct_subclasses())
+        return set(self._get_direct_subclasses())
 
     @property
     @lru_cache(maxsize=entity_cache_size)
-    def subclasses(self):
-        """Get the subclasses of the entity.
-
-        Returns:
-            Set[OntologyEntity]: The direct subclasses of the entity
-
-        """
-        return set(self._subclasses())
-
-    @property
-    @lru_cache(maxsize=entity_cache_size)
-    def superclasses(self):
+    def superclasses(self) -> Set[Union['OntologyEntity']]:
         """Get the superclass of the entity.
 
         Returns:
-            Set[OntologyEntity]: The direct superclasses of the entity
+            The direct superclasses of the entity.
 
         """
-        return set(self._superclasses())
+        return set(self._get_superclasses())
 
     @property
-    def description(self):
-        """Get the description of the entity.
+    @lru_cache(maxsize=entity_cache_size)
+    def subclasses(self) -> Set['OntologyEntity']:
+        """Get the subclasses of the entity.
 
         Returns:
-            str: The description of the entity
+            The direct subclasses of the entity
 
         """
-        desc = self.namespace._graph.value(
-            self.iri, rdflib.RDFS.isDefinedBy, None)
-        if desc is None:
-            return "To Be Determined"
-        return str(desc)
+        return set(self._get_subclasses())
 
-    def get_triples(self):
-        """Get the triples of the entity."""
-        return self.namespace._graph.triples((self.iri, None, None))
-
-    def is_superclass_of(self, other):
+    def is_superclass_of(self, other: 'OntologyEntity') -> bool:
         """Perform a superclass check.
 
         Args:
-            other (Entity): The other entity.
+            other: The other ontology entity.
 
         Returns:
-            bool: Whether self is a superclass of other.
+            Whether self is a superclass of other.
         """
         return self in other.superclasses
 
-    def is_subclass_of(self, other):
+    def is_subclass_of(self, other: 'OntologyEntity') -> bool:
         """Perform a subclass check.
 
         Args:
-            other (Entity): The other entity.
+            other: The other entity.
 
         Returns:
             bool: Whether self is a subclass of other.
@@ -163,112 +172,244 @@ class OntologyEntity(ABC):
         """
         return self in other.subclasses
 
-    @abstractmethod
-    def _direct_superclasses(self):
-        pass
+    # ↑ ------ ↑
+    # Public API
 
-    @abstractmethod
-    def _direct_subclasses(self):
-        pass
+    @property
+    def uid(self) -> UID:
+        """Get the unique identifier that OSP-core uses for this entity."""
+        return self._uid
 
-    @abstractmethod
-    def _superclasses(self):
-        pass
+    @uid.setter
+    def uid(self, value: UID) -> None:
+        """Set the unique identifier that OSP-core uses for this entity."""
+        self._uid = value
 
-    @abstractmethod
-    def _subclasses(self):
-        pass
+    @property
+    def label_literal(self) -> Optional[Literal]:
+        """Get the preferred label for this entity.
 
-    def _transitive_hull(self, predicate_iri, inverse=False, blacklist=()):
-        """Get all the entities connected with the given predicate.
-
-        Args:
-            predicate_iri (URIRef): The IRI of the predicate
-            inverse (bool, optional): Use the inverse instead.
-                Defaults to False.
-            blacklist (collection): A collection of IRIs not to return.
-
-        Yields:
-            OntologyEntity: The connected entities
-        """
-        visited = {self.iri}
-        frontier = {self.iri}
-        while frontier:
-            current = frontier.pop()
-            yield from self._directly_connected(predicate_iri=predicate_iri,
-                                                inverse=inverse,
-                                                blacklist=blacklist,
-                                                _frontier=frontier,
-                                                _visited=visited,
-                                                _iri=current)
-
-    def _special_cases(self, triple):
-        """Some supclass statements are often omitted in the ontology.
-
-        Replace these with safer triple patterns.
-
-        Args:
-            triple (Tuple[rdflib.term]): A triple pattern to possibly replace.
+        The labels are first sorted by the property defining them (which is
+        an attribute of the session that this entity is stored on), and then by
+        their length.
 
         Returns:
-            triple (Tuple[rdflib.term]): Possibly replaced triple.
+            The first label in the resulting ordering is returned. If the
+            entity has no label, then None is returned.
         """
-        if triple == (None, rdflib.RDFS.subClassOf, rdflib.OWL.Thing):
-            return (None, rdflib.RDF.type, rdflib.OWL.Class)
-        if triple == (rdflib.OWL.Nothing, rdflib.RDFS.subClassOf, None):
-            return (None, rdflib.RDF.type, rdflib.OWL.Class)
+        labels = self.iter_labels(return_literal=True,
+                                  return_prop=True)
+        labels = self._sort_labels_and_properties_by_preference(labels)
+        # Return the first label
+        return labels[0][0] if len(labels) > 0 else None
 
-        if triple == (None, rdflib.RDFS.subPropertyOf,
-                      rdflib.OWL.topObjectProperty):
-            return (None, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
-        if triple == (rdflib.OWL.bottomObjectProperty,
-                      rdflib.RDFS.subPropertyOf, None):
-            return (None, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
+    @label_literal.setter
+    def label_literal(self, value: Optional[Literal]) -> None:
+        """Replace the preferred label for this entity.
 
-        if triple == (None, rdflib.RDFS.subPropertyOf,
-                      rdflib.OWL.topDataProperty):
-            return (None, rdflib.RDF.type, rdflib.OWL.DataProperty)
-        if triple == (rdflib.OWL.bottomDataProperty,
-                      rdflib.RDFS.subPropertyOf, None):
-            return (None, rdflib.RDF.type, rdflib.OWL.DataProperty)
-        return triple
-
-    def _directly_connected(self, predicate_iri, inverse=False, blacklist=(),
-                            _frontier=None, _visited=None, _iri=None):
-        """Get all the entities directly connected with the given predicate.
+        The labels are first sorted by the property defining them (which is
+        an attribute of the session that this entity is stored on), and then by
+        their length.
 
         Args:
-            predicate_iri (URIRef): The IRI of the predicate
-            inverse (bool, optional): Use the inverse instead.
-                Defaults to False.
-            blacklist (collection): A collection of IRIs not to return.
-            Others: Helper for _transitive_hull method.
-
-        Yields:
-            OntologyEntity: The connected entities
+            value: the preferred label to replace the current one with. If
+                None, then all labels for this entity are deleted.
         """
-        triple = (_iri or self.iri, predicate_iri, None)
-        if inverse:
-            triple = (None, predicate_iri, _iri or self.iri)
+        labels = self.iter_labels(return_literal=True,
+                                  return_prop=True)
+        labels = self._sort_labels_and_properties_by_preference(labels)
 
-        if predicate_iri in [rdflib.RDFS.subClassOf,
-                             rdflib.RDFS.subPropertyOf]:
-            triple = self._special_cases(triple)
-        for x in self.namespace._graph.triples(triple):
-            o = x[0 if triple[0] is None else 2]
-            if _visited and o in _visited:
-                continue
-            if not isinstance(o, rdflib.BNode):
-                if _visited is not None:
-                    _visited.add(o)
-                if _frontier is not None:
-                    _frontier.add(o)
-                if o not in blacklist:
-                    x = self.namespace._namespace_registry.from_iri(
-                        o, raise_error=False)
-                    if x:
-                        yield x
+        preferred_label = labels[0] if len(labels) > 0 else None
 
-    def __hash__(self):
+        # Label deletion.
+        if value is None:
+            for label_prop in self.session.label_properties:
+                self.session.graph.remove((self.identifier,
+                                           label_prop,
+                                           None))
+        elif preferred_label is not None:
+            self.session.graph.remove((self.identifier,
+                                       preferred_label[1],
+                                       preferred_label[0]))
+
+        # Label creation.
+        if value is not None:
+            if preferred_label is not None:
+                self.session.graph.add((self.identifier,
+                                        preferred_label[1],
+                                        value))
+            else:
+                self.session.graph.add((self.identifier,
+                                        self.session.label_properties[0],
+                                        value))
+
+    def _sort_labels_and_properties_by_preference(
+            self,
+            labels: Iterator[Tuple[Literal, URIRef]]) \
+            -> List[Tuple[Literal, URIRef]]:
+        """Sort the labels for this entity in order of preference.
+
+        The labels are first sorted by the property defining them (which is
+        an attribute of the session that this entity is stored on), and then by
+        their length.
+
+        Args:
+            labels: an iterator of tuples where the first element is an
+                assigned label literal (the label) and the second one the
+                property used for this assignment.
+        """
+        # Sort by label property preference, and length.
+        labels = sorted(labels,
+                        key=lambda x:
+                        (self.session.label_properties.index(x[1]),
+                         len(x[0])))
+        return labels
+
+    def iter_labels(self,
+                    lang: Optional[str] = None,
+                    return_prop: bool = False,
+                    return_literal: bool = True) -> \
+            Iterator[Union[Literal,
+                           str,
+                           Tuple[str, URIRef],
+                           Tuple[Literal, URIRef]]]:
+        """Returns all the available labels for this ontology entity.
+
+        Args:
+            lang: retrieve labels only in a specific language.
+            return_prop: Whether to return the property that designates the
+                label. When active, it is the second argument.
+            return_literal: Whether to return a literal or a string with the
+                label (the former contains the language, the latter not).
+
+        Returns:
+            An iterator yielding strings or literals; or tuples whose first
+            element is a string or literal, and second element the property
+            defining this label.
+        """
+        return self.session.iter_labels(entity=self, lang=lang,
+                                        return_literal=return_literal,
+                                        return_prop=return_prop)
+
+    @property
+    def triples(self) -> Set[Triple]:
+        """Get the triples defining the entity."""
+        if self.__graph is not None:
+            return set(self.__graph.triples((None, None, None)))
+        else:
+            return set(self.session.graph.triples((self.identifier, None,
+                                                   None)))
+
+    @abstractmethod
+    def _get_direct_superclasses(self) -> Iterable['OntologyEntity']:
+        """Direct superclass getter specific to the type of ontology entity."""
+        pass
+
+    @abstractmethod
+    def _get_direct_subclasses(self) -> Iterable['OntologyEntity']:
+        """Direct subclass getter specific to the type of ontology entity."""
+        pass
+
+    @abstractmethod
+    def _get_superclasses(self) -> Iterable['OntologyEntity']:
+        """Superclass getter specific to the type of ontology entity."""
+        pass
+
+    @abstractmethod
+    def _get_subclasses(self) -> Iterable['OntologyEntity']:
+        """Subclass getter specific to the type of ontology entity."""
+        pass
+
+    __graph: Optional[Graph] = None  # Only exists during initialization.
+
+    @abstractmethod
+    def __init__(self,
+                 uid: UID,
+                 session: Optional[Union['Session',
+                                         'Container',
+                                         'Wrapper']] = None,
+                 triples: Optional[Iterable[Triple]] = None,
+                 merge: bool = False) -> None:
+        """Initialize the ontology entity.
+
+        Args:
+            uid: UID identifying the entity.
+            session: Session where the entity is stored.
+            triples: Construct the entity with the provided triples.
+            merge: Whether overwrite the potentially existing entity in the
+                session with the provided triples or just merge them with
+                the existing ones.
+        """
+        if uid is None:
+            uid = UID()
+        elif not isinstance(uid, UID):
+            raise Exception(f"Tried to initialize an ontology entity with "
+                            f"uid {uid}, which is not a UID object.")
+        self._uid = uid
+
+        # While the entity is being initialized, it belongs to no session.
+        # The extra triples are added to the `__graph` attribute. While such
+        # attribute exists, it is the preferred way to access the entity's
+        # triples using the `triples` property.
+        self._session = None
+        if triples is not None:
+            self.__graph = Graph()
+            for s, p, o in triples:
+                if s != self.identifier:
+                    raise ValueError("Trying to add extra triples to an "
+                                     "ontology entity with a subject that "
+                                     "does not match the individual's "
+                                     "identifier.")
+                self.__graph.add((s, p, o))
+
+        from osp.core.session.wrapper import Wrapper
+        if session is None:
+            from osp.core.ontology.interactive.container import Container
+            from osp.core.session.session import Session
+            environment = Container.get_current_container_context() or \
+                Session.get_default_session()
+            with environment:
+                session = Session.get_default_session()
+            if isinstance(environment, Container):
+                environment.connect(self.identifier)
+        elif isinstance(session, Wrapper):
+            session = session.session
+        if self.__graph is not None:
+            # Only change what is stored in the session if custom triples were
+            # provided.
+            if not merge:
+                session.update(self)
+            else:
+                session.merge(self)
+        self._session = session
+        self.__graph = None
+
+    def __str__(self) -> str:
+        """Transform the entity into a human readable string."""
+        return f"{self.uid}"
+
+    def __repr__(self) -> str:
+        """Transform the entity into a string."""
+        return f"<{self.__class__.__name__}: {self.uid}>"
+
+    def __eq__(self, other: 'OntologyEntity') -> bool:
+        """Check whether two entities are the same.
+
+        Args:
+            other: The other entity.
+
+        Returns:
+            bool: Whether the two entities are the same.
+        """
+        # TODO: Blank nodes with different IDs.
+        return isinstance(other, OntologyEntity) \
+            and self.session == other.session \
+            and self.uid == other.uid
+
+    def __hash__(self) -> int:
         """Make the entity hashable."""
-        return hash(self.iri)
+        return hash((self.uid, self.session))
+
+    def __bool__(self):
+        """Returns the boolean value of the entity, always true."""
+        return True

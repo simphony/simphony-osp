@@ -1,0 +1,90 @@
+---
+version: "0.0.1"
+
+namespace: "parser_test"
+
+requirements:
+- city
+
+ontology:
+
+  ClassA:
+    attributes:
+      parser_test.attributeA: DEFAULT_A
+    subclass_of: 
+    - cuba.Entity
+    description: "Class A"
+  
+  ClassB:
+    attributes:
+      parser_test.attributeA: DEFAULT_B
+    subclass_of:
+    - cuba.Entity
+
+  ClassC:
+    subclass_of:
+    - parser_test.ClassA
+    - parser_test.ClassB
+
+  ClassD:
+    attributes:
+      parser_test.attributeA: DEFAULT_D
+    subclass_of:
+    - parser_test.ClassA
+    - parser_test.ClassB
+
+  ClassE:
+    attributes:
+      parser_test.attributeA:
+    subclass_of: 
+    - cuba.Entity
+
+  attributeA:
+    datatype: STRING
+    subclass_of:
+    - cuba.attribute
+
+  attributeB:
+    datatype: VECTOR
+    subclass_of:
+    - cuba.attribute
+
+  attributeC:
+    subclass_of:
+    - parser_test.attributeA
+    - parser_test.attributeB
+
+  attributeD:
+    datatype: FLOAT
+    subclass_of:
+    - parser_test.attributeA
+    - parser_test.attributeB
+
+  relationshipA:
+    subclass_of:
+    - cuba.activeRelationship
+    domain:
+      or:
+      - parser_test.ClassA
+      - parser_test.ClassB
+    range:
+      parser_test.relationshipA:
+        range: parser_test.ClassA
+        cardinality: some
+        exclusive: true
+    default_rel: true
+  
+  relationshipB:
+    subclass_of:
+    - parser_test.relationshipA
+    - cuba.activeRelationship
+    domain:
+      and:
+      - parser_test.ClassC
+      - not: parser_test.ClassD
+    default_rel: false
+  
+  relationshipC:
+    subclass_of:
+    - cuba.relationship
+    inverse: parser_test.relationshipA

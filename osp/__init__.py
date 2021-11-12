@@ -5,9 +5,6 @@ __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 # path is stripped on Windows by the graph.Graph.serialize method of
 # RDFLib <= 5.0.0).
 import sys as _osp_sys
-from osp.core.pico import compare_version as _compare_version
-from osp.core.pico import CompareOperations
-
 
 if _osp_sys.platform == 'win32':
     import os as _osp_os
@@ -16,8 +13,7 @@ if _osp_sys.platform == 'win32':
     from urllib.parse import urlparse as _osp_urlparse
     import rdflib as _osp_rdflib
 
-    if _compare_version(_osp_rdflib.__version__, '5.0.0',
-                        operation=CompareOperations.leq):
+    if _osp_rdflib.__version__ <= '5.0.0':
         # Then patch RDFLib with the following decorator.
         def _graph_serialize_fix_decorator(func):
             def graph_serialize(*args, **kwargs):

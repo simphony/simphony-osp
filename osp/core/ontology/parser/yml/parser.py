@@ -6,15 +6,16 @@ import logging
 from rdflib import BNode, Graph, URIRef, Literal, RDF, RDFS, OWL, XSD, SKOS
 from rdflib.graph import ReadOnlyGraphAggregate
 import yaml
-from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.datatypes import get_rdflib_datatype
+from osp.core.ontology.cuba import cuba_namespace
+from osp.core.ontology.datatypes import YML_TO_RDF, CUSTOM_TO_PYTHON
 from osp.core.ontology.parser.parser import OntologyParser
 from osp.core.ontology.parser.yml.validator import validate
 from osp.core.ontology.parser.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
-from osp.core.ontology.namespace_registry import namespace_registry
 import osp.core.ontology.parser.yml.keywords as keywords
+from osp.core.session.session import Session
 
+default_ontology = Session.ontology
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ class YMLParser(OntologyParser):
     def active_relationships(self) -> Tuple[URIRef]:
         """Fetch the active relationships from the ontology file."""
         return tuple(iri for iri in self.graph.subjects(
-            RDFS.subPropertyOf, rdflib_cuba.activeRelationship))
+            RDFS.subPropertyOf, cuba_namespace.activeRelationship))
 
     @property
     def default_relationship(self) -> Optional[URIRef]:
@@ -182,7 +183,7 @@ class YMLParser(OntologyParser):
             superclass_iri = self._get_iri(name, namespace, entity_name)
             triple = (superclass_iri, RDF.type, None)
             for _, _, o in (ReadOnlyGraphAggregate(
-                    [self._graph, namespace_registry._graph]).triples(triple)):
+                    [self._graph, default_ontology.graph]).triples(triple)):
                 if o in {OWL.Class, OWL.ObjectProperty,
                          OWL.DatatypeProperty,
                          OWL.FunctionalProperty}:
@@ -213,7 +214,7 @@ class YMLParser(OntologyParser):
                                            entity_name)
             predicate = RDFS.subPropertyOf
             if (iri, RDF.type, OWL.Class) in ReadOnlyGraphAggregate(
-                    [self._graph, namespace_registry._graph]):
+                    [self._graph, default_ontology.graph]):
                 predicate = RDFS.subClassOf
 
             self._graph.add((iri, predicate, superclass_iri))
@@ -270,7 +271,7 @@ class YMLParser(OntologyParser):
         ) or (
             namespace != self._namespace
             and (iri, None, None) not in ReadOnlyGraphAggregate(
-                [self._graph, namespace_registry._graph])
+                [self._graph, default_ontology.graph])
         )):
             if _case_sensitive and not _for_default_rel:
                 raise AttributeError(
@@ -376,7 +377,7 @@ class YMLParser(OntologyParser):
                                           entity_name)
             x = (attribute_iri, RDF.type, OWL.DatatypeProperty)
             if x not in ReadOnlyGraphAggregate([self._graph,
-                                                namespace_registry._graph]):
+                                                default_ontology.graph]):
                 raise ValueError(f"Invalid attribute {attribute_namespace}."
                                  f"{attribute_name} of entity {entity_name}")
             self._add_attribute(iri, attribute_iri, default)
@@ -402,11 +403,15 @@ class YMLParser(OntologyParser):
 
         if default is not None:
             bnode = BNode()
-            self._graph.add((class_iri, rdflib_cuba._default, bnode))
+            self._graph.add((class_iri, cuba_namespace._default, bnode))
             self._graph.add(
-                (bnode, rdflib_cuba._default_attribute, attribute_iri))
+                (bnode, cuba_namespace._default_attribute, attribute_iri))
+            # Find datatype of attribute.
+            data_type = self._graph.value(attribute_iri, RDFS.range)
+            lexicalized_default = str(Literal(default, datatype=data_type))
             self._graph.add(
-                (bnode, rdflib_cuba._default_value, Literal(default)))
+                (bnode, cuba_namespace._default_value,
+                 Literal(lexicalized_default, datatype=data_type)))
 
     def _set_inverse(self, entity_name, entity_doc):
         """Set a triple describing the inverse of relationship entity.
@@ -495,8 +500,12 @@ class YMLParser(OntologyParser):
         if datatype_def is not None:
             self._graph.add(
                 (self._get_iri(entity_name), RDFS.range,
-                 get_rdflib_datatype(datatype_def, self._graph))
+                 YML_TO_RDF[datatype_def])
             )
+            if YML_TO_RDF[datatype_def] in CUSTOM_TO_PYTHON and self._graph:
+                self._graph.add((YML_TO_RDF[datatype_def],
+                                RDF.type,
+                                RDFS.Datatype))
 
     def _validate_entity(self, entity_name, entity_doc):
         """Validate the yaml definition of an entity.
@@ -519,11 +528,11 @@ class YMLParser(OntologyParser):
         attr_triple = (iri, RDF.type, OWL.DatatypeProperty)
         status = (
             class_triple in ReadOnlyGraphAggregate(
-                [self._graph, namespace_registry._graph]),
+                [self._graph, default_ontology.graph]),
             rel_triple in ReadOnlyGraphAggregate(
-                [self._graph, namespace_registry._graph]),
+                [self._graph, default_ontology.graph]),
             attr_triple in ReadOnlyGraphAggregate(
-                [self._graph, namespace_registry._graph])
+                [self._graph, default_ontology.graph])
         )
         if sum(status) != 1:
             raise RuntimeError(f"Couldn't determine type of {entity_name}")
