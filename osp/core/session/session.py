@@ -3,7 +3,6 @@
 import itertools
 from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Set, \
     TYPE_CHECKING, Union
-from typing import Literal as TypingLiteral
 
 import rdflib
 from rdflib import OWL, RDF, RDFS, SKOS, BNode, Graph, Literal, URIRef
@@ -37,7 +36,7 @@ class Session:
     Python (string representation of the session). It has no other effect.
     """
 
-    ontology: Union['Session', TypingLiteral[True]] = None
+    ontology: Union['Session', bool] = None
     """Another session considered to be the T-Box of this one.
 
     In a normal setting, a session is considered only to contain an A-Box.
