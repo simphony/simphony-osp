@@ -47,6 +47,7 @@ class TestFOAFOntology(unittest.TestCase):
 
         cls.ontology = Session(from_parser=OWLParser(cls.yml_path),
                                ontology=True)
+        cls.ontology.load_parser(OWLParser('cuba'))
 
     def tearDown(self) -> None:
         """Clean up the custom FOAF yml config file that was created."""

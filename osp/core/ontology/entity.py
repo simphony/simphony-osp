@@ -250,8 +250,8 @@ class OntologyEntity(ABC):
         """Sort the labels for this entity in order of preference.
 
         The labels are first sorted by the property defining them (which is
-        an attribute of the session that this entity is stored on), and then by
-        their length.
+        an attribute of the session that this entity is stored on),
+        then by their language, and then by their length.
 
         Args:
             labels: an iterator of tuples where the first element is an
@@ -259,10 +259,13 @@ class OntologyEntity(ABC):
                 property used for this assignment.
         """
         # Sort by label property preference, and length.
-        labels = sorted(labels,
-                        key=lambda x:
-                        (self.session.label_properties.index(x[1]),
-                         len(x[0])))
+        labels = sorted(
+            labels,
+            key=lambda x:
+            (self.session.label_properties.index(x[1]),
+             (self.session.label_languages + ('en', None, x[0].language))
+             .index(x[0].language),
+             len(x[0])))
         return labels
 
     def iter_labels(self,
@@ -293,12 +296,17 @@ class OntologyEntity(ABC):
 
     @property
     def triples(self) -> Set[Triple]:
-        """Get the triples defining the entity."""
+        """Get the all the triples where the entity is the subject."""
         if self.__graph is not None:
             return set(self.__graph.triples((None, None, None)))
         else:
             return set(self.session.graph.triples((self.identifier, None,
                                                    None)))
+
+    @property
+    def graph(self) -> Graph:
+        """Graph where the ontology entity's data lives."""
+        return self.session.graph if self.session is not None else self.__graph
 
     @abstractmethod
     def _get_direct_superclasses(self) -> Iterable['OntologyEntity']:

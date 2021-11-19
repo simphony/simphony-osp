@@ -2,9 +2,8 @@
 
 import itertools
 import logging
-from abc import ABC, abstractmethod
-from typing import (Any, Dict, Iterable, Iterator, List, MutableSet, Optional,
-                    Set, TYPE_CHECKING, Tuple, Union)
+from typing import (Dict, Iterable, Iterator, MutableSet, Optional, Set,
+                    TYPE_CHECKING, Tuple, Union)
 
 from rdflib import RDF, Literal
 
@@ -12,10 +11,11 @@ from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.datatypes import (UID, RDFCompatibleType,
                                          RDF_COMPATIBLE_TYPES, Triple)
 from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.ontology.utils import DataStructureSet
 
 if TYPE_CHECKING:
-    from osp.core.ontology.oclass import OntologyClass
     from osp.core.session.session import Session
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class OntologyIndividual(OntologyEntity):
     # ↓ ------ ↓
 
     @property
-    def oclass(self) -> Optional['OntologyClass']:
+    def oclass(self) -> Optional[OntologyClass]:
         """Get the ontology class of the ontology individual.
 
         Returns:
@@ -39,21 +39,44 @@ class OntologyIndividual(OntologyEntity):
         oclasses = self.oclasses
         return oclasses[0] if oclasses else None
 
+    @oclass.setter
+    def oclass(self, value: OntologyClass) -> None:
+        """Set the ontology class of the ontology individual.
+
+        Args:
+            value: The new ontology class of the ontology individual.
+        """
+        self.oclasses = {value}
+
     @property
-    def oclasses(self) -> Tuple['OntologyClass']:
+    def oclasses(self) -> Tuple[OntologyClass]:
         """Get the ontology classes of this ontology individual.
 
         Returns:
             A tuple with all the ontology classes of the ontology
             individual. When the individual has no classes, the tuple is empty.
         """
-        # TODO: Why only from `tbox`? Think of assigning a specific ontology
-        #  as TBox to a session for example.
-        return tuple(self.session.from_identifier(o)
+        return tuple(self.session.ontology.from_identifier(o)
                      for o in self.session.graph.objects(self.identifier,
                                                          RDF.type))
 
-    def is_a(self, oclass: 'OntologyClass') -> bool:
+    @oclasses.setter
+    def oclasses(self, value: Iterable[OntologyClass]) -> None:
+        """Set the ontology classes of this ontology individual.
+
+        Args:
+            value: New ontology classes of the ontology individual.
+        """
+        identifiers = set()
+        for x in value:
+            if not isinstance(x, OntologyClass):
+                raise TypeError(f"Expected {OntologyClass}, not {type(x)}.")
+            identifiers.add(x.identifier)
+        self.session.graph.remove((self.identifier, RDF.type, None))
+        for x in identifiers:
+            self.session.graph.add((self.identifier, RDF.type, x))
+
+    def is_a(self, oclass: OntologyClass) -> bool:
         """Check if the individual is an instance of the given ontology class.
 
         Args:
@@ -64,67 +87,6 @@ class OntologyIndividual(OntologyEntity):
                 class.
         """
         return any(oc in oclass.subclasses for oc in self.oclasses)
-
-    def add(self,
-            *individuals: 'OntologyIndividual',
-            rel: Optional[OntologyRelationship] = None) -> \
-            Union['OntologyIndividual', List['OntologyIndividual']]:
-        """Add an ontology individual to this one."""
-        if rel is None:
-            from osp.core.namespaces import cuba
-            rel = cuba.activeRelationship
-        individuals_set = set(individuals)
-        existing_set = set(self._iter(rel=rel))
-        individuals_in_this_session = set()
-        for individual in individuals_set.difference(existing_set):
-            self._connect(individual, rel=rel)
-            individuals_in_this_session.add(
-                self.session.from_identifier(individual.identifier))
-        return individuals_in_this_session.pop() \
-            if len(individuals_in_this_session) == 1 else \
-            list(individuals_in_this_session)
-
-    def remove(self,
-               *args: Union[UID, 'OntologyIndividual'],
-               rel: Optional[OntologyRelationship] = None,
-               oclass: 'OntologyClass' = None) -> \
-            Optional[Union['OntologyIndividual',
-                           List['OntologyIndividual']]]:
-        """Detach an ontology individual from this one."""
-        if rel is None:
-            from osp.core.namespaces import cuba
-            rel = cuba.activeRelationship
-        args = set(arg.uid if isinstance(arg, OntologyIndividual) else arg
-                   for arg in args)
-        individuals_and_relationships = filter(
-            lambda x: x[0].uid in args if args else True,
-            self._iter(rel=rel, oclass=oclass, return_rel=True))
-        for individual, relationship in individuals_and_relationships:
-            self._disconnect(individual, rel=relationship)
-
-    def get(self,
-            *uids: UID,
-            rel: Optional[OntologyRelationship] = None,
-            oclass: 'OntologyClass' = None) -> \
-            Optional[Union['OntologyIndividual', List['OntologyIndividual']]]:
-        """Get ontology individuals attached to this one."""
-        if rel is None:
-            from osp.core.namespaces import cuba
-            rel = cuba.activeRelationship
-        result = list(filter(lambda x: x.uid in uids if uids else True,
-                             self._iter(rel=rel, oclass=oclass)))
-        return result.pop() if len(uids) == 1 else result
-
-    def iter(self,
-             *uids: UID,
-             rel: Optional[OntologyRelationship] = None,
-             oclass: 'OntologyClass' = None) -> Iterable['OntologyIndividual']:
-        """Yield ontology individuals attached to this one."""
-        if rel is None:
-            from osp.core.namespaces import cuba
-            rel = cuba.activeRelationship
-        yield from filter(lambda x: x.uid in uids if uids else True,
-                          self._iter(rel=rel, oclass=oclass))
 
     def __dir__(self) -> Iterable[str]:
         """Show the individual's attributes as autocompletion suggestions."""
@@ -184,8 +146,10 @@ class OntologyIndividual(OntologyEntity):
         return value
 
     def __setattr__(self, name: str,
-                    value: Union[RDFCompatibleType,
-                                 Set[RDFCompatibleType]]) -> None:
+                    value: Optional[
+                        Union[RDFCompatibleType,
+                              Set[RDFCompatibleType]]
+                    ]) -> None:
         """Set the value(s) of an attribute.
 
         Args:
@@ -204,6 +168,7 @@ class OntologyIndividual(OntologyEntity):
 
         try:
             attr = self._get_ontology_attribute_by_name(name)
+            value = value if value is not None else set()
             value = {value} \
                 if not isinstance(value, (Set, MutableSet)) \
                 else value
@@ -217,7 +182,8 @@ class OntologyIndividual(OntologyEntity):
                 raise e
 
     def __getitem__(self,
-                    value: Union['OntologyAttribute', 'OntologyRelationship',
+                    value: Union['OntologyAttribute',
+                                 'OntologyRelationship',
                                  Tuple[
                                      Union['OntologyAttribute',
                                            'OntologyRelationship'],
@@ -241,8 +207,9 @@ class OntologyIndividual(OntologyEntity):
           the values assigned to the specified attribute. Such set can be
           modified in-place to change the assigned values.
         - When `rel` is an OntologyRelationship, to obtain a set containing
-          all CUDS objects that are connected to `individual` through rel.
-          Such set can be modified in-place to modify the existing connections.
+          all the ontology individuals that are connected to `individual`
+          through rel. Such set can be modified in-place to modify the
+          existing connections.
 
         The reason why a set is returned and not a list, or any other
         container allowing repeated elements, is that the underlying RDF
@@ -252,7 +219,7 @@ class OntologyIndividual(OntologyEntity):
             value: Two possibilities,
                 - Just an ontology attribute or an ontology relationship
                   (OWL datatype property, OWL object property). Then only one
-                  CUDS object or attribute value is returned.
+                  ontology individual or attribute value is returned.
                 - A tuple (multiple keys specified). The first element of the
                   tuple is expected to be such attribute or relationship, and
                   the second a `slice` object. When `slice(None, None, None)`
@@ -271,9 +238,9 @@ class OntologyIndividual(OntologyEntity):
             rel, slicing = value, None
 
         if isinstance(rel, OntologyAttribute):
-            class_ = self._AttributeSet
+            set_class = self._AttributeSet
         elif isinstance(rel, OntologyRelationship):
-            class_ = self._RelationshipSet
+            set_class = self._RelationshipSet
         else:
             raise TypeError(f'Ontology individual indices must be ontology '
                             f'relationships or ontology attributes, '
@@ -281,11 +248,11 @@ class OntologyIndividual(OntologyEntity):
 
         if slicing is None:
             try:
-                return set(class_(rel, self)).pop()
+                return set(set_class(rel, self)).pop()
             except KeyError:
                 return None
         elif slicing == slice(None, None, None):
-            return class_(rel, self)
+            return set_class(rel, self)
         elif not isinstance(slicing, slice):
             raise IndexError(f"Invalid slicing {slicing}.")
         else:
@@ -339,7 +306,7 @@ class OntologyIndividual(OntologyEntity):
         """
         if isinstance(rel, tuple) and rel[1] == slice(None, None, None):
             rel = rel[0]
-        values = values or set()
+        values = values if values is not None else set()
         values = {values} \
             if not isinstance(values, (Set, MutableSet)) \
             else values
@@ -393,7 +360,7 @@ class OntologyIndividual(OntologyEntity):
     # ↑ ------ ↑
     # Public API
 
-    class _ObjectSet(MutableSet, ABC):
+    class _ObjectSet(DataStructureSet):
         """A set interface to an ontology individual's neighbors.
 
         This class looks like and acts like the standard `set`, but it
@@ -415,211 +382,16 @@ class OntologyIndividual(OntologyEntity):
                      predicate: Union[OntologyAttribute,
                                       OntologyRelationship],
                      individual: "OntologyIndividual"):
-            """Fix the liked property and CUDS object."""
+            """Fix the linked property and CUDS object."""
             self._individual = individual
             self._predicate = predicate
             super().__init__()
 
-        @property
-        @abstractmethod
-        def _underlying_set(self) -> Set:
-            """The set of values assigned to the property `self._property`.
-
-            Returns:
-                The mentioned underlying set.
-            """
-            pass
-
         def __repr__(self) -> str:
             """Return repr(self)."""
-            return self._underlying_set.__repr__() \
+            return super().__repr__() \
                 + f' <{self._predicate} of ontology individual ' \
                   f'{self._individual}>'
-
-        def __str__(self) -> str:
-            """Return str(self)."""
-            return self._underlying_set.__str__()
-
-        def __format__(self, format_spec) -> str:
-            """Default object formatter."""
-            return self._underlying_set.__format__(format_spec)
-
-        def __contains__(self, item: Any) -> bool:
-            """Return y in x."""
-            for x in self._underlying_set:
-                if x == item:
-                    return True
-            else:
-                return False
-
-        def __iter__(self):
-            """Implement iter(self)."""
-            for x in self._underlying_set:
-                yield x
-
-        @abstractmethod
-        def __len__(self) -> int:
-            """Return len(self)."""
-            pass
-
-        def __le__(self, other: set) -> bool:
-            """Return self<=other."""
-            return self._underlying_set.__le__(other)
-
-        def __lt__(self, other: set) -> bool:
-            """Return self<other."""
-            return self._underlying_set.__lt__(other)
-
-        def __eq__(self, other: set) -> bool:
-            """Return self==other."""
-            return self._underlying_set.__eq__(other)
-
-        def __ne__(self, other: set) -> bool:
-            """Return self!=other."""
-            return self._underlying_set.__ne__(other)
-
-        def __gt__(self, other: set) -> bool:
-            """Return self>other."""
-            return self._underlying_set.__gt__(other)
-
-        def __ge__(self, other: set) -> bool:
-            """Return self>=other."""
-            return self._underlying_set.__ge__(other)
-
-        def __and__(self, other: set) -> Union[Set[RDFCompatibleType],
-                                               Set["OntologyIndividual"]]:
-            """Return self&other."""
-            return self._underlying_set.__and__(other)
-
-        def __or__(self, other: set) -> set:
-            """Return self|other."""
-            return self._underlying_set.__or__(other)
-
-        def __sub__(self, other: set) -> Set[RDFCompatibleType]:
-            """Return self-other."""
-            return self._underlying_set.__sub__(other)
-
-        def __xor__(self, other: set) -> Set:
-            """Return self^other."""
-            return self._underlying_set.__xor__(other)
-
-        @abstractmethod
-        def __ior__(self, other: Union[Set[RDFCompatibleType],
-                                       Set["OntologyIndividual"]]):
-            """Return self|=other."""
-            pass
-
-        @abstractmethod
-        def __iand__(self, other: Union[Set[RDFCompatibleType],
-                                        Set["OntologyIndividual"]]):
-            """Return self&=other."""
-            pass
-
-        @abstractmethod
-        def __ixor__(self, other: Union[Set[RDFCompatibleType],
-                                        Set["OntologyIndividual"]]):
-            """Return self^=other."""
-            pass
-
-        def __iadd__(self, other: Set[RDFCompatibleType]):
-            """Return self+=other (equivalent to self|=other)."""
-            if isinstance(other, (Set, MutableSet)):
-                # Apparently instances of MutableSet are not instances of Set.
-                return self.__ior__(other)
-            else:
-                return self.__ior__({other})
-
-        @abstractmethod
-        def __isub__(self, other: Any):
-            """Return self-=other."""
-            pass
-
-        def isdisjoint(self, other: set):
-            """Return True if two sets have a null intersection."""
-            return self._underlying_set.isdisjoint(other)
-
-        @abstractmethod
-        def clear(self):
-            """Remove all elements from this set.
-
-            This also removes all the values assigned to the property
-            linked to this set for the cuds linked to this set.
-            """
-            pass
-
-        @abstractmethod
-        def pop(self) -> Union[RDFCompatibleType, "OntologyIndividual"]:
-            """Remove and return an arbitrary set element.
-
-            Raises KeyError if the set is empty.
-            """
-            pass
-
-        def copy(self):
-            """Return a shallow copy of a set."""
-            return self._underlying_set
-
-        def difference(self, other: Iterable) -> Union[
-                Set[RDFCompatibleType], Set["OntologyIndividual"]]:
-            """Return the difference of two or more sets as a new set.
-
-            (i.e. all elements that are in this set but not the others.)
-            """
-            return self._underlying_set.difference(other)
-
-        @abstractmethod
-        def difference_update(self, other: Iterable):
-            """Remove all elements of another set from this set."""
-            pass
-
-        @abstractmethod
-        def discard(self, other: Any):
-            """Remove an element from a set if it is a member.
-
-            If the element is not a member, do nothing.
-            """
-            pass
-
-        @abstractmethod
-        def intersection(self, other: set) -> Union[Set[RDFCompatibleType],
-                                                    Set["OntologyIndividual"]]:
-            """Return the intersection of two sets as a new set.
-
-            (i.e. all elements that are in both sets.)
-            """
-            return self._underlying_set.intersection(other)
-
-        def intersection_update(self, other: set):
-            """Update a set with the intersection of itself and another."""
-            self.__iand__(other)
-
-        def issubset(self, other: set) -> bool:
-            """Report whether another set contains this set."""
-            return self <= other
-
-        def issuperset(self, other: set) -> bool:
-            """Report whether this set contains another set."""
-            return self >= other
-
-        def add(self, other: Union[RDFCompatibleType, "OntologyIndividual"]):
-            """Add an element to a set.
-
-            This has no effect if the element is already present.
-            """
-            self.__ior__({other})
-
-        @abstractmethod
-        def remove(self, other: Any):
-            """Remove an element from a set; it must be a member.
-
-            If the element is not a member, raise a KeyError.
-            """
-            pass
-
-        @abstractmethod
-        def update(self, other: Iterable):
-            """Update a set with the union of itself and others."""
-            pass
 
     def _get_direct_superclasses(self) -> Iterable['OntologyEntity']:
         return (x for oclass in self.oclasses
@@ -651,21 +423,18 @@ class OntologyIndividual(OntologyEntity):
         connected object is added to the session of this ontology individual.
 
         Args:
-            args (Cuds): The objects to be added
-            rel (OntologyRelationship): The relationship between the objects.
+            other: The ontology individual to connect.
+            rel: The relationship to use.
 
         Raises:
-            TypeError: No relationship given and no default specified.
-            ValueError: Added a CUDS object that is already in the container.
+            TypeError: No relationship given.
 
         Returns:
-            Union[Cuds, List[Cuds]]: The CUDS objects that have been added,
-                associated with the session of the current CUDS object.
-                Result type is a list, if more than one CUDS object is
-                returned.
+            The ontology individual that has been connected,
+            associated with the session of the current ontology individual
+            object.
         """
-        if other.triples:
-            self.session.update(other)
+        self.session.merge(other)
         self.session.graph.add(
             (self.identifier, rel.identifier, other.identifier))
         return self.session.from_identifier(other.identifier)
@@ -673,25 +442,16 @@ class OntologyIndividual(OntologyEntity):
     def _disconnect(self,
                     other: Optional["OntologyIndividual"] = None,
                     rel: Optional[OntologyRelationship] = None):
-        """Remove elements from the CUDS object.
-
-        Expected calls are remove(), remove(*uids/Cuds),
-        remove(rel), remove(oclass), remove(*uids/Cuds, rel),
-        remove(rel, oclass)
+        """Disconnect ontology individuals from this one.
 
         Args:
-            args (Union[Cuds, UUID, URIRef]): UUIDs of the elements to remove
-                or the elements themselves.
-            rel (OntologyRelationship, optional): Only remove cuds_object
-                which are connected by subclass of given relationship.
-                Defaults to cuba.activeRelationship.
-            oclass (OntologyClass, optional): Only remove elements which are a
-                subclass of the given ontology class. Defaults to None.
-
-        Raises:
-            RuntimeError: No CUDS object removed, because specified CUDS
-                objects are not in the container of the current CUDS object
-                directly.
+            other: The ontology individual to disconnect. When not
+                specified, this ontology individual will be disconnected
+                from all connected individuals
+            rel: This ontology individual will be disconnected from `other`
+                for relationship `rel`. When not specified, this ontology
+                individual will be disconnected from `other` for all
+                relationships.
         """
         self.session.graph.remove(
             (self.identifier,
@@ -700,202 +460,104 @@ class OntologyIndividual(OntologyEntity):
 
     def _iter(self,
               rel: Optional[OntologyRelationship] = None,
-              oclass: Optional['OntologyClass'] = None,
+              oclass: Optional[OntologyClass] = None,
               return_rel: bool = False) \
             -> Iterator["OntologyIndividual"]:
-        """Iterate over the contained elements.
-
-        Only iterate over objects of a given type, uid or oclass.
-
-        Expected calls are iter(), iter(*uids), iter(rel),
-        iter(oclass), iter(*uids, rel), iter(rel, oclass).
-        If uids are specified:
-            The position of each element in the result is determined by to the
-            position of the corresponding uid in the given list of
-            uids. In this case, the result can contain None values if a
-            given uid is not a child of this cuds_object.
-        If no uids are specified:
-            The result is ordered randomly.
+        """Iterate over the connected ontology individuals.
 
         Args:
-            uids: uids of the elements.
-            rel: Only return cuds_object which are connected by subclass of
-                given relationship. Defaults to cuba.activeRelationship.
-            oclass: Only return elements which are a
-                subclass of the given ontology class. Defaults to None.
+            rel: Only return ontology individuals which are connected by
+                the given relationship. Defaults to None (any relationship).
+            oclass: Only return ontology individuals which belong to the
+                given ontology class. Defaults to None (any class).
             return_rel: Whether to return the connecting
                 relationship. Defaults to False.
 
         Returns:
-            Iterator[Cuds]: The queried objects.
+            Iterator with the queried ontology individuals.
         """
-        if rel is None:
-            from osp.core.namespaces import cuba
-            rel = cuba.activeRelationship
-
         entities_and_relationships = (
-            (self.session.from_identifier(x), sub)
-            for sub in rel.subclasses
-            for x in self.session.graph.objects(self.identifier,
-                                                sub.identifier))
+            (self.session.from_identifier(o), self.session.from_identifier(p))
+            for s, p, o in self.session.graph.triples(
+                (self.identifier,
+                 rel.identifier if rel is not None else None,
+                 None))
+        )
         if oclass:
             entities_and_relationships = (
                 (entity, relationship)
                 for entity, relationship in entities_and_relationships
-                if oclass in entity.superclasses)
+                if oclass == entity)
 
         if return_rel:
             yield from entities_and_relationships
         else:
             yield from map(lambda x: x[0], entities_and_relationships)
 
-    class _RelationshipSet(_ObjectSet, MutableSet):
-        """A set interface to a CUDS object's RELATIONSHIPS.
+    class _RelationshipSet(_ObjectSet):
+        """A set interface to an ontology individual's relationships.
 
         This class looks like and acts like the standard `set`, but it
-        is an interface to the `add`, `get` and `remove` methods.
+        is an interface to the `_connect`, `_disconnect` and `_iter` methods.
 
-        When an instance is read, the method `get` is
-        used to fetch the data. When it is modified in-place, the methods
-        `add` and `remove` are used to reflect the changes.
+        When an instance is read, the method `_iter` is used to fetch the
+        data. When it is modified in-place, the methods `_connect` and
+        `_disconnect` are used to reflect the changes.
 
         This class does not hold any relationship-related information itself,
         thus it is safe to spawn multiple instances linked to the same
-        relationship and CUDS (when single-threading).
+        relationship and ontology individual (when single-threading).
         """
         _predicate: OntologyRelationship
         _individual: "OntologyIndividual"
 
+        def __init__(self,
+                     relationship: OntologyRelationship,
+                     individual: 'OntologyIndividual'):
+            """Fix the liked OntologyRelationship and ontology individual."""
+            super().__init__(relationship, individual)
+
         @property
-        def _underlying_set(self) -> Set["OntologyIndividual"]:
-            """The set of values assigned to the attribute `self._predicate`.
+        def _underlying_set(self) -> Set['OntologyIndividual']:
+            """The individuals assigned to relationship`self._predicate`.
 
             Returns:
                 The mentioned underlying set.
             """
             return set(self._individual._iter(rel=self._predicate))
 
-        def __init__(self,
-                     relationship: OntologyRelationship,
-                     individual: "OntologyIndividual"):
-            """Fix the liked OntologyAttribute and CUDS object."""
-            super().__init__(relationship, individual)
-
-        def __len__(self) -> int:
-            """Return len(self)."""
-            i = 0
-            for x in self._individual._iter(rel=self._predicate):
-                i += 1
-            return i
-
-        def __and__(self, other: set) -> Set['OntologyIndividual']:
-            """Return self&other."""
-            return super().__and__(other)
-
-        def __ior__(self, other: Set['OntologyIndividual']):
-            """Return self|=other."""
-            # TODO: Avoid the for loop by finding a way to roll back the
-            #  added CUDS?
+        def update(self, other: Iterable['OntologyIndividual']) -> None:
+            """Update the set with the union itself and other."""
             for individual in other:
                 self._individual._connect(individual, rel=self._predicate)
-            return self
 
-        def __iand__(self, other: Set["OntologyIndividual"]):
-            """Return self&=other."""
+        def intersection_update(self, other: Iterable['OntologyIndividual'])\
+                -> None:
+            """Update the set with the intersection of itself and another."""
             underlying_set = self._underlying_set
             intersection = underlying_set.intersection(other)
             removed = underlying_set.difference(intersection)
             for individual in removed:
                 self._individual._disconnect(individual, rel=self._predicate)
-            return self
 
-        def __ixor__(self, other: Set["OntologyIndividual"]):
-            """Return self^=other."""
-            result = self._underlying_set ^ other
+        def difference_update(self, other: Iterable['OntologyIndividual']) \
+                -> None:
+            """Remove all elements of another set from this set."""
+            to_remove = self._underlying_set & set(other)
+            for individual in to_remove:
+                self._individual._disconnect(individual, rel=self._predicate)
+
+        def symmetric_difference_update(self,
+                                        other: Iterable['OntologyIndividual'])\
+                -> None:
+            """Update with the symmetric difference of it and another."""
+            result = self._underlying_set ^ set(other)
             to_add = result.difference(self._underlying_set)
             to_remove = self._underlying_set.difference(result)
             for individual in to_remove:
                 self._individual._disconnect(individual, rel=self._predicate)
             for individual in to_add:
                 self._individual._connect(individual, rel=self._predicate)
-            return self
-
-        def __isub__(self, other: Any):
-            """Return self-=other."""
-            if isinstance(other, (Set, MutableSet)):
-                # Apparently instances of MutableSet are not instances of Set.
-                to_remove = self._underlying_set & set(other)
-            else:
-                to_remove = self._underlying_set & {other}
-            for individual in to_remove:
-                self._individual._disconnect(individual, rel=self._predicate)
-            return self
-
-        def clear(self):
-            """Remove all elements from this set.
-
-            This also removed all the values assigned to the attribute
-            linked to this set for the cuds linked to this set.
-            """
-            self._individual._disconnect(None, rel=self._predicate)
-
-        def pop(self) -> "OntologyIndividual":
-            """Remove and return an arbitrary set element.
-
-            Raises KeyError if the set is empty.
-            """
-            result = self._underlying_set.pop()
-            self._individual._disconnect(result, rel=self._predicate)
-            return result
-
-        def difference(self, other: Iterable) -> Set["OntologyIndividual"]:
-            """Return the difference of two or more sets as a new set.
-
-            (i.e. all elements that are in this set but not the others.)
-            """
-            return super().difference(other)
-
-        def difference_update(self, other: Iterable):
-            """Remove all elements of another set from this set."""
-            to_remove = self._underlying_set.intersection(other)
-            for individual in to_remove:
-                self._individual._disconnect(individual, rel=self._predicate)
-
-        def discard(self, other: Any):
-            """Remove an element from a set if it is a member.
-
-            If the element is not a member, do nothing.
-            """
-            self._individual._disconnect(other, rel=self._predicate)
-
-        def intersection(self, other: set) -> Set["OntologyIndividual"]:
-            """Return the intersection of two sets as a new set.
-
-            (i.e. all elements that are in both sets.)
-            """
-            return super().intersection(other)
-
-        def add(self, other: "OntologyIndividual"):
-            """Add an element to a set.
-
-            This has no effect if the element is already present.
-            """
-            return super().add(other)
-
-        def remove(self, other: Any):
-            """Remove an element from a set; it must be a member.
-
-            If the element is not a member, raise a KeyError.
-            """
-            to_remove = self._underlying_set & other
-            for individual in to_remove:
-                self._individual._disconnect(individual, rel=self._predicate)
-            else:
-                raise KeyError(f"{other}")
-
-        def update(self, other: Iterable):
-            """Update a set with the union of itself and others."""
-            self.__ior__(set(other))
 
     # ↑ ----------------- ↑
     # Relationship handling
@@ -905,13 +567,13 @@ class OntologyIndividual(OntologyEntity):
 
     def get_attributes(self) -> Dict[OntologyAttribute,
                                      Set[RDFCompatibleType]]:
-        """Get the attributes as a dictionary."""
+        """Get the attributes of this individual as a dictionary."""
         return {attribute: set(value_generator)
                 for attribute, value_generator
                 in self._attribute_and_value_generator()}
 
     def _get_ontology_attribute_by_name(self, name: str) -> OntologyAttribute:
-        """Get an ontology attribute of this individual by name."""
+        """Get an attribute of this individual by name."""
         attributes_and_reference_styles = (
             (attr, ns.reference_style)
             for oclass in self.oclasses
@@ -956,7 +618,7 @@ class OntologyIndividual(OntologyEntity):
                                 f"be set as attribute value, as it is "
                                 f"incompatible with the OWL standard")
 
-        for value in values:
+        for value in filter(lambda v: v is not None, values):
             self.session.graph.add(
                 (self.iri, attribute.iri,
                  Literal(attribute.convert_to_datatype(value),
@@ -1019,12 +681,7 @@ class OntologyIndividual(OntologyEntity):
                                f"incompatible with the OWL standard")
 
         self.session.graph.remove((self.iri, attribute.iri, None))
-        for value in filter(lambda v: v is not None, values):
-            self.session.graph.add(
-                (self.iri, attribute.iri,
-                 Literal(attribute.convert_to_datatype(value),
-                         datatype=attribute.datatype))
-            )
+        self._add_attributes(attribute, values)
 
     def _attribute_value_generator(self,
                                    attribute: OntologyAttribute) \
@@ -1037,12 +694,6 @@ class OntologyIndividual(OntologyEntity):
         Returns:
             Generator that returns the attribute values.
         """
-        # TODO (detach cuds from sessions): Workaround to keep the behavior:
-        #  removed CUDS do not have attributes. Think of a better way to
-        #  detach CUDS from sessions. `self._graph is not
-        #  self.session.graph` happens when `session._notify_read` is called
-        #  for this cuds, but this is hacky maybe not valid in general for
-        #  all sessions.
         for literal in self.session.graph.objects(self.iri, attribute.iri):
             # TODO: Recreating the literal to get a vector from
             #  literal.toPython() should not be necessary, find out why it
@@ -1061,14 +712,6 @@ class OntologyIndividual(OntologyEntity):
         Returns:
             Generator that returns the attributes of this CUDS object.
         """
-        # TODO (detach cuds from sessions): Workaround to keep the behavior:
-        #  removed CUDS do not have attributes. Think of a better way to
-        #  detach CUDS from sessions.
-        if self.session is None:
-            raise AttributeError(f"The CUDS {self} does not belong to any "
-                                 f"session. None of its attributes are "
-                                 f"accessible.")
-
         for predicate in self.session.graph.predicates(self.iri, None):
             try:
                 obj = self.session.from_identifier(predicate)
@@ -1109,6 +752,12 @@ class OntologyIndividual(OntologyEntity):
         _predicate: OntologyAttribute
         _individual: "OntologyIndividual"
 
+        def __init__(self,
+                     attribute: OntologyAttribute,
+                     individual: "OntologyIndividual"):
+            """Fix the liked OntologyAttribute and ontology individual."""
+            super().__init__(attribute, individual)
+
         @property
         def _underlying_set(self) -> Set[RDFCompatibleType]:
             """The set of values assigned to the attribute `self._predicate`.
@@ -1120,119 +769,30 @@ class OntologyIndividual(OntologyEntity):
                 self._individual._attribute_value_generator(
                     attribute=self._predicate))
 
-        def __init__(self,
-                     attribute: OntologyAttribute,
-                     individual: "OntologyIndividual"):
-            """Fix the liked OntologyAttribute and ontology individual."""
-            super().__init__(attribute, individual)
-
-        def __len__(self) -> int:
-            """Return len(self)."""
-            i = 0
-            for x in self._individual._attribute_value_generator(
-                    attribute=self._predicate):
-                i += 1
-            return i
-
-        def __and__(self, other: set) -> Set[RDFCompatibleType]:
-            """Return self&other."""
-            return super().__and__(other)
-
-        def __ior__(self, other: Set[RDFCompatibleType]):
-            """Return self|=other."""
+        def update(self, other: Iterable[RDFCompatibleType]) -> None:
+            """Update the set with the union of itself and others."""
             self._individual._add_attributes(self._predicate, other)
-            return self
 
-        def __iand__(self, other: Set[RDFCompatibleType]):
-            """Return self&=other."""
+        def intersection_update(self, other: Iterable[RDFCompatibleType]) ->\
+                None:
+            """Update the set with the intersection of itself and another."""
             underlying_set = self._underlying_set
             intersection = underlying_set.intersection(other)
             removed = underlying_set.difference(intersection)
             self._individual._delete_attributes(self._predicate, removed)
-            return self
 
-        def __ixor__(self, other: Set[RDFCompatibleType]):
-            """Return self^=other."""
-            self._individual._set_attributes(self._predicate,
-                                             self._underlying_set ^ other)
-            return self
-
-        def __isub__(self, other: Any):
-            """Return self-=other."""
-            if isinstance(other, (Set, MutableSet)):
-                # Apparently instances of MutableSet are not instances of Set.
-                self._individual._delete_attributes(self._predicate,
-                                                    self._underlying_set
-                                                    & set(other))
-            else:
-                self._individual._delete_attributes(
-                    self._predicate, self._underlying_set & {other})
-            return self
-
-        def clear(self):
-            """Remove all elements from this set.
-
-            This also removed all the values assigned to the attribute
-            linked to this set for the cuds linked to this set.
-            """
-            self._individual._set_attributes(self._predicate, set())
-
-        def pop(self) -> RDFCompatibleType:
-            """Remove and return an arbitrary set element.
-
-            Raises KeyError if the set is empty.
-            """
-            result = self._underlying_set.pop()
-            self._individual._delete_attributes(self._predicate, {result})
-            return result
-
-        def difference(self, other: Iterable) -> Set[RDFCompatibleType]:
-            """Return the difference of two or more sets as a new set.
-
-            (i.e. all elements that are in this set but not the others.)
-            """
-            return super().difference(other)
-
-        def difference_update(self, other: Iterable):
+        def difference_update(self, other: Iterable[RDFCompatibleType]) -> \
+                None:
             """Remove all elements of another set from this set."""
-            self._individual._delete_attributes(
-                self._predicate, self._underlying_set.intersection(other))
+            self._individual._delete_attributes(self._predicate,
+                                                self._underlying_set
+                                                & set(other))
 
-        def discard(self, other: Any):
-            """Remove an element from a set if it is a member.
-
-            If the element is not a member, do nothing.
-            """
-            self._individual._delete_attributes(self._predicate, {other})
-
-        def intersection(self, other: set) -> Set[RDFCompatibleType]:
-            """Return the intersection of two sets as a new set.
-
-            (i.e. all elements that are in both sets.)
-            """
-            return super().intersection(other)
-
-        def add(self, other: RDFCompatibleType):
-            """Add an element to a set.
-
-            This has no effect if the element is already present.
-            """
-            return super().add(other)
-
-        def remove(self, other: Any):
-            """Remove an element from a set; it must be a member.
-
-            If the element is not a member, raise a KeyError.
-            """
-            if other in self._underlying_set:
-                self._individual._delete_attributes(self._predicate, {other})
-            else:
-                raise KeyError(f"{other}")
-
-        def update(self, other: Iterable):
-            """Update a set with the union of itself and others."""
-            self._individual._add_attributes(
-                self._predicate, set(other).difference(self._underlying_set))
+        def symmetric_difference_update(self, other: Set[RDFCompatibleType])\
+                -> None:
+            """Update set with the symmetric difference of it and another."""
+            self._individual._set_attributes(self._predicate,
+                                             self._underlying_set ^ set(other))
 
     # ↑ -------------- ↑
     # Attribute handling
@@ -1242,7 +802,7 @@ class OntologyIndividual(OntologyEntity):
                  session: Optional['Session'] = None,
                  triples: Optional[Iterable[Triple]] = None,
                  merge: bool = False,
-                 class_: Optional['OntologyClass'] = None,
+                 class_: Optional[OntologyClass] = None,
                  attributes: Optional[
                      Dict['OntologyAttribute',
                           Iterable[RDFCompatibleType]]] = None,
