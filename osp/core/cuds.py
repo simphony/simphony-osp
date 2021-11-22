@@ -733,35 +733,19 @@ class Cuds:
                 uids (+ Mapping from uids to relationships, which
                 connect self to the respective Cuds object.)
         """
-        not_found_uids = dict(enumerate(uids)) if uids \
-            else None
+        collected_uid = [None]*len(uids)
         relationship_mapping = dict()
-        for relationship in relationships:
+        for i, uid in enumerate(uids):
+            relationship_set = {relationship
+                                for relationship in relationships
+                                if uid in self._neighbors[relationship]}
+            if relationship_set:
+                collected_uid[i] = uid
+                relationship_mapping[uid] = relationship_set
 
-            # uids are given.
-            # Check which occur as object of current relation.
-            found_uids_indexes = set()
-
-            # we need to iterate over all uids for every
-            # relationship if we compute a mapping
-            iterator = enumerate(uids) if relationship_mapping \
-                else not_found_uids.items()
-            for i, uid in iterator:
-                if uid in self._neighbors[relationship]:
-                    found_uids_indexes.add(i)
-                    if uid not in relationship_mapping:
-                        relationship_mapping[uid] = set()
-                    relationship_mapping[uid].add(relationship)
-            for i in found_uids_indexes:
-                if i in not_found_uids:
-                    del not_found_uids[i]
-
-        collected_uid = [(uid if i not in not_found_uids
-                          else None)
-                         for i, uid in enumerate(uids)]
-        if return_mapping:
-            return collected_uid, relationship_mapping
-        return collected_uid
+        return collected_uid \
+            if not return_mapping else \
+            (collected_uid, relationship_mapping)
 
     def _get_by_oclass(self, oclass, relationships, return_mapping):
         """Get the cuds_objects with given oclass.
@@ -816,8 +800,7 @@ class Cuds:
         Yields:
             Cuds: The loaded cuds_objects
         """
-        without_none = [uid for uid in uids
-                        if uid is not None]
+        without_none = filter(lambda x: x is not None, uids)
         cuds_objects = self.session.load(*without_none)
         for uid in uids:
             if uid is None:
