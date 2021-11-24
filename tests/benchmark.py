@@ -1,4 +1,6 @@
 """Contains an abstract class that serves as a base for defining benchmarks."""
+# import cProfile
+# import pstats
 import time
 from typing import Union
 from abc import ABC, abstractmethod
@@ -18,6 +20,8 @@ class Benchmark(ABC):
         self._size = size
         self._iter_times = [None] * size
         self._finished = False
+        # self._profiler = cProfile.Profile()
+        # self._profiler_stats = None
 
     @property
     def started(self) -> bool:
@@ -105,9 +109,13 @@ class Benchmark(ABC):
             raise StopIteration('This benchmark is finished.')
         iteration = self.iterations
         start = time.process_time()
+        # self._profiler.enable()
         self._benchmark_iterate(iteration=iteration)
+        # self._profiler.disable()
         end = time.process_time()
         self._iter_times[iteration] = end - start
+        # self._profiler_stats = pstats.Stats(self._profiler)\
+        #     .sort_stats('tottime')
 
     @abstractmethod
     def _benchmark_iterate(self, iteration: int = None):
