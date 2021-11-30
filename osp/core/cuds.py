@@ -802,7 +802,7 @@ class Cuds:
         Yields:
             Cuds: The loaded cuds_objects
         """
-        without_none = filter(lambda x: x is not None, uids)
+        without_none = filter(None, uids)
         cuds_objects = self.session.load(*without_none)
         for uid in uids:
             if uid is None:
