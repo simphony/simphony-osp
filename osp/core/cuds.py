@@ -143,7 +143,7 @@ class Cuds:
     def oclasses(self):
         """Get the ontology classes of this CUDS object."""
         result = list()
-        for s, p, o in self._graph.triples((self.iri, RDF.type, None)):
+        for o in self._graph.objects(self.iri, RDF.type):
             r = from_iri(o, raise_error=False)
             if r is not None:
                 result.append(r)
@@ -630,12 +630,9 @@ class Cuds:
                 add.
         """
         # First element, create set
-        if rel not in self._neighbors.keys():
-            self._neighbors[rel] = \
-                {cuds_object.uid: cuds_object.oclasses}
-        # Element not already there
-        elif cuds_object.uid not in self._neighbors[rel]:
-            self._neighbors[rel][cuds_object.uid] = cuds_object.oclasses
+        if rel not in self._neighbors:
+            self._neighbors[rel] = dict()
+        self._neighbors[rel][cuds_object.uid] = cuds_object.oclasses
 
     def _add_inverse(self, cuds_object, rel):
         """Add the inverse relationship from self to cuds_object.
@@ -693,7 +690,7 @@ class Cuds:
         self.session._notify_read(self)
         # consider either given relationship and subclasses
         # or all relationships.
-        consider_relationships = set(self._neighbors.keys())
+        consider_relationships = set(self._neighbors)
         if rel:
             consider_relationships &= set(rel.subclasses)
         consider_relationships = list(consider_relationships)
@@ -733,35 +730,24 @@ class Cuds:
                 uids (+ Mapping from uids to relationships, which
                 connect self to the respective Cuds object.)
         """
-        not_found_uids = dict(enumerate(uids)) if uids \
-            else None
+        collected_uid = [None] * len(uids)
         relationship_mapping = dict()
-        for relationship in relationships:
+        uids_cache = {relationship: set(self._neighbors[relationship])
+                      for relationship in relationships}
+        for i, uid in enumerate(uids):
+            relationship_set = {relationship
+                                for relationship in relationships
+                                if uid in uids_cache[relationship]}
+            # The following line was a performance hog, and was therefore
+            #  replaced by the one above.
+            #                   if uid in self._neighbors[relationship]}
+            if relationship_set:
+                collected_uid[i] = uid
+                relationship_mapping[uid] = relationship_set
 
-            # uids are given.
-            # Check which occur as object of current relation.
-            found_uids_indexes = set()
-
-            # we need to iterate over all uids for every
-            # relationship if we compute a mapping
-            iterator = enumerate(uids) if relationship_mapping \
-                else not_found_uids.items()
-            for i, uid in iterator:
-                if uid in self._neighbors[relationship]:
-                    found_uids_indexes.add(i)
-                    if uid not in relationship_mapping:
-                        relationship_mapping[uid] = set()
-                    relationship_mapping[uid].add(relationship)
-            for i in found_uids_indexes:
-                if i in not_found_uids:
-                    del not_found_uids[i]
-
-        collected_uid = [(uid if i not in not_found_uids
-                          else None)
-                         for i, uid in enumerate(uids)]
-        if return_mapping:
-            return collected_uid, relationship_mapping
-        return collected_uid
+        return collected_uid \
+            if not return_mapping else \
+            (collected_uid, relationship_mapping)
 
     def _get_by_oclass(self, oclass, relationships, return_mapping):
         """Get the cuds_objects with given oclass.
@@ -816,8 +802,7 @@ class Cuds:
         Yields:
             Cuds: The loaded cuds_objects
         """
-        without_none = [uid for uid in uids
-                        if uid is not None]
+        without_none = filter(None, uids)
         cuds_objects = self.session.load(*without_none)
         for uid in uids:
             if uid is None:
@@ -873,11 +858,11 @@ class Cuds:
             The value of the attribute: Any
         """
         try:
-            attr = self._get_attribute_by_argname(name)
+            identifier = self._get_attribute_identifier_by_argname(name)
             if self.session:
                 self.session._notify_read(self)
             value = self._rdflib_5_inplace_modification_prevention_filter(
-                self._graph.value(self.iri, attr.iri).toPython(), attr)
+                self._graph.value(self.iri, identifier).toPython(), identifier)
             return value
         except AttributeError as e:
             if (  # check if user calls session's methods on wrapper
@@ -899,6 +884,14 @@ class Cuds:
             attr = oclass.get_attribute_by_argname(name)
             if attr is not None:
                 return attr
+        raise AttributeError(name)
+
+    def _get_attribute_identifier_by_argname(self, name):
+        """Get the identifier of an attribute of this CUDS by argname."""
+        for oclass in self.oclasses:
+            identifier = oclass.get_attribute_identifier_by_argname(name)
+            if identifier is not None:
+                return identifier
         raise AttributeError(name)
 
     @staticmethod

@@ -14,6 +14,25 @@ logger = logging.getLogger(__name__)
 BLACKLIST = {OWL.Nothing, OWL.Thing,
              OWL.NamedIndividual}
 
+# CACHE Introduced because getting URIRef terms from the namespaces is
+#  computationally expensive.
+CACHE = {
+    'cuba:_default': rdflib_cuba._default,
+    'cuba:_default_attribute': rdflib_cuba._default_attribute,
+    'cuba:_default_value': rdflib_cuba._default_value,
+    'owl:DatatypeProperty': OWL.DatatypeProperty,
+    'owl:Restriction': OWL.Restriction,
+    'owl:allValuesFrom': OWL.allValuesFrom,
+    'owl:cardinality': OWL.cardinality,
+    'owl:minCardinality': OWL.minCardinality,
+    'owl:hasValue': OWL.hasValue,
+    'owl:someValuesFrom': OWL.someValuesFrom,
+    'owl:onProperty': OWL.onProperty,
+    'rdf:type': RDF.type,
+    'rdfs:domain': RDFS.domain,
+    'rdfs:subClassOf': RDFS.subClassOf,
+}
+
 
 class OntologyClass(OntologyEntity):
     """A class defined in the ontology."""
@@ -38,7 +57,7 @@ class OntologyClass(OntologyEntity):
         """Get all the attributes of this oclass.
 
         Returns:
-            Dict[OntologyAttribute, str]: Mapping from attribute to default
+            Dict[OntologyAttribute, Any]: Mapping from attribute to default
         """
         attributes = dict()
         for superclass in self.superclasses:
@@ -85,8 +104,8 @@ class OntologyClass(OntologyEntity):
                 connected to axioms (subclass or equivalentClass).
         """
         self._cached_axioms = self._cached_axioms or []
-        triple = (iri, rdflib_predicate, None)
-        for _, _, o in self.namespace._graph.triples(triple):
+        for o in self._namespace_registry._graph.objects(iri,
+                                                         rdflib_predicate):
             if not isinstance(o, BNode):
                 continue
             try:
@@ -105,33 +124,20 @@ class OntologyClass(OntologyEntity):
         Returns:
             Dict[OntologyAttribute, str]: Mapping from attribute to default
         """
-        graph = self._namespace_registry._graph
         attributes = dict()
-
-        blacklist = [OWL.topDataProperty, OWL.bottomDataProperty]
         # Case 1: domain of Datatype
-        triple = (None, RDFS.domain, iri)
-        for a_iri, _, _ in self.namespace._graph.triples(triple):
-            triple = (a_iri, RDF.type, OWL.DatatypeProperty)
-            if triple not in graph or isinstance(a_iri, BNode) \
-                    or a_iri in blacklist:
-                continue
-            a = self.namespace._namespace_registry.from_iri(a_iri)
+        for a_iri in self._get_attributes_identifiers_from_domain(iri):
+            a = self._namespace_registry.from_iri(a_iri)
             default = self._get_default(a_iri, iri)
             attributes[a] = (default, False, None)
 
         # Case 2: axioms
-        triple = (iri, RDFS.subClassOf, None)
-        for _, _, o in self.namespace._graph.triples(triple):
-            if (o, RDF.type, OWL.Restriction) not in graph:
-                continue
-            a_iri = graph.value(o, OWL.onProperty)
-            triple = (a_iri, RDF.type, OWL.DatatypeProperty)
-            if triple not in graph or isinstance(a_iri, BNode):
-                continue
-            a = self.namespace._namespace_registry.from_iri(a_iri)
+        graph = self._namespace_registry._graph
+        for a_iri, o in self._get_attributes_identifiers_from_axioms(
+                iri, return_restriction=True):
+            a = self._namespace_registry.from_iri(a_iri)
             cuba_default = self._get_default(a_iri, iri)
-            restriction_default = graph.value(o, OWL.hasValue)
+            restriction_default = graph.value(o, CACHE['owl:hasValue'])
             default = cuba_default or restriction_default
             dt, obligatory = self._get_datatype_for_restriction(o)
             obligatory = default is None and obligatory
@@ -140,17 +146,46 @@ class OntologyClass(OntologyEntity):
         # TODO more cases
         return attributes
 
+    def _get_attributes_identifiers(self, iri):
+        yield from self._get_attributes_identifiers_from_domain(iri)
+        yield from self._get_attributes_identifiers_from_axioms(iri)
+
+    def _get_attributes_identifiers_from_domain(self, iri):
+        # Case 1: domain of Datatype
+        graph = self._namespace_registry._graph
+        blacklist = [OWL.topDataProperty, OWL.bottomDataProperty]
+        for a_iri in graph.subjects(CACHE['rdfs:domain'], iri):
+            if ((a_iri, CACHE['rdf:type'], CACHE['owl:DatatypeProperty'])
+                    not in graph
+                    or isinstance(a_iri, BNode)
+                    or a_iri in blacklist):
+                continue
+            yield a_iri
+
+    def _get_attributes_identifiers_from_axioms(self, iri,
+                                                return_restriction=False):
+        # Case 2: axioms
+        graph = self._namespace_registry._graph
+        for o in graph.objects(iri, CACHE['rdfs:subClassOf']):
+            if (o, CACHE['rdf:type'], CACHE['owl:Restriction']) not in graph:
+                continue
+            a_iri = graph.value(o, CACHE['owl:onProperty'])
+            if (a_iri, CACHE['rdf:type'], CACHE['owl:DatatypeProperty'])\
+                    not in graph or isinstance(a_iri, BNode):
+                continue
+            yield a_iri if not return_restriction else (a_iri, o)
+
     def _get_datatype_for_restriction(self, r):
         obligatory = False
         dt = None
-        g = self.namespace._graph
+        g = self._namespace_registry._graph
 
-        dt = g.value(r, OWL.someValuesFrom)
+        dt = g.value(r, CACHE['owl:someValuesFrom'])
         obligatory = dt is not None
-        dt = dt or g.value(r, OWL.allValuesFrom)
-        dt = dt or g.value(r, OWL.hasValue)
-        obligatory = obligatory or (r, OWL.cardinality) != 0
-        obligatory = obligatory or (r, OWL.minCardinality) != 0
+        dt = dt or g.value(r, CACHE['owl:allValuesFrom'])
+        dt = dt or g.value(r, CACHE['owl:hasValue'])
+        obligatory = obligatory or (r, CACHE['owl:cardinality']) != 0
+        obligatory = obligatory or (r, CACHE['owl:minCardinality']) != 0
         return dt, obligatory
 
     def _get_default(self, attribute_iri, superclass_iri):
@@ -164,12 +199,12 @@ class OntologyClass(OntologyEntity):
         Returns:
             Any: the default
         """
-        triple = (superclass_iri, rdflib_cuba._default, None)
-        for _, _, bnode in self.namespace._graph.triples(triple):
-            x = (bnode, rdflib_cuba._default_attribute, attribute_iri)
-            if x in self.namespace._graph:
-                return self.namespace._graph.value(bnode,
-                                                   rdflib_cuba._default_value)
+        for bnode in self._namespace_registry._graph.objects(
+                superclass_iri, CACHE['cuba:_default']):
+            x = (bnode, CACHE['cuba:_default_attribute'], attribute_iri)
+            if x in self._namespace_registry._graph:
+                return self._namespace_registry._graph.value(
+                    bnode, CACHE['cuba:_default_value'])
 
     def get_attribute_by_argname(self, name):
         """Get the attribute object with the argname of the object.
@@ -194,6 +229,36 @@ class OntologyClass(OntologyEntity):
                     f"commandline tool to transform entity names to CamelCase."
                 )
                 return attribute
+
+    def get_attribute_identifier_by_argname(self, name):
+        """Get the attribute identifier with the argname of the object.
+
+        Args:
+            name (str): The argname of the attribute
+
+        Returns:
+            Identifier: The attribute identifier.
+        """
+        for superclass in self.superclasses:
+            for identifier in self._get_attributes_identifiers(superclass.iri):
+                attribute_name = self._namespace_registry._get_entity_name(
+                    identifier,
+                    self._namespace_registry._get_namespace_name_and_iri(
+                        identifier)[1])
+                if attribute_name == name:
+                    return identifier
+                elif attribute_name.lower() == name:
+                    logger.warning(
+                        f"Attribute {attribute_name} is referenced "
+                        f"with '{attribute_name.lower()}'. "
+                        f"Note that you must match the case of the definition "
+                        f"in the ontology in future releases. Additionally, "
+                        f"entity names defined in YAML ontology are no longer "
+                        f"required to be ALL_CAPS. You can use the "
+                        f"yaml2camelcase commandline tool to transform entity "
+                        f"names to CamelCase."
+                    )
+                    return identifier
 
     def _get_attributes_values(self, kwargs, _force):
         """Get the cuds object's attributes from the given kwargs.

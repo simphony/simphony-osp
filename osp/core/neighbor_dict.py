@@ -30,6 +30,12 @@ class NeighborDict(ABC):
         return self._iter()
         # TODO maybe it's more secure to notify read after each iteration step?
 
+    def __contains__(self, item):
+        """Notify on containment check."""
+        if self.cuds_object.session:
+            self.cuds_object.session._notify_read(self.cuds_object)
+        return self._contains(item)
+
     def __getitem__(self, key):
         """Notify on read."""
         if not self.key_check(key):
@@ -143,16 +149,22 @@ class NeighborDictRel(NeighborDict):
                 return True
         return False
 
+    def _contains(self, item: OntologyRelationship):
+        """Checks if an item belongs to the dictionary."""
+        return (self.cuds_object.iri, item.iri, None) in self.graph
+
     def _iter(self):
         """Iterate over the dictionary."""
-        predicates = set([
-            p for _, p, _ in self.graph.triples((self.cuds_object.iri,
-                                                 None, None))
-        ])
+        predicates = set(self.graph.predicates(self.cuds_object.iri, None))
+        # Using set(..) instead of the iterator directly makes the code 2x
+        #  faster.
         for p in predicates:
-            if (p, rdflib.RDF.type, rdflib.OWL.ObjectProperty) \
-                    in namespace_registry._graph:
-                yield from_iri(p)
+            try:
+                obj = from_iri(p)
+                if isinstance(obj, OntologyRelationship):
+                    yield obj
+            except KeyError:
+                pass
 
 
 class NeighborDictTarget(NeighborDict):
@@ -210,6 +222,10 @@ class NeighborDictTarget(NeighborDict):
         Yields:
             UUID: The UUIDs of the CUDS object related with self.rel.
         """
-        for s, p, o in self.graph.triples((self.cuds_object.iri,
-                                           self.rel.iri, None)):
+        for o in self.graph.objects(self.cuds_object.iri, self.rel.iri):
             yield uid_from_iri(o)
+
+    def _contains(self, item):
+        """Checks if an item belongs to the dictionary."""
+        return (self.cuds_object.iri, self.rel.iri, iri_from_uid(item)) \
+            in self.graph
