@@ -67,7 +67,7 @@ class TestAPIEmmo(unittest.TestCase):
 
         # Test the inverse relationship
         get_inverse = n.get(rel=mereotopology.hasPart.inverse)
-        self.assertEqual(get_inverse, [p])
+        self.assertSetEqual(get_inverse, {p})
 
     def test_get(self):
         """Test the standard, normal behavior of the get() method.
@@ -105,17 +105,17 @@ class TestAPIEmmo(unittest.TestCase):
         get_encloses = p.get(rel=mereotopology.hasProperPart)
         self.assertEqual(set(get_encloses), {i})
         get_inhabits = p.get(rel=mereotopology.hasPart.inverse)
-        self.assertEqual(get_inhabits, [])
+        self.assertSetEqual(get_inhabits, set())
 
         # get(oclass)
         get_citizen = p.get(oclass=math.Numerical)
-        self.assertEqual(set(get_citizen), {i, n})
+        self.assertSetEqual(get_citizen, {i, n})
         get_real = p.get(oclass=math.Real)
-        self.assertEqual(set(get_real), {n})
+        self.assertSetEqual(get_real, {n})
         get_integer = p.get(oclass=math.Integer)
-        self.assertEqual(set(get_integer), {i})
+        self.assertSetEqual(get_integer, {i})
         get_process = p.get(oclass=holistic.Process)
-        self.assertEqual(get_process, [])
+        self.assertSetEqual(get_process, set())
 
     def test_update(self):
         """Test the standard, normal behavior of the update() method."""
@@ -128,13 +128,13 @@ class TestAPIEmmo(unittest.TestCase):
 
         old_real = c.get(n.uid)
         old_integers = old_real.get(oclass=math.Integer)
-        self.assertEqual(old_integers, [])
+        self.assertSetEqual(old_integers, set())
 
         c.update(new_n)
 
         new_real = c.get(n.uid)
         new_integers = new_real.get(oclass=math.Integer)
-        self.assertEqual(new_integers, [new_s])
+        self.assertSetEqual(new_integers, {new_s})
 
         self.assertRaises(ValueError, c.update, n)
 
@@ -163,7 +163,7 @@ class TestAPIEmmo(unittest.TestCase):
         self.assertFalse(c._neighbors)
         # inverse
         get_inverse = p.get(rel=mereotopology.hasPart.inverse)
-        self.assertEqual(get_inverse, [])
+        self.assertSetEqual(get_inverse, set())
 
         # remove(*uids/DataContainers)
         c.add(n)
@@ -175,21 +175,21 @@ class TestAPIEmmo(unittest.TestCase):
         self.assertNotIn(p, get_all)
         # inverse
         get_inverse = p.get(rel=mereotopology.hasPart.inverse)
-        self.assertEqual(get_inverse, [])
+        self.assertSetEqual(get_inverse, set())
 
         # remove(rel)
         c.remove(rel=mereotopology.hasProperPart)
         self.assertNotIn(mereotopology.hasProperPart, c._neighbors)
         # inverse
         get_inverse = p.get(rel=mereotopology.hasProperPart.inverse)
-        self.assertEqual(get_inverse, [])
+        self.assertSetEqual(get_inverse, set())
 
         # remove(oclass)
         c.remove(oclass=math.Integer)
         self.assertNotIn(n, c.get())
         # inverse
         get_inverse = n.get(rel=mereotopology.hasProperPart.inverse)
-        self.assertEqual(get_inverse, [])
+        self.assertSetEqual(get_inverse, set())
 
         # remove(*uids/DataContainers, rel)
         c.add(p, q, rel=mereotopology.hasProperPart)
@@ -198,7 +198,7 @@ class TestAPIEmmo(unittest.TestCase):
         self.assertNotIn(mereotopology.hasProperPart, c._neighbors)
         # inverse
         get_inverse = p.get(rel=mereotopology.hasProperPart.inverse)
-        self.assertEqual(get_inverse, [])
+        self.assertSetEqual(get_inverse, set())
 
         # remove(rel, oclass)
         c.add(p, rel=mereotopology.hasProperPart)
@@ -210,7 +210,7 @@ class TestAPIEmmo(unittest.TestCase):
         self.assertNotIn(p, get_all)
         # inverse
         get_inverse = p.get(rel=mereotopology.hasProperPart.inverse)
-        self.assertEqual(get_inverse, [])
+        self.assertSetEqual(get_inverse, set())
 
     def test_iter(self):
         """Test the iter() method when no ontology class is provided."""
@@ -221,8 +221,8 @@ class TestAPIEmmo(unittest.TestCase):
         c.add(n)
         c.add(p, q, rel=mereotopology.hasProperPart)
 
-        elements = set(list(c.iter()))
-        self.assertEqual(elements, {n, p, q})
+        elements = set(c.iter())
+        self.assertSetEqual(elements, {n, p, q})
 
     def test_get_attributes(self):
         """Test getting the attributes."""

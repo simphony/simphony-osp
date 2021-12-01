@@ -57,30 +57,30 @@ class TestSqliteCity(unittest.TestCase):
             w = city.CityWrapper(session=session)
             cities = w.get(rel=city.hasPart)
             self.assertEqual(len(cities), 1)
-            c = cities[0]
+            c = cities.one()
             self.assertTrue(c.is_a(city.City))
             self.assertEqual(c.name, "Freiburg")
             self.assertEqual(c.uid.data.hex,
                              "affb72ee61754028bd7e39a92ba3bb77")
-            self.assertEqual(c.get(rel=city.isPartOf), [w])
+            self.assertSetEqual(c.get(rel=city.isPartOf), {w})
             self.assertEqual(c.coordinates, np.array([42, 12]))
 
             neighborhoods = c.get(oclass=city.Neighborhood)
-            n = neighborhoods[0]
+            n = neighborhoods.one()
             self.assertEqual(len(neighborhoods), 1)
             self.assertEqual(n.uid.data.hex,
                              "e30e0287f52b49f396b939a85fc9460d")
             self.assertEqual(n.name, "Zähringen")
-            self.assertEqual(n.get(rel=city.isPartOf), [c])
+            self.assertSetEqual(n.get(rel=city.isPartOf), {c})
             self.assertEqual(n.coordinates, np.array([0, 0]))
 
             streets = n.get()
-            s = streets[0]
+            s = streets.one()
             self.assertEqual(len(streets), 1)
             self.assertEqual(s.uid.data.hex,
                              "25cb6116e9d04ceb81cdd8cfcbead47b")
             self.assertEqual(s.name, "Le street")
-            self.assertEqual(s.get(rel=city.isPartOf), [n])
+            self.assertSetEqual(s.get(rel=city.isPartOf), {n})
             self.assertEqual(s.coordinates, np.array([1, 98]))
 
             citizen = c.get(rel=city.hasInhabitant)
@@ -88,8 +88,8 @@ class TestSqliteCity(unittest.TestCase):
             self.assertEqual([p.name for p in citizen],
                              ["Hans", "Michel", "Peter"])
             for p in citizen:
-                self.assertEqual(p.get(rel=city.hasInhabitant.inverse), [c])
-                self.assertEqual(p.get(), [])
+                self.assertSetEqual(p.get(rel=city.hasInhabitant.inverse), {c})
+                self.assertSetEqual(p.get(), set())
 
     def test_migrate_v1(self):
         """Test migration from v1 to v2."""

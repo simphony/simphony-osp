@@ -149,7 +149,8 @@ class TestUtils(unittest.TestCase):
             schema_file
         )
 
-        c.get(oclass=city.Neighborhood)[0].add(city.Street(name='abc street'))
+        c.get(oclass=city.Neighborhood).one()\
+            .add(city.Street(name='abc street'))
 
         # now the city is valid and validation should pass
         validate_tree_against_schema(c, schema_file)
@@ -259,8 +260,8 @@ class TestUtils(unittest.TestCase):
                                fix_neighbors=False)
             self.assertIs(b, c)
             self.assertEqual(c.name, "Emmendingen")
-            self.assertEqual(c.get(rel=cuba.relationship), [])
-            self.assertNotEqual(x.get(rel=cuba.relationship), [])
+            self.assertSetEqual(c.get(rel=cuba.relationship), set())
+            self.assertNotEqual(x.get(rel=cuba.relationship), set())
             self.assertEqual(set(default_session._registry.keys()),
                              {a.uid, x.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
@@ -277,7 +278,7 @@ class TestUtils(unittest.TestCase):
                                kwargs={"name": "Karlsruhe"},
                                session=session, uid=a.uid,
                                fix_neighbors=True)
-            self.assertEqual(x.get(rel=cuba.relationship), [])
+            self.assertSetEqual(x.get(rel=cuba.relationship), set())
 
     def test_create_from_cuds_object(self):
         """Test copying cuds_objects to different session."""
@@ -484,7 +485,7 @@ class TestUtils(unittest.TestCase):
         """Test removing cuds from datastructure."""
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         remove_cuds_object(p3)
-        self.assertEqual(p3.get(rel=cuba.relationship), [])
+        self.assertSetEqual(p3.get(rel=cuba.relationship), set())
         self.assertNotIn(p3, c.get(rel=cuba.relationship))
         self.assertNotIn(p3, p1.get(rel=cuba.relationship))
         self.assertNotIn(p3, p2.get(rel=cuba.relationship))
@@ -629,9 +630,9 @@ class TestUtils(unittest.TestCase):
                 [{}, {wrapper.uid: wrapper}, {a.uid: a, b.uid: b}],
                 [{}, {}, {}],
             ])
-            self.assertEqual(wrapper.get(rel=cuba.relationship), [])
-            self.assertEqual(a.get(rel=cuba.relationship), [])
-            self.assertEqual(b.get(rel=cuba.relationship), [])
+            self.assertSetEqual(wrapper.get(rel=cuba.relationship), set())
+            self.assertSetEqual(a.get(rel=cuba.relationship), set())
+            self.assertSetEqual(b.get(rel=cuba.relationship), set())
 
 
 if __name__ == "__main__":

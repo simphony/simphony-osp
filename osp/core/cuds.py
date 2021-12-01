@@ -3,10 +3,11 @@
 The CUDS object is an ontology individual that can be used like a container. It
 has attributes and is connected to other cuds objects via relationships.
 """
-
+import functools
+import itertools
 import logging
-from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterable, Iterator, List, \
+from collections import OrderedDict
+from typing import Dict, Iterable, Iterator, List, \
     MutableSet, Optional, Set, Tuple, Union
 from uuid import UUID
 
@@ -19,7 +20,9 @@ from osp.core.ontology.datatypes import CUDS_IRI_PREFIX, RDFCompatibleType, \
     RDF_COMPATIBLE_TYPES, UID
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.ontology.utils import DataStructureSet
 from osp.core.session.core_session import core_session
+from osp.core.session.result import MultipleResultsError, ResultEmptyError
 from osp.core.session.session import Session
 from osp.core.utils.wrapper_development import check_arguments, \
     clone_cuds_object, create_from_cuds_object, get_neighbor_diff
@@ -175,7 +178,8 @@ class Cuds:
                     rel: Union[OntologyAttribute, OntologyRelationship],
                     values: Optional[Union[
                         Union["Cuds", RDFCompatibleType],
-                        Set[Union["Cuds", RDFCompatibleType]]]],
+                        Union[Set["Cuds"], Set[RDFCompatibleType]]
+                    ]],
                     ):
         """Manages both CUDS objects object properties and data properties.
 
@@ -186,21 +190,14 @@ class Cuds:
         - and when `rel` is an OntologyAttribute, to replace the values of
           such attribute.
 
-        The subscripting syntax `cuds[rel, :] = `, even though not
-        considered on the type hints is also accepted. However, but the effect
-        it produces is the same. It is nevertheless required with in-place
-        operators such as `+=` or `&=` if one wants to operate on the set of
-        attributes values rather than on the attribute. See the docstring of
-        `__getitem__` for more details.
-
         This function only accepts hashable objects as input, as the
         underlying RDF graph does not accept duplicate statements.
 
         Args:
             rel: Either an ontology attribute or an ontology relationship
-            (OWL datatype property, OWL object property).
+                (OWL datatype property, OWL object property).
             values: Either a single element compatible with the OWL standard
-            (this includes CUDS objects) or a set of such elements.
+                (this includes CUDS objects) or a set of such elements.
 
         Raises:
             TypeError: Trying to assign attributes using an object property,
@@ -208,20 +205,24 @@ class Cuds:
                 something that is neither an OntologyAttribute or an
                 OntologyRelationship as index.
         """
-        if isinstance(rel, tuple) and rel[1] == slice(None, None, None):
-            rel = rel[0]
         values = values or set()
         values = {values} \
             if not isinstance(values, (Set, MutableSet)) \
             else values
         # Apparently instances of MutableSet are not instances of Set.
-        check_arguments((Cuds, *RDF_COMPATIBLE_TYPES), *values)
+
+        # Split values into cuds and values compatible with literals.
         cuds, literals = \
             tuple(filter(lambda x: isinstance(x, Cuds), values)), \
             tuple(filter(lambda x: isinstance(x, RDF_COMPATIBLE_TYPES),
                          values))
-        # TODO: validating data types first and then splitting by data types
-        #  sounds like redundancy and decrease in performance.
+        # Raise TypeError if other types were provided.
+        if len(cuds) + len(literals) != len(values):
+            illegal_types = (
+                type(x) for x in values - (set(cuds) | set(literals)))
+            raise TypeError("Expected values of type 'Cuds' or "
+                            "'RDFCompatibleType', got %s." %
+                            ', '.join(illegal_types))
 
         if isinstance(rel, OntologyRelationship):
             if len(literals) > 0:
@@ -233,12 +234,14 @@ class Cuds:
                                 f'a data property {rel}')
 
         if isinstance(rel, OntologyRelationship):
-            cuds_set, set_iter = set(cuds), set(self.iter(rel=rel))
-            to_add = cuds_set.difference(set_iter)
-            self.add(*to_add, rel=rel)
-            to_remove = set_iter.difference(cuds_set)
-            if to_remove:
-                self.remove(*to_remove, rel=rel)
+            cuds_set_uids = set(c.uid for c in cuds)
+            set_iter_uids = set(self._iter(rel=rel))
+            add_uids = cuds_set_uids.difference(set_iter_uids)
+            add = (c for c in cuds if c.uid in add_uids)
+            self._connect(*add, rel=rel)
+            remove_uids = set_iter_uids.difference(cuds_set_uids)
+            if remove_uids:
+                self._disconnect(*remove_uids, rel=rel)
         elif isinstance(rel, OntologyAttribute):
             self._set_attributes(rel, literals)
         else:
@@ -247,22 +250,11 @@ class Cuds:
                             f'not {type(rel)}')
 
     def __getitem__(self,
-                    value: Union[OntologyAttribute, OntologyRelationship,
-                                 Tuple[Union[OntologyAttribute,
-                                             OntologyRelationship],
-                                       slice]]) \
-            -> Optional[
-                Union["Cuds._AttributeSet", "Cuds._RelationshipSet", "Cuds"]]:
+                    rel: Union[OntologyAttribute, OntologyRelationship]) \
+            -> Union["Cuds._AttributeSet", "Cuds._RelationshipSet"]:
         """Retrieve linked CUDS objects objects or attribute values.
 
         The subscripting syntax `cuds[rel]` allows:
-        - When `rel` is an OntologyAttribute, to obtain one
-          (non-deterministic) value of such attribute.
-        - When `rel` is an OntologyRelationship, to obtain one
-          (non-deterministic) CUDS object of all the CUDS objects linked to
-          cuds through the `rel` relationship.
-
-        The subscripting syntax `cuds[rel, :]` allows:
         - When `rel` is an OntologyAttribute, to obtain a set containing all
           the values assigned to the specified attribute. Such set can be
           modified in-place to change the assigned values.
@@ -275,27 +267,17 @@ class Cuds:
         graph does not accept duplicate statements.
 
         Args:
-            value: Two possibilities,
-                - Just an ontology attribute or an ontology relationship
-                  (OWL datatype property, OWL object property). Then only one
-                  CUDS object or attribute value is returned.
-                - A tuple (multiple keys specified). The first element of the
-                  tuple is expected to be such attribute or relationship, and
-                  the second a `slice` object. When `slice(None, None, None)`
-                  (equivalent to `:`) is provided, a set-like object of
-                  values is returned. This is the the only kind of slice
-                  supported.
+            rel: An ontology attribute or an ontology relationship
+                (OWL datatype property, OWL object property).
+
+        Returns:
+            Either a "Cuds._AttributeSet" or "Cuds._Relationship" for the
+            given attribute or relationship.
 
         Raises:
             TypeError: Trying to use something that is neither an
                 OntologyAttribute or an OntologyRelationship as index.
-            IndexError: When invalid slicing is provided.
         """
-        if isinstance(value, tuple):
-            rel, slicing = value
-        else:
-            rel, slicing = value, None
-
         if isinstance(rel, OntologyAttribute):
             class_ = self._AttributeSet
         elif isinstance(rel, OntologyRelationship):
@@ -305,25 +287,7 @@ class Cuds:
                             f'relationships or ontology attributes, '
                             f'not {type(rel)}')
 
-        if slicing is None:
-            try:
-                return set(class_(rel, self)).pop()
-            except KeyError:
-                return None
-        elif slicing == slice(None, None, None):
-            return class_(rel, self)
-        elif not isinstance(slicing, slice):
-            raise IndexError(f"Invalid slicing {slicing}.")
-        else:
-            raise IndexError(
-                f'Invalid index [{rel}, '
-                f'{slicing.start if slicing.start is not None else ""}:'
-                f'{slicing.stop if slicing.stop is not None else ""}'
-                f'{":" if slicing.step is not None else ""}'
-                f'{slicing.step if slicing.step is not None else ""}'
-                f']. \n'
-                f'Only slicing of the kind [{rel}, :], or no slicing, '
-                f'i.e. [{rel}] is supported.')
+        return class_(rel, self)
 
     def __delitem__(self, rel: Union[OntologyAttribute, OntologyRelationship]):
         """Delete all attributes or data properties attached through rel.
@@ -335,143 +299,222 @@ class Cuds:
         self.__setitem__(rel=rel, values=set())
 
     def add(self,
-            *args: Any,
-            rel: OntologyRelationship = None) -> Union["Cuds", List["Cuds"]]:
-        """Link CUDS objects to another CUDS or assign data properties.
+            *cuds: "Cuds",
+            rel: Optional[OntologyRelationship] = None) -> Union["Cuds",
+                                                                 List["Cuds"]]:
+        """Link CUDS objects to another CUDS objects.
 
         If the added objects are associated with the same session,
         only a link is created. Otherwise, the a deepcopy is made and added
         to the session of this CUDS object.
 
-        Before adding, check for invalid keys to avoid inconsistencies later.
-
         Args:
-            args (Cuds): The objects to be added
-            rel (OntologyRelationship): The relationship between the objects.
+            cuds: The objects to be added
+            rel: The relationship between the objects.
 
         Raises:
             TypeError: No relationship given and no default specified.
-            ValueError: Added a CUDS object that is already in the container.
+            ValueError: Added a CUDS object that is already in the
+                container. Note: in fact, the exception raised is
+                `_ExistingCudsException`, but it is a subclass of `ValueError`.
 
         Returns:
-            Union[Cuds, List[Cuds]]: The CUDS objects that have been added,
-                associated with the session of the current CUDS object.
-                Result type is a list, if more than one CUDS object is
-                returned.
+            The CUDS objects that have been added, associated with the
+                session of the current CUDS object. The result type is a list
+                if more than one CUDS object was provided.
         """
-        check_arguments(Cuds, *args)
+        check_arguments(Cuds, *cuds)
         rel = rel or self.oclass.namespace.get_default_rel()
         if rel is None:
             raise TypeError("Missing argument 'rel'! No default "
                             "relationship specified for namespace %s."
                             % self.oclass.namespace)
-        result = list()
-        # update cuds objects if they are already in the session
-        old_objects = self._session.load(
-            *[arg.uid for arg in args if arg.session != self.session])
-        for arg in args:
-            # Recursively add the children to the registry
-            if rel in self._neighbors \
-                    and arg.uid in self._neighbors[rel]:
-                message = '{!r} is already in the container'
-                raise self._ExistingCudsException(message.format(arg))
-            if self.session != arg.session:
-                arg = self._recursive_store(arg, next(old_objects))
 
-            self._add_direct(arg, rel)
-            arg._add_inverse(self, rel)
-            result.append(arg)
-        return result[0] if len(args) == 1 else result
+        result = self._connect(*cuds, rel=rel)
+        return result[0] if len(cuds) == 1 else result
 
     class _ExistingCudsException(ValueError):
-        """To be raised by `add` when a provided CUDS is already linked."""
+        """To be raised when a provided CUDS is already linked."""
         pass
 
     def get(self,
             *uids: UID,
-            rel: OntologyRelationship = cuba.activeRelationship,
+            rel: Optional[OntologyRelationship] = cuba.activeRelationship,
             oclass: OntologyClass = None,
-            return_rel: bool = False) -> Union["Cuds", List["Cuds"]]:
+            return_rel: bool = False) -> Union[
+        "Cuds._RelationshipSet",
+        Optional["Cuds"],
+        Tuple[Optional["Cuds"], ...],
+        Tuple[Tuple["Cuds", OntologyRelationship]]
+    ]:
         """Return the contained elements.
 
-        Filter elements by given type, uid or relationship.
-        Expected calls are get(), get(*uids), get(rel), get(oclass),
-        get(*indentifiers, rel), get(rel, oclass).
-        If uids are specified:
-            The position of each element in the result is determined by to the
-            position of the corresponding uid in the given list of
-            uids. In this case, the result can contain None values if a
-            given uid is not a child of this cuds_object.
-            If only a single indentifier is given, only this one element is
-            returned (i.e. no list).
-        If no uids are specified:
-            The result is a collection, where the elements are ordered
-            randomly.
+        Only return objects with given uids, connected through a certain
+        relationship and its sub-relationships and optionally filter by oclass.
+
+        Expected calls are get(), get(rel=___), get(oclass=___),
+        get(rel=___, oclass=___), get(*uids), get(*uids, rel=___). In
+        addition, all the previous calls are possible with the argument
+        `return_rel=True`. The structure of the output can vary depending on
+        the form used for the call. See the "Returns:" section of this
+        docstring for more details on this..
 
         Args:
-            uids (Union[UUID, URIRef]): uids of the elements.
-            rel (OntologyRelationship, optional): Only return cuds_object
-                which are connected by subclass of given relationship.
-                Defaults to cuba.activeRelationship.
-            oclass (OntologyClass, optional): Only return elements which are a
-                subclass of the given ontology class. Defaults to None.
-            return_rel (bool, optional): Whether to return the connecting
-                relationship. Defaults to False.
-
-        Returns:
-            Union[Cuds, List[Cuds]]: The queried objects.
-        """
-        result = list(
-            self.iter(*uids, rel=rel, oclass=oclass,
-                      return_rel=return_rel)
-        )
-        if len(uids) == 1:
-            return result[0]
-        return result
-
-    def iter(self,
-             *uids: UID,
-             rel: OntologyRelationship = cuba.activeRelationship,
-             oclass: Optional[OntologyClass] = None,
-             return_rel: bool = False) -> Iterator["Cuds"]:
-        """Iterate over the contained elements.
-
-        Only iterate over objects of a given type, uid or oclass.
-
-        Expected calls are iter(), iter(*uids), iter(rel),
-        iter(oclass), iter(*uids, rel), iter(rel, oclass).
-        If uids are specified:
-            The position of each element in the result is determined by to the
-            position of the corresponding uid in the given list of
-            uids. In this case, the result can contain None values if a
-            given uid is not a child of this cuds_object.
-        If no uids are specified:
-            The result is ordered randomly.
-
-        Args:
-            uids: uids of the elements.
-            rel: Only return cuds_object which are connected by subclass of
-                given relationship. Defaults to cuba.activeRelationship.
-            oclass: Only return elements which are a
-                subclass of the given ontology class. Defaults to None.
+            uids: Filter the elements to be returned by their UIDs.
+            rel: Filters allowing only CUDS objects which are connected by a
+                subclass of the given relationship. Defaults to
+                cuba.activeRelationship. When none, all relationships are
+                accepted.
+            oclass: Only return elements which are a subclass of the given
+                ontology class. Defaults to None (no filter).
             return_rel: Whether to return the connecting
                 relationship. Defaults to False.
 
         Returns:
-            Iterator[Cuds]: The queried objects.
+            Calls without `*uids` (_RelationshipSet): The result of the
+                call is a set-like object. This corresponds to
+                the calls `get()`, `get(rel=___)`, `get(oclass=___)`,
+                `get(rel=___, oclass=___)`, with the parameter `return_rel`
+                unset or set to False.
+            Calls with `uids` (Optional["Cuds"],
+                    Tuple[Optional["Cuds"], ...]):
+                The position of each element in the result is determined by
+                the position of the corresponding UID in the given list of
+                UIDs. In this case, the result can contain `None` values if
+                a given UID is not a child of this CUDS object. When only
+                one UID is specified, a single object is returned instead of a
+                Tuple. This description corresponds to the calls `get(*uids)`,
+                `get(*uids, rel=___)`.
+            Calls with `return_rel=True` (Tuple[
+                    Tuple["Cuds", OntologyRelationship]]):
+                The dependence of the order of the elements is maintained
+                for the calls with `uids`, a non-deterministic order is used
+                for the calls without `uids`. No `None` values are contained
+                in the result (such UIDs are simply skipped).
+                Moreover, the elements returned are now pairs of CUDS
+                objects and the relationship connecting such object to this
+                one. When only one UID is specified, a single pair is
+                returned instead of a Tuple. This description corresponds to
+                any call of the form `get(..., return_rel=True)`.
         """
-        if return_rel:
-            collected_uids, mapping = self._get(*uids, rel=rel, oclass=oclass,
-                                                return_mapping=True)
+        if not return_rel and not uids:
+            result = Cuds._RelationshipSet(rel, self, oclass=oclass)
         else:
-            collected_uids = self._get(*uids, rel=rel, oclass=oclass)
+            result = tuple(
+                self.iter(*uids, rel=rel, oclass=oclass,
+                          return_rel=return_rel)
+            )
+            if len(uids) == 1:
+                result = result[0]
+        return result
 
-        result = self._load_cuds_objects(collected_uids)
-        for r in result:
-            if not return_rel:
-                yield r
-            else:
-                yield from ((r, m) for m in mapping[r.uid])
+    def iter(self,
+             *uids: UID,
+             rel: Optional[OntologyRelationship] = cuba.activeRelationship,
+             oclass: Optional[OntologyClass] = None,
+             return_rel: bool = False) -> Union[
+        Iterator["Cuds"],
+        Iterator[Optional["Cuds"]],
+        Iterator[Tuple["Cuds", OntologyRelationship]],
+    ]:
+        """Iterate over the contained elements.
+
+        Only iterate over objects with given uids, connected through a certain
+        relationship and its sub-relationships and optionally filter by oclass.
+
+        Expected calls are iter(), iter(rel=___), iter(oclass=___),
+        iter(rel=___, oclass=___), iter(*uids), iter(*uids, rel=___). In
+        addition, all the previous calls are possible with the argument
+        `return_rel=True`. The structure of the output can vary depending on
+        the form used for the call. See the "Returns:" section of this
+        docstring for more details on this.
+
+        Args:
+            uids: Filter the elements to be returned by their UIDs.
+            rel: Filters allowing only CUDS objects which are connected by a
+                subclass of the given relationship. Defaults to
+                cuba.activeRelationship. When none, all relationships are
+                accepted.
+            oclass: Only return elements which are a subclass of the given
+                ontology class. Defaults to None (no filter).
+            return_rel: Whether to return the connecting
+                relationship. Defaults to False.
+
+        Returns:
+            Calls without `*uids` (Iterator["Cuds"]): The position of each
+                element in the result is non-deterministic. This corresponds to
+                the calls `iter()`, `iter(rel=___)`, `iter(oclass=___)`,
+                `iter(rel=___, oclass=___)`, with the parameter `return_rel`
+                unset or set to False.
+            Calls with `uids` (Iterator[Optional["Cuds"]]): The position of
+                each element in the result is determined by the position of
+                the corresponding UID in the given list of UIDs. In this
+                case, the result can contain `None` values if a given UID is
+                not a child of this CUDS object. This corresponds to the calls
+                `iter(*uids)`, `iter(*uids, rel=___)`.
+            Calls with `return_rel=True` (Iterator[
+                    Tuple["Cuds", OntologyRelationship]]):
+                The dependence of the order of the elements on whether
+                `uids` are specified or not is maintained, no `None` values
+                are contained in the result (such UIDs are simply skipped).
+                Moreover, the elements returned are now pairs of CUDS
+                objects and the relationship connecting such object to this
+                one. This corresponds to any call of the form
+                `iter(..., return_rel=True)`.
+        """
+        if uids and oclass is not None:
+            raise TypeError("Do not specify both uids and oclass.")
+        if rel is not None and not isinstance(rel, OntologyRelationship):
+            raise ValueError("Found object of type %s passed to argument rel. "
+                             "Should be an OntologyRelationship." % type(rel))
+        if oclass is not None and not isinstance(oclass, OntologyClass):
+            raise ValueError("Found object of type %s passed to argument "
+                             "oclass. Should be an OntologyClass."
+                             % type(oclass))
+
+        # --- Call without `*uids` and with `return_rel=False`(order does not
+        #  matter, relationships not returned).
+        if not return_rel and not uids:
+            yield from iter(Cuds._RelationshipSet(rel, self, oclass=oclass))
+            return
+
+        # --- Call with `uids`.
+
+        self.session._notify_read(self)
+
+        # Consider either the given relationship and subclasses or all
+        #  relationships.
+        consider_relationships = set(self._neighbors)
+        if rel:
+            consider_relationships &= set(rel.subclasses)
+
+        # return empty list if no element of given relationship is available.
+        if not consider_relationships:
+            yield from \
+                [] if not uids else [None] * len(uids) \
+                if not return_rel else \
+                ([], dict()) if not uids else ([None] * len(uids), dict())
+            return
+
+        mapping = OrderedDict() if not uids else \
+            OrderedDict((uid, set()) for uid in uids)
+        for rel in consider_relationships:
+            result_uids = self._iter(*uids, rel=rel, oclass=oclass,
+                                     notify_read=False)
+            if uids:
+                result_uids = filter(None, result_uids)
+            mapping.update(OrderedDict(
+                (uid, mapping.get(uid, set()) | {rel})
+                for uid in result_uids
+            ))
+
+        to_load = (uid if mapping[uid] else None for uid in mapping)
+        result = self._load_cuds_objects(to_load)
+
+        if not return_rel:
+            yield from result
+        else:
+            yield from ((r, m) for r in result for m in mapping[r.uid])
 
     def update(self, *args: "Cuds") -> Union["Cuds", List["Cuds"]]:
         """Update the Cuds object.
@@ -516,47 +559,67 @@ class Cuds:
         return result
 
     def remove(self,
-               *args: Union["Cuds", UUID, URIRef],
-               rel: OntologyRelationship = cuba.activeRelationship,
-               oclass: OntologyClass = None):
+               *uids_or_cuds: Union["Cuds", UID],
+               rel: Optional[OntologyRelationship] = cuba.activeRelationship,
+               oclass: Optional[OntologyClass] = None) -> None:
         """Remove elements from the CUDS object.
 
-        Expected calls are remove(), remove(*uids/Cuds),
-        remove(rel), remove(oclass), remove(*uids/Cuds, rel),
-        remove(rel, oclass)
+        Expected calls are remove(), remove(*uids_or_cuds), remove(rel=___),
+        remove(oclass=___), remove(*uids_or_cuds, rel=___),
+        remove(rel=___, oclass=___).
 
         Args:
-            args (Union[Cuds, UUID, URIRef]): UUIDs of the elements to remove
-                or the elements themselves.
-            rel (OntologyRelationship, optional): Only remove cuds_object
-                which are connected by subclass of given relationship.
-                Defaults to cuba.activeRelationship.
-            oclass (OntologyClass, optional): Only remove elements which are a
-                subclass of the given ontology class. Defaults to None.
+            uids_or_cuds: Optionally, specify the UIDs of the elements to
+                remove or provide the elements themselves.
+            rel: Only remove cuds_object which are connected by subclass of the
+                given relationship. Defaults to cuba.activeRelationship. Can be
+                set to none, in which case, all the contained elements will
+                be removed.
+            oclass: Only remove elements which are a subclass of the given
+                ontology class. Defaults to None (no filter).
 
         Raises:
-            RuntimeError: No CUDS object removed, because specified CUDS
-                objects are not in the container of the current CUDS object
-                directly.
+            RuntimeError: No CUDS object removed, because none of the
+                specified CUDS objects are not in the container of the
+                current CUDS object directly.
         """
-        uids = [arg.uid if isinstance(arg, Cuds) else arg for arg in args]
+        if uids_or_cuds and oclass is not None:
+            raise TypeError("Do not specify both uids and oclass.")
+        if rel is not None and not isinstance(rel, OntologyRelationship):
+            raise ValueError("Found object of type %s passed to argument rel. "
+                             "Should be an OntologyRelationship." % type(rel))
+        if oclass is not None and not isinstance(oclass, OntologyClass):
+            raise ValueError("Found object of type %s passed to argument "
+                             "oclass. Should be an OntologyClass."
+                             % type(oclass))
+        check_arguments((UID, Cuds), *uids_or_cuds)
+
+        self.session._notify_read(self)
 
         # Get mapping from uids to connecting relationships
-        _, relationship_mapping = self._get(*uids, rel=rel,
-                                            oclass=oclass, return_mapping=True)
-        if not relationship_mapping:
+        consider_relationships = set(self._neighbors)
+        if rel:
+            consider_relationships &= set(rel.subclasses)
+
+        mapping = OrderedDict()
+        for rel in consider_relationships:
+            result_uids = self._iter(*uids_or_cuds, rel=rel, oclass=oclass,
+                                     notify_read=False)
+            if uids_or_cuds:
+                result_uids = filter(None, result_uids)
+            mapping.update(
+                (uid, mapping.get(uid, set()) | {rel})
+                for uid in result_uids
+            )
+        if not mapping:
             raise RuntimeError("Did not remove any Cuds object, "
                                "because none matched your filter.")
-        uid_relationships = list(relationship_mapping.items())
 
-        # load all the neighbors to delete and remove inverse relationship
-        neighbors = self.session.load(
-            *[uid for uid, _ in uid_relationships])
-        for uid_relationship, neighbor in zip(uid_relationships,
-                                              neighbors):
-            uid, relationships = uid_relationship
+        neighbors = self._load_cuds_objects(mapping)
+        for neighbor, relationships in zip(neighbors,
+                                           mapping.values()):
             for relationship in relationships:
-                self._remove_direct(relationship, uid)
+                self._remove_direct(relationship, neighbor.uid)
                 neighbor._remove_inverse(relationship, self.uid)
 
     # ↑ ------ ↑
@@ -630,6 +693,106 @@ class Cuds:
         if include_neighbor_types:
             for o in o_set:
                 yield from self._graph.triples((o, RDF.type, None))
+
+    class _ObjectSet(DataStructureSet):
+        """A set interface to an CUDS object's neighbors.
+
+        This class looks like and acts like the standard `set`, but it
+        is a template to implement classes that use either the attribute
+        interface or the methods `_connect`, `_disconnect` and `_iter` from
+        the CUDS object.
+
+        When an instance is read or when it is modified in-place,
+        the interfaced methods are used to reflect the changes.
+
+        This class does not hold any object-related information itself, thus
+        it is safe to spawn multiple instances linked to the same property
+        and CUDS object (when single-threading).
+        """
+        _predicate: Optional[
+            Union[OntologyAttribute, OntologyRelationship]]
+        """Main predicate to which this object refers. It will be used
+        whenever there is ambiguity on which predicate to use. Can be set to
+        None, usually meaning all predicates (see the specific
+        implementations of this class: `_AttributeSet` and
+        `_RelationshipSet`)."""
+
+        _individual: "Cuds"
+        """The CUDS object to which this object refers. Whenever the set is
+        modified, the modification will affect this CUDS object."""
+
+        @property
+        def _predicates(self) -> Optional[Union[
+            Set[OntologyAttribute],
+            Set[OntologyRelationship]
+        ]]:
+            """All the predicates to which this instance refers to.
+
+            Returns:
+                Such predicates, or none if no main predicate is
+                associated with this `_ObjectSet`.
+            """
+            return self._predicate.subclasses \
+                if self._predicate is not None else \
+                None
+
+        def __init__(self,
+                     predicate: Optional[Union[OntologyAttribute,
+                                               OntologyRelationship]],
+                     individual: "Cuds"):
+            """Fix the linked predicate and CUDS object."""
+            self._individual = individual
+            self._predicate = predicate
+            super().__init__()
+
+        def __repr__(self) -> str:
+            """Return repr(self)."""
+            return set(self).__repr__() \
+                + ' <' \
+                + f'{self._predicate} ' if self._predicate is not None else ''\
+                + f'of CUDS object {self._individual}>'
+
+        def one(self) -> Union["Cuds", RDFCompatibleType]:
+            """Return one element.
+
+            Return one element if the set contains one element, else raise
+            an exception.
+
+            Returns:
+                The only element contained in the set.
+
+            Raises:
+                ResultEmptyError: No elements in the set.
+                MultipleResultsError: More than one element in the set.
+            """
+            iter_self = iter(self)
+            first_element = next(iter_self, StopIteration)
+            if first_element is StopIteration:
+                raise ResultEmptyError(f"No elements attached to "
+                                       f"{self._individual} through "
+                                       f"{self._predicate}.")
+            second_element = next(iter_self, StopIteration)
+            if second_element is not StopIteration:
+                raise MultipleResultsError(f"More than one element attached "
+                                           f"to {self._individual} through "
+                                           f"{self._predicate}.")
+            return first_element
+
+        def any(self) -> Optional[Union["Cuds", RDFCompatibleType]]:
+            """Return any element of the set.
+
+            Returns:
+                Any element from the set if the set is not empty, else None.
+            """
+            return next(iter(self), None)
+
+        def all(self) -> "Cuds._ObjectSet":
+            """Return all elements from the set.
+
+            Returns:
+                All elements from the set, namely the set itself.
+            """
+            return self
 
     # Attribute handling
     # ↓ -------------- ↓
@@ -786,6 +949,44 @@ class Cuds:
                               lang=literal.language)
             yield literal.toPython()
 
+    def _attribute_value_contains(self,
+                                  attribute: OntologyAttribute,
+                                  value: RDFCompatibleType,
+                                  _notify_read: bool = True) \
+            -> bool:
+        """Whether a specific value is assigned to the specified attribute.
+
+        Args:
+            attribute: The ontology attribute query for values.
+
+        Returns:
+            Whether the specific value is assigned to the specified
+            attribute or not.
+        """
+        # TODO (detach cuds from sessions): Workaround to keep the behavior:
+        #  removed CUDS do not have attributes. Think of a better way to
+        #  detach CUDS from sessions. `self._graph is not
+        #  self.session.graph` happens when `session._notify_read` is called
+        #  for this cuds, but this is hacky maybe not valid in general for
+        #  all sessions.
+        if self.session is None or\
+                self._graph is not self.session.graph:
+            raise AttributeError(f"The CUDS {self} does not belong to any "
+                                 f"session. None of its attributes are "
+                                 f"accessible.")
+
+        if _notify_read and self.session:
+            self.session._notify_read(self)
+
+        if attribute.datatype in (None, RDF.langString):
+            return any(str(value) == str(x)
+                       for x in self._graph.objects(self.iri, attribute.iri)
+                       if isinstance(x, Literal))
+        else:
+            literal = Literal(value, datatype=attribute.datatype)
+            literal = Literal(str(literal), datatype=attribute.datatype)
+            return literal in self._graph.objects(self.iri, attribute.iri)
+
     def _attribute_generator(self, _notify_read: bool = True) \
             -> Iterator[OntologyAttribute]:
         """Returns a generator of the attributes of this CUDS object.
@@ -828,526 +1029,394 @@ class Cuds:
                 self._attribute_value_generator(attribute,
                                                 _notify_read=False)
 
-    class _ObjectSet(MutableSet, ABC):
-        """A set interface to a CUDS object's neighbors.
-
-        This class looks like and acts like the standard `set`, but it
-        is a template to implement classes that use either the attribute
-        interface or the methods `add`, `get`, `remove` from the CUDS API.
-
-        When an instance is read or when it is modified in-place,
-        the interfaced methods are used to reflect the changes.
-
-        This class does not hold any object-related information itself, thus
-        it is safe to spawn multiple instances linked to the same property
-        and CUDS (when single-threading).
-        """
-        _predicate: Union[OntologyAttribute, OntologyRelationship]
-        _cuds: "Cuds"
-
-        def __init__(self,
-                     predicate: Union[OntologyAttribute,
-                                      OntologyRelationship],
-                     cuds: "Cuds"):
-            """Fix the liked property and CUDS object."""
-            self._cuds = cuds
-            self._predicate = predicate
-            super().__init__()
-
-        @property
-        @abstractmethod
-        def _underlying_set(self) -> Set:
-            """The set of values assigned to the property `self._property`.
-
-            Returns:
-                The mentioned underlying set.
-            """
-            pass
-
-        def __repr__(self) -> str:
-            """Return repr(self)."""
-            return self._underlying_set.__repr__() \
-                + f' <{self._predicate} of CUDS {self._cuds}>'
-
-        def __str__(self) -> str:
-            """Return str(self)."""
-            return self._underlying_set.__str__()
-
-        def __format__(self, format_spec) -> str:
-            """Default object formatter."""
-            return self._underlying_set.__format__(format_spec)
-
-        def __contains__(self, item: Any) -> bool:
-            """Return y in x."""
-            for x in self._underlying_set:
-                if x == item:
-                    return True
-            else:
-                return False
-
-        def __iter__(self):
-            """Implement iter(self)."""
-            for x in self._underlying_set:
-                yield x
-
-        @abstractmethod
-        def __len__(self) -> int:
-            """Return len(self)."""
-            pass
-
-        def __le__(self, other: set) -> bool:
-            """Return self<=other."""
-            return self._underlying_set.__le__(other)
-
-        def __lt__(self, other: set) -> bool:
-            """Return self<other."""
-            return self._underlying_set.__lt__(other)
-
-        def __eq__(self, other: set) -> bool:
-            """Return self==other."""
-            return self._underlying_set.__eq__(other)
-
-        def __ne__(self, other: set) -> bool:
-            """Return self!=other."""
-            return self._underlying_set.__ne__(other)
-
-        def __gt__(self, other: set) -> bool:
-            """Return self>other."""
-            return self._underlying_set.__gt__(other)
-
-        def __ge__(self, other: set) -> bool:
-            """Return self>=other."""
-            return self._underlying_set.__ge__(other)
-
-        def __and__(self, other: set) -> Union[Set[RDFCompatibleType],
-                                               Set["Cuds"]]:
-            """Return self&other."""
-            return self._underlying_set.__and__(other)
-
-        def __or__(self, other: set) -> set:
-            """Return self|other."""
-            return self._underlying_set.__or__(other)
-
-        def __sub__(self, other: set) -> Set[RDFCompatibleType]:
-            """Return self-other."""
-            return self._underlying_set.__sub__(other)
-
-        def __xor__(self, other: set) -> Set:
-            """Return self^other."""
-            return self._underlying_set.__xor__(other)
-
-        @abstractmethod
-        def __ior__(self, other: Union[Set[RDFCompatibleType], Set["Cuds"]]):
-            """Return self|=other."""
-            pass
-
-        @abstractmethod
-        def __iand__(self, other: Union[Set[RDFCompatibleType], Set["Cuds"]]):
-            """Return self&=other."""
-            pass
-
-        @abstractmethod
-        def __ixor__(self, other: Union[Set[RDFCompatibleType], Set["Cuds"]]):
-            """Return self^=other."""
-            pass
-
-        def __iadd__(self, other: Set[RDFCompatibleType]):
-            """Return self+=other (equivalent to self|=other)."""
-            if isinstance(other, (Set, MutableSet)):
-                # Apparently instances of MutableSet are not instances of Set.
-                return self.__ior__(other)
-            else:
-                return self.__ior__({other})
-
-        @abstractmethod
-        def __isub__(self, other: Any):
-            """Return self-=other."""
-            pass
-
-        def isdisjoint(self, other: set):
-            """Return True if two sets have a null intersection."""
-            return self._underlying_set.isdisjoint(other)
-
-        @abstractmethod
-        def clear(self):
-            """Remove all elements from this set.
-
-            This also removes all the values assigned to the property
-            linked to this set for the cuds linked to this set.
-            """
-            pass
-
-        @abstractmethod
-        def pop(self) -> Union[RDFCompatibleType, "Cuds"]:
-            """Remove and return an arbitrary set element.
-
-            Raises KeyError if the set is empty.
-            """
-            pass
-
-        def copy(self):
-            """Return a shallow copy of a set."""
-            return self._underlying_set
-
-        def difference(self, other: Iterable) -> Union[Set[RDFCompatibleType],
-                                                       Set["Cuds"]]:
-            """Return the difference of two or more sets as a new set.
-
-            (i.e. all elements that are in this set but not the others.)
-            """
-            return self._underlying_set.difference(other)
-
-        @abstractmethod
-        def difference_update(self, other: Iterable):
-            """Remove all elements of another set from this set."""
-            pass
-
-        @abstractmethod
-        def discard(self, other: Any):
-            """Remove an element from a set if it is a member.
-
-            If the element is not a member, do nothing.
-            """
-            pass
-
-        @abstractmethod
-        def intersection(self, other: set) -> Union[Set[RDFCompatibleType],
-                                                    Set["Cuds"]]:
-            """Return the intersection of two sets as a new set.
-
-            (i.e. all elements that are in both sets.)
-            """
-            return self._underlying_set.intersection(other)
-
-        def intersection_update(self, other: set):
-            """Update a set with the intersection of itself and another."""
-            self.__iand__(other)
-
-        def issubset(self, other: set) -> bool:
-            """Report whether another set contains this set."""
-            return self <= other
-
-        def issuperset(self, other: set) -> bool:
-            """Report whether this set contains another set."""
-            return self >= other
-
-        def add(self, other: Union[RDFCompatibleType, "Cuds"]):
-            """Add an element to a set.
-
-            This has no effect if the element is already present.
-            """
-            self.__ior__({other})
-
-        @abstractmethod
-        def remove(self, other: Any):
-            """Remove an element from a set; it must be a member.
-
-            If the element is not a member, raise a KeyError.
-            """
-            pass
-
-        @abstractmethod
-        def update(self, other: Iterable):
-            """Update a set with the union of itself and others."""
-            pass
-
     class _AttributeSet(_ObjectSet):
         """A set interface to a CUDS object's attributes.
 
         This class looks like and acts like the standard `set`, but it
         is an interface to the `_add_attributes`, _set_attributes`,
-        `_delete_attributes` and `_attribute_value_generator` methods.
+        `_delete_attributes`, `_attribute_value_contains` and
+        `_attribute_value_generator` methods.
 
-        When an instance is read, the method `_attribute_value_generator` is
-        used to fetch the data. When it is modified in-place, the methods
-        `_add_attributes`, `_set_attributes`, and `_delete_attributes` are used
-        to reflect the changes.
+        When an instance is read, the methods `_attribute_value_generator`
+        and `_attribute_value_contains` are used to fetch the data. When it
+        is modified in-place, the methods `_add_attributes`, `_set_attributes`,
+        and `_delete_attributes` are used to reflect the changes.
 
         This class does not hold any attribute-related information itself, thus
         it is safe to spawn multiple instances linked to the same attribute
         and CUDS (when single-threading).
         """
         _predicate: OntologyAttribute
-        _cuds: "Cuds"
 
         @property
-        def _underlying_set(self) -> Set[RDFCompatibleType]:
-            """The set of values assigned to the attribute `self._predicate`.
+        def _predicates(self) -> Set[OntologyAttribute]:
+            """All the attributes to which this instance refers to.
 
             Returns:
-                The mentioned underlying set.
+                Such predicates, are the subproperties of the main
+                predicate, or if it is none, all the subproperties
             """
-            return set(
-                self._cuds._attribute_value_generator(
-                    attribute=self._predicate))
+            predicates = super()._predicates
+            if predicates is None:
+                predicates = set(
+                    self._individual._attribute_generator(_notify_read=True))
+                # The code below is technically true, but makes no
+                #  difference due to how `_attribute_generator` is written.
+                # predicates = set(itertools.chain(
+                #    subclasses
+                #    for attributes in
+                #    self._individual._attribute_generator(_notify_read=True)
+                #    for subclasses in attributes.subclasses
+                # ))
+            return predicates
 
-        def __init__(self, attribute: OntologyAttribute, cuds: "Cuds"):
-            """Fix the liked OntologyAttribute and CUDS object."""
-            super().__init__(attribute, cuds)
+        def __init__(self,
+                     attribute: Optional[OntologyAttribute],
+                     individual: "Cuds"):
+            """Fix the liked OntologyAttribute and ontology individual."""
+            super().__init__(attribute, individual)
 
-        def __len__(self) -> int:
-            """Return len(self)."""
-            i = 0
-            for x in self._cuds._attribute_value_generator(
-                    attribute=self._predicate):
-                i += 1
-            return i
+        def __iter__(self) -> Iterator[RDFCompatibleType]:
+            """The values assigned to the referred predicates.
 
-        def __and__(self, other: set) -> Set[RDFCompatibleType]:
-            """Return self&other."""
-            return super().__and__(other)
+            Such predicates are the main attribute and its subclasses.
 
-        def __ior__(self, other: Set[RDFCompatibleType]):
-            """Return self|=other."""
-            self._cuds._add_attributes(self._predicate, other)
-            return self
+            Returns:
+                The mentioned values.
+            """
+            yielded: Set[RDFCompatibleType] = set()
+            for value in itertools.chain(*(
+                    self._individual._attribute_value_generator(
+                        attribute=attribute)
+                    for attribute in self._predicates
+            )):
+                if value not in yielded:
+                    yielded.add(value)
+                    yield value
 
-        def __iand__(self, other: Set[RDFCompatibleType]):
-            """Return self&=other."""
-            underlying_set = self._underlying_set
+        def __contains__(self, item: RDFCompatibleType) -> bool:
+            """Check whether a value is assigned to the attribute."""
+            return any(
+                self._individual._attribute_value_contains(attribute, item)
+                for attribute in self._predicates
+            )
+
+        def update(self, other: Iterable[RDFCompatibleType]) -> None:
+            """Update the set with the union of itself and others."""
+            underlying_set = set(self)
+            added = set(other).difference(underlying_set)
+            self._individual._add_attributes(self._predicate, added)
+
+        def intersection_update(self, other: Iterable[RDFCompatibleType]) ->\
+                None:
+            """Update the set with the intersection of itself and another."""
+            underlying_set = set(self)
             intersection = underlying_set.intersection(other)
             removed = underlying_set.difference(intersection)
-            self._cuds._delete_attributes(self._predicate, removed)
-            return self
+            for attribute in self._predicates:
+                self._individual._delete_attributes(attribute, removed)
 
-        def __ixor__(self, other: Set[RDFCompatibleType]):
-            """Return self^=other."""
-            self._cuds._set_attributes(self._predicate,
-                                       self._underlying_set ^ other)
-            return self
-
-        def __isub__(self, other: Any):
-            """Return self-=other."""
-            if isinstance(other, (Set, MutableSet)):
-                # Apparently instances of MutableSet are not instances of Set.
-                self._cuds._delete_attributes(self._predicate,
-                                              self._underlying_set
-                                              & set(other))
-            else:
-                self._cuds._delete_attributes(self._predicate,
-                                              self._underlying_set & {other})
-            return self
-
-        def clear(self):
-            """Remove all elements from this set.
-
-            This also removed all the values assigned to the attribute
-            linked to this set for the cuds linked to this set.
-            """
-            self._cuds._set_attributes(self._predicate, set())
-
-        def pop(self) -> RDFCompatibleType:
-            """Remove and return an arbitrary set element.
-
-            Raises KeyError if the set is empty.
-            """
-            result = self._underlying_set.pop()
-            self._cuds._delete_attributes(self._predicate, {result})
-            return result
-
-        def difference(self, other: Iterable) -> Set[RDFCompatibleType]:
-            """Return the difference of two or more sets as a new set.
-
-            (i.e. all elements that are in this set but not the others.)
-            """
-            return super().difference(other)
-
-        def difference_update(self, other: Iterable):
+        def difference_update(self, other: Iterable[RDFCompatibleType]) -> \
+                None:
             """Remove all elements of another set from this set."""
-            self._cuds._delete_attributes(
-                self._predicate, self._underlying_set.intersection(other))
+            removed = set(self) & set(other)
+            for attribute in self._predicates:
+                self._individual._delete_attributes(attribute, removed)
 
-        def discard(self, other: Any):
-            """Remove an element from a set if it is a member.
-
-            If the element is not a member, do nothing.
-            """
-            self._cuds._delete_attributes(self._predicate, {other})
-
-        def intersection(self, other: set) -> Set[RDFCompatibleType]:
-            """Return the intersection of two sets as a new set.
-
-            (i.e. all elements that are in both sets.)
-            """
-            return super().intersection(other)
-
-        def add(self, other: RDFCompatibleType):
-            """Add an element to a set.
-
-            This has no effect if the element is already present.
-            """
-            return super().add(other)
-
-        def remove(self, other: Any):
-            """Remove an element from a set; it must be a member.
-
-            If the element is not a member, raise a KeyError.
-            """
-            if other in self._underlying_set:
-                self._cuds._delete_attributes(self._predicate, {other})
-            else:
-                raise KeyError(f"{other}")
-
-        def update(self, other: Iterable):
-            """Update a set with the union of itself and others."""
-            self._cuds._add_attributes(
-                self._predicate, set(other).difference(self._underlying_set))
+        def symmetric_difference_update(self, other: Set[RDFCompatibleType])\
+                -> None:
+            """Update set with the symmetric difference of it and another."""
+            underlying_set = set(self)
+            symmetric_difference = underlying_set.symmetric_difference(other)
+            added = symmetric_difference.difference(underlying_set)
+            self._individual._add_attributes(self._predicate, added)
+            removed = underlying_set.difference(symmetric_difference)
+            for attribute in self._predicates:
+                self._individual._delete_attributes(attribute,
+                                                    removed)
 
     # ↑ -------------- ↑
     # Attribute handling
 
-    class _RelationshipSet(_ObjectSet, MutableSet):
-        """A set interface to a CUDS object's RELATIONSHIPS.
+    # Relationship handling
+    # ↓ ----------------- ↓
+
+    def _connect(self,
+                 *cuds_objects: "Cuds",
+                 rel: OntologyRelationship) -> List["Cuds"]:
+        """Connect CUDSs object to this one.
+
+        Args:
+            cuds_objects: The CUDS objects to connect.
+            rel: The relationship to use.
+
+        Returns:
+            The connected CUDS objects, from the session to which this CUDS
+            object belongs.
+
+        Raises:
+            ValueError: Connected a CUDS object that is already linked.
+                Note: in fact, the exception raised is
+                `_ExistingCudsException`, but it is a subclass of `ValueError`.
+        """
+        check_arguments(Cuds, *cuds_objects)
+
+        result = list()
+        # update cuds objects if they are already in the session
+        old_objects = self._session.load(
+            *[cuds.uid for cuds in cuds_objects
+              if cuds.session != self.session])
+        for cuds in cuds_objects:
+            # Recursively add the children to the registry
+            if rel in self._neighbors \
+                    and cuds.uid in self._neighbors[rel]:
+                message = '{!r} is already in the container'
+                raise self._ExistingCudsException(message.format(cuds))
+            if self.session != cuds.session:
+                cuds = self._recursive_store(cuds, next(old_objects))
+
+            self._add_direct(cuds, rel)
+            cuds._add_inverse(self, rel)
+            result.append(cuds)
+        return result
+
+    def _disconnect(self,
+                    *cuds_objects: Union["Cuds", UID],
+                    rel: OntologyRelationship,
+                    oclass: Optional[OntologyClass] = None) -> None:
+        """Disconnect CUDSs objects from this one.
+
+        Args:
+            cuds_objects: The CUDS objects to be disconnected. Can be left
+                blank. Then all the connected CUDS are disconnected.
+            rel: The ontology relationship that currently connects this
+                object to such objects.
+            oclass: Only disconnect CUDS objects belonging to this class.
+        """
+        uids = (c.uid if isinstance(c, Cuds) else c for c in cuds_objects)
+        contained_uids = self._iter(*uids, rel=rel, oclass=oclass)
+        contained_uids = filter(None, contained_uids)
+        neighbors = self._load_cuds_objects(contained_uids)
+        for neighbor in neighbors:
+            self._remove_direct(rel, neighbor.uid)
+            neighbor._remove_inverse(rel, self.uid)
+
+    def _iter(self,
+              *uids: Union["Cuds", UID],
+              rel: OntologyRelationship,
+              oclass: Optional[OntologyClass] = None,
+              notify_read: bool = True) -> Union[
+        Iterator[UID],
+        Iterator[Optional[UID]],
+    ]:
+        """Iterate over the contained elements.
+
+        Only iterate over objects with given uids, connected through a certain
+        relationship and its sub-relationships and optionally filter by oclass.
+
+        Expected calls are _iter(), _iter(rel=___), _iter(oclass=___),
+        _iter(rel=___, oclass=___), _iter(*uids), _iter(*uids, rel=___).
+
+        Args:
+            uids: Filter the elements to be returned by their UIDs.
+            rel: Only return CUDS objects connected with a subclass of
+                relationship.
+            oclass: Only return CUDS objects of a subclass of this ontology
+                class. Defaults to None (no filter).
+            notify_read: Whether to notify the session that this CUDS object
+                was read. Defaults to True. An example of a situation
+                where one could want to set it to False is, when the session is
+                notified in advance and this function will be called several
+                times within a loop. In this way, several useless
+                `_notify_read` calls within the loop are avoided.
+
+        Raises:
+            ValueError: Wrong type of argument for `uids`.
+
+        Returns:
+            Calls without `*uids` (Iterator[UID]): The position of each
+                element in the result is non-deterministic. This corresponds to
+                the calls `_iter()`, `_iter(rel=___)`, `_iter(oclass=___)`,
+                `_iter(rel=___, oclass=___)`.
+            Calls with `uids` (Iterator[Optional[UID]]): The position of
+                each element in the result is determined by the position of
+                the corresponding UID in the given list of UIDs. In this
+                case, the result can contain `None` values if a given UID is
+                not a child of this CUDS object. This corresponds to the calls
+                `_iter(*uids)`, `_iter(*uids, rel=___)`.
+        """
+        # TODO (detach cuds from sessions): Think of a better way to detach
+        #  CUDS from sessions.
+        # If Cuds are provided, convert them to UIDs.
+        if uids:
+            check_arguments((UID, Cuds), *uids)
+        uids = [c.uid if isinstance(c, Cuds) else c for c in uids]
+
+        if not self.session:
+            yield from []
+            return
+
+        if notify_read:
+            self.session._notify_read(self)
+        collected_uid_dict = \
+            OrderedDict(self._neighbors[rel]) if not uids else \
+            OrderedDict((uid, self._neighbors[rel][uid])
+                        if uid in self._neighbors[rel] else (uid, None)
+                        for uid in uids)
+
+        if oclass is not None:
+            collected_uid_dict = OrderedDict(
+                (key, target_classes)
+                if any(t.is_subclass_of(oclass) for t in target_classes)
+                else (key, None)
+                for key, target_classes in collected_uid_dict.items()
+            )
+            if not uids:
+                collected_uid_dict = OrderedDict(
+                    (key, target_classes)
+                    for key, target_classes in collected_uid_dict.items()
+                    if target_classes is not None
+                )
+        collected_uids = (uid if target is not None else None
+                          for uid, target in collected_uid_dict.items())
+        yield from collected_uids
+
+    class _RelationshipSet(_ObjectSet):
+        """A set interface to an CUDS object's relationships.
 
         This class looks like and acts like the standard `set`, but it
-        is an interface to the `add`, `get` and `remove` methods.
+        is an interface to the `_connect`, `_disconnect` and `_iter` methods.
 
-        When an instance is read, the method `get` is
-        used to fetch the data. When it is modified in-place, the methods
-        `add` and `remove` are used to reflect the changes.
+        When an instance is read, the method `_iter` is used to fetch the
+        data. When it is modified in-place, the methods `_connect` and
+        `_disconnect` are used to reflect the changes.
 
         This class does not hold any relationship-related information itself,
         thus it is safe to spawn multiple instances linked to the same
-        relationship and CUDS (when single-threading).
+        relationship and CUDS object (when single-threading).
         """
-        _predicate: OntologyRelationship
-        _cuds: "Cuds"
+        _predicate: Optional[OntologyRelationship]
+        _class_filter: Optional[OntologyClass]
 
-        @property
-        def _underlying_set(self) -> Set["Cuds"]:
-            """The set of values assigned to the attribute `self._predicate`.
+        def __init__(self,
+                     relationship: Optional[OntologyRelationship],
+                     individual: 'Cuds',
+                     oclass: Optional[OntologyClass] = None):
+            """Fix the liked OntologyRelationship and ontology individual."""
+            if relationship is not None \
+                    and not isinstance(relationship, OntologyRelationship):
+                raise ValueError("Found object of type %s. "
+                                 "Should be an OntologyRelationship."
+                                 % type(relationship))
+            if oclass is not None and not isinstance(oclass, OntologyClass):
+                raise ValueError("Found object of type %s oclass. Should be "
+                                 "an OntologyClass."
+                                 % type(oclass))
+            self._class_filter = oclass
+            super().__init__(relationship, individual)
+
+        def __iter__(self) -> Iterator['Cuds']:
+            """The CUDS assigned to relationship`self._predicate`.
 
             Returns:
                 The mentioned underlying set.
             """
-            return set(self._cuds.get(rel=self._predicate))
+            yielded: Set[Cuds] = set()
+            predicates = self._predicates
+            predicates = set(self._individual._neighbors) \
+                if self._predicates is None else \
+                predicates & set(self._individual._neighbors)
+            for value in itertools.chain(*(
+                    self._individual._load_cuds_objects(
+                    self._individual._iter(rel=predicate,
+                                           oclass=self._class_filter)
+                    )
+                    for predicate in predicates
+            )):
+                if value not in yielded:
+                    yielded.add(value)
+                    yield value
 
-        def __init__(self, relationship: OntologyRelationship, cuds: "Cuds"):
-            """Fix the liked OntologyAttribute and CUDS object."""
-            super().__init__(relationship, cuds)
+        def __contains__(self, item) -> bool:
+            """Check if an individual is connected via the relationship."""
+            predicates = self._predicates
+            predicates = set(self._individual._neighbors) \
+                if self._predicates is None else \
+                predicates & set(self._individual._neighbors)
+            return any(predicate in self._individual._neighbors
+                       and item.uid in self._individual._neighbors[predicate]
+                       and (item.is_a(self._class_filter)
+                            if self._class_filter is not None else
+                            True)
+                       for predicate in predicates)
 
-        def __len__(self) -> int:
-            """Return len(self)."""
-            i = 0
-            for x in self._cuds.iter(rel=self._predicate):
-                i += 1
-            return i
+        @staticmethod
+        def prevent_class_filtering(func):
+            @functools.wraps(func)
+            def wrapper(self, *args, **kwargs):
+                if self._class_filter is not None:
+                    raise RuntimeError("Cannot edit a set with a class "
+                                       "filter in-place.")
+                return func(self, *args, **kwargs)
+            return wrapper
 
-        def __and__(self, other: set) -> Set['Cuds']:
-            """Return self&other."""
-            return super().__and__(other)
+        # Bind static method to use as decorator.
+        prevent_class_filtering = prevent_class_filtering.__get__(object,
+                                                                  None)
 
-        def __ior__(self, other: Set['Cuds']):
-            """Return self|=other."""
-            # TODO: Avoid the for loop by finding a way to roll back the
-            #  added CUDS?
-            for cuds in other:
-                try:
-                    self._cuds.add(cuds, rel=self._predicate)
-                except Cuds._ExistingCudsException:
-                    pass
-            return self
+        @prevent_class_filtering
+        def update(self, other: Iterable['Cuds']) -> None:
+            """Update the set with the union of itself and other."""
+            # The same individual be attached through a relationship and its
+            # sub-relationship. If this is the case, we do not want a new
+            # attachment to be created.
+            added = filter(lambda x: x not in self, other)
+            for individual in added:
+                self._individual._connect(individual, rel=self._predicate)
 
-        def __iand__(self, other: Set["Cuds"]):
-            """Return self&=other."""
-            underlying_set = self._underlying_set
-            intersection = underlying_set.intersection(other)
-            removed = underlying_set.difference(intersection)
-            if removed:
-                self._cuds.remove(*removed, rel=self._predicate)
-            return self
+        @prevent_class_filtering
+        def intersection_update(self, other: Iterable['Cuds'])\
+                -> None:
+            """Update the set with the intersection of itself and another."""
+            underlying_set = set(self)
+            result = underlying_set.intersection(other)
 
-        def __ixor__(self, other: Set["Cuds"]):
-            """Return self^=other."""
-            result = self._underlying_set ^ other
-            to_add = result.difference(self._underlying_set)
-            to_remove = self._underlying_set.difference(result)
-            if to_remove:
-                self._cuds.remove(*to_remove, rel=self._predicate)
-            self._cuds.add(*to_add, rel=self._predicate)
-            return self
+            removed = underlying_set.difference(result)
+            for individual in removed:
+                for rel in self._predicates:
+                    self._individual._disconnect(individual, rel=rel)
 
-        def __isub__(self, other: Any):
-            """Return self-=other."""
-            if isinstance(other, (Set, MutableSet)):
-                # Apparently instances of MutableSet are not instances of Set.
-                to_remove = self._underlying_set & set(other)
-            else:
-                to_remove = self._underlying_set & {other}
-            if to_remove:
-                self._cuds.remove(*to_remove, rel=self._predicate)
-            return self
+            added = result.difference(underlying_set)
+            for individual in added:
+                self._individual._connect(individual, rel=self._predicate)
 
-        def clear(self):
-            """Remove all elements from this set.
-
-            This also removed all the values assigned to the attribute
-            linked to this set for the cuds linked to this set.
-            """
-            self._cuds.remove(rel=self._predicate)
-
-        def pop(self) -> "Cuds":
-            """Remove and return an arbitrary set element.
-
-            Raises KeyError if the set is empty.
-            """
-            result = self._underlying_set.pop()
-            self._cuds.remove(result, rel=self._predicate)
-            return result
-
-        def difference(self, other: Iterable) -> Set["Cuds"]:
-            """Return the difference of two or more sets as a new set.
-
-            (i.e. all elements that are in this set but not the others.)
-            """
-            return super().difference(other)
-
-        def difference_update(self, other: Iterable):
+        @prevent_class_filtering
+        def difference_update(self, other: Iterable['Cuds']) \
+                -> None:
             """Remove all elements of another set from this set."""
-            to_remove = self._underlying_set.intersection(other)
-            if to_remove:
-                self._cuds.remove(*to_remove, rel=self._predicate)
+            for individual in set(self) & set(other):
+                for rel in self._predicates:
+                    self._individual._disconnect(individual, rel=rel)
 
-        def discard(self, other: Any):
-            """Remove an element from a set if it is a member.
+        @prevent_class_filtering
+        def symmetric_difference_update(self,
+                                        other: Iterable['Cuds'])\
+                -> None:
+            """Update with the symmetric difference of it and another."""
+            underlying_set = set(self)
+            result = underlying_set.symmetric_difference(other)
 
-            If the element is not a member, do nothing.
-            """
-            try:
-                self._cuds.remove(other, rel=self._predicate)
-            except RuntimeError:
-                pass
-            except TypeError:
-                pass
+            removed = underlying_set.difference(result)
+            for individual in removed:
+                for rel in self._predicates:
+                    self._individual._disconnect(individual, rel=rel)
 
-        def intersection(self, other: set) -> Set["Cuds"]:
-            """Return the intersection of two sets as a new set.
+            added = result.difference(underlying_set)
+            for individual in added:
+                self._individual._connect(individual, rel=self._predicate)
 
-            (i.e. all elements that are in both sets.)
-            """
-            return super().intersection(other)
-
-        def add(self, other: "Cuds"):
-            """Add an element to a set.
-
-            This has no effect if the element is already present.
-            """
-            return super().add(other)
-
-        def remove(self, other: Any):
-            """Remove an element from a set; it must be a member.
-
-            If the element is not a member, raise a KeyError.
-            """
-            to_remove = self._underlying_set & {other}
-            if to_remove:
-                self._cuds.remove(*to_remove, rel=self._predicate)
-            else:
-                raise KeyError(f"{other}")
-
-        def update(self, other: Iterable):
-            """Update a set with the union of itself and others."""
-            self.__ior__(set(other))
+    # ↑ -------------- ↑
+    # Relationship handling
 
     def _recursive_store(self, new_cuds_object, old_cuds_object=None):
         """Recursively store cuds_object and all its children.
@@ -1556,7 +1625,7 @@ class Cuds:
             rel: relationship with the cuds_object to add.
         """
         # First element, create set
-        if rel not in self._neighbors.keys():
+        if rel not in self._neighbors:
             self._neighbors[rel] = \
                 {cuds_object.uid: cuds_object.oclasses}
         # Element not already there
@@ -1573,167 +1642,7 @@ class Cuds:
         inverse_rel = rel.inverse
         self._add_direct(cuds_object, inverse_rel)
 
-    def _get(self, *uids: UID,
-             rel: Optional[OntologyRelationship] = None,
-             oclass: Optional[OntologyClass] = None,
-             return_mapping: bool = False):
-        """Get the uid of contained elements that satisfy the filter.
-
-        This filter consists of a certain type, uid or relationship.
-        Expected calls are _get(), _get(*uids), _get(rel),_ get(oclass),
-        _get(*uids, rel), _get(rel, oclass).
-        If uids are specified, the result is the input, but
-        non-available uids are replaced by None.
-
-        Args:
-            uids: uids of the elements to get.
-            rel: Only return CUDS objects connected with a subclass of
-                relationship. Defaults to None.
-            oclass: Only return CUDS objects of a subclass of this ontology
-                class. Defaults to None.
-            return_mapping: Whether to return a mapping from uids to
-                relationships, that connect self with the uid. Defaults to
-                False.
-
-        Raises:
-            TypeError: Specified both uids and oclass.
-            ValueError: Wrong type of argument.
-
-        Returns:
-            List[UID] (+ Dict[UID, Set[Relationship]]): list of uids, or None,
-                if not found. (+ Mapping from UIDs to relationships, which
-                connect self to the respective Cuds object)
-        """
-        if uids and oclass is not None:
-            raise TypeError("Do not specify both uids and oclass.")
-        if rel is not None and not isinstance(rel, OntologyRelationship):
-            raise ValueError("Found object of type %s passed to argument rel. "
-                             "Should be an OntologyRelationship." % type(rel))
-        if oclass is not None and not isinstance(oclass, OntologyClass):
-            raise ValueError("Found object of type %s passed to argument "
-                             "oclass. Should be an OntologyClass."
-                             % type(oclass))
-        # TODO (detach cuds from sessions): Think of a better way to detach
-        #  CUDS from sessions.
-        if not self.session:
-            return []
-
-        if uids:
-            check_arguments(UID, *uids)
-
-        self.session._notify_read(self)
-        # consider either given relationship and subclasses
-        # or all relationships.
-        consider_relationships = set(self._neighbors.keys())
-        if rel:
-            consider_relationships &= set(rel.subclasses)
-        consider_relationships = list(consider_relationships)
-
-        # return empty list if no element of given relationship is available.
-        if not consider_relationships and not return_mapping:
-            return [] if not uids else [None] * len(uids)
-        elif not consider_relationships:
-            return ([], dict()) if not uids else \
-                ([None] * len(uids), dict())
-
-        if uids:
-            return self._get_by_uids(uids, consider_relationships,
-                                     return_mapping=return_mapping)
-        return self._get_by_oclass(oclass, consider_relationships,
-                                   return_mapping=return_mapping)
-
-    def _get_by_uids(self,
-                     uids: Iterable[UID],
-                     relationships: List[OntologyRelationship],
-                     return_mapping: bool):
-        """Check for each given uid if it is connected by a given relationship.
-
-        If not, replace it with None.
-        Optionally return a mapping from uids to the set of
-        relationships, which connect self and the cuds_object with the
-        uid.
-
-        Args:
-            uids: The uids to check.
-            relationships: Only consider these relationships.
-            return_mapping: Whether to return a mapping from uids to
-                relationships, that connect self with the uid.
-
-        Returns:
-            List[UID] (+ Dict[UID, Set[OntologyRelationship]]): list of found
-                uids, None for not found uids. (+ Mapping from uids to
-                relationships, which connect self to the respective Cuds
-                object)
-        """
-        not_found_uids = dict(enumerate(uids)) if uids \
-            else None
-        relationship_mapping = dict()
-        for relationship in relationships:
-
-            # uids are given.
-            # Check which occur as object of current relation.
-            found_uids_indexes = set()
-
-            # we need to iterate over all uids for every
-            # relationship if we compute a mapping
-            iterator = enumerate(uids) if relationship_mapping \
-                else not_found_uids.items()
-            for i, uid in iterator:
-                if uid in self._neighbors[relationship]:
-                    found_uids_indexes.add(i)
-                    if uid not in relationship_mapping:
-                        relationship_mapping[uid] = set()
-                    relationship_mapping[uid].add(relationship)
-            for i in found_uids_indexes:
-                if i in not_found_uids:
-                    del not_found_uids[i]
-
-        collected_uid = [(uid if i not in not_found_uids
-                          else None)
-                         for i, uid in enumerate(uids)]
-        if return_mapping:
-            return collected_uid, relationship_mapping
-        return collected_uid
-
-    def _get_by_oclass(self, oclass: Optional[OntologyClass],
-                       relationships: List[OntologyRelationship],
-                       return_mapping: bool):
-        """Get the cuds_objects with given oclass.
-
-        Only return objects that are connected to self
-        with any of the given relationships. Optionally return a mapping
-        from uids to the set of relationships, which connect self and
-        the cuds_objects with the uid.
-
-        Args:
-            oclass: Filter by the given OntologyClass. None means no filter.
-            relationships: Filter by list of relationships.
-            return_mapping: whether to return a mapping from uids to
-            relationships, that connect self with the uid.
-
-        Returns:
-            List[UID] (+ Dict[UID, Set[OntologyRelationship]]): The uids of
-                the found CUDS objects. (+ Mapping from uid to set of
-                relationships that connect self with the respective
-                cuds_object)
-        """
-        relationship_mapping = dict()
-        for relationship in relationships:
-
-            # Collect all uids who are object of the current
-            # relationship. Possibly filter by OntologyClass.
-            for uid, target_classes \
-                    in self._neighbors[relationship].items():
-                if oclass is None or any(t.is_subclass_of(oclass)
-                                         for t in target_classes):
-                    if uid not in relationship_mapping:
-                        relationship_mapping[uid] = set()
-                    relationship_mapping[uid].add(relationship)
-        if return_mapping:
-            return list(relationship_mapping.keys()), relationship_mapping
-        return list(relationship_mapping.keys())
-
-    def _load_cuds_objects(self, uids: List[UID]) -> Iterator['Cuds']:
+    def _load_cuds_objects(self, uids: Iterable[UID]) -> Iterator['Cuds']:
         """Load the cuds_objects of the given uids from the session.
 
         Each in cuds_object is at the same position in the result as
@@ -1747,11 +1656,12 @@ class Cuds:
         Yields:
             Generator of loaded cuds_objects.
         """
-        without_none = [uid for uid in uids
-                        if uid is not None]
         # TODO: Think of a better way to detach CUDS from sessions.
         if not self.session:
             return None
+
+        uids = list(uids)
+        without_none = list(filter(None, uids))
         cuds_objects = self.session.load(*without_none)
         for uid in uids:
             if uid is None:

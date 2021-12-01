@@ -31,7 +31,7 @@ class TestAPIfoaf(unittest.TestCase):
         a = foaf.Person()
         b = foaf.Person()
         b.add(a, rel=foaf.knows)
-        self.assertEqual(b.get(rel=foaf.knows), [a])
+        self.assertSetEqual(b.get(rel=foaf.knows), {a})
 
     def test_throw_exception(self):
         """Test some exceptions."""
@@ -47,147 +47,149 @@ class TestAPIfoaf(unittest.TestCase):
         """
         marc = foaf.Person()
 
-        # Test attributes without slice.
-        self.assertIsNone(marc[foaf.name])
+        # Test attributes.
+        self.assertSetEqual(set(), marc[foaf.name])
         marc[foaf.name] = 'Marc'
-        self.assertEqual('Marc', marc[foaf.name])
+        self.assertSetEqual({'Marc'}, marc[foaf.name])
         marc[foaf.name] = 'Marco'
-        self.assertEqual('Marco', marc[foaf.name])
+        self.assertSetEqual({'Marco'}, marc[foaf.name])
         marc[foaf.name] = 'Marc'
         del marc[foaf.name]
-        self.assertIsNone(marc[foaf.name])
+        self.assertSetEqual(set(), marc[foaf.name])
         marc[foaf.name] = 'Marc'
         marc[foaf.name] = None
-        self.assertIsNone(marc[foaf.name])
+        self.assertSetEqual(set(), marc[foaf.name])
         marc[foaf.name] = 'Marc'
         self.assertRaises(TypeError,
                           lambda x: marc.__setitem__(foaf.name, x),
                           marc)
 
-        # Test slice for attributes.
-        self.assertSetEqual(set(), marc[foaf.nick, :])
-        marc[foaf.nick, :] = {'Marc'}
-        self.assertSetEqual({'Marc'}, marc[foaf.nick, :])
-        marc[foaf.nick, :] = set()
-        self.assertEqual(set(), marc[foaf.nick, :])
-        marc[foaf.nick, :] = {'Marc'}
-        marc[foaf.nick, :] = None
-        self.assertEqual(set(), marc[foaf.nick, :])
-        marc[foaf.nick, :] = {'Marc'}
-        del marc[foaf.nick, :]
-        self.assertEqual(set(), marc[foaf.nick, :])
-        marc[foaf.nick, :] = {'Marc'}
-        marc[foaf.nick, :].clear()
-        self.assertEqual(set(), marc[foaf.nick, :])
-        marc[foaf.nick, :] = {'Marc'}
-        self.assertIn('Marc', marc[foaf.nick, :])
-        self.assertNotIn('Aimee', marc[foaf.nick, :])
-        self.assertSetEqual({'Marc'}, set(marc[foaf.nick, :]))
-        self.assertEqual(1, len(marc[foaf.nick, :]))
-        self.assertLessEqual(marc[foaf.nick, :], {'Marc'})
-        self.assertLessEqual(marc[foaf.nick, :], {'Marc', 'Aimee'})
-        self.assertFalse(marc[foaf.nick, :] <= set())
-        self.assertLess(marc[foaf.nick, :], {'Marc', 'Aimee'})
-        self.assertFalse(marc[foaf.nick, :] < {'Marc'})
-        self.assertEqual({'Marc'}, marc[foaf.nick, :])
-        self.assertNotEqual(marc[foaf.nick, :], {'Marc', 'Aimee'})
-        self.assertNotEqual(marc[foaf.nick, :], set())
-        self.assertGreater(marc[foaf.nick, :], set())
-        self.assertGreaterEqual(marc[foaf.nick, :], set())
-        self.assertGreaterEqual(marc[foaf.nick, :], {'Marc'})
-        self.assertFalse(marc[foaf.nick, :] >= {'Marc', 'Aimee'})
-        self.assertSetEqual(set(), marc[foaf.nick, :] & set())
-        self.assertSetEqual({'Marc'}, marc[foaf.nick, :] & {'Marc'})
-        self.assertSetEqual(set(), marc[foaf.nick, :] & {'Aimee'})
+        self.assertSetEqual(set(), marc[foaf.nick])
+        marc[foaf.nick] = {'Marc'}
+        self.assertSetEqual({'Marc'}, marc[foaf.nick])
+        marc[foaf.nick] = set()
+        self.assertEqual(set(), marc[foaf.nick])
+        marc[foaf.nick] = {'Marc'}
+        marc[foaf.nick] = None
+        self.assertEqual(set(), marc[foaf.nick])
+        marc[foaf.nick] = {'Marc'}
+        del marc[foaf.nick]
+        self.assertEqual(set(), marc[foaf.nick])
+        marc[foaf.nick] = {'Marc'}
+        marc[foaf.nick].clear()
+        self.assertEqual(set(), marc[foaf.nick])
+        marc[foaf.nick] = {'Marc'}
+        self.assertIn('Marc', marc[foaf.nick])
+        self.assertNotIn('Aimee', marc[foaf.nick])
+        self.assertSetEqual({'Marc'}, set(marc[foaf.nick]))
+        self.assertEqual(1, len(marc[foaf.nick]))
+        self.assertLessEqual(marc[foaf.nick], {'Marc'})
+        self.assertLessEqual(marc[foaf.nick], {'Marc', 'Aimee'})
+        self.assertFalse(marc[foaf.nick] <= set())
+        self.assertLess(marc[foaf.nick], {'Marc', 'Aimee'})
+        self.assertFalse(marc[foaf.nick] < {'Marc'})
+        self.assertEqual({'Marc'}, marc[foaf.nick])
+        self.assertNotEqual(marc[foaf.nick], {'Marc', 'Aimee'})
+        self.assertNotEqual(marc[foaf.nick], set())
+        self.assertGreater(marc[foaf.nick], set())
+        self.assertGreaterEqual(marc[foaf.nick], set())
+        self.assertGreaterEqual(marc[foaf.nick], {'Marc'})
+        self.assertFalse(marc[foaf.nick] >= {'Marc', 'Aimee'})
+        self.assertSetEqual(set(), marc[foaf.nick] & set())
+        self.assertSetEqual({'Marc'}, marc[foaf.nick] & {'Marc'})
+        self.assertSetEqual(set(), marc[foaf.nick] & {'Aimee'})
         self.assertSetEqual({'Marc', 'Aimee'},
-                            marc[foaf.nick, :] | {'Aimee'})
+                            marc[foaf.nick] | {'Aimee'})
         self.assertSetEqual({'Marc'},
-                            marc[foaf.nick, :] | {'Marc'})
+                            marc[foaf.nick] | {'Marc'})
         self.assertSetEqual({'Marc'},
-                            marc[foaf.nick, :] | set())
+                            marc[foaf.nick] | set())
         self.assertSetEqual(set(),
-                            marc[foaf.nick, :] - {'Marc'})
+                            marc[foaf.nick] - {'Marc'})
         self.assertSetEqual({'Marc'},
-                            marc[foaf.nick, :] - {'Aimee'})
+                            marc[foaf.nick] - {'Aimee'})
         self.assertSetEqual({'Marc', 'Aimee'},
-                            marc[foaf.nick, :] ^ {'Aimee'})
+                            marc[foaf.nick] ^ {'Aimee'})
         self.assertSetEqual(set(),
-                            marc[foaf.nick, :] ^ {'Marc'})
-        self.assertTrue(marc[foaf.nick, :].isdisjoint({'Aimee'}))
-        self.assertFalse(marc[foaf.nick, :].isdisjoint({'Marc'}))
-        self.assertTrue(marc[foaf.nick, :].isdisjoint(set()))
-        self.assertEqual('Marc', marc[foaf.nick, :].pop())
-        self.assertSetEqual(set(), marc[foaf.nick, :])
-        marc[foaf.nick, :] = {'Marc'}
-        self.assertIsNot(marc[foaf.nick, :],
-                         marc[foaf.nick, :].copy())
-        self.assertSetEqual(marc[foaf.nick, :], marc[foaf.nick, :].copy())
+                            marc[foaf.nick] ^ {'Marc'})
+        self.assertTrue(marc[foaf.nick].isdisjoint({'Aimee'}))
+        self.assertFalse(marc[foaf.nick].isdisjoint({'Marc'}))
+        self.assertTrue(marc[foaf.nick].isdisjoint(set()))
+        self.assertEqual('Marc', marc[foaf.nick].pop())
+        self.assertSetEqual(set(), marc[foaf.nick])
+        marc[foaf.nick] = {'Marc'}
+        self.assertIsNot(marc[foaf.nick],
+                         marc[foaf.nick].copy())
+        self.assertSetEqual(marc[foaf.nick], marc[foaf.nick].copy())
         self.assertSetEqual(set(),
-                            marc[foaf.nick, :].difference({'Marc'}))
+                            marc[foaf.nick].difference({'Marc'}))
         self.assertSetEqual({'Marc'},
-                            marc[foaf.nick, :].difference({'Aimee'}))
-        marc[foaf.nick, :].difference_update({'Aimee'})
-        self.assertSetEqual({'Marc'}, marc[foaf.nick, :])
-        marc[foaf.nick, :].difference_update({'Marc'})
-        self.assertSetEqual(set(), marc[foaf.nick, :])
-        marc[foaf.nick, :] = {'Marc'}
-        marc[foaf.nick, :].discard('Aimee')
-        self.assertSetEqual({'Marc'}, marc[foaf.nick, :])
-        marc[foaf.nick, :].discard('Marc')
-        self.assertSetEqual(set(), marc[foaf.nick, :])
-        marc[foaf.nick, :] = {'Marc'}
+                            marc[foaf.nick].difference({'Aimee'}))
+        marc[foaf.nick].difference_update({'Aimee'})
+        self.assertSetEqual({'Marc'}, marc[foaf.nick])
+        marc[foaf.nick].difference_update({'Marc'})
+        self.assertSetEqual(set(), marc[foaf.nick])
+        marc[foaf.nick] = {'Marc'}
+        marc[foaf.nick].discard('Aimee')
+        self.assertSetEqual({'Marc'}, marc[foaf.nick])
+        marc[foaf.nick].discard('Marc')
+        self.assertSetEqual(set(), marc[foaf.nick])
+        marc[foaf.nick] = {'Marc'}
         self.assertSetEqual({'Marc'},
-                            marc[foaf.nick, :].intersection({'Marc'}))
+                            marc[foaf.nick].intersection({'Marc'}))
         self.assertSetEqual(set(),
-                            marc[foaf.nick, :].intersection({'Aimee'}))
+                            marc[foaf.nick].intersection({'Aimee'}))
         self.assertSetEqual(set(),
-                            marc[foaf.nick, :].intersection(set()))
-        marc[foaf.nick, :].intersection_update({'Marc'})
-        self.assertSetEqual({'Marc'}, marc[foaf.nick, :])
-        marc[foaf.nick, :].intersection_update({'Aimee'})
-        self.assertSetEqual(set(), marc[foaf.nick, :])
-        marc[foaf.nick, :] = {'Marc'}
-        marc[foaf.nick, :].add('Aimee')
-        self.assertSetEqual({'Aimee', 'Marc'}, marc[foaf.nick, :])
-        marc[foaf.nick, :].remove('Aimee')
-        self.assertSetEqual({'Marc'}, marc[foaf.nick, :])
+                            marc[foaf.nick].intersection(set()))
+        marc[foaf.nick].intersection_update({'Marc'})
+        self.assertSetEqual({'Marc'}, marc[foaf.nick])
+        marc[foaf.nick].intersection_update({'Aimee'})
+        self.assertSetEqual(set(), marc[foaf.nick])
+        marc[foaf.nick] = {'Marc'}
+        marc[foaf.nick].add('Aimee')
+        self.assertSetEqual({'Aimee', 'Marc'}, marc[foaf.nick])
+        marc[foaf.nick].remove('Aimee')
+        self.assertSetEqual({'Marc'}, marc[foaf.nick])
         self.assertRaises(KeyError,
-                          lambda x: marc[foaf.nick, :].remove(x),
+                          lambda x: marc[foaf.nick].remove(x),
                           'Aimee')
-        marc[foaf.nick, :].update({'Aimee'})
-        self.assertSetEqual({'Aimee', 'Marc'}, marc[foaf.nick, :])
-        marc[foaf.nick, :] |= {'Aimee'}
-        self.assertSetEqual({'Aimee', 'Marc'}, marc[foaf.nick, :])
-        marc[foaf.nick, :] = {}
-        marc[foaf.nick, :] |= {'Aimee'}
-        self.assertSetEqual({'Aimee'}, marc[foaf.nick, :])
-        marc[foaf.nick, :] &= {'Aimee'}
-        self.assertSetEqual({'Aimee'}, marc[foaf.nick, :])
-        marc[foaf.nick, :] &= {marc}
-        self.assertSetEqual(set(), marc[foaf.nick, :])
-        marc[foaf.nick, :] = {'Aimee'}
-        marc[foaf.nick, :] ^= {'Marc'}
-        self.assertSetEqual({'Aimee', 'Marc'}, marc[foaf.nick, :])
-        marc[foaf.nick, :] ^= set()
-        self.assertSetEqual({'Aimee', 'Marc'}, marc[foaf.nick, :])
-        marc[foaf.nick, :] ^= {'Aimee'}
-        self.assertSetEqual({'Marc'}, marc[foaf.nick, :])
-        marc[foaf.nick, :] += {'Aimee'}
-        self.assertSetEqual({'Marc', 'Aimee'}, marc[foaf.nick, :])
-        marc[foaf.nick, :] -= {'Marc'}
-        self.assertSetEqual({'Aimee'}, marc[foaf.nick, :])
-        marc[foaf.nick, :] += 'Marc'
-        marc[foaf.nick, :] += 'Aimee'
-        self.assertSetEqual({'Marc', 'Aimee'}, marc[foaf.nick, :])
-        marc[foaf.nick, :] -= 'Marc'
-        self.assertSetEqual({'Aimee'}, marc[foaf.nick, :])
-        marc[foaf.nick, :] -= 'Aimee'
-        self.assertSetEqual(set(), marc[foaf.nick, :])
+        marc[foaf.nick].update({'Aimee'})
+        self.assertSetEqual({'Aimee', 'Marc'}, marc[foaf.nick])
+        marc[foaf.nick] |= {'Aimee'}
+        self.assertSetEqual({'Aimee', 'Marc'}, marc[foaf.nick])
+        marc[foaf.nick] = {}
+        marc[foaf.nick] |= {'Aimee'}
+        self.assertSetEqual({'Aimee'}, marc[foaf.nick])
+        marc[foaf.nick] &= {'Aimee'}
+        self.assertSetEqual({'Aimee'}, marc[foaf.nick])
+        marc[foaf.nick] &= {marc}
+        self.assertSetEqual(set(), marc[foaf.nick])
+        marc[foaf.nick] = {'Aimee'}
+        marc[foaf.nick] ^= {'Marc'}
+        self.assertSetEqual({'Aimee', 'Marc'}, marc[foaf.nick])
+        marc[foaf.nick] ^= set()
+        self.assertSetEqual({'Aimee', 'Marc'}, marc[foaf.nick])
+        marc[foaf.nick] ^= {'Aimee'}
+        self.assertSetEqual({'Marc'}, marc[foaf.nick])
+        marc[foaf.nick] += {'Aimee'}
+        self.assertSetEqual({'Marc', 'Aimee'}, marc[foaf.nick])
+        marc[foaf.nick] -= {'Marc'}
+        self.assertSetEqual({'Aimee'}, marc[foaf.nick])
+        marc[foaf.nick] += 'Marc'
+        marc[foaf.nick] += 'Aimee'
+        self.assertSetEqual({'Marc', 'Aimee'}, marc[foaf.nick])
+        marc[foaf.nick] -= 'Marc'
+        self.assertSetEqual({'Aimee'}, marc[foaf.nick])
+        marc[foaf.nick] -= 'Aimee'
+        self.assertSetEqual(set(), marc[foaf.nick])
         self.assertRaises(TypeError,
                           lambda x: marc.__setitem__(
                               (foaf.nick, slice(None, None, None)),
                               x),
                           {marc})
+
+        # Test relationships -> goto
+        # test_api_city.TestAPICity.test_bracket_notation.
 
 
 if __name__ == '__main__':

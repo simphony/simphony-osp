@@ -265,7 +265,7 @@ class TestSqliteCity(unittest.TestCase):
             session.expire_all()
             self.assertEqual(p1w.name, "Maria")
             self.assertEqual(set(cw.get()), {p1w})
-            self.assertEqual(p2w.get(), list())
+            self.assertSetEqual(p2w.get(), set())
             self.assertFalse(hasattr(p3w, "name"))
             self.assertNotIn(p3w.uid, session._registry)
 
@@ -297,7 +297,7 @@ class TestSqliteCity(unittest.TestCase):
             self.assertEqual(cw.name, "Paris")
             self.assertEqual(p1w.name, "Maria")
             self.assertEqual(set(cw.get()), {p1w})
-            self.assertEqual(p2w.get(), list())
+            self.assertSetEqual(p2w.get(), set())
             self.assertFalse(hasattr(p3w, "name"))
             self.assertNotIn(p3w.uid, session._registry)
 
