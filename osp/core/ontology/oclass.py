@@ -310,7 +310,7 @@ class OntologyClass(OntologyEntity):
                              "both its IRI and UID. A CUDS object is "
                              "constrained to have just one UID.")
         elif uid is not None and not isinstance(uid, (UUID, int, UID)):
-            raise ValueError('Provide either a UUID or a URIRef object'
+            raise ValueError('Provide either a UUID or a URIRef object '
                              'as UID.')
             # NOTE: The error message is not wrong, the user is not meant to
             #  provide a UID object, only OSP-core itself.

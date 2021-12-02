@@ -4,6 +4,7 @@ import random
 import itertools
 import rdflib
 from .benchmark import Benchmark
+from osp.core.ontology.datatypes import UID
 
 try:
     from osp.core.namespaces import city
@@ -112,14 +113,15 @@ class Cuds_get_ByuidURIRef(Benchmark):
         self.city = city.City(name='Freiburg')
         self.iris = tuple(rdflib.URIRef(f'http://example.org/city#Citizen_{i}')
                           for i in range(self.size))
+        self.uids = tuple(UID(iri) for iri in self.iris)
         self.citizens = tuple(city.Citizen(name=f'citizen {i}',
-                                           uid=self.iris[i])
+                                           iri=self.iris[i])
                               for i in range(self.size))
         for citizen in self.citizens:
             self.city.add(citizen, rel=city.hasInhabitant)
 
     def _benchmark_iterate(self, iteration: int = None):
-        self.city.get(self.iris[iteration])
+        self.city.get(self.uids[iteration])
 
     def _benchmark_tear_down(self):
         pass
@@ -224,11 +226,11 @@ class Cuds_iter_ByuidURIRef(Benchmark):
         self.iris = tuple(rdflib.URIRef(f'http://example.org/city#Citizen_{i}')
                           for i in range(self.size))
         self.citizens = tuple(city.Citizen(name=f'citizen {i}',
-                                           uid=self.iris[i])
+                                           iri=self.iris[i])
                               for i in range(self.size))
         for citizen in self.citizens:
             self.city.add(citizen, rel=city.hasInhabitant)
-        self.iterator = self.city.iter(*self.iris)
+        self.iterator = self.city.iter(*map(UID, self.iris))
 
     def _benchmark_iterate(self, iteration: int = None):
         next(self.iterator)
