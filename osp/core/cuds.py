@@ -168,10 +168,7 @@ class Cuds:
             super().__setattr__(name, values)
             return
         attr = self._get_ontology_attribute_by_name(name)
-        values = {values} \
-            if not isinstance(values, (Set, MutableSet)) \
-            else values
-        # Apparently instances of MutableSet are not instances of Set.
+        values = {values}
         self._set_attributes(attr, values)
 
     def __setitem__(self,
