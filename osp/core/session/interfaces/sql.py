@@ -7,8 +7,8 @@ from rdflib import Literal, URIRef
 from rdflib import RDF, RDFS, OWL, XSD
 
 from osp.core.ontology.datatypes import (
-    CUSTOM_TO_PYTHON, RDFCompatibleType, RDF_TO_PYTHON, SimpleTriple,
-    SimplePattern, UID)
+    CUSTOM_TO_PYTHON, RDFCompatibleType, SimpleTriple,
+    SimplePattern, UID, rdf_to_python)
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.session.interfaces.triplestore import (
     TriplestoreInterface, TriplestoreStore)
@@ -1013,17 +1013,7 @@ class SQLInterface(TriplestoreInterface):
 
     @staticmethod
     def _convert_to_datatype(value: Any, datatype: URIRef) -> Any:
-        # TODO: Very similar to
-        #  `osp.core.ontology.attribute.OntologyAttribute.convert_to_datatype`.
-        #  Unify somehow.
-        if isinstance(value, Literal):
-            result = Literal(value.toPython(), datatype=datatype,
-                             lang=value.language).toPython()
-            if isinstance(result, Literal):
-                result = RDF_TO_PYTHON[datatype or XSD.string](value.value)
-        else:
-            result = RDF_TO_PYTHON[datatype or XSD.string](value)
-        return result
+        return rdf_to_python(value, datatype)
 
     def _do_db_update(self, table_name, columns,
                       values, condition, datatypes):
