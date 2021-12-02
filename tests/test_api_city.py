@@ -679,8 +679,11 @@ class TestAPICity(unittest.TestCase):
         paris = city.City(name='Paris')
         marc = city.Citizen(name='Marc')
         aimee = city.Citizen(name='Aimée')
+        clement = city.Citizen(name='Clément')
 
-        # Test relationships.
+        # --- Test relationships ---
+
+        # Basic functionality, assignment using single elements.
         self.assertSetEqual(set(), paris[city.hasMajor])
         paris[city.hasMajor] = marc
         self.assertSetEqual({marc}, paris[city.hasMajor])
@@ -695,6 +698,7 @@ class TestAPICity(unittest.TestCase):
                           lambda x: paris.__setitem__(city.hasMajor, x),
                           'String')
 
+        # Set features, assignment using sets.
         self.assertSetEqual(set(), paris[city.hasInhabitant])
         paris[city.hasInhabitant] = {marc}
         self.assertSetEqual({marc}, paris[city.hasInhabitant])
@@ -821,6 +825,34 @@ class TestAPICity(unittest.TestCase):
                               (city.hasInhabitant, slice(None, None, None)),
                               x),
                           {'String'})
+
+        # Operations on sub-relationships.
+        self.assertSetEqual(set(), paris[city.hasInhabitant])
+        self.assertSetEqual(set(), paris[city.hasMajor])
+        self.assertSetEqual(set(), paris[city.hasWorker])
+        paris[city.hasMajor] += aimee
+        paris[city.hasWorker] += marc
+        paris[city.hasWorker] = {aimee, marc}  # Should not change hasMajor.
+        paris[city.hasInhabitant] += clement
+        self.assertSetEqual({aimee}, paris[city.hasMajor])
+        self.assertSetEqual({aimee, marc}, paris[city.hasWorker])
+        self.assertSetEqual({aimee, marc, clement}, paris[city.encloses])
+        self.assertSetEqual({clement}, paris[city.hasInhabitant])
+        paris[city.hasWorker] += {clement}
+        self.assertSetEqual({aimee, marc, clement}, paris[city.hasWorker])
+        self.assertSetEqual({aimee}, paris[city.hasMajor])
+        paris[city.hasWorker] += {aimee}
+        paris[city.hasMajor] -= {aimee}
+        self.assertSetEqual({marc, clement}, paris[city.hasWorker])
+        paris[city.hasWorker] += {aimee}
+        self.assertSetEqual({marc, clement, aimee}, paris[city.hasWorker])
+        paris[city.hasMajor] += {aimee}
+        self.assertSetEqual({marc, clement, aimee}, paris[city.hasWorker])
+        self.assertEqual(3, len(paris[city.hasWorker]))
+        self.assertSetEqual({aimee}, paris[city.hasMajor])
+        paris[city.hasMajor] -= {aimee}
+        self.assertSetEqual({marc, clement, aimee}, paris[city.hasWorker])
+        self.assertSetEqual(set(), paris[city.hasMajor])
 
         # Test attributes -> goto
         # test_api_foaf.TestAPIfoaf.test_bracket_notation.

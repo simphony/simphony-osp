@@ -47,7 +47,9 @@ class TestAPIfoaf(unittest.TestCase):
         """
         marc = foaf.Person()
 
-        # Test attributes.
+        # --- Test attributes ---
+
+        # Basic functionality, assignment using single elements.
         self.assertSetEqual(set(), marc[foaf.name])
         marc[foaf.name] = 'Marc'
         self.assertSetEqual({'Marc'}, marc[foaf.name])
@@ -64,6 +66,7 @@ class TestAPIfoaf(unittest.TestCase):
                           lambda x: marc.__setitem__(foaf.name, x),
                           marc)
 
+        # Set features, assignment using sets.
         self.assertSetEqual(set(), marc[foaf.nick])
         marc[foaf.nick] = {'Marc'}
         self.assertSetEqual({'Marc'}, marc[foaf.nick])
@@ -187,6 +190,26 @@ class TestAPIfoaf(unittest.TestCase):
                               (foaf.nick, slice(None, None, None)),
                               x),
                           {marc})
+
+        # Operations on sub-attributes.
+        self.assertSetEqual(set(), marc[foaf.nick])
+        self.assertSetEqual(set(), marc[foaf.skypeID])
+        marc[foaf.skypeID] += 'marc_skype'
+        marc[foaf.nick] += 'marc_discord'
+        marc[foaf.nick] = {'marc_skype',
+                           'marc_discord'}  # Should not change skypeID.
+        self.assertSetEqual({'marc_skype'}, marc[foaf.skypeID])
+        self.assertSetEqual({'marc_skype', 'marc_discord'}, marc[foaf.nick])
+        marc[foaf.nick] += 'marc_skype'
+        marc[foaf.skypeID] -= 'marc_skype'
+        self.assertSetEqual({'marc_discord'}, marc[foaf.nick])
+        marc[foaf.nick] += 'marc_skype'
+        marc[foaf.skypeID] += 'marc_skype'
+        self.assertEqual(2, len(marc[foaf.nick]))
+        self.assertSetEqual({'marc_skype'}, marc[foaf.skypeID])
+        marc[foaf.skypeID] -= 'marc_skype'
+        self.assertSetEqual({'marc_skype', 'marc_discord'}, marc[foaf.nick])
+        self.assertSetEqual(set(), marc[foaf.skypeID])
 
         # Test relationships -> goto
         # test_api_city.TestAPICity.test_bracket_notation.
