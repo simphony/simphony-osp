@@ -165,9 +165,10 @@ class DataStructureSet(ABC, MutableSet):
         """Return self+=other (equivalent to self|=other)."""
         if isinstance(other, (Set, MutableSet)):
             # Apparently instances of MutableSet are not instances of Set.
-            return self.__ior__(other)
+            self.update(other)
         else:
-            return self.__ior__({other})
+            self.update({other})
+        return self
 
     def __isub__(self, other: Any) -> 'DataStructureSet':
         """Return self-=other.
@@ -211,7 +212,7 @@ class DataStructureSet(ABC, MutableSet):
 
     def clear(self) -> None:
         """Remove all elements from this set."""
-        self.__iand__(set())
+        self.intersection_update(set())
 
     def pop(self) -> Any:
         """Remove and return an arbitrary set element.
@@ -222,7 +223,7 @@ class DataStructureSet(ABC, MutableSet):
             item = next(iter(self))
         except StopIteration:
             return set().pop()  # Underlying data structure is empty.
-        self.__isub__({item})
+        self.difference_update({item})
         return item
 
     def copy(self) -> set:
@@ -241,7 +242,7 @@ class DataStructureSet(ABC, MutableSet):
 
         If the element is not a member, do nothing.
         """
-        self.__isub__({other})
+        self.difference_update({other})
 
     def intersection(self, other: Set) -> set:
         """Return the intersection of two sets as a new set.
@@ -263,7 +264,7 @@ class DataStructureSet(ABC, MutableSet):
 
         This has no effect if the element is already present.
         """
-        self.__ior__({other})
+        self.update({other})
 
     def remove(self, other: Any) -> None:
         """Remove an element from a set; it must be a member.
@@ -272,7 +273,7 @@ class DataStructureSet(ABC, MutableSet):
         """
         if other not in self:
             raise KeyError(f"{other}")
-        self.__isub__({other})
+        self.difference_update({other})
 
     def symmetric_difference(self, other: Set) -> set:
         """Return the symmetric difference of two sets as a new set."""
