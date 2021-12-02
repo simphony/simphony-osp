@@ -69,45 +69,43 @@ print("  %s" %
 
 # Functionalities exposed through subscripting.
 
-print("\nAdd, get and remove a single cuds (non-deterministic) using "
-      "subscripting.")
-print(f"  {c[city.hasInhabitant].name}")
+print("\nAdd, get and remove cuds using subscripting. The object returned by "
+      "the subscripting notation call behaves like a Python set, but has "
+      "some additional capabilities.")
+
+print(f"  {c[city.hasInhabitant].any().name}")
 c[city.hasInhabitant] = p1
-print(f"  {c[city.hasInhabitant].name}")
+print(f"  {c[city.hasInhabitant].any().name}")
 c[city.hasInhabitant] = None
 print(f"  {c[city.hasInhabitant]}")
 c[city.hasInhabitant] = p1
 del c[city.hasInhabitant]
 print(f"  {c[city.hasInhabitant]}")
 
-print("\nAdd, get and remove multiple cuds using subscripting. The result of "
-      "using a slice as second argument behaves like a Python set, but has "
-      "some additional capability to perform in-place operations on single "
-      "objects as well.")
 print(f"  p1: {p1}")
 print(f"  p2: {p2}")
-c[city.hasInhabitant, :] = {p1, p2}
-print(f"  {c[city.hasInhabitant, :]}")
-c[city.hasInhabitant, :] -= p1
-print(f"  {c[city.hasInhabitant, :]}")
-c[city.hasInhabitant, :] += p1
-print(f"  {c[city.hasInhabitant, :]}")
-c[city.hasInhabitant, :] = {p2}
-print(f"  {c[city.hasInhabitant, :]}")
-c[city.hasInhabitant, :] ^= {p2}
-print(f"  {c[city.hasInhabitant, :]}")
-print(f"  {c[city.hasInhabitant, :] | {p1, p2}}")
-print(f"  {c[city.hasInhabitant, :]}")
+c[city.hasInhabitant] = {p1, p2}
+print(f"  {c[city.hasInhabitant]}")
+c[city.hasInhabitant] -= p1
+print(f"  {c[city.hasInhabitant]}")
+c[city.hasInhabitant] += p1
+print(f"  {c[city.hasInhabitant]}")
+c[city.hasInhabitant] = {p2}
+print(f"  {c[city.hasInhabitant]}")
+c[city.hasInhabitant] ^= {p2}
+print(f"  {c[city.hasInhabitant]}")
+print(f"  {c[city.hasInhabitant] | {p1, p2}}")
+print(f"  {c[city.hasInhabitant]}")
 
 print("\nThe subscripting also works for attributes. In particular, it can be "
       "used to assign multiple values to the same attribute.")
-c[city.name, :] = {'Freiburg', 'Freiburg im Breisgau'}
-print(f"  {c[city.name, :]}")
+c[city.name] = {'Freiburg', 'Freiburg im Breisgau'}
+print(f"  {c[city.name]}")
 print("  Be aware that when multiple values are assigned, the dot notation "
       "will raise an exception.")
-c[city.name, :] += {'Stadt', 'City'}
-print(f"  {c[city.name, :]}")
+c[city.name] += {'Stadt', 'City'}
 print(f"  {c[city.name]}")
+print(f"  {c[city.name].any()}")
 # c.name -> Exception
-c[city.name, :] -= {'Stadt', 'City', 'Freiburg'}
-print(f"  {c[city.name, :]}")
+c[city.name] -= {'Stadt', 'City', 'Freiburg'}
+print(f"  {c[city.name]}")
