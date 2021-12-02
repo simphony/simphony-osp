@@ -205,6 +205,18 @@ class Cuds:
                 something that is neither an OntologyAttribute or an
                 OntologyRelationship as index.
         """
+        if isinstance(values, Cuds._ObjectSet) \
+                and values.cuds is self and values.predicate is rel:
+            # Do not do anything when the set assigned is a set referring to
+            #  self and referring to the same predicate that was specified.
+            #  Avoids duplication of work that would happen because
+            #  `x[c] += y <-> x[c] == x[c].__iadd__(y)`. An alternative is
+            #  getting rid of `__iadd__` so that
+            #  `x[c] += y <-> x[c] = x[c] + y`. But this implies
+            #  incompatibilities with `collections.ABC` (they already define
+            #  `__isub__` for MutableSet for example).
+            return
+
         values = values or set()
         values = {values} \
             if not isinstance(values, (Set, MutableSet)) \
@@ -213,17 +225,16 @@ class Cuds:
 
         # Split values into cuds and values compatible with literals.
         cuds, literals = \
-            tuple(filter(lambda x: isinstance(x, Cuds), values)), \
-            tuple(filter(lambda x: isinstance(x, RDF_COMPATIBLE_TYPES),
-                         values))
+            set(filter(lambda x: isinstance(x, Cuds), values)), \
+            set(filter(lambda x: isinstance(x, RDF_COMPATIBLE_TYPES),
+                       values))
         # Raise TypeError if other types were provided.
         if len(cuds) + len(literals) != len(values):
             illegal_types = (
-                type(x) for x in values - (set(cuds) | set(literals)))
+                type(x) for x in values - (cuds | literals))
             raise TypeError("Expected values of type 'Cuds' or "
                             "'RDFCompatibleType', got %s." %
                             ', '.join(illegal_types))
-
         if isinstance(rel, OntologyRelationship):
             if len(literals) > 0:
                 raise TypeError(f'Trying to assign attributes using an object'
@@ -234,16 +245,16 @@ class Cuds:
                                 f'a data property {rel}')
 
         if isinstance(rel, OntologyRelationship):
-            cuds_set_uids = set(c.uid for c in cuds)
-            set_iter_uids = set(self._iter(rel=rel))
-            add_uids = cuds_set_uids.difference(set_iter_uids)
-            add = (c for c in cuds if c.uid in add_uids)
-            self._connect(*add, rel=rel)
-            remove_uids = set_iter_uids.difference(cuds_set_uids)
-            if remove_uids:
-                self._disconnect(*remove_uids, rel=rel)
+            relationship_set = Cuds._RelationshipSet(rel, self, oclass=None)
+            add, remove = cuds - relationship_set, relationship_set - cuds
+            relationship_set |= add
+            relationship_set -= remove
         elif isinstance(rel, OntologyAttribute):
-            self._set_attributes(rel, literals)
+            attribute_set = Cuds._AttributeSet(rel, self)
+            add = literals - attribute_set
+            remove = attribute_set - literals
+            attribute_set |= add
+            attribute_set -= remove
         else:
             raise TypeError(f'CUDS objects indices must be ontology '
                             f'relationships or ontology attributes, '
@@ -722,6 +733,16 @@ class Cuds:
         modified, the modification will affect this CUDS object."""
 
         @property
+        def cuds(self) -> "Cuds":
+            """CUDS object that this set refers to."""
+            return self._individual
+
+        @property
+        def predicate(self) -> Union[OntologyAttribute, OntologyRelationship]:
+            """Predicate that this set refers to."""
+            return self._predicate
+
+        @property
         def _predicates(self) -> Optional[Union[
             Set[OntologyAttribute],
             Set[OntologyRelationship]
@@ -749,7 +770,8 @@ class Cuds:
             """Return repr(self)."""
             return set(self).__repr__() \
                 + ' <' \
-                + f'{self._predicate} ' if self._predicate is not None else ''\
+                + (f'{self._predicate} ' if self._predicate is not None
+                   else '') \
                 + f'of CUDS object {self._individual}>'
 
         def one(self) -> Union["Cuds", RDFCompatibleType]:
@@ -1367,10 +1389,29 @@ class Cuds:
         @prevent_class_filtering
         def update(self, other: Iterable['Cuds']) -> None:
             """Update the set with the union of itself and other."""
-            # The same individual be attached through a relationship and its
-            # sub-relationship. If this is the case, we do not want a new
-            # attachment to be created.
-            added = filter(lambda x: x not in self, other)
+            # The individuals to update might be already attached. Given an
+            #  individual from `other`, several situations may arise:
+            #
+            #    1 - The relationship through which it is already attached is
+            #        the same as the main predicate `self._predicate`. It is
+            #        safe to attach it again, the same connection cannot be
+            #        duplicated in the RDF standard.
+            #
+            #    2 - The relationship through which it is already attached is a
+            #        sub-relationship of the main predicate. In such case,
+            #        we keep the existing connection and do not add a new
+            #        connection. The principle is: the more specific the
+            #        knowledge is, the better.
+            #
+            #    3 - The relationship through which it is already attached is a
+            #        super-relationship of the main predicate. Then it can make
+            #        sense to remove the original connection and replace it
+            #        with a new, more specific connection using the main
+            #        predicate.
+            #
+            added = filter(lambda x: x not in self, other)  # Takes care of 2.
+            # TODO: We do not take care of 3, because `.add` also does not
+            #  take care of 3. This topic can be an object of discussion.
             for individual in added:
                 self._individual._connect(individual, rel=self._predicate)
 
@@ -1378,42 +1419,44 @@ class Cuds:
         def intersection_update(self, other: Iterable['Cuds'])\
                 -> None:
             """Update the set with the intersection of itself and another."""
+            # Note: please read the comment on the `update` method.
             underlying_set = set(self)
             result = underlying_set.intersection(other)
 
             removed = underlying_set.difference(result)
-            for individual in removed:
+            if removed:
                 for rel in self._predicates:
-                    self._individual._disconnect(individual, rel=rel)
+                    self._individual._disconnect(*removed, rel=rel)
 
             added = result.difference(underlying_set)
-            for individual in added:
-                self._individual._connect(individual, rel=self._predicate)
+            self._individual._connect(*added, rel=self._predicate)
 
         @prevent_class_filtering
         def difference_update(self, other: Iterable['Cuds']) \
                 -> None:
             """Remove all elements of another set from this set."""
-            for individual in set(self) & set(other):
+            # Note: please read the comment on the `update` method.
+            removed = set(self) & set(other)
+            if removed:
                 for rel in self._predicates:
-                    self._individual._disconnect(individual, rel=rel)
+                    self._individual._disconnect(*removed, rel=rel)
 
         @prevent_class_filtering
         def symmetric_difference_update(self,
                                         other: Iterable['Cuds'])\
                 -> None:
             """Update with the symmetric difference of it and another."""
+            # Note: please read the comment on the `update` method.
             underlying_set = set(self)
             result = underlying_set.symmetric_difference(other)
 
             removed = underlying_set.difference(result)
-            for individual in removed:
+            if removed:
                 for rel in self._predicates:
-                    self._individual._disconnect(individual, rel=rel)
+                    self._individual._disconnect(*removed, rel=rel)
 
             added = result.difference(underlying_set)
-            for individual in added:
-                self._individual._connect(individual, rel=self._predicate)
+            self._individual._connect(*added, rel=self._predicate)
 
     # ↑ -------------- ↑
     # Relationship handling
