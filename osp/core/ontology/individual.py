@@ -186,18 +186,6 @@ class OntologyIndividual(OntologyEntity):
             else:
                 raise e
 
-    def __getitem__(self,
-                    value: Union['OntologyAttribute',
-                                 'OntologyRelationship',
-                                 Tuple[
-                                     Union['OntologyAttribute',
-                                           'OntologyRelationship'],
-                                     slice]]) \
-            -> Optional[
-                Union['OntologyIndividual._AttributeSet',
-                      'OntologyIndividual._RelationshipSet',
-                      'OntologyIndividual',
-                      RDFCompatibleType]]:
     def __getitem__(
             self,
             value: Union[OntologyAttribute, OntologyRelationship,
@@ -655,9 +643,15 @@ class OntologyIndividual(OntologyEntity):
     # Annotation handling
     # ↓ --------------- ↓
 
-    class _AnnotationSet(_ObjectSet, MutableSet):
+    class _AnnotationSet(_ObjectSet):
         _predicate: OntologyAnnotation
         _individual: "OntologyIndividual"
+
+        def __init__(self,
+                     annotation: OntologyAnnotation,
+                     individual: "OntologyIndividual") -> None:
+            """Fix the linked OntologyAnnotation and ontology individual."""
+            super().__init__(annotation, individual)
 
         @property
         def _underlying_set(self) -> Set[Union[
@@ -678,21 +672,8 @@ class OntologyIndividual(OntologyEntity):
                 self._individual._annotation_value_generator(
                     annotation=self._predicate
                 ))
-
-        def __init__(self,
-                     annotation: OntologyAnnotation,
-                     individual: "OntologyIndividual") -> None:
-            """Fix the linked OntologyAnnotation and ontology individual."""
-            super().__init__(annotation, individual)
-
-        def __len__(self):
-            """Return len(self)."""
-            return sum(
-                1 for _ in self._individual._annotation_value_generator(
-                    annotation=self._predicate))
-
-        def __ior__(self,
-                    other: Set[Union[
+        
+        def update(self, other: Iterable[Union[
                         OntologyAnnotation,
                         OntologyAttribute,
                         OntologyClass,
@@ -700,14 +681,12 @@ class OntologyIndividual(OntologyEntity):
                         OntologyRelationship,
                         RDFCompatibleType,
                         URIRef,
-                    ]]) -> 'OntologyIndividual._AnnotationSet':
-            """Return self|=other."""
-            self._individual._set_annotations(annotation=self._predicate,
-                                              values=self | other)
-            return self
+                    ]]) -> None:
+            self._individual._add_annotations(annotation=self._predicate,
+                                              values=other)
 
-        def __iand__(self,
-                     other: Set[Union[
+        def intersection_update(self,
+                     other: Iterable[Union[
                          OntologyAnnotation,
                          OntologyAttribute,
                          OntologyClass,
@@ -715,109 +694,31 @@ class OntologyIndividual(OntologyEntity):
                          OntologyRelationship,
                          RDFCompatibleType,
                          URIRef,
-                     ]]) -> 'OntologyIndividual._AnnotationSet':
-            """Return self&=other."""
+                     ]]) -> None:
             self._individual._set_annotations(annotation=self._predicate,
-                                              values=self & other)
-            return self
+                                              values=other)
 
-        def __ixor__(self,
-                     other: Set[Union[
-                         OntologyAnnotation,
-                         OntologyAttribute,
-                         OntologyClass,
-                         'OntologyIndividual',
-                         OntologyRelationship,
-                         RDFCompatibleType,
-                         URIRef,
-                     ]]) -> 'OntologyIndividual._AnnotationSet':
-            """Return self^=other."""
-            self._individual._set_annotations(annotation=self._predicate,
-                                              values=self ^ other)
-            return self
-
-        def __isub__(self,
-                     other: Any) -> 'OntologyIndividual._AnnotationSet':
+        def difference_update(self,
+                              other: Iterable[Any]) -> None:
             """Return self-=other."""
-            if isinstance(other, (Set, MutableSet)):
-                # Apparently instances of MutableSet are not instances of Set.
-                self._individual._set_annotations(annotation=self._predicate,
-                                                  values=self - other)
-            else:
-                self._individual._set_annotations(annotation=self._predicate,
-                                                  values=self - {other})
-            return self
+            self._individual._delete_annotations(annotation=self._predicate,
+                                                 values=self._underlying_set
+                                                 & set(other))
 
-        def clear(self) -> None:
-            """Remove all elements from this set.
-
-            This also removed all the values assigned to the annotation
-            linked to this set for the individual linked to this set.
-            """
-            self._individual._set_annotations(annotation=self._predicate,
-                                              values=set())
-
-        def pop(self) -> Union[
-            OntologyAnnotation,
-            OntologyAttribute,
-            OntologyClass,
-            'OntologyIndividual',
-            OntologyRelationship,
-            RDFCompatibleType,
-            URIRef,
-        ]:
-            """Remove and return an arbitrary set element.
-
-            Raises KeyError if the set is empty.
-            """
-            result = self._underlying_set.pop()
-            self._individual._set_annotations(annotation=self._predicate,
-                                              values=self - {result})
-            return result
-
-        def difference_update(self, other: Iterable):
-            """Remove all elements of another set from this set."""
-            self._individual._set_annotations(annotation=self._predicate,
-                                              values=self - set(other))
-
-        def discard(self, other: Any):
-            """Remove an element from a set if it is a member.
-
-            If the element is not a member, do nothing.
-            """
-            self._individual._set_annotations(annotation=self._predicate,
-                                              values=self - {other})
-
-        def intersection(self, other: set) -> Set[Union[
-            OntologyAnnotation,
-            OntologyAttribute,
-            OntologyClass,
-            'OntologyIndividual',
-            OntologyRelationship,
-            RDFCompatibleType,
-            URIRef,
-        ]]:
-            """Return the intersection of two sets as a new set.
-
-            (i.e. all elements that are in both sets.)
-            """
-            return super().intersection(other)
-
-        def remove(self, other: Any):
-            """Remove an element from a set; it must be a member.
-
-            If the element is not a member, raise a KeyError.
-            """
-            if other in self._underlying_set:
-                self._individual._set_annotations(annotation=self._predicate,
-                                                  values=self - {other})
-            else:
-                raise KeyError(f"{other}")
-
-        def update(self, other: Iterable):
-            """Update a set with the union of itself and others."""
-            self._individual._set_annotations(annotation=self._predicate,
-                                              values=self | set(other))
+        def symmetric_difference_update(self,
+                     other: Iterable[Union[
+                         OntologyAnnotation,
+                         OntologyAttribute,
+                         OntologyClass,
+                         'OntologyIndividual',
+                         OntologyRelationship,
+                         RDFCompatibleType,
+                         URIRef,
+                     ]]) -> None:
+            """Return self^=other."""
+            self._individual._set_annotations(self._predicate,
+                                              self._underlying_set
+                                              ^ set(other))
 
     @staticmethod
     def _classify_annotation_values(
@@ -843,6 +744,118 @@ class OntologyIndividual(OntologyEntity):
                   for key, value in values.items()
                   if value}
         return values
+
+    def _add_annotations(self,
+                         annotation: OntologyAnnotation,
+                         values: Union[
+                             Dict[
+                                 Union[
+                                     Type[OntologyAnnotation],
+                                     Type[OntologyAttribute],
+                                     Type[OntologyClass],
+                                     Type['OntologyIndividual'],
+                                     Type[OntologyRelationship],
+                                     Type[Literal],
+                                     Type[RDFCompatibleType],
+                                     Type[URIRef],
+                                 ],
+                                 Union[
+                                     Iterable[OntologyAnnotation],
+                                     Iterable[OntologyAttribute],
+                                     Iterable[OntologyClass],
+                                     Iterable['OntologyIndividual'],
+                                     Iterable[OntologyRelationship],
+                                     Iterable[Literal],
+                                     Iterable[RDFCompatibleType],
+                                     Iterable[URIRef]
+                                 ],
+                             ],
+                             Set[Union[
+                                 OntologyAnnotation,
+                                 OntologyAttribute,
+                                 OntologyClass,
+                                 'OntologyIndividual',
+                                 OntologyRelationship,
+                                 RDFCompatibleType,
+                                 URIRef,
+                                 Literal,
+                             ]]
+                         ]) -> None:
+        if not isinstance(values, dict):
+            values = self._classify_annotation_values(values)
+        for value in itertools.chain(*(values.get(key, set())
+                                       for key in (OntologyAnnotation,
+                                                   OntologyAttribute,
+                                                   OntologyClass,
+                                                   OntologyIndividual,
+                                                   OntologyRelationship))
+                                     ):
+            self.session.graph.add((self.iri, annotation.iri, value.iri))
+        for value in values.get(Literal, set()):
+            self.session.graph.add(
+                (self.iri, annotation.iri,
+                 value)
+            )
+        for value in values.get(RDF_COMPATIBLE_TYPES, set()):
+            self.session.graph.add(
+                (self.iri, annotation.iri,
+                 Literal(value))
+            )
+        for value in values.get(URIRef, set()):
+            self.session.graph.add((self.iri, annotation.iri, value))
+
+    def _delete_annotations(self,
+                         annotation: OntologyAnnotation,
+                         values: Union[
+                             Dict[
+                                 Union[
+                                     Type[OntologyAnnotation],
+                                     Type[OntologyAttribute],
+                                     Type[OntologyClass],
+                                     Type['OntologyIndividual'],
+                                     Type[OntologyRelationship],
+                                     Type[Literal],
+                                     Type[RDFCompatibleType],
+                                     Type[URIRef],
+                                 ],
+                                 Union[
+                                     Iterable[OntologyAnnotation],
+                                     Iterable[OntologyAttribute],
+                                     Iterable[OntologyClass],
+                                     Iterable['OntologyIndividual'],
+                                     Iterable[OntologyRelationship],
+                                     Iterable[Literal],
+                                     Iterable[RDFCompatibleType],
+                                     Iterable[URIRef]
+                                 ],
+                             ],
+                             Set[Union[
+                                 OntologyAnnotation,
+                                 OntologyAttribute,
+                                 OntologyClass,
+                                 'OntologyIndividual',
+                                 OntologyRelationship,
+                                 RDFCompatibleType,
+                                 URIRef,
+                                 Literal,
+                             ]]
+                         ]) -> None:
+        if not isinstance(values, dict):
+            values = self._classify_annotation_values(values)
+
+        for value in values.get(Literal, set()):
+            self.session.graph.remove(
+                (self.iri, annotation.iri,
+                 value)
+            )
+        for value in values.get(RDF_COMPATIBLE_TYPES, set()):
+            self.session.graph.remove(
+                (self.iri, annotation.iri,
+                 Literal(value))
+            )
+        for value in values.get(URIRef, set()):
+            self.session.graph.remove((self.iri, annotation.iri, value))
+
 
     def _set_annotations(self,
                          annotation: OntologyAnnotation,
