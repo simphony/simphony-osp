@@ -2,7 +2,7 @@
 
 import itertools
 from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Set, \
-    Union
+    TYPE_CHECKING, Union
 
 import rdflib
 from rdflib import OWL, RDF, RDFS, SKOS, BNode, Graph, Literal, URIRef
@@ -23,16 +23,68 @@ from osp.core.utils.datatypes import UID
 
 
 class Session:
-    """Box with data entities.
+    """Interface to a Graph containing OWL ontology entities."""
 
-    Defines the common standard API and sets the registry.
+    #  Public API
+    # ↓ -------- ↓
+
+    identifier: Optional[str] = None
+    """A label for the session.
+
+    The identifier is just a label for the session to be displayed within
+    Python (string representation of the session). It has no other effect.
     """
 
-    # Instance API
-    # ↓ -------- ↓
-    identifier: Optional[str]
-    ontology: Optional['Session'] = None
+    ontology: Union['Session', bool] = None
+    """Another session considered to be the T-Box of this one.
+
+    In a normal setting, a session is considered only to contain an A-Box.
+    When it is necessary to look for a class, a relationship, an attribute
+    or an annotation property, the session will look there for their
+    definition.
+
+    However, if instead of a session the value `True` is set, then this
+    session will also be its own T-Box.
+    """
+
     label_properties: Tuple[URIRef] = (SKOS.prefLabel, RDFS.label)
+    """The identifiers of the RDF predicates to be considered as labels.
+
+    The entity labels are used, for example, to be able to get ontology
+    entities from namespace or session objects by such label.
+
+    The order in which the properties are specified in the tuple matters. To
+    determine the label of an object, the properties will be checked from
+    left to right, until one of them is defined for that specific entity.
+    This will be the label of such ontology entity. The rest of the
+    properties to the right of such property will be ignored for that
+    entity.
+
+    For example, in the default case above, if an entity has an
+    `SKOS.prefLabel` it will be considered to be its label, even if it also
+    has an `RDFS.label`, which will be ignored. If another entity has no
+    `SKOS.prefLabel` but has a `RDFS.label`, then the `RDFS.label` will
+    define its label. This means that for some entity, one label property
+    may be used while for another, a different property can be in use. If
+    none of the properties are defined, then the entity is considered to
+    have no label.
+    """
+
+    label_languages: Tuple[URIRef] = ('en', )
+    # TODO: Set to user's language preference from the OS (users can usually
+    #  set such a list in modern operating systems).
+    """The preferred languages for the default label.
+
+    Normally, entities will be available from all languages. However,
+    in some places the label has to be printed. In such cases this default
+    label will be used.
+
+    When defining the label for an object as described in the
+    `label_properties` docstring above, this list will also be checked from
+    left to right. When one of the languages specified is available,
+    this will define the default label. Then the default label will default to
+    english. If also not available, then any language will be used.
+    """
 
     @property
     def namespaces(self) -> List[OntologyNamespace]:
@@ -45,10 +97,11 @@ class Session:
     def bind(self,
              name: Optional[str],
              iri: Union[str, URIRef]):
-        """Bind a namespace to this ontology.
+        """Bind a namespace to this session.
 
         Args:
-            name: the name to bind.
+            name: the name to bind. The name is optional, a namespace object
+                can be bound without name.
             iri: the IRI of the namespace to be bound to such name.
         """
         iri = URIRef(iri)
@@ -62,7 +115,7 @@ class Session:
             self.ontology._graph.bind(name, iri)
 
     def unbind(self, name: Union[str, URIRef]):
-        """Unbind a namespace from this ontology.
+        """Unbind a namespace from this session.
 
         Args:
             name: the name to which the namespace is already bound, or the
@@ -71,35 +124,6 @@ class Session:
         for key, value in dict(self.ontology._namespaces).items():
             if value == name or key == URIRef(name):
                 del self.ontology._namespaces[key]
-
-    def get_namespace(self, name: Union[str, URIRef]) -> OntologyNamespace:
-        """Get a namespace registered with the ontology.
-
-        Args:
-            name: The namespace name to search for.
-
-        Returns:
-            The ontology namespace.
-
-        Raises:
-            KeyError: Namespace not found.
-        """
-        coincidences = iter(tuple())
-        if isinstance(name, URIRef):
-            coincidences_iri = (x for x in self.namespaces if x.iri == name)
-            coincidences = itertools.chain(coincidences, coincidences_iri)
-        elif isinstance(name, str):
-            coincidences_name = (x for x in self.namespaces if x.name == name)
-            coincidences = itertools.chain(coincidences, coincidences_name)
-            # Last resort: user provided string but may be an IRI.
-            coincidences_fallback = (x for x in self.namespaces
-                                     if x.iri == URIRef(name))
-            coincidences = itertools.chain(coincidences, coincidences_fallback)
-
-        result = next(coincidences, None)
-        if result is None:
-            raise KeyError(f"Namespace {name} not found in ontology {self}.")
-        return result
 
     def get_namespace_bind(self,
                            namespace: Union[OntologyNamespace, URIRef, str]) \
@@ -128,8 +152,37 @@ class Session:
         except KeyError:
             raise not_bound_error
 
+    def get_namespace(self, name: Union[str, URIRef]) -> OntologyNamespace:
+        """Get a namespace registered with the session.
+
+        Args:
+            name: The namespace name or IRI to search for.
+
+        Returns:
+            The ontology namespace.
+
+        Raises:
+            KeyError: Namespace not found.
+        """
+        coincidences = iter(tuple())
+        if isinstance(name, URIRef):
+            coincidences_iri = (x for x in self.namespaces if x.iri == name)
+            coincidences = itertools.chain(coincidences, coincidences_iri)
+        elif isinstance(name, str):
+            coincidences_name = (x for x in self.namespaces if x.name == name)
+            coincidences = itertools.chain(coincidences, coincidences_name)
+            # Last resort: user provided string but may be an IRI.
+            coincidences_fallback = (x for x in self.namespaces
+                                     if x.iri == URIRef(name))
+            coincidences = itertools.chain(coincidences, coincidences_fallback)
+
+        result = next(coincidences, None)
+        if result is None:
+            raise KeyError(f"Namespace {name} not found in ontology {self}.")
+        return result
+
     @property
-    def active_relationships(self) -> Tuple[OntologyRelationship]:
+    def active_relationships(self) -> Tuple[OntologyRelationship, ...]:
         """Get the active relationships defined in the ontology."""
         # TODO: Transitive closure.
         return tuple(OntologyRelationship(UID(s), self) for s in
@@ -159,6 +212,7 @@ class Session:
 
         Each namespace can have a different default relationship.
         """
+        # TODO: Remove, default relationships are no longer in use.
         default_relationships = {
             ns: (OntologyRelationship(UID(o), self.ontology), )
             for ns in self.namespaces
@@ -187,6 +241,7 @@ class Session:
                 value is an OntologyRelationship, set different
                 relationships when a dict is provided..
         """
+        # TODO: Remove, default relationships are no longer in use.
         if value is None:
             remove = ((None, cuba_namespace._default_rel, None), )
             add = dict()
@@ -249,10 +304,44 @@ class Session:
         # Force default relationships to be installed before installing a new
         # ontology.
         self._check_default_relationship_installed(parser)
+
         self.ontology._graph += parser.graph
         self.ontology._overlay += self._overlay_from_parser(parser)
         for name, iri in parser.namespaces.items():
             self.bind(name, iri)
+
+    def commit(self) -> None:
+        """Commit the changes made to the session's graph."""
+        self._graph.commit()
+        if self.ontology is not self:
+            self.ontology.commit()
+        else:
+            self._overlay.commit()
+        self.creation_set = set()
+
+    def run(self) -> None:
+        """Run simulations on supported graph stores."""
+        from osp.core.session.interfaces.remote.client import RemoteStoreClient
+        if hasattr(self._graph.store, 'run'):
+            self.commit()
+            self._graph.store.interface.run()
+        elif isinstance(self._graph.store, RemoteStoreClient):
+            self._graph.store.execute_method('run')
+        else:
+            raise AttributeError(f'Session {self} is not attached to a '
+                                 f'simulation engine. Thus, the attribute '
+                                 f'`run` is not available.')
+
+    def close(self):
+        """Close the connection to the backend.
+
+        Sessions act on a graph linked to an RDFLib store (a backend). If
+        the session will not be used anymore, then it makes sense to close
+        the connection to such backend to free resources.
+        """
+        self._times_opened -= 1
+        if self._times_opened <= 0:
+            self.graph.close()
 
     def __init__(self,
                  store: Store = None,  # The store must be OPEN already.
@@ -274,7 +363,7 @@ class Session:
             self.ontology = ontology
         elif ontology is True:
             self.ontology = self
-        elif not isinstance(ontology, bool) and ontology is not None:
+        elif ontology is not None:
             raise TypeError(f"Invalid ontology argument: {ontology}."
                             f"Expected either a `Session` or `bool` object, "
                             f"got {type(ontology)} instead.")
@@ -296,20 +385,20 @@ class Session:
             for key, value in namespaces.items():
                 self.bind(key, value)
 
-    def close(self):
-        """Close the connection to the backend."""
-        self._times_opened -= 1
-        if self._times_opened <= 0:
-            self.graph.close()
-
     def __enter__(self):
-        """Enter session context manager."""
+        """Enter session context manager.
+
+        This sets the session as the default session.
+        """
         self._session_stack.append(self)
         self.creation_set = set()
         return self
 
     def __exit__(self, *args):
-        """Close the connection to the backend."""
+        """Close the connection to the backend.
+
+        This sets the default session back to the previous default session.
+        """
         if self is not self._session_stack[-1]:
             raise RuntimeError("Trying to exit the context manager of a "
                                "session that was not the latest session "
@@ -332,7 +421,7 @@ class Session:
                 for identifier in self.iter_identifiers())
 
     def from_identifier(self, identifier: Identifier) -> 'OntologyEntity':
-        """Get an entity from its identifier.
+        """Get an ontology entity from its identifier.
 
         Args:
             identifier: The identifier of the entity.
@@ -343,6 +432,12 @@ class Session:
         Returns:
             The OntologyEntity.
         """
+        # WARNING: This method is a central point in OSP-core. Change with
+        #  care.
+        # TIP: Since the method is a central point in OSP-core, any
+        #  optimization it gets will speed up OSP-core, while bad code in
+        #  this method will slow it down.
+        # TODO: make return type hint more specific, IDE gets confused.
         # Look for compatible Python classes to spawn.
         compatible = set()
 
@@ -423,40 +518,24 @@ class Session:
             raise KeyError(error)
         return results
 
-    def commit(self) -> None:
-        """Commit the changes made to the session's graph."""
-        self._graph.commit()
-        if self.ontology is not self:
-            self.ontology.commit()
-        else:
-            self._overlay.commit()
-        self.creation_set = set()
+    def delete(self, entity: 'OntologyEntity'):
+        """Remove an ontology entity from the session."""
+        self._track_identifiers(entity.identifier, delete=True)
+        self._graph.remove((entity.identifier, None, None))
+        self._graph.remove((None, None, entity.identifier))
 
-    def run(self) -> None:
-        """Run simulations on supported graph stores."""
-        from osp.core.session.interfaces.remote.client import RemoteStoreClient
-        if hasattr(self._graph.store, 'run'):
-            self.commit()
-            self._graph.store.interface.run()
-        elif isinstance(self._graph.store, RemoteStoreClient):
-            self._graph.store.execute_method('run')
-        else:
-            raise AttributeError(f'Session {self} is not attached to a '
-                                 f'simulation engine. Thus, the attribute '
-                                 f'`run` is not available.')
+    def clear(self):
+        """Clear all the data stored in the session."""
+        self._graph.remove((None, None, None))
 
-    def update(self, entity: 'OntologyEntity') -> None:
+    def update(self,
+               entity: 'OntologyEntity') -> None:
         """Store a copy of given ontology entity in the session.
 
         Args:
             entity: The ontology entity to store.
         """
-        if entity not in self:
-            self._track_identifiers(entity.identifier)
-            triples = set(entity.triples)
-            self._graph.remove((entity.identifier, None, None))
-            for t in triples:
-                self._graph.add(t)
+        self._update_and_merge_helper(entity, mode=True)
 
     def merge(self, entity: 'OntologyEntity') -> None:
         """Merge a given ontology entity with what is in the session.
@@ -467,23 +546,84 @@ class Session:
         Args:
             entity: The ontology entity to store.
         """
-        if entity not in self:
-            self._track_identifiers(entity.identifier)
-            for t in entity.triples:
-                self._graph.add(t)
-
-    def delete(self, entity: 'OntologyEntity'):
-        """Remove the ontology entity from the session."""
-        self._track_identifiers(entity.identifier, delete=True)
-        self._graph.remove((entity.identifier, None, None))
-        self._graph.remove((None, None, entity.identifier))
-
-    def clear(self):
-        """Clear all the data stored in the session."""
-        self._graph.remove((None, None, None))
+        self._update_and_merge_helper(entity, mode=False)
 
     # ↑ -------- ↑
     # Instance API
+
+    def _update_and_merge_helper(self,
+                                 entity: 'OntologyEntity',
+                                 mode: bool,
+                                 visited: Optional[set] = None) -> None:
+        """Private `merge` and `update` helper.
+
+        Args:
+            entity: The ontology entity to merge.
+            mode: True means update, False means merge.
+            visited: Entities that have already been updated or merged.
+        """
+        if entity.session is None:  # Newly created entity.
+            if mode:
+                self._graph.remove((entity.iri, None, None))
+            for t in entity.graph.triples((None, None, None)):
+                self._graph.add(t)
+        elif entity not in self:  # Entity from another session.
+            active_relationship = self.ontology.from_identifier(
+                cuba_namespace.activeRelationship)
+            try:
+                existing = self.from_identifier(entity.identifier)
+            except KeyError:
+                existing = None
+
+            self._track_identifiers(entity.identifier)
+
+            # Clear old types, active relationships and attributes for
+            # the update operation.
+            if existing and mode:
+                # Clear old types.
+                self._graph.remove((existing.identifier, RDF.type, None))
+
+                for p in existing.graph.predicates(existing.identifier,
+                                                   None):
+                    try:
+                        predicate = self.ontology.from_identifier(p)
+                    except KeyError:
+                        continue
+                    # Clear attributes or active relationships.
+                    if isinstance(predicate, OntologyAttribute) or (
+                            isinstance(predicate, OntologyRelationship)
+                            and active_relationship in predicate.superclasses):
+                        self._graph.remove((existing.identifier, p, None))
+
+            # Merge new types, active relationships and attributes.
+            # The double for loop pattern (first loop over p, then loop over o)
+            # is used because calling `self.ontology.from_identifier` is
+            # expensive.
+            visited = visited if visited is not None else set()
+            for p in entity.graph.predicates(entity.identifier, None):
+                try:
+                    predicate = self.ontology.from_identifier(p)
+                except KeyError:
+                    # Merge new types.
+                    if p == RDF.type:
+                        for o in entity.graph.objects(entity.identifier, p):
+                            self._graph.add((entity.identifier, p, o))
+                    continue
+
+                for o in entity.graph.objects(entity.identifier, p):
+                    if isinstance(predicate, OntologyAttribute):
+                        # Merge attributes.
+                        self._graph.add((entity.identifier, p, o))
+                    elif isinstance(predicate, OntologyRelationship) \
+                            and active_relationship in predicate.superclasses:
+                        # Merge active relationships.
+                        obj = entity.session.from_identifier(o)
+                        if not isinstance(obj, OntologyIndividual):
+                            continue
+                        if obj.identifier not in visited:
+                            visited.add(obj.identifier)
+                            self._update_and_merge_helper(obj, mode, visited)
+                        self._graph.add((entity.identifier, p, o))
 
     creation_set: Set[Identifier]
     _session_stack: List['Session'] = []
@@ -593,7 +733,7 @@ class Session:
 
     def __str__(self):
         """Convert the session to a string."""
-        # TODO: Return the kind of rdflib store attached.
+        # TODO: Return the kind of RDFLib store attached too.
         return f"<{self.__class__.__module__}.{self.__class__.__name__}: " \
                f"{self.identifier if self.identifier is not None else ''} " \
                f"at {hex(id(self))}>"
@@ -802,5 +942,5 @@ def _check_namespaces(namespace_iris: Iterable[URIRef],
 
 
 Session.set_default_session(Session(identifier='default session'))
-Session.ontology = Session(identifier='installed_ontologies',
+Session.ontology = Session(identifier='installed ontologies',
                            ontology=True)

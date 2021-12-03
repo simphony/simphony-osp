@@ -34,8 +34,9 @@ class BufferType(IntEnum):
 class GenericInterfaceStore(Store):
     """RDFLib store acting as intermediary between OSP-core and wrappers.
 
-    Offers a triplestore interface to OSP-core and an entity interface to
-    the wrappers.
+    Offers a triplestore interface for OSP-core to interact with wrappers.
+
+     OSP-core <--> GenericInterfaceStore <--> GenericInterface
 
     The store is transaction aware (needs commit action to save the changes
     to the wrapper), as it is the only efficient way to provide such a
@@ -51,6 +52,7 @@ class GenericInterfaceStore(Store):
     # ↓ -- ↓
 
     transaction_aware = True
+    context_aware = False
 
     def __init__(self, *args, interface=None, **kwargs):
         """Initialize the InterfaceStore.
@@ -221,17 +223,23 @@ class GenericInterfaceStore(Store):
             deleted_subjects)
 
         session = self.session
-        # Send the added entities to the wrapper.
+        # Apply added entities to the engine.
         for entity in (session.from_identifier(s) for s in added_subjects):
             self.interface.add(entity)
-        # Send the updated entities to the wrapper.
+        # Apply updated entities to the engine.
         for entity in (session.from_identifier(s) for s in updated_subjects):
             self.interface.update(entity)
-        # Send the deleted entities to the wrapper.
+        # Apply deleted entities to the engine.
         for s in deleted_subjects:
             self.interface.delete(s)
 
-        # Clear buffers.
+        # Move the triples from the buffers to the interface's graph.
+        for t in self._buffers[BufferType.ADDED].triples((None, None, None)):
+            self.interface.graph.add(t)
+        for t in self._buffers[BufferType.DELETED].triples((None, None, None)):
+            self.interface.graph.remove(t)
+
+        # Clear the buffers.
         self._buffers = {buffer_type: Graph(SimpleMemory())
                          for buffer_type in BufferType}
 
@@ -350,8 +358,10 @@ class GenericInterface(ABC, Interface):
     def apply_added(self, entity: "OntologyEntity") -> None:
         """Receive added ontology entities and apply changes to the backend.
 
-        DO NOT CHANGE THE RECEIVED entity, its information has been set in
-        stone by the user already. It is a snapshot from the new state.
+        DO NOT CHANGE the received entity, its information has been set in
+        stone by the user already. It belongs to a snapshot of the new
+        state, that will be reached when the changes for all entities have
+        been applied by you.
         """
         pass
 
@@ -359,16 +369,22 @@ class GenericInterface(ABC, Interface):
     def apply_updated(self, entity: "OntologyEntity") -> None:
         """Receive updated entities and apply the changes to the backend.
 
-        DO NOT CHANGE THE RECEIVED entity, its information has been set in
-        stone by the user already. It is a snapshot from the new state.
+        DO NOT CHANGE the received entity, its information has been set in
+        stone by the user already. It belongs to a snapshot of the new
+        state, that will be reached when the changes for all entities have
+        been applied by you.
         """
+        # If you need to compare the new ontology entity with its old version,
+        # please uncomment the line below to fetch the old version.
+        # old = self.session.from_identifier(entity.identifier)
         pass
 
     @abstractmethod
     def apply_deleted(self, entity: "OntologyEntity") -> None:
         """Receive deleted entities and apply the changes to the backend.
 
-        DO NOT CHANGE THE RECEIVED entity. It is a snapshot from the old state.
+        DO NOT CHANGE the received entity. It belongs to a snapshot of the
+        "old" state, before the user invoked the commit action.
         """
         pass
 
@@ -376,19 +392,43 @@ class GenericInterface(ABC, Interface):
     def update_from_backend(self,
                             entity: "OntologyEntity") \
             -> Optional["OntologyEntity"]:
-        """Update the cached entity in the session with new information.
+        """An entity that you have previously provided is requested.
 
-        CHANGE THE RECEIVED ENTITY.
+        You have now to check if the information present on the backend
+        matches what you receive, and when not, update the received entity
+        to reflect the information from the backend.
+
+        Please, DO CHANGE the received entity.
         """
         pass
 
     @abstractmethod
     def load_from_backend(self, uid: UID) -> Optional["OntologyEntity"]:
-        """An entity that previously did not exist is requested.
+        """An entity that you have NOT previously provided is requested.
 
-        CREATE A NEW ENTITY.
+        Given it makes logical sense, you have now to look in the backend for
+        an entity that would match this `uid`.
+
+        Then construct an ontology entity with such `uid` reflecting the
+        information on the backend and return it.
+
+        So please, CREATE a new entity and return it.
         """
         pass
+
+    session: Session
+    """Session providing a pre-commit snapshot of the data on the interface.
+
+    You do NOT have to implement this, this is a feature provided to you.
+
+    When the user makes a commit, a chunk of objects are sent to this
+    interface, and for each object, one of the functions `apply_added`,
+    `apply_updated`, `apply_deleted` is applied. You can use this session on
+    on your code to see a snapshot of the data on the interface just before
+    the commit was fired. In such way, you can compare the new items with the
+    previous ones and apply the changes if your backend provides no way to
+    do so.
+    """
 
     # + Methods and properties from definition of: Interface.
 
@@ -396,32 +436,29 @@ class GenericInterface(ABC, Interface):
     # Definition of:
     # GenericInterface
 
-    session: Session
     store_class = GenericInterfaceStore
 
     def __init__(self, ontology: Optional[Session] = None):
         """Initialize the generic interface."""
         self.session = Session(store=SimpleMemory(),
                                ontology=ontology)
+        self.graph = self.session.graph
 
     def add(self, entity: "OntologyEntity"):
         """Add an entity to the backend."""
         with entity.session:
             self.apply_added(entity)
-            self.session.update(entity)
 
     def update(self, entity: "OntologyEntity"):
         """Update an entity in the backend."""
         with entity.session:
             self.apply_updated(entity)
-            self.session.update(entity)
 
     def delete(self, identifier: Identifier):
         """Delete an entity from the backend."""
         with self.session as session:
             entity = session.from_identifier(identifier)
             self.apply_deleted(entity)
-            self.session.delete(entity)
 
     def load(self, uids: Iterable[UID]) -> \
             Iterator[Optional["OntologyEntity"]]:
