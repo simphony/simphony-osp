@@ -79,39 +79,5 @@ def install_from_terminal():
                          % args.command)
 
 
-class CompareOperations(Enum):
-    """The allowed values for the compare_version function."""
-    leq: str = 'leq'
-    l: str = 'l'
-
-
-def compare_version(version, other_version,
-                    operation: CompareOperations = CompareOperations.leq):
-    """Compares two software version strings.
-
-    Receives two software version strings which are just numbers separated by
-    dots and determines whether the first one is less or equal than the
-    second one.
-
-    Args:
-        version (str): first version string (number separated by dots).
-        other_version (str): second version string (number separated by dots).
-        operation (str): the comparison operation to perform. The default is
-            `leq` (less or equal).
-
-    Returns:
-        bool: whether the first version string is less or equal than the second
-        one.
-    """
-    version = map(int, version.split('.'))
-    other_version = map(int, other_version.split('.'))
-    for v, o in itertools.zip_longest(version, other_version, fillvalue=0):
-        if v == o:
-            continue
-        return v < o
-    else:
-        return operation == CompareOperations.leq
-
-
 if __name__ == "__main__":
     install_from_terminal()
