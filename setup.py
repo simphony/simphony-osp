@@ -78,6 +78,7 @@ setup(
     package_data={
         "osp.core.ontology.docs": ["*.yml", "*.ttl", "*.xml"],
     },
+    data_files=[('.', ['packageinfo.py'])],
     include_package_data=True,
     entry_points={
         'wrappers': 'osp-core = osp.core.session.core_session:CoreSession',
