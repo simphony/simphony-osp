@@ -1,9 +1,7 @@
 """Pico is a commandline tool used to install ontologies."""
 
-from enum import Enum
 import argparse
 import logging
-import itertools
 from osp.core.ontology.installation import OntologyInstallationManager
 
 logger = logging.getLogger(__name__)
