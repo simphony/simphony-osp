@@ -1,17 +1,12 @@
 [![Documentation Status](https://readthedocs.org/projects/simphony/badge/?version=latest)](https://simphony.readthedocs.io/en/latest/?badge=latest)
 ![](https://github.com/simphony/osp-core/workflows/CI/badge.svg)
 
-## Note
-
-For applications where performance is important, we recommend v3.4.2 
-The performance optimizations will be done as a next step to v3.5.X
-
 # OSP core
 
 Native implementation of the core cuds object and the class generation
 by the SimPhoNy team at Fraunhofer IWM. Builds up on the previous
 version, simphony-common (SimPhoNy, EU FP7 Project (Nr. 604005)
-www.simphony-project.eu)
+www.simphony-project.eu).
 
 ## Requirements
 
