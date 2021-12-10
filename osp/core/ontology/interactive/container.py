@@ -11,7 +11,7 @@ from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.individual import OntologyIndividual
 from osp.core.session.session import Session
 from osp.core.utils.cuba_namespace import cuba_namespace
-from osp.core.utils.datatypes import UID, RDFCompatibleType, Triple
+from osp.core.utils.datatypes import UID, AttributeValue, Triple
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class Container(OntologyIndividual):
                  triples: Optional[Iterable[Triple]] = None,
                  attributes: Optional[
                      Dict[OntologyAttribute,
-                          Iterable[RDFCompatibleType]]] = None,
+                          Iterable[AttributeValue]]] = None,
                  merge: bool = False,
                  ) -> None:
         """Initialize the container."""

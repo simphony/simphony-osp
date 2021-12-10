@@ -5,7 +5,7 @@ import functools
 import importlib
 import os
 import pkgutil
-from typing import Any, Dict,Iterable, Iterator, MutableSet, Set, Tuple
+from typing import Any, Dict, Iterable, Iterator, MutableSet, Set, Tuple
 
 from osp.core.ontology.entity import OntologyEntity
 
@@ -23,122 +23,158 @@ class DataStructureSet(ABC, MutableSet):
     structure (when single-threading).
     """
 
-    @property
     @abstractmethod
-    def _underlying_set(self) -> set:
-        """The associated set of values from the connected data structured.
+    def __iter__(self) -> Iterator[Any]:
+        """Implement iter(self).
+
+        Returns the associated values from the connected data structure.
+
+        The values provided MUST NOT be repeated, as instances of this class
+        are expected to behave like sets. Remember that the definition of
+        membership for sets in Python is `any(x is e or x == e for e in y)`,
+        see https://docs.python.org/3/reference/expressions.html
+        #membership-test-details. Therefore, if you implemented this method
+        correctly, letting `y` be this object, then
+        `sum(sum(x is e or x == e for e in y) for x in y)` should evaluate to
+        `len(list(y))`.
+
 
         Returns:
-            The mentioned underlying set.
+            An iterator providing the values from the connected data
+            structure.
         """
         pass
 
     @abstractmethod
+    def __contains__(self, item: Any) -> bool:
+        """Return y in x.
+
+        Check if the item is in the connected data structure.
+
+        You can also choose to just call `return super().__contains__(item)` to
+        use this naive implementation instead of implementing something
+        yourself.
+        """
+        for x in self:
+            if x is item or x == item:
+                return True
+        return False
+
+    @abstractmethod
     def update(self, other: Iterable) -> None:
-        """Update a set with the union of itself and others."""
+        """Update a set with the union of itself and others.
+
+        Updates the connected data structure with the result of performing a
+        set union operation with another iterable.
+        """
         pass
 
     @abstractmethod
-    def intersection_update(self, other: Iterable):
-        """Update a set with the intersection of itself and another."""
+    def intersection_update(self, other: Iterable) -> None:
+        """Update a set with the intersection of itself and another.
+
+        Updates the connected data structure performing a set intersection
+        operation with another iterable.
+        """
 
     @abstractmethod
-    def difference_update(self, other: Iterable):
-        """Remove all elements of another set from this set."""
+    def difference_update(self, other: Iterable) -> None:
+        """Remove all elements of another set from this set.
+
+        Updates the connected data structure performing a set difference
+        operation with another iterable.
+        """
         pass
 
     @abstractmethod
-    def symmetric_difference_update(self, other: Iterable):
-        """Update a set with the symmetric difference of itself and another."""
+    def symmetric_difference_update(self, other: Iterable) -> None:
+        """Update a set with the symmetric difference of itself and another.
+
+        Updates the connected data structure performing an XOR set operation
+        with another iterable.
+        """
         pass
 
     def __repr__(self) -> str:
         """Return repr(self)."""
-        return self._underlying_set.__repr__()
+        return set(self).__repr__()
 
     def __str__(self) -> str:
         """Return str(self)."""
-        return self._underlying_set.__str__()
+        return set(self).__str__()
 
     def __format__(self, format_spec: str) -> str:
         """Default object formatter."""
-        return self._underlying_set.__format__(format_spec)
-
-    def __contains__(self, item: Any) -> bool:
-        """Return y in x."""
-        return item in self._underlying_set
-
-    def __iter__(self) -> Iterator:
-        """Implement iter(self)."""
-        yield from self._underlying_set
+        return set(self).__format__(format_spec)
 
     def __len__(self) -> int:
         """Return len(self)."""
-        return len(self._underlying_set)
+        return sum(1 for _ in self)
 
     def __le__(self, other: Set) -> bool:
         """Return self<=other."""
-        return self._underlying_set.__le__(other)
+        return set(self).__le__(other)
 
     def __lt__(self, other: Set) -> bool:
         """Return self<other."""
-        return self._underlying_set.__lt__(other)
+        return set(self).__lt__(other)
 
     def __eq__(self, other: Set) -> bool:
         """Return self==other."""
-        return self._underlying_set.__eq__(other)
+        return set(self).__eq__(other)
 
     def __ne__(self, other: Set) -> bool:
         """Return self!=other."""
-        return self._underlying_set.__ne__(other)
+        return set(self).__ne__(other)
 
     def __gt__(self, other: Set) -> bool:
         """Return self>other."""
-        return self._underlying_set.__gt__(other)
+        return set(self).__gt__(other)
 
     def __ge__(self, other: Set) -> bool:
         """Return self>=other."""
-        return self._underlying_set.__ge__(other)
+        return set(self).__ge__(other)
 
     def __and__(self, other: Set) -> set:
         """Return self&other."""
-        return self._underlying_set.__and__(other)
+        return set(self).__and__(other)
 
     def __radd__(self, other: Set) -> set:
         """Return other&self."""
-        return other & self._underlying_set
+        return other & set(self)
 
     def __ror__(self, other: Set) -> set:
         """Return other|self."""
-        return other | self._underlying_set
+        return other | set(self)
 
     def __rsub__(self, other: set) -> set:
         """Return value-self."""
-        return other - self._underlying_set
+        return other - set(self)
 
     def __rxor__(self, other: set) -> set:
         """Return value^self."""
-        return other ^ self._underlying_set
+        return other ^ set(self)
 
     def __or__(self, other: Set) -> set:
         """Return self|other."""
-        return self._underlying_set.__or__(other)
+        return set(self).__or__(other)
 
     def __sub__(self, other: Set) -> set:
         """Return self-other."""
-        return self._underlying_set.__sub__(other)
+        return set(self).__sub__(other)
 
     def __xor__(self, other: Set) -> set:
         """Return self^other."""
-        return self._underlying_set.__xor__(other)
+        return set(self).__xor__(other)
 
     def __iadd__(self, other: Any) -> 'DataStructureSet':
         """Return self+=other (equivalent to self|=other)."""
         if isinstance(other, (Set, MutableSet)):
             # Apparently instances of MutableSet are not instances of Set.
-            return self.__ior__(other)
+            self.update(other)
         else:
-            return self.__ior__({other})
+            self.update({other})
+        return self
 
     def __isub__(self, other: Any) -> 'DataStructureSet':
         """Return self-=other.
@@ -178,45 +214,48 @@ class DataStructureSet(ABC, MutableSet):
 
     def isdisjoint(self, other: set) -> bool:
         """Return True if two sets have a null intersection."""
-        return self._underlying_set.isdisjoint(other)
+        return set(self).isdisjoint(other)
 
     def clear(self) -> None:
         """Remove all elements from this set."""
-        self.__iand__(set())
+        self.intersection_update(set())
 
     def pop(self) -> Any:
         """Remove and return an arbitrary set element.
 
         Raises KeyError if the set is empty.
         """
-        item = self._underlying_set.pop()
-        self.__isub__({item})
+        try:
+            item = next(iter(self))
+        except StopIteration:
+            return set().pop()  # Underlying data structure is empty.
+        self.difference_update({item})
         return item
 
     def copy(self) -> set:
         """Return a shallow copy of a set."""
-        return self._underlying_set
+        return set(self)
 
     def difference(self, other: Iterable) -> set:
         """Return the difference of two or more sets as a new set.
 
         (i.e. all elements that are in this set but not the others.)
         """
-        return self._underlying_set.difference(other)
+        return set(self).difference(other)
 
     def discard(self, other: Any) -> None:
         """Remove an element from a set if it is a member.
 
         If the element is not a member, do nothing.
         """
-        self.__isub__({other})
+        self.difference_update({other})
 
     def intersection(self, other: Set) -> set:
         """Return the intersection of two sets as a new set.
 
         (i.e. all elements that are in both sets.)
         """
-        return self._underlying_set.intersection(other)
+        return set(self).intersection(other)
 
     def issubset(self, other: Set) -> bool:
         """Report whether another set contains this set."""
@@ -231,7 +270,7 @@ class DataStructureSet(ABC, MutableSet):
 
         This has no effect if the element is already present.
         """
-        self.__ior__({other})
+        self.update({other})
 
     def remove(self, other: Any) -> None:
         """Remove an element from a set; it must be a member.
@@ -240,15 +279,15 @@ class DataStructureSet(ABC, MutableSet):
         """
         if other not in self:
             raise KeyError(f"{other}")
-        self.__isub__({other})
+        self.difference_update({other})
 
     def symmetric_difference(self, other: Set) -> set:
         """Return the symmetric difference of two sets as a new set."""
-        return self._underlying_set.symmetric_difference(other)
+        return set(self).symmetric_difference(other)
 
     def union(self, other: Set) -> set:
         """Return the union of sets as a new set."""
-        return self._underlying_set.union(other)
+        return set(self).union(other)
 
 
 """Define a `compatible_classes` function that lists the Python classes that

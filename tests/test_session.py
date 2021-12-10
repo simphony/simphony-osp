@@ -392,16 +392,16 @@ class TestFOAFOntology(unittest.TestCase):
         self.assertEqual(person.age, '25')
 
         # Test the `__getitem__`, `__setitem__` and `__delitem__` methods.
-        self.assertEqual(person[foaf.age], '25')
+        self.assertEqual(person[foaf.age].one(), '25')
         del person[foaf.age]
         self.assertIsNone(person.age)
-        person[foaf.age, :] = {'26'}
-        self.assertEqual(person[foaf.age], '26')
-        self.assertSetEqual(person[foaf.age, :], {'26'})
-        person[foaf.age, :] += '57'
-        self.assertSetEqual(person[foaf.age, :], {'26', '57'})
-        person[foaf.age, :] -= '26'
-        self.assertSetEqual(person[foaf.age, :], {'57'})
+        person[foaf.age] = {'26'}
+        self.assertEqual(person[foaf.age].one(), '26')
+        self.assertSetEqual(person[foaf.age], {'26'})
+        person[foaf.age] += '57'
+        self.assertSetEqual(person[foaf.age], {'26', '57'})
+        person[foaf.age] -= '26'
+        self.assertSetEqual(person[foaf.age], {'57'})
         del person[foaf.age]
         self.assertIsNone(person.age)
 
@@ -409,29 +409,29 @@ class TestFOAFOntology(unittest.TestCase):
         another_person = foaf.Person(session=ontology)
         one_more_person = foaf.Person(session=ontology)
         person[foaf.knows] = another_person
-        self.assertEqual(person[foaf.knows], another_person)
-        person[foaf.knows, :] += {one_more_person}
-        self.assertSetEqual(person[foaf.knows, :], {another_person,
-                                                    one_more_person})
-        person[foaf.knows, :] -= {another_person}
-        self.assertSetEqual(person[foaf.knows, :], {one_more_person})
-        person[foaf.knows, :].clear()
-        self.assertSetEqual(person[foaf.knows, :], set())
+        self.assertEqual(person[foaf.knows].one(), another_person)
+        person[foaf.knows] += {one_more_person}
+        self.assertSetEqual(person[foaf.knows], {another_person,
+                                                 one_more_person})
+        person[foaf.knows] -= {another_person}
+        self.assertSetEqual(person[foaf.knows], {one_more_person})
+        person[foaf.knows].clear()
+        self.assertSetEqual(person[foaf.knows], set())
 
         # Test annotation of ontology individuals.
         group = foaf.Group()
-        group[foaf.member, :] = {person, another_person, one_more_person}
+        group[foaf.member] = {person, another_person, one_more_person}
         group[foaf.membershipClass] = foaf.Person
         self.assertSetEqual({foaf.Person},
-                            group[foaf.membershipClass, :])
-        group[foaf.membershipClass, :] += 18
-        group[foaf.membershipClass, :] += 'a string'
-        group[foaf.membershipClass, :] += group
+                            group[foaf.membershipClass])
+        group[foaf.membershipClass] += 18
+        group[foaf.membershipClass] += 'a string'
+        group[foaf.membershipClass] += group
         self.assertSetEqual({foaf.Person, 18, 'a string', group},
-                            group[foaf.membershipClass, :])
-        group[foaf.membershipClass, :] = Literal('15', datatype=XSD.decimal)
+                            group[foaf.membershipClass])
+        group[foaf.membershipClass] = Literal('15', datatype=XSD.decimal)
         self.assertEqual(Decimal,
-                         type(group[foaf.membershipClass]))
+                         type(group[foaf.membershipClass].any()))
 
 
 class TestLoadParsers(unittest.TestCase):

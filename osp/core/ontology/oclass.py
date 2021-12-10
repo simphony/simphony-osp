@@ -11,7 +11,7 @@ from rdflib.term import Identifier
 
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.utils.cuba_namespace import cuba_namespace
-from osp.core.utils.datatypes import UID, RDFCompatibleType, Triple
+from osp.core.utils.datatypes import AttributeValue, Triple, UID
 
 if TYPE_CHECKING:
     from osp.core.ontology.attribute import OntologyAttribute
@@ -113,7 +113,7 @@ class OntologyClass(OntologyEntity):
 
     @property
     def attribute_declaration(self) -> Dict['OntologyAttribute',
-                                            Tuple[Optional[RDFCompatibleType],
+                                            Tuple[Optional[AttributeValue],
                                                   bool]]:
         """Get the attributes of this ontology class, and their settings.
 
@@ -134,7 +134,7 @@ class OntologyClass(OntologyEntity):
 
     @property
     def _direct_attributes(self) -> Dict['OntologyAttribute',
-                                         Tuple[Optional[RDFCompatibleType],
+                                         Tuple[Optional[AttributeValue],
                                                bool]]:
         """Get the non-inherited attributes of this ontology class.
 
@@ -194,7 +194,7 @@ class OntologyClass(OntologyEntity):
 
     def _get_default_python_object(self,
                                    attribute: "OntologyAttribute") \
-            -> RDFCompatibleType:
+            -> AttributeValue:
         """Get the default python object for the given attribute.
 
         Args:
@@ -353,7 +353,7 @@ class OntologyClass(OntologyEntity):
                              "both its IRI and UID. A CUDS object is "
                              "constrained to have just one UID.")
         elif uid is not None and not isinstance(uid, (UUID, int, UID)):
-            raise ValueError('Provide either a UUID or a URIRef object'
+            raise ValueError('Provide either a UUID or a URIRef object '
                              'as UID.')
             # NOTE: The error message is not wrong, the user is not meant to
             #  provide a UID object, only OSP-core itself.

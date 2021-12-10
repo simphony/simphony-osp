@@ -1,8 +1,7 @@
 """Abstract Base Class for all Sessions."""
 
 import itertools
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Set, \
-    TYPE_CHECKING, Union
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Set, Union
 
 import rdflib
 from rdflib import OWL, RDF, RDFS, SKOS, BNode, Graph, Literal, URIRef

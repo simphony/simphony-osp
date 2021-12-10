@@ -11,7 +11,7 @@ from osp.core.session.interfaces.triplestore import (
     TriplestoreInterface, TriplestoreStore)
 from osp.core.session.session import Session
 from osp.core.utils.datatypes import (
-    CUSTOM_TO_PYTHON, RDFCompatibleType, RDF_TO_PYTHON, SimpleTriple,
+    AttributeValue, CUSTOM_TO_PYTHON, RDF_TO_PYTHON, SimpleTriple,
     SimplePattern, UID)
 from osp.core.utils.general import CUDS_IRI_PREFIX
 
@@ -706,7 +706,7 @@ class SQLInterface(TriplestoreInterface):
             )
 
     def _determine_table(self, pattern: SimplePattern) \
-            -> Tuple[str, Dict[str, RDFCompatibleType]]:
+            -> Tuple[str, Dict[str, AttributeValue]]:
         """Determine the table to be queried given a triple pattern.
 
         Args:
@@ -746,7 +746,7 @@ class SQLInterface(TriplestoreInterface):
     def _construct_query(self,
                          pattern: SimplePattern,
                          table_name: str,
-                         object_datatype: RDFCompatibleType):
+                         object_datatype: AttributeValue):
         """Construct a query from a triple pattern."""
         q = SqlQuery(
             self.CUDS_TABLE, columns=self.COLUMNS[self.CUDS_TABLE][1:],

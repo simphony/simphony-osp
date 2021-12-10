@@ -13,6 +13,7 @@ from osp.core.utils.datatypes import Triple, UID
 
 if TYPE_CHECKING:
     from osp.core.ontology.interactive.container import Container
+    from osp.core.ontology.namespace import OntologyNamespace
     from osp.core.session.session import Session
     from osp.core.session.wrapper import Wrapper
 
@@ -73,6 +74,11 @@ class OntologyEntity(ABC):
             if self.label_literal is not None else None
         self.label_literal = Literal(value, lang=language) \
             if value is not None else None
+
+    @property
+    def namespace(self) -> Optional["OntologyNamespace"]:
+        """Return the ontology namespace to which this entity is associated."""
+        return next((x for x in self.session.namespaces if self in x), None)
 
     @property
     def label_lang(self) -> Optional[str]:

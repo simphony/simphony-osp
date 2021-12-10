@@ -16,6 +16,7 @@ from rdflib import OWL, RDF, RDFS, Graph, Literal
 from rdflib.graph import ReadOnlyGraphAggregate
 from rdflib.parser import Parser as RDFLib_Parser
 from rdflib.plugin import get as get_plugin
+from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 from rdflib.serializer import Serializer as RDFLib_Serializer
 from rdflib.util import guess_format
 
@@ -27,14 +28,6 @@ from osp.core.utils.datatypes import CUSTOM_TO_PYTHON
 
 if TYPE_CHECKING:
     from osp.core.ontology.relationship import OntologyRelationship
-
-# Import `plugins.parsers.jsonld` for rdflib>=6, otherwise import it
-#  from`rdflib_jsonld`.
-from rdflib import __version__ as rdflib_version
-if rdflib_version >= '6':
-    from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
-else:
-    from rdflib_jsonld.parser import to_rdf as json_to_rdf
 
 CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
 logger = logging.getLogger(__name__)

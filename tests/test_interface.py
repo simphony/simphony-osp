@@ -342,7 +342,7 @@ class TestTriplestoreWrapper(unittest.TestCase):
 
         with sqlite(self.file_name) as wrapper:
             freiburg = wrapper.from_identifier(freiburg_identifier)
-            citizens = freiburg[city.hasInhabitant, :]
+            citizens = freiburg[city.hasInhabitant]
 
             self.assertEqual('Freiburg', freiburg.name)
             self.assertEqual([20, 58], freiburg.coordinates)
@@ -482,18 +482,18 @@ class TestRemoteStoreSQLite(unittest.TestCase):
 
         with self.client_session_generator() as session:
             freiburg = session.from_identifier(freiburg_identifier)
-            klaus = freiburg[city.hasInhabitant]
+            klaus = freiburg[city.hasInhabitant].one()
             self.assertEqual(freiburg.name, 'Freiburg')
             self.assertEqual(klaus.name, 'Klaus')
             self.assertEqual(klaus.age, 30)
             session.delete(klaus)
-            self.assertIsNone(freiburg[city.hasInhabitant])
+            self.assertIsNone(freiburg[city.hasInhabitant].any())
             session.commit()
         del freiburg
 
         with self.client_session_generator() as session:
             freiburg = session.from_identifier(freiburg_identifier)
-            self.assertIsNone(freiburg[city.hasInhabitant])
+            self.assertIsNone(freiburg[city.hasInhabitant].any())
 
     def test_files(self):
         """Test handling files (no download)."""
