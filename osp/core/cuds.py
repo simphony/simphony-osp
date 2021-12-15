@@ -42,6 +42,57 @@ class Cuds:
 
     _session = core_session
 
+    def __init__(self,
+                 # Create from oclass and attributes dict.
+                 attributes: Dict[OntologyAttribute,
+                                  Iterable[RDFCompatibleType]],
+                 oclass: Optional[OntologyClass] = None,
+                 session: Session = None,
+                 uid: Optional[UID] = None,
+                 # Specify extra triples for the CUDS object.
+                 extra_triples: Iterable[
+                     Tuple[Union[URIRef, BNode],
+                           Union[URIRef, BNode],
+                           Union[URIRef, BNode]]] = tuple()):
+        """Initialize a CUDS object."""
+        if uid is None:
+            uid = UID()
+        elif not isinstance(uid, UID):
+            raise Exception(f"Tried to initialize a CUDS object with uid "
+                            f"{uid}, which is not a UID object.")
+        self._uid = uid
+
+        # Create CUDS triples in internal temporary graph.
+        self._graph = Graph()
+        if attributes:
+            for k, v in attributes.items():
+                for e in v:
+                    self._graph.add((
+                        self.iri, k.iri, Literal(k.convert_to_datatype(e),
+                                                 datatype=k.datatype)
+                    ))
+        if oclass:
+            self._graph.add((
+                self.iri, RDF.type, oclass.iri
+            ))
+        extra_oclass = False
+        for s, p, o in extra_triples:
+            if s != self.iri:
+                raise ValueError("Trying to add extra triples to a CUDS "
+                                 "object with a subject that does not match "
+                                 "the CUDS object's IRI.")
+            elif p == RDF.type:
+                extra_oclass = True
+            self._graph.add((s, p, o))
+        oclass_assigned = bool(oclass) or extra_oclass
+        if not oclass_assigned:
+            raise TypeError(f"No oclass associated with {self}! "
+                            f"Did you install the required ontology?")
+
+        self._session = session or Cuds._session
+        # Copy temporary graph to the session graph and discard it.
+        self.session._store(self)
+
     # Public API
     # ↓ ------ ↓
 
@@ -151,25 +202,26 @@ class Cuds:
             raise AttributeError(name) from e
 
     def __setattr__(self, name: str,
-                    values: Union[RDFCompatibleType,
-                                  Set[RDFCompatibleType]]):
+                    value: Optional[Union[RDFCompatibleType,
+                                          Set[RDFCompatibleType]]]):
         """Set an attribute.
 
         Will notify the session if it corresponds to an ontology value.
 
         Args:
             name: The name of the attribute.
-            values: The new value(s).
+            value: The new value.
 
         Raises:
             AttributeError: Unknown attribute name.
         """
         if name.startswith("_"):
-            super().__setattr__(name, values)
+            super().__setattr__(name, value)
             return
+
         attr = self._get_ontology_attribute_by_name(name)
-        values = {values}
-        self._set_attributes(attr, values)
+        value = {value} if value is not None else set()
+        self._set_attributes(attr, value)
 
     def __setitem__(self,
                     rel: Union[OntologyAttribute, OntologyRelationship],
@@ -225,28 +277,25 @@ class Cuds:
             set(filter(lambda x: isinstance(x, Cuds), values)), \
             set(filter(lambda x: isinstance(x, RDF_COMPATIBLE_TYPES),
                        values))
-        # Raise TypeError if other types were provided.
+
         if len(cuds) + len(literals) != len(values):
             illegal_types = (
                 type(x) for x in values - (cuds | literals))
             raise TypeError("Expected values of type 'Cuds' or "
                             "'RDFCompatibleType', got %s." %
                             ', '.join(illegal_types))
-        if isinstance(rel, OntologyRelationship):
+        elif isinstance(rel, OntologyRelationship):
             if len(literals) > 0:
                 raise TypeError(f'Trying to assign attributes using an object'
                                 f'property {rel}')
-        elif isinstance(rel, OntologyAttribute):
-            if len(cuds) > 0:
-                raise TypeError(f'Trying to connect CUDS objects using '
-                                f'a data property {rel}')
-
-        if isinstance(rel, OntologyRelationship):
             relationship_set = Cuds._RelationshipSet(rel, self, oclass=None)
             add, remove = cuds - relationship_set, relationship_set - cuds
             relationship_set |= add
             relationship_set -= remove
         elif isinstance(rel, OntologyAttribute):
+            if len(cuds) > 0:
+                raise TypeError(f'Trying to connect CUDS objects using '
+                                f'a data property {rel}')
             attribute_set = Cuds._AttributeSet(rel, self)
             add = literals - attribute_set
             remove = attribute_set - literals
@@ -324,7 +373,7 @@ class Cuds:
             TypeError: No relationship given and no default specified.
             ValueError: Added a CUDS object that is already in the
                 container. Note: in fact, the exception raised is
-                `_ExistingCudsException`, but it is a subclass of `ValueError`.
+                `ExistingCudsException`, but it is a subclass of `ValueError`.
 
         Returns:
             The CUDS objects that have been added, associated with the
@@ -341,7 +390,7 @@ class Cuds:
         result = self._connect(*cuds, rel=rel)
         return result[0] if len(cuds) == 1 else result
 
-    class _ExistingCudsException(ValueError):
+    class ExistingCudsException(ValueError):
         """To be raised when a provided CUDS is already linked."""
         pass
 
@@ -620,8 +669,9 @@ class Cuds:
                 for uid in result_uids
             )
         if not mapping:
-            raise RuntimeError("Did not remove any Cuds object, "
-                               "because none matched your filter.")
+            logger.warning("Did not remove any Cuds object, because none "
+                           "matched your filter.")
+            return
 
         neighbors = self._load_cuds_objects(mapping)
         for neighbor, relationships in zip(neighbors,
@@ -633,57 +683,6 @@ class Cuds:
     # ↑ ------ ↑
     # Public API
 
-    def __init__(self,
-                 # Create from oclass and attributes dict.
-                 attributes: Dict[OntologyAttribute,
-                                  Iterable[RDFCompatibleType]],
-                 oclass: Optional[OntologyClass] = None,
-                 session: Session = None,
-                 uid: Optional[UID] = None,
-                 # Specify extra triples for the CUDS object.
-                 extra_triples: Iterable[
-                     Tuple[Union[URIRef, BNode],
-                           Union[URIRef, BNode],
-                           Union[URIRef, BNode]]] = tuple()):
-        """Initialize a CUDS object."""
-        if uid is None:
-            uid = UID()
-        elif not isinstance(uid, UID):
-            raise Exception(f"Tried to initialize a CUDS object with uid "
-                            f"{uid}, which is not a UID object.")
-        self._uid = uid
-
-        # Create CUDS triples in internal temporary graph.
-        self._graph = Graph()
-        if attributes:
-            for k, v in attributes.items():
-                for e in v:
-                    self._graph.add((
-                        self.iri, k.iri, Literal(k.convert_to_datatype(e),
-                                                 datatype=k.datatype)
-                    ))
-        if oclass:
-            self._graph.add((
-                self.iri, RDF.type, oclass.iri
-            ))
-        extra_oclass = False
-        for s, p, o in extra_triples:
-            if s != self.iri:
-                raise ValueError("Trying to add extra triples to a CUDS "
-                                 "object with a subject that does not match "
-                                 "the CUDS object's IRI.")
-            elif p == RDF.type:
-                extra_oclass = True
-            self._graph.add((s, p, o))
-        oclass_assigned = bool(oclass) or extra_oclass
-        if not oclass_assigned:
-            raise TypeError(f"No oclass associated with {self}! "
-                            f"Did you install the required ontology?")
-
-        self._session = session or Cuds._session
-        # Copy temporary graph to the session graph and discard it.
-        self.session._store(self)
-
     @property
     def _neighbors(self):
         return NeighborDictRel(self)
@@ -692,7 +691,7 @@ class Cuds:
     def _stored(self):
         return self.session is not None and self._graph is self.session.graph
 
-    def get_triples(self, include_neighbor_types=False):
+    def get_triples(self, include_neighbor_types: bool = False):
         """Get the triples of the cuds object."""
         o_set = set()
         for s, p, o in self._graph.triples((self.iri, None, None)):
@@ -726,8 +725,8 @@ class Cuds:
         `_RelationshipSet`)."""
 
         _individual: "Cuds"
-        """The CUDS object to which this object refers. Whenever the set is
-        modified, the modification will affect this CUDS object."""
+        """The CUDS object to which this object is linked to. Whenever the set 
+        is modified, the modification will affect this CUDS object."""
 
         @property
         def cuds(self) -> "Cuds":
@@ -831,9 +830,41 @@ class Cuds:
                 return attr
         raise AttributeError(name)
 
+    @staticmethod
+    def _attribute_modifier(func):
+        """Decorator for functions that perform attribute modifications.
+
+        To be used with `_add_attributes`, `_delete_attributes` and
+        `_set_attributes` exclusively. The three functions are extremely
+        similar. This decorator covers the code that they share.
+        """
+        @functools.wraps(func)
+        def wrapper(self,
+                    attribute: OntologyAttribute,
+                    values: Iterable[RDFCompatibleType],
+                    *args, **kwargs):
+            values = set(values)
+            for x in values:
+                if not isinstance(x, RDF_COMPATIBLE_TYPES):
+                    raise TypeError(f"Type '{type(x)}' of object {x} cannot "
+                                    f"be set as attribute value, as it is "
+                                    f"incompatible with the OWL standard")
+            if self.session:
+                self.session._notify_read(self)
+            result = func(self, attribute, values, *args, **kwargs)
+            if self.session:
+                self.session._notify_update(self)
+            return result
+        return wrapper
+
+    # Bind static method to use as decorator.
+    _attribute_modifier = _attribute_modifier.__get__(object,
+                                                      None)
+
+    @_attribute_modifier
     def _add_attributes(self,
                         attribute: OntologyAttribute,
-                        values: Iterable[RDFCompatibleType]):
+                        values: Set[RDFCompatibleType]):
         """Add values to a datatype property.
 
         If any of the values provided in `values` have already been assigned,
@@ -841,35 +872,27 @@ class Cuds:
 
         Args:
             attribute: The ontology attribute to be used for assignments.
-            values: An iterable of Python types that are compatible either
+            values: An iterable of objects whose types are compatible either
                 with the OWL standard's data types for literals or compatible
                 with OSP-core as custom data types.
 
         Raises:
             TypeError: When Python objects with types incompatible with the
-                OWL standard or with OSP-core as custom data types are given.
+                OWL standard or with OSP-core as custom data types are given
+                (raised by decorator `_attribute_modifier`).
         """
-        # TODO: prevent the end result having more than one value than one
-        #  depending on ontology cardinality restrictions and/or functional
-        #  property criteria.
-        values = set(values)
-        for x in values:
-            if not isinstance(x, RDF_COMPATIBLE_TYPES):
-                raise TypeError(f"Type '{type(x)}' of object {x} cannot "
-                                f"be set as attribute value, as it is "
-                                f"incompatible with the OWL standard")
-        if self.session:
-            self.session._notify_read(self)
+        # TODO: prevent the end result having more than one value depending on
+        #  ontology cardinality restrictions and/or functional property
+        #  criteria.
         for value in values:
             self._graph.add((self.iri, attribute.iri,
                              Literal(attribute.convert_to_datatype(value),
                                      datatype=attribute.datatype)))
-        if self.session:
-            self.session._notify_update(self)
 
+    @_attribute_modifier
     def _delete_attributes(self,
                            attribute: OntologyAttribute,
-                           values: Iterable[RDFCompatibleType]):
+                           values: Set[RDFCompatibleType]):
         """Remove values from a datatype property.
 
         If any of the values provided in `values` are not present, they are
@@ -877,62 +900,45 @@ class Cuds:
 
         Args:
             attribute: The ontology attribute to be used for assignments.
-            values: An iterable of Python types that are compatible either
+            values: An iterable of objects whose types are compatible either
                 with the OWL standard's data types for literals or compatible
                 with OSP-core as custom data types.
 
         Raises:
             TypeError: When Python objects with types incompatible with the
-                OWL standard or with OSP-core as custom data types are given.
+                OWL standard or with OSP-core as custom data types are given
+                (raised by decorator `_attribute_modifier`).
         """
-        values = set(values)
-        for x in values:
-            if not isinstance(x, RDF_COMPATIBLE_TYPES):
-                logger.warning(f"Type '{type(x)}' of object {x} cannot "
-                               f"be an attribute value, as it is "
-                               f"incompatible with the OWL standard")
-        if self.session:
-            self.session._notify_read(self)
         for value in values:
             self._graph.remove((self.iri, attribute.iri,
                                 Literal(attribute.convert_to_datatype(value),
                                         datatype=attribute.datatype)))
-        if self.session:
-            self.session._notify_update(self)
 
+    @_attribute_modifier
     def _set_attributes(self,
                         attribute: OntologyAttribute,
-                        values: Iterable[RDFCompatibleType]):
+                        values: Set[RDFCompatibleType]):
         """Replace values assigned to a datatype property.
 
         Args:
             attribute: The ontology attribute to be used for assignments.
-            values: An iterable of Python types that are compatible either
+            values: An iterable of objects whose types are compatible either
                 with the OWL standard's data types for literals or compatible
                 with OSP-core as custom data types.
 
         Raises:
             TypeError: When Python objects with types incompatible with the
-                OWL standard or with OSP-core as custom datatypes are given.
+                OWL standard or with OSP-core as custom datatypes are given
+                (raised by decorator `_attribute_modifier`).
         """
-        # TODO: prevent the end result having more than one value than one
-        #  depending on ontology cardinality restrictions and/or functional
-        #  property criteria.
-        values = set(values)
-        for x in values:
-            if not isinstance(x, RDF_COMPATIBLE_TYPES):
-                logger.warning(f"Type '{type(x)}' of object {x} cannot "
-                               f"be set as attribute value, as it is "
-                               f"incompatible with the OWL standard")
-        if self.session:
-            self.session._notify_read(self)
+        # TODO: prevent the end result having more than one value depending on
+        #  ontology cardinality restrictions and/or functional property
+        #  criteria.
         self._graph.remove((self.iri, attribute.iri, None))
         for value in values:
             self._graph.add((self.iri, attribute.iri,
                              Literal(attribute.convert_to_datatype(value),
                                      datatype=attribute.datatype)))
-        if self.session:
-            self.session._notify_update(self)
 
     def _attribute_value_generator(self,
                                    attribute: OntologyAttribute,
@@ -958,7 +964,7 @@ class Cuds:
                                  f"session. None of its attributes are "
                                  f"accessible.")
 
-        if _notify_read and self.session:
+        if _notify_read:
             self.session._notify_read(self)
         for literal in self._graph.objects(self.iri, attribute.iri):
             # TODO: Recreating the literal to get a vector from
@@ -994,7 +1000,7 @@ class Cuds:
                                  f"session. None of its attributes are "
                                  f"accessible.")
 
-        if _notify_read and self.session:
+        if _notify_read:
             self.session._notify_read(self)
 
         if attribute.datatype in (None, RDF.langString):
@@ -1025,7 +1031,7 @@ class Cuds:
                                  f"session. None of its attributes are "
                                  f"accessible.")
 
-        if _notify_read and self.session:
+        if _notify_read:
             self.session._notify_read(self)
         for predicate in self._graph.predicates(self.iri, None):
             obj = from_iri(predicate, raise_error=False)
@@ -1035,7 +1041,7 @@ class Cuds:
     def _attribute_and_value_generator(self, _notify_read: bool = True) \
             -> Iterator[Tuple[OntologyAttribute,
                               Iterator[RDFCompatibleType]]]:
-        """Returns a generator of the both attributes and their values.
+        """Returns a generator of the both the attributes and their values.
 
         Returns:
             Generator that yields tuples, where the first item is the ontology
@@ -1163,7 +1169,7 @@ class Cuds:
     def _connect(self,
                  *cuds_objects: "Cuds",
                  rel: OntologyRelationship) -> List["Cuds"]:
-        """Connect CUDSs object to this one.
+        """Connect CUDS objects to this one.
 
         Args:
             cuds_objects: The CUDS objects to connect.
@@ -1176,7 +1182,7 @@ class Cuds:
         Raises:
             ValueError: Connected a CUDS object that is already linked.
                 Note: in fact, the exception raised is
-                `_ExistingCudsException`, but it is a subclass of `ValueError`.
+                `ExistingCudsException`, but it is a subclass of `ValueError`.
         """
         check_arguments(Cuds, *cuds_objects)
 
@@ -1190,7 +1196,7 @@ class Cuds:
             if rel in self._neighbors \
                     and cuds.uid in self._neighbors[rel]:
                 message = '{!r} is already in the container'
-                raise self._ExistingCudsException(message.format(cuds))
+                raise self.ExistingCudsException(message.format(cuds))
             if self.session != cuds.session:
                 cuds = self._recursive_store(cuds, next(old_objects))
 
@@ -1203,7 +1209,7 @@ class Cuds:
                     *cuds_objects: Union["Cuds", UID],
                     rel: OntologyRelationship,
                     oclass: Optional[OntologyClass] = None) -> None:
-        """Disconnect CUDSs objects from this one.
+        """Disconnect CUDS objects from this one.
 
         Args:
             cuds_objects: The CUDS objects to be disconnected. Can be left

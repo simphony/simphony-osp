@@ -306,21 +306,20 @@ class SqlWrapperSession(TripleStoreWrapperSession):
                 EqualsCondition("tp", "name", name, XSD.string)
             ]
 
-        if o is not None and table_name == self.RELATIONSHIP_TABLE:
-            uid = self._split_namespace(o)
-            conditions += [EqualsCondition("to", "uid", uid, UID.iri)]
-
-        elif o is not None and table_name == self.TYPES_TABLE:
-            ns_idx, name = self._split_namespace(o)
-            conditions += [
-                EqualsCondition("to", "ns_idx", ns_idx, XSD.integer),
-                EqualsCondition("to", "name", name, XSD.string)
-            ]
-
-        elif o is not None:
-            conditions += [
-                EqualsCondition(table_name, "o",
-                                o.toPython(), object_datatype)]
+        if o is not None:
+            if table_name == self.RELATIONSHIP_TABLE:
+                uid = self._split_namespace(o)
+                conditions += [EqualsCondition("to", "uid", uid, UID.iri)]
+            elif table_name == self.TYPES_TABLE:
+                ns_idx, name = self._split_namespace(o)
+                conditions += [
+                    EqualsCondition("to", "ns_idx", ns_idx, XSD.integer),
+                    EqualsCondition("to", "name", name, XSD.string)
+                ]
+            else:
+                conditions += [
+                    EqualsCondition(table_name, "o",
+                                    o.toPython(), object_datatype)]
 
         return AndCondition(*conditions)
 

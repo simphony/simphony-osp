@@ -206,15 +206,15 @@ class WrapperSession(Session):
             raise RuntimeError("Please add a wrapper to the session first")
 
         if cuds_object.oclass is None:
-            if any(self.graph.triples((cuds_object.iri, RDF.type,
-                                       None))):
+            objects = self.graph.objects(cuds_object.iri, RDF.type)
+            first = next(objects, None)
+            if first is not None:
+                all_items = (first, ) + tuple(objects)
                 raise TypeError(f"No oclass associated with {cuds_object}! "
                                 f"However, the cuds is supposed to be of "
                                 "type(s): %s. Did you install the required "
                                 "ontology?" %
-                                ", ".join(o for o in self.graph.objects(
-                                    cuds_object.iri, RDF.type))
-                                )
+                                ", ".join(all_items))
             else:
                 raise TypeError(f"No oclass associated with {cuds_object}!"
                                 f"Did you install the required ontology?")

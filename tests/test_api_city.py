@@ -442,14 +442,6 @@ class TestAPICity(unittest.TestCase):
         # Wrong key
         self.assertRaises(TypeError, c.remove, "not a proper key")
 
-        # Non-existent
-        self.assertRaises(RuntimeError, c.remove, n.uid)
-        self.assertRaises(RuntimeError, c.remove, rel=city.hasPart)
-        self.assertRaises(RuntimeError, c.remove,
-                          oclass=city.Street)
-        self.assertRaises(
-            RuntimeError, c.remove, n.uid, rel=city.hasPart)
-
         # Wrong arguments
         self.assertRaises(TypeError, c.remove, n.uid,
                           oclass=city.Street)

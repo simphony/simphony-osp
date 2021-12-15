@@ -161,8 +161,7 @@ class DbWrapperSession(WrapperSession):
 
     @staticmethod
     def _is_cuds_iri_ontology(iri):
-        for s, p, o in namespace_registry._graph\
-                .triples((URIRef(iri), RDF.type, None)):
+        for o in namespace_registry._graph.objects(URIRef(iri), RDF.type):
             if o in frozenset({OWL.DatatypeProperty,
                                OWL.ObjectProperty,
                                OWL.Class}):

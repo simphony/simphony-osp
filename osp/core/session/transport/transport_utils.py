@@ -259,10 +259,10 @@ def deserialize(json_obj, session, buffer_context, _force=False):
         return [deserialize(x, session, buffer_context, _force=_force)
                 for x in json_obj]
     if isinstance(json_obj, dict) \
-            and {"UID"} == set(json_obj.keys()):
+            and {"UID"} == json_obj.keys():
         return UID(json_obj["UID"])
     if isinstance(json_obj, dict) \
-            and {"ENTITY"} == set(json_obj.keys()):
+            and {"ENTITY"} == json_obj.keys():
         return get_entity(json_obj["ENTITY"])
     if isinstance(json_obj, dict):
         return {k: deserialize(v, session, buffer_context, _force=_force)

@@ -198,7 +198,7 @@ class NeighborDictTarget(NeighborDict):
         iri = uid.to_iri()
         if (self.cuds_object.iri, self.rel.iri, iri) in self.graph:
             result = list()
-            for _, _, o in self.graph.triples((iri, RDF.type, None)):
+            for o in self.graph.objects(iri, RDF.type):
                 result.append(from_iri(o))
             return result
         raise KeyError(uid)
@@ -209,6 +209,5 @@ class NeighborDictTarget(NeighborDict):
         Yields:
             UID: The UIDs of the CUDS object related with self.rel.
         """
-        for s, p, o in self.graph.triples((self.cuds_object.iri,
-                                           self.rel.iri, None)):
+        for o in self.graph.objects(self.cuds_object.iri, self.rel.iri):
             yield UID(o)

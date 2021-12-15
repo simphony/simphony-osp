@@ -219,7 +219,7 @@ class SqlMigrate:
             self.session._do_db_drop(table)
 
     def migrate_1_2_strings(self):
-        """Convert the fixed-length strings to standrd XSD strings."""
+        """Convert the fixed-length strings to standard XSD strings."""
         string_tables = (x for x in self.session._get_table_names("")
                          if x.startswith('DATA_V1_STRING-'))
         for table in string_tables:

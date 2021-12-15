@@ -54,8 +54,9 @@ print(f"  {c.get(p1.uid)}")
 print("\nGetting city.Citizen from c:")
 print(f"  {c.get(oclass=city.Citizen)}")
 
-print("\n Remove p1:")
+print("\nRemove p1:")
 c.remove(p1.uid)
+print(f"  {c.get(oclass=city.Citizen)}")
 
 print("\nAdding neighborhoods to Cuds object in a loop:")
 for i in range(6):
@@ -63,8 +64,12 @@ for i in range(6):
     c.add(city.Neighborhood(
         name="neighborhood %s" % i))
 
-print('\nTrying out the `is_a` method trivially with the new neighborhoods.')
-print("  %s" %
+print('\nTrying out the `is_a` method trivially with the city and the new '
+      'neighborhoods.')
+print("  Is the city an instance of `city.City` or of a subclass of it? %s" %
+      c.is_a(city.City))
+print("  Are all neighborhoods instances of `city.Neighborhood` or of a "
+      "subclass of it? %s" %
       all(n.is_a(city.Neighborhood) for n in c.get(oclass=city.Neighborhood)))
 
 # Functionalities exposed through subscripting.

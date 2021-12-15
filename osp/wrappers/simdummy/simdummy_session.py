@@ -61,8 +61,7 @@ class SimDummySession(SimWrapperSession):
             cities = root_cuds_object.get(oclass=city.City)
             if uid == self.root:
                 yield self._load_wrapper(uid)
-            elif cities and uid == cities.any().uid:
-                assert len(cities) == 1, len(cities)
+            elif cities and uid == cities.one().uid:
                 yield self._load_city(uid)
             elif uid in self._person_map:
                 yield self._load_person(uid)
