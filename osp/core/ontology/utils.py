@@ -5,7 +5,7 @@ from typing import Any, Iterable, Iterator, MutableSet, Set
 
 
 class DataStructureSet(ABC, MutableSet):
-    """ set-like object that acts as an interface to another data structure.
+    """Set-like object that acts as an interface to another data structure.
 
     This class looks like and acts like the standard `set`, but the data it
     holds is stored on a different data structure. When an instance is read

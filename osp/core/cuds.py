@@ -725,7 +725,7 @@ class Cuds:
         `_RelationshipSet`)."""
 
         _individual: "Cuds"
-        """The CUDS object to which this object is linked to. Whenever the set 
+        """The CUDS object to which this object is linked to. Whenever the set
         is modified, the modification will affect this CUDS object."""
 
         @property
