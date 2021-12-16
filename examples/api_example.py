@@ -78,29 +78,50 @@ print("\nAdd, get and remove cuds using subscripting. The object returned by "
       "the subscripting notation call behaves like a Python set, but has "
       "some additional capabilities.")
 
-print(f"  {c[city.hasInhabitant].any().name}")
+print(f"  Such set-like object has the additional `one`, `any` and "
+      f"`all` methods.")
+
+print(f"  - any: retrieve an arbitrary element from the set (without "
+      f"removing it).")
+print(f"     {c[city.hasInhabitant].any().name}")
+print(f"  - one: retrieve an arbitrary element from the set. An exception "
+      f"will be raised if not exactly one element is in the set.")
+print(f"     {c[city.hasInhabitant].one().name}")
+print(f"  - all: returns the set-like object itself. It is redundant, but you "
+      f"can use it to improve readability.")
+print(f"     {c[city.hasInhabitant].all()}")
+
+print(f"  Both single objects and sets can be assigned. Assigning `None` is "
+      f"equivalent to assigning an empty set.")
 c[city.hasInhabitant] = p1
-print(f"  {c[city.hasInhabitant].any().name}")
+print(f"     {c[city.hasInhabitant].any().name}")
 c[city.hasInhabitant] = None
-print(f"  {c[city.hasInhabitant]}")
+print(f"     {c[city.hasInhabitant]}")
 c[city.hasInhabitant] = p1
 del c[city.hasInhabitant]
-print(f"  {c[city.hasInhabitant]}")
+print(f"     {c[city.hasInhabitant]}")
 
-print(f"  p1: {p1}")
-print(f"  p2: {p2}")
+print(f"     p1: {p1}")
+print(f"     p2: {p2}")
 c[city.hasInhabitant] = {p1, p2}
-print(f"  {c[city.hasInhabitant]}")
+print(f"     {c[city.hasInhabitant]}")
+print(f"     p2: {p2}")
+
+print(f"  Apart from the typical in-place operations for sets (e.g. `=^`), "
+      f"`+=` and `-=` are also supported to add or remove single elements "
+      f"from the sets.")
 c[city.hasInhabitant] -= p1
-print(f"  {c[city.hasInhabitant]}")
+print(f"     {c[city.hasInhabitant]}")
 c[city.hasInhabitant] += p1
-print(f"  {c[city.hasInhabitant]}")
+print(f"     {c[city.hasInhabitant]}")
 c[city.hasInhabitant] = {p2}
-print(f"  {c[city.hasInhabitant]}")
+print(f"     {c[city.hasInhabitant]}")
 c[city.hasInhabitant] ^= {p2}
-print(f"  {c[city.hasInhabitant]}")
-print(f"  {c[city.hasInhabitant] | {p1, p2}}")
-print(f"  {c[city.hasInhabitant]}")
+print(f"     {c[city.hasInhabitant]}")
+print(f"  Also the usual (not in-place) operations between sets are "
+      f"supported.")
+print(f"     {c[city.hasInhabitant] | {p1, p2}}")
+print(f"     {c[city.hasInhabitant]}")
 
 print("\nThe subscripting also works for attributes. In particular, it can be "
       "used to assign multiple values to the same attribute.")
