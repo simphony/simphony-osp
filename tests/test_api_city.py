@@ -1,13 +1,13 @@
 """Test the API of CUDS objects using the CITY ontology."""
-import rdflib
-import unittest2 as unittest
-import uuid
 
-from osp.core.utils.wrapper_development import clone_cuds_object,\
-    create_from_cuds_object, get_neighbor_diff
-from osp.core.session.core_session import CoreSession
+import unittest2 as unittest
+
 from osp.core.cuds import Cuds
 from osp.core.namespaces import cuba
+from osp.core.ontology.datatypes import UID
+from osp.core.session.core_session import CoreSession
+from osp.core.utils.wrapper_development import clone_cuds_object,\
+    create_from_cuds_object, get_neighbor_diff
 
 try:
     from osp.core.namespaces import city
@@ -48,9 +48,9 @@ class TestAPICity(unittest.TestCase):
         cuba.Wrapper(session=CoreSession())
 
     def test_uid(self):
-        """Tests that the uid variable contains an uid."""
+        """Tests that the uid variable contains an UID."""
         c = city.City(name="a city")
-        self.assertIsInstance(c.uid, (uuid.UUID, rdflib.URIRef))
+        self.assertIsInstance(c.uid, UID)
 
     def test_set_throws_exception(self):
         """Thest that setting an invalid key throws an exception."""
@@ -69,7 +69,7 @@ class TestAPICity(unittest.TestCase):
 
         # Test the inverse relationship
         get_inverse = n.get(rel=city.isPartOf)
-        self.assertEqual(get_inverse, [c])
+        self.assertSetEqual(get_inverse, {c})
 
         c.add(p, rel=city.hasInhabitant)
         self.assertEqual(c.get(p.uid).uid, p.uid)
@@ -125,52 +125,52 @@ class TestAPICity(unittest.TestCase):
         # check if there are unexpected changes in the first session
         # first check active relationships
         self.assertEqual(set(c._neighbors[city.hasInhabitant].keys()),
-                         set([p1.uid, p2.uid, p3.uid]))
-        self.assertEqual(set([p2.uid]),
+                         {p1.uid, p2.uid, p3.uid})
+        self.assertEqual({p2.uid},
                          set(p1._neighbors[city.hasChild].keys()))
-        self.assertEqual(set([p2.uid]),
+        self.assertEqual({p2.uid},
                          set(p3._neighbors[city.hasChild].keys()))
-        self.assertEqual(set([p4.uid]), set(
+        self.assertEqual({p4.uid}, set(
             p2._neighbors[city.hasChild].keys()))
 
         # check passive relationships
         self.assertEqual(
-            set([c.uid]),
+            {c.uid},
             set(p1._neighbors[city.INVERSE_OF_hasInhabitant].keys()))
         self.assertEqual(
-            set([p1.uid, p3.uid]),
+            {p1.uid, p3.uid},
             set(p2._neighbors[city.isChildOf].keys()))
         self.assertEqual(
-            set([c.uid]),
+            {c.uid},
             set(p2._neighbors[city.INVERSE_OF_hasInhabitant].keys()))
         self.assertEqual(
-            set([c.uid]),
+            {c.uid},
             set(p3._neighbors[city.INVERSE_OF_hasInhabitant].keys()))
         self.assertEqual(
-            set([p2.uid]),
+            {p2.uid},
             set(p4._neighbors[city.isChildOf].keys()))
 
         # check if items correctly added in second session
         # active relations
         self.assertEqual(set(cw._neighbors[city.hasInhabitant].keys()),
-                         set([p1w.uid, p2w.uid]))
-        self.assertEqual(set([p2w.uid]),
+                         {p1w.uid, p2w.uid})
+        self.assertEqual({p2w.uid},
                          set(p1w._neighbors[city.hasChild].keys()))
-        self.assertEqual(set([p4w.uid]),
+        self.assertEqual({p4w.uid},
                          set(p2w._neighbors[city.hasChild].keys()))
 
         # passive relations
         self.assertEqual(
-            set([cw.uid]),
+            {cw.uid},
             set(p1w._neighbors[city.INVERSE_OF_hasInhabitant].keys()))
         self.assertEqual(
-            set([p1w.uid]),
+            {p1w.uid},
             set(p2w._neighbors[city.isChildOf].keys()))
         self.assertEqual(
-            set([cw.uid]),
+            {cw.uid},
             set(p2w._neighbors[city.INVERSE_OF_hasInhabitant].keys()))
         self.assertEqual(
-            set([p2w.uid]),
+            {p2w.uid},
             set(p4w._neighbors[city.isChildOf].keys()))
 
     def test_fix_neighbors(self):
@@ -201,10 +201,10 @@ class TestAPICity(unittest.TestCase):
 
         self.assertEqual(
             set(p1w1._neighbors[city.INVERSE_OF_hasInhabitant].keys()),
-            set([c1w1.uid, c2w1.uid, c3w1.uid]))
+            {c1w1.uid, c2w1.uid, c3w1.uid})
         self.assertEqual(
             set(p2w2._neighbors[city.isChildOf].keys()),
-            set([p1w2.uid]))
+            {p1w2.uid})
 
         missing = dict()
         Cuds._fix_neighbors(new_cuds_object=p1w1,
@@ -217,32 +217,31 @@ class TestAPICity(unittest.TestCase):
         self.assertIn(c2w1.uid, missing)
         self.assertEqual(
             set(p1w1._neighbors[city.INVERSE_OF_hasInhabitant].keys()),
-            set([c1w1.uid, c2w1.uid, c3w1.uid,
-                 c4w1.uid]))
+            {c1w1.uid, c2w1.uid, c3w1.uid, c4w1.uid})
         self.assertNotIn(city.isPartOf, p2w2._neighbors)
 
         # check if there are no unexpected other changes
         self.assertEqual(
             set(c1w1._neighbors[city.hasInhabitant].keys()),
-            set([p1w1.uid]))
+            {p1w1.uid})
         self.assertEqual(
             set(c2w1._neighbors[city.hasInhabitant].keys()),
-            set([p1w1.uid]))
+            {p1w1.uid})
         self.assertEqual(
             set(c3w1._neighbors[city.hasInhabitant].keys()),
-            set([p1w1.uid]))
+            {p1w1.uid})
         self.assertNotIn(city.hasInhabitant, c4w1._neighbors)
 
         # check if the parents in w2 have been updated
         self.assertEqual(
             set(c1w2._neighbors[city.hasInhabitant].keys()),
-            set([p1w1.uid]))
+            {p1w1.uid})
         self.assertEqual(
             set(c3w2._neighbors[city.hasInhabitant].keys()),
-            set([p1w1.uid]))
+            {p1w1.uid})
         self.assertEqual(
             set(c4w2._neighbors[city.hasInhabitant].keys()),
-            set([p1w1.uid]))
+            {p1w1.uid})
 
     def test_get(self):
         """Tests the standard, normal behavior of the get() method.
@@ -263,7 +262,7 @@ class TestAPICity(unittest.TestCase):
 
         # get()
         get_default = c.get()
-        self.assertEqual(set(get_default), {n, p, q})
+        self.assertSetEqual(get_default, {n, p, q})
 
         # get(*uids)
         get_p_uid = c.get(p.uid)
@@ -271,28 +270,28 @@ class TestAPICity(unittest.TestCase):
         get_q_uid = c.get(q.uid)
         self.assertEqual(get_q_uid, q)
         get_nq_uid = c.get(n.uid, q.uid)
-        self.assertEqual(set(get_nq_uid), {n, q})
-        get_new_uid = c.get(uuid.uuid4())
+        self.assertSetEqual(set(get_nq_uid), {n, q})
+        get_new_uid = c.get(UID())
         self.assertEqual(get_new_uid, None)
 
         # get(rel)
         get_has_part = c.get(rel=city.hasInhabitant)
-        self.assertEqual(set(get_has_part), {p, q})
+        self.assertSetEqual(get_has_part, {p, q})
         get_encloses = c.get(rel=city.encloses)
-        self.assertEqual(set(get_encloses), {n, p, q})
+        self.assertSetEqual(get_encloses, {n, p, q})
         get_inhabits = c.get(rel=city.INVERSE_OF_hasInhabitant)
-        self.assertEqual(get_inhabits, [])
+        self.assertSetEqual(get_inhabits, set())
 
         # get(oclass)
         get_citizen = c.get(oclass=city.Citizen)
-        self.assertEqual(set(get_citizen), {q, p})
+        self.assertSetEqual(get_citizen, {q, p})
         get_building = c.get(oclass=city.Building)
-        self.assertEqual(get_building, [])
+        self.assertSetEqual(get_building, set())
         get_citizen = c.get(oclass=city.Person)
-        self.assertEqual(set(get_citizen), {q, p})
+        self.assertSetEqual(get_citizen, {q, p})
         get_building = c.get(
             oclass=city.ArchitecturalStructure)
-        self.assertEqual(get_building, [])
+        self.assertSetEqual(get_building, set())
 
         # get(*uids, rel)
         get_has_part_p = c.get(p.uid, rel=city.hasInhabitant)
@@ -304,18 +303,16 @@ class TestAPICity(unittest.TestCase):
         # get(rel, oclass)
         get_inhabited_citizen = c.get(rel=city.hasInhabitant,
                                       oclass=city.Citizen)
-        self.assertEqual(set(get_inhabited_citizen), {p, q})
+        self.assertSetEqual(get_inhabited_citizen, {p, q})
 
         # return_rel=True
         get_p_uid, get_p_rel = c.get(p.uid, return_rel=True)
         self.assertEqual(get_p_uid, p)
         self.assertEqual(get_p_rel, city.hasInhabitant)
         result = c.get(rel=city.encloses, return_rel=True)
-        self.assertEqual(set(result), set([
-            (p, city.hasInhabitant),
-            (q, city.hasInhabitant),
-            (n, city.hasPart)
-        ]))
+        self.assertSetEqual(set(result),
+                            {(p, city.hasInhabitant), (q, city.hasInhabitant),
+                             (n, city.hasPart)})
 
     def test_get_throws_exception(self):
         """Tests the get() method for unusual behaviors.
@@ -328,7 +325,7 @@ class TestAPICity(unittest.TestCase):
         c.add(n)
 
         self.assertRaises(TypeError, c.get, "not a proper key")
-        self.assertRaises(TypeError, c.get,
+        self.assertRaises(ValueError, c.get,
                           n.uid,
                           oclass=city.Neighborhood)
         self.assertRaises(ValueError, c.get, oclass=city.hasInhabitant)
@@ -346,7 +343,7 @@ class TestAPICity(unittest.TestCase):
         old_neighborhood = c.get(n.uid)
         old_streets = old_neighborhood.get(
             oclass=city.Street)
-        self.assertEqual(old_streets, [])
+        self.assertSetEqual(old_streets, set())
 
         c.update(new_n)
 
@@ -354,7 +351,7 @@ class TestAPICity(unittest.TestCase):
         self.assertIs(new_neighborhood, n)
         new_streets = new_neighborhood.get(
             oclass=city.Street)
-        self.assertEqual(new_streets, [new_s])
+        self.assertSetEqual(new_streets, {new_s})
 
         self.assertRaises(ValueError, c.update, n)
 
@@ -383,7 +380,7 @@ class TestAPICity(unittest.TestCase):
         self.assertFalse(c._neighbors)
         # inverse
         get_inverse = p.get(rel=city.isPartOf)
-        self.assertEqual(get_inverse, [])
+        self.assertSetEqual(get_inverse, set())
 
         # remove(*uids/DataContainers)
         c.add(n)
@@ -395,21 +392,21 @@ class TestAPICity(unittest.TestCase):
         self.assertNotIn(p, get_all)
         # inverse
         get_inverse = p.get(rel=city.isPartOf)
-        self.assertEqual(get_inverse, [])
+        self.assertSetEqual(get_inverse, set())
 
         # remove(rel)
         c.remove(rel=city.hasPart)
         self.assertNotIn(city.hasPart, c._neighbors)
         # inverse
         get_inverse = n.get(rel=city.isPartOf)
-        self.assertEqual(get_inverse, [])
+        self.assertSetEqual(get_inverse, set())
 
         # remove(oclass)
         c.remove(oclass=city.Citizen)
         self.assertNotIn(q, c.get())
         # inverse
         get_inverse = q.get(rel=city.INVERSE_OF_hasInhabitant)
-        self.assertEqual(get_inverse, [])
+        self.assertSetEqual(get_inverse, set())
 
         # remove(*uids/DataContainers, rel)
         c.add(p, q, rel=city.hasInhabitant)
@@ -418,7 +415,7 @@ class TestAPICity(unittest.TestCase):
         self.assertNotIn(city.hasInhabitant, c._neighbors)
         # inverse
         get_inverse = p.get(rel=city.INVERSE_OF_hasInhabitant)
-        self.assertEqual(get_inverse, [])
+        self.assertSetEqual(get_inverse, set())
 
         # remove(rel, oclass)
         c.add(p, rel=city.hasInhabitant)
@@ -430,7 +427,7 @@ class TestAPICity(unittest.TestCase):
         self.assertNotIn(p, get_all)
         # inverse
         get_inverse = p.get(rel=city.INVERSE_OF_hasInhabitant)
-        self.assertEqual(get_inverse, [])
+        self.assertSetEqual(get_inverse, set())
 
     def test_remove_throws_exception(self):
         """Tests the remove() method for unusual behaviors.
@@ -445,16 +442,8 @@ class TestAPICity(unittest.TestCase):
         # Wrong key
         self.assertRaises(TypeError, c.remove, "not a proper key")
 
-        # Non-existent
-        self.assertRaises(RuntimeError, c.remove, n.uid)
-        self.assertRaises(RuntimeError, c.remove, rel=city.hasPart)
-        self.assertRaises(RuntimeError, c.remove,
-                          oclass=city.Street)
-        self.assertRaises(
-            RuntimeError, c.remove, n.uid, rel=city.hasPart)
-
         # Wrong arguments
-        self.assertRaises(TypeError, c.remove, n.uid,
+        self.assertRaises(ValueError, c.remove, n.uid,
                           oclass=city.Street)
 
     def test_update_throws_exception(self):
@@ -485,11 +474,9 @@ class TestAPICity(unittest.TestCase):
         self.assertEqual(get_p_uid, p)
         self.assertEqual(get_p_rel, city.hasInhabitant)
         result = c.iter(rel=city.encloses, return_rel=True)
-        self.assertEqual(set(result), set([
-            (p, city.hasInhabitant),
-            (q, city.hasInhabitant),
-            (n, city.hasPart)
-        ]))
+        self.assertEqual(set(result),
+                         {(p, city.hasInhabitant), (q, city.hasInhabitant),
+                          (n, city.hasPart)})
 
     # def test_check_valid_add(self):  # TODO
     #     """Check if _check_valid_add throws exceptions when illegal
@@ -547,7 +534,7 @@ class TestAPICity(unittest.TestCase):
             p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)
             p4w = p3w.get(p4.uid)
 
-            self.assertEqual(w.get(rel=city.hasPart), [cw])
+            self.assertSetEqual(w.get(rel=city.hasPart), {cw})
             self.assertEqual(
                 set(cw.get(rel=city.hasInhabitant)),
                 {p1w, p2w, p3w}
@@ -557,12 +544,13 @@ class TestAPICity(unittest.TestCase):
                 {w}
             )
 
-            self.assertEqual(p3w.get(rel=city.INVERSE_OF_hasInhabitant), [cw])
-            self.assertEqual(
-                set(p3w.get(rel=city.isChildOf)),
+            self.assertSetEqual(p3w.get(rel=city.INVERSE_OF_hasInhabitant),
+                                {cw})
+            self.assertSetEqual(
+                p3w.get(rel=city.isChildOf),
                 {p1w, p2w}
             )
-            self.assertEqual(p3w.get(rel=city.hasChild), [p4w])
+            self.assertSetEqual(p3w.get(rel=city.hasChild), {p4w})
 
     def test_fix_new_parents(self):
         """Check _fix_new_parent.
@@ -606,7 +594,7 @@ class TestAPICity(unittest.TestCase):
             {c1w, c2w, None}  # missing parent, should be in missing dict
         )
         self.assertEqual(missing, {c3.uid: [(n, city.isPartOf)]})
-        self.assertEqual(c2w.get(rel=city.hasPart), [n])
+        self.assertSetEqual(c2w.get(rel=city.hasPart), {n})
 
     def test_fix_old_neighbors(self):
         """Check if _fix_old_neighbors.
@@ -630,10 +618,10 @@ class TestAPICity(unittest.TestCase):
                                     old_cuds_object=cw,
                                     old_neighbors=old_neighbors,
                                     old_neighbor_diff=old_neighbor_diff)
-        self.assertEqual(c.get(rel=city.isPartOf), [wrapper])
-        self.assertEqual(c.get(rel=city.hasPart), [])
-        self.assertEqual(nw.get(rel=city.isPartOf), [])
-        self.assertEqual(wrapper.get(rel=city.hasPart), [c])
+        self.assertSetEqual(c.get(rel=city.isPartOf), {wrapper})
+        self.assertSetEqual(c.get(rel=city.hasPart), set())
+        self.assertSetEqual(nw.get(rel=city.isPartOf), set())
+        self.assertSetEqual(wrapper.get(rel=city.hasPart), {c})
 
     def test_add_twice(self):
         """Test what happens if you add the same object twice."""
@@ -654,7 +642,7 @@ class TestAPICity(unittest.TestCase):
         p = city.Citizen(name="Ralf")
         self.assertEqual(
             p.get_attributes(),
-            {city.name: "Ralf", city.age: 25}
+            {city.name: {"Ralf"}, city.age: {25}}
         )
 
     def test_add_multi_session(self):
@@ -677,6 +665,189 @@ class TestAPICity(unittest.TestCase):
         """
         self.assertRaises(TypeError,
                           Cuds, oclass=None, attributes={})
+
+    def test_bracket_notation(self):
+        """Tests the functionality of the bracket notation."""
+        paris = city.City(name='Paris')
+        marc = city.Citizen(name='Marc')
+        aimee = city.Citizen(name='Aimée')
+        clement = city.Citizen(name='Clément')
+
+        # --- Test relationships ---
+
+        # Basic functionality, assignment using single elements.
+        self.assertSetEqual(set(), paris[city.hasMajor])
+        paris[city.hasMajor] = marc
+        self.assertSetEqual({marc}, paris[city.hasMajor])
+        paris[city.hasMajor] = aimee
+        self.assertSetEqual({aimee}, paris[city.hasMajor])
+        paris[city.hasMajor] = None
+        self.assertSetEqual(set(), paris[city.hasMajor])
+        paris[city.hasMajor] = aimee
+        del paris[city.hasMajor]
+        self.assertSetEqual(set(), paris[city.hasMajor])
+        self.assertRaises(TypeError,
+                          lambda x: paris.__setitem__(city.hasMajor, x),
+                          'String')
+
+        # Set features, assignment using sets.
+        self.assertSetEqual(set(), paris[city.hasInhabitant])
+        paris[city.hasInhabitant] = {marc}
+        self.assertSetEqual({marc}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant] = set()
+        self.assertEqual(set(), paris[city.hasInhabitant])
+        paris[city.hasInhabitant] = {marc}
+        paris[city.hasInhabitant] = None
+        self.assertEqual(set(), paris[city.hasInhabitant])
+        paris[city.hasInhabitant] = {marc}
+        del paris[city.hasInhabitant]
+        self.assertEqual(set(), paris[city.hasInhabitant])
+        paris[city.hasInhabitant] = {marc}
+        paris[city.hasInhabitant].clear()
+        self.assertEqual(set(), paris[city.hasInhabitant])
+        paris[city.hasInhabitant] = {marc}
+        self.assertIn(marc, paris[city.hasInhabitant])
+        self.assertNotIn(aimee, paris[city.hasInhabitant])
+        self.assertSetEqual({marc}, set(paris[city.hasInhabitant]))
+        self.assertEqual(1, len(paris[city.hasInhabitant]))
+        self.assertLessEqual(paris[city.hasInhabitant], {marc})
+        self.assertLessEqual(paris[city.hasInhabitant], {marc, aimee})
+        self.assertFalse(paris[city.hasInhabitant] <= set())
+        self.assertLess(paris[city.hasInhabitant], {marc, aimee})
+        self.assertFalse(paris[city.hasInhabitant] < {marc})
+        self.assertEqual({marc}, paris[city.hasInhabitant])
+        self.assertNotEqual(paris[city.hasInhabitant], {marc, aimee})
+        self.assertNotEqual(paris[city.hasInhabitant], set())
+        self.assertGreater(paris[city.hasInhabitant], set())
+        self.assertGreaterEqual(paris[city.hasInhabitant], set())
+        self.assertGreaterEqual(paris[city.hasInhabitant], {marc})
+        self.assertFalse(paris[city.hasInhabitant] >= {marc, aimee})
+        self.assertSetEqual(set(), paris[city.hasInhabitant] & set())
+        self.assertSetEqual({marc}, paris[city.hasInhabitant] & {marc})
+        self.assertSetEqual(set(), paris[city.hasInhabitant] & {aimee})
+        self.assertSetEqual({marc, aimee},
+                            paris[city.hasInhabitant] | {aimee})
+        self.assertSetEqual({marc},
+                            paris[city.hasInhabitant] | {marc})
+        self.assertSetEqual({marc},
+                            paris[city.hasInhabitant] | set())
+        self.assertSetEqual(set(),
+                            paris[city.hasInhabitant] - {marc})
+        self.assertSetEqual({marc},
+                            paris[city.hasInhabitant] - {aimee})
+        self.assertSetEqual({marc, aimee},
+                            paris[city.hasInhabitant] ^ {aimee})
+        self.assertSetEqual(set(),
+                            paris[city.hasInhabitant] ^ {marc})
+        self.assertTrue(paris[city.hasInhabitant].isdisjoint({aimee}))
+        self.assertFalse(paris[city.hasInhabitant].isdisjoint({marc}))
+        self.assertTrue(paris[city.hasInhabitant].isdisjoint(set()))
+        self.assertEqual(marc, paris[city.hasInhabitant].pop())
+        self.assertSetEqual(set(), paris[city.hasInhabitant])
+        paris[city.hasInhabitant] = {marc}
+        self.assertIsNot(paris[city.hasInhabitant],
+                         paris[city.hasInhabitant].copy())
+        self.assertTrue(
+            all(
+                any(x is y for y in paris[city.hasInhabitant].copy())
+                for x in paris[city.hasInhabitant]))
+        self.assertSetEqual(set(),
+                            paris[city.hasInhabitant].difference({marc}))
+        self.assertSetEqual({marc},
+                            paris[city.hasInhabitant].difference({aimee}))
+        paris[city.hasInhabitant].difference_update({aimee})
+        self.assertSetEqual({marc}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant].difference_update({marc})
+        self.assertSetEqual(set(), paris[city.hasInhabitant])
+        paris[city.hasInhabitant] = {marc}
+        paris[city.hasInhabitant].discard(aimee)
+        self.assertSetEqual({marc}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant].discard(marc)
+        self.assertSetEqual(set(), paris[city.hasInhabitant])
+        paris[city.hasInhabitant] = {marc}
+        self.assertSetEqual({marc},
+                            paris[city.hasInhabitant].intersection({marc}))
+        self.assertSetEqual(set(),
+                            paris[city.hasInhabitant].intersection({aimee}))
+        self.assertSetEqual(set(),
+                            paris[city.hasInhabitant].intersection(set()))
+        paris[city.hasInhabitant].intersection_update({marc})
+        self.assertSetEqual({marc}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant].intersection_update({aimee})
+        self.assertSetEqual(set(), paris[city.hasInhabitant])
+        paris[city.hasInhabitant] = {marc}
+        paris[city.hasInhabitant].add(aimee)
+        self.assertSetEqual({aimee, marc}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant].remove(aimee)
+        self.assertSetEqual({marc}, paris[city.hasInhabitant])
+        self.assertRaises(KeyError,
+                          lambda x: paris[city.hasInhabitant].remove(x),
+                          aimee)
+        paris[city.hasInhabitant].update({aimee})
+        self.assertSetEqual({aimee, marc}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant] |= {aimee}
+        self.assertSetEqual({aimee, marc}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant] = {}
+        paris[city.hasInhabitant] |= {aimee}
+        self.assertSetEqual({aimee}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant] &= {aimee}
+        self.assertSetEqual({aimee}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant] &= {marc}
+        self.assertSetEqual(set(), paris[city.hasInhabitant])
+        paris[city.hasInhabitant] = {aimee}
+        paris[city.hasInhabitant] ^= {marc}
+        self.assertSetEqual({aimee, marc}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant] ^= set()
+        self.assertSetEqual({aimee, marc}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant] ^= {aimee}
+        self.assertSetEqual({marc}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant] += {aimee}
+        self.assertSetEqual({marc, aimee}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant] -= {marc}
+        self.assertSetEqual({aimee}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant] += marc
+        paris[city.hasInhabitant] += aimee
+        self.assertSetEqual({marc, aimee}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant] -= marc
+        self.assertSetEqual({aimee}, paris[city.hasInhabitant])
+        paris[city.hasInhabitant] -= aimee
+        self.assertSetEqual(set(), paris[city.hasInhabitant])
+        self.assertRaises(TypeError,
+                          lambda x: paris.__setitem__(
+                              (city.hasInhabitant, slice(None, None, None)),
+                              x),
+                          {'String'})
+
+        # Operations on sub-relationships.
+        self.assertSetEqual(set(), paris[city.hasInhabitant])
+        self.assertSetEqual(set(), paris[city.hasMajor])
+        self.assertSetEqual(set(), paris[city.hasWorker])
+        paris[city.hasMajor] += aimee
+        paris[city.hasWorker] += marc
+        paris[city.hasWorker] = {aimee, marc}  # Should not change hasMajor.
+        paris[city.hasInhabitant] += clement
+        self.assertSetEqual({aimee}, paris[city.hasMajor])
+        self.assertSetEqual({aimee, marc}, paris[city.hasWorker])
+        self.assertSetEqual({aimee, marc, clement}, paris[city.encloses])
+        self.assertSetEqual({clement}, paris[city.hasInhabitant])
+        paris[city.hasWorker] += {clement}
+        self.assertSetEqual({aimee, marc, clement}, paris[city.hasWorker])
+        self.assertSetEqual({aimee}, paris[city.hasMajor])
+        paris[city.hasWorker] += {aimee}
+        paris[city.hasMajor] -= {aimee}
+        self.assertSetEqual({marc, clement}, paris[city.hasWorker])
+        paris[city.hasWorker] += {aimee}
+        self.assertSetEqual({marc, clement, aimee}, paris[city.hasWorker])
+        paris[city.hasMajor] += {aimee}
+        self.assertSetEqual({marc, clement, aimee}, paris[city.hasWorker])
+        self.assertEqual(3, len(paris[city.hasWorker]))
+        self.assertSetEqual({aimee}, paris[city.hasMajor])
+        paris[city.hasMajor] -= {aimee}
+        self.assertSetEqual({marc, clement, aimee}, paris[city.hasWorker])
+        self.assertSetEqual(set(), paris[city.hasMajor])
+
+        # Test attributes -> goto
+        # test_api_foaf.TestAPIfoaf.test_bracket_notation.
 
 
 if __name__ == '__main__':

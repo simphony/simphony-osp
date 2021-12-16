@@ -1,11 +1,11 @@
 """Test the OntologyEntity."""
 
-import unittest2 as unittest
-import rdflib
 import numpy as np
+import unittest2 as unittest
+from rdflib import OWL, RDF, RDFS, SKOS, XSD, BNode, Literal, URIRef
 
 from osp.core.namespaces import cuba
-from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.datatypes import Vector
 
 try:
     from osp.core.namespaces import city
@@ -28,7 +28,7 @@ class TestOntologyEntity(unittest.TestCase):
         """Test the properties of the oclass."""
         self.assertEqual(
             city.City.iri,
-            rdflib.term.URIRef('http://www.osp-core.com/city#City')
+            URIRef('http://www.osp-core.com/city#City')
         )
         self.assertEqual(city.City.tblname, "city___City")
         self.assertEqual(city.City.namespace, city)
@@ -77,40 +77,40 @@ class TestOntologyEntity(unittest.TestCase):
     def test_get_triples(self):
         """Test the get_triples method."""
         self.assertEqual(set(city.City.get_triples()), {
-            (city.City.iri, rdflib.SKOS.prefLabel,
-             rdflib.term.Literal('City', lang='en')),
-            (city.City.iri, rdflib.RDFS.subClassOf, city.PopulatedPlace.iri),
-            (city.City.iri, rdflib.RDF.type, rdflib.OWL.Class)
+            (city.City.iri, SKOS.prefLabel,
+             Literal('City', lang='en')),
+            (city.City.iri, RDFS.subClassOf, city.PopulatedPlace.iri),
+            (city.City.iri, RDF.type, OWL.Class)
         })
         self.assertEqual(set(city.hasPart.get_triples()), {
-            (city.hasPart.iri, rdflib.SKOS.prefLabel,
-             rdflib.term.Literal('hasPart', lang='en')),
-            (city.hasPart.iri, rdflib.RDFS.subPropertyOf, city.encloses.iri),
-            (city.hasPart.iri, rdflib.RDF.type, rdflib.OWL.ObjectProperty),
-            (city.hasPart.iri, rdflib.OWL.inverseOf, city.isPartOf.iri)
+            (city.hasPart.iri, SKOS.prefLabel,
+             Literal('hasPart', lang='en')),
+            (city.hasPart.iri, RDFS.subPropertyOf, city.encloses.iri),
+            (city.hasPart.iri, RDF.type, OWL.ObjectProperty),
+            (city.hasPart.iri, OWL.inverseOf, city.isPartOf.iri)
         })
         self.assertEqual(set(city.coordinates.get_triples()), {
-            (city.coordinates.iri, rdflib.SKOS.prefLabel,
-             rdflib.term.Literal('coordinates', lang='en')),
-            (city.coordinates.iri, rdflib.RDFS.subPropertyOf,
+            (city.coordinates.iri, SKOS.prefLabel,
+             Literal('coordinates', lang='en')),
+            (city.coordinates.iri, RDFS.subPropertyOf,
              cuba.attribute.iri),
-            (city.coordinates.iri, rdflib.RDF.type,
-             rdflib.OWL.DatatypeProperty),
-            (city.coordinates.iri, rdflib.RDF.type,
-             rdflib.OWL.FunctionalProperty),
-            (city.coordinates.iri, rdflib.RDFS.range,
-             rdflib_cuba["_datatypes/VECTOR-INT-2"])
+            (city.coordinates.iri, RDF.type,
+             OWL.DatatypeProperty),
+            (city.coordinates.iri, RDF.type,
+             OWL.FunctionalProperty),
+            (city.coordinates.iri, RDFS.range,
+             URIRef("http://www.osp-core.com/types#Vector"))
         })
 
     def test_transitive_hull(self):
         """Test the transitive_hull method."""
         self.assertEqual(set(
             city.PopulatedPlace._transitive_hull(
-                rdflib.RDFS.subClassOf, blacklist={rdflib.OWL.Thing})),
+                RDFS.subClassOf, blacklist={OWL.Thing})),
             {city.GeographicalPlace, cuba.Entity}
         )
         self.assertEqual(
-            set(city.PopulatedPlace._transitive_hull(rdflib.RDFS.subClassOf,
+            set(city.PopulatedPlace._transitive_hull(RDFS.subClassOf,
                                                      inverse=True)),
             {city.Street, city.City, city.Neighborhood}
         )
@@ -118,11 +118,11 @@ class TestOntologyEntity(unittest.TestCase):
     def test_directly_connected(self):
         """Test the _directly_connected method."""
         self.assertEqual(set(
-            city.PopulatedPlace._directly_connected(rdflib.RDFS.subClassOf)),
+            city.PopulatedPlace._directly_connected(RDFS.subClassOf)),
             {city.GeographicalPlace}
         )
         self.assertEqual(
-            set(city.PopulatedPlace._directly_connected(rdflib.RDFS.subClassOf,
+            set(city.PopulatedPlace._directly_connected(RDFS.subClassOf,
                                                         inverse=True)),
             {city.Street, city.City, city.Neighborhood}
         )
@@ -131,7 +131,7 @@ class TestOntologyEntity(unittest.TestCase):
         """Test the attributes of ontology classes."""
         self.assertEqual(city.City.attributes, {
             city.name: (None, True, None),
-            city.coordinates: (rdflib.Literal('[0, 0]'), False, None),
+            city.coordinates: (Vector([0, 0]), False, None),
         })
         self.assertEqual(city.City.own_attributes, {})
         self.assertEqual(city.GeographicalPlace.own_attributes, {
@@ -139,16 +139,16 @@ class TestOntologyEntity(unittest.TestCase):
         })
         self.maxDiff = None
         self.assertEqual(city.LivingBeing.own_attributes, {
-            city.name: (rdflib.Literal("John Smith"), False, None),
-            city.age: (rdflib.Literal(25), False, None)
+            city.name: ("John Smith", False, None),
+            city.age: (25, False, None)
         })
         self.assertEqual(city.Person.attributes, {
-            city.name: (rdflib.Literal("John Smith"), False, None),
-            city.age: (rdflib.Literal(25), False, None)
+            city.name: ("John Smith", False, None),
+            city.age: (25, False, None)
         })
         self.assertEqual(city.PopulatedPlace.attributes, {
             city.name: (None, True, None),
-            city.coordinates: (rdflib.Literal('[0, 0]'), False, None)
+            city.coordinates: ([0, 0], False, None)
         })
         self.assertEqual(city.GeographicalPlace.attributes, {
             city.name: (None, True, None),
@@ -156,17 +156,18 @@ class TestOntologyEntity(unittest.TestCase):
 
     def test_oclass_get_default(self):
         """Test getting the default values of attributes."""
-        self.assertEqual(city.City._get_default(city.name.iri, city.City.iri),
-                         None)
-        self.assertEqual(city.City._get_default(city.name.iri,
-                                                city.GeographicalPlace.iri),
-                         None)
-        self.assertEqual(city.City._get_default(city.coordinates.iri,
+        self.assertEqual(city.City._get_default(city.name,
                                                 city.City.iri),
                          None)
-        self.assertEqual(city.City._get_default(city.coordinates.iri,
+        self.assertEqual(city.City._get_default(city.name,
+                                                city.GeographicalPlace.iri),
+                         None)
+        self.assertEqual(city.City._get_default(city.coordinates,
+                                                city.City.iri),
+                         None)
+        self.assertEqual(city.City._get_default(city.coordinates,
                                                 city.PopulatedPlace.iri),
-                         rdflib.term.Literal('[0, 0]'))
+                         [0, 0])
 
     def test_get_attribute_values(self):
         """Test getting the values of attributes."""
@@ -177,19 +178,19 @@ class TestOntologyEntity(unittest.TestCase):
                           _force=False)
         self.assertEqual(city.City._get_attributes_values(kwargs={},
                                                           _force=True),
-                         {city.coordinates: rdflib.term.Literal('[0, 0]')})
+                         {city.coordinates: [[0, 0]]})
         self.assertEqual(city.City._get_attributes_values(kwargs={},
                                                           _force=True),
-                         {city.coordinates: rdflib.term.Literal('[0, 0]')})
+                         {city.coordinates: [[0, 0]]})
         self.assertEqual(city.City._get_attributes_values(
             kwargs={"name": "Freiburg"}, _force=True),
-            {city.name: "Freiburg",
-             city.coordinates: rdflib.term.Literal('[0, 0]')}
+            {city.name: ["Freiburg"],
+             city.coordinates: [[0, 0]]}
         )
         self.assertEqual(city.City._get_attributes_values(
             kwargs={"name": "Freiburg", "coordinates": [1, 1]}, _force=True),
-            {city.name: "Freiburg",
-             city.coordinates: [1, 1]}
+            {city.name: ["Freiburg"],
+             city.coordinates: [[1, 1]]}
         )
 
     def test_get_attribute_by_argname(self):
@@ -203,10 +204,10 @@ class TestOntologyEntity(unittest.TestCase):
         """Test calling an close to create CUDS."""
         c = city.City(name="Freiburg")
         self.assertEqual(c.name, "Freiburg")
-        self.assertTrue(np.all(c.coordinates == np.array([0, 0])))
+        self.assertTrue(c.coordinates == Vector([0, 0]))
         c = city.City(name="Basel", coordinates=[1, 2])
         self.assertEqual(c.name, "Basel")
-        self.assertTrue(np.all(c.coordinates == np.array([1, 2])))
+        self.assertTrue(c.coordinates == Vector([1, 2]))
         self.assertRaises(TypeError, city.City)
         self.assertRaises(TypeError, city.City, name="Name", invalid="invalid")
 
@@ -229,25 +230,16 @@ class TestOntologyEntity(unittest.TestCase):
         """Test the datatypes of the attributes."""
         self.assertEqual(city.name.datatype, None)
         self.assertEqual(city.coordinates.datatype,
-                         rdflib_cuba["_datatypes/VECTOR-INT-2"])
+                         URIRef("http://www.osp-core.com/types#Vector"))
         self.assertEqual(cuba.attribute.datatype, None)
         self.assertEqual(city.name.convert_to_datatype("abc"), "abc")
-        self.assertEqual(city.name.convert_to_datatype(12.3), "12.3")
-        self.assertEqual(city.name.convert_to_datatype([1, 2, 3]), "[1, 2, 3]")
+        self.assertEqual(city.name.convert_to_datatype(12.3), '12.3')
+        self.assertEqual(city.name.convert_to_datatype([1, 2, 3]), '[1, 2, 3]')
         self.assertTrue(np.all(
             city.coordinates.convert_to_datatype([1, 2])
             == np.array([1, 2])))
-        self.assertRaises(ValueError, city.coordinates.convert_to_datatype,
-                          "[1, 2]")
-        self.assertRaises(ValueError, city.coordinates.convert_to_datatype,
-                          [1, 2, 3])
-        self.assertTrue(np.all(
-            city.coordinates.convert_to_datatype(rdflib.Literal([1, 2]))
-            == np.array([1, 2])))
-        self.assertEqual(
-            city.coordinates.convert_to_basic_type(np.array([1, 2])),
-            [1, 2]
-        )
+        self.assertTrue(city.coordinates.convert_to_datatype(Literal([1, 2]))
+                        == Vector([1, 2]))
 
     def test_hasValue_statement(self):
         """Test hasValue statement from the OWL ontology for data properties.
@@ -259,27 +251,26 @@ class TestOntologyEntity(unittest.TestCase):
         graph = city._graph
         namespace_registry = city._namespace_registry
 
-        triples_hassymboldata = ((rdflib.URIRef("http://www.osp-core.com/city#"
-                                                "hasSymbolData"),
-                                  rdflib.RDF.type,
-                                  rdflib.OWL.DatatypeProperty),
+        triples_hassymboldata = ((URIRef("http://www.osp-core.com/city#"
+                                         "hasSymbolData"),
+                                  RDF.type,
+                                  OWL.DatatypeProperty),
                                  )
-        bnode = rdflib.BNode()
-        triples_restriction = ((bnode, rdflib.RDF.type,
-                                rdflib.OWL.Restriction),
-                               (bnode, rdflib.OWL.onProperty,
-                                rdflib.URIRef("http://www.osp-core.com/city#"
-                                              "hasSymbolData")),
-                               (bnode, rdflib.OWL.hasValue,
-                                rdflib.Literal('C',
-                                               datatype=rdflib.XSD.string)),
+        bnode = BNode()
+        triples_restriction = ((bnode, RDF.type,
+                                OWL.Restriction),
+                               (bnode, OWL.onProperty,
+                                URIRef("http://www.osp-core.com/city#"
+                                       "hasSymbolData")),
+                               (bnode, OWL.hasValue,
+                                Literal('C', datatype=XSD.string)),
                                )
-        triples_carbonsymbol = ((rdflib.URIRef("http://www.osp-core.com/city#"
-                                               "CarbonSymbol"),
-                                 rdflib.RDF.type, rdflib.OWL.Class),
-                                (rdflib.URIRef("http://www.osp-core.com/city#"
-                                               "CarbonSymbol"),
-                                 rdflib.RDFS.subClassOf, bnode),
+        triples_carbonsymbol = ((URIRef("http://www.osp-core.com/city#"
+                                        "CarbonSymbol"),
+                                 RDF.type, OWL.Class),
+                                (URIRef("http://www.osp-core.com/city#"
+                                        "CarbonSymbol"),
+                                 RDFS.subClassOf, bnode),
                                 )
         triples = (*triples_hassymboldata, *triples_carbonsymbol,
                    *triples_restriction)

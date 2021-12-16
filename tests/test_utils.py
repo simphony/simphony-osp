@@ -2,31 +2,33 @@
 
 import io
 import unittest
-import responses
 import os
+
+import responses
+from rdflib import RDF, RDFS, Literal
+
 import osp.core
-import rdflib
+from osp.core.cuds import Cuds
 from osp.core.namespaces import cuba
-from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.session.transport.transport_utils import serializable
+from osp.core.ontology.datatypes import CUSTOM_TO_PYTHON, Vector
 from osp.core.session.core_session import CoreSession
-from osp.core.session.buffers import EngineContext
+from osp.core.session.buffers import BufferContext, EngineContext
+from osp.core.session.transport.transport_utils import serializable
 from osp.core.utils.general import remove_cuds_object,\
-    get_custom_datatype_triples, get_custom_datatypes, post, \
+    get_custom_datatype_triples, post, \
     get_relationships_between, branch, \
     delete_cuds_object_recursively
-from osp.core.utils.schema_validation import validate_tree_against_schema, \
-    ConsistencyError, CardinalityError
-from osp.core.utils.wrapper_development import clone_cuds_object, \
-    create_recycle, create_from_cuds_object, check_arguments, \
-    get_neighbor_diff, change_oclass
 from osp.core.utils.simple_search import find_cuds_object_by_uid, \
     find_cuds_objects_by_oclass, find_relationships,\
     find_cuds_objects_by_attribute, find_cuds_object
+from osp.core.utils.schema_validation import validate_tree_against_schema, \
+    ConsistencyError, CardinalityError
 from osp.core.utils.pretty_print import pretty_print
-from osp.core.session.buffers import BufferContext
-from osp.core.cuds import Cuds
+from osp.core.utils.wrapper_development import clone_cuds_object, \
+    create_recycle, create_from_cuds_object, check_arguments, \
+    get_neighbor_diff, change_oclass
 
+# Import TestWrapperSession, asserJsonLdEqual.
 try:
     from .test_session_city import TestWrapperSession
     from .test_transport_session import assertJsonLdEqual
@@ -34,6 +36,7 @@ except ImportError:
     from test_session_city import TestWrapperSession
     from test_transport_session import assertJsonLdEqual
 
+# Import city if installed, otherwise read it from its source file.
 try:
     from osp.core.namespaces import city
 except ImportError:
@@ -74,15 +77,10 @@ class TestUtils(unittest.TestCase):
 
     def test_get_custom_datatypes(self):
         """Test the get_custom_datatypes function."""
-        self.assertIn(rdflib_cuba["_datatypes/VECTOR-INT-2"],
-                      get_custom_datatypes())
-        for elem in get_custom_datatypes():
-            self.assertIn(elem, rdflib_cuba)
-        self.assertIn((city.coordinates.iri, rdflib.RDFS.range,
-                       rdflib_cuba["_datatypes/VECTOR-INT-2"]),
+        self.assertIn(Vector.iri, CUSTOM_TO_PYTHON)
+        self.assertIn((city.coordinates.iri, RDFS.range, Vector.iri),
                       get_custom_datatype_triples())
-        self.assertIn((rdflib_cuba["_datatypes/VECTOR-INT-2"],
-                       rdflib.RDF.type, rdflib.RDFS.Datatype),
+        self.assertIn((Vector.iri, RDF.type, RDFS.Datatype),
                       get_custom_datatype_triples())
 
     def test_validate_tree_against_schema(self):
@@ -151,7 +149,8 @@ class TestUtils(unittest.TestCase):
             schema_file
         )
 
-        c.get(oclass=city.Neighborhood)[0].add(city.Street(name='abc street'))
+        c.get(oclass=city.Neighborhood).one()\
+            .add(city.Street(name='abc street'))
 
         # now the city is valid and validation should pass
         validate_tree_against_schema(c, schema_file)
@@ -220,7 +219,9 @@ class TestUtils(unittest.TestCase):
             self.assertIs(clone.session, aw.session)
             self.assertEqual(clone.uid, aw.uid)
             self.assertIs(aw, session._registry.get(aw.uid))
-            self.assertEqual(clone.name, "Freiburg")
+            # self.assertEqual(clone.name, "Freiburg")
+            self.assertIn((clone.iri, city.name.iri, Literal("Freiburg")),
+                          clone._graph)
 
     def test_create_recycle(self):
         """Test creation of cuds_objects for different session."""
@@ -259,8 +260,8 @@ class TestUtils(unittest.TestCase):
                                fix_neighbors=False)
             self.assertIs(b, c)
             self.assertEqual(c.name, "Emmendingen")
-            self.assertEqual(c.get(rel=cuba.relationship), [])
-            self.assertNotEqual(x.get(rel=cuba.relationship), [])
+            self.assertSetEqual(c.get(rel=cuba.relationship), set())
+            self.assertNotEqual(x.get(rel=cuba.relationship), set())
             self.assertEqual(set(default_session._registry.keys()),
                              {a.uid, x.uid})
             self.assertIs(default_session._registry.get(a.uid), a)
@@ -277,7 +278,7 @@ class TestUtils(unittest.TestCase):
                                kwargs={"name": "Karlsruhe"},
                                session=session, uid=a.uid,
                                fix_neighbors=True)
-            self.assertEqual(x.get(rel=cuba.relationship), [])
+            self.assertSetEqual(x.get(rel=cuba.relationship), set())
 
     def test_create_from_cuds_object(self):
         """Test copying cuds_objects to different session."""
@@ -484,7 +485,7 @@ class TestUtils(unittest.TestCase):
         """Test removing cuds from datastructure."""
         c, p1, p2, p3, n1, n2, s1 = get_test_city()
         remove_cuds_object(p3)
-        self.assertEqual(p3.get(rel=cuba.relationship), [])
+        self.assertSetEqual(p3.get(rel=cuba.relationship), set())
         self.assertNotIn(p3, c.get(rel=cuba.relationship))
         self.assertNotIn(p3, p1.get(rel=cuba.relationship))
         self.assertNotIn(p3, p2.get(rel=cuba.relationship))
@@ -629,9 +630,9 @@ class TestUtils(unittest.TestCase):
                 [{}, {wrapper.uid: wrapper}, {a.uid: a, b.uid: b}],
                 [{}, {}, {}],
             ])
-            self.assertEqual(wrapper.get(rel=cuba.relationship), [])
-            self.assertEqual(a.get(rel=cuba.relationship), [])
-            self.assertEqual(b.get(rel=cuba.relationship), [])
+            self.assertSetEqual(wrapper.get(rel=cuba.relationship), set())
+            self.assertSetEqual(a.get(rel=cuba.relationship), set())
+            self.assertSetEqual(b.get(rel=cuba.relationship), set())
 
 
 if __name__ == "__main__":

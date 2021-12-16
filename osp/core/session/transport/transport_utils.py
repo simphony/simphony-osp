@@ -1,15 +1,25 @@
 """Utilities used for the transport layer."""
 
+import filecmp
+import hashlib
+import logging
 import json
-import uuid
 import os
 import shutil
-import logging
-import hashlib
-import rdflib
-import ast
-import filecmp
 from typing import Optional, Tuple, Any
+
+from rdflib import OWL, RDF, BNode, Graph, Literal, URIRef
+
+from osp.core.namespaces import get_entity, cuba
+from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.datatypes import UID
+from osp.core.ontology.entity import OntologyEntity
+from osp.core.session.buffers import BufferContext, get_buffer_context_mngr
+from osp.core.utils.wrapper_development import create_from_triples
+from osp.core.utils.general import uid_from_general_iri
+
+# Import `plugins.serializers.jsonld`,`plugins.parsers.jsonld` for rdflib>=6,
+#  otherwise import them from `rdflib_jsonld`.
 from rdflib import __version__ as rdflib_version
 if rdflib_version >= '6':
     from rdflib.plugins.serializers.jsonld import from_rdf as json_from_rdf
@@ -17,13 +27,6 @@ if rdflib_version >= '6':
 else:
     from rdflib_jsonld.serializer import from_rdf as json_from_rdf
     from rdflib_jsonld.parser import to_rdf as json_to_rdf
-from osp.core.namespaces import get_entity, cuba
-from osp.core.ontology.datatypes import convert_from, convert_to
-from osp.core.ontology.entity import OntologyEntity
-from osp.core.session.buffers import BufferContext, get_buffer_context_mngr
-from osp.core.utils.wrapper_development import create_from_triples
-from osp.core.utils.general import uid_from_general_iri
-from osp.core.ontology.cuba import rdflib_cuba
 
 logger = logging.getLogger(__name__)
 
@@ -168,11 +171,11 @@ def move_files(file_cuds, temp_directory, target_directory,
                                 base_name)
         # get target location
         # fix prefix (add in server, remove in client)
-        if file_cuds_uid and not base_name.startswith(cuds.uid.hex):
-            base_name = cuds.uid.hex + "-" + base_name
+        if file_cuds_uid and not base_name.startswith(cuds.uid.data.hex):
+            base_name = cuds.uid.data.hex + "-" + base_name
         elif not file_cuds_uid \
-                and base_name.startswith(str(cuds.uid.hex) + '-'):
-            base_name = base_name[len(str(cuds.uid.hex) + '-'):]
+                and base_name.startswith(str(cuds.uid.data.hex) + '-'):
+            base_name = base_name[len(str(cuds.uid.data.hex) + '-'):]
         # fix suffix (remove in server)
         if file_cuds_uid:
             name, ext = os.path.splitext(base_name)
@@ -256,10 +259,10 @@ def deserialize(json_obj, session, buffer_context, _force=False):
         return [deserialize(x, session, buffer_context, _force=_force)
                 for x in json_obj]
     if isinstance(json_obj, dict) \
-            and set(["UID"]) == set(json_obj.keys()):
-        return convert_to(json_obj["UID"], "UID")
+            and {"UID"} == json_obj.keys():
+        return UID(json_obj["UID"])
     if isinstance(json_obj, dict) \
-            and set(["ENTITY"]) == set(json_obj.keys()):
+            and {"ENTITY"} == json_obj.keys():
         return get_entity(json_obj["ENTITY"])
     if isinstance(json_obj, dict):
         return {k: deserialize(v, session, buffer_context, _force=_force)
@@ -288,8 +291,8 @@ def serializable(obj, partition_cuds=True, mark_first=False):
         return obj
     if isinstance(obj, (str, int, float)):
         return obj
-    if isinstance(obj, uuid.UUID):
-        return {"UID": convert_from(obj, "UID")}
+    if isinstance(obj, UID):
+        return {"UID": str(obj)}
     if isinstance(obj, OntologyEntity):
         return {"ENTITY": str(obj)}
     if isinstance(obj, Cuds):
@@ -309,11 +312,11 @@ def serializable(obj, partition_cuds=True, mark_first=False):
 
 
 def get_file_cuds(obj):
-    """Get the file cuds out of cuds_object, or list of cuds_objects.
+    """Get the file cuds out of cuds_object, UID, or list of cuds_objects.
 
     Args:
-        obj (Union[Cuds, UUID, URIRef, List[Cuds], List[Union[UUID, URIRef],
-             None]): The object to check for file cuds.
+        obj (Union[Cuds, UID, List[Cuds], List[UID], None]): The object to
+            check for file cuds.
 
     Returns:
         List[Cuds]: The list of file cuds
@@ -322,7 +325,7 @@ def get_file_cuds(obj):
 
     if isinstance(obj, Cuds) and obj.is_a(cuba.File):
         return [obj]
-    if isinstance(obj, (Cuds, str, float, int, uuid.UUID, OntologyEntity)) \
+    if isinstance(obj, (Cuds, str, float, int, UID, OntologyEntity)) \
             or obj is None:
         return []
     if isinstance(obj, dict):
@@ -341,22 +344,23 @@ def _serializable(cuds_objects, mark_first=False):
     """
     from osp.core.cuds import Cuds
     from osp.core.ontology.namespace_registry import namespace_registry
-    g = rdflib.Graph()
+    g = Graph()
     g.namespace_manager = namespace_registry._graph.namespace_manager
-    g.bind("cuds", rdflib.URIRef("http://www.osp-core.com/cuds#"))
+    g.bind("cuds", URIRef("http://www.osp-core.com/cuds#"))
     if mark_first:
-        g.add((rdflib_cuba._serialization, rdflib.RDF.first,
-               rdflib.Literal(str(next(iter(cuds_objects)).uid))))
+        g.add((rdflib_cuba._serialization, RDF.first,
+               Literal(str(next(iter(cuds_objects)).uid))))
     for cuds_object in cuds_objects:
         if not isinstance(cuds_object, Cuds):
             raise TypeError(f"Called _serializable with non-CUDS object "
                             f"{cuds_object} of type {type(cuds_object)}")
         for s, p, o in cuds_object.get_triples(include_neighbor_types=True):
-            if isinstance(o, rdflib.Literal):
-                o = rdflib.Literal(convert_from(o.toPython(), o.datatype),
-                                   datatype=o.datatype, lang=o.language)
+            if isinstance(o, Literal):
+                x = Literal(o.toPython(), datatype=o.datatype)\
+                    .toPython()
+                o = Literal(x, datatype=o.datatype, lang=o.language)
             g.add((s, p, o))
-    return json_from_rdf(g, auto_compact=len(cuds_objects) > 1)
+    return json_from_rdf(g)
 
 
 def _to_cuds_object(json_obj, session, buffer_context, _force=False):
@@ -375,23 +379,15 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
         raise ValueError("Not allowed to deserialize CUDS object "
                          "with undefined buffer_context")
     with get_buffer_context_mngr(session, buffer_context):
-        g = json_to_rdf(json_obj, rdflib.Graph())
+        g = json_to_rdf(json_obj, Graph())
         try:
-            this_s = next(s for s, p, _ in g if p != rdflib.RDF.type)
+            this_s = next(s for s, p, _ in g if p != RDF.type)
         except StopIteration:
             this_s = next(s for s, p, _ in g)
 
         triples, neighbor_triples = set(), set()
         for s, p, o in g:
             if s == this_s:
-                # datatype conversion
-                if isinstance(o, rdflib.Literal) \
-                        and o.datatype and o.datatype in rdflib_cuba \
-                        and "VECTOR" in o.datatype.toPython():
-                    o = rdflib.Literal(
-                        convert_to(ast.literal_eval(o.toPython()), o.datatype),
-                        datatype=o.datatype, lang=o.language
-                    )
                 triples.add((s, p, o))
             else:
                 neighbor_triples.add((s, p, o))
@@ -405,11 +401,11 @@ def import_rdf(graph, session, buffer_context, return_uid=None):
     """Import RDF Graph to CUDS.
 
     Args:
-        graph (rdflib.Graph): The graph to import.
+        graph (Graph): The graph to import.
         session (Session): The session to add the CUDS objects to.
         buffer_context (BufferContext): add the deserialized cuds objects to
             the selected buffers.
-        return_uid (Union[UUID, URIRef]): Return only the object with
+        return_uid (UID): Return only the object with
         the given uid.
 
     Raises:
@@ -424,11 +420,10 @@ def import_rdf(graph, session, buffer_context, return_uid=None):
 
     get_buffer_context_mngr(session, buffer_context)
     triples = (triple for triple in graph if _import_rdf_filter(triple))
-    triples = map(_import_rdf_custom_datatypes, triples)
     uid_triples = dict()
     for s, p, o in triples:
-        if isinstance(o, rdflib.URIRef) \
-                and p not in (rdflib.RDF.type, rdflib.OWL.sameAs):
+        if isinstance(o, URIRef) \
+                and p not in (RDF.type, OWL.sameAs):
             _, o = uid_from_general_iri(o, session.graph)
         s_uid, s = uid_from_general_iri(s, session.graph)
         session.graph.add((s, p, o))
@@ -450,29 +445,11 @@ def _import_rdf_filter(triple: Tuple[Any, Any, Any]) \
     Filters triples blank nodes and named individuals.
     """
     s, p, o = triple
-    if isinstance(s, rdflib.BNode) or isinstance(o, rdflib.BNode) \
-            or o == rdflib.OWL.NamedIndividual:
+    if isinstance(s, BNode) or isinstance(o, BNode) \
+            or o == OWL.NamedIndividual:
         return None
     else:
         return triple
-
-
-def _import_rdf_custom_datatypes(triple: Tuple[Any, Any, Any]) \
-        -> Tuple[Any, Any, Any]:
-    """Auxiliary function for `import_rdf`.
-
-    Handles custom datatypes in a triple (if any).
-    """
-    s, p, o = triple
-    # handle custom datatype: VECTORs
-    if isinstance(o, rdflib.Literal) \
-            and o.datatype and o.datatype in rdflib_cuba \
-            and "VECTOR" in o.datatype.toPython():
-        o = rdflib.Literal(
-            convert_to(ast.literal_eval(o.toPython()), o.datatype),
-            datatype=o.datatype, lang=o.language
-        )
-    return s, p, o
 
 
 def get_hash_dir(directory_path):
