@@ -521,16 +521,15 @@ class Cuds:
                 one. This corresponds to any call of the form
                 `iter(..., return_rel=True)`.
 
-            Raises:
-                TypeError: Incorrect argument types.
-                ValueError: Both UIDs and an ontology class passed to the
-                    function.
+        Raises:
+            TypeError: Incorrect argument types.
+            ValueError: Both UIDs and an ontology class passed to the function.
         """
         if uids and oclass is not None:
             raise ValueError("Do not specify both uids and oclass.")
         if rel is not None and not isinstance(rel, OntologyRelationship):
             raise TypeError("Found object of type %s passed to argument rel. "
-                             "Should be an OntologyRelationship." % type(rel))
+                            "Should be an OntologyRelationship." % type(rel))
         if oclass is not None and not isinstance(oclass, OntologyClass):
             raise TypeError("Found object of type %s passed to argument "
                             "oclass. Should be an OntologyClass."
