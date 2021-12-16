@@ -325,7 +325,7 @@ class TestAPICity(unittest.TestCase):
         c.add(n)
 
         self.assertRaises(TypeError, c.get, "not a proper key")
-        self.assertRaises(TypeError, c.get,
+        self.assertRaises(ValueError, c.get,
                           n.uid,
                           oclass=city.Neighborhood)
         self.assertRaises(ValueError, c.get, oclass=city.hasInhabitant)
@@ -443,7 +443,7 @@ class TestAPICity(unittest.TestCase):
         self.assertRaises(TypeError, c.remove, "not a proper key")
 
         # Wrong arguments
-        self.assertRaises(TypeError, c.remove, n.uid,
+        self.assertRaises(ValueError, c.remove, n.uid,
                           oclass=city.Street)
 
     def test_update_throws_exception(self):
