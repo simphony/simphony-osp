@@ -370,15 +370,17 @@ class Cuds:
             rel: The relationship between the objects.
 
         Raises:
-            TypeError: No relationship given and no default specified.
+            TypeError: Either
+                - no relationship given and no default specified, or
+                - objects not of type CUDS provided as positional arguments.
             ValueError: Added a CUDS object that is already in the
                 container. Note: in fact, the exception raised is
                 `ExistingCudsException`, but it is a subclass of `ValueError`.
 
         Returns:
             The CUDS objects that have been added, associated with the
-                session of the current CUDS object. The result type is a list
-                if more than one CUDS object was provided.
+            session of the current CUDS object. The result type is a list
+            if more than one CUDS object was provided.
         """
         check_arguments(Cuds, *cuds)
         rel = rel or self.oclass.namespace.get_default_rel()
@@ -518,16 +520,21 @@ class Cuds:
                 objects and the relationship connecting such object to this
                 one. This corresponds to any call of the form
                 `iter(..., return_rel=True)`.
+
+            Raises:
+                TypeError: Incorrect argument types.
+                ValueError: Both UIDs and an ontology class passed to the
+                    function.
         """
         if uids and oclass is not None:
-            raise TypeError("Do not specify both uids and oclass.")
+            raise ValueError("Do not specify both uids and oclass.")
         if rel is not None and not isinstance(rel, OntologyRelationship):
-            raise ValueError("Found object of type %s passed to argument rel. "
+            raise TypeError("Found object of type %s passed to argument rel. "
                              "Should be an OntologyRelationship." % type(rel))
         if oclass is not None and not isinstance(oclass, OntologyClass):
-            raise ValueError("Found object of type %s passed to argument "
-                             "oclass. Should be an OntologyClass."
-                             % type(oclass))
+            raise TypeError("Found object of type %s passed to argument "
+                            "oclass. Should be an OntologyClass."
+                            % type(oclass))
 
         # --- Call without `*uids` and with `return_rel=False`(order does not
         #  matter, relationships not returned).
@@ -587,8 +594,10 @@ class Cuds:
             ValueError: Provided a CUDS objects is not in the container of the
                 current CUDS
             ValueError: Provided CUDS object is associated with the same
-                session as the current CUDS object. Therefore it is not an
+                session as the current CUDS object. Therefore, it is not an
                 updated version.
+            TypeError: Provided objects that are not of type CUDS as
+                positional arguments.
 
         Returns:
             The CUDS objects that have been updated, associated with the
@@ -639,16 +648,18 @@ class Cuds:
             RuntimeError: No CUDS object removed, because none of the
                 specified CUDS objects are not in the container of the
                 current CUDS object directly.
+            TypeError: Incorrect argument types.
+            ValueError: Both uids and an oclass passed to the function.
         """
         if uids_or_cuds and oclass is not None:
-            raise TypeError("Do not specify both uids and oclass.")
+            raise ValueError("Do not specify both uids and oclass.")
         if rel is not None and not isinstance(rel, OntologyRelationship):
-            raise ValueError("Found object of type %s passed to argument rel. "
-                             "Should be an OntologyRelationship." % type(rel))
+            raise TypeError("Found object of type %s passed to argument rel. "
+                            "Should be an OntologyRelationship." % type(rel))
         if oclass is not None and not isinstance(oclass, OntologyClass):
-            raise ValueError("Found object of type %s passed to argument "
-                             "oclass. Should be an OntologyClass."
-                             % type(oclass))
+            raise TypeError("Found object of type %s passed to argument "
+                            "oclass. Should be an OntologyClass."
+                            % type(oclass))
         check_arguments((UID, Cuds), *uids_or_cuds)
 
         self.session._notify_read(self)
@@ -1041,7 +1052,7 @@ class Cuds:
     def _attribute_and_value_generator(self, _notify_read: bool = True) \
             -> Iterator[Tuple[OntologyAttribute,
                               Iterator[RDFCompatibleType]]]:
-        """Returns a generator of the both the attributes and their values.
+        """Returns a generator of both the attributes and their values.
 
         Returns:
             Generator that yields tuples, where the first item is the ontology
@@ -1078,8 +1089,8 @@ class Cuds:
             """All the attributes to which this instance refers to.
 
             Returns:
-                Such predicates, are the subproperties of the main
-                predicate, or if it is none, all the subproperties
+                Such predicates are the subproperties of the main predicate, or
+                if it is none, all the subproperties.
             """
             predicates = super()._predicates
             if predicates is None:
