@@ -150,8 +150,7 @@ class TestYMLParser(unittest.TestCase):
         # without default
         pre = set(self.parser._graph)
         self.parser._add_attributes("ClassE", self.ontology_doc["ClassE"])
-        for s, _, _ in self.parser._graph.triples((None, RDF.type,
-                                                   OWL.Restriction)):
+        for s in self.parser._graph.subjects(RDF.type, OWL.Restriction):
             if s != bnode2:
                 bnode3 = s
 

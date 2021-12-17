@@ -183,9 +183,9 @@ class YMLParser(OntologyParser):
 
             # same type as parent
             superclass_iri = self._get_iri(name, namespace, entity_name)
-            triple = (superclass_iri, RDF.type, None)
-            for _, _, o in (ReadOnlyGraphAggregate(
-                    [self._graph, default_ontology.graph]).triples(triple)):
+            for o in ReadOnlyGraphAggregate([self._graph,
+                                             default_ontology.graph])\
+                    .objects(superclass_iri, RDF.type):
                 if o in {OWL.Class, OWL.ObjectProperty,
                          OWL.DatatypeProperty,
                          OWL.FunctionalProperty}:
@@ -260,9 +260,8 @@ class YMLParser(OntologyParser):
         if self.reference_style:
             literal = Literal(entity_name, lang="en")
             try:
-                iri = next(s for s, p, o in self._graph.triples(
-                    (None, SKOS.prefLabel, literal)
-                ) if s.startswith(ns_iri))
+                iri = next(s for s in self._graph.subjects(
+                    SKOS.prefLabel, literal) if s.startswith(ns_iri))
             except StopIteration:
                 pass
 

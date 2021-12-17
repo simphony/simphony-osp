@@ -11,7 +11,7 @@ from osp.core.ontology.entity import OntologyEntity
 
 
 class DataStructureSet(ABC, MutableSet):
-    """As set-like object that acts as an interface to another data structure.
+    """Set-like object that acts as an interface to another data structure.
 
     This class looks like and acts like the standard `set`, but the data it
     holds is stored on a different data structure. When an instance is read
@@ -33,11 +33,8 @@ class DataStructureSet(ABC, MutableSet):
         are expected to behave like sets. Remember that the definition of
         membership for sets in Python is `any(x is e or x == e for e in y)`,
         see https://docs.python.org/3/reference/expressions.html
-        #membership-test-details. Therefore, if you implemented this method
-        correctly, letting `y` be this object, then
-        `sum(sum(x is e or x == e for e in y) for x in y)` should evaluate to
-        `len(list(y))`.
-
+        #membership-test-details. Please make sure this function returns
+        unique items according to the definition above.
 
         Returns:
             An iterator providing the values from the connected data
@@ -76,6 +73,7 @@ class DataStructureSet(ABC, MutableSet):
         Updates the connected data structure performing a set intersection
         operation with another iterable.
         """
+        pass
 
     @abstractmethod
     def difference_update(self, other: Iterable) -> None:
@@ -111,39 +109,39 @@ class DataStructureSet(ABC, MutableSet):
         """Return len(self)."""
         return sum(1 for _ in self)
 
-    def __le__(self, other: Set) -> bool:
+    def __le__(self, other: set) -> bool:
         """Return self<=other."""
         return set(self).__le__(other)
 
-    def __lt__(self, other: Set) -> bool:
+    def __lt__(self, other: set) -> bool:
         """Return self<other."""
         return set(self).__lt__(other)
 
-    def __eq__(self, other: Set) -> bool:
+    def __eq__(self, other: set) -> bool:
         """Return self==other."""
         return set(self).__eq__(other)
 
-    def __ne__(self, other: Set) -> bool:
+    def __ne__(self, other: set) -> bool:
         """Return self!=other."""
         return set(self).__ne__(other)
 
-    def __gt__(self, other: Set) -> bool:
+    def __gt__(self, other: set) -> bool:
         """Return self>other."""
         return set(self).__gt__(other)
 
-    def __ge__(self, other: Set) -> bool:
+    def __ge__(self, other: set) -> bool:
         """Return self>=other."""
         return set(self).__ge__(other)
 
-    def __and__(self, other: Set) -> set:
+    def __and__(self, other: set) -> set:
         """Return self&other."""
         return set(self).__and__(other)
 
-    def __radd__(self, other: Set) -> set:
+    def __radd__(self, other: set) -> set:
         """Return other&self."""
         return other & set(self)
 
-    def __ror__(self, other: Set) -> set:
+    def __ror__(self, other: set) -> set:
         """Return other|self."""
         return other | set(self)
 
@@ -155,15 +153,15 @@ class DataStructureSet(ABC, MutableSet):
         """Return value^self."""
         return other ^ set(self)
 
-    def __or__(self, other: Set) -> set:
+    def __or__(self, other: set) -> set:
         """Return self|other."""
         return set(self).__or__(other)
 
-    def __sub__(self, other: Set) -> set:
+    def __sub__(self, other: set) -> set:
         """Return self-other."""
         return set(self).__sub__(other)
 
-    def __xor__(self, other: Set) -> set:
+    def __xor__(self, other: set) -> set:
         """Return self^other."""
         return set(self).__xor__(other)
 
@@ -188,7 +186,7 @@ class DataStructureSet(ABC, MutableSet):
             self.difference_update({other})
         return self
 
-    def __ior__(self, other: Set) -> 'DataStructureSet':
+    def __ior__(self, other: set) -> 'DataStructureSet':
         """Return self|=other.
 
         Should perform the union on the underlying data structure.
@@ -196,7 +194,7 @@ class DataStructureSet(ABC, MutableSet):
         self.update(other)
         return self
 
-    def __iand__(self, other: Set) -> 'DataStructureSet':
+    def __iand__(self, other: set) -> 'DataStructureSet':
         """Return self&=other.
 
         Should perform the intersection on the underlying data structure.
@@ -204,7 +202,7 @@ class DataStructureSet(ABC, MutableSet):
         self.intersection_update(other)
         return self
 
-    def __ixor__(self, other: Set) -> 'DataStructureSet':
+    def __ixor__(self, other: set) -> 'DataStructureSet':
         """Return self^=other.
 
         Should perform the XOR operation on the underlying data structure.
@@ -229,6 +227,8 @@ class DataStructureSet(ABC, MutableSet):
             item = next(iter(self))
         except StopIteration:
             return set().pop()  # Underlying data structure is empty.
+            # The `KeyError` is raised like this intentionally, to avoid
+            #  hardcoding the error text for a set.
         self.difference_update({item})
         return item
 
@@ -250,18 +250,18 @@ class DataStructureSet(ABC, MutableSet):
         """
         self.difference_update({other})
 
-    def intersection(self, other: Set) -> set:
+    def intersection(self, other: set) -> set:
         """Return the intersection of two sets as a new set.
 
         (i.e. all elements that are in both sets.)
         """
         return set(self).intersection(other)
 
-    def issubset(self, other: Set) -> bool:
+    def issubset(self, other: set) -> bool:
         """Report whether another set contains this set."""
         return self <= other
 
-    def issuperset(self, other: Set) -> bool:
+    def issuperset(self, other: set) -> bool:
         """Report whether this set contains another set."""
         return self >= other
 
@@ -281,11 +281,11 @@ class DataStructureSet(ABC, MutableSet):
             raise KeyError(f"{other}")
         self.difference_update({other})
 
-    def symmetric_difference(self, other: Set) -> set:
+    def symmetric_difference(self, other: set) -> set:
         """Return the symmetric difference of two sets as a new set."""
         return set(self).symmetric_difference(other)
 
-    def union(self, other: Set) -> set:
+    def union(self, other: set) -> set:
         """Return the union of sets as a new set."""
         return set(self).union(other)
 

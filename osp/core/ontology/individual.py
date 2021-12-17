@@ -40,6 +40,54 @@ class OntologyIndividual(OntologyEntity):
 
     rdf_identifier = Identifier
 
+    def __init__(self,
+                 uid: Optional[UID] = None,
+                 session: Optional['Session'] = None,
+                 triples: Optional[Iterable[Triple]] = None,
+                 merge: bool = False,
+                 class_: Optional[OntologyClass] = None,
+                 attributes: Optional[
+                     Dict['OntologyAttribute',
+                          Iterable[AttributeValue]]] = None,
+                 ) -> None:
+        """Initialize the ontology individual."""
+        if uid is None:
+            uid = UID()
+        elif not isinstance(uid, UID):
+            raise Exception(f"Tried to initialize an ontology individual with "
+                            f"uid {uid}, which is not a UID object.")
+        self._ontology_classes = []
+        triples = set(triples) if triples is not None else set()
+        # Attribute triples.
+        attributes = attributes or dict()
+        triples |= set((uid.to_iri(), k.iri, Literal(k.convert_to_datatype(e),
+                                                     datatype=k.datatype))
+                       for k, v in attributes.items() for e in v)
+        # Class triples.
+        if class_:
+            triples |= {(uid.to_iri(), RDF.type, class_.iri)}
+            self._ontology_classes += [class_]
+        # extra_class = False
+        # Extra triples
+        for s, p, o in triples:
+            # if p == RDF.type:
+            #     extra_class = True
+            triples.add((s, p, o))
+            # TODO: grab extra class from tbox, add it to _ontology_classes.
+
+        # Determine whether class was assigned (currently unused).
+        # class_assigned = bool(class_) or extra_class
+        # if not class_assigned:
+            # raise TypeError(f"No ontology class associated with {self}! "
+            #                 f"Did you install the required ontology?")
+            # logger.warning(f"No ontology class associated with {self}! "
+            #               f"Did you install the required ontology?")
+            # pass
+
+        # When the construction is complete, the session is switched.
+        super().__init__(uid, session, triples or None, merge=merge)
+        logger.debug("Instantiated ontology individual %s" % self)
+
     # Public API
     # ↓ ------ ↓
 
@@ -293,33 +341,13 @@ class OntologyIndividual(OntologyEntity):
         # Classify the values by type.
         values = self._classify_by_type(values)
 
-        # Prevent illegal assignments.
+        # Perform assignments.
         if isinstance(rel, OntologyRelationship):
             if ((len(values) > 0 and OntologyIndividual not in values)
                     or len(values) > 1):
                 raise TypeError(f'Trying to assign python objects which are '
                                 f'not ontology individuals using an object '
                                 f'property {rel}.')
-        elif isinstance(rel, OntologyAttribute):
-            if ((len(values) > 0
-                 and all(x not in values
-                         for x in (ATTRIBUTE_VALUE_TYPES, Literal)))
-                    or len(values) > 2):
-                raise TypeError(f'Trying to assign python objects which '
-                                f'cannot be interpreted as literals '
-                                f'using a data property {rel}.')
-        elif isinstance(rel, OntologyAnnotation):
-            pass
-        else:
-            raise TypeError(f'Expected one of %s, not {type(rel)}.'
-                            % ', '.join(map(str,
-                                            [OntologyAnnotation,
-                                             OntologyAttribute,
-                                             OntologyRelationship]))
-                            )
-
-        # Perform assignments.
-        if isinstance(rel, OntologyRelationship):
             assigned = set(
                 values.get(OntologyIndividual, set())
             )
@@ -332,6 +360,13 @@ class OntologyIndividual(OntologyEntity):
             current |= add
             current -= remove
         elif isinstance(rel, OntologyAttribute):
+            if ((len(values) > 0
+                 and all(x not in values
+                         for x in (ATTRIBUTE_VALUE_TYPES, Literal)))
+                    or len(values) > 2):
+                raise TypeError(f'Trying to assign python objects which '
+                                f'cannot be interpreted as literals '
+                                f'using a data property {rel}.')
             assigned = set(
                 values.get(ATTRIBUTE_VALUE_TYPES, set())
             ) | set(
@@ -378,10 +413,13 @@ class OntologyIndividual(OntologyEntity):
             rel: The relationship between the objects.
 
         Raises:
-            TypeError: No relationship given and no default specified.
-            ValueError: Added a CUDS object that is already in the
-                container. Note: in fact, the exception raised is
-                `_ExistingCudsException`, but it is a subclass of `ValueError`.
+            TypeError: Either
+                - no relationship given and no default specified, or
+                - objects not of type CUDS provided as positional arguments.
+            ValueError: Added a CUDS object that is already in the container.
+            Note: in fact, the exception raised is
+            `ExistingIndividualException`, but it is a subclass of
+            `ValueError`.
 
         Returns:
             The CUDS objects that have been added, associated with the
@@ -407,7 +445,7 @@ class OntologyIndividual(OntologyEntity):
                   for i in individuals)
         return next(result) if len(individuals) == 1 else list(result)
 
-    class _ExistingCudsException(ValueError):
+    class ExistingIndividualException(ValueError):
         """To be raised when a provided CUDS is already linked."""
         pass
 
@@ -545,14 +583,14 @@ class OntologyIndividual(OntologyEntity):
             rel = self.session.ontology.from_identifier(rel)
 
         if uids and oclass is not None:
-            raise TypeError("Do not specify both uids and oclass.")
+            raise ValueError("Do not specify both uids and oclass.")
         if rel is not None and not isinstance(rel, OntologyRelationship):
-            raise ValueError("Found object of type %s passed to argument rel. "
-                             "Should be an OntologyRelationship." % type(rel))
+            raise TypeError("Found object of type %s passed to argument rel. "
+                            "Should be an OntologyRelationship." % type(rel))
         if oclass is not None and not isinstance(oclass, OntologyClass):
-            raise ValueError("Found object of type %s passed to argument "
-                             "oclass. Should be an OntologyClass."
-                             % type(oclass))
+            raise TypeError("Found object of type %s passed to argument "
+                            "oclass. Should be an OntologyClass."
+                            % type(oclass))
 
         # --- Call without `*uids` and with `return_rel=False`(order does not
         #  matter, relationships not returned).
@@ -621,6 +659,8 @@ class OntologyIndividual(OntologyEntity):
             ValueError: Provided CUDS object is associated with the same
                 session as the current CUDS object. Therefore, it is not an
                 updated version.
+            TypeError: Provided objects that are not of type
+                OntologyIndividual as positional arguments.
 
         Returns:
             The CUDS objects that have been updated, associated with the
@@ -675,16 +715,18 @@ class OntologyIndividual(OntologyEntity):
             RuntimeError: No CUDS object removed, because none of the
                 specified CUDS objects are not in the container of the
                 current CUDS object directly.
+            TypeError: Incorrect argument types.
+            ValueError: Both uids and an oclass passed to the function.
         """
         if uids_or_individuals and oclass is not None:
-            raise TypeError("Do not specify both uids and oclass.")
+            raise ValueError("Do not specify both uids and oclass.")
         if rel is not None and not isinstance(rel, OntologyRelationship):
-            raise ValueError("Found object of type %s passed to argument rel. "
-                             "Should be an OntologyRelationship." % type(rel))
+            raise TypeError("Found object of type %s passed to argument rel. "
+                            "Should be an OntologyRelationship." % type(rel))
         if oclass is not None and not isinstance(oclass, OntologyClass):
-            raise ValueError("Found object of type %s passed to argument "
-                             "oclass. Should be an OntologyClass."
-                             % type(oclass))
+            raise TypeError("Found object of type %s passed to argument "
+                            "oclass. Should be an OntologyClass."
+                            % type(oclass))
         uids = list()
         for x in uids_or_individuals:
             if isinstance(x, OntologyIndividual):
@@ -715,8 +757,9 @@ class OntologyIndividual(OntologyEntity):
                 for identifier in connected_identifiers
             )
         if not mapping:
-            raise RuntimeError("Did not remove any Cuds object, "
-                               "because none matched your filter.")
+            logger.warning("Did not remove any Cuds object, because none "
+                           "matched your filter.")
+            return
 
         for uid, relationship_set in mapping.items():
             relationship_set = relationship_set or {None}
@@ -729,54 +772,6 @@ class OntologyIndividual(OntologyEntity):
 
     # ↑ ------ ↑
     # Public API
-
-    def __init__(self,
-                 uid: Optional[UID] = None,
-                 session: Optional['Session'] = None,
-                 triples: Optional[Iterable[Triple]] = None,
-                 merge: bool = False,
-                 class_: Optional[OntologyClass] = None,
-                 attributes: Optional[
-                     Dict['OntologyAttribute',
-                          Iterable[AttributeValue]]] = None,
-                 ) -> None:
-        """Initialize the ontology individual."""
-        if uid is None:
-            uid = UID()
-        elif not isinstance(uid, UID):
-            raise Exception(f"Tried to initialize an ontology individual with "
-                            f"uid {uid}, which is not a UID object.")
-        self._ontology_classes = []
-        triples = set(triples) if triples is not None else set()
-        # Attribute triples.
-        attributes = attributes or dict()
-        triples |= set((uid.to_iri(), k.iri, Literal(k.convert_to_datatype(e),
-                                                     datatype=k.datatype))
-                       for k, v in attributes.items() for e in v)
-        # Class triples.
-        if class_:
-            triples |= {(uid.to_iri(), RDF.type, class_.iri)}
-            self._ontology_classes += [class_]
-        # extra_class = False
-        # Extra triples
-        for s, p, o in triples:
-            # if p == RDF.type:
-            #     extra_class = True
-            triples.add((s, p, o))
-            # TODO: grab extra class from tbox, add it to _ontology_classes.
-
-        # Determine whether class was assigned (currently unused).
-        # class_assigned = bool(class_) or extra_class
-        # if not class_assigned:
-            # raise TypeError(f"No ontology class associated with {self}! "
-            #                 f"Did you install the required ontology?")
-            # logger.warning(f"No ontology class associated with {self}! "
-            #               f"Did you install the required ontology?")
-            # pass
-
-        # When the construction is complete, the session is switched.
-        super().__init__(uid, session, triples or None, merge=merge)
-        logger.debug("Instantiated ontology individual %s" % self)
 
     class _ObjectSet(DataStructureSet):
         """A set interface to an ontology individual's neighbors.
@@ -802,8 +797,8 @@ class OntologyIndividual(OntologyEntity):
         `_RelationshipSet`)."""
 
         _individual: "OntologyIndividual"
-        """The CUDS object to which this object refers. Whenever the set is
-        modified, the modification will affect this CUDS object."""
+        """The CUDS object to which this object is linked to. Whenever the set
+        is modified, the modification will affect this CUDS object."""
 
         @property
         def individual(self) -> "OntologyIndividual":
@@ -1106,6 +1101,33 @@ class OntologyIndividual(OntologyEntity):
                 return attr
         raise AttributeError(name)
 
+    @staticmethod
+    def _attribute_modifier(func):
+        """Decorator for functions that perform attribute modifications.
+
+        To be used with `_add_attributes`, `_delete_attributes` and
+        `_set_attributes` exclusively. The three functions are extremely
+        similar. This decorator covers the code that they share.
+        """
+        @functools.wraps(func)
+        def wrapper(self,
+                    attribute: OntologyAttribute,
+                    values: Iterable[AttributeValue],
+                    *args, **kwargs):
+            values = set(values)
+            for x in values:
+                if not isinstance(x, ATTRIBUTE_VALUE_TYPES):
+                    raise TypeError(f"Type '{type(x)}' of object {x} cannot "
+                                    f"be set as attribute value, as it is "
+                                    f"incompatible with the OWL standard")
+            return func(self, attribute, values, *args, **kwargs)
+        return wrapper
+
+    # Bind static method to use as decorator.
+    _attribute_modifier = _attribute_modifier.__get__(object,
+                                                      None)
+
+    @_attribute_modifier
     def _add_attributes(self,
                         attribute: OntologyAttribute,
                         values: Iterable[AttributeValue]):
@@ -1116,7 +1138,7 @@ class OntologyIndividual(OntologyEntity):
 
         Args:
             attribute: The ontology attribute to be used for assignments.
-            values: An iterable of Python types that are compatible either
+            values: An iterable of objects whose types are compatible either
                 with the OWL standard's data types for literals or compatible
                 with OSP-core as custom data types.
 
@@ -1124,22 +1146,16 @@ class OntologyIndividual(OntologyEntity):
             TypeError: When Python objects with types incompatible with the
                 OWL standard or with OSP-core as custom data types are given.
         """
-        # TODO: prevent the end result having more than one value than one
-        #  depending on ontology cardinality restrictions and/or functional
-        #  property criteria.
-        values = set(values)
-        for x in values:
-            if not isinstance(x, ATTRIBUTE_VALUE_TYPES):
-                raise TypeError(f"Type '{type(x)}' of object {x} cannot "
-                                f"be set as attribute value, as it is "
-                                f"incompatible with the OWL standard")
-
+        # TODO: prevent the end result having more than one value depending on
+        #  ontology cardinality restrictions and/or functional property
+        #  criteria.
         for value in filter(lambda v: v is not None, values):
             self.session.graph.add(
                 (self.iri, attribute.iri,
                  Literal(attribute.convert_to_datatype(value),
                          datatype=attribute.datatype)))
 
+    @_attribute_modifier
     def _delete_attributes(self,
                            attribute: OntologyAttribute,
                            values: Iterable[AttributeValue]):
@@ -1150,7 +1166,7 @@ class OntologyIndividual(OntologyEntity):
 
         Args:
             attribute: The ontology attribute to be used for assignments.
-            values: An iterable of Python types that are compatible either
+            values: An iterable of objects whose types are compatible either
                 with the OWL standard's data types for literals or compatible
                 with OSP-core as custom data types.
 
@@ -1158,19 +1174,13 @@ class OntologyIndividual(OntologyEntity):
             TypeError: When Python objects with types incompatible with the
                 OWL standard or with OSP-core as custom data types are given.
         """
-        values = set(values)
-        for x in values:
-            if not isinstance(x, ATTRIBUTE_VALUE_TYPES):
-                logger.warning(f"Type '{type(x)}' of object {x} cannot "
-                               f"be an attribute value, as it is "
-                               f"incompatible with the OWL standard")
-
         for value in values:
             self.session.graph.remove(
                 (self.iri, attribute.iri,
                  Literal(attribute.convert_to_datatype(value),
                          datatype=attribute.datatype)))
 
+    @_attribute_modifier
     def _set_attributes(self,
                         attribute: OntologyAttribute,
                         values: Iterable[Union[AttributeValue,
@@ -1179,7 +1189,7 @@ class OntologyIndividual(OntologyEntity):
 
         Args:
             attribute: The ontology attribute to be used for assignments.
-            values: An iterable of Python types that are compatible either
+            values: An iterable of objects whose types are compatible either
                 with the OWL standard's data types for literals or compatible
                 with OSP-core as custom data types.
 
@@ -1187,16 +1197,9 @@ class OntologyIndividual(OntologyEntity):
             TypeError: When Python objects with types incompatible with the
                 OWL standard or with OSP-core as custom data types are given.
         """
-        # TODO: prevent the end result having more than one value than one
-        #  depending on ontology cardinality restrictions and/or functional
-        #  property criteria.
-        values = set(values)
-        for x in values:
-            if not isinstance(x, (ATTRIBUTE_VALUE_TYPES, Literal)):
-                logger.warning(f"Type '{type(x)}' of object {x} cannot "
-                               f"be set as attribute value, as it is "
-                               f"incompatible with the OWL standard")
-
+        # TODO: prevent the end result having more than one value depending on
+        #  ontology cardinality restrictions and/or functional property
+        #  criteria.
         self.session.graph.remove((self.iri, attribute.iri, None))
         self._add_attributes(attribute, values)
 
@@ -1264,7 +1267,7 @@ class OntologyIndividual(OntologyEntity):
     def _attribute_and_value_generator(self) \
             -> Iterator[Tuple[OntologyAttribute,
                               Iterator[AttributeValue]]]:
-        """Returns a generator of the both attributes and their values.
+        """Returns a generator of both the attributes and their values.
 
         Returns:
             Generator that yields tuples, where the first item is the ontology
@@ -1298,8 +1301,8 @@ class OntologyIndividual(OntologyEntity):
             """All the attributes to which this instance refers to.
 
             Returns:
-                Such predicates, are the subproperties of the main
-                predicate, or if it is none, all the subproperties
+                Such predicates are the subproperties of the main predicate, or
+                if it is none, all the subproperties.
             """
             predicates = super()._predicates
             if predicates is None:

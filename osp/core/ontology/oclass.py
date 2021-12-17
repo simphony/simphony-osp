@@ -348,7 +348,7 @@ class OntologyClass(OntologyEntity):
             Cuds, The created cuds object
         """
         # TODO: Create ontology individuals, NOT CUDS objects.
-        if len(set(filter(lambda x: x is not None, (uid, iri)))) > 1:
+        if None not in (uid, iri):
             raise ValueError("Tried to initialize a CUDS object specifying, "
                              "both its IRI and UID. A CUDS object is "
                              "constrained to have just one UID.")
