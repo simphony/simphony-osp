@@ -5,10 +5,10 @@ from typing import Optional, Set, Type, Union
 
 from rdflib.term import Identifier
 
-from .session import Session
-from osp.core.ontology.datatypes import UID
+from osp.core.session.session import Session
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.interfaces.interface import Interface
+from osp.core.utils.datatypes import UID
 
 
 class Wrapper:

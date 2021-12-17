@@ -8,7 +8,7 @@ import time
 import unittest
 from typing import Optional
 
-from osp.core.ontology.datatypes import Vector
+from osp.core.utils.datatypes import Vector
 from osp.core.ontology.parser.owl.parser import OWLParser
 from osp.core.ontology.parser.yml.parser import YMLParser
 from osp.core.session.interfaces.remote.server import RemoteStoreServer
@@ -29,13 +29,12 @@ class TestWrapper(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Create a TBox with the CUBA, OWL and city ontologies.
+        """Create a TBox and set it as the default ontology.
 
-        Such TBox is set as the default TBox.
+        The new TBox contains CUBA, OWL, RDFS and City.
         """
         ontology = Session(identifier='test_tbox', ontology=True)
-        for parser in (OWLParser('cuba'),
-                       OWLParser('owl'),
+        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
                        YMLParser('city')):
             ontology.load_parser(parser)
         cls.prev_default_ontology = Session.ontology
@@ -85,7 +84,7 @@ class TestWrapper(unittest.TestCase):
 
         with sqlite(self.file_name) as wrapper:
             freiburg = wrapper.from_identifier(freiburg_identifier)
-            citizens = list(freiburg[city.hasInhabitant, :])
+            citizens = list(freiburg[city.hasInhabitant])
 
             self.assertEqual('Freiburg', freiburg.name)
             self.assertEqual([20, 58], freiburg.coordinates)
@@ -107,7 +106,7 @@ class TestWrapper(unittest.TestCase):
 
             wrapper.delete(*citizens)
             self.assertEqual(len(wrapper), 1)
-            self.assertEqual(len(freiburg[city.hasInhabitant, :]), 0)
+            self.assertEqual(len(freiburg[city.hasInhabitant]), 0)
 
             wrapper.delete(freiburg)
             self.assertEqual(len(wrapper), 0)
@@ -139,13 +138,13 @@ class TestWrapper(unittest.TestCase):
                                  age=50)
             matthias = city.Citizen(name='Matthias', age=37)
 
-            freiburg_as_wrapper_1[city.hasInhabitant, :] = {marco, matthias}
+            freiburg_as_wrapper_1[city.hasInhabitant] = {marco, matthias}
 
             freiburg_as_wrapper_1.commit()
 
         with sqlite(self.file_name, root='http://example.org/Freiburg') \
                 as freiburg_as_wrapper_2:
-            citizens = list(freiburg_as_wrapper_2[city.hasInhabitant, :])
+            citizens = list(freiburg_as_wrapper_2[city.hasInhabitant])
 
             self.assertEqual('Freiburg', freiburg_as_wrapper_2.name)
             self.assertSetEqual(
@@ -173,13 +172,12 @@ class TestDataspaceWrapper(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Create a TBox with the CUBA, OWL and city ontologies.
+        """Create a TBox and set it as the default ontology.
 
-        Such TBox is set as the default TBox.
+        The new TBox contains CUBA, OWL, RDFS and City.
         """
         ontology = Session(identifier='test_tbox', ontology=True)
-        for parser in (OWLParser('cuba'),
-                       OWLParser('owl'),
+        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
                        YMLParser('city')):
             ontology.load_parser(parser)
         cls.prev_default_ontology = Session.ontology
@@ -299,7 +297,7 @@ class TestDataspaceWrapper(unittest.TestCase):
                        'test_wrapper_dataspace_db_main.db'
                        ) as wrapper:
             freiburg = wrapper.from_identifier(freiburg_identifier)
-            citizens = list(freiburg[city.hasInhabitant, :])
+            citizens = list(freiburg[city.hasInhabitant])
 
             self.assertEqual('Freiburg', freiburg.name)
             self.assertEqual([20, 58], freiburg.coordinates)
@@ -321,7 +319,7 @@ class TestDataspaceWrapper(unittest.TestCase):
 
             wrapper.delete(*citizens)
             self.assertEqual(len(wrapper), 1)
-            self.assertEqual(len(freiburg[city.hasInhabitant, :]), 0)
+            self.assertEqual(len(freiburg[city.hasInhabitant]), 0)
 
             wrapper.delete(freiburg)
             self.assertEqual(len(wrapper), 0)

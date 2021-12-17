@@ -1,7 +1,7 @@
 """Defines an abstract base class for backends that support SPARQL queries."""
 from abc import ABC, abstractmethod
 
-from osp.core.ontology.datatypes import UID
+from osp.core.utils.datatypes import UID
 
 CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
 

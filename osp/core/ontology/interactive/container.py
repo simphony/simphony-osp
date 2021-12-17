@@ -1,25 +1,25 @@
 """Special kind of ontology individual designed to organize entities."""
 
 import logging
-from typing import (Dict, Iterable, Iterator, List, Optional, TYPE_CHECKING,
-                    Tuple, Union)
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Union
 from weakref import ReferenceType, ref
 
 from rdflib import URIRef
 
 from osp.core.namespaces import cuba
-from osp.core.ontology.datatypes import UID, RDFCompatibleType, Triple
+from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.individual import OntologyIndividual
 from osp.core.session.session import Session
-
-if TYPE_CHECKING:
-    from osp.core.ontology.attribute import OntologyAttribute
+from osp.core.utils.cuba_namespace import cuba_namespace
+from osp.core.utils.datatypes import UID, AttributeValue, Triple
 
 logger = logging.getLogger(__name__)
 
 
 class Container(OntologyIndividual):
     """Special kind of ontology individual designed to organize entities."""
+
+    rdf_type = cuba_namespace.Container
 
     @classmethod
     def get_current_container_context(cls) -> Optional['Container']:
@@ -32,11 +32,11 @@ class Container(OntologyIndividual):
 
     def __init__(self,
                  uid: Optional[UID] = None,
-                 session: Optional['Session'] = None,
+                 session: Optional[Session] = None,
                  triples: Optional[Iterable[Triple]] = None,
                  attributes: Optional[
-                     Dict['OntologyAttribute',
-                          Iterable[RDFCompatibleType]]] = None,
+                     Dict[OntologyAttribute,
+                          Iterable[AttributeValue]]] = None,
                  merge: bool = False,
                  ) -> None:
         """Initialize the container."""

@@ -3,10 +3,11 @@
 import logging
 from typing import Any, Iterable, Iterator, Optional, TYPE_CHECKING
 
-from rdflib import RDFS, URIRef
+from rdflib import OWL, RDFS, URIRef
+from rdflib.term import Identifier
 
-from osp.core.ontology.datatypes import Triple, UID, rdf_to_python
 from osp.core.ontology.entity import OntologyEntity
+from osp.core.utils.datatypes import rdf_to_python, Triple, UID
 
 if TYPE_CHECKING:
     from osp.core.session.session import Session
@@ -16,6 +17,9 @@ logger = logging.getLogger(__name__)
 
 class OntologyAttribute(OntologyEntity):
     """An attribute defined in the ontology."""
+
+    rdf_type = OWL.DatatypeProperty
+    rdf_identifier = Identifier
 
     @property
     def datatype(self) -> Optional[URIRef]:
@@ -74,8 +78,17 @@ class OntologyAttribute(OntologyEntity):
         Returns:
             The direct superattributes.
         """
-        return (self.session.from_identifier(o) for o in
-                self.session.graph.objects(self.iri, RDFS.subPropertyOf))
+        return filter(
+            lambda x: isinstance(x, OntologyAttribute),
+            (self.session.from_identifier(o)
+             for o in self.session.graph.objects(self.iri,
+                                                 RDFS.subPropertyOf))
+        )
+        # The filter makes sure that `OntologyAnnotation` and
+        #  `OntologyRelationship` objects are not superclasses, as
+        #  `RDFS.subPropertyOf` is used to establish class hierarchies of
+        #  rdf:Property, owl:DatatypeProperty, owl:ObjectProperty and
+        #  owl:AnnotationProperty.
 
     def _get_direct_subclasses(self) -> Iterator[OntologyEntity]:
         """Get all the direct subclasses of this attribute.
@@ -83,8 +96,17 @@ class OntologyAttribute(OntologyEntity):
         Returns:
             The direct subattributes.
         """
-        return (self.session.from_identifier(s) for s in
-                self.session.graph.subjects(RDFS.subPropertyOf, self.iri))
+        return filter(
+            lambda x: isinstance(x, OntologyAttribute),
+            (self.session.from_identifier(s)
+             for s in self.session.graph.subjects(RDFS.subPropertyOf,
+                                                  self.iri)),
+        )
+        # The filter makes sure that `OntologyAnnotation` and
+        #  `OntologyRelationship` objects are not superclasses, as
+        #  `RDFS.subPropertyOf` is used to establish class hierarchies of
+        #  rdf:Property, owl:DatatypeProperty, owl:ObjectProperty and
+        #  owl:AnnotationProperty.
 
     def _get_superclasses(self) -> Iterator[OntologyEntity]:
         """Get all the superclasses of this attribute.
@@ -98,10 +120,17 @@ class OntologyAttribute(OntologyEntity):
             for o in graph.objects(node, RDFS.subPropertyOf):
                 yield o
 
-        yield from (
-            self.session.from_identifier(x)
-            for x in self.session.graph.transitiveClosure(closure,
-                                                          self.identifier))
+        yield from filter(
+            lambda x: isinstance(x, OntologyAttribute),
+            (self.session.from_identifier(x)
+             for x in self.session.graph.transitiveClosure(closure,
+                                                           self.identifier))
+        )
+        # The filter makes sure that `OntologyAnnotation` and
+        #  `OntologyRelationship` objects are not superclasses, as
+        #  `RDFS.subPropertyOf` is used to establish class hierarchies of
+        #  rdf:Property, owl:DatatypeProperty, owl:ObjectProperty and
+        #  owl:AnnotationProperty.
 
     def _get_subclasses(self) -> Iterator[OntologyEntity]:
         """Get all the subclasses of this attribute.
@@ -115,7 +144,13 @@ class OntologyAttribute(OntologyEntity):
             for s in graph.subjects(RDFS.subPropertyOf, node):
                 yield s
 
-        yield from (
-            self.session.from_identifier(x)
-            for x in self.session.graph.transitiveClosure(closure,
-                                                          self.identifier))
+        yield from filter(
+            lambda x: isinstance(x, OntologyAttribute),
+            (self.session.from_identifier(x)
+             for x in self.session.graph.transitiveClosure(closure,
+                                                           self.identifier)))
+        # The filter makes sure that `OntologyAnnotation` and
+        #  `OntologyRelationship` objects are not superclasses, as
+        #  `RDFS.subPropertyOf` is used to establish class hierarchies of
+        #  rdf:Property, owl:DatatypeProperty, owl:ObjectProperty and
+        #  owl:AnnotationProperty.

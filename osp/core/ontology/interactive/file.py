@@ -5,17 +5,17 @@ import os
 import os.path
 import shutil
 import tempfile
-from typing import Dict, Iterable, Optional, TYPE_CHECKING
+from typing import Dict, Iterable, Optional
 
 from rdflib import Literal
 
 from osp.core.namespaces import cuba
-from osp.core.ontology.datatypes import UID, RDFCompatibleType, Triple
+from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.individual import OntologyIndividual
 from osp.core.session.session import Session
+from osp.core.utils.cuba_namespace import cuba_namespace
+from osp.core.utils.datatypes import UID, AttributeValue, Triple
 
-if TYPE_CHECKING:
-    from osp.core.ontology.attribute import OntologyAttribute
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +23,15 @@ logger = logging.getLogger(__name__)
 class File(OntologyIndividual):
     """Ontology individual representing a file."""
 
+    rdf_type = cuba_namespace.File
+
     def __init__(self,
                  uid: Optional[UID] = None,
-                 session: Optional['Session'] = None,
+                 session: Optional[Session] = None,
                  triples: Optional[Iterable[Triple]] = None,
                  attributes: Optional[
-                     Dict['OntologyAttribute',
-                          Iterable[RDFCompatibleType]]] = None,
+                     Dict[OntologyAttribute,
+                          Iterable[AttributeValue]]] = None,
                  merge: bool = False,
                  ) -> None:
         """Initialize the file."""
@@ -43,21 +45,21 @@ class File(OntologyIndividual):
         logger.debug("Instantiated file %s" % self)
 
     def upload(self) -> None:
-        """Upload the a file immediately.
+        """Upload the file immediately.
 
         When a commit is performed, this file will already be on the server
         and thus be ignored.
         """
         if hasattr(self.session.graph.store, 'upload') \
-                and self[cuba.path] is not None:
+                and self[cuba.path].any() is not None:
             self.session.graph.store.upload(
-                {self.identifier: Literal(self[cuba.path])}
+                {self.identifier: Literal(self[cuba.path].any())}
             )
 
     def download(self,
                  path: Optional[str] = None) -> None:
         """Download the file."""
-        path = path or self[cuba.path]
+        path = path or self[cuba.path].any()
         if hasattr(self.session.graph.store, 'download'):
             with tempfile.TemporaryDirectory() as temp_dir:
                 self.session.graph.store.download(

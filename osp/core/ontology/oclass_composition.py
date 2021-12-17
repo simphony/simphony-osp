@@ -7,8 +7,8 @@ from typing import Iterable, List, Optional, TYPE_CHECKING, Tuple, Union
 
 from rdflib import OWL, BNode, RDF
 
-from osp.core.ontology.datatypes import Triple, UID
 from osp.core.ontology.entity import OntologyEntity
+from osp.core.utils.datatypes import Triple, UID
 
 if TYPE_CHECKING:
     from osp.core.ontology.oclass import OntologyClass
@@ -27,6 +27,9 @@ class OPERATOR(Enum):
 
 class Composition(OntologyEntity):
     """Combine multiple classes using logical formulae."""
+
+    rdf_type = OWL.Class
+    rdf_identifier = BNode
 
     def __init__(self,
                  uid: UID,

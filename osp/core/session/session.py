@@ -1,8 +1,7 @@
 """Abstract Base Class for all Sessions."""
 
 import itertools
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Set, \
-    TYPE_CHECKING, Union
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Set, Union
 
 import rdflib
 from rdflib import OWL, RDF, RDFS, SKOS, BNode, Graph, Literal, URIRef
@@ -10,17 +9,16 @@ from rdflib.graph import ReadOnlyGraphAggregate
 from rdflib.term import Identifier
 from rdflib.store import Store
 
+from osp.core.ontology.annotation import OntologyAnnotation
 from osp.core.ontology.attribute import OntologyAttribute
-from osp.core.ontology.cuba import cuba_namespace
-from osp.core.ontology.datatypes import UID
+from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.individual import OntologyIndividual
 from osp.core.ontology.namespace import OntologyNamespace
-from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.parser.parser import OntologyParser
 from osp.core.ontology.relationship import OntologyRelationship
-
-if TYPE_CHECKING:
-    from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.utils import compatible_classes
+from osp.core.utils.cuba_namespace import cuba_namespace
+from osp.core.utils.datatypes import UID
 
 
 class Session:
@@ -439,66 +437,48 @@ class Session:
         #  optimization it gets will speed up OSP-core, while bad code in
         #  this method will slow it down.
         # TODO: make return type hint more specific, IDE gets confused.
-        # TODO: Remove import statements.
-        from osp.core.ontology.oclass_composition import \
-            get_composition
-        from osp.core.ontology.oclass_restriction import \
-            get_restriction
+        # Look for compatible Python classes to spawn.
+        compatible = set()
 
-        # Try to instantiate classes, attributes, relationships,
-        # restrictions, compositions.
-        # TODO: Do the checks on the if block on the transitive closure to
-        #  work even when some rdf:type statements are omitted.
-        for o in self.ontology._graph.objects(identifier, RDF.type):
-            if o == OWL.DatatypeProperty:
-                return OntologyAttribute(UID(identifier),
-                                         session=self.ontology)
-            elif o == OWL.ObjectProperty:
-                return OntologyRelationship(UID(identifier),
-                                            session=self.ontology)
-            elif o == OWL.Class:
+        for rdf_type in self._graph.objects(identifier, RDF.type):
+            # Look for compatible embedded classes.
+            found = compatible_classes(rdf_type, identifier)
+            if not found:
+                # If not an embedded class, then the type may be known in
+                # the ontology. This means that an ontology individual would
+                # have to be spawned.
                 try:
-                    x = get_composition(identifier,
-                                        self.ontology)
-                except ValueError:
-                    x = None
-                return x or OntologyClass(uid=UID(identifier),
-                                          session=self.ontology)
-            elif o == OWL.Restriction:
-                x = get_restriction(identifier,
-                                    self.ontology)
-                if x:
-                    return x
-            elif o == RDFS.Class:
-                # Appears in FOAF ontology, OWL is supported, not RDFS.
-                continue
-
-        # Try to instantiate an ontology individual.
-        for o in self._graph.objects(identifier, RDF.type):
-            try:
-                entity = self.ontology.from_identifier(o)
-            except KeyError:
-                continue
-            if any(sp.identifier == cuba_namespace.Container for sp in
-                   entity.superclasses):
-                from osp.core.ontology.interactive.container import Container
-                return Container(uid=UID(identifier), merge=True)
-            elif any(sp.identifier == cuba_namespace.File for sp in
-                     entity.superclasses):
-                from osp.core.ontology.interactive.file import File
-                return File(uid=UID(identifier), merge=True)
+                    self.ontology.from_identifier(rdf_type)
+                    compatible |= {OntologyIndividual}
+                except KeyError:
+                    pass
             else:
-                return OntologyIndividual(uid=UID(identifier),
-                                          session=self)
+                compatible |= found
 
-        supported_types = frozenset({OWL.DatatypeProperty,
-                                     OWL.ObjectProperty,
-                                     OWL.Class,
-                                     OWL.Restriction})
-        raise KeyError(f"Identifier {identifier} not found in graph, "
-                       f"not an ontology individual from any of the "
-                       f"installed ontologies nor any entity "
-                       f"of any type in the set {supported_types}.")
+        """Some ontologies are hybrid RDFS and OWL ontologies (i.e. FOAF).
+        In such cases, object and datatype properties are preferred to
+        annotation properties."""
+        if OntologyAnnotation in compatible \
+                and any(x in compatible for x
+                        in (OntologyRelationship, OntologyAttribute)):
+            compatible.remove(OntologyAnnotation)
+
+        if len(compatible) == 0:
+            # The individual belongs to an unknown class.
+            raise KeyError(f"Identifier {identifier} does not match any OWL "
+                           f"entity, any entity natively supported by "
+                           f"OSP-core, nor an ontology individual "
+                           f"belonging to a class in the ontology.")
+        elif len(compatible) >= 2:
+            compatible = map(str, compatible)
+            raise RuntimeError(f"Two or more python classes ("
+                               f"{', '.join(compatible)}) "
+                               f"could be spawned from {identifier}.")
+        else:
+            python_class = compatible.pop()
+            return python_class(uid=UID(identifier),
+                                session=self,
+                                merge=True)
 
     def from_label(self,
                    label: str,
@@ -550,8 +530,6 @@ class Session:
     def update(self,
                entity: 'OntologyEntity') -> None:
         """Store a copy of given ontology entity in the session.
-
-        Specifically, the information that will be U
 
         Args:
             entity: The ontology entity to store.
@@ -678,23 +656,34 @@ class Session:
         return ReadOnlyGraphAggregate([self.ontology._graph,
                                        self.ontology._overlay])
 
-    def iter_identifiers(self) -> Iterator[Identifier]:
-        """Iterate over all the identifiers in the session."""
+    def iter_identifiers(self) -> Iterator[Union[BNode, URIRef]]:
+        """Iterate over all the ontology entity identifiers in the session."""
         # Warning: identifiers can be repeated.
-        supported_types = frozenset({OWL.DatatypeProperty,
-                                     OWL.ObjectProperty,
-                                     OWL.Class,
-                                     OWL.Restriction})
-        blacklist = frozenset({RDFS.Class,
-                               RDF.Property})
-        for t in supported_types:
+        supported_entity_types = frozenset({
+            # owl:AnnotationProperty
+            OWL.AnnotationProperty,
+            RDF.Property,
+            # owl:DatatypeProperty
+            OWL.DatatypeProperty,
+            # owl:ObjectProperty
+            OWL.ObjectProperty,
+            # owl:Class
+            OWL.Class,
+            RDFS.Class,
+            # owl:Restriction
+            OWL.Restriction,
+        })
+        for t in supported_entity_types:
             for s in (s for s in self.ontology.graph.subjects(RDF.type, t)
-                      if s not in blacklist):
+                      if not isinstance(s, Literal)):
+                # Yield the entity from the TBox (literals filtered out above).
                 if self.ontology is self:
                     yield s
-                if not isinstance(s, BNode):
-                    for i in self._graph.subjects(RDF.type, s):
-                        yield i
+                # Yield all the instances of such entity
+                #  (literals filtered out below).
+                for i in (i for i in self._graph.subjects(RDF.type, s)
+                          if not isinstance(i, Literal)):
+                    yield i
 
     def iter_labels(self,
                     entity: Optional[Union[
@@ -951,6 +940,6 @@ def _check_namespaces(namespace_iris: Iterable[URIRef],
 # ↑ ------- ↑
 
 
-Session.set_default_session(Session())
+Session.set_default_session(Session(identifier='default session'))
 Session.ontology = Session(identifier='installed ontologies',
                            ontology=True)

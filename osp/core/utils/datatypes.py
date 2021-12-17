@@ -3,18 +3,45 @@
 import logging
 import re
 import sqlite3
-from base64 import b85encode, b85decode
+import sys
 from abc import ABC
+from base64 import b85encode, b85decode
 from datetime import datetime
 from decimal import Decimal
+from distutils.version import StrictVersion
 from fractions import Fraction
-from typing import Any, List, Optional, Tuple, Union, Sequence, MutableSequence
+from typing import Any, List, MutableSequence, Optional, Sequence, \
+    TYPE_CHECKING, Tuple, Union
 from uuid import uuid4, UUID
 
 import numpy as np
 import rdflib
 from rdflib import RDFS, XSD, BNode, Literal, URIRef, term
 from rdflib.term import Identifier
+
+if TYPE_CHECKING:
+    from osp.core.ontology.annotation import OntologyAnnotation
+    from osp.core.ontology.attribute import OntologyAttribute
+    from osp.core.ontology.individual import OntologyIndividual
+    from osp.core.ontology.oclass import OntologyClass
+    from osp.core.ontology.relationship import OntologyRelationship
+
+# Some IDEs may not detect a type alias defined as Union[...] otherwise.
+python_version_supports_type_alias = \
+    StrictVersion('3.10') <= StrictVersion(
+        f'{sys.version_info.major}.{sys.version_info.minor}')\
+    < StrictVersion('4')
+if python_version_supports_type_alias:
+    from typing import TypeAlias
+else:
+    from typing import Any as TypeAlias
+
+# Collection type hints
+NestedSequence = Union[Sequence[Any], Sequence['NestedSequence']]
+NestedMutableSequence = Union[MutableSequence[Any],
+                              MutableSequence['NestedSequence']]
+NestedTuple = Union[Tuple[Any, ...], Tuple['NestedTuple', ...]]
+NestedList = Union[List[Any], List['NestedList']]
 
 
 # Ignore RDFLib binding warning.
@@ -28,22 +55,6 @@ class _BindingWarningFilter(logging.Filter):
 
 rdflib_term_logger = logging.getLogger(rdflib.term.__name__)
 rdflib_term_logger.addFilter(_BindingWarningFilter())
-
-# --- Various type hints --- #
-NestedSequence = Union[Sequence[Any], Sequence['NestedSequence']]
-NestedMutableSequence = Union[MutableSequence[Any],
-                              MutableSequence['NestedSequence']]
-NestedTuple = Union[Tuple[Any, ...], Tuple['NestedTuple', ...]]
-NestedList = Union[List[Any], List['NestedList']]
-Pattern = Tuple[Union[Identifier, None], Union[Identifier, None],
-                Union[Identifier, None]]
-SimplePattern = Tuple[Union[Union[URIRef, Literal], None],
-                      Union[Union[URIRef, Literal], None],
-                      Union[Union[URIRef, Literal], None]]
-Triple = Tuple[Identifier, Identifier, Identifier]
-SimpleTriple = Tuple[Union[URIRef, Literal],
-                     Union[URIRef, Literal],
-                     Union[URIRef, Literal]]
 
 
 class CustomDataType(ABC):
@@ -439,8 +450,7 @@ for iri, data_type in RDF_TO_PYTHON.items():
         continue
     term.bind(iri, data_type)
 # Define what are the Python types compatible with RDF.
-RDF_COMPATIBLE_TYPES = tuple(RDF_TO_PYTHON.values())
-RDFCompatibleType = Union[RDF_COMPATIBLE_TYPES]
+ATTRIBUTE_VALUE_TYPES = tuple(x for x in RDF_TO_PYTHON.values())
 
 
 def rdf_to_python(value: Any, rdf_data_type: URIRef) -> Any:
@@ -486,6 +496,10 @@ def rdf_to_python(value: Any, rdf_data_type: URIRef) -> Any:
     return result
 
 
+# --- PYTHON TO RDF --- #
+# TODO: Automatically done by RDFLib, but additional bindings might be
+#  necessary, just like it was done for the custom data types.
+
 # --- YML TO RDF --- #
 YML_TO_RDF = {
     "BOOL": XSD.boolean,
@@ -494,3 +508,43 @@ YML_TO_RDF = {
     "STRING": XSD.string,
     "VECTOR": Vector.iri,
 }
+
+# --- Various type hints and type hint aliases --- #
+
+# RDF type hints
+Pattern = Tuple[Union[Identifier, None], Union[Identifier, None],
+                Union[Identifier, None]]
+SimplePattern = Tuple[Union[Union[URIRef, Literal], None],
+                      Union[Union[URIRef, Literal], None],
+                      Union[Union[URIRef, Literal], None]]
+Triple = Tuple[Identifier, Identifier, Identifier]
+SimpleTriple = Tuple[Union[URIRef, Literal],
+                     Union[URIRef, Literal],
+                     Union[URIRef, Literal]]
+
+# Predicates
+OntologyPredicate: TypeAlias = Union[
+    'OntologyAnnotation',
+    'OntologyAttribute',
+    'OntologyRelationship',
+]
+
+# Predicate targets
+OWLCompatibleType = Union[tuple(OWL_TO_PYTHON.values())]
+AttributeValue = Union[tuple(value for value in RDF_TO_PYTHON.values())]
+AnnotationValue: TypeAlias = Union[
+    'OntologyAnnotation',
+    'OntologyAttribute',
+    'OntologyClass',
+    'OntologyIndividual',
+    'OntologyRelationship',
+    AttributeValue,
+    URIRef,
+    Literal,
+]
+RelationshipValue: TypeAlias = 'OntologyIndividual'
+PredicateValue: TypeAlias = Union[
+    'OntologyIndividual',
+    AttributeValue,
+    AnnotationValue
+]

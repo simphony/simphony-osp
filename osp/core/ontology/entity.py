@@ -4,15 +4,16 @@ import logging
 from abc import ABC, abstractmethod
 from functools import lru_cache
 from typing import (Iterable, Iterator, List, Optional, Set, Tuple,
-                    TYPE_CHECKING, Union)
+                    TYPE_CHECKING, Type, Union)
 
 from rdflib import Graph, Literal, URIRef
 from rdflib.term import Identifier
 
-from osp.core.ontology.datatypes import Triple, UID
+from osp.core.utils.datatypes import Triple, UID
 
 if TYPE_CHECKING:
     from osp.core.ontology.interactive.container import Container
+    from osp.core.ontology.namespace import OntologyNamespace
     from osp.core.session.session import Session
     from osp.core.session.wrapper import Wrapper
 
@@ -28,6 +29,9 @@ entity_cache_size = 1024
 
 class OntologyEntity(ABC):
     """Abstract superclass of any entity in the ontology."""
+
+    rdf_type: Optional[Union[URIRef, Set[URIRef]]] = None
+    rdf_identifier: Type
 
     # Public API
     # ↓ ------ ↓
@@ -70,6 +74,11 @@ class OntologyEntity(ABC):
             if self.label_literal is not None else None
         self.label_literal = Literal(value, lang=language) \
             if value is not None else None
+
+    @property
+    def namespace(self) -> Optional["OntologyNamespace"]:
+        """Return the ontology namespace to which this entity is associated."""
+        return next((x for x in self.session.namespaces if self in x), None)
 
     @property
     def label_lang(self) -> Optional[str]:
@@ -394,11 +403,17 @@ class OntologyEntity(ABC):
 
     def __str__(self) -> str:
         """Transform the entity into a human readable string."""
-        return f"{self.uid}"
+        return f"{self.identifier}"
 
     def __repr__(self) -> str:
         """Transform the entity into a string."""
-        return f"<{self.__class__.__name__}: {self.uid}>"
+        header = f"{self.__class__.__name__}"
+        elements = [
+            f"{self.label}" if self.label is not None else None,
+            f"{self.uid}",
+        ]
+        elements = filter(lambda x: x is not None, elements)
+        return f"<{header}: {' '.join(elements)}>"
 
     def __eq__(self, other: 'OntologyEntity') -> bool:
         """Check whether two entities are the same.

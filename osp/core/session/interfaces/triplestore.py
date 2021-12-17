@@ -3,9 +3,9 @@
 from abc import ABC, abstractmethod
 from typing import Iterator
 
-from osp.core.ontology.datatypes import Pattern, Triple
 from osp.core.session.interfaces.interface import Interface
 from osp.core.session.interfaces.generic import GenericInterfaceStore
+from osp.core.utils.datatypes import Pattern, Triple
 
 
 class TriplestoreStore(GenericInterfaceStore):

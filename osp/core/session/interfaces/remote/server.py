@@ -12,7 +12,6 @@ from rdflib.term import Identifier
 from rdflib.store import Store
 from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 
-from osp.core.ontology.cuba import cuba_namespace
 from osp.core.session.interfaces.remote.communication_engine import \
     CommunicationEngineServer
 from osp.core.session.interfaces.remote.utils import (
@@ -21,6 +20,7 @@ from osp.core.session.interfaces.remote.utils import (
     LOGIN_COMMAND, REMOVE_TRIPLES_COMMAND, RENAME_FILES_COMMAND,
     ROLLBACK_COMMAND, RUN_COMMAND, UPDATE_FILES_COMMAND, get_hash,
 )
+from osp.core.utils.cuba_namespace import cuba_namespace
 from osp.core.utils.general import CUDS_IRI_PREFIX
 
 logger = logging.getLogger(__name__)

@@ -16,9 +16,13 @@ class TestContainer(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Create a TBox containing CUBA, OWL and City."""
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains CUBA, OWL, RDFS and City.
+        """
         ontology = Session(identifier='test-tbox', ontology=True)
-        for parser in (OWLParser('cuba'), OWLParser('owl'), YMLParser('city')):
+        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
+                       YMLParser('city')):
             ontology.load_parser(parser)
         cls.prev_default_ontology = Session.ontology
         Session.ontology = ontology
@@ -30,8 +34,7 @@ class TestContainer(unittest.TestCase):
 
     def test_container(self):
         """Test the container ontology individual."""
-        cuba = Session.ontology.get_namespace('cuba')
-        city = Session.ontology.get_namespace('city')
+        from osp.core.namespaces import city, cuba
 
         container = cuba.Container()
 
@@ -133,8 +136,7 @@ class TestContainer(unittest.TestCase):
         Each session is meant to contain a different version of the same
         individual.
         """
-        cuba = Session.ontology.get_namespace('cuba')
-        city = Session.ontology.get_namespace('city')
+        from osp.core.namespaces import cuba, city
 
         container = cuba.Container()
 

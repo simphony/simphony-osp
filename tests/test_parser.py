@@ -10,8 +10,8 @@ import yaml
 from rdflib import OWL, RDF, RDFS, SKOS, XSD, Graph, Literal, URIRef
 from rdflib.compare import isomorphic
 
-from osp.core.ontology.cuba import cuba_namespace
-from osp.core.ontology.datatypes import Vector
+from osp.core.utils.cuba_namespace import cuba_namespace
+from osp.core.utils.datatypes import Vector
 from osp.core.ontology.parser.owl.parser import OWLParser
 from osp.core.ontology.parser.parser import OntologyParser
 from osp.core.ontology.parser.yml.parser import YMLParser
@@ -150,8 +150,7 @@ class TestYMLParser(unittest.TestCase):
         # without default
         pre = set(self.parser._graph)
         self.parser._add_attributes("ClassE", self.ontology_doc["ClassE"])
-        for s, _, _ in self.parser._graph.triples((None, RDF.type,
-                                                   OWL.Restriction)):
+        for s in self.parser._graph.subjects(RDF.type, OWL.Restriction):
             if s != bnode2:
                 bnode3 = s
 

@@ -3,16 +3,16 @@
 from abc import abstractmethod
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
-from rdflib import Literal, URIRef
+from rdflib import BNode, Literal, URIRef
 from rdflib import RDF, RDFS, OWL, XSD
 
-from osp.core.ontology.datatypes import (
-    CUSTOM_TO_PYTHON, RDFCompatibleType, SimpleTriple,
-    SimplePattern, UID, rdf_to_python)
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.session.interfaces.triplestore import (
     TriplestoreInterface, TriplestoreStore)
 from osp.core.session.session import Session
+from osp.core.utils.datatypes import (
+    AttributeValue, CUSTOM_TO_PYTHON, rdf_to_python, SimpleTriple,
+    SimplePattern, UID)
 from osp.core.utils.general import CUDS_IRI_PREFIX
 
 
@@ -599,6 +599,10 @@ class SQLInterface(TriplestoreInterface):
         Yields:
             Triples (see SimpleTriple description) without blank nodes.
         """
+        if any(isinstance(x, BNode) for x in pattern):
+            # This interface does not enable the storage of blank nodes,
+            # therefore such patterns should never return triples.
+            return
         for q, t, dt in self._queries(pattern):
             c = self._do_db_select(q)
             yield from self._rows_to_triples(cursor=c,
@@ -702,7 +706,7 @@ class SQLInterface(TriplestoreInterface):
             )
 
     def _determine_table(self, pattern: SimplePattern) \
-            -> Tuple[str, Dict[str, RDFCompatibleType]]:
+            -> Tuple[str, Dict[str, AttributeValue]]:
         """Determine the table to be queried given a triple pattern.
 
         Args:
@@ -742,7 +746,7 @@ class SQLInterface(TriplestoreInterface):
     def _construct_query(self,
                          pattern: SimplePattern,
                          table_name: str,
-                         object_datatype: RDFCompatibleType):
+                         object_datatype: AttributeValue):
         """Construct a query from a triple pattern."""
         q = SqlQuery(
             self.CUDS_TABLE, columns=self.COLUMNS[self.CUDS_TABLE][1:],
@@ -791,21 +795,20 @@ class SQLInterface(TriplestoreInterface):
                 EqualsCondition("tp", "name", name, XSD.string)
             ]
 
-        if o is not None and table_name == self.RELATIONSHIP_TABLE:
-            uid = self._split_namespace(o)
-            conditions += [EqualsCondition("to", "uid", uid, UID.iri)]
-
-        elif o is not None and table_name == self.TYPES_TABLE:
-            ns_idx, name = self._split_namespace(o)
-            conditions += [
-                EqualsCondition("to", "ns_idx", ns_idx, XSD.integer),
-                EqualsCondition("to", "name", name, XSD.string)
-            ]
-
-        elif o is not None:
-            conditions += [
-                EqualsCondition(table_name, "o",
-                                o.toPython(), object_datatype)]
+        if o is not None:
+            if table_name == self.RELATIONSHIP_TABLE:
+                uid = self._split_namespace(o)
+                conditions += [EqualsCondition("to", "uid", uid, UID.iri)]
+            elif table_name == self.TYPES_TABLE:
+                ns_idx, name = self._split_namespace(o)
+                conditions += [
+                    EqualsCondition("to", "ns_idx", ns_idx, XSD.integer),
+                    EqualsCondition("to", "name", name, XSD.string)
+                ]
+            else:
+                conditions += [
+                    EqualsCondition(table_name, "o",
+                                    o.toPython(), object_datatype)]
 
         return AndCondition(*conditions)
 

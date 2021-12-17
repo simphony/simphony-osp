@@ -1,6 +1,6 @@
 """This file exists for backwards compatibility reasons."""
 
-from osp.core.ontology.cuba import cuba_namespace
+from osp.core.utils.cuba_namespace import cuba_namespace
 
 
 def get_case_insensitive_alternative(name, is_cuba):
