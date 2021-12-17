@@ -1119,7 +1119,9 @@ class OntologyIndividual(OntologyEntity):
                 if not isinstance(x, ATTRIBUTE_VALUE_TYPES):
                     raise TypeError(f"Type '{type(x)}' of object {x} cannot "
                                     f"be set as attribute value, as it is "
-                                    f"incompatible with the OWL standard")
+                                    f"either incompatible with the OWL "
+                                    f"standard or not yet supported by "
+                                    f"OSP-core.")
             return func(self, attribute, values, *args, **kwargs)
         return wrapper
 

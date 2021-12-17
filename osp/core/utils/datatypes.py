@@ -6,6 +6,7 @@ import sqlite3
 import sys
 from abc import ABC
 from base64 import b85encode, b85decode
+from datetime import datetime
 from decimal import Decimal
 from distutils.version import StrictVersion
 from fractions import Fraction
@@ -380,65 +381,120 @@ def _get_all_python_subclasses(cls):
 
 
 # OWL data types
-# See [Datatype Maps](https://www.w3.org/TR/owl2-syntax/#Datatype_Maps) on
+#  See [Datatype Maps](https://www.w3.org/TR/owl2-syntax/#Datatype_Maps) on
 #  the OWL specification.
+#  OWL_TO_PYTHON gathers data types that are not bound already to RDFLib terms.
 OWL_TO_PYTHON = {URIRef('http://www.w3.org/2002/07/owl#real'): float,
+                 # ↑ Not defined by RDFLib.
                  URIRef('http://www.w3.org/2002/07/owl#rational'): Fraction,
-                 # ↑ Workaround
-                 #   [rdflib issue #1378](
-                 #   https://github.com/RDFLib/rdflib/issues/1378).
-                 XSD.decimal: Decimal,
-                 XSD.integer: int,
-                 XSD.nonNegativeInteger: int,
-                 XSD.nonPositiveInteger: int,
-                 XSD.positiveInteger: int,
-                 XSD.negativeInteger: int,
-                 XSD.long: int,
-                 XSD.int: int,
-                 XSD.short: int,
-                 # XSD.byte: ?, (TODO: not yet supported)
-                 XSD.unsignedLong: int,
-                 XSD.unsignedInt: int,
-                 XSD.unsignedShort: int,
-                 # XSD.unsignedByte: ?, (TODO: not yet supported)
-                 XSD.double: float,
-                 XSD.float: float,
-                 XSD.string: str,
-                 # XSD.normalizedString: ?, (TODO: not yet supported)
-                 # XSD.token: ?, (TODO: not yet supported)
-                 # XSD.Name: ?, (TODO: not yet supported)
+                 # ↑ Not defined by RDFLib.
+                 # XSD.Name: ?, (TODO: not supported)
+                 # ↑ Not defined by RDFLib.
                  # XSD.NCName: ?, (TODO: not yet supported)
+                 # ↑ Not defined by RDFLib.
                  # XSD.NMTOKEN: ?, (TODO: not yet supported)
-                 XSD.boolean: bool,
-                 # XSD.hexBinary: ?, (TODO: not yet supported)
+                 # ↑ Not defined by RDFLib.
                  # XSD.base64Binary: ?, (TODO: not yet supported)
-                 XSD.anyURI: URIRef,
-                 # XSD.dateTime: ?, (TODO: not yet supported)
+                 # ↑ Not defined by RDFLib.
                  # XSD.dateTimeStamp: ?, (TODO: not yet supported)
+                 # ↑ ¿Is it defined by RDFLib?
                  # RDF.XMLLiteral: ?, (TODO: not yet supported)
+                 # ↑ ¿Is it defined by RDFLib?
                  }
-OWL_COMPATIBLE_TYPES = tuple(x for x in OWL_TO_PYTHON.values())
+#  OWL_TO_PYTHON_DEFINED_RDFLIB gathers data types that were bound to RDFLib
+#  terms already by the RDFLib developers.
+OWL_TO_PYTHON_DEFINED_RDFLIB = {
+    XSD.decimal: Decimal,  # -> Defined already by RDFLib.
+    XSD.integer: int,  # -> Defined already by RDFLib.
+    XSD.nonNegativeInteger: int,  # -> Defined already by RDFLib.
+    XSD.nonPositiveInteger: int,  # -> Defined already by RDFLib.
+    XSD.positiveInteger: int,  # -> Defined already by RDFLib.
+    XSD.negativeInteger: int,  # -> Defined already by RDFLib.
+    XSD.long: int,  # -> Defined already by RDFLib.
+    XSD.int: int,  # -> Defined already by RDFLib.
+    XSD.short: int,  # -> Defined already by RDFLib.
+    XSD.byte: int,  # -> Defined already by RDFLib.
+    XSD.unsignedLong: int,  # -> Defined already by RDFLib.
+    XSD.unsignedInt: int,  # -> Defined already by RDFLib.
+    XSD.unsignedShort: int,  # -> Defined already by RDFLib.
+    XSD.unsignedByte: int,  # -> Defined already by RDFLib.
+    XSD.double: float,  # -> Defined already by RDFLib.
+    XSD.float: float,  # -> Defined already by RDFLib.
+    XSD.string: str,  # -> Defined already by RDFLib.
+    XSD.normalizedString: str,  # -> Defined already by RDFLib.
+    XSD.token: str,  # -> Defined already by RDFLib.
+    XSD.boolean: bool,  # -> Defined already by RDFLib.
+    XSD.hexBinary: bytes,  # -> Defined already by RDFLib.
+    XSD.anyURI: str,  # -> Defined already by RDFLib.
+    XSD.dateTime: datetime,  # -> Defined already by RDFLib.
+}
+OWL_TO_PYTHON.update(OWL_TO_PYTHON_DEFINED_RDFLIB)
+OWL_COMPATIBLE_TYPES = tuple(OWL_TO_PYTHON.values())
+OWLCompatibleType = Union[OWL_COMPATIBLE_TYPES]
 # Custom STATIC data types (fixed URI).
 CUSTOM_TO_PYTHON = {cls.iri: cls
                     for cls in _get_all_python_subclasses(CustomDataType)}
-CUSTOM_COMPATIBLE_TYPES = tuple(x for x in CUSTOM_TO_PYTHON.values())
-CustomCompatibleType = Union[tuple(value for value in
-                                   CUSTOM_TO_PYTHON.values())] if \
-    CUSTOM_TO_PYTHON else None
+CUSTOM_COMPATIBLE_TYPES = tuple(CUSTOM_TO_PYTHON.values())
+CustomCompatibleType = Union[CUSTOM_COMPATIBLE_TYPES] \
+    if CUSTOM_COMPATIBLE_TYPES else None
 # All RDF data types compatible with OSP-core, automatically generated from
 #  the previous mappings.
 RDF_TO_PYTHON = {RDFS.Literal: str}
 RDF_TO_PYTHON.update(OWL_TO_PYTHON)
 RDF_TO_PYTHON.update(CUSTOM_TO_PYTHON)
-ATTRIBUTE_VALUE_TYPES = tuple(x for x in RDF_TO_PYTHON.values())
 #  Bind all the types to RDFLib.
 for iri, data_type in RDF_TO_PYTHON.items():
-    # Skip custom data types, which where already bound below their definition.
-    if iri == Vector.iri:
-        continue
-    elif iri == UID.iri:
+    # Skip custom data types, which where already bound under their definition.
+    # Skip also data types already bound by RDFLib.
+    if iri in set(CUSTOM_TO_PYTHON) | set(OWL_TO_PYTHON_DEFINED_RDFLIB):
         continue
     term.bind(iri, data_type)
+# Define what are the Python types compatible with RDF.
+ATTRIBUTE_VALUE_TYPES = tuple(x for x in RDF_TO_PYTHON.values())
+
+
+def rdf_to_python(value: Any, rdf_data_type: URIRef) -> Any:
+    """Changes the type of a Python object to match an RDF datatype.
+
+    Converts a Python object into another Python object whose type is
+    compatible with the specified data type
+
+    Args:
+        value: The Python object to be transformed.
+        rdf_data_type: The RDF data type that the resulting object needs to
+            be compatible with.
+
+    Returns:
+        A Python object compatible with `rdf_data_type`.
+    """
+    # Converting the literal to a string  or calling Literal twice seems
+    #  redundant, but is intentional.
+    #
+    #  One would expect rdflib to convert the the literal to the adequate
+    #  datatype by calling 'value.toPython()'. However, this is not always
+    #  true. Two cases have to be considered:
+    #   - The literal has been created from an arbitrary Python object. Then
+    #     calling `toPython` returns the original Python object, no matter
+    #     what datatype was specified when creating it.
+    #   - The literal has been created from a string. Then calling `toPython`
+    #     invokes the RDFLib constructor, spawning a Python object of the
+    #     adequate datatype.
+    if isinstance(value, Literal):
+        # Here we convert the received literal to a string so that RDFLib
+        # first calls the lexicalizer on it. In such a way the new literal
+        # is created from a string, and the constructor is invoked when
+        # calling `toPython`.
+        result = Literal(str(value), datatype=rdf_data_type,
+                         lang=value.language).toPython()
+    else:
+        # When an arbitrary python object is received instead, first we
+        # create a literal with the correct data type, and then perform the
+        # same action as before: call the lexicalizer on such literal so
+        # that the new one is created from a string.
+        result = Literal(value, datatype=rdf_data_type)
+        result = Literal(str(result), datatype=rdf_data_type).toPython()
+    return result
+
 
 # --- PYTHON TO RDF --- #
 # TODO: Automatically done by RDFLib, but additional bindings might be
@@ -474,7 +530,7 @@ OntologyPredicate: TypeAlias = Union[
 ]
 
 # Predicate targets
-OWLCompatibleType = Union[tuple(value for value in OWL_TO_PYTHON.values())]
+OWLCompatibleType = Union[tuple(OWL_TO_PYTHON.values())]
 AttributeValue = Union[tuple(value for value in RDF_TO_PYTHON.values())]
 AnnotationValue: TypeAlias = Union[
     'OntologyAnnotation',

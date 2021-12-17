@@ -11,7 +11,7 @@ from osp.core.session.interfaces.triplestore import (
     TriplestoreInterface, TriplestoreStore)
 from osp.core.session.session import Session
 from osp.core.utils.datatypes import (
-    AttributeValue, CUSTOM_TO_PYTHON, RDF_TO_PYTHON, SimpleTriple,
+    AttributeValue, CUSTOM_TO_PYTHON, rdf_to_python, SimpleTriple,
     SimplePattern, UID)
 from osp.core.utils.general import CUDS_IRI_PREFIX
 
@@ -1016,17 +1016,7 @@ class SQLInterface(TriplestoreInterface):
 
     @staticmethod
     def _convert_to_datatype(value: Any, datatype: URIRef) -> Any:
-        # TODO: Very similar to
-        #  `osp.core.ontology.attribute.OntologyAttribute.convert_to_datatype`.
-        #  Unify somehow.
-        if isinstance(value, Literal):
-            result = Literal(value.toPython(), datatype=datatype,
-                             lang=value.language).toPython()
-            if isinstance(result, Literal):
-                result = RDF_TO_PYTHON[datatype or XSD.string](value.value)
-        else:
-            result = RDF_TO_PYTHON[datatype or XSD.string](value)
-        return result
+        return rdf_to_python(value, datatype)
 
     def _do_db_update(self, table_name, columns,
                       values, condition, datatypes):
