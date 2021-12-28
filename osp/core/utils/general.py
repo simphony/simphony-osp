@@ -9,7 +9,6 @@ import json
 import logging
 import pathlib
 from typing import Optional, TYPE_CHECKING, Union, TextIO, List
-from uuid import UUID
 
 import requests
 from rdflib import OWL, RDF, RDFS, Graph, Literal
@@ -33,52 +32,6 @@ CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
 logger = logging.getLogger(__name__)
 
 # Private utilities (not user-facing and only used in this same file).
-
-
-def _serializable(obj: Union[OntologyIndividual,
-                             UUID,
-                             List[OntologyIndividual],
-                             List[UUID],
-                             None],
-                  partition_cuds=True, mark_first=False):
-    """Make given object json serializable.
-
-    The object can be a cuds_object, a list of cuds_objects,
-    a uid or a list od uids.
-
-    Args:
-        obj (): The
-            object to make serializable.
-
-    Raises:
-        ValueError: Given object could not be made serializable.
-
-    Return:
-        Union[Dict, List, str, None]: The serializable object.
-    """
-    from osp.core.ontology.entity import OntologyEntity
-    if obj is None:
-        return obj
-    if isinstance(obj, (str, int, float)):
-        return obj
-    if isinstance(obj, UUID):
-        return {"UID": str(obj)}
-    if isinstance(obj, OntologyEntity):
-        return {"ENTITY": str(obj)}
-    if isinstance(obj, OntologyEntity):
-        return _serializable([obj])
-    if isinstance(obj, dict):
-        return {k: _serializable(v) for k, v in obj.items()}
-    if not partition_cuds:  # TODO this should be the default
-        try:
-            return _serializable(obj, mark_first=mark_first)
-        except TypeError:
-            pass
-    try:
-        return [_serializable(x) for x in obj]
-    except TypeError as e:
-        raise ValueError("Could not serialize %s." % obj) \
-            from e
 
 
 def _serialize_session_triples(format="xml",
@@ -131,9 +84,13 @@ def _serialize_individual_json(individual, rel=cuba.activeRelationship,
                                     rel=rel,
                                     find_all=True,
                                     max_depth=max_depth)
-    result = _serializable(cuds_objects, partition_cuds=False, mark_first=True)
-    if json_dumps:
-        return json.dumps(result)
+    g = Graph()
+    for triple in (t for c in cuds_objects for t in c.triples):
+        g.add(triple)
+    g.add((cuba_namespace._serialization, RDF.first, individual.identifier))
+    result = g.serialize(format='json-ld')
+    if not json_dumps:
+        return json.loads(result)
     return result
 
 
@@ -185,12 +142,13 @@ def _serialize_session_json(session, json_dumps=True):
     Returns:
         Union[str, List]: The serialized session.
     """
-    entitites = list(session)
-    result = _serializable(entitites,
-                           partition_cuds=False,
-                           mark_first=False)
-    if json_dumps:
-        return json.dumps(result)
+    entitites = set(session)
+    g = Graph()
+    for triple in (t for e in entitites for t in e.triples):
+        g.add(triple)
+    result = g.serialize(format='json-ld')
+    if not json_dumps:
+        return json.loads(result)
     return result
 
 
@@ -219,9 +177,11 @@ def _deserialize_json(json_doc,
 
     session = session or Session.get_default_session()
     results = []
-    for entity in list(temp_session):
-        session.merge(entity)
-        results += [entity]
+    for entity in set(temp_session):
+        # session.merge(entity)
+        for triple in entity.triples:
+            session.graph.add(triple)
+        results += [session.from_identifier(entity.identifier)]
 
     # only return first (when a cuds instead of a session was exported)
     first = temp_session.graph.value(cuba_namespace._serialization, RDF.first)
@@ -250,9 +210,11 @@ def _import_rdf_file(path,
 
     session = session or Session.get_default_session()
     results = []
-    for entity in list(temp_session):
-        session.merge(entity)
-        results += [entity]
+    for entity in set(temp_session):
+        # session.merge(entity)
+        for triple in entity.triples:
+            session.graph.add(triple)
+        results += [session.from_identifier(entity.identifier)]
 
     # only return first (when a cuds instead of a session was exported)
     first = temp_session.graph.value(cuba_namespace._serialization, RDF.first)
