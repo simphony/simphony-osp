@@ -21,9 +21,10 @@ from rdflib.util import guess_format
 
 from osp.core.namespaces import cuba
 from osp.core.ontology.individual import OntologyIndividual
-from osp.core.session.session import Session
+from osp.core.session import Session
 from osp.core.utils.cuba_namespace import cuba_namespace
 from osp.core.utils.datatypes import CUSTOM_TO_PYTHON
+from osp.core.wrapper import Wrapper
 
 if TYPE_CHECKING:
     from osp.core.ontology.relationship import OntologyRelationship
@@ -39,7 +40,7 @@ def _serialize_session_triples(format="xml",
                                skip_custom_datatypes=False,
                                skip_ontology=True):
     """Serialize an RDF graph and take care of custom data types."""
-    from osp.core.session.session import Session
+    from osp.core.session import Session
     session = session or Session.get_default_session()
 
     graph = session.graph
@@ -57,8 +58,11 @@ def _serialize_session_triples(format="xml",
             continue
         result.add((s, p, o))
 
-    for prefix, iri in graph.namespaces():
-        result.bind(prefix, iri)
+    try:
+        for prefix, iri in graph.namespaces():
+            result.bind(prefix, iri)
+    except NotImplementedError:
+        pass
     return result.serialize(format=format, encoding='UTF-8').decode('UTF-8')
 
 
@@ -78,7 +82,7 @@ def _serialize_individual_json(individual, rel=cuba.activeRelationship,
     Returns:
         Union[str, List]: The serialized cuds object.
     """
-    from osp.core.tools.simple_search import find_cuds_object
+    from osp.core.tools.search import find_cuds_object
     cuds_objects = find_cuds_object(criterion=lambda _: True,
                                     root=individual,
                                     rel=rel,
@@ -111,7 +115,7 @@ def _serialize_individual_triples(individual,
     Returns:
         str: The CUDS object serialized as a RDF file.
     """
-    from osp.core.tools.simple_search import find_cuds_object
+    from osp.core.tools.search import find_cuds_object
     individuals = find_cuds_object(criterion=lambda _: True,
                                    root=individual,
                                    rel=rel,
@@ -167,7 +171,7 @@ def _deserialize_json(json_doc,
     Returns:
         Cuds: The deserialized Cuds.
     """
-    from osp.core.session.session import Session
+    from osp.core.session import Session
     from osp.core.utils.cuba_namespace import cuba_namespace
     if isinstance(json_doc, str):
         json_doc = json.loads(json_doc)
@@ -298,7 +302,7 @@ def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
         max_depth (int, optional):The maximum depth of the recursion.
             Defaults to float("inf"). Defaults to float("inf").
     """
-    from osp.core.tools.simple_search import find_cuds_object
+    from osp.core.tools.search import find_cuds_object
     cuds_objects = find_cuds_object(criterion=lambda x: True, root=cuds_object,
                                     rel=rel,
                                     find_all=True,
@@ -432,9 +436,11 @@ def export_cuds(individual_or_session: Optional = None,
         max_depth (float): maximum depth to search for children CUDS.
     """
     # Choose default session if not specified.
-    from osp.core.session.session import Session
+    from osp.core.session import Session
     individual_or_session = individual_or_session or \
         Session.get_default_session()
+    if isinstance(individual_or_session, Wrapper):
+        individual_or_session = individual_or_session.session
 
     # Check the validity of the requested format and raise useful exceptions.
     if format not in ('json', 'application/ld+json'):
@@ -518,32 +524,3 @@ def post(url, cuds_object, rel=cuba.activeRelationship,
     return requests.post(url=url,
                          data=serialized,
                          headers={"content_type": "application/ld+json"})
-
-
-def sparql(query_string: str, session: Optional = None):
-    """Performs a SPARQL query on a session (if supported by the session).
-
-    Args:
-        query_string (str): A string with the SPARQL query to perform.
-        session (Session, optional): The session on which the SPARQL query
-            will be performed. If no session is specified, then the current
-            default session is used. This means that, when no session is
-            specified, inside session `with` statements, the query will be
-            performed on the session associated with such statement, while
-            outside, it will be performed on the OSP-core default session,
-            the core session.
-
-    Returns:
-        SparqlResult: A SparqlResult object, which can be iterated to obtain
-            the output rows. Then for each `row`, the value for each query
-            variable can be retrieved as follows: `row['variable']`.
-
-    Raises:
-        NotImplementedError: when the session does not support SPARQL queries.
-    """
-    session = session or Session.get_default_session()
-    try:
-        return session.sparql(query_string)
-    except AttributeError or NotImplementedError:
-        raise NotImplementedError(f'The session {session} does not support'
-                                  f' SPARQL queries.')

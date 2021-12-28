@@ -15,7 +15,7 @@ from osp.core.utils.datatypes import Triple, UID
 
 if TYPE_CHECKING:
     from osp.core.ontology.oclass import OntologyClass
-    from osp.core.session.session import Session
+    from osp.core.session import Session
 
 logger = logging.getLogger(__name__)
 

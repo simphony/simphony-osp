@@ -5,7 +5,7 @@ import itertools
 import rdflib
 from .benchmark import Benchmark
 from osp.core.ontology.parser import OntologyParser
-from osp.core.session.session import Session
+from osp.core.session import Session
 from osp.core.utils.datatypes import UID
 
 try:

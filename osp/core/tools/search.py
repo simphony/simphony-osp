@@ -1,4 +1,7 @@
 """This file contains utility method used for searching in CUDS objects."""
+from typing import Optional
+
+from osp.core.session import Session
 
 
 def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
@@ -148,3 +151,32 @@ def find_relationships(find_rel, root, consider_rel, find_sub_rels=False):
         rel=consider_rel,
         find_all=True
     )
+
+
+def sparql(query_string: str, session: Optional = None):
+    """Performs a SPARQL query on a session (if supported by the session).
+
+    Args:
+        query_string (str): A string with the SPARQL query to perform.
+        session (Session, optional): The session on which the SPARQL query
+            will be performed. If no session is specified, then the current
+            default session is used. This means that, when no session is
+            specified, inside session `with` statements, the query will be
+            performed on the session associated with such statement, while
+            outside, it will be performed on the OSP-core default session,
+            the core session.
+
+    Returns:
+        SparqlResult: A SparqlResult object, which can be iterated to obtain
+            the output rows. Then for each `row`, the value for each query
+            variable can be retrieved as follows: `row['variable']`.
+
+    Raises:
+        NotImplementedError: when the session does not support SPARQL queries.
+    """
+    session = session or Session.get_default_session()
+    try:
+        return session.sparql(query_string)
+    except AttributeError or NotImplementedError:
+        raise NotImplementedError(f'The session {session} does not support'
+                                  f' SPARQL queries.')

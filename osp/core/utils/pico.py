@@ -232,7 +232,7 @@ def pico():
         elif args.command == "list":
             print("Packages:")
             print("\n".join(map(lambda x: "\t- " + x, installed_identifiers)))
-            from osp.core.session.session import Session
+            from osp.core.session import Session
             installed_namespaces = tuple(namespace.name
                                          for namespace in
                                          Session.ontology.namespaces)

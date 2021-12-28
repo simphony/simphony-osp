@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING as _TYPE_CHECKING
 from rdflib import URIRef as _URIRef
 from rdflib.term import Identifier as _Identifier
 
-from osp.core.session.session import Session as _Session
+from osp.core.session import Session as _Session
 from osp.core.utils.pico import OntologyInstallationManager \
     as _OntologyInstallationManager
 

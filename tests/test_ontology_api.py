@@ -15,7 +15,8 @@ from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.parser import OntologyParser
-from osp.core.session.session import Session
+from osp.core.session import Session
+from osp.core.tools.search import sparql
 
 
 class TestCityOntology(unittest.TestCase):
@@ -1160,6 +1161,70 @@ class TestLoadParsers(unittest.TestCase):
             set(self.ontology.get_namespace(name)
                 for name in expected_namespaces),
         )
+
+    def test_sparql(self):
+        """Test SPARQL by creating a city and performing a very simple query.
+
+        Create a city with a single inhabitant and perform a very simple SPARQL
+        query using both the `sparql` function from utils and the sparql method
+        of the session.
+        """
+        # Clear the default session's contents.
+        Session.get_default_session().clear()
+
+        from osp.core.namespaces import city
+
+        def is_freiburg(iri):
+            value = str(iri)
+            if value == "Freiburg":
+                return True
+            else:
+                return False
+
+        freiburg = city.City(name='Freiburg', coordinates=[0, 0])
+        karl = city.Citizen(name="Karl", age=47)
+        freiburg.add(karl, rel=city.hasInhabitant)
+        default_session = freiburg.session
+        query = f"""SELECT ?city_name ?citizen ?citizen_age ?citizen_name
+                    WHERE {{ ?city a <{city.City.iri}> .
+                             ?city <{city['name'].iri}> ?city_name .
+                             ?city <{city.hasInhabitant.iri}> ?citizen .
+                             ?citizen <{city['name'].iri}> ?citizen_name .
+                             ?citizen <{city.age.iri}> ?citizen_age .
+                          }}
+                 """
+        datatypes = dict(
+            citizen=OntologyIndividual,
+            citizen_age=int,
+            citizen_name=str,
+            city_name=is_freiburg
+        )
+        results_none = sparql(query, session=None)
+        results_default_session = sparql(query, session=default_session)
+        results_default_session_method = default_session.sparql(query)
+        self.assertEqual(len(results_none), 1)
+        self.assertEqual(len(results_default_session), 1)
+        self.assertEqual(len(results_default_session_method), 1)
+
+        results = (next(results_none(**datatypes)),
+                   next(results_default_session(**datatypes)),
+                   next(results_default_session_method(**datatypes)))
+        self.assertTrue(all(result["citizen"].is_a(karl.oclass)
+                            for result in results))
+        self.assertTrue(all(result["citizen_age"] == karl.age
+                            for result in results))
+        self.assertTrue(all(result["citizen_name"] == karl.name
+                            for result in results))
+        self.assertTrue(all(result["city_name"]
+                            for result in results))
+
+        results = (next(iter(results_none)),
+                   next(iter(results_default_session)),
+                   next(iter(results_default_session_method)))
+        self.assertTrue(all(result['citizen'] == karl.iri
+                            for result in results))
+        self.assertTrue(all(type(result["citizen_age"]) != int
+                            for result in results))
 
 
 if __name__ == "__main__":

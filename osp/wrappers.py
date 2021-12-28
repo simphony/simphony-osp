@@ -1,8 +1,8 @@
-"""Lets interfaces be used in an user-friendly way.
+"""Lets interfaces be used in a user-friendly way.
 
 It scans the installed interfaces and adds their names to __dir__.
 
-When an the name of an interface requested, the returned object is a
+When the name of an interface requested, the returned object is a
 `_WrapperSpawner` class, which is a `Wrapper` class from
 osp.core.session.wrapper that has a default interface set. The `Wrapper`
 class is in fact a subclass of the session, that assigns a predefined
@@ -14,8 +14,8 @@ import os as _os
 import pkgutil as _pkgutil
 from typing import Type as _Type
 
-from osp.core.session.interfaces.interface import Interface as _Interface
-from osp.core.session.wrapper import WrapperSpawner as _Wrapper
+from osp.core.interfaces.interface import Interface as _Interface
+from osp.core.wrapper import WrapperSpawner as _Wrapper
 
 _self = __import__(__name__)
 

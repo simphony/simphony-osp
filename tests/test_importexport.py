@@ -11,7 +11,7 @@ from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 
 from osp.core.ontology.individual import OntologyIndividual
 from osp.core.ontology.parser import OntologyParser
-from osp.core.session.session import Session
+from osp.core.session import Session
 from osp.core.utils.general import import_cuds, export_cuds, branch
 
 # Load the ontology for the test.

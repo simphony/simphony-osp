@@ -10,8 +10,8 @@ from rdflib.plugins.stores.memory import SimpleMemory
 from rdflib.store import Store
 from rdflib.term import Identifier
 
-from osp.core.session.interfaces.interface import Interface
-from osp.core.session.session import Session
+from osp.core.interfaces.interface import Interface
+from osp.core.session import Session
 from osp.core.utils.datatypes import Triple, UID
 
 if TYPE_CHECKING:

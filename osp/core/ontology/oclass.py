@@ -16,7 +16,7 @@ from osp.core.utils.datatypes import AttributeValue, Triple, UID
 if TYPE_CHECKING:
     from osp.core.ontology.attribute import OntologyAttribute
     from osp.core.ontology.oclass_restriction import Restriction
-    from osp.core.session.session import Session
+    from osp.core.session import Session
 
 logger = logging.getLogger(__name__)
 

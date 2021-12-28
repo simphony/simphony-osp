@@ -12,7 +12,7 @@ from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.relationship import OntologyRelationship
 
 if TYPE_CHECKING:
-    from osp.core.session.session import Session
+    from osp.core.session import Session
 
 
 logger = logging.getLogger(__name__)
@@ -99,7 +99,7 @@ class OntologyNamespace:
             ontology: The ontology to which the namespace is connected.
             name: The name of the namespace
         """
-        from osp.core.session.session import Session
+        from osp.core.session import Session
         ontology = ontology or Session.get_default_session()
         self._iri = URIRef(iri)
         self._ontology = ontology

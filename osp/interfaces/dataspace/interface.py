@@ -1,7 +1,7 @@
 """The data space store connects OSP-core to a data space."""
 
-from osp.core.session.interfaces.remote.client import RemoteStoreClient
-from osp.core.session.interfaces.interface import Interface
+from osp.core.interfaces.remote.client import RemoteStoreClient
+from osp.core.interfaces.interface import Interface
 
 from typing import Optional, Dict, Any
 

@@ -7,9 +7,9 @@ from rdflib import BNode, Literal, URIRef
 from rdflib import RDF, RDFS, OWL, XSD
 
 from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.session.interfaces.triplestore import (
+from osp.core.interfaces.triplestore import (
     TriplestoreInterface, TriplestoreStore)
-from osp.core.session.session import Session
+from osp.core.session import Session
 from osp.core.utils.datatypes import (
     AttributeValue, CUSTOM_TO_PYTHON, rdf_to_python, SimpleTriple,
     SimplePattern, UID)

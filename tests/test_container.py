@@ -5,7 +5,7 @@ import unittest
 from rdflib import URIRef
 
 from osp.core.ontology.parser import OntologyParser
-from osp.core.session.session import Session
+from osp.core.session import Session
 
 
 class TestContainer(unittest.TestCase):

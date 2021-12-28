@@ -9,7 +9,7 @@ from rdflib import URIRef
 from osp.core.namespaces import cuba
 from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.individual import OntologyIndividual
-from osp.core.session.session import Session
+from osp.core.session import Session
 from osp.core.utils.cuba_namespace import cuba_namespace
 from osp.core.utils.datatypes import UID, AttributeValue, Triple
 

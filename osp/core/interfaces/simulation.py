@@ -2,7 +2,7 @@
 
 from abc import ABC
 
-from osp.core.session.interfaces.generic import GenericInterface,\
+from osp.core.interfaces.generic import GenericInterface,\
     GenericInterfaceStore
 
 

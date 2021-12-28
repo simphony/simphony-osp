@@ -10,9 +10,9 @@ from typing import Optional
 
 from osp.core.utils.datatypes import Vector
 from osp.core.ontology.parser import OntologyParser
-from osp.core.session.interfaces.remote.server import RemoteStoreServer
-from osp.core.session.interfaces.sql import SQLStore
-from osp.core.session.session import Session
+from osp.core.interfaces.remote.server import RemoteStoreServer
+from osp.core.interfaces.sql import SQLStore
+from osp.core.session import Session
 from osp.interfaces.sqlite.interface import SQLiteInterface
 
 

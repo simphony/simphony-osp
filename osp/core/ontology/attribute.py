@@ -10,7 +10,7 @@ from osp.core.ontology.entity import OntologyEntity
 from osp.core.utils.datatypes import rdf_to_python, Triple, UID
 
 if TYPE_CHECKING:
-    from osp.core.session.session import Session
+    from osp.core.session import Session
 
 logger = logging.getLogger(__name__)
 

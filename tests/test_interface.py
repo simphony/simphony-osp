@@ -15,12 +15,12 @@ from rdflib import RDF, Graph, URIRef
 from osp.core.namespaces import cuba
 from osp.core.utils.datatypes import UID, Vector
 from osp.core.ontology.parser import OntologyParser
-from osp.core.session.interfaces.generic import GenericInterface,\
+from osp.core.interfaces.generic import GenericInterface,\
     GenericInterfaceStore
-from osp.core.session.interfaces.remote.client import RemoteStoreClient
-from osp.core.session.interfaces.remote.server import RemoteStoreServer
-from osp.core.session.interfaces.sql import SQLStore
-from osp.core.session.session import Session
+from osp.core.interfaces.remote.client import RemoteStoreClient
+from osp.core.interfaces.remote.server import RemoteStoreServer
+from osp.core.interfaces.sql import SQLStore
+from osp.core.session import Session
 from osp.interfaces.sqlite.interface import SQLiteInterface
 from osp.wrappers import sqlite
 

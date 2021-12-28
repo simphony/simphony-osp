@@ -19,6 +19,7 @@ from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.utils import compatible_classes
 from osp.core.utils.cuba_namespace import cuba_namespace
 from osp.core.utils.datatypes import UID
+from osp.core.utils.sparql import SparqlResult
 
 
 class Session:
@@ -320,7 +321,7 @@ class Session:
 
     def run(self) -> None:
         """Run simulations on supported graph stores."""
-        from osp.core.session.interfaces.remote.client import RemoteStoreClient
+        from osp.core.interfaces.remote.client import RemoteStoreClient
         if hasattr(self._graph.store, 'run'):
             self.commit()
             self._graph.store.interface.run()
@@ -755,6 +756,21 @@ class Session:
             ) is not None
             if not entity_triples_exist:
                 self.creation_set.add(identifier)
+
+    def sparql(self, query_string):
+        """Execute the given SPARQL query on the backend.
+
+        Args:
+            query_string (str): A string with the SPARQL query to perform.
+
+        Returns:
+            SparqlResult: A SparqlResult object, which can be iterated to
+                obtain he output rows. Then for each `row`, the value for each
+                query variable can be retrieved as follows: `row['variable']`.
+        """
+        # TODO: Support update queries.
+        return SparqlResult(session=self,
+                            rdflib_result=self._graph.query(query_string))
 
 # Legacy code
 # ↓ ------- ↓

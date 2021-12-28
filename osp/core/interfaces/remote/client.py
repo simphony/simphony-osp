@@ -14,10 +14,10 @@ from rdflib.term import Identifier
 from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 from rdflib.plugins.stores.memory import SimpleMemory
 
-from osp.core.session.interfaces.generic import BufferType
-from osp.core.session.interfaces.remote.communication_engine import \
+from osp.core.interfaces.generic import BufferType
+from osp.core.interfaces.remote.communication_engine import \
     CommunicationEngineClient
-from osp.core.session.interfaces.remote.utils import (
+from osp.core.interfaces.remote.utils import (
     ADD_TRIPLES_COMMAND, COMMIT_COMMAND, DELETE_FILES_COMMAND,
     FETCH_FILES_COMMAND, FETCH_TRIPLES_COMMAND, HASH_FILES_COMMAND,
     LOGIN_COMMAND, REMOVE_TRIPLES_COMMAND, RENAME_FILES_COMMAND,

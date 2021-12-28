@@ -22,7 +22,7 @@ from osp.core.utils.datatypes import (
 from osp.core.utils.cuba_namespace import cuba_namespace
 
 if TYPE_CHECKING:
-    from osp.core.session.session import Session
+    from osp.core.session import Session
 
 logger = logging.getLogger(__name__)
 

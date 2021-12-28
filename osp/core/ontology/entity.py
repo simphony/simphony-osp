@@ -14,8 +14,8 @@ from osp.core.utils.datatypes import Triple, UID
 if TYPE_CHECKING:
     from osp.core.ontology.interactive.container import Container
     from osp.core.ontology.namespace import OntologyNamespace
-    from osp.core.session.session import Session
-    from osp.core.session.wrapper import Wrapper
+    from osp.core.session import Session
+    from osp.core.wrapper import Wrapper
 
 
 logger = logging.getLogger(__name__)
@@ -379,10 +379,10 @@ class OntologyEntity(ABC):
                                      "identifier.")
                 self.__graph.add((s, p, o))
 
-        from osp.core.session.wrapper import Wrapper
+        from osp.core.wrapper import Wrapper
         if session is None:
             from osp.core.ontology.interactive.container import Container
-            from osp.core.session.session import Session
+            from osp.core.session import Session
             environment = Container.get_current_container_context() or \
                 Session.get_default_session()
             with environment:
