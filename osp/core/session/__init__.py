@@ -1,3 +1,8 @@
+"""Session module for the SimPhoNy OSP.
+
+This module is the bridge between the RDF format and an OWL ontology interface.
+"""
+
 # from osp.core.session.core_session import CoreSession
 # from osp.core.session.file_wrapper_session import FileWrapperSession
 # from osp.core.session.session import Session

@@ -345,21 +345,6 @@ def delete_cuds_object_recursively(cuds_object, rel=cuba.activeRelationship,
         obj.ontology.delete_cuds_object(obj)
 
 
-def remove_cuds_object(cuds_object):
-    """Remove a cuds_object from the data structure.
-
-    Removes the relationships to all neighbors.
-    To delete it from the registry you must call the
-    sessions prune method afterwards.
-
-    Args:
-        cuds_object (Cuds): The cuds_object to remove.
-    """
-    # Method does not allow deletion of the root element of a container
-    for elem in cuds_object.iter(rel=cuba.relationship):
-        cuds_object.remove(elem.uid, rel=cuba.relationship)
-
-
 def import_cuds(path_or_filelike: Union[str, TextIO, dict, List[dict]],
                 session: Optional = None,
                 format: str = None):

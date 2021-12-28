@@ -132,6 +132,8 @@ class OntologyAttribute(OntologyEntity):
         #  rdf:Property, owl:DatatypeProperty, owl:ObjectProperty and
         #  owl:AnnotationProperty.
 
+        yield self.session.from_identifier(OWL.topDataProperty)
+
     def _get_subclasses(self) -> Iterator[OntologyEntity]:
         """Get all the subclasses of this attribute.
 

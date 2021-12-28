@@ -14,8 +14,7 @@ from rdflib import RDF, Graph, URIRef
 
 from osp.core.namespaces import cuba
 from osp.core.utils.datatypes import UID, Vector
-from osp.core.ontology.parser.owl.parser import OWLParser
-from osp.core.ontology.parser.yml.parser import YMLParser
+from osp.core.ontology.parser import OntologyParser
 from osp.core.session.interfaces.generic import GenericInterface,\
     GenericInterfaceStore
 from osp.core.session.interfaces.remote.client import RemoteStoreClient
@@ -198,8 +197,10 @@ class TestTriplestoreInterface(unittest.TestCase):
 
         # Create the TBox.
         ontology = Session(identifier='test-tbox', ontology=True)
-        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
-                       OWLParser(yml_path)):
+        for parser in (OntologyParser.get_parser('cuba'),
+                       OntologyParser.get_parser('owl'),
+                       OntologyParser.get_parser('rdfs'),
+                       OntologyParser.get_parser(yml_path)):
             ontology.load_parser(parser)
         cls.prev_default_ontology = Session.ontology
         Session.ontology = ontology
@@ -301,8 +302,10 @@ class TestTriplestoreWrapper(unittest.TestCase):
         The new TBox contains CUBA, OWL, RDFS and City.
         """
         ontology = Session(identifier='test_tbox', ontology=True)
-        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
-                       YMLParser('city')):
+        for parser in (OntologyParser.get_parser('cuba'),
+                       OntologyParser.get_parser('owl'),
+                       OntologyParser.get_parser('rdfs'),
+                       OntologyParser.get_parser('city')):
             ontology.load_parser(parser)
         cls.prev_default_ontology = Session.ontology
         Session.ontology = ontology
@@ -378,8 +381,10 @@ class TestRemoteStoreSQLite(unittest.TestCase):
         The new TBox contains CUBA, OWL, RDFS and City.
         """
         ontology = Session(identifier='test_tbox', ontology=True)
-        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
-                       YMLParser('city')):
+        for parser in (OntologyParser.get_parser('cuba'),
+                       OntologyParser.get_parser('owl'),
+                       OntologyParser.get_parser('rdfs'),
+                       OntologyParser.get_parser('city')):
             ontology.load_parser(parser)
         cls.prev_default_ontology = Session.ontology
         Session.ontology = ontology
@@ -473,7 +478,8 @@ class TestRemoteStoreSQLite(unittest.TestCase):
         from osp.core.namespaces import city
 
         with self.client_session_generator() as session:
-            freiburg = city.City(name='Freiburg')
+            freiburg = city.City(name='Freiburg',
+                                 coordinates=[0, 0])
             klaus = city.Citizen(name='Klaus', age=30)
             freiburg[city.hasInhabitant] = klaus
             freiburg_identifier = freiburg.identifier
@@ -666,7 +672,6 @@ class TestRemoteStoreSQLite(unittest.TestCase):
 
             with self.client_session_generator() as session:
                 file = session.from_identifier(file_identifier)
-                print(file)
                 self.assertEqual(
                     session.graph.store.client_files_dir.name,
                     os.path.dirname(file.path)

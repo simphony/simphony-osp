@@ -221,8 +221,8 @@ class OntologyClass(OntologyEntity):
         """
         return filter(lambda x: isinstance(x, OntologyClass),
                       (self.session.from_identifier(o)
-                       for o in self.session.graph.objects(self.iri,
-                                                           RDFS.subClassOf))
+                       for o in self.session.ontology_graph.objects(
+                          self.iri, RDFS.subClassOf))
                       )
 
     def _get_direct_subclasses(self) -> Iterator[OntologyEntity]:
@@ -233,7 +233,8 @@ class OntologyClass(OntologyEntity):
         """
         return filter(lambda x: isinstance(x, OntologyClass),
                       (self.session.from_identifier(s) for s in
-                       self.session.graph.subjects(RDFS.subClassOf, self.iri))
+                       self.session.ontology_graph.subjects(
+                           RDFS.subClassOf, self.iri))
                       )
 
     def _get_superclasses(self) -> Iterator[OntologyEntity]:
@@ -251,9 +252,11 @@ class OntologyClass(OntologyEntity):
         yield from filter(lambda x: isinstance(x, OntologyClass),
                           (self.session.from_identifier(x)
                            for x in
-                           self.session.graph.transitiveClosure(
+                           self.session.ontology_graph.transitiveClosure(
                                closure, self.identifier))
                           )
+
+        yield self.session.from_identifier(OWL.Thing)
 
     def _get_subclasses(self) -> Iterator[OntologyEntity]:
         """Get all the subclasses of this ontology class.
@@ -270,7 +273,7 @@ class OntologyClass(OntologyEntity):
         yield from filter(lambda x: isinstance(x, OntologyClass),
                           (self.session.from_identifier(x)
                            for x in
-                           self.session.graph.transitiveClosure(
+                           self.session.ontology_graph.transitiveClosure(
                                closure, self.identifier))
                           )
 
@@ -296,10 +299,13 @@ class OntologyClass(OntologyEntity):
         attributes = dict()
         for attribute, (default, obligatory) \
                 in self.attribute_declaration.items():
-            if attribute.label is not None \
-                    and attribute.label in kwargs:
-                attributes[attribute] = kwargs[attribute.label]
-                del kwargs[attribute.label]
+            labels = set(attribute.iter_labels(return_literal=False))
+            if attribute.namespace is not None:
+                labels |= {attribute.identifier[len(attribute.namespace.iri):]}
+            label = next(filter(lambda x: x in kwargs, labels), None)
+            if label is not None:
+                attributes[attribute] = kwargs[label]
+                del kwargs[label]
             elif not _skip_checks and obligatory:
                 raise TypeError("Missing keyword argument: %s" %
                                 attribute.label)
@@ -369,10 +375,6 @@ class OntologyClass(OntologyEntity):
 
         from osp.core.namespaces import cuba
         from osp.core.ontology.individual import OntologyIndividual
-
-        if self.is_subclass_of(cuba.Nothing):
-            raise TypeError("Cannot instantiate cuds object for ontology class"
-                            " cuba.Nothing.")
 
         if self.is_subclass_of(cuba.Container):
             from osp.core.ontology.interactive.container import Container

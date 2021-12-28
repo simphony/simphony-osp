@@ -3,6 +3,7 @@
 import sys
 
 from osp.core.namespaces import cuba
+from osp.core.ontology.relationship import OntologyRelationship
 
 
 def pretty_print(cuds_object, file=sys.stdout):
@@ -24,7 +25,6 @@ def pretty_print(cuds_object, file=sys.stdout):
     values_str = _pp_values(cuds_object)
     if values_str:
         pp += "\n  values: " + _pp_values(cuds_object)
-    pp += "\n  description: \n    %s\n" % cuds_object.oclass.description
     pp += _pp_subelements(cuds_object)
 
     print(pp, file=file)
@@ -61,9 +61,19 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
         str: string with the pretty printed text
     """
     pp_sub = ""
+    consider_relationships = set()
+    for predicate in cuds_object.session.graph.predicates(
+            cuds_object.identifier, None):
+        try:
+            relationship = cuds_object.session.ontology.from_identifier(
+                predicate)
+            if isinstance(relationship, OntologyRelationship):
+                consider_relationships |= {relationship}
+        except KeyError:
+            pass
     filtered_relationships = filter(
         lambda x: x.is_subclass_of(cuba.activeRelationship),
-        cuds_object._neighbors.keys())
+        consider_relationships)
     sorted_relationships = sorted(filtered_relationships, key=str)
     visited = visited or set()
     visited.add(cuds_object.uid)
@@ -117,9 +127,8 @@ def _pp_values(cuds_object, indentation="\n          "):
     sorted_attributes = sorted(cuds_object.get_attributes().items(),
                                key=lambda x: (str(x[0]), str(x[1])))
     for attribute, value in sorted_attributes:
-        if attribute.argname != "name":
-            result.append("%s: %s" % (attribute.argname,
-                                      value if not len(value) == 1 else
-                                      next(iter(value))))
+        result.append("%s: %s" % (attribute,
+                                  value if not len(value) == 1 else
+                                  next(iter(value))))
     if result:
         return indentation.join(result)

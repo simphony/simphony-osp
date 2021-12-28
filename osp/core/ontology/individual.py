@@ -589,7 +589,7 @@ class OntologyIndividual(OntologyEntity):
                             "Should be an OntologyRelationship." % type(rel))
         if oclass is not None and not isinstance(oclass, OntologyClass):
             raise TypeError("Found object of type %s passed to argument "
-                            "oclass. Should be an OntologyClass."
+                            "class. Should be an OntologyClass."
                             % type(oclass))
 
         # --- Call without `*uids` and with `return_rel=False`(order does not
@@ -600,6 +600,11 @@ class OntologyIndividual(OntologyEntity):
             return
 
         # --- Call with `uids`.
+
+        for uid in uids:
+            if not isinstance(uid, UID):
+                raise TypeError(f'Expected UID objects as positional '
+                                f'arguments, not {type(uid)}.')
 
         # Consider either the given relationship and subclasses or all
         #  relationships.
@@ -627,9 +632,12 @@ class OntologyIndividual(OntologyEntity):
             connected_identifiers = self.session.graph.objects(
                 self.identifier, rel.identifier
             )
+            connected_uids = map(UID, connected_identifiers)
+            if uids:
+                connected_uids = set(connected_uids) & set(uids)
             mapping.update(
-                (identifier, mapping.get(identifier, set()) | {rel})
-                for identifier in connected_identifiers
+                (uid, mapping.get(uid, set()) | {rel})
+                for uid in connected_uids
             )
 
         result = (self.session.from_identifier(uid.to_identifier())
@@ -697,9 +705,9 @@ class OntologyIndividual(OntologyEntity):
                oclass: Optional[OntologyClass] = None) -> None:
         """Remove elements from the CUDS object.
 
-        Expected calls are remove(), remove(*uids_or_cuds), remove(rel=___),
-        remove(oclass=___), remove(*uids_or_cuds, rel=___),
-        remove(rel=___, oclass=___).
+        Expected calls are remove(), remove(*uids_or_individuals),
+        remove(rel=___), remove(oclass=___),
+        remove(*uids_or_individuals, rel=___), remove(rel=___, oclass=___).
 
         Args:
             uids_or_individuals: Optionally, specify the UIDs of the elements
@@ -718,6 +726,9 @@ class OntologyIndividual(OntologyEntity):
             TypeError: Incorrect argument types.
             ValueError: Both uids and an oclass passed to the function.
         """
+        if isinstance(rel, Identifier):
+            rel = self.session.ontology.from_identifier(rel)
+
         if uids_or_individuals and oclass is not None:
             raise ValueError("Do not specify both uids and oclass.")
         if rel is not None and not isinstance(rel, OntologyRelationship):
@@ -731,7 +742,9 @@ class OntologyIndividual(OntologyEntity):
         for x in uids_or_individuals:
             if isinstance(x, OntologyIndividual):
                 uids += [x.uid]
-            elif not isinstance(x, UID):
+            elif isinstance(x, UID):
+                uids += [x]
+            else:
                 raise TypeError(f'Expected {OntologyIndividual} or {UID} '
                                 f'objects, not {type(x)}.')
 
@@ -752,9 +765,12 @@ class OntologyIndividual(OntologyEntity):
             connected_identifiers = self.session.graph.objects(
                 self.identifier, rel.identifier
             )
+            connected_uids = map(UID, connected_identifiers)
+            if uids:
+                connected_uids = set(connected_uids) & set(uids)
             mapping.update(
-                (identifier, mapping.get(identifier, set()) | {rel})
-                for identifier in connected_identifiers
+                (uid, mapping.get(uid, set()) | {rel})
+                for uid in connected_uids
             )
         if not mapping:
             logger.warning("Did not remove any Cuds object, because none "
@@ -764,6 +780,10 @@ class OntologyIndividual(OntologyEntity):
         for uid, relationship_set in mapping.items():
             relationship_set = relationship_set or {None}
             for relationship in (r.identifier for r in relationship_set):
+                if oclass \
+                        and not self.session.from_identifier(
+                        uid.to_identifier()).is_a(oclass):
+                    continue
                 self.session.graph.remove((
                     self.identifier,
                     relationship,
@@ -1401,7 +1421,7 @@ class OntologyIndividual(OntologyEntity):
         connected object is added to the session of this ontology individual.
 
         Args:
-            other: The ontology individual to connect.
+            other: The ontology individual(s) to connect.
             rel: The relationship to use.
 
         Raises:
@@ -1418,12 +1438,12 @@ class OntologyIndividual(OntologyEntity):
                 (self.identifier, rel.identifier, individual.identifier))
 
     def _disconnect(self,
-                    other: Optional["OntologyIndividual"] = None,
+                    *other: "OntologyIndividual",
                     rel: Optional[OntologyRelationship] = None):
         """Disconnect ontology individuals from this one.
 
         Args:
-            other: The ontology individual to disconnect. When not
+            other: The ontology individual(s) to disconnect. When not
                 specified, this ontology individual will be disconnected
                 from all connected individuals.
             rel: This ontology individual will be disconnected from `other`
@@ -1444,9 +1464,12 @@ class OntologyIndividual(OntologyEntity):
         else:
             predicates = {rel.identifier}
 
-        s, o = self.identifier, other.identifier if other is not None else None
-        for p in predicates:
-            self.session.graph.remove((s, p, o))
+        other = other if other else {None}
+        for item in other:
+            s, o = self.identifier, item.identifier \
+                if item is not None else None
+            for p in predicates:
+                self.session.graph.remove((s, p, o))
 
     def _iter(self,
               rel: Optional[OntologyRelationship] = None,
@@ -1508,13 +1531,13 @@ class OntologyIndividual(OntologyEntity):
             """Fix the liked OntologyRelationship and ontology individual."""
             if relationship is not None \
                     and not isinstance(relationship, OntologyRelationship):
-                raise ValueError("Found object of type %s. "
-                                 "Should be an OntologyRelationship."
-                                 % type(relationship))
+                raise TypeError("Found object of type %s. "
+                                "Should be an OntologyRelationship."
+                                % type(relationship))
             if oclass is not None and not isinstance(oclass, OntologyClass):
-                raise ValueError("Found object of type %s oclass. Should be "
-                                 "an OntologyClass."
-                                 % type(oclass))
+                raise TypeError("Found object of type %s oclass. Should be "
+                                "an OntologyClass."
+                                % type(oclass))
             self._class_filter = oclass
             super().__init__(relationship, individual)
 
@@ -1547,10 +1570,12 @@ class OntologyIndividual(OntologyEntity):
                 for o in self._individual.session.graph.objects(
                         self._individual.identifier, predicate):
                     if o not in yielded:
+                        item = self._individual.session.from_identifier(o)
+                        if (self._class_filter
+                                and not item.is_a(self._class_filter)):
+                            continue
                         yielded.add(o)
-                        yield self._individual.session.from_identifier(
-                            o
-                        )
+                        yield item
 
         def __contains__(self, item: "OntologyIndividual") -> bool:
             """Check if an individual is connected via the relationship."""

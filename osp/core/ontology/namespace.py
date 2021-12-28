@@ -10,8 +10,6 @@ from rdflib.term import Identifier
 
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.parser.yml.case_insensitivity import \
-    get_case_insensitive_alternative as alt
 
 if TYPE_CHECKING:
     from osp.core.session.session import Session
@@ -261,13 +259,7 @@ class OntologyNamespace:
                 performed.
         """
         iri = URIRef(str(self._iri) + suffix)
-        try:
-            return self.from_iri(iri)
-        except KeyError as e:
-            if not case_sensitive:
-                return self._get_case_insensitive(suffix,
-                                                  self.from_suffix)
-            raise e
+        return self.from_iri(iri)
 
     def from_label(self,
                    label: str,
@@ -376,57 +368,3 @@ class OntologyNamespace:
 
     # Query content stored in the linked session's bag
     # ↑-----------------------------------------------↑
-
-    # Backwards compatibility.
-    # ↓----------------------↓
-
-    def _get_case_insensitive(self, name: str,
-                              method: callable) -> OntologyEntity:
-        """Get by trying alternative naming convention of given name.
-
-        Args:
-            name: The name of the entity.
-            method: The callable that finds the alternative string.
-
-        Returns:
-            The ontology entity.
-
-        Raises:
-            KeyError: Reference to unknown entity.
-        """
-        alternative = alt(name, self.name == "cuba")
-        if alternative is None:
-            raise KeyError(
-                f"Unknown entity '{name}' in namespace {self.name}."
-            )
-
-        r = None
-        exception = None
-        try:
-            r = method(alternative, case_sensitive=True)
-        except KeyError as e:
-            if name and name.startswith("INVERSE_OF_"):
-                try:
-                    r = method(name[11:], case_sensitive=False).inverse
-                except KeyError:
-                    raise e
-            exception = e
-        if r is not None:
-            logger.warning(
-                f"{alternative} is referenced with '{name}'. "
-                f"Note that referencing entities will be case sensitive "
-                f"in future releases. Additionally, entity names defined "
-                f"in YAML ontology are no longer required to be ALL_CAPS. "
-                f"You can use the yaml2camelcase "
-                f"commandline tool to transform entity names to CamelCase."
-            )
-        else:
-            raise KeyError(
-                f"Unknown entity '{name}' in namespace {self.name}. "
-                f"For backwards compatibility reasons we also "
-                f"looked for {alternative} and failed."
-            ) from exception
-        return r
-
-    # Backwards compatibility.
-    # ↑----------------------↑

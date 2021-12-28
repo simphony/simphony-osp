@@ -1,10 +1,10 @@
+"""Core module of the SimPhoNy OSP."""
+
 import logging as _logging
 
-# Load the tbox when importing any submodule.
-import osp.core.namespaces
-
-# Set the default session when importing any submodule.
-import osp.core.session
+# Load the tbox and set the default session when importing any submodule.
+import osp.core.namespaces as _namespaces
+assert _namespaces.cuba  # -> Do not complain about unused _namespaces flake8).
 
 _logging.getLogger("rdflib").setLevel(_logging.WARNING)
 

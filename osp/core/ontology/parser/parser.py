@@ -126,19 +126,6 @@ class OntologyParser(ABC):
         return doc
 
     @staticmethod
-    def is_yaml_ontology(doc):
-        """Check whether the given YAML document is a YAML ontology.
-
-        Args:
-            doc (dict): A loaded YAML document.
-
-        Returns:
-            bool: Whether the given document is a YAML ontology.
-        """
-        import osp.core.ontology.parser.yml.keywords as keywords
-        return keywords.ONTOLOGY_KEY in doc and keywords.NAMESPACE_KEY in doc
-
-    @staticmethod
     def is_owl_ontology(doc: dict) -> bool:
         """Tells whether a given YAML doc is an OWL ontology config file.
 
@@ -157,49 +144,10 @@ class OntologyParser(ABC):
             path (str): path to the YAML file
         """
         from osp.core.ontology.parser.owl.parser import OWLParser
-        from osp.core.ontology.parser.yml.parser import YMLParser
         file_path = cls.parse_file_path(path)
         yaml_doc = cls.load_yaml(file_path)
-        if cls.is_yaml_ontology(yaml_doc):
-            parser = YMLParser(file_path)
-        elif cls.is_owl_ontology(yaml_doc):
+        if cls.is_owl_ontology(yaml_doc):
             parser = OWLParser(file_path)
         else:
             raise SyntaxError(f"Invalid format of file {file_path}")
         return parser
-
-
-class Parser:
-    """For backwards compatibility: do not break wrapper's unit tests."""
-
-    def __init__(self, parser_namespace_registry=None):
-        """Initialize the parser.
-
-        Args:
-            graph (rdflib.Graph): The graph to add the triples to.
-                might already contain some triples.
-            parser_namespace_registry (NamespaceRegistry): The namespace
-                registry that should be connected to this parser. The parser
-                will register the read namespaces in this specific namespace
-                registry. If none is provided, then the default
-                (namespace_registry from osp.core.ontology.namespace_registry)
-                will be used. In fact, you should never create several
-                namespace registries, except on unit tests.
-        """
-        from osp.core.ontology.namespace_registry import namespace_registry
-        self._namespace_registry = parser_namespace_registry or \
-            namespace_registry
-
-    @staticmethod
-    def parse(path: str):
-        """Directly loads an ontology in the namespace registry.
-
-        The format of the ontology is automatically recognized.
-
-        Args:
-            path (str): The path of the YAML ontology file or OWL ontology YAML
-                configuration file to load.
-        """
-        from osp.core.ontology.namespace_registry import namespace_registry
-        parser = OntologyParser.get_parser(path)
-        namespace_registry.load_parser(parser)

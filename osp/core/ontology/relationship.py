@@ -49,7 +49,8 @@ class OntologyRelationship(OntologyEntity):
             The direct superrelationships.
         """
         return (self.session.from_identifier(o) for o in
-                self.session.graph.objects(self.iri, RDFS.subPropertyOf))
+                self.session.ontology_graph.objects(
+                    self.iri, RDFS.subPropertyOf))
 
     def _get_direct_subclasses(self) -> Iterator[OntologyEntity]:
         """Get all the direct subclasses of this relationship.
@@ -58,7 +59,8 @@ class OntologyRelationship(OntologyEntity):
             OntologyRelationship: The direct subrelationships
         """
         return (self.session.from_identifier(s) for s in
-                self.session.graph.subjects(RDFS.subPropertyOf, self.iri))
+                self.session.ontology_graphgraph.subjects(
+                    RDFS.subPropertyOf, self.iri))
 
     def _get_superclasses(self) -> Iterator[OntologyEntity]:
         """Get all the superclasses of this relationship.
@@ -74,8 +76,10 @@ class OntologyRelationship(OntologyEntity):
 
         yield from (
             self.session.from_identifier(x)
-            for x in self.session.graph.transitiveClosure(closure,
-                                                          self.identifier))
+            for x in self.session.ontology_graph.transitiveClosure(
+                closure, self.identifier))
+
+        yield self.session.from_identifier(OWL.topObjectProperty)
 
     def _get_subclasses(self) -> Iterator[OntologyEntity]:
         """Get all the subclasses of this relationship.
@@ -91,5 +95,5 @@ class OntologyRelationship(OntologyEntity):
 
         yield from (
             self.session.from_identifier(x)
-            for x in self.session.graph.transitiveClosure(closure,
-                                                          self.identifier))
+            for x in self.session.ontology_graph.transitiveClosure(
+                closure, self.identifier))

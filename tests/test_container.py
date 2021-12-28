@@ -4,8 +4,7 @@ import unittest
 
 from rdflib import URIRef
 
-from osp.core.ontology.parser.owl.parser import OWLParser
-from osp.core.ontology.parser.yml.parser import YMLParser
+from osp.core.ontology.parser import OntologyParser
 from osp.core.session.session import Session
 
 
@@ -21,8 +20,10 @@ class TestContainer(unittest.TestCase):
         The new TBox contains CUBA, OWL, RDFS and City.
         """
         ontology = Session(identifier='test-tbox', ontology=True)
-        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
-                       YMLParser('city')):
+        for parser in (OntologyParser.get_parser('cuba'),
+                       OntologyParser.get_parser('owl'),
+                       OntologyParser.get_parser('rdfs'),
+                       OntologyParser.get_parser('city')):
             ontology.load_parser(parser)
         cls.prev_default_ontology = Session.ontology
         Session.ontology = ontology
@@ -79,7 +80,9 @@ class TestContainer(unittest.TestCase):
         container.close()
 
         fr_session = Session()
-        fr = city.City(name='Freiburg', session=fr_session)
+        fr = city.City(name='Freiburg',
+                       coordinates=[0, 0],
+                       session=fr_session)
         container.references = {fr.iri}
         default_session = Session.get_default_session()
 
@@ -127,7 +130,7 @@ class TestContainer(unittest.TestCase):
         with fr_session:
             with container:
                 self.assertSetEqual({fr}, set(container))
-                pr = city.City(name='Paris')
+                pr = city.City(name='Paris', coordinates=[0, 0])
                 self.assertSetEqual({fr, pr}, set(container))
 
     def test_container_multiple_sessions(self):

@@ -9,8 +9,7 @@ import unittest
 from typing import Optional
 
 from osp.core.utils.datatypes import Vector
-from osp.core.ontology.parser.owl.parser import OWLParser
-from osp.core.ontology.parser.yml.parser import YMLParser
+from osp.core.ontology.parser import OntologyParser
 from osp.core.session.interfaces.remote.server import RemoteStoreServer
 from osp.core.session.interfaces.sql import SQLStore
 from osp.core.session.session import Session
@@ -34,8 +33,10 @@ class TestWrapper(unittest.TestCase):
         The new TBox contains CUBA, OWL, RDFS and City.
         """
         ontology = Session(identifier='test_tbox', ontology=True)
-        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
-                       YMLParser('city')):
+        for parser in (OntologyParser.get_parser('cuba'),
+                       OntologyParser.get_parser('owl'),
+                       OntologyParser.get_parser('rdfs'),
+                       OntologyParser.get_parser('city')):
             ontology.load_parser(parser)
         cls.prev_default_ontology = Session.ontology
         Session.ontology = ontology
@@ -113,7 +114,7 @@ class TestWrapper(unittest.TestCase):
 
             wrapper.commit()
 
-        pr = city.City(name='Paris')
+        pr = city.City(name='Paris', coordinates=[0, 0])
 
         with sqlite(self.file_name) as wrapper:
             self.assertEqual(len(wrapper), 0)
@@ -130,7 +131,8 @@ class TestWrapper(unittest.TestCase):
         from osp.core.namespaces import city
         from osp.wrappers import sqlite
 
-        fr = city.City(iri='http://example.org/Freiburg', name='Freiburg')
+        fr = city.City(iri='http://example.org/Freiburg', name='Freiburg',
+                       coordinates=[0, 0])
 
         with sqlite(self.file_name, root=fr) as freiburg_as_wrapper_1:
             marco = city.Citizen(iri='http://example.org/citizens#Marco',
@@ -177,8 +179,10 @@ class TestDataspaceWrapper(unittest.TestCase):
         The new TBox contains CUBA, OWL, RDFS and City.
         """
         ontology = Session(identifier='test_tbox', ontology=True)
-        for parser in (OWLParser('cuba'), OWLParser('owl'), OWLParser('rdfs'),
-                       YMLParser('city')):
+        for parser in (OntologyParser.get_parser('cuba'),
+                       OntologyParser.get_parser('owl'),
+                       OntologyParser.get_parser('rdfs'),
+                       OntologyParser.get_parser('city')):
             ontology.load_parser(parser)
         cls.prev_default_ontology = Session.ontology
         Session.ontology = ontology
@@ -326,7 +330,7 @@ class TestDataspaceWrapper(unittest.TestCase):
 
             wrapper.commit()
 
-        pr = city.City(name='Paris')
+        pr = city.City(name='Paris', coordinates=[0, 0])
 
         with dataspace(f'ws://username:password@{self.host}:{self.port}',
                        'test_wrapper_dataspace_db_main.db'
