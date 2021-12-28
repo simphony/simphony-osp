@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING as _TYPE_CHECKING
 from rdflib import URIRef as _URIRef
 from rdflib.term import Identifier as _Identifier
 
-from osp.core.ontology.parser import OntologyParser as _OntologyParser
 from osp.core.session.session import Session as _Session
 from osp.core.utils.pico import OntologyInstallationManager \
     as _OntologyInstallationManager
@@ -25,14 +24,6 @@ _logger = _logging.getLogger(__name__)
 # Load the ontologies.
 _default_ontology = _Session.ontology
 try:
-    # Load built-in ontologies.
-    _parser = _OntologyParser.get_parser('cuba')
-    _default_ontology.load_parser(_parser)
-    _parser = _OntologyParser.get_parser('owl')
-    _default_ontology.load_parser(_parser)
-    _parser = _OntologyParser.get_parser('rdfs')
-    _default_ontology.load_parser(_parser)
-
     # Sort installed ontologies for loading (topological sort).
     _InstallationManager = _OntologyInstallationManager()
     _parsers = _InstallationManager.topologically_sorted_parsers

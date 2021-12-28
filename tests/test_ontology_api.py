@@ -31,11 +31,7 @@ class TestCityOntology(unittest.TestCase):
         The new TBox contains CUBA, OWL, RDFS and City.
         """
         cls.ontology = Session(identifier='test-tbox', ontology=True)
-        for parser in (OntologyParser.get_parser('cuba'),
-                       OntologyParser.get_parser('owl'),
-                       OntologyParser.get_parser('rdfs'),
-                       OntologyParser.get_parser('city')):
-            cls.ontology.load_parser(parser)
+        cls.ontology.load_parser(OntologyParser.get_parser('city'))
         cls.prev_default_ontology = Session.ontology
         Session.ontology = cls.ontology
 
@@ -808,11 +804,7 @@ class TestFOAFOntology(unittest.TestCase):
             yml_path = file.name
 
         cls.ontology = Session(identifier='test-tbox', ontology=True)
-        for parser in (OntologyParser.get_parser('cuba'),
-                       OntologyParser.get_parser('owl'),
-                       OntologyParser.get_parser('rdfs'),
-                       OntologyParser.get_parser(yml_path)):
-            cls.ontology.load_parser(parser)
+        cls.ontology.load_parser(OntologyParser.get_parser(yml_path))
         cls.prev_default_ontology = Session.ontology
         Session.ontology = cls.ontology
 
@@ -1057,6 +1049,11 @@ class TestLoadParsers(unittest.TestCase):
             self.ontology.load_parser(parser)
 
         # Test that all namespaces were loaded.
+        required_namespaces = {
+            'cuba': 'http://www.osp-core.com/cuba#',
+            'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
+            'owl': 'http://www.w3.org/2002/07/owl#',
+        }
         city_namespaces = {'city': "http://www.osp-core.com/city#"}
         foaf_namespaces = {'foaf': "http://xmlns.com/foaf/0.1/"}
         dcat2_namespaces = {'dcat2': "http://www.w3.org/ns/dcat#"}
@@ -1080,8 +1077,9 @@ class TestLoadParsers(unittest.TestCase):
             'top': "http://emmo.info/emmo/top#",
         }
         expected_namespaces = dict()
-        for nss in (foaf_namespaces, dcat2_namespaces,
-                    emmo_namespaces, city_namespaces):
+        for nss in (required_namespaces, foaf_namespaces,
+                    dcat2_namespaces, emmo_namespaces,
+                    city_namespaces):
             expected_namespaces.update(nss)
         self.assertSetEqual(
             set(OntologyNamespace(iri=iri,
@@ -1116,6 +1114,14 @@ class TestLoadParsers(unittest.TestCase):
                  uid=UID("http://www.osp-core.com/city#hasPart"),
                  session=self.ontology)}
         )
+        expected_default_relationships.update(
+            {OntologyNamespace(iri="http://www.w3.org/2002/07/owl#",
+                               name="owl",
+                               ontology=self.ontology):
+                OntologyRelationship(
+                    uid=UID("http://www.w3.org/2002/07/owl#topObjectProperty"),
+                    session=self.ontology)}
+        )
         self.assertDictEqual(
             expected_default_relationships,
             self.ontology.default_relationships
@@ -1130,6 +1136,9 @@ class TestLoadParsers(unittest.TestCase):
              OntologyRelationship(
                 uid=UID("http://emmo.info/emmo/middle/semiotics#"
                         "EMMO_60577dea_9019_4537_ac41_80b0fb563d41"),
+                session=self.ontology),
+             OntologyRelationship(
+                uid=UID("http://www.osp-core.com/cuba#activeRelationship"),
                 session=self.ontology),
              OntologyRelationship(
                 uid=UID("http://www.osp-core.com/city#encloses"),

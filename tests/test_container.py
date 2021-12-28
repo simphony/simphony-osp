@@ -20,11 +20,7 @@ class TestContainer(unittest.TestCase):
         The new TBox contains CUBA, OWL, RDFS and City.
         """
         ontology = Session(identifier='test-tbox', ontology=True)
-        for parser in (OntologyParser.get_parser('cuba'),
-                       OntologyParser.get_parser('owl'),
-                       OntologyParser.get_parser('rdfs'),
-                       OntologyParser.get_parser('city')):
-            ontology.load_parser(parser)
+        ontology.load_parser(OntologyParser.get_parser('city'))
         cls.prev_default_ontology = Session.ontology
         Session.ontology = ontology
 

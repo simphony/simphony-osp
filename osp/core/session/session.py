@@ -384,6 +384,13 @@ class Session:
             for key, value in namespaces.items():
                 self.bind(key, value)
 
+        # Load ontologies required for sessions to work.
+        if self.ontology is self:
+            for parser in (OntologyParser.get_parser('cuba'),
+                           OntologyParser.get_parser('owl'),
+                           OntologyParser.get_parser('rdfs')):
+                self.ontology.load_parser(parser)
+
     def __enter__(self):
         """Enter session context manager.
 
