@@ -3,19 +3,20 @@
 from abc import ABC, abstractmethod
 from enum import IntEnum
 from itertools import chain
-from typing import Iterable, Iterator, Dict, Optional, TYPE_CHECKING
+from typing import Iterable, Iterator, Dict, Optional, TYPE_CHECKING, Tuple
 
 from rdflib import Graph
 from rdflib.plugins.stores.memory import SimpleMemory
+from rdflib.query import Result
 from rdflib.store import Store
 from rdflib.term import Identifier
 
 from osp.core.interfaces.interface import Interface
 from osp.core.session import Session
-from osp.core.utils.datatypes import Triple, UID
+from osp.core.utils.datatypes import Triple, UID, Pattern
 
 if TYPE_CHECKING:
-    from osp.core.ontology import OntologyEntity
+    from osp.core.ontology.entity import OntologyEntity
 
 __all__ = ["GenericInterfaceStore", "GenericInterface", "BufferType"]
 
@@ -38,10 +39,9 @@ class GenericInterfaceStore(Store):
 
      OSP-core <--> GenericInterfaceStore <--> GenericInterface
 
-    The store is transaction aware (needs commit action to save the changes
-    to the wrapper), as it is the only efficient way to provide such a
-    triplestore-entity interface (otherwise we have to update an entity
-    everytime a single triple from the entity is added).
+    The store is transaction aware (needs a commit action to save the changes
+    to the wrapper). Otherwise, one would have to update an entity
+    every time a single triple from the entity is added.
     """
 
     interface: "GenericInterface"
@@ -51,11 +51,13 @@ class GenericInterfaceStore(Store):
     # RDFLib
     # ↓ -- ↓
 
-    transaction_aware = True
     context_aware = False
+    formula_aware = False
+    transaction_aware = True
+    graph_aware = False
 
-    def __init__(self, *args, interface=None, **kwargs):
-        """Initialize the InterfaceStore.
+    def __init__(self, *args, interface: 'GenericInterface' = None, **kwargs):
+        """Initialize the GenericInterfaceStore.
 
         The initialization assigns an interface to the store and creates
         buffers for the store. Then the usual RDFLib's store initialization
@@ -68,28 +70,28 @@ class GenericInterfaceStore(Store):
                          for buffer_type in BufferType}
         super().__init__(*args, **kwargs)
 
-    def open(self, configuration: str, create: bool = False):
-        """Asks the interface, to open the data source.
+    def open(self, configuration: str, create: bool = False) -> None:
+        """Asks the interface to open the data source.
 
-        For now, the create argument is not implemented. The interface is free
-        to do whatever it wants in this regard.
+        For now, the `create` argument is not implemented. The interface is
+        free to do whatever it wants in this regard.
         """
         if create:
             raise NotImplementedError
         self.interface.open(configuration)
 
-    def close(self, commit_pending_transaction: bool = False):
+    def close(self, commit_pending_transaction: bool = False) -> None:
         """Tells the interface to close the data source.
 
         Args:
             commit_pending_transaction: commits uncommitted changes when
-            true before closing the data source.
+                true before closing the data source.
         """
         if commit_pending_transaction:
             self.commit()
         self.interface.close()
 
-    def add(self, triple, context, quoted=False):
+    def add(self, triple: Triple, context: Graph, quoted=False) -> None:
         """Adds triples to the store.
 
         Since the actual addition happens during a commit, this method just
@@ -100,7 +102,9 @@ class GenericInterfaceStore(Store):
         self._buffers[BufferType.ADDED]\
             .add(triple)
 
-    def remove(self, triple_pattern, context=None):
+    def remove(self,
+               triple_pattern: Pattern,
+               context: Optional[Graph] = None) -> None:
         """Remove triples from the store.
 
         Since the actual removal happens during a commit, this method just
@@ -115,7 +119,9 @@ class GenericInterfaceStore(Store):
             self._buffers[BufferType.DELETED]\
                 .add(triple)
 
-    def triples(self, triple_pattern, context=None):
+    def triples(self,
+                triple_pattern: Pattern,
+                context=None) -> Iterator[Tuple[Triple, Graph]]:
         """Query triples patterns.
 
         Merges the buffered changes with the data stored on the interface.
@@ -135,15 +141,12 @@ class GenericInterfaceStore(Store):
         for triple in triple_pool:
             yield triple, iter(())
 
-    def __len__(self, context=None):
+    def __len__(self, context: Graph = None) -> int:
         """Get the number of triples in the store.
 
         For more details, check RDFLib's documentation.
         """
-        i = 0
-        for _ in self.triples((None, None, None)):
-            i += 1
-        return i
+        return sum(1 for _ in self.triples((None, None, None)))
 
     def bind(self, prefix, namespace):
         """Bind a namespace to a prefix."""
@@ -161,7 +164,7 @@ class GenericInterfaceStore(Store):
         """Get the bound namespaces."""
         raise NotImplementedError
 
-    def query(self, *args, **kwargs):
+    def query(self, *args, **kwargs) -> Result:
         """Perform a SPARQL query on the store."""
         return super().query(*args, **kwargs)
 
@@ -169,60 +172,67 @@ class GenericInterfaceStore(Store):
         """Perform a SPARQL update query on the store."""
         return super().update(*args, **kwargs)
 
-    def commit(self):
+    def commit(self) -> None:
         """Commit buffered changes."""
         self.session = self.session or Session(store=self)
+        session = self.session
 
         # Find out from triples which entities were added, updated and
         # deleted and add their triples to the temporary graph.
-        class _ExistenceTracker:
+        class Tracker:
+            """Checks whether entities already exist on the interface.
+
+            In addition, it keeps track of entities for which existance has
+            been already checked.
+            """
+
+            existing_subjects: set
+
+            @property
+            def visited_subjects(self) -> set:
+                return (self.visited_subjects_minus_existing_subjects
+                        | self.existing_subjects)
+
             _interface = self.interface
 
             def __init__(self):
-                self.checked_subjects = set()
                 self.existing_subjects = set()
+                self.visited_subjects_minus_existing_subjects = set()
 
             def __call__(self, subject: Identifier):
-                if subject not in self.checked_subjects:
-                    self.checked_subjects.add(subject)
+                if subject not in self.visited_subjects:
                     if next(self._interface.session.graph.triples(
-                            (subject, None, None)
-                    ), None) is not None:
+                            (subject, None, None)), None) is not None:
                         self.existing_subjects.add(subject)
+                    else:
+                        self.visited_subjects_minus_existing_subjects.add(
+                            subject)
 
-        existence_tracker = _ExistenceTracker()
+        tracker = Tracker()
 
         # Get added subjects.
-        for s, p, o in self._buffers[BufferType.ADDED]\
-                .triples((None, None, None)):
-            existence_tracker(s)
-        added_subjects = existence_tracker.checked_subjects.difference(
-            existence_tracker.existing_subjects)
+        for s in self._buffers[BufferType.ADDED].subjects():
+            tracker(s)
+        added_subjects = tracker.visited_subjects_minus_existing_subjects
         # Get deleted subjects.
         deleted_subjects = dict()
-        for s, p, o in self._buffers[BufferType.DELETED]\
-                .triples((None, None, None)):
-            existence_tracker(s)
+        for s in self._buffers[BufferType.DELETED].subjects():
+            tracker(s)
             if (s not in added_subjects and s in
-                    existence_tracker.existing_subjects):
+                    tracker.existing_subjects):
                 deleted_subjects[s] = deleted_subjects.get(s, 0) + 1
-        for s in deleted_subjects.keys():
-            i = 0
-            for _ in self._interface_triples((s, None, None)):
-                i += 1
-            if deleted_subjects[s] >= i:
-                deleted_subjects[s] = True
-            else:
-                deleted_subjects[s] = False
-
-        deleted_subjects = set(s
-                               for s, deleted in deleted_subjects.items()
-                               if deleted)
+        deleted_subjects = {
+            s: True
+            if count >= sum(1 for _ in self._interface_triples(
+                (s, None, None))) else False
+            for s, count in deleted_subjects.items()
+        }
+        deleted_subjects = set(
+            s for s, deleted in deleted_subjects.items() if deleted)
         # Get updated subjects.
-        updated_subjects = existence_tracker.existing_subjects.difference(
+        updated_subjects = tracker.existing_subjects.difference(
             deleted_subjects)
 
-        session = self.session
         # Apply added entities to the engine.
         for entity in (session.from_identifier(s) for s in added_subjects):
             self.interface.add(entity)
@@ -233,7 +243,7 @@ class GenericInterfaceStore(Store):
         for s in deleted_subjects:
             self.interface.delete(s)
 
-        # Move the triples from the buffers to the interface's graph.
+        # Copy the triples from the buffers to the interface's graph.
         for t in self._buffers[BufferType.ADDED].triples((None, None, None)):
             self.interface.graph.add(t)
         for t in self._buffers[BufferType.DELETED].triples((None, None, None)):
@@ -243,7 +253,7 @@ class GenericInterfaceStore(Store):
         self._buffers = {buffer_type: Graph(SimpleMemory())
                          for buffer_type in BufferType}
 
-    def rollback(self):
+    def rollback(self) -> None:
         """Discard uncommitted changes."""
         self._buffers = {buffer_type: Graph(SimpleMemory())
                          for buffer_type in BufferType}
@@ -271,8 +281,7 @@ class GenericInterfaceStore(Store):
                             lambda x: x is not None,
                             self.interface.load(
                                 UID(x) for x in
-                                self.interface.session.graph.subjects(None,
-                                                                      None)
+                                self.interface.session.graph.subjects()
                             ))
                         for triple in entity.triples
                     )
@@ -361,7 +370,7 @@ class GenericInterface(ABC, Interface):
         DO NOT CHANGE the received entity, its information has been set in
         stone by the user already. It belongs to a snapshot of the new
         state, that will be reached when the changes for all entities have
-        been applied by you.
+        been applied by you on the backend.
         """
         pass
 
@@ -372,7 +381,7 @@ class GenericInterface(ABC, Interface):
         DO NOT CHANGE the received entity, its information has been set in
         stone by the user already. It belongs to a snapshot of the new
         state, that will be reached when the changes for all entities have
-        been applied by you.
+        been applied by you on the backend.
         """
         # If you need to compare the new ontology entity with its old version,
         # please uncomment the line below to fetch the old version.
@@ -392,13 +401,14 @@ class GenericInterface(ABC, Interface):
     def update_from_backend(self,
                             entity: "OntologyEntity") \
             -> Optional["OntologyEntity"]:
-        """An entity that you have previously provided is requested.
+        """An entity that either you or the user provided earlier is requested.
 
         You have now to check if the information present on the backend
         matches what you receive, and when not, update the received entity
         to reflect the information from the backend.
 
-        Please, DO CHANGE the received entity.
+        Please, DO CHANGE the received entity. If the requested entity no
+        longer exists, please return `None`.
         """
         pass
 
@@ -413,8 +423,15 @@ class GenericInterface(ABC, Interface):
         information on the backend and return it.
 
         So please, CREATE a new entity and return it.
+
+        If the requested entity does not exist, please return None. Many
+        wrappers will in fact never need to use this method. You can always
+        return `None` in such case.
+
+        If you define a custom root entity for your interface,
+        then necessarily this method must be able to create it.
         """
-        pass
+        return None
 
     session: Session
     """Session providing a pre-commit snapshot of the data on the interface.
@@ -431,6 +448,22 @@ class GenericInterface(ABC, Interface):
     """
 
     # + Methods and properties from definition of: Interface.
+
+    @property
+    @abstractmethod
+    def root(self) -> Optional[Identifier]:
+        """Define a custom root object.
+
+        When desired, this property may return an IRI for a custom root
+        entity for the wrapper. This is the IRI of the ontology entity that
+        the user will get when invoking the wrapper. The method
+        `load_from_backend` should be able to spawn such entity for the
+        first time. Defining a custom root entity is OPTIONAL.
+
+        When no IRI is provided by this property, the user gets a virtual
+        container instead. You cannot access such container.
+        """
+        return None
 
     # ↑ ------------ ↑
     # Definition of:

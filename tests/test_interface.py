@@ -45,6 +45,8 @@ class TestDummyInterface(unittest.TestCase):
         InterfaceStore.
         """
 
+        root = None
+
         def __init__(self):
             """Set up a graph to use as underlying backend."""
             super().__init__()
@@ -336,7 +338,7 @@ class TestTriplestoreWrapper(unittest.TestCase):
             self.assertEqual(freiburg.coordinates, [22, 58])
 
         with sqlite(self.file_name) as wrapper:
-            freiburg = wrapper.from_identifier(freiburg_identifier)
+            freiburg = wrapper.session.from_identifier(freiburg_identifier)
             citizens = freiburg[city.hasInhabitant]
 
             self.assertEqual('Freiburg', freiburg.name)

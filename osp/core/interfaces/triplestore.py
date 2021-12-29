@@ -1,7 +1,9 @@
 """A session connecting to a backend which stores the CUDS in triples."""
 
 from abc import ABC, abstractmethod
-from typing import Iterator
+from typing import Iterator, Optional
+
+from rdflib.term import Identifier
 
 from osp.core.interfaces.interface import Interface
 from osp.core.interfaces.generic import GenericInterfaceStore
@@ -13,11 +15,27 @@ class TriplestoreStore(GenericInterfaceStore):
 
     interface: "TriplestoreInterface"
 
+    # RDFLib
+    # ↓ -- ↓
+
+    context_aware = False
+    formula_aware = False
+    transaction_aware = True
+    graph_aware = False
+
     def __init__(self, *args, interface=None, **kwargs):
         """Initialize the TriplestoreStore."""
         super().__init__(*args, interface=interface, **kwargs)
         # TODO: Do not create the buffers in the first place.
         del self._buffers
+
+    def open(self, *args, **kwargs):
+        """Asks the interface to open the data source."""
+        return super().open(*args, **kwargs)
+
+    def close(self, *args, **kwargs):
+        """Tells the interface to close the data source."""
+        return super().close(*args, **kwargs)
 
     def add(self, triple, context, quoted=False):
         """Adds triples to the store."""
@@ -32,6 +50,34 @@ class TriplestoreStore(GenericInterfaceStore):
         for triple in self.interface.triples(triple_pattern):
             yield triple, iter(())
 
+    def __len__(self, *args, **kwargs):
+        """Get the number of triples in the store."""
+        return super().__len__(*args, **kwargs)
+
+    def bind(self, *args, **kwargs):
+        """Bind a namespace to a prefix."""
+        return super().bind(*args, **kwargs)
+
+    def namespace(self, *args, **kwargs):
+        """Bind a namespace to a prefix."""
+        return super().namespace(*args, **kwargs)
+
+    def prefix(self, *args, **kwargs):
+        """Get a bound namespace's prefix."""
+        return super().prefix(*args, **kwargs)
+
+    def namespaces(self):
+        """Get the bound namespaces."""
+        return super().namespaces()
+
+    def query(self, *args, **kwargs):
+        """Perform a SPARQL query on the store."""
+        return super().query(*args, **kwargs)
+
+    def update(self, *args, **kwargs):
+        """Perform a SPARQL update query on the store."""
+        return super().update(*args, **kwargs)
+
     def commit(self):
         """Commit buffered changes."""
         self.interface.commit()
@@ -39,6 +85,9 @@ class TriplestoreStore(GenericInterfaceStore):
     def rollback(self):
         """Discard uncommitted changes."""
         self.interface.rollback()
+
+    # RDFLib
+    # ↑ -- ↑
 
 
 class TriplestoreInterface(ABC, Interface):
@@ -123,6 +172,14 @@ class TriplestoreInterface(ABC, Interface):
         """
 
     # + Methods and properties from definition of: Interface.
+
+    root: Optional[Identifier]
+    """Define a custom root object.
+
+    When defined, the user will get this specific ontology entity when invoking
+    the wrapper (instead of a virtual container). This is however of little
+    interest for a triplestore interface.
+    """
 
     # ↑ ---------------- ↑
     # Definition of:

@@ -470,7 +470,6 @@ class Session:
                 and any(x in compatible for x
                         in (OntologyRelationship, OntologyAttribute)):
             compatible.remove(OntologyAnnotation)
-
         if len(compatible) == 0:
             # The individual belongs to an unknown class.
             raise KeyError(f"Identifier {identifier} does not match any OWL "
@@ -486,7 +485,7 @@ class Session:
             python_class = compatible.pop()
             return python_class(uid=UID(identifier),
                                 session=self,
-                                merge=True)
+                                merge=None)
 
     def from_label(self,
                    label: str,
@@ -525,11 +524,14 @@ class Session:
             raise KeyError(error)
         return results
 
-    def delete(self, entity: 'OntologyEntity'):
+    def delete(self,
+               entity: Union['OntologyEntity', Identifier]):
         """Remove an ontology entity from the session."""
-        self._track_identifiers(entity.identifier, delete=True)
-        self._graph.remove((entity.identifier, None, None))
-        self._graph.remove((None, None, entity.identifier))
+        if isinstance(entity, OntologyEntity):
+            entity = entity.identifier
+        self._track_identifiers(entity, delete=True)
+        self._graph.remove((entity, None, None))
+        self._graph.remove((None, None, entity))
 
     def clear(self):
         """Clear all the data stored in the session."""

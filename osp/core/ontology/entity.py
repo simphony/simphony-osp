@@ -346,7 +346,7 @@ class OntologyEntity(ABC):
                                          'Container',
                                          'Wrapper']] = None,
                  triples: Optional[Iterable[Triple]] = None,
-                 merge: bool = False) -> None:
+                 merge: Optional[bool] = False) -> None:
         """Initialize the ontology entity.
 
         Args:
@@ -394,22 +394,25 @@ class OntologyEntity(ABC):
         if self.__graph is not None:
             # Only change what is stored in the session if custom triples were
             # provided.
-            if not merge:
+            if merge is False:
                 session.update(self)
-            else:
+            elif merge is True:
                 session.merge(self)
+            # Otherwise, it is None -> do not change what is stored.
         self._session = session
         self.__graph = None
 
     def __str__(self) -> str:
-        """Transform the entity into a human readable string."""
+        """Transform the entity into a human-readable string."""
         return f"{self.identifier}"
 
     def __repr__(self) -> str:
         """Transform the entity into a string."""
         header = f"{self.__class__.__name__}"
         elements = [
-            f"{self.label}" if self.label is not None else None,
+            f"{self.label}"
+            if hasattr(self, 'label')
+            and self.label is not None else None,
             f"{self.uid}",
         ]
         elements = filter(lambda x: x is not None, elements)

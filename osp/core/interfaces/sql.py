@@ -820,7 +820,10 @@ class SQLInterface(TriplestoreInterface):
             return UID(iri)
         ns_iri = next((x.iri for x in Session.ontology.namespaces if iri in x),
                       None)
-        return self._get_ns_idx(ns_iri), str(iri[len(ns_iri):])
+        suffix = str(iri[len(ns_iri):] if ns_iri is not None else str(iri))
+        # The alternative when ns_iri is None makes the query return nothing,
+        #  when the namespace does not exist instead of failing.
+        return self._get_ns_idx(ns_iri), suffix
 
     def _is_cuds_iri(self, iri):
         return UID(iri) == UID(0) or iri.startswith(CUDS_IRI_PREFIX) or \

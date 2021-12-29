@@ -11,6 +11,77 @@ class SimulationInterfaceStore(GenericInterfaceStore):
 
     interface: "SimulationEngineInterface"
 
+    # RDFLib
+    # ↓ -- ↓
+
+    context_aware = False
+    formula_aware = False
+    transaction_aware = True
+    graph_aware = False
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the SimulationInterfaceStore."""
+        super().__init__(*args, **kwargs)
+
+    def open(self, *args, **kwargs):
+        """Asks the interface to open the data source."""
+        return super().open(*args, **kwargs)
+
+    def close(self, *args, **kwargs):
+        """Tells the interface to close the data source."""
+        return super().close(*args, **kwargs)
+
+    def add(self, *args, **kwargs):
+        """Adds triples to the store."""
+        return super().add(*args, **kwargs)
+
+    def remove(self, *args, **kwargs):
+        """Remove triples from the store."""
+        return super().remove(*args, **kwargs)
+
+    def triples(self, *args, **kwargs):
+        """Query triples patterns."""
+        return super().triples(*args, **kwargs)
+
+    def __len__(self, *args, **kwargs):
+        """Get the number of triples in the store."""
+        return super().__len__(*args, **kwargs)
+
+    def bind(self, *args, **kwargs):
+        """Bind a namespace to a prefix."""
+        return super().bind(*args, **kwargs)
+
+    def namespace(self, *args, **kwargs):
+        """Bind a namespace to a prefix."""
+        return super().namespace(*args, **kwargs)
+
+    def prefix(self, *args, **kwargs):
+        """Get a bound namespace's prefix."""
+        return super().prefix(*args, **kwargs)
+
+    def namespaces(self):
+        """Get the bound namespaces."""
+        return super().namespaces()
+
+    def query(self, *args, **kwargs):
+        """Perform a SPARQL query on the store."""
+        return super().query(*args, **kwargs)
+
+    def update(self, *args, **kwargs):
+        """Perform a SPARQL update query on the store."""
+        return super().update(*args, **kwargs)
+
+    def commit(self):
+        """Commit buffered changes."""
+        return super().commit()
+
+    def rollback(self):
+        """Discard uncommitted changes."""
+        return super().rollback()
+
+    # RDFLib
+    # ↑ -- ↑
+
     def run(self):
         """Instructs the simulation engine interface to run the simulation."""
         return self.interface.run()
@@ -30,9 +101,10 @@ class SimulationEngineInterface(ABC, GenericInterface):
 
         At the end of this method, look for everything that was changed,
         and replicate the changes in the interface's session:
-        - Then `_update_from_backend` should just return the entity it
-            received.
-        - Then `_load_from_backend` should return None.
+        - Then `update_from_backend` should just return the entity it
+          received.
+        - Then `load_from_backend` should return None (except for the root
+          entity if defined and not yet generated).
 
         Or, replicate such changes lazily as entities are requested. This
         has a limitation: if the user asks for all entities, then
@@ -42,7 +114,7 @@ class SimulationEngineInterface(ABC, GenericInterface):
         above condition, you are limited to the first option.
 
         When an entity is requested, if the entity existed previously,
-        the following can happen (`_update_from_backend`):
+        the following can happen (`update_from_backend`):
         - The simulation connected the entity to NEW entities, that did not
           exist before. Then the NEW entities can be created while
           the request is being processed, given that their identifier did not
@@ -56,8 +128,8 @@ class SimulationEngineInterface(ABC, GenericInterface):
         - The simulation deleted the requested entity. In such case, please
           delete the entity from the interface's session and return None.
 
-        On the other hand, when the entity is requested and it did not exist
-        previously (`_load_from_backend`), then either None should be returned
+        On the other hand, when the entity is requested, and it did not exist
+        previously (`load_from_backend`), then either None should be returned
         (the entity still does not exist) or it should be created. Once
         created, the same rules defined above apply.
         """

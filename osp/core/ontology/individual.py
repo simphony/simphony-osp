@@ -357,8 +357,8 @@ class OntologyIndividual(OntologyEntity):
             add = assigned - current
             remove = current - assigned
 
-            current |= add
             current -= remove
+            current |= add
         elif isinstance(rel, OntologyAttribute):
             if ((len(values) > 0
                  and all(x not in values
