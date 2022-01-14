@@ -683,17 +683,23 @@ class Session:
             # owl:Restriction
             OWL.Restriction,
         })
-        for t in supported_entity_types:
-            for s in (s for s in self.ontology.graph.subjects(RDF.type, t)
-                      if not isinstance(s, Literal)):
-                # Yield the entity from the TBox (literals filtered out above).
-                if self.ontology is self:
-                    yield s
-                # Yield all the instances of such entity
-                #  (literals filtered out below).
-                for i in (i for i in self._graph.subjects(RDF.type, s)
-                          if not isinstance(i, Literal)):
-                    yield i
+        tbox_entities = tuple(
+            s
+            for t in supported_entity_types
+            for s in self.ontology.graph.subjects(RDF.type, t)
+            if not isinstance(s, Literal))
+
+        # Yield the entities from the TBox (literals filtered out above).
+        if self.ontology is self:
+            yield from tbox_entities
+
+        # Yield the entities from the ABox (literals filtered out below).
+        yield from map(lambda x: x[0],
+                       filter(
+                           lambda t: (not isinstance(t[0], Literal)
+                                      and t[2] in tbox_entities),
+                           self._graph.triples((None, RDF.type, None))
+        ))
 
     def iter_labels(self,
                     entity: Optional[Union[

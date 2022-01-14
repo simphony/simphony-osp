@@ -14,7 +14,6 @@ from rdflib.term import Identifier
 from osp.core.session import Session
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.individual import OntologyIndividual
-# from osp.core.ontology.interactive.container import Container
 from osp.core.interfaces.interface import Interface
 from osp.core.utils.cuba_namespace import cuba_namespace
 from osp.core.utils.datatypes import UID, Triple
@@ -89,8 +88,7 @@ class WrapperSpawner(ABC, Wrapper):
         root = interface_class.root or root
 
         # Initialize the session.
-        interface_instance = interface_class(configuration_string,
-                                             *args,
+        interface_instance = interface_class(*args,
                                              **kwargs)
         store = cls._get_interface().store_class(interface=interface_instance)
         store.open(configuration_string)

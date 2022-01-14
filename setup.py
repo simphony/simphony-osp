@@ -51,6 +51,7 @@ setup(
         "numpy",
         "graphviz",
         "rdflib >= 6.0.2, < 7.0.0",
+        "rdflib-sqlalchemy >= 0.5.0",
     ],
     setup_requires=[
     ],

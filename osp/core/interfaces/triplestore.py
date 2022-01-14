@@ -46,7 +46,7 @@ class TriplestoreStore(GenericInterfaceStore):
         self.interface.remove(triple_pattern)
 
     def triples(self, triple_pattern, context=None):
-        """Query triples patterns."""
+        """Query triple patterns."""
         for triple in self.interface.triples(triple_pattern):
             yield triple, iter(())
 

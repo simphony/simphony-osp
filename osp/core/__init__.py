@@ -6,18 +6,18 @@ import logging as _logging
 import osp.core.namespaces as _namespaces
 assert _namespaces.cuba  # -> Do not complain about unused _namespaces flake8).
 
-_logging.getLogger("rdflib").setLevel(_logging.WARNING)
+_logger = _logging.getLogger(__name__)
+# _logging.getLogger("rdflib").setLevel(_logging.WARNING)
 
 # set up logging
-_logger = _logging.getLogger(__name__)
-_ch = _logging.StreamHandler()
-_ch.setLevel(_logging.DEBUG)
-_formatter = _logging.Formatter(
-    '%(levelname)s %(asctime)s [%(name)s]: %(message)s'
-)
-_ch.setFormatter(_formatter)
-_logger.addHandler(_ch)
-_logging.getLogger("osp.wrappers").addHandler(_ch)
+# _ch = _logging.StreamHandler()
+# _ch.setLevel(_logging.DEBUG)
+# _formatter = _logging.Formatter(
+#     '%(levelname)s %(asctime)s [%(name)s]: %(message)s'
+# )
+# _ch.setFormatter(_formatter)
+# _logger.addHandler(_ch)
+# _logging.getLogger("osp.wrappers").addHandler(_ch)
 
 try:
     from osp.core.packageinfo import VERSION as __version__
