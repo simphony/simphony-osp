@@ -69,10 +69,10 @@ class OntologyIndividual(OntologyEntity):
             self._ontology_classes += [class_]
         # extra_class = False
         # Extra triples
-        for s, p, o in triples:
+        # for s, p, o in triples:
             # if p == RDF.type:
             #     extra_class = True
-            triples.add((s, p, o))
+            # triples.add((s, p, o))
             # TODO: grab extra class from tbox, add it to _ontology_classes.
 
         # Determine whether class was assigned (currently unused).

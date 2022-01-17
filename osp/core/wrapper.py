@@ -14,6 +14,7 @@ from rdflib.term import Identifier
 from osp.core.session import Session
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.individual import OntologyIndividual
+from osp.core.ontology.interactive.container import Container
 from osp.core.interfaces.interface import Interface
 from osp.core.utils.cuba_namespace import cuba_namespace
 from osp.core.utils.datatypes import UID, Triple
@@ -36,14 +37,14 @@ class Wrapper:
     def __enter__(self):
         """Enter the associated session's context."""
         self._session.__enter__()
-        # if isinstance(self, Container):
-        #     Container.__enter__(self)
+        if isinstance(self, Container):
+            Container.__enter__(self)
         return self
 
     def __exit__(self, *args):
         """Exit the associated session's context."""
-        # if isinstance(self, Container):
-        #     Container.__exit__(self, *args)
+        if isinstance(self, Container):
+            Container.__exit__(self, *args)
         self._session.__exit__(*args)
 
     def commit(self) -> None:
@@ -53,6 +54,11 @@ class Wrapper:
     def close(self) -> None:
         """Close the connection to the backend."""
         return self._session.close()
+
+    def delete(self, *entities: OntologyEntity) -> None:
+        """Delete entities from the backend."""
+        for entity in entities:
+            self._session.delete(entity)
 
     def run(self) -> None:
         """Instructs the backend to run a simulation if supported."""
@@ -181,7 +187,6 @@ class MockContainerStore(Store):
         """Remove triples from the store."""
         if not self._belongs_to_mock_container(triple_pattern):
             return self.store.remove(triple_pattern, context)
-
         if triple_pattern[1] == cuba_namespace.contains:
             if triple_pattern[2] is not None:
                 self.session.delete(triple_pattern[2])
@@ -238,12 +243,10 @@ class MockContainerStore(Store):
                 except KeyError:
                     pass
 
-        result = itertools.chain(
-            triples,
-            self.store.triples(triple_pattern, context=None)
-        )
-        for triple in result:
-            yield triple, iter(())
+        yield from (((t[0], t[1], t[2]), iter(())) for t in triples)
+        for x in self.store.triples(triple_pattern, context=None):
+            yield x
+        # yield from self.store.triples(triple_pattern, context=None)
 
     def __len__(self, *args, **kwargs):
         """Get the number of triples in the store."""

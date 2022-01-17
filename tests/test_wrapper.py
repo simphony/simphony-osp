@@ -80,7 +80,7 @@ class TestWrapper(unittest.TestCase):
             self.assertEqual(freiburg.coordinates, [22, 58])
 
         with sqlite(self.file_name) as wrapper:
-            freiburg = wrapper.from_identifier(freiburg_identifier)
+            freiburg = wrapper.session.from_identifier(freiburg_identifier)
             citizens = list(freiburg[city.hasInhabitant])
 
             self.assertEqual('Freiburg', freiburg.name)
@@ -294,7 +294,7 @@ class TestDataspaceWrapper(unittest.TestCase):
         with dataspace(f'ws://username:password@{self.host}:{self.port}',
                        'test_wrapper_dataspace_db_main.db'
                        ) as wrapper:
-            freiburg = wrapper.from_identifier(freiburg_identifier)
+            freiburg = wrapper.session.from_identifier(freiburg_identifier)
             citizens = list(freiburg[city.hasInhabitant])
 
             self.assertEqual('Freiburg', freiburg.name)
@@ -337,8 +337,10 @@ class TestDataspaceWrapper(unittest.TestCase):
                        'test_wrapper_dataspace_db_main.db'
                        ) as wrapper:
             self.assertEqual(len(wrapper), 1)
-            paris = set(wrapper).pop()
+            paris = wrapper.get().one()
             self.assertEqual(paris.name, 'Paris')
+            wrapper.delete(paris)
+            wrapper.commit()
 
         with dataspace(f'ws://username:password@{self.host}:{self.port}') \
                 as wrapper:

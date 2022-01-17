@@ -339,8 +339,7 @@ class Session:
         the session will not be used anymore, then it makes sense to close
         the connection to such backend to free resources.
         """
-        self._times_opened -= 1
-        if self._times_opened <= 0:
+        if self not in self._session_stack:
             self.graph.close()
 
     def __init__(self,
@@ -350,7 +349,6 @@ class Session:
                  namespaces: Dict[str, URIRef] = None,
                  from_parser: Optional[OntologyParser] = None):
         """Initialize the session."""
-        self._times_opened = 1
         if store is not None:
             if hasattr(store, 'session') and store.session is None:
                 store.session = self
@@ -636,7 +634,6 @@ class Session:
 
     creation_set: Set[Identifier]
     _session_stack: List['Session'] = []
-    _times_opened: int = 0
     _namespaces: Dict[URIRef, str]
     _graph: Graph
     _overlay: Graph

@@ -265,7 +265,7 @@ class Container(OntologyIndividual):
 
         Essentially just opens self without arguments.
         """
-        self.open()
+        Container.open(self)
         self._session_linked.__enter__()
         return self
 
@@ -275,7 +275,7 @@ class Container(OntologyIndividual):
         Essentially just closes self.
         """
         self._session_linked.__exit__()
-        self.close()
+        Container.close(self)
 
     # Methods that require the container to be open.
     # --------------------------------------------------------------

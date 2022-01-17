@@ -8,12 +8,15 @@ osp.core.wrapper that has as default interface the one requested by the user.
 """
 
 import importlib as _importlib
+import logging as _logging
 import os as _os
 import pkgutil as _package_utils
 from typing import Type as _Type
 
 from osp.core.interfaces.interface import Interface as _Interface
 from osp.core.wrapper import WrapperSpawner as _Wrapper
+
+_logger = _logging.getLogger(__name__)
 
 _self = __import__(__name__)
 
@@ -22,7 +25,10 @@ _interfaces = dict()
 for _module_info in _package_utils.iter_modules(
         (_os.path.join(_path, 'interfaces') for _path in _self.__path__),
         f'{_self.__name__}.interfaces.'):
-    _module = _importlib.import_module(_module_info.name)
+    try:
+        _module = _importlib.import_module(_module_info.name)
+    except ImportError:
+        _logger.warning(f'Failed to import {_module_info.name}.')
 
     # Find interfaces in modules.
     try:
