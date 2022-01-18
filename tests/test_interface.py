@@ -19,7 +19,7 @@ from osp.core.interfaces.generic import GenericInterface,\
     GenericInterfaceStore
 from osp.core.interfaces.remote.client import RemoteStoreClient
 from osp.core.interfaces.remote.server import RemoteStoreServer
-from osp.core.interfaces.sql import SQLStore
+from osp.core.interfaces.triplestore import TriplestoreStore
 from osp.core.session import Session
 from osp.interfaces.sqlite.interface import SQLiteInterface
 from osp.wrappers import sqlite
@@ -211,7 +211,7 @@ class TestTriplestoreInterface(unittest.TestCase):
     def setUp(self) -> None:
         """Create an interface, a store and assign them to a graph."""
         self.interface = SQLiteInterface()
-        self.store = SQLStore(interface=self.interface)
+        self.store = TriplestoreStore(interface=self.interface)
         self.graph = Graph(self.store)
         self.graph.open(self.file_name)
 
@@ -263,7 +263,7 @@ class TestTriplestoreInterface(unittest.TestCase):
 
         # Use a new interface to reopen the file and retrieve the data.
         interface = SQLiteInterface()
-        store = SQLStore(interface=interface)
+        store = TriplestoreStore(interface=interface)
         graph = Graph(store)
         graph.open(self.file_name)
         self.assertSetEqual(set(person.triples),
@@ -276,7 +276,7 @@ class TestTriplestoreInterface(unittest.TestCase):
 
         # Again reopen in a new interface and check that the commit went well.
         interface = SQLiteInterface()
-        store = SQLStore(interface=interface)
+        store = TriplestoreStore(interface=interface)
         graph = Graph(store)
         graph.open(self.file_name)
         self.assertSetEqual(set(),
@@ -393,10 +393,10 @@ class TestRemoteStoreSQLite(unittest.TestCase):
         self.stop_server()
 
     @staticmethod
-    def server_store_generator(configuration_string: str) -> SQLStore:
+    def server_store_generator(configuration_string: str) -> TriplestoreStore:
         """Produces a store for the server from a configuration string."""
         interface = SQLiteInterface()
-        store = SQLStore(interface=interface)
+        store = TriplestoreStore(interface=interface)
         store.open(configuration_string or f"{TestRemoteStoreSQLite.db_file}")
         return store
 

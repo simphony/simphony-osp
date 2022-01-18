@@ -1,6 +1,7 @@
 """Abstract Base Class for all Sessions."""
 
 import itertools
+import logging
 from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Set, Union
 
 import rdflib
@@ -21,8 +22,75 @@ from osp.core.utils.cuba_namespace import cuba_namespace
 from osp.core.utils.datatypes import UID
 from osp.core.utils.sparql import SparqlResult
 
+logger = logging.getLogger(__name__)
 
-class Session:
+
+class Environment:
+    """Environment where ontology entities may be created.
+
+    E.g. sessions, containers.
+    """
+
+    _session_linked: Optional['Session'] = None
+    _stack_default_environment: List['Environment'] = []
+    _environment_references: Set['Environment'] = set()
+
+    @property
+    def subscribers(self) -> Set['Environment']:
+        """Environments that depend on this instance.
+
+        Such environments will be closed when this instance is closed.
+        """
+        return self._subscribers
+
+    @subscribers.setter
+    def subscribers(self, value: Set['Environment']):
+        """Setter for the private  `_subscribers` attribute."""
+        self._subscribers = value
+
+    _subscribers: Set['Environment']
+    """A private attribute is used in order not to interfere with the
+    `__getattr__`method from OntologyIndividual."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the environment with an empty set of subscribers."""
+        self._subscribers = set()
+        super().__init__(*args, **kwargs)
+
+    def __enter__(self):
+        """Set this as the default environment."""
+        self._stack_default_environment.append(self)
+        self._environment_references.add(self)
+        return self
+
+    def __exit__(self, *args):
+        """Set the default environment back to the previous default."""
+        if self is not self._stack_default_environment[-1]:
+            raise RuntimeError("Trying to exit the an environment context "
+                               "manager which was not the last entered one.")
+        self._stack_default_environment.pop()
+        if self not in self._stack_default_environment \
+                and not self.subscribers:
+            self.close()
+        return self
+
+    def close(self):
+        """Close this environment."""
+        for environment in self.subscribers:
+            environment.close()
+            self.subscribers.remove(environment)
+        self._environment_references.remove(self)
+
+    @classmethod
+    def get_default_environment(cls) -> Optional['Environment']:
+        """Returns the default environment."""
+        for environment in cls._stack_default_environment[::-1]:
+            return environment
+        else:
+            return None
+
+
+class Session(Environment):
     """Interface to a Graph containing OWL ontology entities."""
 
     #  Public API
@@ -212,7 +280,6 @@ class Session:
 
         Each namespace can have a different default relationship.
         """
-        # TODO: Remove, default relationships are no longer in use.
         default_relationships = {
             ns: (OntologyRelationship(UID(o), self.ontology), )
             for ns in self.namespaces
@@ -241,7 +308,6 @@ class Session:
                 value is an OntologyRelationship, set different
                 relationships when a dict is provided..
         """
-        # TODO: Remove, default relationships are no longer in use.
         if value is None:
             remove = ((None, cuba_namespace._default_rel, None), )
             add = dict()
@@ -339,8 +405,11 @@ class Session:
         the session will not be used anymore, then it makes sense to close
         the connection to such backend to free resources.
         """
-        if self not in self._session_stack:
-            self.graph.close()
+        if self in self._stack_default_environment:
+            raise RuntimeError("Cannot close a session that is currently "
+                               "being used as a context manager.")
+        super().close()
+        self.graph.close(commit_pending_transaction=False)
 
     def __init__(self,
                  store: Store = None,  # The store must be OPEN already.
@@ -349,14 +418,17 @@ class Session:
                  namespaces: Dict[str, URIRef] = None,
                  from_parser: Optional[OntologyParser] = None):
         """Initialize the session."""
+        super().__init__()
+        self._environment_references.add(self)
+        # Base the session graph either on a store if passed or an empty graph.
         if store is not None:
             if hasattr(store, 'session') and store.session is None:
                 store.session = self
             self._graph = Graph(store)
         else:
             self._graph = Graph()
-        self.creation_set = set()
 
+        # Configure the ontology for this session
         if isinstance(ontology, Session):
             self.ontology = ontology
         elif ontology is True:
@@ -366,15 +438,26 @@ class Session:
                             f"Expected either a `Session` or `bool` object, "
                             f"got {type(ontology)} instead.")
 
+        self.creation_set = set()
         self._storing = list()
 
         self._namespaces = dict()
         self._overlay = Graph()
+        # Load the essential TBox required by ontologies.
+        if self.ontology is self:
+            for parser in (OntologyParser.get_parser('cuba'),
+                           OntologyParser.get_parser('owl'),
+                           OntologyParser.get_parser('rdfs')):
+                self.ontology.load_parser(parser)
         if from_parser:  # Compute session graph from an ontology parser.
             if self.ontology is not self:
                 raise RuntimeError("Cannot load parsers in sessions which "
                                    "are not their own ontology. Load the "
                                    "parser on the ontology instead.")
+            if namespaces is not None:
+                logger.warning(f"Namespaces bindings {namespaces} ignored, "
+                               f"as the session {self} is being created from "
+                               f"a parser.")
             self.load_parser(from_parser)
             self.identifier = identifier or from_parser.identifier
         else:  # Create an empty session.
@@ -383,34 +466,14 @@ class Session:
             for key, value in namespaces.items():
                 self.bind(key, value)
 
-        # Load ontologies required for sessions to work.
-        if self.ontology is self:
-            for parser in (OntologyParser.get_parser('cuba'),
-                           OntologyParser.get_parser('owl'),
-                           OntologyParser.get_parser('rdfs')):
-                self.ontology.load_parser(parser)
-
     def __enter__(self):
         """Enter session context manager.
 
         This sets the session as the default session.
         """
-        self._session_stack.append(self)
+        super().__enter__()
         self.creation_set = set()
         return self
-
-    def __exit__(self, *args):
-        """Close the connection to the backend.
-
-        This sets the default session back to the previous default session.
-        """
-        if self is not self._session_stack[-1]:
-            raise RuntimeError("Trying to exit the context manager of a "
-                               "session that was not the latest session "
-                               "context manager to be entered.")
-        self._session_stack.pop()
-        if self not in self._session_stack:
-            self.close()
 
     def __contains__(self, item: 'OntologyEntity'):
         """Check whether an ontology entity is stored on the session."""
@@ -556,7 +619,7 @@ class Session:
         self._update_and_merge_helper(entity, mode=False)
 
     # ↑ -------- ↑
-    # Instance API
+    #  Public API
 
     def _update_and_merge_helper(self,
                                  entity: 'OntologyEntity',
@@ -633,24 +696,38 @@ class Session:
                         self._graph.add((entity.identifier, p, o))
 
     creation_set: Set[Identifier]
-    _session_stack: List['Session'] = []
     _namespaces: Dict[URIRef, str]
     _graph: Graph
     _overlay: Graph
 
+    @property
+    def _session_linked(self) -> 'Session':
+        return self
+
     @classmethod
     def get_default_session(cls) -> Optional['Session']:
         """Returns the default session."""
-        return cls._session_stack[-1] if len(cls._session_stack) > 0 else None
+        for environment in cls._stack_default_environment[::-1]:
+            if isinstance(environment, Session):
+                return environment
+        else:
+            return None
 
     @classmethod
     def set_default_session(cls, session: 'Session'):
-        """Adds a session to the stack of sessions.
+        """Sets the first session of the stack of sessions.
 
-        This effectively makes it the default. As the session stack is private,
-        calling this command from outside this class is irreversible.
+        This effectively makes it the default. The method will not work if
+        there are any other default environments in the stack
         """
-        cls._session_stack.append(session)
+        if len(cls._stack_default_environment) > 1:
+            raise RuntimeError('The default session cannot be changed when '
+                               'there are other environments in the stack.')
+        try:
+            cls._stack_default_environment.pop()
+        except IndexError:
+            pass
+        cls._stack_default_environment.append(session)
 
     @property
     def graph(self) -> Graph:

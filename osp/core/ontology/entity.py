@@ -382,11 +382,9 @@ class OntologyEntity(ABC):
         from osp.core.wrapper import Wrapper
         if session is None:
             from osp.core.ontology.interactive.container import Container
-            from osp.core.session import Session
-            environment = Container.get_current_container_context() or \
-                Session.get_default_session()
-            with environment:
-                session = Session.get_default_session()
+            from osp.core.session import Environment, Session
+            environment = Environment.get_default_environment()
+            session = Session.get_default_session()
             if isinstance(environment, Container):
                 environment.connect(self.identifier)
         elif isinstance(session, Wrapper):

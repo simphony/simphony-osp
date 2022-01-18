@@ -11,7 +11,7 @@ from typing import Optional
 from osp.core.utils.datatypes import Vector
 from osp.core.ontology.parser import OntologyParser
 from osp.core.interfaces.remote.server import RemoteStoreServer
-from osp.core.interfaces.sql import SQLStore
+from osp.core.interfaces.triplestore import TriplestoreStore
 from osp.core.session import Session
 from osp.interfaces.sqlite.interface import SQLiteInterface
 
@@ -198,10 +198,10 @@ class TestDataspaceWrapper(unittest.TestCase):
                 os.remove(file)
 
     @staticmethod
-    def server_store_generator(configuration_string: str) -> SQLStore:
+    def server_store_generator(configuration_string: str) -> TriplestoreStore:
         """Produces a store for the server from a configuration string."""
         interface = SQLiteInterface()
-        store = SQLStore(interface=interface)
+        store = TriplestoreStore(interface=interface)
         store.open(configuration_string or f"{TestDataspaceWrapper.db_file}")
         return store
 

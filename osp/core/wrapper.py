@@ -33,6 +33,7 @@ class Wrapper:
     # properties below.
     session: Session
     _session: Session
+    _exit_container: bool = False
 
     def __enter__(self):
         """Enter the associated session's context."""
@@ -44,7 +45,9 @@ class Wrapper:
     def __exit__(self, *args):
         """Exit the associated session's context."""
         if isinstance(self, Container):
+            self._exit_container = True
             Container.__exit__(self, *args)
+            self._exit_container = False
         self._session.__exit__(*args)
 
     def commit(self) -> None:
@@ -53,7 +56,10 @@ class Wrapper:
 
     def close(self) -> None:
         """Close the connection to the backend."""
-        return self._session.close()
+        if isinstance(self, Container):
+            Container.close(self)
+        if not self._exit_container:
+            return self._session.close()
 
     def delete(self, *entities: OntologyEntity) -> None:
         """Delete entities from the backend."""

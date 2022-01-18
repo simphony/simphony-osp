@@ -1,7 +1,7 @@
 """Special kind of ontology individual designed to organize entities."""
 
 import logging
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Dict, Iterable, Iterator, Optional, Tuple, Union
 from weakref import ReferenceType, ref
 
 from rdflib import URIRef
@@ -9,26 +9,17 @@ from rdflib import URIRef
 from osp.core.namespaces import cuba
 from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.individual import OntologyIndividual
-from osp.core.session import Session
+from osp.core.session import Session, Environment
 from osp.core.utils.cuba_namespace import cuba_namespace
 from osp.core.utils.datatypes import UID, AttributeValue, Triple
 
 logger = logging.getLogger(__name__)
 
 
-class Container(OntologyIndividual):
+class Container(Environment, OntologyIndividual):
     """Special kind of ontology individual designed to organize entities."""
 
     rdf_type = cuba_namespace.Container
-
-    @classmethod
-    def get_current_container_context(cls) -> Optional['Container']:
-        """Returns the most recently opened container (if any is open).
-
-        When no container is currently opened, it returns none.
-        """
-        return cls._container_contexts[-1] \
-            if len(cls._container_contexts) > 0 else None
 
     def __init__(self,
                  uid: Optional[UID] = None,
@@ -50,10 +41,10 @@ class Container(OntologyIndividual):
         logger.debug("Instantiated container %s" % self)
 
     @property
-    def opens_in(self) -> Optional[Union['Container', Session, URIRef]]:
+    def opens_in(self) -> Optional[Union[Environment, URIRef]]:
         """Returns where the container opens by default.
 
-        Returns the session or container in which the container opens by
+        Returns the environment in which the container opens by
         default.
 
         This is NOT the session where the container is stored. The
@@ -61,32 +52,34 @@ class Container(OntologyIndividual):
         session, just like any other ontology individual.
         """
         if isinstance(self._opens_in, ref):
+            # Weak reference to environment Python object.
             return self._opens_in()
         else:
-            for i in range(1, len(self._container_contexts) + 1):
-                container = self._container_contexts[-i]
-                if container.iri == self._opens_in:
-                    return container
+            # IRI, try to match to an environment.
+            for context in self._stack_default_environment[::-1]:
+                if hasattr(context, 'iri') \
+                        and getattr(context, 'iri') == self._opens_in:
+                    return context
             else:
                 return self._opens_in
 
     @opens_in.setter
     def opens_in(self,
-                 value: Optional[Union['Container', Session]] = None) \
+                 value: Optional[Environment] = None) \
             -> None:
         """Sets where the container opens by default.
 
         Sets the session or container in which the container opens by
         default.
         """
-        if isinstance(value, Session) and not isinstance(value, Container):
-            self._opens_in = ref(value)
-        elif isinstance(value, Container):
+        if hasattr(value, 'iri'):
             self._opens_in = value.iri
+        elif isinstance(value, Environment):
+            self._opens_in = ref(value)
         elif value is None:
             self._opens_in = value
         else:
-            raise TypeError(f"Expected {Container} or {Session}, got "
+            raise TypeError(f"Expected {Environment}, got "
                             f"{type(value)}.")
 
     _opens_in: Optional[
@@ -95,8 +88,11 @@ class Container(OntologyIndividual):
             URIRef]] = None
     """Where the container opens by default.
 
-    Optional[Union[ReferenceType[Session], URIRef]]
+    Optional[Union[ReferenceType[Environment], URIRef]]
     """
+
+    _container_environment: Optional['Container'] = None
+    """The container in which this container has been opened (if applies)."""
 
     @property
     def session_linked(self) -> Optional[Session]:
@@ -108,12 +104,8 @@ class Container(OntologyIndividual):
 
     @property
     def is_open(self) -> bool:
-        """Returns the current status of the container.
-
-        - Derived from the `_container_contexts` stack. If the container is
-          there, then it is open.
-        """
-        return self in self._container_contexts
+        """Returns the current status of the container."""
+        return self._session_linked is not None
 
     # Methods that do NOT require the container to be open.
     # -------------------------------------------------------------------------
@@ -156,8 +148,7 @@ class Container(OntologyIndividual):
                                                    cuba.contains.iri)))
 
     def open(self,
-             environment: Optional[Union[Session,
-                                         'Container']] = None) -> None:
+             environment: Optional[Union[Environment]] = None) -> None:
         """Opens the container in `environment`.
 
         Relevant when an individual needs to be fetched, added
@@ -166,9 +157,6 @@ class Container(OntologyIndividual):
         - PREVENT OPENING CONTAINER IN ITSELF.
 
         - DO NOT OPEN IF ALREADY OPEN.
-
-        # Issue: session and container stacks need to be mixed somehow
-        # (handled later).
 
         - If no environment (session or container) is provided:
             - Try to open in `opens_in` if not None.
@@ -193,15 +181,20 @@ class Container(OntologyIndividual):
         - What happens if the user closes the session within a container?
         """
         if environment is None:
-            if self.opens_in is None:
-                # Try to open in current container context.
-                try:
-                    environment = self._container_contexts[-1]
-                except IndexError:
-                    # No container context, use default session.
-                    environment = Session.get_default_session()
-            else:
-                environment = self.opens_in
+            # Try to open in current environment
+            environment = self._opens_in \
+                or self._stack_default_environment[-1]
+
+        if isinstance(environment, ref):
+            # Weak reference to environment Python object.
+            environment = environment()
+        else:
+            # IRI, try to match to an environment.
+            for context in self._environment_references:
+                if hasattr(context, 'iri') \
+                        and getattr(context, 'iri') == self._opens_in:
+                    environment = context
+                    break
 
         if isinstance(environment, Session):
             if False:  # (session_closed) TODO: session should report this.
@@ -214,7 +207,8 @@ class Container(OntologyIndividual):
                                    f'{self._session_linked}. Please, '
                                    f'close the container first.')
             self._session_linked = environment
-            self._container_contexts.append(self)
+            self._environment_references.add(self)
+            self._session_linked.subscribers.add(self)
         elif isinstance(environment, Container):
             if self.is_open and \
                     self._session_linked is not environment._session_linked:
@@ -227,10 +221,12 @@ class Container(OntologyIndividual):
                                    f'container is already open. Please close '
                                    f'the container first.')
             if environment is not self:
-                environment.open()
+                if not environment.is_open:
+                    environment.open()
                 self._container_environment = environment
                 self._session_linked = environment._session_linked
-            self._container_contexts.append(self)
+                self._container_environment.subscribers.add(self)
+                self._environment_references.add(self)
         else:
             raise RuntimeError(f"Environment {environment} not found. Try "
                                f"opening it if it is a container.")
@@ -245,28 +241,23 @@ class Container(OntologyIndividual):
         - Changes `_session_linked` to None.
         - Removes self from the top of the stack.
         """
-        if self is not self._container_contexts[-1]:
-            raise RuntimeError("This is not the least recently opened "
-                               "container, cannot close it.")
-        self._container_contexts.pop()
-        if self not in self._container_contexts:
-            self._session_linked = None
-            if self._container_environment is not None:
-                self._container_environment.close()
-                self._container_environment = None
-
-    _container_contexts: List['Container'] = []
-    """The context of the most recently opened container."""
-    _container_environment: Optional['Container'] = None
-    """The container in which this container has been opened (if applies)."""
+        if self in self._stack_default_environment:
+            raise RuntimeError("Cannot close a container that is currently "
+                               "being used as a context manager.")
+        super().close()
+        environment = self._container_environment or self._session_linked
+        if environment is not None:
+            environment.subscribers.remove(self)
+        self._session_linked = None
+        self._container_environment = None
 
     def __enter__(self):
         """Sets the container context to this container.
 
         Essentially just opens self without arguments.
         """
-        Container.open(self)
-        self._session_linked.__enter__()
+        self.open()
+        Environment.__enter__(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -274,8 +265,7 @@ class Container(OntologyIndividual):
 
         Essentially just closes self.
         """
-        self._session_linked.__exit__()
-        Container.close(self)
+        Environment.__exit__(self, exc_type, exc_val, exc_tb)
 
     # Methods that require the container to be open.
     # --------------------------------------------------------------

@@ -23,7 +23,10 @@ class TriplestoreStore(GenericInterfaceStore):
     transaction_aware = True
     graph_aware = False
 
-    def __init__(self, *args, interface=None, **kwargs):
+    def __init__(self,
+                 *args,
+                 interface: Optional['TriplestoreInterface'] = None,
+                 **kwargs):
         """Initialize the TriplestoreStore."""
         super().__init__(*args, interface=interface, **kwargs)
         # TODO: Do not create the buffers in the first place.

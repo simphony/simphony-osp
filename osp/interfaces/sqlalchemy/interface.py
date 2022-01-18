@@ -153,9 +153,9 @@ class SQLAlchemyInterface(TriplestoreInterface):
     def close(self) -> None:
         """Close the connection to the database."""
         if self._graph is not None:
-            self._graph.close()
+            self._reset_buffers()
+            self._graph.close(commit_pending_transaction=False)
             self._uri = None
             self._graph = None
-            self._reset_buffers()
 
     # ↑ ---------------- ↑
