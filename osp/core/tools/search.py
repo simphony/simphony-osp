@@ -57,7 +57,7 @@ def find_cuds_object_by_uid(uid, root, rel):
     Only use the given relationship for traversal.
 
     Args:
-        uid (Union[UUID, URIRef]): The uid of the cuds_object
+        uid (Union[UUID, URIRef]): The uid of the entity
             that is searched.
         root (Cuds): Starting point of search.
         rel (OntologyRelationship): The relationship (incl. subrelationships)
@@ -80,7 +80,7 @@ def find_cuds_objects_by_oclass(oclass, root, rel):
     Only use the given relationship for traversal.
 
     Args:
-        oclass (OntologyClass): The oclass of the cuds_object that is searched.
+        oclass (OntologyClass): The oclass of the entity that is searched.
         root (Cuds): Starting point of search.
         rel (OntologyRelationship): The relationship (incl. subrelationships)
             to consider for traversal.

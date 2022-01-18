@@ -712,7 +712,7 @@ class OntologyIndividual(OntologyEntity):
         Args:
             uids_or_individuals: Optionally, specify the UIDs of the elements
                 to remove or provide the elements themselves.
-            rel: Only remove cuds_object which are connected by subclass of the
+            rel: Only remove individuals which are connected by subclass of the
                 given relationship. Defaults to cuba.activeRelationship. Can be
                 set to none, in which case, all the contained elements will
                 be removed.

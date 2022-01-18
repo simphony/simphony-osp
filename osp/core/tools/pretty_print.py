@@ -1,71 +1,118 @@
-"""Utility functions for printing CUDS objects in a nice way."""
+"""Utility functions for printing ontology entities objects in a nice way."""
 
 import sys
+from functools import reduce
+from operator import add
+from typing import Iterable, Optional, Set
 
 from osp.core.namespaces import cuba
+from osp.core.ontology.attribute import OntologyAttribute
+from osp.core.ontology.oclass import OntologyClass
+from osp.core.ontology.oclass_composition import Composition
+from osp.core.ontology.oclass_restriction import Restriction
+from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.individual import OntologyIndividual
 from osp.core.ontology.relationship import OntologyRelationship
 
 
-def pretty_print(cuds_object, file=sys.stdout):
-    """Print the given cuds_object in a human readable way.
+def pretty_print(entity: OntologyEntity,
+                 file=sys.stdout):
+    """Print the given ontology entity in a human-readable way.
 
-    The uuid, the type, the ancestors and the description and the contents
-    is printed.
+    The UID, the type, the ancestors and the content are printed.
 
     Args:
-        cuds_object (Cuds): container to be printed.
+        entity (Cuds): container to be printed.
         file (TextIOWrapper): The file to print to.
     """
-    pp = _pp_cuds_object_name(cuds_object)
-    pp += "\n  uid: " + str(cuds_object.uid)
-    pp += "\n  type: " + str(cuds_object.oclass)
-    pp += "\n  superclasses: " + ", ".join(
-        sorted(map(str, cuds_object.oclass.superclasses))
-    )
-    values_str = _pp_values(cuds_object)
-    if values_str:
-        pp += "\n  values: " + _pp_values(cuds_object)
-    pp += _pp_subelements(cuds_object)
+    # Fix the order of each element by pre-populating a dictionary.
+    pp = {x: '' for x in (
+        'title',
+        'classes',
+        'superclasses',
+        'attributes',
+        'subelements',
+    )}
 
+    # Title
+    pp['title'] = _pp_entity_name(entity)
+
+    # Superclasses
+    superclasses = set(superclass for class_ in entity.oclasses
+                       for superclass in class_.superclasses) \
+        if isinstance(entity, OntologyIndividual) else set(entity.superclasses)
+    labels = _pp_list_of_labels_or_uids(superclasses)
+    pp['superclasses'] = "\n  superclasses: " + labels
+
+    if isinstance(entity, OntologyIndividual):
+        # Classes
+        classes = set(entity.oclasses)
+        labels = _pp_list_of_labels_or_uids(classes)
+        pp['classes'] = f"\n  type{'s' if len(classes) > 1 else ''}: {labels}"
+        # Attribute values
+        values_str = _pp_individual_values(entity)
+        if values_str:
+            pp['attributes'] = f"\n  values: {values_str}"
+        # Subelements
+        pp['subelements'] = _pp_individual_subelements(entity)
+
+    pp = reduce(add, pp.values())
     print(pp, file=file)
 
 
-def _pp_cuds_object_name(cuds_object, print_oclass=False):
+def _pp_entity_name(entity: OntologyEntity):
     """Return the name of the given element following the pretty print format.
 
     Args:
-        cuds_object (Cuds): element to be printed.
+        entity (Cuds): element to be printed.
 
     Returns:
         String with the pretty printed text.
     """
-    title = "Cuds object" if not print_oclass else "cuds object"
-    oclass = (" %s " % cuds_object.oclass) if print_oclass else ""
+    type_names = {OntologyIndividual: 'Ontology individual',
+                  OntologyClass: 'Ontology class',
+                  OntologyRelationship: 'Ontology relationship',
+                  OntologyAttribute: 'Ontology attribute',
+                  Composition: 'Composition',
+                  Restriction: 'Restriction'}
+    type_name = next(
+        (name for type_, name in type_names.items() if isinstance(entity,
+                                                                  type_)),
+        'Ontology entity')
 
-    if hasattr(cuds_object, "name"):
-        name = str(cuds_object.name)
-        return "- %s%s named <%s>:" % (oclass, title, name)
-    return "- %s%s:" % (oclass, title)
+    title = "- %s" % type_name
+
+    label = entity.label
+    if label is not None:
+        title += f' named {label}'
+    else:
+        title += f' {entity.uid}'
+
+    return title
 
 
-def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
-    """Recursively formats the subelements from a cuds_object.
+def _pp_individual_subelements(individual: OntologyIndividual,
+                               level_indentation: str = "\n  ",
+                               visited: Optional[Set] = None) -> str:
+    """Recursively formats the subelements from an individual.
 
     The objects are grouped by ontology class.
 
     Args:
-        cuds_object (Cuds): element to inspect.
-        level_indentation (str): common characters to left-pad the text.
+        individual: element to inspect.
+        level_indentation: common characters to left-pad the text.
 
     Returns:
-        str: string with the pretty printed text
+        String with the pretty printed text
     """
     pp_sub = ""
+
+    # Find relationships connecting the individual to its subelements.
     consider_relationships = set()
-    for predicate in cuds_object.session.graph.predicates(
-            cuds_object.identifier, None):
+    for predicate in individual.session.graph.predicates(
+            individual.identifier, None):
         try:
-            relationship = cuds_object.session.ontology.from_identifier(
+            relationship = individual.session.ontology.from_identifier(
                 predicate)
             if isinstance(relationship, OntologyRelationship):
                 consider_relationships |= {relationship}
@@ -75,15 +122,23 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
         lambda x: x.is_subclass_of(cuba.activeRelationship),
         consider_relationships)
     sorted_relationships = sorted(filtered_relationships, key=str)
+
     visited = visited or set()
-    visited.add(cuds_object.uid)
+    visited.add(individual.uid)
     for i, relationship in enumerate(sorted_relationships):
+        relationship_name = _pp_list_of_labels_or_uids({relationship})
         pp_sub += level_indentation \
-            + " |_Relationship %s:" % relationship
+            + " |_Relationship %s:" % relationship_name
         sorted_elements = sorted(
-            cuds_object.iter(rel=relationship, return_rel=True),
-            key=lambda x: (str(x[0].oclass), str(x[1]),
-                           x[0].name if hasattr(x[0], "name") else False)
+            individual.iter(rel=relationship, return_rel=True),
+            key=lambda x: (f'\0{x[0].oclass.label}'
+                           if x[0].oclass.label is not None else
+                           f'{x[0].oclass.identifier}',
+                           f'\0{x[1].label}'
+                           if x[1].label is not None else
+                           f'{x[1].identifier}',
+                           f'\0{x[0].label}' if x[0].label is not None else
+                           f'{x[0].uid}')
         )
         for j, (element, rel) in enumerate(sorted_elements):
             if rel != relationship:
@@ -92,27 +147,25 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
                 indentation = level_indentation + "   "
             else:
                 indentation = level_indentation + " | "
-            pp_sub += indentation + _pp_cuds_object_name(element,
-                                                         print_oclass=True)
+            pp_sub += indentation + _pp_entity_name(element)
             if j == len(sorted_elements) - 1:
                 indentation += "   "
             else:
                 indentation += ".  "
-            pp_sub += indentation + "uid: " + str(element.uid)
 
             if element.uid in visited:
                 pp_sub += indentation + "(already printed)"
                 continue
 
-            values_str = _pp_values(element, indentation)
+            values_str = _pp_individual_values(element, indentation)
             if values_str:
-                pp_sub += indentation + _pp_values(element, indentation)
+                pp_sub += indentation + values_str
 
-            pp_sub += _pp_subelements(element, indentation, visited)
+            pp_sub += _pp_individual_subelements(element, indentation, visited)
     return pp_sub
 
 
-def _pp_values(cuds_object, indentation="\n          "):
+def _pp_individual_values(cuds_object, indentation="\n          "):
     r"""Print the attributes of a cuds object.
 
     Args:
@@ -125,10 +178,27 @@ def _pp_values(cuds_object, indentation="\n          "):
     """
     result = []
     sorted_attributes = sorted(cuds_object.get_attributes().items(),
-                               key=lambda x: (str(x[0]), str(x[1])))
+                               key=lambda x: (
+                                   f'\0{x[0].label}'
+                                   if x[0].label is not None else
+                                   f'{x[0].identifier}',
+                                   str(x[1]))
+                               )
     for attribute, value in sorted_attributes:
-        result.append("%s: %s" % (attribute,
+        result.append("%s: %s" % (f'\0{attribute.label}'
+                                  if attribute.label is not None else
+                                  f'{attribute.identifier}',
                                   value if not len(value) == 1 else
                                   next(iter(value))))
     if result:
         return indentation.join(result)
+
+
+def _pp_list_of_labels_or_uids(entities: Iterable[OntologyEntity]) -> str:
+    entities = set(entities)
+    labels = (entity.label for entity in entities)
+    labels = (label if label is not None else str(entity.uid)
+              for label, entity
+              in zip(labels, entities))
+    labels = ', '.join(labels)
+    return labels
