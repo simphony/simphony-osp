@@ -402,7 +402,10 @@ class OntologyEntity(ABC):
 
     def __str__(self) -> str:
         """Transform the entity into a human-readable string."""
-        return f"{self.identifier}"
+        return f"{self.label}" \
+            if hasattr(self, 'label') \
+            and self.label is not None else \
+            f'{self.uid}'
 
     def __repr__(self) -> str:
         """Transform the entity into a string."""
