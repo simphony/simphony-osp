@@ -1,8 +1,14 @@
 """Test the communication engine."""
 
-import unittest2 as unittest
 import asyncio
+from distutils.version import StrictVersion
+
+import unittest2 as unittest
 import websockets.exceptions as ws_exceptions
+from websockets import __version__ as websockets_version
+if not StrictVersion(websockets_version) < StrictVersion('10'):
+    from websockets.frames import Close
+
 from osp.core.session.transport.communication_engine import \
     CommunicationEngineClient, CommunicationEngineServer
 from osp.core.session.transport.communication_engine import LEN_HEADER
@@ -19,7 +25,7 @@ def async_test(test):
     return decorate
 
 
-class MockWebsocket():
+class MockWebsocket:
     """A mock websocket for testing purposes."""
 
     def __init__(self, id, to_recv, sent_data):
@@ -57,8 +63,10 @@ class MockWebsocket():
         try:
             return next(self.iter)
         except StopIteration:
-            raise ws_exceptions.ConnectionClosedOK(code=1000,
-                                                   reason=None)
+            frame = {'code': 1000, 'reason': None}
+            raise (ws_exceptions.ConnectionClosedOK(**frame)
+                   if StrictVersion(websockets_version) < StrictVersion('10')
+                   else ws_exceptions.ConnectionClosedOK(rcvd=Close(**frame)))
 
 
 class TestCommunicationEngine(unittest.TestCase):
