@@ -5,6 +5,10 @@ from distutils.version import StrictVersion
 
 import unittest2 as unittest
 import websockets.exceptions as ws_exceptions
+# The latest websockets compatible with Python 3.6 is `websockets==9.1`.
+# Therefore, OSP-core will use `websockets < 10` when running on Python 3.6.
+# websockets >= 10 requires a Close frame object for the `ConnectionClosedOK`
+# exception, whereas websockets < 10 does not.
 from websockets import __version__ as websockets_version
 if not StrictVersion(websockets_version) < StrictVersion('10.0'):
     from websockets.frames import Close
