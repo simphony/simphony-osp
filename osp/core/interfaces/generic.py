@@ -288,6 +288,7 @@ class GenericInterfaceStore(Store):
 
                 created_entities = set(self.interface.session.creation_set)
                 while created_entities:
+                    self.interface.session.lock()
                     with self.interface.session:
                         yield from (
                             triple
@@ -299,6 +300,7 @@ class GenericInterfaceStore(Store):
                             )
                             for triple in entity.triples
                         )
+                    self.interface.session.unlock()
                     created_entities = set(self.interface.session.creation_set)
             triple_iterator = triple_iterator()
 
@@ -479,23 +481,30 @@ class GenericInterface(ABC, Interface):
 
     def add(self, entity: "OntologyEntity"):
         """Add an entity to the backend."""
+        self.session.lock()
         with entity.session:
             self.apply_added(entity)
+        self.session.unlock()
 
     def update(self, entity: "OntologyEntity"):
         """Update an entity in the backend."""
+        self.session.lock()
         with entity.session:
             self.apply_updated(entity)
+        self.session.unlock()
 
     def delete(self, identifier: Identifier):
         """Delete an entity from the backend."""
+        self.session.lock()
         with self.session as session:
             entity = session.from_identifier(identifier)
             self.apply_deleted(entity)
+        self.session.unlock()
 
     def load(self, uids: Iterable[UID]) -> \
             Iterator[Optional["OntologyEntity"]]:
         """Load an entity from the backend."""
+        self.session.lock()
         with self.session as session:
             for uid in uids:
                 try:
@@ -503,3 +512,4 @@ class GenericInterface(ABC, Interface):
                     yield self.update_from_backend(entity)
                 except KeyError:
                     yield self.load_from_backend(uid)
+        self.session.unlock()

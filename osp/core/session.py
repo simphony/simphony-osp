@@ -70,9 +70,39 @@ class Environment:
                                "manager which was not the last entered one.")
         self._stack_default_environment.pop()
         if self not in self._stack_default_environment \
-                and not self.subscribers:
+                and not self.subscribers and not self.locked:
             self.close()
-        return self
+        return False
+
+    @property
+    def locked(self) -> bool:
+        """Whether the environment is locked or not.
+
+        A locked environment will not be closed when using it as a context
+        manager and leaving the context. Useful for setting it as the
+        default environment when it is not intended to close it afterwards.
+        """
+        return self._lock > 0
+
+    def lock(self):
+        """Increase the lock count.
+
+        See the docstring of `locked` for an explanation of what locking an
+        environment means.
+        """
+        self._lock += 1
+
+    def unlock(self):
+        """Decrease the lock count.
+
+        See the docstring of `locked` for an explanation of what locking an
+        environment means.
+        """
+        self._lock = self._lock - 1 if self._lock > 0 else 0
+
+    _lock: int = 0
+    """See the docstring of `locked` for an explanation of what locking an
+    environment means."""
 
     def close(self):
         """Close this environment."""
