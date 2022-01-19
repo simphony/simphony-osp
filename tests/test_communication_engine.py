@@ -64,9 +64,11 @@ class MockWebsocket:
             return next(self.iter)
         except StopIteration:
             frame = {'code': 1000, 'reason': None}
-            raise (ws_exceptions.ConnectionClosedOK(**frame)
-                   if StrictVersion(websockets_version) < StrictVersion('10.0')
-                   else ws_exceptions.ConnectionClosedOK(rcvd=Close(**frame)))
+            raise (
+                ws_exceptions.ConnectionClosedOK(**frame)
+                if StrictVersion(websockets_version) < StrictVersion('10.0')
+                else ws_exceptions.ConnectionClosedOK(
+                    rcvd=Close(**frame), sent=None))
 
 
 class TestCommunicationEngine(unittest.TestCase):
