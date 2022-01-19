@@ -6,7 +6,7 @@ from distutils.version import StrictVersion
 import unittest2 as unittest
 import websockets.exceptions as ws_exceptions
 from websockets import __version__ as websockets_version
-if not StrictVersion(websockets_version) < StrictVersion('10'):
+if not StrictVersion(websockets_version) < StrictVersion('10.0'):
     from websockets.frames import Close
 
 from osp.core.session.transport.communication_engine import \
@@ -65,7 +65,7 @@ class MockWebsocket:
         except StopIteration:
             frame = {'code': 1000, 'reason': None}
             raise (ws_exceptions.ConnectionClosedOK(**frame)
-                   if StrictVersion(websockets_version) < StrictVersion('10')
+                   if StrictVersion(websockets_version) < StrictVersion('10.0')
                    else ws_exceptions.ConnectionClosedOK(rcvd=Close(**frame)))
 
 
