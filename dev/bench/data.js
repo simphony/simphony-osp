@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1642755863336,
+  "lastUpdate": 1642756046643,
   "repoUrl": "https://github.com/simphony/osp-core",
   "entries": {
     "Benchmark": [
@@ -6528,6 +6528,142 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.00007247923135473513",
             "extra": "mean: 309.24546600000724 usec\nrounds: 500"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "43052541+kysrpex@users.noreply.github.com",
+            "name": "José Manuel Domínguez",
+            "username": "kysrpex"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "76c9abb94f379f68df65968259524382c0c4991f",
+          "message": "Require `websockets >= 10` for `python_version >= '3.10'` (master) (#741)\n\n* Require `websockets >= 10` for `python_version >= '3.10'`.\r\n\r\n* Adapt `test_communication_engine.py` to the two possible ways of initializing the `ConnectionClosedOK` exception.",
+          "timestamp": "2022-01-21T10:06:29+01:00",
+          "tree_id": "0ac58ea62afb8018c40dad820cc06f8342dcab2b",
+          "url": "https://github.com/simphony/osp-core/commit/76c9abb94f379f68df65968259524382c0c4991f"
+        },
+        "date": 1642756045867,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_create",
+            "value": 641.7940528169509,
+            "unit": "iter/sec",
+            "range": "stddev: 0.004039196389631196",
+            "extra": "mean: 1.5581322319999975 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_add_default",
+            "value": 1741.0822515739526,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0000956047928544434",
+            "extra": "mean: 574.3554040000074 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_add_rel",
+            "value": 2142.347582424092,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00008505337933884914",
+            "extra": "mean: 466.7776640000163 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_get_byuiduuid",
+            "value": 303.9815465886419,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00020953403783670877",
+            "extra": "mean: 3.2896733740000137 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byuiduriref",
+            "value": 489.8113436261258,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0002242868880541574",
+            "extra": "mean: 2.041602370000035 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byrel",
+            "value": 955.2998245947251,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00016322637709600206",
+            "extra": "mean: 1.0467917759999992 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byoclass",
+            "value": 41.34991569242605,
+            "unit": "iter/sec",
+            "range": "stddev: 0.001690286089903198",
+            "extra": "mean: 24.183846163999974 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byuiduuid",
+            "value": 14041.945707064475,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0003581613825870895",
+            "extra": "mean: 71.21520199988396 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byuiduriref",
+            "value": 17499.69839271714,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00023580206790077635",
+            "extra": "mean: 57.14384199993816 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byrel",
+            "value": 907.9933284064819,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0002643473539770749",
+            "extra": "mean: 1.101329677999935 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_iter_byoclass",
+            "value": 41.470169192943956,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0022691765088415756",
+            "extra": "mean: 24.11371883600001 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_is_a",
+            "value": 13058.460061780464,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000052481624580506605",
+            "extra": "mean: 76.57870799994271 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_oclass",
+            "value": 16242.674919042875,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000012636229798818425",
+            "extra": "mean: 61.566214000109206 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_uid",
+            "value": 20891.1591915287,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000017535044692149393",
+            "extra": "mean: 47.86713799995823 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iri",
+            "value": 19693.195764472435,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00001721829252828389",
+            "extra": "mean: 50.77896000018711 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_attributes",
+            "value": 3074.5430967584457,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00008067130620565246",
+            "extra": "mean: 325.25158000039767 usec\nrounds: 500"
           }
         ]
       }
