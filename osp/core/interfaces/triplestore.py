@@ -1,19 +1,24 @@
 """A session connecting to a backend which stores the CUDS in triples."""
 
 from abc import ABC, abstractmethod
-from typing import Iterator, Optional
+from typing import Iterable, Iterator, Dict, Optional, Set, TYPE_CHECKING, \
+    Tuple
 
+from rdflib import Graph
+from rdflib.query import Result
+from rdflib.store import Store
 from rdflib.term import Identifier
 
-from osp.core.interfaces.interface import Interface
-from osp.core.interfaces.generic import GenericInterfaceStore
+from osp.core.interfaces.interface import Interface, Driver
+from osp.core.interfaces.overlay import OverlayInterface, OverlayDriver
+from osp.core.session import Session
 from osp.core.utils.datatypes import Pattern, Triple
 
 
-class TriplestoreStore(GenericInterfaceStore):
-    """RDFLib store, communicates with the TripleStoreInterface."""
+class TriplestoreDriver(Driver):
+    """RDFLib store, communicates with the TriplestoreInterface."""
 
-    interface: "TriplestoreInterface"
+    interface: 'TriplestoreInterface'
 
     # RDFLib
     # ↓ -- ↓
@@ -25,37 +30,55 @@ class TriplestoreStore(GenericInterfaceStore):
 
     def __init__(self,
                  *args,
-                 interface: Optional['TriplestoreInterface'] = None,
+                 interface: 'TriplestoreInterface',
                  **kwargs):
-        """Initialize the TriplestoreStore."""
+        """Initialize the OverlayDriver.
+
+        The initialization assigns an interface to the store. Then the usual
+        RDFLib's store initialization follows.
+        """
+        if not isinstance(interface, TriplestoreInterface):
+            raise ValueError("No valid interface provided.")
+        self.interface = interface
+        self.interface.close()
+
         super().__init__(*args, interface=interface, **kwargs)
-        # TODO: Do not create the buffers in the first place.
-        del self._buffers
 
-    def open(self, *args, **kwargs):
+    def open(self, configuration: str, create: bool = False) -> None:
         """Asks the interface to open the data source."""
-        return super().open(*args, **kwargs)
+        self.interface.open(configuration, create)
 
-    def close(self, *args, **kwargs):
-        """Tells the interface to close the data source."""
-        return super().close(*args, **kwargs)
+    def close(self, commit_pending_transaction: bool = False) -> None:
+        """Tells the interface to close the data source.
 
-    def add(self, triple, context, quoted=False):
+        Args:
+            commit_pending_transaction: commits uncommitted changes when
+                true before closing the data source.
+        """
+        if commit_pending_transaction:
+            self.commit()
+        self.interface.close()
+
+    def add(self, triple: Triple, context: Graph, quoted=False) -> None:
         """Adds triples to the store."""
         self.interface.add(triple)
 
-    def remove(self, triple_pattern, context=None):
+    def remove(self,
+               triple_pattern: Pattern,
+               context: Optional[Graph] = None) -> None:
         """Remove triples from the store."""
         self.interface.remove(triple_pattern)
 
-    def triples(self, triple_pattern, context=None):
+    def triples(self,
+                triple_pattern: Pattern,
+                context=None) -> Iterator[Tuple[Triple, Graph]]:
         """Query triple patterns."""
         for triple in self.interface.triples(triple_pattern):
             yield triple, iter(())
 
-    def __len__(self, *args, **kwargs):
+    def __len__(self, context: Graph = None) -> int:
         """Get the number of triples in the store."""
-        return super().__len__(*args, **kwargs)
+        return sum(1 for _ in self.triples((None, None, None)))
 
     def bind(self, *args, **kwargs):
         """Bind a namespace to a prefix."""
@@ -73,7 +96,7 @@ class TriplestoreStore(GenericInterfaceStore):
         """Get the bound namespaces."""
         return super().namespaces()
 
-    def query(self, *args, **kwargs):
+    def query(self, *args, **kwargs) -> Result:
         """Perform a SPARQL query on the store."""
         return super().query(*args, **kwargs)
 
@@ -99,6 +122,14 @@ class TriplestoreInterface(ABC, Interface):
     # Definition of:
     # TriplestoreInterface
     # ↓ ---------------- ↓
+
+    root: Optional[Identifier] = None
+    """Define a custom root object.
+
+    When defined, the user will get this specific ontology entity when invoking
+    the wrapper (instead of a virtual container). This is however of little
+    interest for a triplestore interface.
+    """
 
     @abstractmethod
     def triples(self, pattern: Pattern) -> Iterator[Triple]:
@@ -134,22 +165,30 @@ class TriplestoreInterface(ABC, Interface):
         pass
 
     @abstractmethod
-    def open(self, configuration: str):
-        """Open a connection to the triplestore.
+    def open(self, configuration: str, create: bool = False):
+        """Open the data source that the interface interacts with.
 
-        You can expect calls to this method even when the triplestore is
+        You can expect calls to this method even when the data source is
         already open, therefore, an implementation like the following is
         recommended.
 
-        def open(self, configuration: str):
-            if your_triplestore_is_already_open:
+        def open(self, configuration: str, create: bool = False):
+            if your_data_source_is_already_open:
                 return
                 # To improve the user experience you can check if the
                 # configuration string leads to a resource different from
                 # the current one and raise an error informing the user.
 
-            # Connect to your triplestore and get a connection/engine object...
-            # your_triplestore_is_already_open is for now True.
+            # Connect to your data source...
+            # your_data_source_is_already_open is for now True.
+
+        Args:
+            configuration: Determines the location of the data source to be
+                opened.
+            create: Whether the data source can be created at the target
+                location if it does not exist. When false, if the data
+                source does not exist, you should raise an exception. When
+                true, create an empty data source.
         """
         pass
 
@@ -174,24 +213,8 @@ class TriplestoreInterface(ABC, Interface):
             # your_triplestore_is_already_closed is for now True
         """
 
-    # + Methods and properties from definition of: Interface.
-
-    root: Optional[Identifier]
-    """Define a custom root object.
-
-    When defined, the user will get this specific ontology entity when invoking
-    the wrapper (instead of a virtual container). This is however of little
-    interest for a triplestore interface.
-    """
-
     # ↑ ---------------- ↑
     # Definition of:
     # TriplestoreInterface
 
-    store_class = TriplestoreStore
-
-    def __init__(self):
-        """Initialize the TripleStoreInterface."""
-        super().__init__()
-        # TODO: Do not create the session in the first place.
-        self.session = None
+    driver = TriplestoreDriver

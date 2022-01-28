@@ -14,7 +14,7 @@ from rdflib.term import Identifier
 from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 from rdflib.plugins.stores.memory import SimpleMemory
 
-from osp.core.interfaces.generic import BufferType
+from osp.core.interfaces.interface import BufferType
 from osp.core.interfaces.remote.communication_engine import \
     CommunicationEngineClient
 from osp.core.interfaces.remote.utils import (

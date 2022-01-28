@@ -11,7 +11,7 @@ from typing import Optional
 from osp.core.utils.datatypes import Vector
 from osp.core.ontology.parser import OntologyParser
 from osp.core.interfaces.remote.server import RemoteStoreServer
-from osp.core.interfaces.triplestore import TriplestoreStore
+from osp.core.interfaces.triplestore import TriplestoreDriver
 from osp.core.session import Session
 from osp.interfaces.sqlite.interface import SQLiteInterface
 
@@ -54,7 +54,7 @@ class TestWrapper(unittest.TestCase):
         from osp.core.namespaces import city
         from osp.wrappers import sqlite
 
-        with sqlite(self.file_name) as wrapper:
+        with sqlite(self.file_name, create=True) as wrapper:
             freiburg = city.City(name='Freiburg', coordinates=[20, 58])
             freiburg_identifier = freiburg.identifier
             marco = city.Citizen(iri='http://example.org/citizens#Marco',
@@ -130,7 +130,8 @@ class TestWrapper(unittest.TestCase):
         fr = city.City(iri='http://example.org/Freiburg', name='Freiburg',
                        coordinates=[0, 0])
 
-        with sqlite(self.file_name, root=fr) as freiburg_as_wrapper_1:
+        with sqlite(self.file_name, create=True, root=fr) as \
+                freiburg_as_wrapper_1:
             marco = city.Citizen(iri='http://example.org/citizens#Marco',
                                  name='Marco',
                                  age=50)
@@ -198,11 +199,12 @@ class TestDataspaceWrapper(unittest.TestCase):
                 os.remove(file)
 
     @staticmethod
-    def server_store_generator(configuration_string: str) -> TriplestoreStore:
+    def server_store_generator(configuration_string: str) -> TriplestoreDriver:
         """Produces a store for the server from a configuration string."""
         interface = SQLiteInterface()
-        store = TriplestoreStore(interface=interface)
-        store.open(configuration_string or f"{TestDataspaceWrapper.db_file}")
+        store = TriplestoreDriver(interface=interface)
+        store.open(configuration_string or f"{TestDataspaceWrapper.db_file}",
+                   create=True)
         return store
 
     def start_server(self, files_uid: bool = False):

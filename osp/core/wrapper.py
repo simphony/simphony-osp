@@ -82,6 +82,7 @@ class WrapperSpawner(ABC, Wrapper):
 
     def __new__(cls,
                 configuration_string: str = '',
+                create: bool = False,
                 *args,
                 ontology: Optional[Union[Session, bool]] = None,
                 root: Optional[Union[str,
@@ -102,8 +103,8 @@ class WrapperSpawner(ABC, Wrapper):
         # Initialize the session.
         interface_instance = interface_class(*args,
                                              **kwargs)
-        store = cls._get_interface().store_class(interface=interface_instance)
-        store.open(configuration_string)
+        store = cls._get_interface().driver(interface=interface_instance)
+        store.open(configuration_string, create=create)
         session = Session(store=store, ontology=ontology)
 
         # If not root has been defined, use a read-only container as root.

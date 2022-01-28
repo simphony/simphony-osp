@@ -1,5 +1,7 @@
 """Interface between the SimPhoNy OSP and SQLite."""
 
+from pathlib import Path
+
 from osp.interfaces.sqlalchemy.interface import SQLAlchemyInterface
 
 
@@ -13,13 +15,17 @@ class SQLiteInterface(SQLAlchemyInterface):
     # TriplestoreInterface
     # ↓ ---------------- ↓
 
-    def open(self, configuration: str):
+    def open(self, configuration: str, create: bool = False):
         """Open a connection to the database.
 
         Args:
             configuration: The path pointing to the file containing the
                 SQLite database.
+            create: Whether to create the database file if it does not exist.
         """
+        if not create and not Path(configuration).is_file():
+            raise FileNotFoundError(f'Database file {configuration} does not '
+                                    f'exist.')
         return super().open(configuration='sqlite:///' + configuration)
 
     # ↑ ---------------- ↑

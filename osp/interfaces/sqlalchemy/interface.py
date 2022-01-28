@@ -134,13 +134,15 @@ class SQLAlchemyInterface(TriplestoreInterface):
         #  implemented on `rdflib-sqlalchemy`).
         # self._graph.commit()
 
-    def open(self, configuration: str):
+    def open(self, configuration: str, create: bool = False):
         """Open a connection to the database.
 
         Args:
             configuration: The SQLAlchemy URI pointing to the database to
                 which the user wishes to connect.
+            create: Whether to create the database file if it does not exist.
         """
+        # TODO: Create databases if create is `True`.
         if self._uri is not None and self._uri != configuration:
             raise RuntimeError(f'A different project database {self._uri}'
                                f'is already open!')

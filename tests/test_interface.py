@@ -8,18 +8,18 @@ import socket
 import tempfile
 import time
 import unittest
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, Set, TYPE_CHECKING
 
 from rdflib import RDF, Graph, URIRef
 
 from osp.core.namespaces import cuba
 from osp.core.utils.datatypes import UID, Vector
 from osp.core.ontology.parser import OntologyParser
-from osp.core.interfaces.generic import GenericInterface,\
-    GenericInterfaceStore
+from osp.core.interfaces.overlay import OverlayDriver, OverlayInterface
+
 from osp.core.interfaces.remote.client import RemoteStoreClient
 from osp.core.interfaces.remote.server import RemoteStoreServer
-from osp.core.interfaces.triplestore import TriplestoreStore
+from osp.core.interfaces.triplestore import TriplestoreDriver
 from osp.core.session import Session
 from osp.interfaces.sqlite.interface import SQLiteInterface
 from osp.wrappers import sqlite
@@ -36,49 +36,26 @@ class TestDummyInterface(unittest.TestCase):
     # Define a dummy store and dummy interface.
     # ↓ ------------------------------------- ↓
 
-    DummyStore = GenericInterfaceStore
+    DummyDriver = OverlayDriver
 
-    class DummyInterface(GenericInterface):
+    class DummyInterface(OverlayInterface):
         """A sample interface (based on an RDFLib Graph.
 
         It has the sole purpose of being used an interface for testing the
         InterfaceStore.
         """
 
-        root = None
-
         def __init__(self):
             """Set up a graph to use as underlying backend."""
             super().__init__()
             self._graph = Graph()
 
-        def apply_added(self, entity: "OntologyEntity") -> None:
-            """Convert received entity to triples and add them to the graph."""
-            pass
+        # OverlayInterface
+        # ↓ -------------- ↓
 
-        def apply_updated(self, entity: "OntologyEntity") -> None:
-            """Update entity in the graph.
+        root = None
 
-            Since all the triples for an entity are received, the update
-            consists on removing all the existing triples and adding the
-            ones provided by the updated version of the entity.
-            """
-            pass
-
-        def apply_deleted(self, entity: "OntologyEntity") -> None:
-            """Remove all triples that have the received entity as subject."""
-            pass
-
-        def update_from_backend(self, entity: "OntologyEntity") -> \
-                Optional["OntologyEntity"]:
-            """Spawn an ontology individual matching the received uid."""
-            return entity
-
-        def load_from_backend(self, uid: UID) -> Optional["OntologyEntity"]:
-            """An entity that previously did not exist is requested."""
-            return None
-
-        def open(self, configuration: str):
+        def open(self, configuration: str, create: bool = False):
             """Not needed, but an implementation is expected."""
             pass
 
@@ -86,18 +63,31 @@ class TestDummyInterface(unittest.TestCase):
             """Not needed, but an implementation is expected."""
             pass
 
+        def commit(self,
+                   graph_old: Graph, graph_new: Graph,
+                   graph_diff_added: Graph, graph_diff_deleted: Graph,
+                   session_old: Session, session_new: Session,
+                   added: Set['OntologyEntity'],
+                   updated: Set['OntologyEntity'],
+                   deleted: Set['OntologyEntity']
+                   ):
+            pass
+
+        def populate(self, graph: Graph, session: Session):
+            pass
+
     # ↑ ------------------------------------- ↑
     # Define a dummy store and dummy interface.
 
     def setUp(self) -> None:
         """Create an interface, a store and assign them to a graph."""
-        interface = self.DummyInterface()
-        store = self.DummyStore(interface=interface)
+        store = self.DummyDriver(interface=self.DummyInterface())
+        store.open('arbitrary_configuration')
         self.graph = Graph(store)
 
     def test_buffered(self):
         """Tests the store without committing the changes."""
-        self.assertTrue(isinstance(self.graph.store, self.DummyStore))
+        self.assertTrue(isinstance(self.graph.store, self.DummyDriver))
 
         # Add triples from a cuba entity to the store.
         entity = cuba.Entity()
@@ -211,9 +201,9 @@ class TestTriplestoreInterface(unittest.TestCase):
     def setUp(self) -> None:
         """Create an interface, a store and assign them to a graph."""
         self.interface = SQLiteInterface()
-        self.store = TriplestoreStore(interface=self.interface)
+        self.store = TriplestoreDriver(interface=self.interface)
         self.graph = Graph(self.store)
-        self.graph.open(self.file_name)
+        self.graph.open(self.file_name, create=True)
 
     def tearDown(self) -> None:
         """Remove the database file."""
@@ -263,7 +253,7 @@ class TestTriplestoreInterface(unittest.TestCase):
 
         # Use a new interface to reopen the file and retrieve the data.
         interface = SQLiteInterface()
-        store = TriplestoreStore(interface=interface)
+        store = TriplestoreDriver(interface=interface)
         graph = Graph(store)
         graph.open(self.file_name)
         self.assertSetEqual(set(person.triples),
@@ -276,7 +266,7 @@ class TestTriplestoreInterface(unittest.TestCase):
 
         # Again reopen in a new interface and check that the commit went well.
         interface = SQLiteInterface()
-        store = TriplestoreStore(interface=interface)
+        store = TriplestoreDriver(interface=interface)
         graph = Graph(store)
         graph.open(self.file_name)
         self.assertSetEqual(set(),
@@ -320,7 +310,7 @@ class TestTriplestoreWrapper(unittest.TestCase):
         """Test adding some entities from the city ontology."""
         from osp.core.namespaces import city
 
-        with sqlite(self.file_name) as wrapper:
+        with sqlite(self.file_name, create=True) as wrapper:
             freiburg = city.City(name='Freiburg', coordinates=[20, 58])
             freiburg_identifier = freiburg.identifier
             marco = city.Citizen(name='Marco', age=50)
@@ -393,11 +383,12 @@ class TestRemoteStoreSQLite(unittest.TestCase):
         self.stop_server()
 
     @staticmethod
-    def server_store_generator(configuration_string: str) -> TriplestoreStore:
+    def server_store_generator(configuration_string: str) -> TriplestoreDriver:
         """Produces a store for the server from a configuration string."""
         interface = SQLiteInterface()
-        store = TriplestoreStore(interface=interface)
-        store.open(configuration_string or f"{TestRemoteStoreSQLite.db_file}")
+        store = TriplestoreDriver(interface=interface)
+        store.open(configuration_string or f"{TestRemoteStoreSQLite.db_file}",
+                   create=True)
         return store
 
     def start_server(self, files_uid: bool = False):

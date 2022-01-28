@@ -30,7 +30,7 @@ class DataspaceStore(RemoteStoreClient):
 class DataspaceInterface(Interface):
     """The data space interface connects OSP-core to a data space."""
 
-    store_class = DataspaceStore
+    driver = DataspaceStore
 
     def __init__(self,
                  uri: str = '',
