@@ -11,6 +11,8 @@ from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
 from osp.core.session.result import returns_query_result
 from osp.core.session.buffers import BufferContext, EngineContext
+from osp.core.warnings import unreachable_cuds_objects as \
+    warning_unreachable_cuds_objects
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +29,12 @@ class DbWrapperSession(WrapperSession):
         try:
             root_obj = self._registry.get(self.root)
             added, updated, deleted = self._buffers[BufferContext.USER]
+            if warning_unreachable_cuds_objects:
+                self._unreachable_warning(root_obj)
             self._apply_added(root_obj, added)
             self._apply_updated(root_obj, updated)
             self._apply_deleted(root_obj, deleted)
             self._reset_buffers(BufferContext.USER)
-            self._unreachable_warning(root_obj)
             self._commit()
         except Exception as e:
             self._rollback_transaction()
@@ -179,7 +182,8 @@ class DbWrapperSession(WrapperSession):
             root_obj (Union[URIRef, UUID]): The root object with respect to
                 which objects are deemed reachable or unreachable.
         """
-        unreachable = self._registry._get_not_reachable(root_obj, rel=None)
+        unreachable, reachable = self._registry._get_not_reachable(
+            root_obj, rel=None, return_reachable=True)
         max_cuds_on_warning = 5
         if len(unreachable) > 0:
             warning = "Some CUDS objects are unreachable " \
@@ -196,4 +200,24 @@ class DbWrapperSession(WrapperSession):
                                            - max_cuds_on_warning)
                              + " more" if len(unreachable) > 5
                         else "")
+            logger.warning(warning)
+        if len(reachable) > 1000:
+            # Recommend disabling the warning for large datasets.
+            warning = "You are working with a large dataset. "
+            if not len(unreachable) > 0:
+                warning += "By default, when committing changes, " \
+                           "OSP-core looks for objects that are unreachable " \
+                           "from the wrapper object to generate a warning. " \
+                           "Generating such "
+            else:
+                warning += "Generating the above "
+            warning += "warning is very expensive in computational " \
+                       "terms when small changes are applied to existing, " \
+                       "large datasets. You will notice that the changes " \
+                       "may take a lot of time to be committed. " \
+                       "Please turn off this warning when working with " \
+                       "large datasets. You can turn off the warning by " \
+                       "running `import osp.core.warnings as " \
+                       "warning_settings; " \
+                       "warning_settings.unreachable_cuds_objects = False`."
             logger.warning(warning)

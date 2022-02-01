@@ -6,3 +6,9 @@ attributes_cannot_modify_in_place = True
 For example `fr = city.City(name='Freiburg', coordinates=[1, 2]);
 fr.coordinates`.
 """
+
+unreachable_cuds_objects = True
+"""Warns when a commit is performed and unreachable CUDS exist.
+
+Disabling this warning can greatly improve performance.
+"""

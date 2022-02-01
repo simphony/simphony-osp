@@ -58,7 +58,11 @@ class Registry(dict):
             message = '{!r} is not a proper uid'
             raise ValueError(message.format(uid))
 
-    def get_subtree(self, root, rel=None, skip=None):
+    def get_subtree(self,
+                    root,
+                    subtree=None,
+                    rel=None,
+                    skip=None):
         """Get all the elements in the subtree rooted at given root.
 
         Only use the given relationship for traversal.
@@ -74,16 +78,48 @@ class Registry(dict):
             Set[Cuds]: The set of elements in the subtree rooted in the given
                 uid.
         """
-        from osp.core.cuds import Cuds
-        skip = skip or set()
-        if not isinstance(root, Cuds):
+        if isinstance(root, (UUID, URIRef)):
             root = super().__getitem__(root)
         assert root.uid in self
-        subtree = {root}
-        for child in root.iter(rel=rel):
-            if child not in (skip | subtree):
-                subtree |= self.get_subtree(child.uid, rel,
-                                            skip=(skip | subtree))
+        skip = skip or set()
+        skip |= {root}
+        subtree = subtree or set()
+        subtree |= {root}
+
+        if rel is None:
+            def subclass_check(x):
+                """Check whether relationship `x` should be considered.
+
+                When no `rel` is provided, it should always return True,
+                as all relationships should be considered.
+                """
+                return True
+        else:
+            subclasses = rel.subclasses
+
+            def subclass_check(x):
+                """Check whether relationship `x` should be considered.
+
+                When `rel` is provided, it should return true only if the
+                relationship `x` is a subclass of the provided relationship
+                (`rel`).
+                """
+                return x in subclasses
+        filtered_neighbors = (
+            neighbor
+            for r, dict_target in root._neighbors.items()
+            if subclass_check(r)  # Relationship considered
+            for neighbor in dict_target
+        )
+        filtered_neighbors = root.session.load(*filtered_neighbors)
+
+        for neighbor in filtered_neighbors:
+            subtree |= {neighbor}
+            if neighbor not in skip:
+                self.get_subtree(neighbor,
+                                 subtree=subtree,
+                                 rel=rel,
+                                 skip=skip)
         return subtree
 
     def prune(self, *roots, rel=None):
@@ -103,7 +139,10 @@ class Registry(dict):
             super().__delitem__(x.uid)
         return not_reachable
 
-    def _get_not_reachable(self, *roots, rel=None):
+    def _get_not_reachable(self,
+                           *roots,
+                           rel=None,
+                           return_reachable=False):
         """Get all elements in the registry that are not reachable.
 
         Use the given rel for traversal.
@@ -128,7 +167,7 @@ class Registry(dict):
         for uid in self.keys():
             if uid not in reachable_uids:
                 delete.append(super().__getitem__(uid))
-        return delete
+        return delete if not return_reachable else (delete, reachable_uids)
 
     def reset(self):
         """Delete the contents of the registry."""
