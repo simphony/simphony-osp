@@ -162,6 +162,12 @@ class CommunicationEngineClient():
         """
         self.uri = uri
         self.kwargs = kwargs
+        # The default `ping_timeout` is 20s. The pings are not sent during a
+        # transfer. Thus, if the transfer takes more than 20s, then the
+        # default value causes the websockets connection to close
+        # unexpectedly. Hence, we chose to never close the connection due to
+        # ping timeouts unless the user wishes to do so.
+        self.kwargs['ping_timeout'] = self.kwargs.get('ping_timeout', None)
         self.handle_response = handle_response
         self.websocket = None
 
