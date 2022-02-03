@@ -255,7 +255,7 @@ def _check_duplicate_labels(graph: Graph, namespace: Union[str, URIRef]):
                  for label, iris in conflicting_labels.items())
         raise KeyError(f'The following labels are assigned to more than '
                        f'one entity in namespace {namespace}; '
-                       f'{"; ".join(texts)}.')
+                       f'{"; ".join(texts)} .')
 
 
 def _check_namespaces(namespace_iris: Iterable[URIRef],
