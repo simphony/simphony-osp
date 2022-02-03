@@ -88,10 +88,10 @@ class Registry(dict):
             if not subclasses else (lambda r: r in subclasses)
         """Checks whether relationship `x` should be considered.
 
-        - When no `rel` is provided, `subclass_check` should always return 
+        - When no `rel` is provided, `subclass_check` should always return
           True, as all relationships should be considered.
 
-        - When `rel` is provided, it should return true only if the 
+        - When `rel` is provided, it should return true only if the
           relationship `x` is a subclass of the provided relationship (`rel`).
         """
 
