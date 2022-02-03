@@ -79,34 +79,27 @@ class Registry(dict):
         if isinstance(root, (UUID, URIRef)):
             root = super().__getitem__(root)
         assert root.uid in self
-        skip = skip or set()
+        skip = skip or set() | {root}
         skip |= {root}
-        subtree = subtree or set()
-        subtree |= {root}
+        subtree = subtree or {root}
 
-        if rel is None:
-            def subclass_check(x):
-                """Check whether relationship `x` should be considered.
+        subclasses = set() if rel is None else rel.subclasses
+        subclass_check = (lambda r: True) \
+            if not subclasses else (lambda r: r in subclasses)
+        """Checks whether relationship `x` should be considered.
 
-                When no `rel` is provided, it should always return True,
-                as all relationships should be considered.
-                """
-                return True
-        else:
-            subclasses = rel.subclasses
+        - When no `rel` is provided, `subclass_check` should always return 
+          True, as all relationships should be considered.
 
-            def subclass_check(x):
-                """Check whether relationship `x` should be considered.
+        - When `rel` is provided, it should return true only if the 
+          relationship `x` is a subclass of the provided relationship (`rel`).
+        """
 
-                When `rel` is provided, it should return true only if the
-                relationship `x` is a subclass of the provided relationship
-                (`rel`).
-                """
-                return x in subclasses
+        # Load neighbors connected through the relationship
         filtered_neighbors = (
             neighbor
             for r, dict_target in root._neighbors.items()
-            if subclass_check(r)  # Relationship considered
+            if subclass_check(r)
             for neighbor in dict_target
         )
         filtered_neighbors = root.session.load(*filtered_neighbors)
@@ -114,10 +107,7 @@ class Registry(dict):
         for neighbor in filtered_neighbors:
             subtree |= {neighbor}
             if neighbor not in skip:
-                self.get_subtree(neighbor,
-                                 subtree=subtree,
-                                 rel=rel,
-                                 skip=skip)
+                self.get_subtree(neighbor, subtree=subtree, rel=rel, skip=skip)
         return subtree
 
     def prune(self, *roots, rel=None):
