@@ -58,11 +58,7 @@ class Registry(dict):
             message = '{!r} is not a proper uid'
             raise ValueError(message.format(uid))
 
-    def get_subtree(self,
-                    root,
-                    subtree=None,
-                    rel=None,
-                    skip=None):
+    def get_subtree(self, root, subtree=None, rel=None, skip=None):
         """Get all the elements in the subtree rooted at given root.
 
         Only use the given relationship for traversal.
@@ -71,6 +67,8 @@ class Registry(dict):
             root (Union[UUID, URIRef, Cuds]): The root of the subtree.
             rel (Relationship, optional): The relationship used for traversal.
                 Defaults to None. Defaults to None.
+            subtree (Set[Cuds]): Currently calculated subtree (this is a
+                recursive algorithm).
             skip (Set[Cuds], optional): The elements to skip. Defaults to None.
                 Defaults to None.
 

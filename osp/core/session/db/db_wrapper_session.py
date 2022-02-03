@@ -201,7 +201,7 @@ class DbWrapperSession(WrapperSession):
                              + " more" if len(unreachable) > 5
                         else "")
             logger.warning(warning)
-        if len(reachable) > 1000:
+        if len(reachable) + len(unreachable) > 1000:
             # Recommend disabling the warning for large datasets.
             warning = "You are working with a large dataset. "
             if not len(unreachable) > 0:

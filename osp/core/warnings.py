@@ -10,5 +10,6 @@ fr.coordinates`.
 unreachable_cuds_objects = True
 """Warns when a commit is performed and unreachable CUDS exist.
 
-Disabling this warning can greatly improve performance.
+Disabling this warning can greatly improve the performance of commits when 
+working with large datasets.
 """
