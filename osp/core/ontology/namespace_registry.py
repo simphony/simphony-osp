@@ -330,8 +330,10 @@ class NamespaceRegistry:
             path, migration_version_filename)
         if os.path.exists(migration_version_file_path):
             with open(migration_version_file_path, "r") as version_file:
+                from ..pico import compare_version, CompareOperations
                 version = version_file.read().strip()
-                do_migration = not version or (version < "3.5.3.1")
+                do_migration = not version or compare_version(
+                    version, "3.5.3.1", operation=CompareOperations.l)
         else:
             do_migration = True
         if do_migration:
