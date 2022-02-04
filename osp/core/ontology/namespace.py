@@ -361,7 +361,7 @@ class OntologyNamespace():
 
         Args:
             iri (rdflib.URIRef): the target iri.
-            lang (str): retrieve labels only on a speific language.
+            lang (str): retrieve labels only on a specific language.
             _return_literal: return rdflib.Literal instead of str, so that the
                              language of the labels is known to the caller.
 
