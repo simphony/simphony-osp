@@ -179,45 +179,48 @@ class DbWrapperSession(WrapperSession):
         raises a warning that lists some of the unreachable CUDS objects.
 
         Args:
-            root_obj (Union[URIRef, UUID]): The root object with respect to
-                which objects are deemed reachable or unreachable.
+            root_obj: The root object with respect to which objects are
+                deemed reachable or unreachable.
         """
         unreachable, reachable = self._registry._get_not_reachable(
             root_obj, rel=None, return_reachable=True)
+
+        # Warn about unreachable CUDS
         max_cuds_on_warning = 5
         if len(unreachable) > 0:
-            warning = "Some CUDS objects are unreachable " \
-                      "from the wrapper object: " \
-                      "{cuds}{more}." \
-                      "\n" \
-                      "If you want to be able to retrieve those CUDS " \
-                      "objects later, either add them to the wrapper object " \
-                      "or to any other CUDS that is reachable from it." \
-                .format(cuds=', '.join(str(x) for x in itertools
-                                       .islice(unreachable,
-                                               max_cuds_on_warning)),
-                        more=" and " + str(len(unreachable)
-                                           - max_cuds_on_warning)
-                             + " more" if len(unreachable) > 5
-                        else "")
-            logger.warning(warning)
-        if len(reachable) + len(unreachable) > 1000:
+            unreachable_cuds_warning = (
+                "Some CUDS objects are unreachable from the wrapper object: "
+                "{cuds}{more}. \n"
+                "If you want to be able to retrieve those CUDS objects later, "
+                "either add them to the wrapper object or to any other CUDS "
+                "that is reachable from it."
+            ).format(
+                cuds=', '.join(str(x) for x in itertools
+                               .islice(unreachable, max_cuds_on_warning)),
+                more=" and " + str(len(unreachable) - max_cuds_on_warning)
+                     + " more" if len(unreachable) > 5 else "")
+            logger.warning(unreachable_cuds_warning)
+        else:
+            unreachable_cuds_warning = None
+
+        # Warn about large datasets and recommend disabling the unreachable
+        # CUDS warning for large datasets.
+        large_dataset_size = 1000
+        if len(reachable) + len(unreachable) > large_dataset_size:
             # Recommend disabling the warning for large datasets.
-            warning = "You are working with a large dataset. "
-            if not len(unreachable) > 0:
-                warning += "By default, when committing changes, " \
-                           "OSP-core looks for objects that are unreachable " \
-                           "from the wrapper object to generate a warning. " \
-                           "Generating such "
-            else:
-                warning += "Generating the above "
-            warning += "warning is very expensive in computational " \
-                       "terms when small changes are applied to existing, " \
-                       "large datasets. You will notice that the changes " \
-                       "may take a lot of time to be committed. " \
-                       "Please turn off this warning when working with " \
-                       "large datasets. You can turn off the warning by " \
-                       "running `import osp.core.warnings as " \
-                       "warning_settings; " \
-                       "warning_settings.unreachable_cuds_objects = False`."
+            warning = ("You are working with a large dataset. When "
+                       "committing changes, OSP-core looks for objects that "
+                       "are unreachable from the wrapper object to generate "
+                       "{reference_to_warning}. Generating such warning is "
+                       "very expensive in computational terms when small "
+                       "changes are applied to existing, large datasets. You "
+                       "will notice that the changes may take a lot of time "
+                       "to be committed. Please turn off this warning when "
+                       "working with large datasets. You can turn off the "
+                       "warning by running `import osp.core.warnings as "
+                       "warning_settings; "
+                       "warning_settings.unreachable_cuds_objects = False`.")
+            reference = ("a warning" if not unreachable_cuds_warning else
+                         "the previous warning")
+            warning = warning.format(reference_to_warning=reference)
             logger.warning(warning)
