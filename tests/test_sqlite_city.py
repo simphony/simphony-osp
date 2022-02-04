@@ -422,7 +422,7 @@ class TestSqliteCity(unittest.TestCase):
                 wrapper = city.CityWrapper(session=session)
                 wrapper.add(city.Citizen(name='citizen'),
                             rel=city.hasInhabitant)
-                with self.assertLogs() as captured:
+                with self.assertLogs(logger=logger) as captured:
                     logger.warning('At least log entry is needed for '
                                    '`assertLogs`.')
                     session.commit()
