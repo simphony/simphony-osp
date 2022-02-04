@@ -51,7 +51,7 @@ setup(
     ],
     keywords='owl ontology interoperability materials-science osp simphony '
              'wrappers cuds open-simulation-platform',
-    download_url="https://pypi.python.org/pypi/simphony-osp",
+    download_url="https://pypi.python.org/pypi/osp-core",
     project_urls={
         "Tracker": "https://github.com/simphony/osp-core/issues",
         "Documentation": "https://simphony.readthedocs.io",
