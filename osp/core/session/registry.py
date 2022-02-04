@@ -102,12 +102,12 @@ class Registry(dict):
             if subclass_check(r)
             for neighbor in dict_target
         )
-        filtered_neighbors = root.session.load(*filtered_neighbors)
+        filtered_neighbors = set(root.session.load(*filtered_neighbors))
 
-        for neighbor in filtered_neighbors:
-            subtree |= {neighbor}
-            if neighbor not in skip:
-                self.get_subtree(neighbor, subtree=subtree, rel=rel, skip=skip)
+        subtree |= filtered_neighbors
+
+        for neighbor in filter(lambda x: x not in skip, filtered_neighbors):
+            self.get_subtree(neighbor, subtree=subtree, rel=rel, skip=skip)
         return subtree
 
     def prune(self, *roots, rel=None):
@@ -140,14 +140,21 @@ class Registry(dict):
                 from these root elements.
             rel (Relationship, optional): Only use this relationship for
                 traversal. Defaults to None.
+            return_reachable (bool): Returns also the uids of the reachable
+                cuds.
 
         Returns:
-            List[Cuds]: The set of non reachable elements.
+            Union[List[Cuds],
+                  Tuple[List[Cuds], Set[Union[UUID, URIRef]]]]: Either a
+                list of the unreachable CUDS when `return_reachable` is False
+                or a tuple whose first element is such list, and second
+                element a set with the uids of the reachable cuds.
         """
         # Get all reachable Cuds objects
         reachable = set()
         for root in roots:
-            reachable |= self.get_subtree(root, rel=rel, skip=reachable)
+            reachable |= self.get_subtree(
+                root, rel=rel, skip=reachable)
         reachable_uids = set([r.uid for r in reachable])
 
         # Get all the Cuds objects that are not reachable
