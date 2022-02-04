@@ -513,6 +513,40 @@ class TestSqliteCity(unittest.TestCase):
             if os.path.exists(DB):
                 os.remove(DB)
 
+            # Edge case: large dataset warning after unreachable warning
+            with SqliteSession(DB) as session:
+                wrapper = city.CityWrapper(session=session)
+                wrapper.add(city.Citizen(name='citizen'),
+                            rel=city.hasInhabitant)
+                [city.Citizen(name='citizen')
+                 for i in range(0, large_dataset_size)]
+                with self.assertLogs(logger=logger) as captured:
+                    logger.warning('At least log entry is needed for '
+                                   '`assertLogs`.')
+                    session.commit()
+                    self.assertEqual(
+                        count_warnings_by_class(
+                            captured.records,
+                            LargeDatasetWarning),
+                        1
+                    )
+                    self.assertEqual(
+                        count_warnings_by_class(
+                            captured.records,
+                            UnreachableCUDSWarning),
+                        1
+                    )
+                    large_dataset_warning = set(
+                        record
+                        for record in captured.records
+                        if hasattr(record, 'warning_class')
+                        if issubclass(record.warning_class,
+                                      LargeDatasetWarning)).pop()
+                    self.assertIn('the previous warning',
+                                  large_dataset_warning.msg)
+            if os.path.exists(DB):
+                os.remove(DB)
+
             # Test warning turned off for the both warnings case
             osp.core.warnings.unreachable_cuds_objects = False
             with SqliteSession(DB) as session:
