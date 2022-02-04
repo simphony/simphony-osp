@@ -252,7 +252,7 @@ class NamespaceRegistry:
                                               _return_literal=True,
                                               _return_label_property=True))
             if not labels:
-                logger.warning(f"No label for {entity_iri}")
+                logger.debug(f"No label for {entity_iri}")
             else:
                 labels = sorted(labels,
                                 key=lambda x:
