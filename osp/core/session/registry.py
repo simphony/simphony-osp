@@ -4,6 +4,8 @@ from uuid import UUID
 from rdflib import URIRef
 import logging
 
+import osp.core.warnings as warning_settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -58,7 +60,8 @@ class Registry(dict):
             message = '{!r} is not a proper uid'
             raise ValueError(message.format(uid))
 
-    def get_subtree(self, root, rel=None, skip=None):
+    def get_subtree(self, root, subtree=None, rel=None, skip=None,
+                    warning=None):
         """Get all the elements in the subtree rooted at given root.
 
         Only use the given relationship for traversal.
@@ -67,23 +70,59 @@ class Registry(dict):
             root (Union[UUID, URIRef, Cuds]): The root of the subtree.
             rel (Relationship, optional): The relationship used for traversal.
                 Defaults to None. Defaults to None.
+            subtree (Set[Cuds]): Currently calculated subtree (this is a
+                recursive algorithm).
             skip (Set[Cuds], optional): The elements to skip. Defaults to None.
                 Defaults to None.
+            warning (LargeDatasetWarning, optional): Raise a
+                `LargeDatasetWarning` when the subtree is large. When `None`,
+                no warning is raised. If you wish to raise the warning, a
+                `LargeDatasetWarning` object must be provided.
 
         Returns:
             Set[Cuds]: The set of elements in the subtree rooted in the given
                 uid.
         """
-        from osp.core.cuds import Cuds
-        skip = skip or set()
-        if not isinstance(root, Cuds):
+        if isinstance(root, (UUID, URIRef)):
             root = super().__getitem__(root)
         assert root.uid in self
-        subtree = {root}
-        for child in root.iter(rel=rel):
-            if child not in (skip | subtree):
-                subtree |= self.get_subtree(child.uid, rel,
-                                            skip=(skip | subtree))
+        skip = skip or set() | {root}
+        skip |= {root}
+        subtree = subtree or {root}
+
+        subclasses = set() if rel is None else rel.subclasses
+        subclass_check = (lambda r: True) \
+            if not subclasses else (lambda r: r in subclasses)
+        """Checks whether relationship `x` should be considered.
+
+        - When no `rel` is provided, `subclass_check` should always return
+          True, as all relationships should be considered.
+
+        - When `rel` is provided, it should return true only if the
+          relationship `x` is a subclass of the provided relationship (`rel`).
+        """
+
+        # Load neighbors connected through the relationship
+        filtered_neighbors = (
+            neighbor
+            for r, dict_target in root._neighbors.items()
+            if subclass_check(r)
+            for neighbor in dict_target
+        )
+        filtered_neighbors = set(root.session.load(*filtered_neighbors))
+
+        subtree |= filtered_neighbors
+
+        # Optional: raise a `LargeDatasetWarning` if the subtree is too large.
+        if warning is not None and len(subtree) \
+                > warning_settings \
+                .unreachable_cuds_objects_large_dataset_size:
+            warning.warn()
+            warning = None
+
+        for neighbor in filter(lambda x: x not in skip, filtered_neighbors):
+            self.get_subtree(neighbor, subtree=subtree, rel=rel, skip=skip,
+                             warning=warning)
         return subtree
 
     def prune(self, *roots, rel=None):
@@ -103,7 +142,11 @@ class Registry(dict):
             super().__delitem__(x.uid)
         return not_reachable
 
-    def _get_not_reachable(self, *roots, rel=None):
+    def _get_not_reachable(self,
+                           *roots,
+                           rel=None,
+                           return_reachable=False,
+                           warning=None):
         """Get all elements in the registry that are not reachable.
 
         Use the given rel for traversal.
@@ -113,14 +156,21 @@ class Registry(dict):
                 from these root elements.
             rel (Relationship, optional): Only use this relationship for
                 traversal. Defaults to None.
+            return_reachable (bool): Returns also the uids of the reachable
+                cuds.
 
         Returns:
-            List[Cuds]: The set of non reachable elements.
+            Union[List[Cuds],
+                  Tuple[List[Cuds], Set[Union[UUID, URIRef]]]]: Either a
+                list of the unreachable CUDS when `return_reachable` is False
+                or a tuple whose first element is such list, and second
+                element a set with the uids of the reachable cuds.
         """
         # Get all reachable Cuds objects
         reachable = set()
         for root in roots:
-            reachable |= self.get_subtree(root, rel=rel, skip=reachable)
+            reachable |= self.get_subtree(
+                root, rel=rel, skip=reachable, warning=warning)
         reachable_uids = set([r.uid for r in reachable])
 
         # Get all the Cuds objects that are not reachable
@@ -128,7 +178,7 @@ class Registry(dict):
         for uid in self.keys():
             if uid not in reachable_uids:
                 delete.append(super().__getitem__(uid))
-        return delete
+        return delete if not return_reachable else (delete, reachable_uids)
 
     def reset(self):
         """Delete the contents of the registry."""

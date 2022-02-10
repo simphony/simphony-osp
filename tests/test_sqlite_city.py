@@ -1,11 +1,18 @@
 """Test the Sqlite Wrapper with the CITY ontology."""
 
+import logging
 import os
-from osp.core.utils.general import iri_from_uid
-import uuid
-import unittest2 as unittest
 import sqlite3
+import uuid
+from typing import Iterable, Tuple, Type, Union
+
 import numpy as np
+import unittest2 as unittest
+
+from osp.core.utils.general import iri_from_uid
+from osp.core.session.db.db_wrapper_session import LargeDatasetWarning, \
+    UnreachableCUDSWarning, logger
+import osp.core.warnings
 from osp.wrappers.sqlite import SqliteSession
 
 try:
@@ -378,6 +385,195 @@ class TestSqliteCity(unittest.TestCase):
                              {c.uid, wrapper.uid})
             self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(wrapper.get(c.uid).oclass, city.City)
+
+    def test_big_dataset_warning(self):
+        """Tests the warnings emitted when committing big datasets."""
+        # Save the original warning settings to restore them at the end of
+        # the test.
+        original_warning_setting = \
+            osp.core.warnings.unreachable_cuds_objects
+        original_large_dataset_size = \
+            osp.core.warnings.unreachable_cuds_objects_large_dataset_size
+
+        def count_warnings_by_class(records: Iterable[logging.LogRecord],
+                                    classes: Union[Type, Tuple[Type, ...]]) \
+                -> int:
+            """Given log records, count their "classes" if attached.
+
+            For each record, checks if it has a `warning_class` attribute,
+            and checks whether its value is a subclass of the classes
+            provided.
+            """
+            return sum(
+                bool(issubclass(record.warning_class, classes)
+                     if hasattr(record, 'warning_class') else False)
+                for record in records
+            )
+
+        osp.core.warnings.unreachable_cuds_objects_large_dataset_size = 5
+        osp.core.warnings.unreachable_cuds_objects = True
+
+        large_dataset_size = \
+            osp.core.warnings.unreachable_cuds_objects_large_dataset_size
+
+        try:
+            # No warning: small dataset, all CUDS reachable
+            with SqliteSession(DB) as session:
+                wrapper = city.CityWrapper(session=session)
+                wrapper.add(city.Citizen(name='citizen'),
+                            rel=city.hasInhabitant)
+                with self.assertLogs(logger=logger) as captured:
+                    logger.warning('At least log entry is needed for '
+                                   '`assertLogs`.')
+                    session.commit()
+                    self.assertEqual(
+                        count_warnings_by_class(
+                            captured.records,
+                            (LargeDatasetWarning, UnreachableCUDSWarning)),
+                        0
+                    )
+            if os.path.exists(DB):
+                os.remove(DB)
+
+            # Unreachable CUDS warning: small dataset, some CUDS not reachable
+            with SqliteSession(DB) as session:
+                wrapper = city.CityWrapper(session=session)
+                wrapper.add(city.Citizen(name='citizen'),
+                            rel=city.hasInhabitant)
+                city.Citizen(name='citizen')
+                with self.assertLogs(logger=logger) as captured:
+                    logger.warning('At least log entry is needed for '
+                                   '`assertLogs`.')
+                    session.commit()
+                    self.assertEqual(
+                        count_warnings_by_class(
+                            captured.records,
+                            LargeDatasetWarning),
+                        0
+                    )
+                    self.assertEqual(
+                        count_warnings_by_class(
+                            captured.records,
+                            UnreachableCUDSWarning),
+                        1
+                    )
+            if os.path.exists(DB):
+                os.remove(DB)
+
+            # Large dataset warning: large dataset, all CUDS reachable
+            with SqliteSession(DB) as session:
+                wrapper = city.CityWrapper(session=session)
+                wrapper.add(
+                    *[city.Citizen(name='citizen')
+                      for _ in range(0, large_dataset_size + 1)],
+                    rel=city.hasInhabitant)
+                with self.assertLogs(logger=logger) as captured:
+                    logger.warning('At least log entry is needed for '
+                                   '`assertLogs`.')
+                    session.commit()
+                    self.assertEqual(
+                        count_warnings_by_class(
+                            captured.records,
+                            LargeDatasetWarning),
+                        1
+                    )
+                    self.assertEqual(
+                        count_warnings_by_class(
+                            captured.records,
+                            UnreachableCUDSWarning),
+                        0
+                    )
+            if os.path.exists(DB):
+                os.remove(DB)
+
+            # Both warnings: large dataset, some CUDS not reachable
+            with SqliteSession(DB) as session:
+                wrapper = city.CityWrapper(session=session)
+                wrapper.add(
+                    *[city.Citizen(name='citizen')
+                      for _ in range(0, large_dataset_size + 1)],
+                    rel=city.hasInhabitant)
+                city.Citizen(name='citizen')
+                with self.assertLogs(logger=logger) as captured:
+                    logger.warning('At least log entry is needed for '
+                                   '`assertLogs`.')
+                    session.commit()
+                    self.assertEqual(
+                        count_warnings_by_class(
+                            captured.records,
+                            LargeDatasetWarning),
+                        1
+                    )
+                    self.assertEqual(
+                        count_warnings_by_class(
+                            captured.records,
+                            UnreachableCUDSWarning),
+                        1
+                    )
+            if os.path.exists(DB):
+                os.remove(DB)
+
+            # Edge case: large dataset warning after unreachable warning
+            with SqliteSession(DB) as session:
+                wrapper = city.CityWrapper(session=session)
+                wrapper.add(city.Citizen(name='citizen'),
+                            rel=city.hasInhabitant)
+                [city.Citizen(name='citizen')
+                 for i in range(0, large_dataset_size)]
+                with self.assertLogs(logger=logger) as captured:
+                    logger.warning('At least log entry is needed for '
+                                   '`assertLogs`.')
+                    session.commit()
+                    self.assertEqual(
+                        count_warnings_by_class(
+                            captured.records,
+                            LargeDatasetWarning),
+                        1
+                    )
+                    self.assertEqual(
+                        count_warnings_by_class(
+                            captured.records,
+                            UnreachableCUDSWarning),
+                        1
+                    )
+                    large_dataset_warning = set(
+                        record
+                        for record in captured.records
+                        if hasattr(record, 'warning_class')
+                        if issubclass(record.warning_class,
+                                      LargeDatasetWarning)).pop()
+                    self.assertIn('the previous warning',
+                                  large_dataset_warning.msg)
+            if os.path.exists(DB):
+                os.remove(DB)
+
+            # Test warning turned off for the both warnings case
+            osp.core.warnings.unreachable_cuds_objects = False
+            with SqliteSession(DB) as session:
+                wrapper = city.CityWrapper(session=session)
+                wrapper.add(
+                    *[city.Citizen(name='citizen')
+                      for _ in range(0, large_dataset_size + 1)],
+                    rel=city.hasInhabitant)
+                city.Citizen(name='citizen')
+                with self.assertLogs(logger=logger) as captured:
+                    logger.warning('At least log entry is needed for '
+                                   '`assertLogs`.')
+                    session.commit()
+                    self.assertEqual(
+                        count_warnings_by_class(
+                            captured.records,
+                            (LargeDatasetWarning, UnreachableCUDSWarning)),
+                        0
+                    )
+            if os.path.exists(DB):
+                os.remove(DB)
+
+        finally:
+            osp.core.warnings.unreachable_cuds_objects = \
+                original_warning_setting
+            osp.core.warnings.unreachable_cuds_objects_large_dataset_size = \
+                original_large_dataset_size
 
 
 def check_state(test_case, c, p1, p2, db=DB):
