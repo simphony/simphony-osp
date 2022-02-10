@@ -21,7 +21,13 @@ www.simphony-project.eu).
 
 ## Installation
 
-See [https://simphony.readthedocs.io/en/latest/installation.html](https://simphony.readthedocs.io/en/latest/installation.html).
+OSP-core is available on PyPI, so it can be installed using `pip`
+
+```shell
+pip install osp-core
+```
+
+For more detailed instructions, see [https://simphony.readthedocs.io/en/latest/installation.html](https://simphony.readthedocs.io/en/latest/installation.html).
 
 ## Visualization of ontologies
 
