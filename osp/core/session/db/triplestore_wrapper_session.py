@@ -93,7 +93,7 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
                         for x in triple)
 
     def _load_by_iri(self, *iris: URIRef):
-        """Load the CUDS object wit the given IRI.
+        """Load the CUDS objects with the given IRIs.
 
         Args:
             iris: The IRIs of the CUDS objects to oad.
@@ -147,7 +147,7 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
         """
 
     def _load_triples_for_iris(self, *iris: URIRef):
-        """Load the all triples for the CUDS object with the given IRI.
+        """Load the all triples for the CUDS objects with the given IRIs.
 
         Args:
             iris: The IRIs of the CUDS objects to load the triples for.
