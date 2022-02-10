@@ -28,7 +28,7 @@ setup(
     description='The native implementation of the SimPhoNy CUDS objects',
     long_description=README_TEXT,
     long_description_content_type='text/markdown',
-    url='github.com/simphony',
+    url='https://github.com/simphony',
     author='SimPhoNy, EU FP7 Project (Nr. 604005)',
     maintainer='Fraunhofer IWM',
     maintainer_email='simphony@iwm.fraunhofer.de',
