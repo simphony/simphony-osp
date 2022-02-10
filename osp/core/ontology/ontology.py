@@ -183,7 +183,7 @@ class Ontology:
                 logger.warning(f"Specified relationship {iri} as "
                                f"active relationship, which is not "
                                f"a valid object property in the ontology."
-                               f"If such relationship belongs to another"
+                               f"If such relationship belongs to another "
                                f"ontology, and such ontology is installed, "
                                f"then you may safely ignore this warning.")
                 # This requirement is checked later on in
@@ -233,12 +233,13 @@ def _check_duplicate_labels(graph: Graph, namespace: Union[str, URIRef]):
                                                      lang=None,
                                                      _return_literal=True)
 
-    # Finally check for the duplicate labels.
+    # Finally, check for the duplicate labels.
     subjects = set(subject for subject in graph.subjects()
                    if in_namespace(subject))
-    results = sorted(((label.toPython(), label.language), iri)
-                     for iri in subjects for label
-                     in labels_for_iri(iri))
+    results = set(((label.toPython(), label.language or ''), iri)
+                  for iri in subjects for label
+                  in labels_for_iri(iri))
+    results = sorted(results)
     labels, iris = tuple(result[0] for result in results), \
         tuple(result[1] for result in results)
     coincidence_search = tuple(i
@@ -248,12 +249,13 @@ def _check_duplicate_labels(graph: Graph, namespace: Union[str, URIRef]):
     for i in coincidence_search:
         conflicting_labels[labels[i]] |= {iris[i - 1], iris[i]}
     if len(conflicting_labels) > 0:
-        texts = (f'{label[0]}, language {label[1]}: '
+        texts = (f'{label[0]}, language '
+                 f'{label[1] if label[1] != "" else None}: '
                  f'{", ".join(tuple(str(iri) for iri in iris))}'
                  for label, iris in conflicting_labels.items())
         raise KeyError(f'The following labels are assigned to more than '
                        f'one entity in namespace {namespace}; '
-                       f'{"; ".join(texts)}.')
+                       f'{"; ".join(texts)} .')
 
 
 def _check_namespaces(namespace_iris: Iterable[URIRef],
