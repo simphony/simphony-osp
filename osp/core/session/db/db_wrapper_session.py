@@ -1,16 +1,19 @@
 """An abstract session containing method useful for all database backends."""
 
-from abc import abstractmethod
-from typing import Union
 import itertools
 import logging
-import rdflib
 import uuid
-from osp.core.utils.general import uid_from_iri, CUDS_IRI_PREFIX
+from abc import abstractmethod
+from typing import Union
+
+import rdflib
+
+import osp.core.warnings as warning_settings
 from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
 from osp.core.session.result import returns_query_result
 from osp.core.session.buffers import BufferContext, EngineContext
+from osp.core.utils.general import uid_from_iri, CUDS_IRI_PREFIX
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +30,12 @@ class DbWrapperSession(WrapperSession):
         try:
             root_obj = self._registry.get(self.root)
             added, updated, deleted = self._buffers[BufferContext.USER]
+            if warning_settings.unreachable_cuds_objects:
+                self._unreachable_warning(root_obj)
             self._apply_added(root_obj, added)
             self._apply_updated(root_obj, updated)
             self._apply_deleted(root_obj, deleted)
             self._reset_buffers(BufferContext.USER)
-            self._unreachable_warning(root_obj)
             self._commit()
         except Exception as e:
             self._rollback_transaction()
@@ -176,24 +180,112 @@ class DbWrapperSession(WrapperSession):
         raises a warning that lists some of the unreachable CUDS objects.
 
         Args:
-            root_obj (Union[URIRef, UUID]): The root object with respect to
-                which objects are deemed reachable or unreachable.
+            root_obj: The root object with respect to which objects are
+                deemed reachable or unreachable.
         """
-        unreachable = self._registry._get_not_reachable(root_obj, rel=None)
+        large_dataset_warning = LargeDatasetWarning()
+        unreachable, reachable = self._registry._get_not_reachable(
+            root_obj, rel=None, return_reachable=True,
+            warning=large_dataset_warning
+        )
+
+        # Warn about unreachable CUDS
         max_cuds_on_warning = 5
         if len(unreachable) > 0:
-            warning = "Some CUDS objects are unreachable " \
-                      "from the wrapper object: " \
-                      "{cuds}{more}." \
-                      "\n" \
-                      "If you want to be able to retrieve those CUDS " \
-                      "objects later, either add them to the wrapper object " \
-                      "or to any other CUDS that is reachable from it." \
-                .format(cuds=', '.join(str(x) for x in itertools
-                                       .islice(unreachable,
-                                               max_cuds_on_warning)),
-                        more=" and " + str(len(unreachable)
-                                           - max_cuds_on_warning)
-                             + " more" if len(unreachable) > 5
-                        else "")
-            logger.warning(warning)
+            unreachable_cuds_warning = (
+                "Some CUDS objects are unreachable from the wrapper object: "
+                "{cuds}{more}. \n"
+                "If you want to be able to retrieve those CUDS objects later, "
+                "either add them to the wrapper object or to any other CUDS "
+                "that is reachable from it."
+            ).format(
+                cuds=', '.join(str(x) for x in itertools
+                               .islice(unreachable, max_cuds_on_warning)),
+                more=" and " + str(len(unreachable) - max_cuds_on_warning)
+                     + " more" if len(unreachable) > 5 else "")
+            # A filter is applied to the logger that attaches the warning
+            # type to the log records.
+            logger_filter = UnreachableCUDSWarningFilter()
+            logger.addFilter(logger_filter)
+            logger.warning(unreachable_cuds_warning)
+            logger.removeFilter(logger_filter)
+
+            # Inform the large dataset warning that the unreachable CUDS
+            # warning was raised (so that it changes its text).
+            large_dataset_warning.unreachable_cuds_warning = True
+
+        # Warn about large datasets and recommend disabling the unreachable
+        # CUDS warning for large datasets.
+        if len(reachable) + len(unreachable) >= \
+                warning_settings.unreachable_cuds_objects_large_dataset_size:
+            # Recommend disabling the warning for large datasets.
+            large_dataset_warning.warn()
+
+
+class UnreachableCUDSWarning(UserWarning):
+    """Shown when CUDS are unreachable from the wrapper.
+
+    Used by `DbWrapperSession._unreachable_warning` during the commit
+    operation.
+    """
+
+
+class UnreachableCUDSWarningFilter(logging.Filter):
+    """Attaches the `UnreachableCUDSWarning` class to the records."""
+
+    def filter(self, record):
+        """Attaches the `UnreachableCUDSWarning` to the records."""
+        record.warning_class = UnreachableCUDSWarning
+        return True
+
+
+class LargeDatasetWarning(UserWarning):
+    """Shown while working with a large dataset.
+
+    Used by `DbWrapperSession._unreachable_warning`, during the commit
+    operation.
+    """
+    warned: bool = False
+    unreachable_cuds_warning: bool = False
+
+    def warn(self) -> None:
+        """Show the warning.
+
+        The warning will be only shown once. If you want to show the warning
+        again, you must create a new instance of `LargeDatasetWarning`.
+        """
+        if self.warned:
+            return
+
+        # Recommend disabling the `UnreachableCUDSWarning` for large datasets.
+        warning = (
+            "You are working with a large dataset. When committing "
+            "changes, OSP-core looks for objects that are unreachable "
+            "from the wrapper object to generate {reference_to_warning}. "
+            "Generating such warning is very expensive in computational "
+            "terms when small changes are applied to existing, "
+            "large datasets. You will notice that the changes may take a "
+            "lot of time to be committed. Please turn off such warning "
+            "when working with large datasets. You can turn off the "
+            "warning by running `import osp.core.warnings as "
+            "warning_settings; "
+            "warning_settings.unreachable_cuds_objects = False`.")
+        reference = ("a warning" if not self.unreachable_cuds_warning else
+                     "the previous warning")
+        warning = warning.format(reference_to_warning=reference)
+        # A filter is applied to the logger that attaches the warning
+        # type to the log records.
+        logger_filter = LargeDatasetWarningFilter()
+        logger.addFilter(logger_filter)
+        logger.warning(warning)
+        logger.removeFilter(logger_filter)
+        self.warned = True
+
+
+class LargeDatasetWarningFilter(logging.Filter):
+    """Filter that attaches the `LargeDatasetWarning` class to the records."""
+
+    def filter(self, record):
+        """Attaches the `LargeDatasetWarning` to the records."""
+        record.warning_class = LargeDatasetWarning
+        return True

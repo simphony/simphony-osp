@@ -40,16 +40,46 @@ class TestRegistryCity(unittest.TestCase):
         registry = c.session._registry
         self.assertEqual(
             registry.get_subtree(c.uid),
-            set([c, p, n, s]))
+            {c, p, n, s})
         self.assertEqual(
             registry.get_subtree(c.uid, rel=cuba.activeRelationship),
-            set([c, p, n, s]))
+            {c, p, n, s})
         self.assertEqual(
             registry.get_subtree(n.uid),
-            set([c, p, n, s]))
+            {c, p, n, s})
         self.assertEqual(
             registry.get_subtree(n.uid, rel=cuba.activeRelationship),
-            set([n, s]))
+            {n, s})
+
+        c_o = city.City(name="other city")
+        n.add(c_o, rel=city.isPartOf)
+        self.assertEqual(
+            registry.get_subtree(c.uid),
+            {c, p, n, s, c_o})
+        self.assertEqual(
+            registry.get_subtree(c.uid, rel=cuba.activeRelationship),
+            {c, p, n, s})
+        self.assertEqual(
+            registry.get_subtree(n.uid),
+            {c, p, n, s, c_o})
+        self.assertEqual(
+            registry.get_subtree(n.uid, rel=cuba.activeRelationship),
+            {n, s})
+
+        # Test whether cycles are a problem
+        c_o.add(c, rel=cuba.relationship)
+        self.assertEqual(
+            registry.get_subtree(c_o.uid),
+            {c, p, n, s, c_o})
+
+        # Disconnected items
+        c_f = city.City(name="far city")
+        self.assertEqual(
+            registry.get_subtree(c.uid),
+            {c, p, n, s, c_o})
+        self.assertEqual(
+            registry.get_subtree(c_f.uid),
+            {c_f})
 
     def test_prune(self):
         """Test the pruning method."""
