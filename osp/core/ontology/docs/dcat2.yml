@@ -2,6 +2,10 @@
 identifier: dcat2
 ontology_file: https://www.w3.org/ns/dcat2.rdf
 reference_by_label: False
+requirements:
+    - dcterms
+    - prov
+    - foaf
 namespaces: 
     dcat2: http://www.w3.org/ns/dcat#
 
