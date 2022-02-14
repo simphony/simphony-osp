@@ -1,0 +1,8 @@
+identifier: datamodel
+ontology_file: https://raw.githubusercontent.com/emmo-repo/datamodel-ontology/master/datamodel.ttl
+reference_by_label: True
+namespaces: 
+    datamodel: http://emmo.info/datamodel#
+
+active_relationships: 
+    - "http://emmo.info/datamodel#dataModelRelation"
