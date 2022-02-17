@@ -1,8 +1,9 @@
 identifier: datamodel
-ontology_file: https://raw.githubusercontent.com/emmo-repo/datamodel-ontology/master/datamodel.ttl
-reference_by_label: True
+ontology_file: https://emmo-repo.github.io/datamodel-ontology/versions/0.0.2/metamodel-inferred.ttl
+reference_by_label: Treu
 namespaces: 
     datamodel: http://emmo.info/datamodel#
-
 active_relationships: 
-    - "http://emmo.info/datamodel#dataModelRelation"
+    - "http://emmo.info/datamodel#composition"
+    - "http://emmo.info/datamodel#aggregation"
+    - "http://emmo.info/datamodel#relation"
