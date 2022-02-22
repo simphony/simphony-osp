@@ -436,10 +436,7 @@ def import_rdf(graph, session, buffer_context, return_uid=None):
     triples = map(_import_rdf_custom_datatypes, triples)
     uid_triples = dict()
     for s, p, o in triples:
-        if isinstance(o, rdflib.URIRef) \
-                and p not in (rdflib.RDF.type, rdflib.OWL.sameAs):
-            _, o = uid_from_general_iri(o, session.graph)
-        s_uid, s = uid_from_general_iri(s, session.graph)
+        s_uid, s = uid_from_general_iri(s)
         session.graph.add((s, p, o))
         uid_triples[s_uid] = uid_triples.get(s_uid, set())
         uid_triples[s_uid].add((s, p, o))

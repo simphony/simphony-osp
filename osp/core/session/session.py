@@ -66,7 +66,7 @@ class Session(ABC):
         Yields:
             Cuds: The fetched Cuds objects.
         """
-        return self.load(*[uid_from_general_iri(iri, self.graph)[0]
+        return self.load(*[uid_from_general_iri(iri)[0]
                            for iri in iris])
 
     @returns_query_result
