@@ -325,13 +325,9 @@ def uid_from_general_iri(iri):
         iri (UriRef): The IRI to convert to UUID.
 
     Returns:
-        Tuple[UUID, URIRef]: The UUID and an IRI containing this UUID.
+        Union[UUID, URIRef]: The UID derived from the given IRI.
     """
-    if str(iri).startswith(CUDS_IRI_PREFIX):
-        uid, iri = uid_from_iri(iri), iri
-    else:
-        uid = iri
-    return uid, iri
+    return uid_from_iri(iri) if str(iri).startswith(CUDS_IRI_PREFIX) else iri
 
 
 def get_custom_datatypes():
