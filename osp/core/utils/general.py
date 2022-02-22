@@ -318,18 +318,6 @@ def uid_from_iri(iri):
         return iri
 
 
-def uid_from_general_iri(iri):
-    """Get a UUID from a general (not containing a UUID) IRI.
-
-    Args:
-        iri (UriRef): The IRI to convert to UUID.
-
-    Returns:
-        Union[UUID, URIRef]: The UID derived from the given IRI.
-    """
-    return uid_from_iri(iri) if str(iri).startswith(CUDS_IRI_PREFIX) else iri
-
-
 def get_custom_datatypes():
     """Get the set of all custom datatypes used in the ontology.
 

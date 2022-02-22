@@ -31,7 +31,7 @@ from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.buffers import BufferContext, get_buffer_context_mngr
 from osp.core.utils.wrapper_development import create_from_triples
-from osp.core.utils.general import uid_from_general_iri
+from osp.core.utils.general import uid_from_iri
 from osp.core.ontology.cuba import rdflib_cuba
 
 logger = logging.getLogger(__name__)
@@ -436,7 +436,7 @@ def import_rdf(graph, session, buffer_context, return_uid=None):
     triples = map(_import_rdf_custom_datatypes, triples)
     uid_triples = dict()
     for s, p, o in triples:
-        s_uid = uid_from_general_iri(s)
+        s_uid = uid_from_iri(s)
         session.graph.add((s, p, o))
         uid_triples[s_uid] = uid_triples.get(s_uid, set())
         uid_triples[s_uid].add((s, p, o))

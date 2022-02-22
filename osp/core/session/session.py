@@ -4,7 +4,7 @@ import rdflib
 from abc import ABC, abstractmethod
 from osp.core.session.registry import Registry
 from osp.core.session.result import returns_query_result
-from osp.core.utils.general import uid_from_general_iri
+from osp.core.utils.general import uid_from_iri
 
 
 class Session(ABC):
@@ -66,7 +66,7 @@ class Session(ABC):
         Yields:
             Cuds: The fetched Cuds objects.
         """
-        return self.load(*[uid_from_general_iri(iri)
+        return self.load(*[uid_from_iri(iri)
                            for iri in iris])
 
     @returns_query_result
