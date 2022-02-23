@@ -2,13 +2,13 @@
 
 import itertools
 import logging
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple, Set, Union
+from typing import Dict, Iterable, Iterator, List, Optional, TYPE_CHECKING, \
+    Tuple, Set, Union
 
 import rdflib
 from rdflib import OWL, RDF, RDFS, SKOS, BNode, Graph, Literal, URIRef
 from rdflib.graph import ReadOnlyGraphAggregate
-from rdflib.term import Identifier
-from rdflib.store import Store
+from rdflib.term import Identifier, Node
 
 from osp.core.ontology.annotation import OntologyAnnotation
 from osp.core.ontology.attribute import OntologyAttribute
@@ -23,6 +23,9 @@ from osp.core.utils.datatypes import UID
 from osp.core.utils.sparql import SparqlResult
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from osp.core.interfaces.interface import Interface
 
 
 class Environment:
@@ -415,18 +418,18 @@ class Session(Environment):
             self._overlay.commit()
         self.creation_set = set()
 
-    def run(self) -> None:
+    def compute(self, *args, **kwargs) -> None:
         """Run simulations on supported graph stores."""
         from osp.core.interfaces.remote.client import RemoteStoreClient
-        if hasattr(self._graph.store, 'run'):
+        if self._driver is not None:
             self.commit()
-            self._graph.store.interface.run()
+            self._driver.compute(*args, **kwargs)
         elif isinstance(self._graph.store, RemoteStoreClient):
             self._graph.store.execute_method('run')
         else:
             raise AttributeError(f'Session {self} is not attached to a '
                                  f'simulation engine. Thus, the attribute '
-                                 f'`run` is not available.')
+                                 f'`compute` is not available.')
 
     def close(self):
         """Close the connection to the backend.
@@ -442,7 +445,7 @@ class Session(Environment):
         self.graph.close(commit_pending_transaction=False)
 
     def __init__(self,
-                 store: Store = None,  # The store must be OPEN already.
+                 base: Graph = None,  # The graph must be OPEN already.
                  ontology: Optional[Union['Session', bool]] = None,
                  identifier: Optional[str] = None,
                  namespaces: Dict[str, URIRef] = None,
@@ -451,10 +454,8 @@ class Session(Environment):
         super().__init__()
         self._environment_references.add(self)
         # Base the session graph either on a store if passed or an empty graph.
-        if store is not None:
-            if hasattr(store, 'session') and store.session is None:
-                store.session = self
-            self._graph = Graph(store)
+        if base is not None:
+            self._graph = base
         else:
             self._graph = Graph()
 
@@ -518,7 +519,7 @@ class Session(Environment):
         return (self.from_identifier(identifier)
                 for identifier in self.iter_identifiers())
 
-    def from_identifier(self, identifier: Identifier) -> 'OntologyEntity':
+    def from_identifier(self, identifier: Node) -> 'OntologyEntity':
         """Get an ontology entity from its identifier.
 
         Args:
@@ -729,6 +730,7 @@ class Session(Environment):
     _namespaces: Dict[URIRef, str]
     _graph: Graph
     _overlay: Graph
+    _driver: Optional['Interface'] = None
 
     @property
     def _session_linked(self) -> 'Session':
@@ -884,8 +886,8 @@ class Session(Environment):
         return SparqlResult(session=self,
                             rdflib_result=self._graph.query(query_string))
 
-# Legacy code
-# ↓ ------- ↓
+    # Legacy code
+    # ↓ ------- ↓
 
     def _update_overlay(self) -> Graph:
         graph = self._graph
@@ -995,17 +997,25 @@ class Session(Environment):
                 break
         # If not, found, find it in the namespace registry.
         if not found:
-            try:
-                self.from_identifier(parser.default_relationship)
-                found = True
-            except KeyError:
-                pass
+            for s, p, o in self.ontology_graph.triples(
+                    (parser.default_relationship,
+                     rdflib.RDF.type,
+                     None)):
+                if o in allow_types:
+                    found = True
+                    break
         if not found:
             raise ValueError(f'The default relationship '
                              f'{parser.default_relationship} defined for '
                              f'the ontology package {parser.identifier} '
                              f'is not installed.')
 
+    # Legacy code
+    # ↑ ------- ↑
+
+
+# Legacy code
+# ↓ ------- ↓
 
 def _check_duplicate_labels(graph: Graph, namespace: Union[str, URIRef]):
     # Recycle code methods from the Namespace class. A namespace class
@@ -1035,12 +1045,13 @@ def _check_duplicate_labels(graph: Graph, namespace: Union[str, URIRef]):
                                    return_prop=False,
                                    return_literal=True)
 
-    # Finally check for the duplicate labels.
+    # Finally, check for the duplicate labels.
     subjects = set(subject for subject in graph.subjects()
                    if in_namespace(subject))
-    results = sorted(((label.toPython(), label.language), iri)
-                     for iri in subjects for label
-                     in labels_for_iri(iri))
+    results = set(((label.toPython(), label.language or ''), iri)
+                  for iri in subjects for label
+                  in labels_for_iri(iri))
+    results = sorted(results)
     labels, iris = tuple(result[0] for result in results), \
         tuple(result[1] for result in results)
     coincidence_search = tuple(i
@@ -1050,12 +1061,13 @@ def _check_duplicate_labels(graph: Graph, namespace: Union[str, URIRef]):
     for i in coincidence_search:
         conflicting_labels[labels[i]] |= {iris[i - 1], iris[i]}
     if len(conflicting_labels) > 0:
-        texts = (f'{label[0]}, language {label[1]}: '
+        texts = (f'{label[0]}, language '
+                 f'{label[1] if label[1] != "" else None}: '
                  f'{", ".join(tuple(str(iri) for iri in iris))}'
                  for label, iris in conflicting_labels.items())
         raise KeyError(f'The following labels are assigned to more than '
                        f'one entity in namespace {namespace}; '
-                       f'{"; ".join(texts)}.')
+                       f'{"; ".join(texts)} .')
 
 
 def _check_namespaces(namespace_iris: Iterable[URIRef],

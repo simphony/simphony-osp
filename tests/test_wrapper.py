@@ -8,10 +8,12 @@ import time
 import unittest
 from typing import Optional
 
+from rdflib import Literal, XSD
+
 from osp.core.utils.datatypes import Vector
 from osp.core.ontology.parser import OntologyParser
 from osp.core.interfaces.remote.server import RemoteStoreServer
-from osp.core.interfaces.triplestore import TriplestoreDriver
+from osp.core.interfaces.interface import InterfaceDriver
 from osp.core.session import Session
 from osp.interfaces.sqlite.interface import SQLiteInterface
 
@@ -155,6 +157,48 @@ class TestWrapper(unittest.TestCase):
                 {citizen.age for citizen in citizens}
             )
 
+    def test_wrapper_sparql(self) -> None:
+        """Test SPARQL queries on wrappers."""
+        from osp.core.namespaces import city, cuba
+        from osp.wrappers import sqlite
+
+        with sqlite(self.file_name, create=True) as wrapper:
+            freiburg = city.City(name='Freiburg', coordinates=[20, 58])
+            marco = city.Citizen(iri='http://example.org/citizens#Marco',
+                                 name='Marco',
+                                 age=50)
+            matthias = city.Citizen(name='Matthias', age=37)
+            freiburg[city.hasInhabitant] = {marco, matthias}
+
+            graph = wrapper.graph
+            query = graph.query(f"""
+                SELECT ?age WHERE {{
+                    <{matthias.iri}> <{city.age.iri}> ?age .
+                }}
+            """)
+            result = list(query)
+            self.assertEqual(len(result), 1)
+            self.assertEqual(len(result[0]), 1)
+            self.assertEqual(Literal('37', datatype=XSD.integer),
+                             result[0][0])
+
+            graph = wrapper.graph
+            query = graph.query(f"""
+                SELECT ?item WHERE {{
+                    <{wrapper.iri}> <{cuba.contains.iri}> ?item .
+                }}
+            """)
+            result = list(query)
+            self.assertEqual(len(result), 3)
+            self.assertTrue(all(len(row) == 1
+                                for row in result))
+            self.assertSetEqual(
+                set(x for row in result for x in row),
+                {marco.iri,
+                 freiburg.iri,
+                 matthias.iri}
+            )
+
 
 class TestDataspaceWrapper(unittest.TestCase):
     """Test the full end-user experience of using wrapper.
@@ -199,10 +243,10 @@ class TestDataspaceWrapper(unittest.TestCase):
                 os.remove(file)
 
     @staticmethod
-    def server_store_generator(configuration_string: str) -> TriplestoreDriver:
+    def server_store_generator(configuration_string: str) -> InterfaceDriver:
         """Produces a store for the server from a configuration string."""
         interface = SQLiteInterface()
-        store = TriplestoreDriver(interface=interface)
+        store = InterfaceDriver(interface=interface)
         store.open(configuration_string or f"{TestDataspaceWrapper.db_file}",
                    create=True)
         return store

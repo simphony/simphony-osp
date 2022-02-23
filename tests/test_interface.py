@@ -8,272 +8,22 @@ import socket
 import tempfile
 import time
 import unittest
-from typing import Optional, Set, TYPE_CHECKING
+from typing import Optional
 
-from rdflib import RDF, Graph, URIRef
+from rdflib import Graph
 
-from osp.core.namespaces import cuba
-from osp.core.utils.datatypes import UID, Vector
+from osp.core.utils.datatypes import Vector
 from osp.core.ontology.parser import OntologyParser
-from osp.core.interfaces.overlay import OverlayDriver, OverlayInterface
+from osp.core.interfaces.interface import InterfaceDriver
 
 from osp.core.interfaces.remote.client import RemoteStoreClient
 from osp.core.interfaces.remote.server import RemoteStoreServer
-from osp.core.interfaces.triplestore import TriplestoreDriver
 from osp.core.session import Session
 from osp.interfaces.sqlite.interface import SQLiteInterface
 from osp.wrappers import sqlite
 
-if TYPE_CHECKING:
-    from osp.core.ontology.entity import OntologyEntity
 
-
-class TestDummyInterface(unittest.TestCase):
-    """Test that the InterfaceStore RDFLib store works as expected."""
-
-    graph: Graph
-
-    # Define a dummy store and dummy interface.
-    # ↓ ------------------------------------- ↓
-
-    DummyDriver = OverlayDriver
-
-    class DummyInterface(OverlayInterface):
-        """A sample interface (based on an RDFLib Graph.
-
-        It has the sole purpose of being used an interface for testing the
-        InterfaceStore.
-        """
-
-        def __init__(self):
-            """Set up a graph to use as underlying backend."""
-            super().__init__()
-            self._graph = Graph()
-
-        # OverlayInterface
-        # ↓ -------------- ↓
-
-        root = None
-
-        def open(self, configuration: str, create: bool = False):
-            """Not needed, but an implementation is expected."""
-            pass
-
-        def close(self):
-            """Not needed, but an implementation is expected."""
-            pass
-
-        def commit(self,
-                   graph_old: Graph, graph_new: Graph,
-                   graph_diff_added: Graph, graph_diff_deleted: Graph,
-                   session_old: Session, session_new: Session,
-                   added: Set['OntologyEntity'],
-                   updated: Set['OntologyEntity'],
-                   deleted: Set['OntologyEntity']
-                   ):
-            pass
-
-        def populate(self, graph: Graph, session: Session):
-            pass
-
-    # ↑ ------------------------------------- ↑
-    # Define a dummy store and dummy interface.
-
-    def setUp(self) -> None:
-        """Create an interface, a store and assign them to a graph."""
-        store = self.DummyDriver(interface=self.DummyInterface())
-        store.open('arbitrary_configuration')
-        self.graph = Graph(store)
-
-    def test_buffered(self):
-        """Tests the store without committing the changes."""
-        self.assertTrue(isinstance(self.graph.store, self.DummyDriver))
-
-        # Add triples from a cuba entity to the store.
-        entity = cuba.Entity()
-        self.assertTrue(entity.is_a(cuba.Entity))
-
-        for triple in entity.triples:
-            self.graph.add(triple)
-        self.assertSetEqual(
-            {(entity.identifier, RDF.type, cuba.Entity.identifier)},
-            set(self.graph.triples(
-                (entity.identifier, None, None))))
-
-        # Remove triples from a cuba entity from the store.
-        for triple in entity.triples:
-            self.graph.remove(triple)
-        self.assertSetEqual(set(),
-                            set(self.graph.triples(
-                                (entity.identifier, None, None))))
-
-        # Add triples to an existing entity in the store.
-        for triple in entity.triples:
-            self.graph.add(triple)
-        self.graph.add(
-            (entity.identifier, URIRef("some:predicate"),
-             URIRef("some:object")))
-        self.assertSetEqual(
-            {(entity.identifier, RDF.type, cuba.Entity.identifier),
-             (entity.identifier, URIRef("some:predicate"),
-              URIRef("some:object"))},
-            set(self.graph.triples(
-                (entity.identifier, None, None))))
-
-    def test_commit(self):
-        """Tests the store committing the changes."""
-        # Add triples from a cuba entity to the store.
-        entity = cuba.Entity()
-        self.assertTrue(entity.is_a(cuba.Entity))
-
-        for triple in entity.triples:
-            self.graph.add(triple)
-        self.graph.commit()
-        self.assertSetEqual(
-            {(entity.identifier, RDF.type, cuba.Entity.identifier)},
-            set(self.graph.triples(
-                (entity.identifier, None, None))))
-
-        # Remove triples from a cuba entity from the store.
-        for triple in entity.triples:
-            self.graph.remove(triple)
-        self.graph.commit()
-        self.assertSetEqual(set(),
-                            set(self.graph.triples(
-                                (entity.identifier, None, None))))
-
-        # Update an entity in the store.
-        for triple in entity.triples:
-            self.graph.add(triple)
-        self.graph.commit()
-        self.graph.add(
-            (entity.identifier, URIRef("some:predicate"),
-             URIRef("some:object")))
-        self.graph.commit()
-        self.assertSetEqual(
-            {(entity.identifier, RDF.type, cuba.Entity.identifier),
-             (entity.identifier, URIRef("some:predicate"),
-              URIRef("some:object"))},
-            set(self.graph.triples(
-                (entity.identifier, None, None))))
-
-
-class TestTriplestoreInterface(unittest.TestCase):
-    """Test an actual TriplestoreInterface, the SQLiteInterface."""
-
-    file_name: str = "TestSQLiteInterface"  # Filename for database file.
-
-    graph: Graph
-    prev_default_ontology: Session
-
-    @classmethod
-    def setUpClass(cls):
-        """Create a TBox and set it as the default ontology.
-
-        The new TBox contains CUBA, OWL, RDFS and FOAF.
-        """
-        # Create a temporary FOAF YML file in order to load it into the TBox.
-        with tempfile.NamedTemporaryFile('w', suffix='.yml', delete=False) \
-                as file:
-            foaf: str = """
-            format: xml
-            identifier: foaf
-            namespaces:
-              foaf: http://xmlns.com/foaf/0.1/
-            ontology_file: http://xmlns.com/foaf/spec/index.rdf
-            reference_by_label: false
-            """
-            file.write(foaf)
-            file.seek(0)
-            yml_path = file.name
-
-        # Create the TBox.
-        ontology = Session(identifier='test-tbox', ontology=True)
-        ontology.load_parser(OntologyParser.get_parser(yml_path))
-        cls.prev_default_ontology = Session.ontology
-        Session.ontology = ontology
-
-    @classmethod
-    def tearDownClass(cls):
-        """Restore the previous default TBox."""
-        Session.ontology = cls.prev_default_ontology
-
-    def setUp(self) -> None:
-        """Create an interface, a store and assign them to a graph."""
-        self.interface = SQLiteInterface()
-        self.store = TriplestoreDriver(interface=self.interface)
-        self.graph = Graph(self.store)
-        self.graph.open(self.file_name, create=True)
-
-    def tearDown(self) -> None:
-        """Remove the database file."""
-        try:
-            self.interface.close()
-            os.remove(self.file_name)
-        except FileNotFoundError:
-            pass
-
-    def test_basic(self):
-        """Tests basic functionality.
-
-        - Adding triples.
-        - Removing triples.
-        """
-        from osp.core.namespaces import foaf
-        self.assertTrue(os.path.exists(self.file_name))
-
-        person = foaf['Person']()
-
-        # Test add.
-        for triple in person.triples:
-            self.graph.add(triple)
-        self.assertSetEqual(set(person.triples),
-                            set(self.graph.triples((None, None, None))))
-
-        # Test remove.
-        for triple in person.triples:
-            self.graph.remove(triple)
-        self.assertSetEqual(set(),
-                            set(self.graph.triples((None, None, None))))
-
-    def test_retrieval(self):
-        """Tests retrieving stored triples from the interface."""
-        from osp.core.namespaces import foaf
-        self.assertTrue(os.path.exists(self.file_name))
-
-        person = foaf['Person']()
-
-        # Add some triples, commit and close the store.
-        for triple in person.triples:
-            self.graph.add(triple)
-        self.assertSetEqual(set(person.triples),
-                            set(self.graph.triples((None, None, None))))
-        self.graph.commit()
-        self.graph.close()
-
-        # Use a new interface to reopen the file and retrieve the data.
-        interface = SQLiteInterface()
-        store = TriplestoreDriver(interface=interface)
-        graph = Graph(store)
-        graph.open(self.file_name)
-        self.assertSetEqual(set(person.triples),
-                            set(graph.triples((None, None, None))))
-
-        # Delete the triples, commit and close the connection.
-        graph.remove((None, None, None))
-        graph.commit()
-        graph.close()
-
-        # Again reopen in a new interface and check that the commit went well.
-        interface = SQLiteInterface()
-        store = TriplestoreDriver(interface=interface)
-        graph = Graph(store)
-        graph.open(self.file_name)
-        self.assertSetEqual(set(),
-                            set(graph.triples((None, None, None))))
-
-
-class TestTriplestoreWrapper(unittest.TestCase):
+class TestWrapper(unittest.TestCase):
     """Test the full end-user experience of using a triplestore wrapper.
 
     The wrapper used for the test is the `sqlite` wrapper.
@@ -383,10 +133,10 @@ class TestRemoteStoreSQLite(unittest.TestCase):
         self.stop_server()
 
     @staticmethod
-    def server_store_generator(configuration_string: str) -> TriplestoreDriver:
+    def server_store_generator(configuration_string: str) -> InterfaceDriver:
         """Produces a store for the server from a configuration string."""
         interface = SQLiteInterface()
-        store = TriplestoreDriver(interface=interface)
+        store = InterfaceDriver(interface=interface)
         store.open(configuration_string or f"{TestRemoteStoreSQLite.db_file}",
                    create=True)
         return store
@@ -450,7 +200,8 @@ class TestRemoteStoreSQLite(unittest.TestCase):
         client_files_dir = tempfile.TemporaryDirectory()
         store = RemoteStoreClient(file_destination=client_files_dir.name)
         store.client_files_dir = client_files_dir
-        session = Session(store=store)
+        graph = Graph(store=store)
+        session = Session(base=graph)
         session.graph.open(f'ws://username:password@{self.host}:{self.port}')
         return session
 

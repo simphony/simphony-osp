@@ -324,7 +324,7 @@ def _compute_mappings() -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
 
     This function is cached, as it is called by `compatible_classes`
     repeatedly, but the computation is only needed once. In fact, this code
-    could be defined outside of a function, but it has been incorporated
+    could be defined outside a function, but it has been incorporated
     into a function because of the need to evaluate it lazily (to avoid
     circular imports).
 

@@ -59,7 +59,7 @@ class OntologyRelationship(OntologyEntity):
             OntologyRelationship: The direct subrelationships
         """
         return (self.session.from_identifier(s) for s in
-                self.session.ontology_graphgraph.subjects(
+                self.session.ontology_graph.subjects(
                     RDFS.subPropertyOf, self.iri))
 
     def _get_superclasses(self) -> Iterator[OntologyEntity]:

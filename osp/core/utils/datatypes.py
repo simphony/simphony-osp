@@ -17,7 +17,7 @@ from uuid import uuid4, UUID
 import numpy as np
 import rdflib
 from rdflib import RDFS, XSD, BNode, Literal, URIRef, term
-from rdflib.term import Identifier
+from rdflib.term import Identifier, Node
 
 if TYPE_CHECKING:
     from osp.core.ontology.annotation import OntologyAnnotation
@@ -512,12 +512,11 @@ YML_TO_RDF = {
 # --- Various type hints and type hint aliases --- #
 
 # RDF type hints
-Pattern = Tuple[Union[Identifier, None], Union[Identifier, None],
-                Union[Identifier, None]]
-SimplePattern = Tuple[Union[Union[URIRef, Literal], None],
-                      Union[Union[URIRef, Literal], None],
-                      Union[Union[URIRef, Literal], None]]
-Triple = Tuple[Identifier, Identifier, Identifier]
+Pattern = Tuple[Optional[Node], Optional[Node], Optional[Node]]
+SimplePattern = Tuple[Optional[Union[URIRef, Literal]],
+                      Optional[Union[URIRef, Literal]],
+                      Optional[Union[URIRef, Literal]]]
+Triple = Tuple[Node, Node, Node]
 SimpleTriple = Tuple[Union[URIRef, Literal],
                      Union[URIRef, Literal],
                      Union[URIRef, Literal]]

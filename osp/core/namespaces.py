@@ -48,6 +48,9 @@ def __dir__():
     return list((x.name for x in _Session.ontology.namespaces))
 
 
+__all__ = __dir__()
+
+
 # `from_iri` as gateway to `_tbox.from_identifier`.
 def from_iri(iri: _Union[str, _URIRef]):
     """Get an entity from its IRI from the default TBox.

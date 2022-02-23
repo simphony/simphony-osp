@@ -7,15 +7,15 @@ from rdflib import Graph
 from rdflib import RDF
 from rdflib.graph import ReadOnlyGraphAggregate
 from rdflib.plugins.stores.memory import SimpleMemory
+from rdflib.query import Result
 from rdflib.store import Store
-
 from rdflib.term import Identifier
 
 from osp.core.session import Session
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.individual import OntologyIndividual
 from osp.core.ontology.interactive.container import Container
-from osp.core.interfaces.interface import Interface
+from osp.core.interfaces.interface import Interface, InterfaceDriver
 from osp.core.utils.cuba_namespace import cuba_namespace
 from osp.core.utils.datatypes import UID, Triple
 
@@ -66,9 +66,9 @@ class Wrapper:
         for entity in entities:
             self._session.delete(entity)
 
-    def run(self) -> None:
+    def compute(self, *args, **kwargs) -> None:
         """Instructs the backend to run a simulation if supported."""
-        return self._session.run()
+        return self._session.compute(*args, **kwargs)
 
 
 class WrapperSpawner(ABC, Wrapper):
@@ -103,15 +103,17 @@ class WrapperSpawner(ABC, Wrapper):
         # Initialize the session.
         interface_instance = interface_class(*args,
                                              **kwargs)
-        store = cls._get_interface().driver(interface=interface_instance)
-        store.open(configuration_string, create=create)
-        session = Session(store=store, ontology=ontology)
+        store = InterfaceDriver(interface=interface_instance)
+        graph = Graph(store=store)
+        graph.open(configuration_string, create=create)
+        session = Session(base=graph, ontology=ontology)
 
         # If not root has been defined, use a read-only container as root.
         if root is None:
             root = UID(0).to_identifier()
-            container_store = MockContainerStore(session=session)
-            session = Session(store=container_store,
+            container_store = VirtualContainerStore(session=session)
+            graph = Graph(store=container_store, identifier=graph.identifier)
+            session = Session(base=graph,
                               ontology=ontology)
             class_ = session.from_identifier(root).__class__
             uid = UID(root)
@@ -126,6 +128,7 @@ class WrapperSpawner(ABC, Wrapper):
         class_ = type(f"Wrapping{class_.__name__}",
                       (Wrapper, class_), {})
         entity = class_(uid=uid, session=session, merge=None)
+        session._driver = store
         return entity
 
     @property
@@ -134,7 +137,7 @@ class WrapperSpawner(ABC, Wrapper):
         return self._session
 
 
-class MockContainerStore(Store):
+class VirtualContainerStore(Store):
     """RDFLib store that contains a virtual container object.
 
     Such container object is meant to be used as the wrapper.
@@ -159,7 +162,7 @@ class MockContainerStore(Store):
                  *args,
                  session: Session,
                  **kwargs):
-        """Initialize the MockContainerStore."""
+        """Initialize the VirtualContainerStore."""
         self.store = session.graph.store
         self.session = session
         if any(getattr(self, attr) != getattr(self.store, attr)
@@ -277,13 +280,24 @@ class MockContainerStore(Store):
         """Get the bound namespaces."""
         return self.store.namespaces()
 
-    def query(self, *args, **kwargs):
+    def query(self,
+              query,
+              init_ns,
+              init_bindings,
+              query_graph,
+              **kwargs) -> Result:
         """Perform a SPARQL query on the store."""
+        # TODO: better algorithm.
         g1, g2 = Graph(store=SimpleMemory()), Graph(store=self.store)
-        for t in self.triples((UID(0).to_identifier(), None, None)):
+        for t, _ in self.triples((UID(0).to_identifier(), None, None)):
             g1.add(t)
         ro = ReadOnlyGraphAggregate([g1, g2])
-        return ro.query(*args, **kwargs)
+        return ro.query(
+            query,
+            initNs=init_ns,
+            initBindings=init_bindings,
+            **kwargs
+        )
 
     def update(self, *args, **kwargs):
         """Perform a SPARQL update query on the store."""
