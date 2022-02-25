@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Flake8
-        run: flake8 . --exclude=osp/core/ontology/files/*,*.egg-info,*.egg,.tox --ignore=W503 --docstring-convention=google
+        run: flake8 . --exclude=simphony_osp/core/ontology/files/*,*.egg-info,*.egg,.tox --ignore=W503 --docstring-convention=google
 
       - name: Radon
         run: |

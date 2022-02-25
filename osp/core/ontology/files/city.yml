@@ -1,9 +1,0 @@
-identifier: city
-ontology_file: city.ttl
-format: 'turtle'
-reference_by_label: False
-namespaces:
-    city: http://www.osp-core.com/city#
-active_relationships:
-    - http://www.osp-core.com/city#encloses
-default_relationship: http://www.osp-core.com/city#hasPart

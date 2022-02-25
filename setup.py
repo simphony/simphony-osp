@@ -1,4 +1,4 @@
-"""Install osp-core."""
+"""Install SimPhoNy."""
 
 import os
 
@@ -11,10 +11,10 @@ from packageinfo import VERSION, NAME
 with open('README.md', 'r', encoding="utf8") as readme:
     README_TEXT = readme.read()
 
-with open("packageinfo.py", "r", encoding="utf8") as packageinfo:
-    with open(os.path.join("osp", "core", "packageinfo.py"),
+with open("packageinfo.py", "r", encoding="utf8") as package_info:
+    with open(os.path.join("simphony_osp", "core", "packageinfo.py"),
               "w", encoding="utf8") as f:
-        for line in packageinfo:
+        for line in package_info:
             print(line, file=f, end="")
         for i in range(10):
             print("# DO NOT MODIFY. Modify the file in the repository's root.",
@@ -34,14 +34,16 @@ setup(
         exclude=("examples",
                  "tests")),
     package_data={
-        "osp.core.ontology.files": ["*.yml", "*.ttl", "*.xml", "*.owl"],
+        "simphony_osp.core.ontology.files": ["*.yml", "*.ttl", "*.xml",
+                                             "*.owl"],
     },
     include_package_data=True,
     python_requires=">=3.7",
     entry_points={
         'console_scripts': {
-            'pico = osp.core.utils.pico:pico',
-            'semantic2dot = osp.core.tools.semantic2dot:run_from_terminal',
+            'pico = simphony_osp.core.utils.pico:pico',
+            'semantic2dot = simphony_osp.core.tools.semantic2dot'
+            ':run_from_terminal',
         }
     },
     install_requires=[

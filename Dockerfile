@@ -8,5 +8,5 @@ RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.7 2
 RUN update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 2
 RUN python -m pip install --upgrade pip
 
-ADD . /simphony/osp-core
-RUN pip install /simphony/osp-core
+ADD . /simphony/simphony-osp
+RUN pip install /simphony/simphony-osp

@@ -1,4 +1,4 @@
 """Information about the package."""
 
-NAME = "osp-core"
+NAME = "simphony-osp"
 VERSION = "4.0.0"

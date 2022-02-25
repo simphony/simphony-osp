@@ -4,8 +4,8 @@ import unittest
 
 from rdflib import URIRef
 
-from osp.core.ontology.parser import OntologyParser
-from osp.core.session import Session
+from simphony_osp.core.ontology.parser import OntologyParser
+from simphony_osp.core.session import Session
 
 
 class TestContainer(unittest.TestCase):
@@ -31,7 +31,7 @@ class TestContainer(unittest.TestCase):
 
     def test_container(self):
         """Test the container ontology individual."""
-        from osp.core.namespaces import city, cuba
+        from simphony_osp.namespaces import city, cuba
 
         container = cuba.Container()
 
@@ -135,7 +135,7 @@ class TestContainer(unittest.TestCase):
         Each session is meant to contain a different version of the same
         individual.
         """
-        from osp.core.namespaces import cuba, city
+        from simphony_osp.namespaces import cuba, city
 
         container = cuba.Container()
 

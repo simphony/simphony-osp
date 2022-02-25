@@ -9,14 +9,14 @@ from rdflib import Graph, URIRef
 from rdflib.compare import isomorphic
 from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 
-from osp.core.ontology.individual import OntologyIndividual
-from osp.core.ontology.parser import OntologyParser
-from osp.core.session import Session
-from osp.core.utils.general import import_cuds, export_cuds, branch
+from simphony_osp.core.ontology.individual import OntologyIndividual
+from simphony_osp.core.ontology.parser import OntologyParser
+from simphony_osp.core.session import Session
+from simphony_osp.core.utils.general import import_cuds, export_cuds, branch
 
 # Load the ontology for the test.
 try:
-    from osp.core.namespaces import test_importexport
+    from simphony_osp.namespaces import test_importexport
 except ImportError:  # If the ontology is not installed.
     Session.ontology.load_parser(OntologyParser.get_parser(
         str(Path(__file__).parent / "test_importexport.owl.yml")))
@@ -24,7 +24,7 @@ except ImportError:  # If the ontology is not installed.
 
 # Load also the city ontology.
 try:
-    from osp.core.namespaces import city
+    from simphony_osp.namespaces import city
 except ImportError:  # When the city ontology is not installed.
     Session.ontology.load_parser(OntologyParser.get_parser('city'))
     city = Session.ontology.get_namespace('city')

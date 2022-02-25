@@ -7,16 +7,16 @@ from typing import Hashable
 
 from rdflib import RDFS, XSD, Graph, Literal, URIRef
 
-from osp.core.ontology.attribute import OntologyAttribute
-from osp.core.utils.datatypes import UID
-from osp.core.ontology.annotation import OntologyAnnotation
-from osp.core.ontology.individual import OntologyIndividual
-from osp.core.ontology.namespace import OntologyNamespace
-from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.oclass import OntologyClass
-from osp.core.ontology.parser import OntologyParser
-from osp.core.session import Session
-from osp.core.tools.search import sparql
+from simphony_osp.core.ontology.attribute import OntologyAttribute
+from simphony_osp.core.utils.datatypes import UID
+from simphony_osp.core.ontology.annotation import OntologyAnnotation
+from simphony_osp.core.ontology.individual import OntologyIndividual
+from simphony_osp.core.ontology.namespace import OntologyNamespace
+from simphony_osp.core.ontology.relationship import OntologyRelationship
+from simphony_osp.core.ontology.oclass import OntologyClass
+from simphony_osp.core.ontology.parser import OntologyParser
+from simphony_osp.core.session import Session
+from simphony_osp.core.tools.search import sparql
 
 
 class TestCityOntology(unittest.TestCase):
@@ -48,16 +48,16 @@ class TestCityOntology(unittest.TestCase):
         # Get relationships, attributes and classes with `from_identifier`
         # method of `Session objects`.
         has_inhabitant = ontology.from_identifier(
-            URIRef('http://www.osp-core.com/city#hasInhabitant'))
+            URIRef('https://www.simphony-project.eu/city#hasInhabitant'))
         self.assertTrue(isinstance(has_inhabitant, OntologyRelationship))
         encloses = ontology.from_identifier(
-            URIRef('http://www.osp-core.com/city#encloses'))
+            URIRef('https://www.simphony-project.eu/city#encloses'))
         self.assertTrue(isinstance(encloses, OntologyRelationship))
         has_part = ontology.from_identifier(
-            URIRef('http://www.osp-core.com/city#hasPart'))
+            URIRef('https://www.simphony-project.eu/city#hasPart'))
         self.assertTrue(isinstance(has_part, OntologyRelationship))
         name = ontology.from_identifier(
-            URIRef('http://www.osp-core.com/city#name'))
+            URIRef('https://www.simphony-project.eu/city#name'))
         self.assertTrue(isinstance(name, OntologyAttribute))
 
         # Test `active_relationships property`.
@@ -76,7 +76,7 @@ class TestCityOntology(unittest.TestCase):
         self.assertTrue(isinstance(city_namespace, OntologyNamespace))
         self.assertEqual(city_namespace.name, 'city')
         self.assertEqual(city_namespace.iri,
-                         URIRef('http://www.osp-core.com/city#'))
+                         URIRef('https://www.simphony-project.eu/city#'))
 
         # Test `default_relationship` property.
         original_default_relationships = ontology.default_relationships
@@ -103,7 +103,7 @@ class TestCityOntology(unittest.TestCase):
 
         Includes methods inherited from OntologyEntity.
         """
-        from osp.core.namespaces import city, owl
+        from simphony_osp.namespaces import city, owl
 
         # Test with city:name attribute.
         name = city['name']
@@ -112,20 +112,24 @@ class TestCityOntology(unittest.TestCase):
         self.assertTrue(isinstance(name, OntologyAttribute))
 
         # Test `uid` property.
-        self.assertEqual(name.uid,
-                         UID(URIRef('http://www.osp-core.com/city#name')))
-        name.uid = UID(URIRef('http://www.osp-core.com/city#other_name'))
         self.assertEqual(
-            name.uid, UID(URIRef('http://www.osp-core.com/city#other_name')))
-        name.uid = UID(URIRef('http://www.osp-core.com/city#name'))
+            name.uid,
+            UID(URIRef('https://www.simphony-project.eu/city#name')))
+        name.uid = UID(
+            URIRef('https://www.simphony-project.eu/city#other_name'))
+        self.assertEqual(
+            name.uid, UID(
+                URIRef('https://www.simphony-project.eu/city#other_name')))
+        name.uid = UID(
+            URIRef('https://www.simphony-project.eu/city#name'))
 
         # Test `identifier property`.
         self.assertEqual(name.identifier,
-                         URIRef('http://www.osp-core.com/city#name'))
+                         URIRef('https://www.simphony-project.eu/city#name'))
 
         # Test `iri` property.
         self.assertEqual(name.iri,
-                         URIRef('http://www.osp-core.com/city#name'))
+                         URIRef('https://www.simphony-project.eu/city#name'))
 
         # Test `label` property.
         self.assertEqual(str, type(name.label))
@@ -178,16 +182,16 @@ class TestCityOntology(unittest.TestCase):
 
         # Test `triples` property.
         self.assertSetEqual({
-            (URIRef('http://www.osp-core.com/city#name'),
+            (URIRef('https://www.simphony-project.eu/city#name'),
              URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
              URIRef('http://www.w3.org/2002/07/owl#DatatypeProperty')),
-            (URIRef('http://www.osp-core.com/city#name'),
+            (URIRef('https://www.simphony-project.eu/city#name'),
              URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
              URIRef('http://www.w3.org/2002/07/owl#FunctionalProperty')),
-            (URIRef('http://www.osp-core.com/city#name'),
+            (URIRef('https://www.simphony-project.eu/city#name'),
              URIRef('http://www.w3.org/2000/01/rdf-schema#label'),
              Literal('name', lang='en')),
-            (URIRef('http://www.osp-core.com/city#name'),
+            (URIRef('https://www.simphony-project.eu/city#name'),
              URIRef('http://www.w3.org/2000/01/rdf-schema#range'),
              URIRef('http://www.w3.org/2001/XMLSchema#string'))},
             name.triples)
@@ -224,7 +228,7 @@ class TestCityOntology(unittest.TestCase):
 
         Does NOT include methods inherited from OntologyEntity.
         """
-        from osp.core.namespaces import city
+        from simphony_osp.namespaces import city
 
         # Test with city:Person class.
         person = city.Person
@@ -270,7 +274,7 @@ class TestCityOntology(unittest.TestCase):
         """
         # Test with city:hasWorker relationship.
         has_worker = self.ontology.from_identifier(
-            URIRef('http://www.osp-core.com/city#hasWorker'))
+            URIRef('https://www.simphony-project.eu/city#hasWorker'))
         self.assertTrue(isinstance(has_worker, OntologyRelationship))
 
     def test_namespace(self):
@@ -286,7 +290,7 @@ class TestCityOntology(unittest.TestCase):
 
         # Test the `iri` property.
         self.assertEqual(city_namespace.iri,
-                         URIRef('http://www.osp-core.com/city#'))
+                         URIRef('https://www.simphony-project.eu/city#'))
 
         # Test the `__eq__` method.
         self.assertEqual(ontology.get_namespace('city'),
@@ -294,13 +298,13 @@ class TestCityOntology(unittest.TestCase):
 
         # Test the `__getattr__` method.
         has_inhabitant = ontology.from_identifier(
-            URIRef('http://www.osp-core.com/city#hasInhabitant'))
+            URIRef('https://www.simphony-project.eu/city#hasInhabitant'))
         self.assertEqual(has_inhabitant, getattr(city_namespace,
                                                  'hasInhabitant'))
 
         # Test the `__getitem__` method.
         name = ontology.from_identifier(
-            URIRef('http://www.osp-core.com/city#name'))
+            URIRef('https://www.simphony-project.eu/city#name'))
         self.assertFalse(city_namespace.reference_style)
         self.assertEqual(name, city_namespace['name'])
 
@@ -324,7 +328,7 @@ class TestCityOntology(unittest.TestCase):
 
         DOES include methods inherited from OntologyEntity.
         """
-        from osp.core.namespaces import city, owl
+        from simphony_osp.namespaces import city, owl
 
         # Test the `__init__` method by creating new individuals.
         freiburg = city.City(name='Freiburg',
@@ -570,7 +574,7 @@ class TestCityOntology(unittest.TestCase):
 
     def test_multi_session(self):
         """Test several methods within a session context manager."""
-        from osp.core.namespaces import city
+        from simphony_osp.namespaces import city
 
         with Session() as session:
             freiburg = city.City(name='Freiburg',
@@ -586,7 +590,7 @@ class TestCityOntology(unittest.TestCase):
 
     def test_bracket_notation(self):
         """Detailed test of the functionality of the bracket notation."""
-        from osp.core.namespaces import city
+        from simphony_osp.namespaces import city
 
         paris = city.City(name='Paris', coordinates=[0, 0])
         marc = city.Citizen(name='Marc', age=25)
@@ -832,7 +836,7 @@ class TestFOAFOntology(unittest.TestCase):
         DOES include methods inherited from OntologyEntity.
         """
         ontology = self.ontology
-        from osp.core.namespaces import foaf
+        from simphony_osp.namespaces import foaf
 
         # Test annotation of ontology individuals.
         group = foaf.Group()
@@ -858,7 +862,7 @@ class TestFOAFOntology(unittest.TestCase):
         Only tests attributes, as all the relationships are tested on
         test_apy_city.TestAPICity.test_bracket_notation.
         """
-        from osp.core.namespaces import foaf
+        from simphony_osp.namespaces import foaf
 
         marc = foaf.Person()
 
@@ -1051,11 +1055,11 @@ class TestLoadParsers(unittest.TestCase):
 
         # Test that all namespaces were loaded.
         required_namespaces = {
-            'cuba': 'http://www.osp-core.com/cuba#',
+            'cuba': 'https://www.simphony-project.eu/cuba#',
             'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
             'owl': 'http://www.w3.org/2002/07/owl#',
         }
-        city_namespaces = {'city': "http://www.osp-core.com/city#"}
+        city_namespaces = {'city': "https://www.simphony-project.eu/city#"}
         foaf_namespaces = {'foaf': "http://xmlns.com/foaf/0.1/"}
         dcat2_namespaces = {'dcat2': "http://www.w3.org/ns/dcat#"}
         emmo_namespaces = {
@@ -1108,11 +1112,11 @@ class TestLoadParsers(unittest.TestCase):
             for name, iri in emmo_namespaces.items()
         }
         expected_default_relationships.update(
-            {OntologyNamespace(iri="http://www.osp-core.com/city#",
+            {OntologyNamespace(iri="https://www.simphony-project.eu/city#",
                                name="city",
                                ontology=self.ontology):
              OntologyRelationship(
-                 uid=UID("http://www.osp-core.com/city#hasPart"),
+                 uid=UID("https://www.simphony-project.eu/city#hasPart"),
                  session=self.ontology)}
         )
         expected_default_relationships.update(
@@ -1139,10 +1143,11 @@ class TestLoadParsers(unittest.TestCase):
                         "EMMO_60577dea_9019_4537_ac41_80b0fb563d41"),
                 session=self.ontology),
              OntologyRelationship(
-                uid=UID("http://www.osp-core.com/cuba#activeRelationship"),
+                uid=UID(
+                    "https://www.simphony-project.eu/cuba#activeRelationship"),
                 session=self.ontology),
              OntologyRelationship(
-                uid=UID("http://www.osp-core.com/city#encloses"),
+                uid=UID("https://www.simphony-project.eu/city#encloses"),
                 session=self.ontology)},
             set(self.ontology.active_relationships)
         )
@@ -1172,7 +1177,7 @@ class TestLoadParsers(unittest.TestCase):
         # Clear the default session's contents.
         Session.get_default_session().clear()
 
-        from osp.core.namespaces import city
+        from simphony_osp.namespaces import city
 
         def is_freiburg(iri):
             value = str(iri)
