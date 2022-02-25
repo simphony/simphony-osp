@@ -182,8 +182,8 @@ class Semantic2Dot:
         if entity not in self._visited:
             self._visited.add(entity)
             self._add_node_individual(entity)
-            for other, rel in entity._iter(rel=owl.topObjectProperty,
-                                           return_rel=True):
+            for other, rel in entity.relationships_iter(
+                    rel=owl.topObjectProperty, return_rel=True):
                 self._add_edge_individual_relationship(entity,
                                                        other,
                                                        rel)
@@ -197,7 +197,7 @@ class Semantic2Dot:
         """
         attributes = self._attribute.format("class", individual.oclass)
 
-        for key, value in individual.get_attributes().items():
+        for key, value in individual.attributes_get().items():
             label = self._element_label(key)
             if len(value) == 1:
                 value = value.pop()

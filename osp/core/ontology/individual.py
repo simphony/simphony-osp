@@ -3,12 +3,14 @@
 import functools
 import itertools
 import logging
+from abc import ABC
 from collections import OrderedDict
+from itertools import chain
 from typing import (Any, Dict, Iterable, Iterator, List, MutableSet,
                     Optional, Set, TYPE_CHECKING, Tuple, Type, Union)
 
 from rdflib import RDF, Literal, URIRef
-from rdflib.term import Identifier
+from rdflib.term import Identifier, Node
 
 from osp.core.ontology.annotation import OntologyAnnotation
 from osp.core.ontology.attribute import OntologyAttribute
@@ -33,6 +35,568 @@ class ResultEmptyError(Exception):
 
 class MultipleResultsError(Exception):
     """Only a single result is expected, but there were multiple."""
+
+
+class ObjectSet(DataStructureSet, ABC):
+    """A set interface to an ontology individual's neighbors.
+
+    This class looks like and acts like the standard `set`, but it
+    is a template to implement classes that use either the attribute
+    interface or the methods `relationships_connect`,
+    `relationships_disconnect` and `relationships_iter` from
+    the ontology individual.
+
+    When an instance is read or when it is modified in-place,
+    the interfaced methods are used to reflect the changes.
+
+    This class does not hold any object-related information itself, thus
+    it is safe to spawn multiple instances linked to the same property
+    and ontology individual (when single-threading).
+    """
+
+    _predicate: Optional[OntologyPredicate]
+    """Main predicate to which this object refers. It will be used
+    whenever there is ambiguity on which predicate to use. Can be set to
+    None, usually meaning all predicates (see the specific
+    implementations of this class: `AttributeSet`,
+    `RelationshipSet` and `AnnotationSet`)."""
+
+    _individual: "OntologyIndividual"
+    """The ontology individual to which this object is linked to.
+    Whenever the set is modified, the modification will affect this ontology
+    individual."""
+
+    @property
+    def individual(self) -> "OntologyIndividual":
+        """Ontology individual that this set refers to."""
+        return self._individual
+
+    @property
+    def predicate(self) -> Union[OntologyPredicate]:
+        """Predicate that this set refers to."""
+        return self._predicate
+
+    @property
+    def _predicates(self) -> Optional[Union[
+        Set[OntologyAttribute],
+        Set[OntologyRelationship],
+        Set[OntologyAnnotation],
+    ]]:
+        """All the predicates to which this instance refers to.
+
+        Returns:
+            Such predicates, or `None` if no main predicate is
+            associated with this `ObjectSet`.
+        """
+        return self._predicate.subclasses \
+            if self._predicate is not None else \
+            None
+
+    def __init__(self,
+                 predicate: Optional[OntologyPredicate],
+                 individual: "OntologyIndividual"):
+        """Fix the linked predicate and CUDS object."""
+        self._individual = individual
+        self._predicate = predicate
+        super().__init__()
+
+    def __repr__(self) -> str:
+        """Return repr(self)."""
+        return set(self).__repr__() \
+            + ' <' \
+            + (f'{self._predicate} ' if self._predicate is not None
+               else '') \
+            + f'of ontology individual {self._individual}>'
+
+    def one(self) -> Union[
+        AnnotationValue,
+        AttributeValue,
+        RelationshipValue,
+    ]:
+        """Return one element.
+
+        Return one element if the set contains one element, else raise
+        an exception.
+
+        Returns:
+            The only element contained in the set.
+
+        Raises:
+            ResultEmptyError: No elements in the set.
+            MultipleResultsError: More than one element in the set.
+        """
+        iter_self = iter(self)
+        first_element = next(iter_self, StopIteration)
+        if first_element is StopIteration:
+            raise ResultEmptyError(f"No elements attached to "
+                                   f"{self._individual} through "
+                                   f"{self._predicate}.")
+        second_element = next(iter_self, StopIteration)
+        if second_element is not StopIteration:
+            raise MultipleResultsError(f"More than one element attached "
+                                       f"to {self._individual} through "
+                                       f"{self._predicate}.")
+        return first_element
+
+    def any(self) -> Optional[Union[
+        AnnotationValue,
+        AttributeValue,
+        RelationshipValue,
+    ]]:
+        """Return any element of the set.
+
+        Returns:
+            Any element from the set if the set is not empty, else None.
+        """
+        return next(iter(self), None)
+
+    def all(self) -> "ObjectSet":
+        """Return all elements from the set.
+
+        Returns:
+            All elements from the set, namely the set itself.
+        """
+        return self
+
+
+class AttributeSet(ObjectSet):
+    """A set interface to an ontology individual's attributes.
+
+    This class looks like and acts like the standard `set`, but it
+    is an interface to the `attributes_add`, attributes_set`,
+    `attributes_delete`, `attributes_value_contains` and
+    `attributes_value_generator` methods.
+
+    When an instance is read, the methods `attributes_value_generator`
+    and `attributes_value_contains` are used to fetch the data. When it
+    is modified in-place, the methods `attributes_add`, `attributes_set`,
+    and `attributes_delete` are used to reflect the changes.
+
+    This class does not hold any attribute-related information itself, thus
+    it is safe to spawn multiple instances linked to the same attribute
+    and ontology individual (when single-threading).
+    """
+    _predicate: OntologyAttribute
+
+    @property
+    def _predicates(self) -> Set[OntologyAttribute]:
+        """All the attributes to which this instance refers to.
+
+        Returns:
+            Such predicates are the subproperties of the main predicate, or
+            if it is none, all the subproperties.
+        """
+        predicates = super()._predicates
+        if predicates is None:
+            predicates = set(
+                self._individual.attributes_generator())
+            # The code below is technically true, but makes no
+            #  difference due to how `attributes_generator` is written.
+            # predicates = set(itertools.chain(
+            #    subclasses
+            #    for attributes in
+            #    self._individual.attributes_generator(_notify_read=True)
+            #    for subclasses in attributes.subclasses
+            # ))
+        return predicates
+
+    def __init__(self,
+                 attribute: Optional[OntologyAttribute],
+                 individual: "OntologyIndividual"):
+        """Fix the liked OntologyAttribute and ontology individual."""
+        super().__init__(attribute, individual)
+
+    def __iter__(self) -> Iterator[AttributeValue]:
+        """The values assigned to the referred predicates.
+
+        Such predicates are the main attribute and its subclasses.
+
+        Returns:
+            The mentioned values.
+        """
+        yielded: Set[AttributeValue] = set()
+        for value in itertools.chain(*(
+                self._individual.attributes_value_generator(
+                    attribute=attribute)
+                for attribute in self._predicates
+        )):
+            if value not in yielded:
+                yielded.add(value)
+                yield value
+
+    def __contains__(self, item: AttributeValue) -> bool:
+        """Check whether a value is assigned to the attribute."""
+        return any(
+            self._individual.attributes_value_contains(attribute, item)
+            for attribute in self._predicates
+        )
+
+    def update(self, other: Iterable[AttributeValue]) -> None:
+        """Update the set with the union of itself and others."""
+        underlying_set = set(self)
+        added = set(other).difference(underlying_set)
+        self._individual.attributes_add(self._predicate, added)
+
+    def intersection_update(self, other: Iterable[AttributeValue]) -> \
+            None:
+        """Update the set with the intersection of itself and another."""
+        underlying_set = set(self)
+        intersection = underlying_set.intersection(other)
+        removed = underlying_set.difference(intersection)
+        for attribute in self._predicates:
+            self._individual.attributes_delete(attribute, removed)
+
+    def difference_update(self, other: Iterable[AttributeValue]) -> \
+            None:
+        """Remove all elements of another set from this set."""
+        removed = set(self) & set(other)
+        for attribute in self._predicates:
+            self._individual.attributes_delete(attribute, removed)
+
+    def symmetric_difference_update(self, other: Set[AttributeValue]) \
+            -> None:
+        """Update set with the symmetric difference of it and another."""
+        underlying_set = set(self)
+        symmetric_difference = underlying_set.symmetric_difference(other)
+        added = symmetric_difference.difference(underlying_set)
+        self._individual.attributes_add(self._predicate, added)
+        removed = underlying_set.difference(symmetric_difference)
+        for attribute in self._predicates:
+            self._individual.attributes_delete(attribute,
+                                               removed)
+
+
+class RelationshipSet(ObjectSet):
+    """A set interface to an ontology individual's relationships.
+
+    This class looks like and acts like the standard `set`, but it
+    is an interface to the `relationships_connect`, `relationships_disconnect`
+    and `relationships_iter` methods.
+
+    When an instance is read, the method `relationships_iter` is used to fetch
+    the data. When it is modified in-place, the methods
+    `relationships_connect` and `relationships_disconnect` are used to
+    reflect the changes.
+
+    This class does not hold any relationship-related information itself,
+    thus it is safe to spawn multiple instances linked to the same
+    relationship and ontology individual (when single-threading).
+    """
+    _predicate: Optional[OntologyRelationship]
+    _class_filter: Optional[OntologyClass]
+    _uid_filter: Optional[Tuple[UID]]
+    _inverse: bool = False
+
+    def __init__(self,
+                 relationship: Optional[OntologyRelationship],
+                 individual: 'OntologyIndividual',
+                 oclass: Optional[OntologyClass] = None,
+                 inverse: bool = False,
+                 uids: Optional[Iterable[UID]] = None):
+        """Fix the liked OntologyRelationship and ontology individual."""
+        if relationship is not None \
+                and not isinstance(relationship, OntologyRelationship):
+            raise TypeError("Found object of type %s. "
+                            "Should be an OntologyRelationship."
+                            % type(relationship))
+        if oclass is not None and not isinstance(oclass, OntologyClass):
+            raise TypeError("Found object of type %s. Should be "
+                            "an OntologyClass."
+                            % type(oclass))
+        uids = tuple(uids) if uids is not None else None
+        if uids is not None:
+            for uid in uids:
+                if not isinstance(uid, UID):
+                    raise TypeError(
+                        "Found object of type %s. Should be an UID."
+                        % type(uid))
+
+        self._class_filter = oclass
+        self._inverse = inverse
+        self._uid_filter = uids
+        super().__init__(relationship, individual)
+
+    def __iter__(self) -> Iterator['OntologyIndividual']:
+        """Iterate over individuals assigned to `self._predicates`.
+
+        Note: no class filter.
+
+        Returns:
+            The mentioned underlying set.
+        """
+        if self._uid_filter:
+            last_identifier = None
+            for i, r, t in self.iter_low_level():
+                if i == last_identifier:
+                    continue
+                elif (r, t) == (None, None):
+                    yield None
+                else:
+                    item = self._individual.session.from_identifier(i)
+                    if not self._class_filter or item.is_a(self._class_filter):
+                        yield item
+                    else:
+                        yield None
+                last_identifier = i
+        else:
+            yielded: Set[Node] = set()
+            for i, r, t in self.iter_low_level():
+                item = self._individual.session.from_identifier(i)
+                if i in yielded or (
+                        self._class_filter
+                        and not item.is_a(self._class_filter)
+                ):
+                    continue
+                yielded.add(i)
+                yield item
+
+    def __contains__(self, item: "OntologyIndividual") -> bool:
+        """Check if an individual is connected via the relationship."""
+        if item not in self.individual.session:
+            return False
+
+        original_uid_filter = self._uid_filter
+        try:
+            self._uid_filter = (item.uid, )
+            return next(iter(self)) is not None
+        finally:
+            self._uid_filter = original_uid_filter
+
+    def __invert__(self) -> 'RelationshipSet':
+        """Get the inverse RelationshipSet."""
+        return self.inverse
+
+    @property
+    def inverse(self) -> 'RelationshipSet':
+        """Get the inverse RelationshipSet.
+
+        Returns a RelationshipSet that works in the inverse direction: the
+        ontology individuals displayed are the ones which are the subject of
+        the relationship.
+        """
+        return RelationshipSet(relationship=self._predicate,
+                               individual=self.individual,
+                               oclass=self._class_filter,
+                               inverse=not self._inverse)
+
+    @staticmethod
+    def prevent_class_filtering(func):
+        """Decorator breaking methods when class filtering is enabled."""
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if self._class_filter is not None:
+                raise RuntimeError("Cannot edit a set with a class "
+                                   "filter in-place.")
+            return func(self, *args, **kwargs)
+
+        return wrapper
+
+    # Bind static method to use as decorator.
+    prevent_class_filtering = prevent_class_filtering.__get__(object,
+                                                              None)
+
+    @prevent_class_filtering
+    def update(self, other: Iterable['OntologyIndividual']) -> None:
+        """Update the set with the union of itself and other."""
+        # The individuals to update might be already attached. Given an
+        #  individual from `other`, several situations may arise:
+        #
+        #    1 - The relationship through which it is already attached is
+        #        the same as the main predicate `self._predicate`. It is
+        #        safe to attach it again, the same connection cannot be
+        #        duplicated in the RDF standard.
+        #
+        #    2 - The relationship through which it is already attached is a
+        #        sub-relationship of the main predicate. In such case,
+        #        we keep the existing connection and do not add a new
+        #        connection. The principle is: the more specific the
+        #        knowledge is, the better.
+        #
+        #    3 - The relationship through which it is already attached is a
+        #        super-relationship of the main predicate. Then it can make
+        #        sense to remove the original connection and replace it
+        #        with a new, more specific connection using the main
+        #        predicate.
+        #
+        added = filter(lambda x: x not in self, other)  # Takes care of 2.
+        # TODO: We do not take care of 3, because `.add` also does not
+        #  take care of 3. This topic can be an object of discussion.
+        for individual in added:
+            self._individual.relationships_connect(individual,
+                                                   rel=self._predicate)
+
+    @prevent_class_filtering
+    def intersection_update(self, other: Iterable['OntologyIndividual']) \
+            -> None:
+        """Update the set with the intersection of itself and another."""
+        # Note: please read the comment on the `update` method.
+        underlying_set = set(self)
+        result = underlying_set.intersection(other)
+
+        removed = underlying_set.difference(result)
+        if removed:
+            for rel in self._predicates:
+                self._individual.relationships_disconnect(*removed, rel=rel)
+
+        added = result.difference(underlying_set)
+        self._individual.relationships_connect(*added, rel=self._predicate)
+
+    @prevent_class_filtering
+    def difference_update(self, other: Iterable['OntologyIndividual']) \
+            -> None:
+        """Remove all elements of another set from this set."""
+        # Note: please read the comment on the `update` method.
+        removed = set(self) & set(other)
+        if removed:
+            for rel in self._predicates:
+                self._individual.relationships_disconnect(*removed, rel=rel)
+
+    @prevent_class_filtering
+    def symmetric_difference_update(self,
+                                    other: Iterable['OntologyIndividual']) \
+            -> None:
+        """Update with the symmetric difference of it and another."""
+        # Note: please read the comment on the `update` method.
+        underlying_set = set(self)
+        result = underlying_set.symmetric_difference(other)
+
+        removed = underlying_set.difference(result)
+        if removed:
+            for rel in self._predicates:
+                self._individual.relationships_disconnect(*removed, rel=rel)
+
+        added = result.difference(underlying_set)
+        self._individual.relationships_connect(*added, rel=self._predicate)
+
+    def iter_low_level(self) -> Iterator[
+            Tuple[
+                Node,
+                Optional[Node],
+                Optional[bool]
+            ]]:
+        """Iterate over individuals assigned to `self._predicates`.
+
+        Note: no class filter.
+
+        Returns:
+            The mentioned underlying set.
+        """
+        # Get the predicate IRIs (p) to be considered.
+        # Let x be `self._individual`.
+        #  - direct_allowed: Triples of the form (x, p, o) will result in o
+        #    being a candidate to be yielded.
+        #  - inverse_allowed: Triples of the form (s, p, x) will result in s
+        #    being a candidate to be yielded.
+        direct_allowed = set(p.identifier for p in self._predicates)
+        inverse_allowed = set(rel.identifier
+                              for rel in filter(None,
+                                                (p.inverse
+                                                 for p in self._predicates))
+                              )
+        if self._inverse:
+            direct_allowed, inverse_allowed = inverse_allowed, direct_allowed
+
+        # Get the individuals connected to `self._individual` through the
+        # allowed predicates, that is, o and s from the last comment.
+        individual = self._individual.identifier
+        graph = self._individual.session.graph
+        if self._uid_filter is None:
+            predicate_individual_direct = (
+                (o, p)
+                for p, o in graph.predicate_objects(individual)
+                if p in direct_allowed
+            )
+            predicate_individual_inverse = (
+                (s, p)
+                for s, p in graph.subject_predicates(individual)
+                if p in inverse_allowed
+            )
+            individuals_and_relationships = chain(
+                ((o, p, True)
+                 for o, p in predicate_individual_direct),
+                ((s, p, False)
+                 for s, p in predicate_individual_inverse)
+            )
+        else:
+            # In this case, we respect the ordering of the `_uid_filter` and
+            # yield `(uid.to_identifier(), None, None)` when there is not an
+            # allowed connection between `self._individual` the individual
+            # represented by `uid`.
+            def individuals_and_relationships():
+                for uid in self._uid_filter:
+                    identifier = uid.to_identifier()
+                    found = chain(
+                        ((p, True)
+                         for p in graph.predicates(individual, identifier)
+                         if p in direct_allowed),
+                        ((p, False)
+                         for p in graph.predicates(identifier, individual)
+                         if p in inverse_allowed),
+                    )
+                    first = next(found, (None, None))
+                    yield identifier, *first
+                    if first != (None, None):
+                        yield from ((identifier, *f) for f in found)
+
+            individuals_and_relationships = individuals_and_relationships()
+
+        yield from individuals_and_relationships
+
+
+class AnnotationSet(ObjectSet):
+    """A set interface to an ontology individual's annotations.
+
+    This class looks like and acts like the standard `set`, but it is an
+    interface to the methods from `OntologyIndividual` that manage the
+    annotations.
+
+    This class does not hold any annotation-related information itself,
+    thus it is safe to spawn multiple instances linked to the same
+    relationship and ontology individual (when single-threading).
+    """
+
+    _predicate: OntologyAnnotation
+
+    def __init__(self,
+                 annotation: Optional[OntologyAnnotation],
+                 individual: "OntologyIndividual") -> None:
+        """Fix the linked OntologyAnnotation and ontology individual."""
+        super().__init__(annotation, individual)
+
+    def __iter__(self) -> Iterator[AnnotationValue]:
+        """Iterate over annotations linked to the individual."""
+        yield from self._individual.annotations_value_generator(
+            annotation=self._predicate)
+
+    def __contains__(self, item) -> bool:
+        """Determine whether the individual is annotated with an item."""
+        return super().__contains__(item)
+
+    def update(self, other: Iterable[AnnotationValue]) -> None:
+        """Update the set with the union of itself and other."""
+        self._individual.annotations_add(annotation=self._predicate,
+                                         values=other)
+
+    def intersection_update(
+            self,
+            other: Iterable[AnnotationValue]) -> None:
+        """Update the set with the intersection of itself and another."""
+        self._individual.annotations_set(annotation=self._predicate,
+                                         values=other)
+
+    def difference_update(self,
+                          other: Iterable[Any]) -> None:
+        """Return self-=other."""
+        self._individual.annotations_delete(annotation=self._predicate,
+                                            values=set(self) & set(other))
+
+    def symmetric_difference_update(
+            self,
+            other: Iterable[AnnotationValue]) -> None:
+        """Return self^=other."""
+        self._individual.annotations_set(self._predicate,
+                                         set(self)
+                                         ^ set(other))
 
 
 class OntologyIndividual(OntologyEntity):
@@ -194,8 +758,8 @@ class OntologyIndividual(OntologyEntity):
         # TODO: If an attribute whose domain is not explicitly specified was
         #  already fixed with __setitem__, then this should also give back
         #  such attributes.
-        attr = self._get_ontology_attribute_by_name(name)
-        values = self._attribute_value_generator(attr)
+        attr = self._attributes_get_by_name(name)
+        values = self.attributes_value_generator(attr)
         value = next(values, None)
         if next(values, None) is not None:
             raise RuntimeError(f"Tried to fetch values of a "
@@ -228,9 +792,9 @@ class OntologyIndividual(OntologyEntity):
             return
 
         try:
-            attr = self._get_ontology_attribute_by_name(name)
+            attr = self._attributes_get_by_name(name)
             value = {value} if value is not None else set()
-            self._set_attributes(attr, value)
+            self.attributes_set(attr, value)
         except AttributeError as e:
             # Might still be an attribute of a subclass of OntologyIndividual.
             if hasattr(self, name):
@@ -240,11 +804,9 @@ class OntologyIndividual(OntologyEntity):
 
     def __getitem__(
             self,
-            rel: OntologyPredicate) -> Union[
-        'OntologyIndividual._AttributeSet',
-        'OntologyIndividual._RelationshipSet',
-        'OntologyIndividual._AnnotationSet',
-    ]:
+            rel: OntologyPredicate) -> Union[AttributeSet,
+                                             RelationshipSet,
+                                             AnnotationSet]:
         """Retrieve linked individuals, attribute values or annotation values.
 
         The subscripting syntax `individual[rel]` allows:
@@ -275,11 +837,11 @@ class OntologyIndividual(OntologyEntity):
                 OntologyAnnotation as index.
         """
         if isinstance(rel, OntologyAttribute):
-            set_class = self._AttributeSet
+            set_class = AttributeSet
         elif isinstance(rel, OntologyRelationship):
-            set_class = self._RelationshipSet
+            set_class = RelationshipSet
         elif isinstance(rel, OntologyAnnotation):
-            set_class = self._AnnotationSet
+            set_class = AnnotationSet
         else:
             raise TypeError(f'Ontology individual indices must be ontology '
                             f'relationships, ontology attributes, '
@@ -320,7 +882,7 @@ class OntologyIndividual(OntologyEntity):
                 trying to use something that is neither an OntologyAttribute,
                 an OntologyRelationship nor an OntologyAnnotation as index.
         """
-        if isinstance(values, OntologyIndividual._ObjectSet) \
+        if isinstance(values, ObjectSet) \
                 and values.individual is self and values.predicate is rel:
             # Do not do anything when the set assigned is a set referring to
             #  self and referring to the same predicate that was specified.
@@ -351,8 +913,7 @@ class OntologyIndividual(OntologyEntity):
             assigned = set(
                 values.get(OntologyIndividual, set())
             )
-            current = OntologyIndividual\
-                ._RelationshipSet(rel, self, oclass=None)
+            current = RelationshipSet(rel, self, oclass=None)
 
             add = assigned - current
             remove = current - assigned
@@ -372,7 +933,7 @@ class OntologyIndividual(OntologyEntity):
             ) | set(
                 values.get(Literal, set())
             )
-            current = OntologyIndividual._AttributeSet(rel, self)
+            current = AttributeSet(rel, self)
 
             add = assigned - current
             remove = current - assigned
@@ -382,7 +943,7 @@ class OntologyIndividual(OntologyEntity):
         elif isinstance(rel, OntologyAnnotation):
             # TODO: Use a unit of work pattern here like above to only
             #  remove and add, rather than replacing.
-            self._set_annotations(rel, values)
+            self.annotations_set(rel, values)
         else:
             raise TypeError(f'Ontology individual indices must be ontology '
                             f'relationships, ontology attributes or ontology '
@@ -440,7 +1001,7 @@ class OntologyIndividual(OntologyEntity):
                             "relationship specified for namespace %s."
                             % self.oclass.namespace)
 
-        self._connect(*individuals, rel=rel)
+        self.relationships_connect(*individuals, rel=rel)
         result = (self.session.from_identifier(i.identifier)
                   for i in individuals)
         return next(result) if len(individuals) == 1 else list(result)
@@ -456,7 +1017,7 @@ class OntologyIndividual(OntologyEntity):
                 Identifier]] = cuba_namespace.activeRelationship,
             oclass: OntologyClass = None,
             return_rel: bool = False) -> Union[
-        "OntologyIndividual._RelationshipSet",
+        "RelationshipSet",
         Optional["OntologyIndividual"],
         Tuple[Optional["OntologyIndividual"], ...],
         Tuple[Tuple["OntologyIndividual", OntologyRelationship]]
@@ -485,7 +1046,7 @@ class OntologyIndividual(OntologyEntity):
                 relationship. Defaults to False.
 
         Returns:
-            Calls without `*uids` (_RelationshipSet): The result of the
+            Calls without `*uids` (RelationshipSet): The result of the
                 call is a set-like object. This corresponds to
                 the calls `get()`, `get(rel=___)`, `get(oclass=___)`,
                 `get(rel=___, oclass=___)`, with the parameter `return_rel`
@@ -511,17 +1072,43 @@ class OntologyIndividual(OntologyEntity):
                 returned instead of a Tuple. This description corresponds to
                 any call of the form `get(..., return_rel=True)`.
         """
-        if not return_rel and not uids:
-            if isinstance(rel, Identifier):
-                rel = self.session.ontology.from_identifier(rel)
-            result = OntologyIndividual._RelationshipSet(rel,
-                                                         self,
-                                                         oclass=oclass)
+        if isinstance(rel, Identifier):
+            rel = self.session.ontology.from_identifier(rel)
+
+        if uids and oclass is not None:
+            raise ValueError("Do not specify both uids and oclass.")
+        if rel is not None and not isinstance(rel, OntologyRelationship):
+            raise TypeError("Found object of type %s passed to argument rel. "
+                            "Should be an OntologyRelationship." % type(rel))
+        if oclass is not None and not isinstance(oclass, OntologyClass):
+            raise TypeError("Found object of type %s passed to argument "
+                            "class. Should be an OntologyClass."
+                            % type(oclass))
+
+        relationship_set = RelationshipSet(rel, self, oclass=oclass,
+                                           uids=uids or None)
+
+        if not return_rel:
+            if not uids:
+                return relationship_set
+            else:
+                return next(iter(relationship_set)) \
+                    if len(uids) == 1 else tuple(
+                    relationship_set)
         else:
-            result = self.iter(*uids, rel=rel, oclass=oclass,
-                               return_rel=return_rel)
-            result = next(result) if len(uids) == 1 else tuple(result)
-        return result
+            result = []
+            for (i, r, t) in relationship_set.iter_low_level():
+                if not t:
+                    continue
+                session = self.session
+                result += [
+                    (session.from_identifier(i),
+                     session.ontology.from_identifier(r))
+                ]
+            if len(uids) == 1:
+                return result[0] if result else None
+            else:
+                return tuple(result)
 
     def iter(self,
              *uids: UID,
@@ -592,62 +1179,20 @@ class OntologyIndividual(OntologyEntity):
                             "class. Should be an OntologyClass."
                             % type(oclass))
 
-        # --- Call without `*uids` and with `return_rel=False`(order does not
-        #  matter, relationships not returned).
-        if not return_rel and not uids:
-            yield from iter(OntologyIndividual._RelationshipSet(rel, self,
-                                                                oclass=oclass))
-            return
-
-        # --- Call with `uids`.
-
-        for uid in uids:
-            if not isinstance(uid, UID):
-                raise TypeError(f'Expected UID objects as positional '
-                                f'arguments, not {type(uid)}.')
-
-        # Consider either the given relationship and subclasses or all
-        #  relationships.
-        consider_relationships = set()
-        for predicate in self.session.graph.predicates(self.identifier, None):
-            try:
-                relationship = self.session.ontology.from_identifier(predicate)
-                if isinstance(relationship, OntologyRelationship):
-                    consider_relationships |= {relationship}
-            except KeyError:
-                pass
-        if rel:
-            consider_relationships &= set(rel.subclasses)
-
-        # do not return anything if no element of given relationship available
-        if not consider_relationships:
-            yield from \
-                [] if not uids else [None] * len(uids) \
-                if not return_rel else \
-                ([], dict()) if not uids else ([None] * len(uids), dict())
-            return
-
-        mapping = OrderedDict((uid, set()) for uid in uids)
-        for rel in consider_relationships:
-            connected_identifiers = self.session.graph.objects(
-                self.identifier, rel.identifier
-            )
-            connected_uids = map(UID, connected_identifiers)
-            if uids:
-                connected_uids = set(connected_uids) & set(uids)
-            mapping.update(
-                (uid, mapping.get(uid, set()) | {rel})
-                for uid in connected_uids
-            )
-
-        result = (self.session.from_identifier(uid.to_identifier())
-                  if mapping[uid] else None
-                  for uid in mapping)
+        relationship_set = RelationshipSet(rel, self, oclass=oclass,
+                                           uids=uids or None)
 
         if not return_rel:
-            yield from result
+            yield from iter(relationship_set)
         else:
-            yield from ((r, m) for r in result for m in mapping[r.uid])
+            for (i, r, t) in relationship_set.iter_low_level():
+                if not t:
+                    continue
+                session = self.session
+                yield (
+                    (session.from_identifier(i),
+                     session.ontology.from_identifier(r))
+                )
 
     def update(self, *individuals: "OntologyIndividual") \
             -> Union["OntologyIndividual", List["OntologyIndividual"]]:
@@ -793,125 +1338,6 @@ class OntologyIndividual(OntologyEntity):
     # ↑ ------ ↑
     # Public API
 
-    class _ObjectSet(DataStructureSet):
-        """A set interface to an ontology individual's neighbors.
-
-        This class looks like and acts like the standard `set`, but it
-        is a template to implement classes that use either the attribute
-        interface or the methods `_connect`, `_disconnect` and `_iter` from
-        the ontology individual.
-
-        When an instance is read or when it is modified in-place,
-        the interfaced methods are used to reflect the changes.
-
-        This class does not hold any object-related information itself, thus
-        it is safe to spawn multiple instances linked to the same property
-        and ontology individual (when single-threading).
-        """
-        _predicate: Optional[Union[
-            OntologyAttribute, OntologyRelationship, OntologyAnnotation]]
-        """Main predicate to which this object refers. It will be used
-        whenever there is ambiguity on which predicate to use. Can be set to
-        None, usually meaning all predicates (see the specific
-        implementations of this class: `_AttributeSet` and
-        `_RelationshipSet`)."""
-
-        _individual: "OntologyIndividual"
-        """The CUDS object to which this object is linked to. Whenever the set
-        is modified, the modification will affect this CUDS object."""
-
-        @property
-        def individual(self) -> "OntologyIndividual":
-            """Ontology individual that this set refers to."""
-            return self._individual
-
-        @property
-        def predicate(self) -> Union[OntologyPredicate]:
-            """Predicate that this set refers to."""
-            return self._predicate
-
-        @property
-        def _predicates(self) -> Optional[Union[
-            Set[OntologyAttribute],
-            Set[OntologyRelationship],
-            Set[OntologyAnnotation],
-        ]]:
-            """All the predicates to which this instance refers to.
-
-            Returns:
-                Such predicates, or `None` if no main predicate is
-                associated with this `_ObjectSet`.
-            """
-            return self._predicate.subclasses \
-                if self._predicate is not None else \
-                None
-
-        def __init__(self,
-                     predicate: Optional[OntologyPredicate],
-                     individual: "OntologyIndividual"):
-            """Fix the linked predicate and CUDS object."""
-            self._individual = individual
-            self._predicate = predicate
-            super().__init__()
-
-        def __repr__(self) -> str:
-            """Return repr(self)."""
-            return set(self).__repr__() \
-                + ' <' \
-                + (f'{self._predicate} ' if self._predicate is not None
-                   else '') \
-                + f'of ontology individual {self._individual}>'
-
-        def one(self) -> Union[
-            AnnotationValue,
-            AttributeValue,
-            RelationshipValue,
-        ]:
-            """Return one element.
-
-            Return one element if the set contains one element, else raise
-            an exception.
-
-            Returns:
-                The only element contained in the set.
-
-            Raises:
-                ResultEmptyError: No elements in the set.
-                MultipleResultsError: More than one element in the set.
-            """
-            iter_self = iter(self)
-            first_element = next(iter_self, StopIteration)
-            if first_element is StopIteration:
-                raise ResultEmptyError(f"No elements attached to "
-                                       f"{self._individual} through "
-                                       f"{self._predicate}.")
-            second_element = next(iter_self, StopIteration)
-            if second_element is not StopIteration:
-                raise MultipleResultsError(f"More than one element attached "
-                                           f"to {self._individual} through "
-                                           f"{self._predicate}.")
-            return first_element
-
-        def any(self) -> Optional[Union[
-            AnnotationValue,
-            AttributeValue,
-            RelationshipValue,
-        ]]:
-            """Return any element of the set.
-
-            Returns:
-                Any element from the set if the set is not empty, else None.
-            """
-            return next(iter(self), None)
-
-        def all(self) -> "OntologyIndividual._ObjectSet":
-            """Return all elements from the set.
-
-            Returns:
-                All elements from the set, namely the set itself.
-            """
-            return self
-
     def _get_direct_superclasses(self) -> Iterable['OntologyEntity']:
         return (x for oclass in self.oclasses
                 for x in oclass.direct_superclasses)
@@ -931,47 +1357,6 @@ class OntologyIndividual(OntologyEntity):
     # Annotation handling
     # ↓ --------------- ↓
 
-    class _AnnotationSet(_ObjectSet):
-        _predicate: OntologyAnnotation
-
-        def __init__(self,
-                     annotation: Optional[OntologyAnnotation],
-                     individual: "OntologyIndividual") -> None:
-            """Fix the linked OntologyAnnotation and ontology individual."""
-            super().__init__(annotation, individual)
-
-        def __iter__(self) -> Iterator[AnnotationValue]:
-            yield from self._individual._annotation_value_generator(
-                annotation=self._predicate)
-
-        def __contains__(self, item) -> bool:
-            return super().__contains__(item)
-
-        def update(self, other: Iterable[AnnotationValue]) -> None:
-            self._individual._add_annotations(annotation=self._predicate,
-                                              values=other)
-
-        def intersection_update(
-                self,
-                other: Iterable[AnnotationValue]) -> None:
-            self._individual._set_annotations(annotation=self._predicate,
-                                              values=other)
-
-        def difference_update(self,
-                              other: Iterable[Any]) -> None:
-            """Return self-=other."""
-            self._individual._delete_annotations(annotation=self._predicate,
-                                                 values=set(self)
-                                                 & set(other))
-
-        def symmetric_difference_update(
-                self,
-                other: Iterable[AnnotationValue]) -> None:
-            """Return self^=other."""
-            self._individual._set_annotations(self._predicate,
-                                              set(self)
-                                              ^ set(other))
-
     @staticmethod
     def _classify_by_type(values: Set[PredicateValue]) \
             -> Dict[Type[PredicateValue],
@@ -986,13 +1371,12 @@ class OntologyIndividual(OntologyEntity):
                   if value}
         return values
 
-    def _add_annotations(self,
-                         annotation: OntologyAnnotation,
-                         values: Union[
-                             Dict[Type[AnnotationValue],
-                                  AnnotationValue],
-                             Set[AnnotationValue]
-                         ]) -> None:
+    def annotations_add(self,
+                        annotation: OntologyAnnotation,
+                        values: Union[Dict[Type[AnnotationValue],
+                                           AnnotationValue],
+                                      Set[AnnotationValue]]) -> None:
+        """Adds annotations to the ontology individual."""
         if not isinstance(values, dict):
             values = self._classify_by_type(values)
         for value in itertools.chain(*(values.get(key, set())
@@ -1016,13 +1400,14 @@ class OntologyIndividual(OntologyEntity):
         for value in values.get(URIRef, set()):
             self.session.graph.add((self.iri, annotation.iri, value))
 
-    def _delete_annotations(
+    def annotations_delete(
             self,
             annotation: OntologyAnnotation,
             values: Union[Dict[Type[AnnotationValue],
                                Union[AnnotationValue]],
                           Set[AnnotationValue]]
     ) -> None:
+        """Deletes an annotation from an individual."""
         if not isinstance(values, dict):
             values = self._classify_by_type(values)
 
@@ -1039,13 +1424,12 @@ class OntologyIndividual(OntologyEntity):
         for value in values.get(URIRef, set()):
             self.session.graph.remove((self.iri, annotation.iri, value))
 
-    def _set_annotations(self,
-                         annotation: OntologyAnnotation,
-                         values: Union[
-                             Dict[Type[AnnotationValue],
-                                  AnnotationValue],
-                             Set[AnnotationValue],
-                         ]) -> None:
+    def annotations_set(self,
+                        annotation: OntologyAnnotation,
+                        values: Union[Dict[Type[AnnotationValue],
+                                           AnnotationValue],
+                                      Set[AnnotationValue]]) -> None:
+        """Replaces the annotations of an individual."""
         if not isinstance(values, dict):
             values = self._classify_by_type(values)
 
@@ -1071,9 +1455,10 @@ class OntologyIndividual(OntologyEntity):
         for value in values.get(URIRef, set()):
             self.session.graph.add((self.iri, annotation.iri, value))
 
-    def _annotation_value_generator(self,
+    def annotations_value_generator(self,
                                     annotation: OntologyAnnotation) \
             -> Iterator[AnnotationValue]:
+        """Yields the annotation values applied to the individual."""
         for obj in self.session.graph.objects(self.iri, annotation.iri):
             if isinstance(obj, URIRef):
                 try:
@@ -1096,14 +1481,14 @@ class OntologyIndividual(OntologyEntity):
     # Attribute handling
     # ↓ -------------- ↓
 
-    def get_attributes(self) -> Dict[OntologyAttribute,
+    def attributes_get(self) -> Dict[OntologyAttribute,
                                      Set[AttributeValue]]:
         """Get the attributes of this individual as a dictionary."""
         return {attribute: set(value_generator)
                 for attribute, value_generator
-                in self._attribute_and_value_generator()}
+                in self.attributes_attribute_and_value_generator()}
 
-    def _get_ontology_attribute_by_name(self, name: str) -> OntologyAttribute:
+    def _attributes_get_by_name(self, name: str) -> OntologyAttribute:
         """Get an attribute of this individual by name."""
         attributes_and_reference_styles = (
             (attr, ns.reference_style)
@@ -1122,11 +1507,11 @@ class OntologyIndividual(OntologyEntity):
         raise AttributeError(name)
 
     @staticmethod
-    def _attribute_modifier(func):
+    def _attributes_modifier(func):
         """Decorator for functions that perform attribute modifications.
 
-        To be used with `_add_attributes`, `_delete_attributes` and
-        `_set_attributes` exclusively. The three functions are extremely
+        To be used with `attributes_add`, `attributes_delete` and
+        `attributes_set` exclusively. The three functions are extremely
         similar. This decorator covers the code that they share.
         """
         @functools.wraps(func)
@@ -1146,13 +1531,13 @@ class OntologyIndividual(OntologyEntity):
         return wrapper
 
     # Bind static method to use as decorator.
-    _attribute_modifier = _attribute_modifier.__get__(object,
-                                                      None)
+    _attribute_modifier = _attributes_modifier.__get__(object,
+                                                       None)
 
     @_attribute_modifier
-    def _add_attributes(self,
-                        attribute: OntologyAttribute,
-                        values: Iterable[AttributeValue]):
+    def attributes_add(self,
+                       attribute: OntologyAttribute,
+                       values: Iterable[AttributeValue]):
         """Add values to a datatype property.
 
         If any of the values provided in `values` have already been assigned,
@@ -1178,9 +1563,9 @@ class OntologyIndividual(OntologyEntity):
                          datatype=attribute.datatype)))
 
     @_attribute_modifier
-    def _delete_attributes(self,
-                           attribute: OntologyAttribute,
-                           values: Iterable[AttributeValue]):
+    def attributes_delete(self,
+                          attribute: OntologyAttribute,
+                          values: Iterable[AttributeValue]):
         """Remove values from a datatype property.
 
         If any of the values provided in `values` are not present, they are
@@ -1203,10 +1588,10 @@ class OntologyIndividual(OntologyEntity):
                          datatype=attribute.datatype)))
 
     @_attribute_modifier
-    def _set_attributes(self,
-                        attribute: OntologyAttribute,
-                        values: Iterable[Union[AttributeValue,
-                                               Literal]]):
+    def attributes_set(self,
+                       attribute: OntologyAttribute,
+                       values: Iterable[Union[AttributeValue,
+                                              Literal]]):
         """Replace values assigned to a datatype property.
 
         Args:
@@ -1223,9 +1608,9 @@ class OntologyIndividual(OntologyEntity):
         #  ontology cardinality restrictions and/or functional property
         #  criteria.
         self.session.graph.remove((self.iri, attribute.iri, None))
-        self._add_attributes(attribute, values)
+        self.attributes_add(attribute, values)
 
-    def _attribute_value_generator(self,
+    def attributes_value_generator(self,
                                    attribute: OntologyAttribute) \
             -> Iterator[AttributeValue]:
         """Returns a generator of values assigned to the specified attribute.
@@ -1244,7 +1629,7 @@ class OntologyIndividual(OntologyEntity):
                               lang=literal.language)
             yield literal.toPython()
 
-    def _attribute_value_contains(self,
+    def attributes_value_contains(self,
                                   attribute: OntologyAttribute,
                                   value: AttributeValue) \
             -> bool:
@@ -1268,7 +1653,7 @@ class OntologyIndividual(OntologyEntity):
             return literal in self.session.graph.objects(self.iri,
                                                          attribute.iri)
 
-    def _attribute_generator(self) \
+    def attributes_generator(self) \
             -> Iterator[OntologyAttribute]:
         """Returns a generator of the attributes of this CUDS object.
 
@@ -1286,7 +1671,7 @@ class OntologyIndividual(OntologyEntity):
             if isinstance(obj, OntologyAttribute):
                 yield obj
 
-    def _attribute_and_value_generator(self) \
+    def attributes_attribute_and_value_generator(self) \
             -> Iterator[Tuple[OntologyAttribute,
                               Iterator[AttributeValue]]]:
         """Returns a generator of both the attributes and their values.
@@ -1295,115 +1680,9 @@ class OntologyIndividual(OntologyEntity):
             Generator that yields tuples, where the first item is the ontology
             attribute and the second a generator of values for such attribute.
         """
-        for attribute in self._attribute_generator():
+        for attribute in self.attributes_generator():
             yield attribute, \
-                self._attribute_value_generator(attribute)
-
-    class _AttributeSet(_ObjectSet):
-        """A set interface to an ontology individual's attributes.
-
-        This class looks like and acts like the standard `set`, but it
-        is an interface to the `_add_attributes`, _set_attributes`,
-        `_delete_attributes`, `_attribute_value_contains` and
-        `_attribute_value_generator` methods.
-
-        When an instance is read, the methods `_attribute_value_generator`
-        and `_attribute_value_contains` are used to fetch the data. When it
-        is modified in-place, the methods `_add_attributes`, `_set_attributes`,
-        and `_delete_attributes` are used to reflect the changes.
-
-        This class does not hold any attribute-related information itself, thus
-        it is safe to spawn multiple instances linked to the same attribute
-        and ontology individual (when single-threading).
-        """
-        _predicate: OntologyAttribute
-
-        @property
-        def _predicates(self) -> Set[OntologyAttribute]:
-            """All the attributes to which this instance refers to.
-
-            Returns:
-                Such predicates are the subproperties of the main predicate, or
-                if it is none, all the subproperties.
-            """
-            predicates = super()._predicates
-            if predicates is None:
-                predicates = set(
-                    self._individual._attribute_generator())
-                # The code below is technically true, but makes no
-                #  difference due to how `_attribute_generator` is written.
-                # predicates = set(itertools.chain(
-                #    subclasses
-                #    for attributes in
-                #    self._individual._attribute_generator(_notify_read=True)
-                #    for subclasses in attributes.subclasses
-                # ))
-            return predicates
-
-        def __init__(self,
-                     attribute: Optional[OntologyAttribute],
-                     individual: "OntologyIndividual"):
-            """Fix the liked OntologyAttribute and ontology individual."""
-            super().__init__(attribute, individual)
-
-        def __iter__(self) -> Iterator[AttributeValue]:
-            """The values assigned to the referred predicates.
-
-            Such predicates are the main attribute and its subclasses.
-
-            Returns:
-                The mentioned values.
-            """
-            yielded: Set[AttributeValue] = set()
-            for value in itertools.chain(*(
-                    self._individual._attribute_value_generator(
-                        attribute=attribute)
-                    for attribute in self._predicates
-            )):
-                if value not in yielded:
-                    yielded.add(value)
-                    yield value
-
-        def __contains__(self, item: AttributeValue) -> bool:
-            """Check whether a value is assigned to the attribute."""
-            return any(
-                self._individual._attribute_value_contains(attribute, item)
-                for attribute in self._predicates
-            )
-
-        def update(self, other: Iterable[AttributeValue]) -> None:
-            """Update the set with the union of itself and others."""
-            underlying_set = set(self)
-            added = set(other).difference(underlying_set)
-            self._individual._add_attributes(self._predicate, added)
-
-        def intersection_update(self, other: Iterable[AttributeValue]) ->\
-                None:
-            """Update the set with the intersection of itself and another."""
-            underlying_set = set(self)
-            intersection = underlying_set.intersection(other)
-            removed = underlying_set.difference(intersection)
-            for attribute in self._predicates:
-                self._individual._delete_attributes(attribute, removed)
-
-        def difference_update(self, other: Iterable[AttributeValue]) -> \
-                None:
-            """Remove all elements of another set from this set."""
-            removed = set(self) & set(other)
-            for attribute in self._predicates:
-                self._individual._delete_attributes(attribute, removed)
-
-        def symmetric_difference_update(self, other: Set[AttributeValue])\
-                -> None:
-            """Update set with the symmetric difference of it and another."""
-            underlying_set = set(self)
-            symmetric_difference = underlying_set.symmetric_difference(other)
-            added = symmetric_difference.difference(underlying_set)
-            self._individual._add_attributes(self._predicate, added)
-            removed = underlying_set.difference(symmetric_difference)
-            for attribute in self._predicates:
-                self._individual._delete_attributes(attribute,
-                                                    removed)
+                self.attributes_value_generator(attribute)
 
     # ↑ -------------- ↑
     # Attribute handling
@@ -1411,9 +1690,9 @@ class OntologyIndividual(OntologyEntity):
     # Relationship handling
     # ↓ ----------------- ↓
 
-    def _connect(self,
-                 *other: "OntologyIndividual",
-                 rel: OntologyRelationship):
+    def relationships_connect(self,
+                              *other: "OntologyIndividual",
+                              rel: OntologyRelationship):
         """Connect other ontology individuals to this one.
 
         If the connected object is associated with the same session, only a
@@ -1437,9 +1716,9 @@ class OntologyIndividual(OntologyEntity):
             self.session.graph.add(
                 (self.identifier, rel.identifier, individual.identifier))
 
-    def _disconnect(self,
-                    *other: "OntologyIndividual",
-                    rel: Optional[OntologyRelationship] = None):
+    def relationships_disconnect(self,
+                                 *other: "OntologyIndividual",
+                                 rel: Optional[OntologyRelationship] = None):
         """Disconnect ontology individuals from this one.
 
         Args:
@@ -1471,10 +1750,10 @@ class OntologyIndividual(OntologyEntity):
             for p in predicates:
                 self.session.graph.remove((s, p, o))
 
-    def _iter(self,
-              rel: Optional[OntologyRelationship] = None,
-              oclass: Optional[OntologyClass] = None,
-              return_rel: bool = False) \
+    def relationships_iter(self,
+                           rel: Optional[OntologyRelationship] = None,
+                           oclass: Optional[OntologyClass] = None,
+                           return_rel: bool = False) \
             -> Iterator["OntologyIndividual"]:
         """Iterate over the connected ontology individuals.
 
@@ -1506,191 +1785,6 @@ class OntologyIndividual(OntologyEntity):
             yield from entities_and_relationships
         else:
             yield from map(lambda x: x[0], entities_and_relationships)
-
-    class _RelationshipSet(_ObjectSet):
-        """A set interface to an ontology individual's relationships.
-
-        This class looks like and acts like the standard `set`, but it
-        is an interface to the `_connect`, `_disconnect` and `_iter` methods.
-
-        When an instance is read, the method `_iter` is used to fetch the
-        data. When it is modified in-place, the methods `_connect` and
-        `_disconnect` are used to reflect the changes.
-
-        This class does not hold any relationship-related information itself,
-        thus it is safe to spawn multiple instances linked to the same
-        relationship and ontology individual (when single-threading).
-        """
-        _predicate: Optional[OntologyRelationship]
-        _class_filter: Optional[OntologyClass]
-
-        def __init__(self,
-                     relationship: Optional[OntologyRelationship],
-                     individual: 'OntologyIndividual',
-                     oclass: Optional[OntologyClass] = None):
-            """Fix the liked OntologyRelationship and ontology individual."""
-            if relationship is not None \
-                    and not isinstance(relationship, OntologyRelationship):
-                raise TypeError("Found object of type %s. "
-                                "Should be an OntologyRelationship."
-                                % type(relationship))
-            if oclass is not None and not isinstance(oclass, OntologyClass):
-                raise TypeError("Found object of type %s oclass. Should be "
-                                "an OntologyClass."
-                                % type(oclass))
-            self._class_filter = oclass
-            super().__init__(relationship, individual)
-
-        def __iter__(self) -> Iterator['OntologyIndividual']:
-            """Iterate over individuals assigned to `self._predicates`.
-
-            Returns:
-                The mentioned underlying set.
-            """
-            yielded: Set[Identifier] = set()
-
-            neighbor_predicates = set()
-            for predicate in self._individual.session.graph.predicates(
-                    self._individual.identifier, None):
-                try:
-                    relationship = \
-                        self._individual.session.ontology.from_identifier(
-                            predicate)
-                    if isinstance(relationship, OntologyRelationship):
-                        neighbor_predicates |= {relationship}
-                except KeyError:
-                    pass
-
-            predicates = self._predicates
-            predicates = neighbor_predicates \
-                if self._predicates is None else \
-                predicates & neighbor_predicates
-
-            for predicate in (x.identifier for x in predicates):
-                for o in self._individual.session.graph.objects(
-                        self._individual.identifier, predicate):
-                    if o not in yielded:
-                        item = self._individual.session.from_identifier(o)
-                        if (self._class_filter
-                                and not item.is_a(self._class_filter)):
-                            continue
-                        yielded.add(o)
-                        yield item
-
-        def __contains__(self, item: "OntologyIndividual") -> bool:
-            """Check if an individual is connected via the relationship."""
-            neighbor_predicates = set()
-            for predicate in self._individual.session.graph.predicates(
-                    self._individual.identifier, None):
-                try:
-                    relationship = \
-                        self._individual.session.ontology.from_identifier(
-                            predicate)
-                    if isinstance(relationship, OntologyRelationship):
-                        neighbor_predicates |= {relationship}
-                except KeyError:
-                    pass
-
-            predicates = self._predicates
-            predicates = neighbor_predicates \
-                if self._predicates is None else \
-                predicates & neighbor_predicates
-
-            return item in self._individual.session and any(
-                ((self._individual.identifier,
-                 predicate.identifier,
-                 item.identifier) in self._individual.session.graph)
-                and (item.is_a(self._class_filter)
-                     if self._class_filter is not None else
-                     True)
-                for predicate in predicates
-            )
-
-        @staticmethod
-        def prevent_class_filtering(func):
-            @functools.wraps(func)
-            def wrapper(self, *args, **kwargs):
-                if self._class_filter is not None:
-                    raise RuntimeError("Cannot edit a set with a class "
-                                       "filter in-place.")
-                return func(self, *args, **kwargs)
-            return wrapper
-
-        # Bind static method to use as decorator.
-        prevent_class_filtering = prevent_class_filtering.__get__(object,
-                                                                  None)
-
-        @prevent_class_filtering
-        def update(self, other: Iterable['OntologyIndividual']) -> None:
-            """Update the set with the union of itself and other."""
-            # The individuals to update might be already attached. Given an
-            #  individual from `other`, several situations may arise:
-            #
-            #    1 - The relationship through which it is already attached is
-            #        the same as the main predicate `self._predicate`. It is
-            #        safe to attach it again, the same connection cannot be
-            #        duplicated in the RDF standard.
-            #
-            #    2 - The relationship through which it is already attached is a
-            #        sub-relationship of the main predicate. In such case,
-            #        we keep the existing connection and do not add a new
-            #        connection. The principle is: the more specific the
-            #        knowledge is, the better.
-            #
-            #    3 - The relationship through which it is already attached is a
-            #        super-relationship of the main predicate. Then it can make
-            #        sense to remove the original connection and replace it
-            #        with a new, more specific connection using the main
-            #        predicate.
-            #
-            added = filter(lambda x: x not in self, other)  # Takes care of 2.
-            # TODO: We do not take care of 3, because `.add` also does not
-            #  take care of 3. This topic can be an object of discussion.
-            for individual in added:
-                self._individual._connect(individual, rel=self._predicate)
-
-        @prevent_class_filtering
-        def intersection_update(self, other: Iterable['OntologyIndividual'])\
-                -> None:
-            """Update the set with the intersection of itself and another."""
-            # Note: please read the comment on the `update` method.
-            underlying_set = set(self)
-            result = underlying_set.intersection(other)
-
-            removed = underlying_set.difference(result)
-            if removed:
-                for rel in self._predicates:
-                    self._individual._disconnect(*removed, rel=rel)
-
-            added = result.difference(underlying_set)
-            self._individual._connect(*added, rel=self._predicate)
-
-        @prevent_class_filtering
-        def difference_update(self, other: Iterable['OntologyIndividual']) \
-                -> None:
-            """Remove all elements of another set from this set."""
-            # Note: please read the comment on the `update` method.
-            removed = set(self) & set(other)
-            if removed:
-                for rel in self._predicates:
-                    self._individual._disconnect(*removed, rel=rel)
-
-        @prevent_class_filtering
-        def symmetric_difference_update(self,
-                                        other: Iterable['OntologyIndividual'])\
-                -> None:
-            """Update with the symmetric difference of it and another."""
-            # Note: please read the comment on the `update` method.
-            underlying_set = set(self)
-            result = underlying_set.symmetric_difference(other)
-
-            removed = underlying_set.difference(result)
-            if removed:
-                for rel in self._predicates:
-                    self._individual._disconnect(*removed, rel=rel)
-
-            added = result.difference(underlying_set)
-            self._individual._connect(*added, rel=self._predicate)
 
     # ↑ -------------- ↑
     # Relationship handling

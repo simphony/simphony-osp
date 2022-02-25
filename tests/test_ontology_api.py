@@ -562,9 +562,9 @@ class TestCityOntology(unittest.TestCase):
         self.assertSetEqual({altstadt},
                             freiburg[city.hasInhabitant])
 
-        # Test `get_attributes` method of individuals.
+        # Test `attributes_get` method of individuals.
         self.assertDictEqual(
-            marc.get_attributes(),
+            marc.attributes_get(),
             {city['name']: {"Marc"}, city.age: {25}}
         )
 

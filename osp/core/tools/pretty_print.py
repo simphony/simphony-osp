@@ -177,7 +177,7 @@ def _pp_individual_values(cuds_object, indentation="\n          "):
         str: The resulting string to print.
     """
     result = []
-    sorted_attributes = sorted(cuds_object.get_attributes().items(),
+    sorted_attributes = sorted(cuds_object.attributes_get().items(),
                                key=lambda x: (
                                    f'\0{x[0].label}'
                                    if x[0].label is not None else

@@ -42,6 +42,16 @@ class OntologyRelationship(OntologyEntity):
         super().__init__(uid, session, triples, merge=merge)
         logger.debug("Create ontology relationship %s" % self)
 
+    @property
+    def inverse(self) -> Optional['OntologyRelationship']:
+        """Get the onverse relationship if it exists."""
+        inverse = self.session.graph.objects(self.identifier,
+                                             OWL.inverseOf)
+        inverse = next(iter(inverse), None)
+        inverse = self.session.from_identifier(inverse) \
+            if inverse is not None else None
+        return inverse
+
     def _get_direct_superclasses(self) -> Iterator[OntologyEntity]:
         """Get all the direct superclasses of this relationship.
 
