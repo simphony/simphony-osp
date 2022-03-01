@@ -58,7 +58,7 @@ class TestWrapper(unittest.TestCase):
     def test_wrapper_city(self) -> None:
         """Test adding some entities from the city ontology."""
         from simphony_osp.namespaces import city
-        from simphony_osp import sqlite
+        from simphony_osp.wrappers import sqlite
 
         with sqlite(self.file_name, create=True) as wrapper:
             freiburg = city.City(name='Freiburg', coordinates=[20, 58])
@@ -131,7 +131,7 @@ class TestWrapper(unittest.TestCase):
     def test_wrapper_root(self) -> None:
         """Test using an ontology entity as wrapper."""
         from simphony_osp.namespaces import city
-        from simphony_osp import sqlite
+        from simphony_osp.wrappers import sqlite
 
         fr = city.City(iri='http://example.org/Freiburg', name='Freiburg',
                        coordinates=[0, 0])
@@ -164,7 +164,7 @@ class TestWrapper(unittest.TestCase):
     def test_wrapper_sparql(self) -> None:
         """Test SPARQL queries on wrappers."""
         from simphony_osp.namespaces import city, cuba
-        from simphony_osp import sqlite
+        from simphony_osp.wrappers import sqlite
 
         with sqlite(self.file_name, create=True) as wrapper:
             freiburg = city.City(name='Freiburg', coordinates=[20, 58])
@@ -312,7 +312,7 @@ class TestDataspaceWrapper(unittest.TestCase):
     def test_wrapper_city(self) -> None:
         """Test adding some entities from the city ontology."""
         from simphony_osp.namespaces import city
-        from simphony_osp import dataspace
+        from simphony_osp.wrappers import dataspace
 
         with dataspace(f'ws://username:password@{self.host}:{self.port}',
                        'test_wrapper_dataspace_db_main.db'
