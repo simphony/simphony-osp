@@ -11,6 +11,7 @@ import importlib as _importlib
 import logging as _logging
 import os as _os
 import pkgutil as _package_utils
+import sys as _sys
 from typing import Type as _Type
 
 from simphony_osp.core.interfaces.interface import Interface as _Interface
@@ -23,12 +24,13 @@ _self = __import__(__name__)
 # Get all installed interfaces.
 _interfaces = dict()
 for _module_info in _package_utils.iter_modules(
-        (_os.path.join(_path, 'interfaces') for _path in _self.__path__),
+        (_os.path.join(_path, 'simphony_osp/interfaces')
+         for _path in _sys.path),
         f'{_self.__name__}.interfaces.'):
     try:
         _module = _importlib.import_module(_module_info.name)
-    except ImportError:
-        _logger.warning(f'Failed to import {_module_info.name}.')
+    except ImportError as e:
+        _logger.warning(f'Failed to import {_module_info.name}: {e}.')
 
     # Find interfaces in modules.
     try:
