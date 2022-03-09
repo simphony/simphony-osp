@@ -9,7 +9,7 @@ import json
 import logging
 import pathlib
 from typing import Optional, Union, TextIO, List
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import requests
 from rdflib.parser import Parser as RDFLib_Parser
