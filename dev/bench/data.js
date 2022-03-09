@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1645804539629,
+  "lastUpdate": 1646840344261,
   "repoUrl": "https://github.com/simphony/osp-core",
   "entries": {
     "Benchmark": [
@@ -8160,6 +8160,142 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.0001236838542607594",
             "extra": "mean: 412.07283600003564 usec\nrounds: 500"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "43052541+kysrpex@users.noreply.github.com",
+            "name": "José Manuel Domínguez",
+            "username": "kysrpex"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ebef2ad7707ba58152eedec407097788e27d73c8",
+          "message": "Improve performance of `_load_first_level` for remote triplestores (#756)\n\n\"Vectorize\" several methods of the class `TripleStoreWrapperSession` so that `_load_first_level` improves its performance.",
+          "timestamp": "2022-03-09T16:37:29+01:00",
+          "tree_id": "d0b4646f9cacf137fb184f94fd9dba953268d59b",
+          "url": "https://github.com/simphony/osp-core/commit/ebef2ad7707ba58152eedec407097788e27d73c8"
+        },
+        "date": 1646840343023,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_create",
+            "value": 380.23972132620037,
+            "unit": "iter/sec",
+            "range": "stddev: 0.006516308169570843",
+            "extra": "mean: 2.6299198740000107 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_add_default",
+            "value": 1397.3234905717575,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0001516124135882079",
+            "extra": "mean: 715.6538960000019 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_add_rel",
+            "value": 1422.366893497996,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00018315371249022136",
+            "extra": "mean: 703.0534839999838 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_get_byuiduuid",
+            "value": 226.88308300988515,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0008890677297738109",
+            "extra": "mean: 4.407556467999999 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byuiduriref",
+            "value": 376.5909135867132,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0009171245540057006",
+            "extra": "mean: 2.655401296000047 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byrel",
+            "value": 777.2238722589583,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00024072982686874136",
+            "extra": "mean: 1.286630578000075 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byoclass",
+            "value": 30.512917990061176,
+            "unit": "iter/sec",
+            "range": "stddev: 0.007285137835991074",
+            "extra": "mean: 32.773004545999996 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byuiduuid",
+            "value": 16001.574042827426,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00031399334531186156",
+            "extra": "mean: 62.49385200003133 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byuiduriref",
+            "value": 14158.636878906433,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0002607456702992358",
+            "extra": "mean: 70.62826800013511 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byrel",
+            "value": 798.3123051991461,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00025336938008967434",
+            "extra": "mean: 1.2526425979999658 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_iter_byoclass",
+            "value": 32.671055985531915,
+            "unit": "iter/sec",
+            "range": "stddev: 0.006097349436266656",
+            "extra": "mean: 30.608132178000034 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_is_a",
+            "value": 7266.64506438626,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00007732523948297838",
+            "extra": "mean: 137.61508799996136 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_oclass",
+            "value": 8727.13938927162,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00004032851594827545",
+            "extra": "mean: 114.58508400006906 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_uid",
+            "value": 13189.843662086723,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000019687571712999045",
+            "extra": "mean: 75.81591000008814 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iri",
+            "value": 15575.66068759492,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000021278590264283647",
+            "extra": "mean: 64.20273400000553 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_attributes",
+            "value": 2513.2671477163135,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0002001916081876076",
+            "extra": "mean: 397.8884620000116 usec\nrounds: 500"
           }
         ]
       }
