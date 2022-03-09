@@ -320,35 +320,6 @@ def uid_from_iri(iri):
         return iri
 
 
-def uid_from_general_iri(iri, graph, _visited=frozenset()):
-    """Get a UUID from a general (not containing a UUID) IRI.
-
-    Args:
-        iri (UriRef): The IRI to convert to UUID.
-        graph (Graph): The rdflib Graph to look for different IRIs for the
-            same individual.
-        _visited (Frozenset): Used for recursive calls.
-
-    Returns:
-        Tuple[UUID, URIRef]: The UUID and an IRI containing this UUID.
-    """
-    if str(iri).startswith(CUDS_IRI_PREFIX):
-        return uid_from_iri(iri), iri
-
-    for _, _, x in graph.triples((iri, OWL.sameAs, None)):
-        if x not in _visited:
-            return uid_from_general_iri(x, graph, _visited | {iri})
-    for x, _, _ in graph.triples((None, OWL.sameAs, iri)):
-        if x not in _visited:
-            return uid_from_general_iri(x, graph, _visited | {iri})
-    uid = uuid4()
-    new_iri = iri_from_uid(uid)
-    # The order is important.
-    # (iri, OWL.sameAs, iri_new) would produce new CUDS.
-    graph.add((new_iri, OWL.sameAs, iri))
-    return uid, new_iri
-
-
 def get_custom_datatypes():
     """Get the set of all custom datatypes used in the ontology.
 
