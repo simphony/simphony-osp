@@ -37,7 +37,6 @@ def uninstall(*package_names: str) -> None:
     Args:
         package_names: Names of the ontology packages to uninstall.
     """
-    ontology_installer.namespace_registry.clear()
     ontology_installer.uninstall(*package_names)
 
 

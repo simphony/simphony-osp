@@ -4,6 +4,7 @@ import glob
 import logging
 import os
 import shutil
+import sys
 import tempfile
 
 from osp.core.ontology.parser.parser import OntologyParser
@@ -168,7 +169,25 @@ class OntologyInstallationManager:
             clear (bool): Whether it is necessary to clear what is already
                 installed.
         """
+        # Determine whether the namespace names need to be unbound from the
+        # `osp.core.namespaces` and `osp.core` modules manually (Python 3.6)
+        # or not.
+        python_36 = (sys.version_info.major, sys.version_info.minor) <= (3, 6)
+        if python_36 and clear:
+            from osp.core.ontology.namespace_registry import namespace_registry
+            unbound_manually = True \
+                if self.namespace_registry is namespace_registry \
+                else False
+        else:
+            unbound_manually = False
+
         os.makedirs(self.path, exist_ok=True)
+        # Save existing namespace names if namespaces have to be unbound
+        # manually. Otherwise, just set the variable
+        # to `None` in order to save computation time.
+        unbound_manually = \
+            set(ns for ns in self.namespace_registry) \
+            if unbound_manually else None
         if clear:
             self.namespace_registry.clear()
         files = self._sort_for_installation(filter_func(files),
@@ -193,7 +212,17 @@ class OntologyInstallationManager:
             files_to_remove = all_ontology_files - files_to_keep
             for file in files_to_remove:
                 os.remove(os.path.join(self.path, file))
-        self.namespace_registry.update_namespaces()
+        if python_36:  # Bound and unbound namespaces manually
+            import osp.core as core
+            import osp.core.namespaces as namespaces
+            if unbound_manually:
+                unbound_manually = unbound_manually.difference(
+                    ns for ns in self.namespace_registry
+                )  # Remove the namespaces that are kept installed.
+            self.namespace_registry.update_namespaces(
+                modules=[core, namespaces],
+                remove=unbound_manually
+            )
         self.namespace_registry.store(self.path)
 
     def _sort_for_installation(self, files, installed):

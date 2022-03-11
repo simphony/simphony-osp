@@ -238,12 +238,17 @@ class PicoModule(unittest.TestCase):
             set(namespaces())
         )
 
+        import osp.core.namespaces
         uninstall('city')
         self.assertSetEqual(
             {'parser_test'},
             set(packages())
         )
-        self.assertRaises(AttributeError, lambda: city.City)
+        self.assertRaises(AttributeError,lambda: city.City)
+        self.assertRaises(
+            AttributeError,
+            lambda: getattr(osp.core.namespaces, 'city')
+        )
 
         install('city')
         self.assertSetEqual(
