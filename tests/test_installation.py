@@ -8,7 +8,6 @@ import tempfile
 import unittest2 as unittest
 from rdflib import URIRef
 
-import osp.core.namespaces
 from osp.core.ontology.installation import OntologyInstallationManager, \
     pico_migrate
 from osp.core.ontology.namespace_registry import NamespaceRegistry, \
@@ -223,9 +222,7 @@ class PicoModule(unittest.TestCase):
         )
 
         install(*FILES)
-        city = namespace_registry['city']
-        parser_test = namespace_registry['parser_test']
-        cuba = namespace_registry['cuba']
+        from osp.core.namespaces import city, cuba, parser_test
         self.assertSetEqual(
             {'city', 'parser_test'},
             set(packages())
