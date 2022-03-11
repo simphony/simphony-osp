@@ -244,7 +244,7 @@ class PicoModule(unittest.TestCase):
             {'parser_test'},
             set(packages())
         )
-        self.assertRaises(AttributeError,lambda: city.City)
+        self.assertRaises(AttributeError, lambda: city.City)
         self.assertRaises(
             AttributeError,
             lambda: getattr(osp.core.namespaces, 'city')
