@@ -3,12 +3,13 @@
 Also contains a `Parser` class for backwards compatibility.
 """
 
-from abc import ABC, abstractmethod
-from typing import Tuple, Set, Dict, Optional
 import logging
 import os
-from rdflib import Graph, URIRef
+from abc import ABC, abstractmethod
+from typing import Dict, Optional, Set, Tuple
+
 import yaml
+from rdflib import Graph, URIRef
 
 logging = logging.getLogger(__name__)
 
@@ -170,14 +171,21 @@ class OntologyParser(ABC):
 
 
 class Parser:
-    """For backwards compatibility: do not break wrapper's unit tests."""
+    """For backwards compatibility: do not break wrapper's unit tests.
+
+    It is only used on the unit tests, but cannot be moved to the tests'
+    folder due to `simdummy_session.py` also using it and being part of the
+    osp-core package.
+
+    Do NOT use this class outside the unit tests.
+    """
+
+    load_history: Set = set()  # This attribute is mutable on purpose.
 
     def __init__(self, parser_namespace_registry=None):
         """Initialize the parser.
 
         Args:
-            graph (rdflib.Graph): The graph to add the triples to.
-                might already contain some triples.
             parser_namespace_registry (NamespaceRegistry): The namespace
                 registry that should be connected to this parser. The parser
                 will register the read namespaces in this specific namespace
@@ -190,16 +198,17 @@ class Parser:
         self._namespace_registry = parser_namespace_registry or \
             namespace_registry
 
-    @staticmethod
-    def parse(path: str):
+    def parse(self, path: str):
         """Directly loads an ontology in the namespace registry.
 
         The format of the ontology is automatically recognized.
 
         Args:
-            path (str): The path of the YAML ontology file or OWL ontology YAML
+            path: The path of the YAML ontology file or OWL ontology YAML
                 configuration file to load.
         """
         from osp.core.ontology.namespace_registry import namespace_registry
         parser = OntologyParser.get_parser(path)
         namespace_registry.load_parser(parser)
+        if namespace_registry is self._namespace_registry:
+            self.load_history.add(path)

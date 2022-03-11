@@ -12,6 +12,7 @@ from osp.core.ontology.installation import OntologyInstallationManager, \
     pico_migrate
 from osp.core.ontology.namespace_registry import NamespaceRegistry, \
     namespace_registry
+from osp.core.ontology.parser import Parser
 from osp.core.pico import install, namespaces, packages, uninstall
 
 FILES = [
@@ -213,6 +214,11 @@ class PicoModule(unittest.TestCase):
         namespace_registry.clear()
         namespace_registry.load_graph_file(
             OntologyInstallationManager.get_default_installation_path())
+        # Restore also ontologies loaded by the test runner.
+        if Parser.load_history:
+            parser = Parser()
+            for path in Parser.load_history:
+                parser.parse(path)
 
     def test_pico(self):
         """Tests operating pico as a Python module."""
