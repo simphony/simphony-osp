@@ -3,14 +3,15 @@
 These are potentially useful for every user of SimPhoNy.
 """
 
-from typing import Optional, Union, TextIO, List
-import itertools
-import logging
-import requests
 import io
-import pathlib
+import itertools
 import json
-import uuid
+import logging
+import pathlib
+from typing import Optional, Union, TextIO, List
+from uuid import UUID
+
+import requests
 from rdflib.parser import Parser as RDFLib_Parser
 from rdflib.serializer import Serializer as RDFLib_Serializer
 from rdflib.plugin import get as get_plugin
@@ -31,10 +32,11 @@ else:
     warnings.warn = _silent_warn
     from rdflib_jsonld.parser import to_rdf as json_to_rdf
     warnings.warn = warn
+
 from osp.core.namespaces import cuba
 from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.ontology.datatypes import convert_from
+from osp.core.ontology.relationship import OntologyRelationship
 
 
 CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
@@ -220,7 +222,7 @@ def _deserialize_cuds_object(json_doc, session=None, buffer_context=None):
     first = g.value(rdflib_cuba._serialization, RDF.first)
     if first:  # return the element marked as first later
         try:
-            first = uuid.UUID(hex=first)
+            first = UUID(hex=first)
         except ValueError:
             first = URIRef(first)
         g.remove((rdflib_cuba._serialization, RDF.first, None))
@@ -267,7 +269,7 @@ def _import_rdf_file(path, format="xml", session=None, buffer_context=None):
     first = g.value(rdflib_cuba._serialization, RDF.first)
     if first:  # return the element marked as first later
         try:
-            first = uuid.UUID(hex=first)
+            first = UUID(hex=first)
         except ValueError:
             first = URIRef(first)
         g.remove((rdflib_cuba._serialization, RDF.first, None))
@@ -284,16 +286,16 @@ def _import_rdf_file(path, format="xml", session=None, buffer_context=None):
 # Internal utilities (not user-facing).
 
 
-def iri_from_uid(uid):
+def iri_from_uid(uid: Union[UUID, URIRef]) -> URIRef:
     """Transform an uid to an IRI.
 
     Args:
-        uid (Union[UUID, URIRef]): The UUID to transform.
+        uid: The UUID to transform.
 
     Returns:
-        URIRef: The IRI of the CUDS object with the given UUID.
+        The IRI of the CUDS object with the given UUID.
     """
-    if type(uid) is uuid.UUID:
+    if type(uid) is UUID:
         return URIRef(CUDS_IRI_PREFIX + str(uid))
     else:
         return uid
@@ -310,41 +312,12 @@ def uid_from_iri(iri):
     """
     if iri.startswith(CUDS_IRI_PREFIX):
         try:
-            return uuid.UUID(hex=str(iri)[len(CUDS_IRI_PREFIX):])
+            return UUID(hex=str(iri)[len(CUDS_IRI_PREFIX):])
         except ValueError as e:
             raise ValueError(f"Unable to transform {iri} to uid.") \
                 from e
     else:
         return iri
-
-
-def uid_from_general_iri(iri, graph, _visited=frozenset()):
-    """Get a UUID from a general (not containing a UUID) IRI.
-
-    Args:
-        iri (UriRef): The IRI to convert to UUID.
-        graph (Graph): The rdflib Graph to look for different IRIs for the
-            same individual.
-        _visited (Frozenset): Used for recursive calls.
-
-    Returns:
-        Tuple[UUID, URIRef]: The UUID and an IRI containing this UUID.
-    """
-    if str(iri).startswith(CUDS_IRI_PREFIX):
-        return uid_from_iri(iri), iri
-
-    for _, _, x in graph.triples((iri, OWL.sameAs, None)):
-        if x not in _visited:
-            return uid_from_general_iri(x, graph, _visited | {iri})
-    for x, _, _ in graph.triples((None, OWL.sameAs, iri)):
-        if x not in _visited:
-            return uid_from_general_iri(x, graph, _visited | {iri})
-    uid = uuid.uuid4()
-    new_iri = iri_from_uid(uid)
-    # The order is important.
-    # (iri, OWL.sameAs, iri_new) would produce new CUDS.
-    graph.add((new_iri, OWL.sameAs, iri))
-    return uid, new_iri
 
 
 def get_custom_datatypes():
