@@ -1,10 +1,11 @@
 """This class handles the installation of ontologies."""
 
-import os
 import glob
 import logging
+import os
 import shutil
 import tempfile
+
 from osp.core.ontology.parser.parser import OntologyParser
 
 logger = logging.getLogger(__name__)
@@ -23,12 +24,40 @@ class OntologyInstallationManager:
         """
         self.namespace_registry = namespace_registry
         self.path = path
-        if self.path is None:
-            import osp.core.namespaces as namespaces
-            self.path = namespaces._path
         if self.namespace_registry is None:
             import osp.core.namespaces as namespaces
             self.namespace_registry = namespaces._namespace_registry
+
+    @property
+    def path(self) -> str:
+        """Path where ontologies are installed."""
+        return self._path or self.get_default_installation_path()
+
+    @path.setter
+    def path(self, value: str):
+        """Set the path where ontologies are installed."""
+        self._path = value
+
+    @classmethod
+    def get_default_installation_path(cls):
+        """Get the path where ontologies are installed by default."""
+        osp_ontologies_dir = \
+            os.environ.get("OSP_ONTOLOGIES_DIR") or os.path.expanduser("~")
+        return os.path.join(
+            osp_ontologies_dir,
+            ".osp_ontologies"
+        )
+
+    @classmethod
+    def set_default_installation_path(cls, value: str):
+        """Set the path where ontologies are installed by default.
+
+        Note: this has the same effect as setting the environment variable
+        `OSP_ONTOLOGIES_DIR`. This means that in fact, the ontologies will
+        be installed to `OSP_ONTOLOGIES_DIR/.osp_ontologies` (just look at
+        the `get_default_installation_path` method).
+        """
+        os.environ['OSP_ONTOLOGIES_DIR'] = value
 
     def install(self, *files):
         """Install given packages. Skip already installed ones."""

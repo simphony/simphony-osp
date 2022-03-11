@@ -1,16 +1,58 @@
 """Pico is a commandline tool used to install ontologies."""
 
-from enum import Enum
 import argparse
-import logging
 import itertools
+import logging
+from enum import Enum
+from typing import TYPE_CHECKING, Iterator, Tuple
+
 from osp.core.ontology.installation import OntologyInstallationManager
+
+if TYPE_CHECKING:
+    from osp.core.ontology.namespace import OntologyNamespace
+
+__all__ = ['install', 'uninstall', 'namespaces', 'packages']
 
 logger = logging.getLogger(__name__)
 
+ontology_installer = OntologyInstallationManager()
 
-def install_from_terminal():
-    """Install ontologies from terminal."""
+
+def install(*files: str, overwrite: bool = False) -> None:
+    """Install ontologies.
+
+    Args:
+        files: Paths of `yml` files describing the ontologies to install.
+        overwrite: Whether to overwrite already installed ontologies.
+    """
+    if overwrite:
+        ontology_installer.install_overwrite(*files)
+    else:
+        ontology_installer.install(*files)
+
+
+def uninstall(*package_names: str) -> None:
+    """Uninstall ontologies.
+
+    Args:
+        package_names: Names of the ontology packages to uninstall.
+    """
+    ontology_installer.namespace_registry.clear()
+    ontology_installer.uninstall(*package_names)
+
+
+def packages() -> Tuple[str]:
+    """Returns the names of all installed packages."""
+    return ontology_installer.get_installed_packages()
+
+
+def namespaces() -> Iterator['OntologyNamespace']:
+    """Returns namespace objects for all the installed namespaces."""
+    return iter(ontology_installer.namespace_registry)
+
+
+def terminal():
+    """Terminal interface for pico."""
     # Parse the user arguments
     parser = argparse.ArgumentParser(
         description="Install and uninstall your ontologies."
@@ -53,20 +95,18 @@ def install_from_terminal():
     args = parser.parse_args()
     logging.getLogger("osp.core").setLevel(getattr(logging, args.log_level))
 
-    ontology_installer = OntologyInstallationManager()
-
     try:
         all_namespaces = map(lambda x: x.get_name(),
-                             ontology_installer.namespace_registry)
-        all_packages = ontology_installer.get_installed_packages()
+                             namespaces())
+        all_packages = packages()
         if args.command == "install" and args.overwrite:
-            ontology_installer.install_overwrite(*args.files)
+            install(*args.files, overwrite=True)
         elif args.command == "install":
-            ontology_installer.install(*args.files)
+            install(*args.files, overwrite=False)
         elif args.command == "uninstall":
             if args.packages == ['all']:
                 args.packages = all_packages
-            ontology_installer.uninstall(*args.packages)
+            uninstall(*args.packages)
         elif args.command == "list":
             print("Packages:")
             print("\n".join(map(lambda x: "\t- " + x, all_packages)))
@@ -114,4 +154,4 @@ def compare_version(version, other_version,
 
 
 if __name__ == "__main__":
-    install_from_terminal()
+    terminal()

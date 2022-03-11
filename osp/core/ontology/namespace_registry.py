@@ -298,6 +298,7 @@ class NamespaceRegistry:
         self._namespaces = dict()
         self._graph = rdflib.Graph()
         self._load_cuba()
+        self.from_iri.cache_clear()
         return self._graph
 
     def store(self, path):

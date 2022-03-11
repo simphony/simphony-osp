@@ -6,8 +6,7 @@ of RDFLib <= 5.0.0).
 """
 
 import unittest
-from osp.core.pico import compare_version
-from osp import CompareOperations
+from osp.core.pico import CompareOperations, compare_version
 
 
 class TestRDFLibPatch(unittest.TestCase):
