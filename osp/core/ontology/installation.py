@@ -25,8 +25,8 @@ class OntologyInstallationManager:
         self.namespace_registry = namespace_registry
         self.path = path
         if self.namespace_registry is None:
-            import osp.core.namespaces as namespaces
-            self.namespace_registry = namespaces._namespace_registry
+            from osp.core.ontology.namespace_registry import namespace_registry
+            self.namespace_registry = namespace_registry
 
     @property
     def path(self) -> str:
