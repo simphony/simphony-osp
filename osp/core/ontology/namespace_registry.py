@@ -3,7 +3,7 @@
 import logging
 import os
 from functools import lru_cache
-from typing import Iterable, Optional
+from typing import Iterable
 
 import rdflib
 
