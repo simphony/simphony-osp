@@ -40,9 +40,9 @@ def uninstall(*package_names: str) -> None:
     ontology_installer.uninstall(*package_names)
 
 
-def packages() -> Tuple[str]:
+def packages() -> Iterator[str]:
     """Returns the names of all installed packages."""
-    return ontology_installer.get_installed_packages()
+    return iter(ontology_installer.get_installed_packages())
 
 
 def namespaces() -> Iterator['OntologyNamespace']:
