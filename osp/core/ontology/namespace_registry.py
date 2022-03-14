@@ -1,16 +1,19 @@
 """Stores all the loaded namespaces."""
 
-import os
 import logging
+import os
+from functools import lru_cache
+from typing import Iterable, Optional
+
 import rdflib
+
+from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.oclass import OntologyClass
-from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.ontology import Ontology
 from osp.core.ontology.parser.parser import OntologyParser
-from functools import lru_cache
+from osp.core.ontology.relationship import OntologyRelationship
 
 logger = logging.getLogger(__name__)
 
@@ -110,14 +113,14 @@ class NamespaceRegistry:
         raise KeyError("Namespace %s not installed." % name)
 
     def update_namespaces(self,
-                          modules=None,
-                          remove=None):
+                          modules: Optional[Iterable] = None,
+                          remove: Optional[Iterable] = None):
         """Update the namespaces of the namespace registry.
 
         Only needed for Python 3.6.
         """
-        modules = list(modules) if modules is not None else []
-        remove = list(remove) if remove is not None else []
+        modules = modules if modules is not None else iter(())
+        remove = remove if remove is not None else iter(())
         for module in modules:
             for namespace in remove:
                 delattr(module, namespace.get_name().lower())
