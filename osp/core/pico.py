@@ -4,7 +4,7 @@ import argparse
 import itertools
 import logging
 from enum import Enum
-from typing import TYPE_CHECKING, Iterator, Tuple
+from typing import TYPE_CHECKING, Iterator
 
 from osp.core.ontology.installation import OntologyInstallationManager
 
