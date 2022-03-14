@@ -187,7 +187,7 @@ class OntologyInstallationManager:
         # to `None` in order to save computation time.
         unbound_manually = \
             set(ns for ns in self.namespace_registry) \
-            if unbound_manually else None
+            if unbound_manually else set()
         if clear:
             self.namespace_registry.clear()
         files = self._sort_for_installation(filter_func(files),

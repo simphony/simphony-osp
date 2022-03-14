@@ -113,14 +113,12 @@ class NamespaceRegistry:
         raise KeyError("Namespace %s not installed." % name)
 
     def update_namespaces(self,
-                          modules: Optional[Iterable] = None,
-                          remove: Optional[Iterable] = None):
+                          modules: Iterable = tuple(),
+                          remove: Iterable = tuple()):
         """Update the namespaces of the namespace registry.
 
         Only needed for Python 3.6.
         """
-        modules = modules if modules is not None else iter(())
-        remove = remove if remove is not None else iter(())
         for module in modules:
             for namespace in remove:
                 delattr(module, namespace.get_name().lower())
