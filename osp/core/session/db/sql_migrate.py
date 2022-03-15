@@ -1,31 +1,34 @@
 """This file contains a tool for migrating from old to new database schemas."""
 
-import uuid
-import rdflib
-from osp.core.session.db.sql_util import SqlQuery
-from osp.core.namespaces import get_entity
-from osp.core.utils.general import iri_from_uid
-from osp.core.namespaces import cuba
+import functools
 
-INT = rdflib.XSD.integer
-STR = rdflib.XSD.string
+import numpy as np
+from rdflib import OWL, RDF, RDFS, XSD, URIRef
+
+from osp.core.namespaces import cuba
+from osp.core.ontology.datatypes import Vector
+from osp.core.session.db.sql_util import SqlQuery
+
+INT = XSD.integer
+STR = XSD.string
 
 versions = {
     "OSP_MASTER": 0,
-    "OSP_V1_CUDS": 1
+    "OSP_V1_CUDS": 1,
+    "OSP_V2_CUDS": 2,
 }
 
-supported_versions = [1]
+supported_versions = [2]
 
 
 def detect_current_schema_version(tables):
     """Detect the current sql schema.
 
     Args:
-        tables (List[str]): A list of the existing table names-
+        tables (List[str]): A list of the existing table names.
 
     Raises:
-        RuntimeError: Could not detect the version-
+        RuntimeError: Could not detect the version.
 
     Returns:
         int: The version of the current data schema.
@@ -56,7 +59,7 @@ def check_supported_schema_version(sql_session):
     return True
 
 
-class SqlMigrate():
+class SqlMigrate:
     """Tool to migrate from old to new database schema."""
 
     def __init__(self, sql_session):
@@ -71,154 +74,222 @@ class SqlMigrate():
         """Run the migration."""
         self.procedure(self)
 
-    def migrate_0_1(self):
-        """Migrate from version 0 to 1."""
-        self.namespaces = {}
-        self.entities = {}
-        self.cuds = {}
+    def no_migration(self):
+        """Do nothing."""
 
-        commit = self.session._commit  # avoid a commit during initialization.
+    def migrate_1_2(self):
+        """Migrate from version 1 to 2."""
+        commit = self.session._commit  # avoid commit during initialization.
         self.session._commit = lambda: True
         self.session.check_schema = lambda: True
         cuba.Wrapper(session=self.session)
         try:
-            self.migrate_master_0_1()
-            self.migrate_relations_0_1()
-            self.migrate_data_0_1()
-            self.delete_old_tables_0()
+            self.migrate_1_2_cut_table(
+                'OSP_V1_CUDS',
+                "OSP_V2_CUDS",
+                {"cuds_idx": INT,
+                 "uid": URIRef('http://www.osp-core.com/types#UID')}
+            )
+            self.migrate_1_2_cut_table(
+                'OSP_V1_NAMESPACES',
+                "OSP_V2_NAMESPACES",
+                {"ns_idx": INT, "namespace": STR})
+            self.migrate_1_2_cut_table(
+                'OSP_V1_ENTITIES',
+                "OSP_V2_ENTITIES",
+                {"entity_idx": INT, "ns_idx": INT, "name": STR},
+            )
+            self.migrate_1_2_cut_table(
+                'OSP_V1_RELATIONS',
+                "OSP_V2_RELATIONS",
+                {"s": INT, "p": INT, "o": INT},
+            )
+            self.migrate_1_2_cut_table(
+                'OSP_V1_TYPES',
+                "OSP_V2_TYPES",
+                {"s": INT, "o": INT},
+            )
+            self.migrate_1_2_vectors()
+            self.migrate_1_2_strings()
+            self.migrate_1_2_standard_data_types()
             commit()
         except Exception as e:
             self.session._rollback_transaction()
             raise e
 
-    def migrate_master_0_1(self):
-        """Migrate the OSP_MASTER table."""
-        c = self.session._do_db_select(
-            SqlQuery("OSP_MASTER", ["uid", "oclass"],
-                     {"uid": "UID", "oclass": STR})
-        )
-        for uid, oclass in c:
-            oclass = get_entity(oclass) if oclass != "" else cuba.Wrapper
-            ns_iri = str(oclass.namespace.get_iri())
+    migrate_1_2_YML_numpy = {
+        "BOOL": np.dtype('bool'),
+        "INT": np.dtype('int'),
+        "FLOAT": np.dtype('float'),
+        "STRING": np.dtype('str'),
+    }
 
-            ns_idx = self.get_ns_idx_0_1(ns_iri)
-            oclass_idx = self.get_entity_idx_0_1(ns_idx, oclass)
-            cuds_idx = self.get_cuds_idx_0_1(uid)
+    migrate_1_2_YML_RDF = {
+        "BOOL": XSD.boolean,
+        "INT": XSD.integer,
+        "FLOAT": XSD.float,
+        "STRING": XSD.string,
+    }
 
-            self.session._do_db_insert(
-                "OSP_V1_TYPES", ["s", "o"], [cuds_idx, oclass_idx],
-                {"s": INT, "o": INT}
-            )
+    def migrate_1_2_cut_table(self, source_table_name,
+                              target_table_name, dtypes):
+        """Cut all entries from table and paste them in another table.
 
-    def migrate_relations_0_1(self):
-        """Migrate the relations from v0 to v1."""
-        c = self.session._do_db_select(
-            SqlQuery("OSP_RELATIONSHIPS", ["origin", "target", "name"],
-                     {"origin": "UID", "target": "UID",
-                      "name": STR})
-        )
-        for origin, target, name in c:
-            rel = get_entity(name)
-
-            ns_idx = self.get_ns_idx_0_1(rel.namespace.get_iri())
-            p = self.get_entity_idx_0_1(ns_idx, rel)
-            s = self.get_cuds_idx_0_1(origin)
-            o = self.get_cuds_idx_0_1(target)
-
-            self.session._do_db_insert(
-                "OSP_V1_RELATIONS", ["s", "p", "o"], [s, p, o],
-                {"s": INT, "p": INT, "o": INT}
-            )
-
-            if target == uuid.UUID(int=0):
-                ns_idx = self.get_ns_idx_0_1(rel.inverse.namespace.get_iri())
-                p = self.get_entity_idx_0_1(ns_idx, rel.inverse)
-                self.session._do_db_insert(
-                    "OSP_V1_RELATIONS", ["s", "p", "o"], [o, p, s],
-                    {"s": INT, "p": INT, "o": INT}
-                )
-
-    def migrate_data_0_1(self):
-        """Migrate the data from v0 to v1."""
-        tables = self.session._get_table_names("CUDS_")
-        for table in tables:
-            oclass = get_entity(table[5:].replace("___", "."))
-            attributes, columns, datatypes = self.get_col_spec_0(oclass)
-            self.migrate_data_table_0_1(table, columns, datatypes, attributes)
-
-    def migrate_data_table_0_1(self, table, columns, datatypes, attributes):
-        """Migrate a single data table for v0 to v1."""
-        c = self.session._do_db_select(SqlQuery(table, columns, datatypes))
+        Both the source and the target tables must already exist. The source
+        table is dropped after the process is complete.
+        """
+        c = self.session._do_db_select(SqlQuery(source_table_name,
+                                                list(dtypes.keys()),
+                                                dtypes))
         for row in c:
-            cuds_idx = self.get_cuds_idx_0_1(row[-1])  # uuid is lasr element
-            for col, attr, value in zip(columns, attributes, row):
-                datatype = datatypes[col] or STR
-                self.migrate_data_triple_0_1(attr, datatype, cuds_idx, value)
+            self.session._do_db_insert(target_table_name,
+                                       list(dtypes.keys()),
+                                       row,
+                                       dtypes)
+        self.session._do_db_drop(source_table_name)
 
-    def migrate_data_triple_0_1(self, attr, datatype, cuds_idx, value):
-        """Migrate a single data triple from v0 to v1."""
-        from osp.core.session.db.sql_util import get_data_table_name
-        ns_idx = self.get_ns_idx_0_1(attr.namespace.get_iri())
-        attr_idx = self.get_entity_idx_0_1(ns_idx, attr)
-        self.session._do_db_insert(
-            get_data_table_name(datatype),
-            ["s", "p", "o"],
-            [cuds_idx, attr_idx, value],
-            {"s": INT, "p": INT, "o": datatype}
-        )
-
-    def get_cuds_idx_0_1(self, uid):
-        """Get CUDS index when migrating from v0 to v1."""
-        cuds_iri = str(iri_from_uid(uid))
-        if cuds_iri not in self.cuds:
-            self.cuds[cuds_iri] = self.session._do_db_insert(
-                "OSP_V1_CUDS", ["uid"], [str(uid)],
-                {"uid": "UID"}
-            )
-        cuds_idx = self.cuds[cuds_iri]
-        return cuds_idx
-
-    def get_ns_idx_0_1(self, ns_iri):
-        """Get Namespace index when migrating from v0 to v1."""
-        ns_iri = str(ns_iri)
-        if ns_iri not in self.namespaces:
-            self.namespaces[ns_iri] = self.session._do_db_insert(
-                "OSP_V1_NAMESPACES", ["namespace"], [ns_iri],
-                {"namespace": STR}
-            )
-        ns_idx = self.namespaces[ns_iri]
-        return ns_idx
-
-    def get_entity_idx_0_1(self, ns_idx, entity):
-        """Get entity index when migrating from v0 to v1."""
-        entity_iri = str(entity.iri)
-        if entity_iri not in self.entities:
-            self.entities[entity_iri] = self.session._do_db_insert(
-                "OSP_V1_ENTITIES", ["ns_idx", "name"],
-                [ns_idx, entity.name], {"ns_idx": INT, "name": STR}
-            )
-        return self.entities[entity_iri]
-
-    def get_col_spec_0(self, oclass):
-        """Get the columns specification of CUDS tables in schema v0."""
-        attributes = list(oclass.attributes)
-        columns = [x.argname for x in attributes] + ["uid"]
-        datatypes = dict(uid="UID", **{x.argname: x.datatype
-                                       for x in attributes})
-        return attributes, columns, datatypes
-
-    def delete_old_tables_0(self):
-        """Delete the old tables of v0."""
-        for table in self.tables:
+    def migrate_1_2_standard_data_types(self):
+        """Transfer the standard data types to the new tables."""
+        tables = (x for x in self.session._get_table_names("")
+                  if x.startswith('DATA_V1_')
+                  and not any(x.startswith(prefix)
+                              for prefix in ('DATA_V1_VECTOR',
+                                             'DATA_V1_STRING')))
+        for table in tables:
+            datatype = table[len('DATA_V1_'):]
+            c = self.session._do_db_select(
+                SqlQuery(
+                    table, ["s", "p", "o"],
+                    {"s": INT, "p": INT,
+                     "o": self.aux_1_2_data_table_name_to_datatype(table)}))
+            for row in c:
+                self.session._do_db_insert(
+                    f"OSP_DATA_V2_{datatype}", ["s", "p", "o"],
+                    row,
+                    {"s": INT, "p": INT,
+                     "o": self.aux_1_2_data_table_name_to_datatype(table)}
+                )
             self.session._do_db_drop(table)
 
-    def no_migration(self):
-        """Do nothing."""
+    def migrate_1_2_vectors(self):
+        """Transfer the vectors to their new tables and format."""
+        vector_tables = (x for x in self.session._get_table_names("")
+                         if x.startswith('DATA_V1_VECTOR-'))
+        self.session._do_db_create(
+            table_name='OSP_DATA_V2_CUSTOM_Vector',
+            columns=["s", "p", "o"],
+            datatypes={"s": INT, "p": INT, "o": Vector.iri},
+            primary_key=["s", "p", "o"],
+            generate_pk=False,
+            foreign_key={
+                "s": ("OSP_V2_CUDS", "cuds_idx"),
+                "p": ("OSP_V2_ENTITIES", "entity_idx")
+            },
+            indexes=["s", "p"],
+        )
+        for table in vector_tables:
+            data_type = table
+            data_type = data_type[len('DATA_V1_VECTOR-'):]
+            data_type = data_type[0:data_type.find('-')]
+            shape = table
+            shape = shape[len('DATA_V1_VECTOR-' + data_type + '-'):]
+            shape = shape.split('-')
+            shape = tuple(int(x) for x in shape)
+            num_elements = functools.reduce(lambda x, y: x * y, shape)
+            vector_colums = tuple(f'o___{i}' for i in range(0, num_elements))
+            c = self.session._do_db_select(
+                SqlQuery(table, ["s", "p", *[v_c for v_c in vector_colums]],
+                         {"s": INT,
+                          "p": INT,
+                          **{
+                              v_c: self.migrate_1_2_YML_RDF[data_type]
+                              for v_c in vector_colums
+                          }})
+            )
+            for row in c:
+                array = np.array(row[2:],
+                                 dtype=self.migrate_1_2_YML_numpy[data_type])
+                array.shape = shape
+                vector = Vector(array)
+                self.session._do_db_insert(
+                    "OSP_DATA_V2_CUSTOM_Vector", ["s", "p", "o"],
+                    [row[0], row[1], vector],
+                    {"s": INT, "p": INT, "o": Vector.iri}
+                )
+            self.session._do_db_drop(table)
+
+    def migrate_1_2_strings(self):
+        """Convert the fixed-length strings to standard XSD strings."""
+        string_tables = (x for x in self.session._get_table_names("")
+                         if x.startswith('DATA_V1_STRING-'))
+        for table in string_tables:
+            c = self.session._do_db_select(
+                SqlQuery(table, ["s", "p", "o"],
+                         {"s": INT, "p": INT, "o": STR}))
+            for row in c:
+                self.session._do_db_insert(
+                    "OSP_DATA_V2_XSD_string", ["s", "p", "o"],
+                    row,
+                    {"s": INT, "p": INT, "o": STR}
+                )
+            self.session._do_db_drop(table)
+
+    @staticmethod
+    def aux_1_2_data_table_name_to_datatype(table):
+        """Get datatype from data table name (v1 names)."""
+        datatype = table[len('DATA_V1_'):]
+        if datatype.startswith('XSD_'):
+            return getattr(XSD, datatype[len('XSD_'):])
+        if datatype.startswith('OWL_'):
+            return getattr(OWL, datatype[len('OWL_'):])
+        if datatype.startswith('RDF_'):
+            return getattr(RDF, datatype[len('RDF_'):])
+        if datatype.startswith('RDFS_'):
+            return getattr(RDFS, datatype[len('RDFS_'):])
+        raise NotImplementedError(f"Unsupported datatype {datatype}")
+
+    def migrate_0_2(self):
+        """Migration from v0 is not supported.
+
+        Request the user to use v3.5.5-beta to migrate to v1 instead, then use
+        a later version of OSP-core to migrate from v1 to v2.
+        """
+        raise NotImplementedError("Migrating from the schema of this "
+                                  "database version is not supported by the "
+                                  "current version of OSP-core."
+                                  "Please download the latest compatible "
+                                  "version (v3.5.5-beta) from "
+                                  "https://github.com/simphony/osp-core/"
+                                  "releases/tag/v3.5.5-beta, install it, and"
+                                  "migrate your database by running "
+                                  "$python -m osp.wrappers.<sql_module>."
+                                  "migrate. Make sure that the ontologies "
+                                  "that the database is using are installed."
+                                  "\n"
+                                  "Afterwards, install again an up-to-date "
+                                  "version of OSP-core and migrate again "
+                                  "using the same command.")
+
+    def migrate_0_1(self):
+        """Migration from v0 is not supported.
+
+        In addition, the user is trying to migrate to v1 which is already
+        outdated. Request migration to v2 instead.
+        """
+        raise NotImplementedError("The version of the schema you want to "
+                                  "migrate to is currently not supported. "
+                                  "Please migrate to the newest version of "
+                                  "the schema instead.")
 
     procedures = {
         0: {
             0: no_migration,
-            1: migrate_0_1
+            1: migrate_0_1,
+            2: migrate_0_2,
+        },
+        1: {
+            1: no_migration,
+            2: migrate_1_2,
         }
     }
 

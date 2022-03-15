@@ -221,8 +221,8 @@ class TestTransportSqliteCity(unittest.TestCase):
             self.assertEqual(p1w.name, "Peter")
             session.expire_all()
             self.assertEqual(p1w.name, "Maria")
-            self.assertEqual(set(cw.get()), {p1w})
-            self.assertEqual(p2w.get(), list())
+            self.assertSetEqual(cw.get(), {p1w})
+            self.assertSetEqual(p2w.get(), set())
             self.assertFalse(hasattr(p3w, "name"))
             self.assertNotIn(p3w.uid, session._registry)
 
@@ -279,8 +279,8 @@ class TestTransportSqliteCity(unittest.TestCase):
             session.refresh(cw, p1w, p2w, p3w)
             self.assertEqual(cw.name, "Paris")
             self.assertEqual(p1w.name, "Maria")
-            self.assertEqual(set(cw.get()), {p1w})
-            self.assertEqual(p2w.get(), list())
+            self.assertSetEqual(cw.get(), {p1w})
+            self.assertSetEqual(p2w.get(), set())
             self.assertFalse(hasattr(p3w, "name"))
             self.assertNotIn(p3w.uid, session._registry)
 

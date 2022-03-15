@@ -1,10 +1,8 @@
 """The registry stores all local CUDS objects."""
 
-from uuid import UUID
-from rdflib import URIRef
 import logging
 
-import osp.core.warnings as warning_settings
+from osp.core.ontology.datatypes import UID
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +43,7 @@ class Registry(dict):
         """Return the object corresponding to a given uid.
 
         Args:
-            uid (Union[UUID, URIRef]): The uid of the desired
+            uid (UID): The uid of the desired
                 object.
 
         Raises:
@@ -54,7 +52,7 @@ class Registry(dict):
         Returns:
             Cuds: Cuds object with the uid.
         """
-        if isinstance(uid, (UUID, URIRef)):
+        if isinstance(uid, UID):
             return super().__getitem__(uid)
         else:
             message = '{!r} is not a proper uid'

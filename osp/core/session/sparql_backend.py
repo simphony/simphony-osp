@@ -1,7 +1,7 @@
 """Defines an abstract base class for backends that support SPARQL queries."""
 from abc import ABC, abstractmethod
-import uuid
-from osp.core.utils.general import iri_from_uid, uid_from_iri
+
+from osp.core.ontology.datatypes import UID
 from osp.core.utils.general import CUDS_IRI_PREFIX
 
 
@@ -19,7 +19,7 @@ class SPARQLBackend(ABC):
             query_string (): The SPARQL query as a string.
         """
         return self._sparql(query_string=query_string.replace(
-            str(self.root), str(uuid.UUID(int=0))
+            str(self.root), str(UID(0))
         ))
         # NOTE: Why is the uid of the root replaced in the query?
         #  Each time that a session is opened, the user is expected to create a
@@ -103,8 +103,8 @@ class SparqlBindingSet(ABC):
         """
         iri = self._get(variable_name)
         if iri is not None and iri.startswith(CUDS_IRI_PREFIX) \
-                and uid_from_iri(iri) == uuid.UUID(int=0):
-            iri = iri_from_uid(self.session.root)
+                and UID(iri) == UID(0):
+            iri = self.session.root.to_iri()
         return self._check_datatype(variable_name, iri)
 
     def _check_datatype(self, variable_name, iri):

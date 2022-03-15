@@ -61,21 +61,24 @@ setup(
         exclude=("examples",
                  "tests")),
     install_requires=[
-        "graphviz",
-        "numpy",
         "PyYaml",
-        "rdflib >= 6.0.0, < 7.0.0; python_version >= '3.7'",
+        "websockets < 10",
         "requests",
-        "websockets < 11",
-        "websockets >= 10; python_version >= '3.10'",
-        # ↓ --- Python 3.6 support. --- ↓ #
-        "pyparsing < 3.0.0; python_version < '3.7'",
+        "numpy",
+        "graphviz",
         "rdflib >= 5.0.0, < 6.0.0; python_version < '3.7'",
+        "rdflib >= 6.0.0, < 7.0.0; python_version >= '3.7'",
         "rdflib-jsonld == 0.6.1; python_version < '3.7'",
-        # 🠕 Required by rdflib >= 5.0.0, < 6.0.0, otherwise no SPARQL support.
-        # ↑ --- Python 3.6 support. --- ↑ #
     ],
-    python_requires=">=3.6",
+    setup_requires=[
+        "PyYaml",
+        "websockets < 10",
+        "requests",
+        "numpy",
+        "graphviz",
+        "rdflib >= 6.0.2, < 7.0.0",
+    ],
+    python_requires=">=3.7,
     package_data={
         "osp.core.ontology.docs": ["*.yml", "*.ttl", "*.xml"],
     },

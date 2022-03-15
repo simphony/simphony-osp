@@ -3,20 +3,27 @@
 These are potentially useful for every user of SimPhoNy.
 """
 
-from typing import Optional, Union, TextIO, List
-import itertools
-import logging
-import requests
 import io
-import pathlib
+import itertools
 import json
-import uuid
+import logging
+import pathlib
+from typing import Optional, Union, TextIO, List
+
+import requests
+from rdflib import OWL, RDF, RDFS, Graph, Literal
 from rdflib.parser import Parser as RDFLib_Parser
-from rdflib.serializer import Serializer as RDFLib_Serializer
 from rdflib.plugin import get as get_plugin
+from rdflib.serializer import Serializer as RDFLib_Serializer
 from rdflib.util import guess_format
-from rdflib import OWL, RDF, RDFS
-from rdflib import URIRef, Literal, Graph
+
+from osp.core.namespaces import cuba
+from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.datatypes import UID, CUSTOM_TO_PYTHON
+from osp.core.ontology.relationship import OntologyRelationship
+
+# Import `plugins.parsers.jsonld` for rdflib>=6, otherwise import it
+#  from`rdflib_jsonld`.
 from rdflib import __version__ as rdflib_version
 if rdflib_version >= '6':
     from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
@@ -30,12 +37,6 @@ else:
     warn = warnings.warn
     warnings.warn = _silent_warn
     from rdflib_jsonld.parser import to_rdf as json_to_rdf
-    warnings.warn = warn
-from osp.core.namespaces import cuba
-from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.datatypes import convert_from
-
 
 CUDS_IRI_PREFIX = "http://www.osp-core.com/cuds#"
 logger = logging.getLogger(__name__)
@@ -92,11 +93,11 @@ def _serialize_rdf_graph(format="xml", session=None,
     result = Graph()
     for s, p, o in graph:
         if isinstance(o, Literal):
-            o = Literal(convert_from(o.toPython(), o.datatype),
-                        datatype=o.datatype, lang=o.language)
+            x = Literal(o.toPython(), datatype=o.datatype).toPython()
+            o = Literal(x, datatype=o.datatype, lang=o.language)
         if not session or type(session) is CoreSession \
                 or not skip_wrapper \
-                or iri_from_uid(session.root) not in {s, o}:
+                or session.root.to_iri() not in {s, o}:
             result.add((s, p, o))
     for prefix, iri in graph.namespaces():
         result.bind(prefix, iri)
@@ -164,8 +165,8 @@ def _serialize_cuds_object_triples(cuds_object,
     for s, p, o in itertools.chain(*(cuds.get_triples()
                                      for cuds in cuds_objects)):
         if isinstance(o, Literal):
-            o = Literal(convert_from(o.toPython(), o.datatype),
-                        datatype=o.datatype, lang=o.language)
+            x = Literal(o.toPython(), datatype=o.datatype).toPython()
+            o = Literal(x, datatype=o.datatype, lang=o.language)
         graph.add((s, p, o))
     return graph.serialize(format=format, encoding='UTF-8').decode('UTF-8')
 
@@ -218,11 +219,8 @@ def _deserialize_cuds_object(json_doc, session=None, buffer_context=None):
     g = json_to_rdf(json_doc, Graph())
     # only return first (when a cuds instead of a session was exported)
     first = g.value(rdflib_cuba._serialization, RDF.first)
-    if first:  # return the element marked as first later
-        try:
-            first = uuid.UUID(hex=first)
-        except ValueError:
-            first = URIRef(first)
+    if first:
+        first = UID(first)
         g.remove((rdflib_cuba._serialization, RDF.first, None))
     deserialized = import_rdf(
         graph=g,
@@ -265,11 +263,8 @@ def _import_rdf_file(path, format="xml", session=None, buffer_context=None):
         g.remove((onto_iri, None, None))
     # only return first (when a cuds instead of a session was exported)
     first = g.value(rdflib_cuba._serialization, RDF.first)
-    if first:  # return the element marked as first later
-        try:
-            first = uuid.UUID(hex=first)
-        except ValueError:
-            first = URIRef(first)
+    if first:
+        first = UID(first)
         g.remove((rdflib_cuba._serialization, RDF.first, None))
     session = session or Cuds._session
     buffer_context = buffer_context or BufferContext.USER
@@ -297,7 +292,6 @@ def iri_from_uid(uid):
         return URIRef(CUDS_IRI_PREFIX + str(uid))
     else:
         return uid
-
 
 def uid_from_iri(iri):
     """Transform an IRI to an uid.
@@ -335,7 +329,6 @@ def get_custom_datatypes():
             result.add(s)
     return result
 
-
 def get_custom_datatype_triples():
     """Get the set of triples in the ontology that include custom datatypes.
 
@@ -345,7 +338,7 @@ def get_custom_datatype_triples():
         Graph: A graph containing all the triples concerning custom
             datatypes.
     """
-    custom_datatypes = get_custom_datatypes()
+    custom_datatypes = CUSTOM_TO_PYTHON.keys()
     from osp.core.ontology.namespace_registry import namespace_registry
     result = Graph()
     for d in custom_datatypes:

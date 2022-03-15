@@ -1,16 +1,19 @@
 """Abstract class that contains important method of a session with backend."""
 
-import uuid
 import logging
-import rdflib
 from abc import abstractmethod
+from typing import Optional
+
+from rdflib import RDF, Graph
+
 from osp.core.namespaces import cuba
+from osp.core.ontology.datatypes import UID
+from osp.core.session.buffers import BufferType, BufferContext, \
+    EngineContext
 from osp.core.session.session import Session
 from osp.core.session.result import returns_query_result
 from osp.core.utils.wrapper_development import clone_cuds_object, \
     get_neighbor_diff
-from osp.core.session.buffers import BufferType, BufferContext, \
-    EngineContext
 
 logger = logging.getLogger(__name__)
 
@@ -119,15 +122,15 @@ class WrapperSession(Session):
         when attributed or relationships are accessed.
 
         Args:
-            *cuds_or_uids (Union[Cuds, UUID, URIRef]): The cuds_object
+            *cuds_or_uids (Union[Cuds, UID]): The cuds_object
             or uids to expire.
 
         Returns:
-            Set[UUID]: The set of uids that became expired
+            Set[UID]: The set of uids that became expired
         """
         uids = set()
         for c in cuds_or_uids:
-            if isinstance(c, (uuid.UUID, rdflib.URIRef)):
+            if isinstance(c, UID):
                 uids.add(c)
             else:
                 uids.add(c.uid)
@@ -150,7 +153,7 @@ class WrapperSession(Session):
         Load possibly updated data of cuds_object from the backend.
 
         Args:
-            *cuds_or_uids (Union[Cuds, UUID]): The cuds_object or uids to
+            *cuds_or_uids (Union[Cuds, UID]): The cuds_object or uids to
                 refresh.
         """
         if not cuds_or_uids:
@@ -203,15 +206,15 @@ class WrapperSession(Session):
             raise RuntimeError("Please add a wrapper to the session first")
 
         if cuds_object.oclass is None:
-            if any(self.graph.triples((cuds_object.iri, rdflib.RDF.type,
-                                       None))):
+            objects = self.graph.objects(cuds_object.iri, RDF.type)
+            first = next(objects, None)
+            if first is not None:
+                all_items = (first, ) + tuple(objects)
                 raise TypeError(f"No oclass associated with {cuds_object}! "
                                 f"However, the cuds is supposed to be of "
                                 "type(s): %s. Did you install the required "
                                 "ontology?" %
-                                ", ".join(o for o in self.graph.objects(
-                                    cuds_object.iri, rdflib.RDF.type))
-                                )
+                                ", ".join(all_items))
             else:
                 raise TypeError(f"No oclass associated with {cuds_object}!"
                                 f"Did you install the required ontology?")
@@ -310,7 +313,7 @@ class WrapperSession(Session):
             self.refresh(cuds_object)
         if cuds_object.uid not in self._registry \
                 and cuds_object._stored:
-            cuds_object._graph = rdflib.Graph()
+            cuds_object._graph = Graph()
 
     def _expire(self, uids):
         """Expire the given uids.
@@ -412,15 +415,14 @@ class WrapperSession(Session):
             diff = (diff1 | diff2) - set(uids)
             self._expire(diff)
 
-    def _get_old_cuds_object_clone(self, uid):
+    def _get_old_cuds_object_clone(self, uid: UID) -> Optional[UID]:
         """Get old version of expired cuds object from registry.
 
         Args:
-            uid (Union[UUID, URIRef]): The uid to get the old
-            cuds object.
+            uid: The uid to get the old cuds object.
 
         Returns:
-            Cuds, optional: A clone of the old cuds object
+            A clone of the old cuds object
         """
         clone = None
         if uid in self._registry:
