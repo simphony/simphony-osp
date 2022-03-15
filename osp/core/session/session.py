@@ -66,7 +66,7 @@ class Session(ABC):
         """Load the cuds_objects with the given iris.
 
         Args:
-            *iri (URIRef): The IRIs of the cuds_objects to load.
+            *iris (URIRef): The IRIs of the cuds_objects to load.
 
         Yields:
             Cuds: The fetched Cuds objects.

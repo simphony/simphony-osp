@@ -9,7 +9,6 @@ import json
 import logging
 import pathlib
 from typing import Optional, Union, TextIO, List
-from uuid import UUID
 
 import requests
 from rdflib import OWL, RDF, RDFS, Graph, Literal, URIRef
@@ -272,38 +271,28 @@ def _import_rdf_file(path, format="xml", session=None, buffer_context=None):
 # Internal utilities (not user-facing).
 
 
-def iri_from_uid(uid):
+def iri_from_uid(uid: UID) -> URIRef:
     """Transform an uid to an IRI.
 
     Args:
-        uid (Union[UUID, URIRef]): The UUID to transform.
+        uid: The UID to transform.
 
     Returns:
-        URIRef: The IRI of the CUDS object with the given UUID.
+        URIRef: The IRI of the CUDS object with the given UID.
     """
-    if type(uid) is UUID:
-        return URIRef(CUDS_IRI_PREFIX + str(uid))
-    else:
-        return uid
+    return uid.to_iri()
 
 
-def uid_from_iri(iri):
+def uid_from_iri(iri: URIRef) -> UID:
     """Transform an IRI to an uid.
 
     Args:
-        iri (URIRef): The IRI to transform.
+        iri: The IRI to transform.
 
     Returns:
-        URIRef: The IRI of the CUDS object with the given uid.
+        URIRef: The UID of the CUDS object with the given iri.
     """
-    if iri.startswith(CUDS_IRI_PREFIX):
-        try:
-            return UUID(hex=str(iri)[len(CUDS_IRI_PREFIX):])
-        except ValueError as e:
-            raise ValueError(f"Unable to transform {iri} to uid.") \
-                from e
-    else:
-        return iri
+    return UID(iri)
 
 
 def get_custom_datatypes():
