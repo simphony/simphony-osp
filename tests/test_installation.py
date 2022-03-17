@@ -263,7 +263,7 @@ class TestInstallation(unittest.TestCase):
             with self.assertLogs(logger=logger) as captured:
                 logger.warning('At least one log entry is needed for '
                                '`assertLogs`.')
-                self.installer._install(['dcmi-terms', 'dcmi-type'],
+                self.installer._install(['dcterms', 'dcmitype'],
                                         lambda x: (x for x in x),
                                         clear=True)
                 self.assertEqual(
@@ -277,7 +277,7 @@ class TestInstallation(unittest.TestCase):
             with self.assertLogs(logger=logger) as captured:
                 logger.warning('At least one log entry is needed for '
                                '`assertLogs`.')
-                self.installer._install(['dcmi-terms', 'dcmi-type'],
+                self.installer._install(['dcterms', 'dcmitype'],
                                         lambda x: (x for x in x),
                                         clear=True)
                 self.assertEqual(
