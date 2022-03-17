@@ -26,6 +26,6 @@ RDF properties are not supported by OSP-core, and therefore they are
 ignored. If the property is doubly defined also as an OWL data or object
 property, then the warning is not emitted.
 
-When this warning setting is set to None, the option to disable it is not 
+When this warning setting is set to None, the option to disable it is not
 mentioned within the warning.
 """
