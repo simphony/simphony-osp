@@ -183,7 +183,8 @@ class YMLParser(OntologyParser):
             triple = (superclass_iri, RDF.type, None)
             for _, _, o in (ReadOnlyGraphAggregate(
                     [self._graph, namespace_registry._graph]).triples(triple)):
-                if o in {OWL.Class, OWL.ObjectProperty,
+                if o in {OWL.Class, RDFS.Class,
+                         OWL.ObjectProperty,
                          OWL.DatatypeProperty,
                          OWL.FunctionalProperty}:
                     types.add(o)
@@ -212,8 +213,10 @@ class YMLParser(OntologyParser):
             superclass_iri = self._get_iri(superclass_name, namespace,
                                            entity_name)
             predicate = RDFS.subPropertyOf
-            if (iri, RDF.type, OWL.Class) in ReadOnlyGraphAggregate(
-                    [self._graph, namespace_registry._graph]):
+            graph = ReadOnlyGraphAggregate([self._graph,
+                                            namespace_registry._graph])
+            if ((iri, RDF.type, OWL.Class) in graph
+                    or (iri, RDF.type, RDFS.Class) in graph):
                 predicate = RDFS.subClassOf
 
             self._graph.add((iri, predicate, superclass_iri))

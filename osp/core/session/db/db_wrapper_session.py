@@ -168,7 +168,8 @@ class DbWrapperSession(WrapperSession):
                 .triples((rdflib.URIRef(iri), rdflib.RDF.type, None)):
             if o in frozenset({rdflib.OWL.DatatypeProperty,
                                rdflib.OWL.ObjectProperty,
-                               rdflib.OWL.Class}):
+                               rdflib.OWL.Class,
+                               rdflib.RDFS.Class}):
                 return False
         return True
 

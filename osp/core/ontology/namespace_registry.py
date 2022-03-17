@@ -168,7 +168,7 @@ class NamespaceRegistry:
                 return OntologyAttribute(**kwargs)
             if o == rdflib.OWL.ObjectProperty:
                 return OntologyRelationship(**kwargs)
-            if o == rdflib.OWL.Class or o == rdflib.RDFS.Class:
+            if o in (rdflib.OWL.Class, rdflib.RDFS.Class):
                 return OntologyClass(**kwargs)
         if raise_error:
             raise KeyError(f"IRI {iri} not found in graph or not of any "
