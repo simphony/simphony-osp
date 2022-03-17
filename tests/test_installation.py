@@ -1,13 +1,20 @@
 """Test the installation procedure."""
 
+import logging
 import os
-import unittest2 as unittest
-import tempfile
-import rdflib
 import shutil
+import tempfile
+from pathlib import Path
+from typing import Iterable, Tuple, Type, Union
+
+import rdflib
+import unittest2 as unittest
+
+import osp.core.warnings as warning_settings
 from osp.core.ontology.installation import OntologyInstallationManager, \
     pico_migrate
 from osp.core.ontology.namespace_registry import NamespaceRegistry
+from osp.core.ontology.parser.owl.parser import RDFPropertiesWarning, logger
 
 FILES = [
     os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -19,6 +26,41 @@ FILES = [
 
 class TestInstallation(unittest.TestCase):
     """Test the installation procedure."""
+
+    _rdf_file: tempfile.NamedTemporaryFile
+    """RDF file that does NOT contain an ontology."""
+
+    _yml_file: tempfile.NamedTemporaryFile
+    """YML configuration file for the previous file."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls._rdf_file = tempfile.NamedTemporaryFile(delete=False,
+                                                    suffix='.ttl',
+                                                    mode='w')
+        cls._rdf_file.write(
+            '@prefix ns1: <none:> .\n'
+            'ns1:a ns1:meaningless ns1:triple .\n\n'
+        )
+        cls._rdf_file.close()
+        cls._yml_file = tempfile.NamedTemporaryFile(delete=False,
+                                                    suffix='.yml',
+                                                    mode='w')
+        cls._yml_file.write(
+            f'identifier: test_pkg\n'
+            f'ontology_file: {cls._rdf_file.name}\n'
+            f'format: ttl\n'
+            f'reference_by_label: False\n'
+            f'namespaces: \n'
+            f'    none: "none:"\n'
+            f'active_relationships: []\n'
+        )
+        cls._yml_file.close()
+
+    @classmethod
+    def tearDownClass(cls):
+        Path(cls._rdf_file.name).unlink()
+        Path(cls._yml_file.name).unlink()
 
     def setUp(self):
         """Set up some temporary directories."""
@@ -181,6 +223,64 @@ class TestInstallation(unittest.TestCase):
                      path)
         self.assertEqual(sorted(os.listdir(path)), sorted([
             'city.yml', 'graph.xml', 'namespaces.txt']))
+
+    def test_empty_file(self):
+        """Tests installing an RDF file NOT containing an ontology."""
+        def install_empty_file():
+            """Install an RDF file that contains no ontology information."""
+            self.installer._install([self._yml_file.name],
+                                    lambda x: (x for x in x),
+                                    clear=False)
+
+        self.assertRaises(RuntimeError, install_empty_file)
+
+    def test_dcterms(self):
+        """Test DCMI Metadata Terms installation."""
+        def count_warnings_by_class(records: Iterable[logging.LogRecord],
+                                    classes: Union[Type, Tuple[Type, ...]]) \
+                -> int:
+            """Given log records, count their "classes" if attached.
+            For each record, checks if it has a `warning_class` attribute,
+            and checks whether its value is a subclass of the classes
+            provided.
+            """
+            return sum(
+                bool(issubclass(record.warning_class, classes)
+                     if hasattr(record, 'warning_class') else False)
+                for record in records
+            )
+
+        original_warning_setting = warning_settings.rdf_properties_warning
+        try:
+            warning_settings.rdf_properties_warning = False
+            with self.assertLogs(logger=logger) as captured:
+                logger.warning('At least one log entry is needed for '
+                               '`assertLogs`.')
+                self.installer._install(['dcterms', 'dcmitype'],
+                                        lambda x: (x for x in x),
+                                        clear=True)
+                self.assertEqual(
+                    count_warnings_by_class(
+                        captured.records,
+                        (RDFPropertiesWarning, )),
+                    0
+                )
+
+            warning_settings.rdf_properties_warning = True
+            with self.assertLogs(logger=logger) as captured:
+                logger.warning('At least one log entry is needed for '
+                               '`assertLogs`.')
+                self.installer._install(['dcterms', 'dcmitype'],
+                                        lambda x: (x for x in x),
+                                        clear=True)
+                self.assertEqual(
+                    count_warnings_by_class(
+                        captured.records,
+                        (RDFPropertiesWarning, )),
+                    2
+                )
+        finally:
+            warning_settings.rdf_properties_warning = original_warning_setting
 
 
 if __name__ == "__main__":
