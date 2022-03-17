@@ -1,16 +1,19 @@
 """Stores all the loaded namespaces."""
 
-import os
 import logging
+import os
+from functools import lru_cache
+from typing import Iterable
+
 import rdflib
+
+from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.namespace import OntologyNamespace
 from osp.core.ontology.oclass import OntologyClass
-from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.ontology import Ontology
 from osp.core.ontology.parser.parser import OntologyParser
-from functools import lru_cache
+from osp.core.ontology.relationship import OntologyRelationship
 
 logger = logging.getLogger(__name__)
 
@@ -109,9 +112,16 @@ class NamespaceRegistry:
                                      iri=self._namespaces[name])
         raise KeyError("Namespace %s not installed." % name)
 
-    def update_namespaces(self, modules=[]):
-        """Update the namespaces of the namespace registry."""
+    def update_namespaces(self,
+                          modules: Iterable = tuple(),
+                          remove: Iterable = tuple()):
+        """Update the namespaces of the namespace registry.
+
+        Only needed for Python 3.6.
+        """
         for module in modules:
+            for namespace in remove:
+                delattr(module, namespace.get_name().lower())
             for namespace in self:
                 setattr(module, namespace.get_name().upper(), namespace)
                 setattr(module, namespace.get_name().lower(), namespace)
@@ -299,6 +309,7 @@ class NamespaceRegistry:
         self._namespaces = dict()
         self._graph = rdflib.Graph()
         self._load_cuba()
+        self.from_iri.cache_clear()
         return self._graph
 
     def store(self, path):

@@ -7,14 +7,17 @@ import tempfile
 from pathlib import Path
 from typing import Iterable, Tuple, Type, Union
 
-import rdflib
 import unittest2 as unittest
+from rdflib import URIRef
 
 import osp.core.warnings as warning_settings
 from osp.core.ontology.installation import OntologyInstallationManager, \
     pico_migrate
-from osp.core.ontology.namespace_registry import NamespaceRegistry
+from osp.core.ontology.namespace_registry import NamespaceRegistry, \
+    namespace_registry
 from osp.core.ontology.parser.owl.parser import RDFPropertiesWarning, logger
+from osp.core.pico import install, namespaces, packages, uninstall
+
 
 FILES = [
     os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -95,10 +98,10 @@ class TestInstallation(unittest.TestCase):
         self.assertIn("city", self.namespace_registry._namespaces)
         self.assertIn("parser_test", self.namespace_registry._namespaces)
         self.assertEqual(self.namespace_registry._namespaces["city"],
-                         rdflib.term.URIRef('http://www.osp-core.com/city#'))
+                         URIRef('http://www.osp-core.com/city#'))
         self.assertEqual(
             self.namespace_registry._namespaces["parser_test"],
-            rdflib.term.URIRef('http://www.osp-core.com/parser_test#'))
+            URIRef('http://www.osp-core.com/parser_test#'))
         self.assertEqual(sorted(os.listdir(self.tempdir.name)), sorted([
             'city.yml', 'graph.xml', 'namespaces.txt', 'parser_test.xml',
             'parser_test.yml']))
@@ -117,7 +120,7 @@ class TestInstallation(unittest.TestCase):
         self.assertIsNot(g_old, self.namespace_registry._graph)
         self.assertEqual(
             self.namespace_registry._namespaces["parser_test"],
-            rdflib.term.URIRef('http://www.osp-core.com/parser_test#'))
+            URIRef('http://www.osp-core.com/parser_test#'))
         self.assertEqual(sorted(os.listdir(self.tempdir.name)), sorted([
             'graph.xml', 'namespaces.txt', 'parser_test.xml',
             'parser_test.yml']))
@@ -281,6 +284,80 @@ class TestInstallation(unittest.TestCase):
                 )
         finally:
             warning_settings.rdf_properties_warning = original_warning_setting
+
+
+class PicoModule(unittest.TestCase):
+    """Test the use of pico as a Python module."""
+
+    def setUp(self) -> None:
+        """Change installation path and reset the namespace registry."""
+        self._previous_installation_path = OntologyInstallationManager\
+            .get_default_installation_path()
+        self._new_installation_path = \
+            Path('.TEST_OSP_CORE_INSTALLATION').absolute()
+        os.makedirs(self._new_installation_path / '.osp_ontologies',
+                    exist_ok=True)
+        OntologyInstallationManager.set_default_installation_path(
+            str(self._new_installation_path))
+        namespace_registry.clear()
+        namespace_registry.load_graph_file(
+            OntologyInstallationManager.get_default_installation_path())
+
+    def tearDown(self) -> None:
+        """Revert changes done during the execution of the `setUp` method."""
+        OntologyInstallationManager.set_default_installation_path(
+            str(Path(self._previous_installation_path).parent))
+        shutil.rmtree(self._new_installation_path)
+        namespace_registry.clear()
+        namespace_registry.load_graph_file(
+            OntologyInstallationManager.get_default_installation_path())
+        # Restore also ontologies loaded by the test runner.
+        if Parser.load_history:
+            parser = Parser()
+            for path in Parser.load_history:
+                parser.parse(path)
+
+    def test_pico(self):
+        """Tests operating pico as a Python module."""
+        self.assertSetEqual(
+            set(),
+            set(packages())
+        )
+
+        install(*FILES)
+        from osp.core.namespaces import city, cuba, parser_test
+        self.assertSetEqual(
+            {'city', 'parser_test'},
+            set(packages())
+        )
+        self.assertSetEqual(
+            {cuba, city, parser_test},
+            set(namespaces())
+        )
+
+        import osp.core.namespaces
+        uninstall('city')
+        self.assertSetEqual(
+            {'parser_test'},
+            set(packages())
+        )
+        self.assertRaises(AttributeError, lambda: city.City)
+        self.assertRaises(
+            AttributeError,
+            lambda: getattr(osp.core.namespaces, 'city')
+        )
+
+        install('city')
+        self.assertSetEqual(
+            {'city', 'parser_test'},
+            set(packages())
+        )
+        self.assertSetEqual(
+            {cuba, city, parser_test},
+            set(namespaces())
+        )
+        self.assertEqual(city.City.iri,
+                         URIRef("http://www.osp-core.com/city#City"))
 
 
 if __name__ == "__main__":
