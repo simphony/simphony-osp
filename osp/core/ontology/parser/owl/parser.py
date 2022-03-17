@@ -264,7 +264,7 @@ class OWLParser(OntologyParser):
         for s in self._graph.subjects(RDF.type, RDF.Property):
             has_owl_version = bool(next(
                 chain(*(
-                    self._graph.objects(RDF.type, type_)
+                    self._graph.subjects(RDF.type, type_)
                     for type_ in {OWL.DatatypeProperty, OWL.ObjectProperty}
                 )),
                 False
@@ -274,17 +274,13 @@ class OWLParser(OntologyParser):
                     rdf_properties.add(s)
                 rdf_properties_count += 1
 
-        if rdf_properties and warning_settings.rdf_properties_warning:
-            logger_filter = RDFPropertiesWarningFilter()
-            logger.addFilter(logger_filter)
-            logger.warning(
+        if rdf_properties and warning_settings.rdf_properties_warning \
+                in (True, None):
+            warning_text = (
                 "The ontology package {package} contains the following RDF "
                 "properties: {properties}{more}. \n"
                 "As RDF properties are not supported by OSP-core, "
-                "the aforementioned properties will be ignored.\n"
-                "You can turn off this warning running "
-                "`import osp.core.warnings as warning_settings; "
-                "warning_settings.rdf_property_warning = False`."
+                "the aforementioned properties will be ignored."
                 .format(
                     package=self.identifier,
                     properties=', '.join((str(identifier)
@@ -292,8 +288,17 @@ class OWLParser(OntologyParser):
                     more=" and " + str(rdf_properties_count
                                        - max_rdf_properties_in_warning)
                          + " more" if rdf_properties_count
-                         > max_rdf_properties_in_warning else "")
-            )
+                         > max_rdf_properties_in_warning else ""))
+            if warning_settings.rdf_properties_warning is not None:
+                warning_text += (
+                    "\n"
+                    "You can turn off this warning running "
+                    "`import osp.core.warnings as warning_settings; "
+                    "warning_settings.rdf_property_warning = False`."
+                )
+            logger_filter = RDFPropertiesWarningFilter()
+            logger.addFilter(logger_filter)
+            logger.warning(warning_text)
             logger.removeFilter(logger_filter)
         if not any((owl_entities, rdfs_classes)):
             raise EmptyOntologyFileError(

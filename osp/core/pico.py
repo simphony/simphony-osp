@@ -6,6 +6,7 @@ import logging
 from enum import Enum
 from typing import TYPE_CHECKING, Iterator
 
+import osp.core.warnings as warning_settings
 from osp.core.ontology.installation import OntologyInstallationManager
 
 if TYPE_CHECKING:
@@ -93,6 +94,10 @@ def terminal():
 
     args = parser.parse_args()
     logging.getLogger("osp.core").setLevel(getattr(logging, args.log_level))
+
+    # Force RDF properties warning when running from the terminal and do not
+    # offer the option to disable it.
+    warning_settings.rdf_properties_warning = None
 
     try:
         all_namespaces = map(lambda x: x.get_name(),
