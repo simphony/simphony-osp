@@ -15,6 +15,7 @@ from osp.core.ontology.installation import OntologyInstallationManager, \
     pico_migrate
 from osp.core.ontology.namespace_registry import NamespaceRegistry, \
     namespace_registry
+from osp.core.ontology.parser.parser import Parser
 from osp.core.ontology.parser.owl.parser import RDFPropertiesWarning, logger
 from osp.core.pico import install, namespaces, packages, uninstall
 
@@ -38,6 +39,7 @@ class TestInstallation(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """Create additional ontology files."""
         cls._rdf_file = tempfile.NamedTemporaryFile(delete=False,
                                                     suffix='.ttl',
                                                     mode='w')
@@ -62,6 +64,7 @@ class TestInstallation(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        """Delete extra ontology files created during class setup."""
         Path(cls._rdf_file.name).unlink()
         Path(cls._yml_file.name).unlink()
 
@@ -243,6 +246,7 @@ class TestInstallation(unittest.TestCase):
                                     classes: Union[Type, Tuple[Type, ...]]) \
                 -> int:
             """Given log records, count their "classes" if attached.
+
             For each record, checks if it has a `warning_class` attribute,
             and checks whether its value is a subclass of the classes
             provided.
@@ -259,7 +263,7 @@ class TestInstallation(unittest.TestCase):
             with self.assertLogs(logger=logger) as captured:
                 logger.warning('At least one log entry is needed for '
                                '`assertLogs`.')
-                self.installer._install(['dcterms', 'dcmitype'],
+                self.installer._install(['dcmi-terms', 'dcmi-type'],
                                         lambda x: (x for x in x),
                                         clear=True)
                 self.assertEqual(
@@ -273,14 +277,14 @@ class TestInstallation(unittest.TestCase):
             with self.assertLogs(logger=logger) as captured:
                 logger.warning('At least one log entry is needed for '
                                '`assertLogs`.')
-                self.installer._install(['dcterms', 'dcmitype'],
+                self.installer._install(['dcmi-terms', 'dcmi-type'],
                                         lambda x: (x for x in x),
                                         clear=True)
                 self.assertEqual(
                     count_warnings_by_class(
                         captured.records,
                         (RDFPropertiesWarning, )),
-                    2
+                    1  # dcmi-type has no properties
                 )
         finally:
             warning_settings.rdf_properties_warning = original_warning_setting

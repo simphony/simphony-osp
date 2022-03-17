@@ -37,6 +37,10 @@ class RDFPropertiesWarningFilter(logging.Filter):
         return True
 
 
+class EmptyOntologyFileError(RuntimeError):
+    """Should be raised when reading an ontology file with no entities."""
+
+
 class OWLParser(OntologyParser):
     """Parses OWL ontologies."""
 
@@ -292,6 +296,7 @@ class OWLParser(OntologyParser):
             )
             logger.removeFilter(logger_filter)
         if not any((owl_entities, rdfs_classes)):
-            raise RuntimeError(f"No ontology entities detected in ontology "
-                               f"package {self.identifier}. Are you sure it "
-                               f"is an OWL ontology or an RDFS vocabulary?")
+            raise EmptyOntologyFileError(
+                f"No ontology entities detected in ontology package "
+                f"{self.identifier}. Are you sure it is an OWL ontology or an "
+                f"RDFS vocabulary?")

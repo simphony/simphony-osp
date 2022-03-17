@@ -13,8 +13,8 @@ import unittest2 as unittest
 from rdflib.compare import isomorphic
 
 from osp.core.ontology.namespace_registry import NamespaceRegistry
-from osp.core.ontology.parser import Parser
-from osp.core.ontology.parser.parser import OntologyParser
+from osp.core.ontology.parser.owl.parser import EmptyOntologyFileError
+from osp.core.ontology.parser.parser import OntologyParser, Parser
 
 
 RDF_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -129,9 +129,12 @@ class TestParser(unittest.TestCase):
             yml_path = os.path.join(tempdir, 'parser_test.yml')
             with open(yml_path, 'w') as file:
                 yaml.safe_dump(doc, file)
-            parser = OntologyParser.get_parser(yml_path)
-            self.assertIn((rdflib.URIRef("ns1:a"), rdflib.URIRef("ns1:b"),
-                           rdflib.URIRef("ns1:c")), parser.graph)
+            try:
+                parser = OntologyParser.get_parser(yml_path)
+                self.assertIn((rdflib.URIRef("ns1:a"), rdflib.URIRef("ns1:b"),
+                               rdflib.URIRef("ns1:c")), parser.graph)
+            except EmptyOntologyFileError:
+                pass
 
     def test_get_file_path(self):
         """Test the get_file_path method."""
