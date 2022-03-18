@@ -10,23 +10,7 @@ namespaces:
     dcat2: http://www.w3.org/ns/dcat#
 
 active_relationships:
-    - http://www.w3.org/ns/dcat#accessService
-    - http://www.w3.org/ns/dcat#accessURL
     - http://www.w3.org/ns/dcat#catalog
-    - http://www.w3.org/ns/dcat#compressFormat
-    - http://www.w3.org/ns/dcat#contactPoint
     - http://www.w3.org/ns/dcat#dataset
-    - http://www.w3.org/ns/dcat#distribution
-    - http://www.w3.org/ns/dcat#downloadURL
-    - http://www.w3.org/ns/dcat#endpointDescription
-    - http://www.w3.org/ns/dcat#endpointURL
-    - http://www.w3.org/ns/dcat#hadRole
-    - http://www.w3.org/ns/dcat#landingPage
-    - http://www.w3.org/ns/dcat#mediaType
-    - http://www.w3.org/ns/dcat#packageFormat
-    - http://www.w3.org/ns/dcat#record
-    - http://www.w3.org/ns/dcat#qualifiedRelation
-    - http://www.w3.org/ns/dcat#servesDataset
     - http://www.w3.org/ns/dcat#service
-    - http://www.w3.org/ns/dcat#theme
-    - http://www.w3.org/ns/dcat#themeTaxonomy
+    - http://www.w3.org/ns/dcat#record
