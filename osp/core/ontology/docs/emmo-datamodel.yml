@@ -5,5 +5,3 @@ namespaces:
     datamodel: http://emmo.info/datamodel#
 active_relationships:
     - "http://emmo.info/datamodel#composition"
-    - "http://emmo.info/datamodel#aggregation"
-    - "http://emmo.info/datamodel#relation"
