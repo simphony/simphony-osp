@@ -6,7 +6,8 @@ import logging
 from enum import Enum
 from typing import TYPE_CHECKING, Iterator
 
-import osp.core.warnings as warning_settings
+# import osp.core.warnings as warning_settings -> Not working with Python 3.6.
+from . import warnings as warning_settings
 from osp.core.ontology.installation import OntologyInstallationManager
 
 if TYPE_CHECKING:
