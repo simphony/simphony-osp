@@ -4,16 +4,4 @@ ontology_file: http://www.w3.org/ns/prov-o
 reference_by_label: False
 namespaces: 
     prov: http://www.w3.org/ns/prov#
-
-active_relationships:
-    - http://www.w3.org/ns/prov#alternateOf
-    - http://www.w3.org/ns/prov#atLocation
-    - http://www.w3.org/ns/prov#hadActivity
-    - http://www.w3.org/ns/prov#hadGeneration
-    - http://www.w3.org/ns/prov#hadPlan
-    - http://www.w3.org/ns/prov#hadRole
-    - http://www.w3.org/ns/prov#hadUsage
-    - http://www.w3.org/ns/prov#influenced
-    - http://www.w3.org/ns/prov#influencer
-    - http://www.w3.org/ns/prov#qualifiedInfluence
-    - http://www.w3.org/ns/prov#wasInfluencedBy
+active_relationships: []
