@@ -9,7 +9,7 @@ from osp.core.ontology.datatypes import UID
 from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.session.registry import Registry
 from osp.core.session.result import returns_query_result
-from osp.core.utils.general import uid_from_general_iri
+from osp.core.utils.general import uid_from_iri
 
 
 class Session(ABC):
@@ -66,12 +66,12 @@ class Session(ABC):
         """Load the cuds_objects with the given iris.
 
         Args:
-            *iri (URIRef): The IRIs of the cuds_objects to load.
+            *iris (URIRef): The IRIs of the cuds_objects to load.
 
         Yields:
             Cuds: The fetched Cuds objects.
         """
-        return self.load(*[uid_from_general_iri(iri, self.graph)[0]
+        return self.load(*[uid_from_iri(iri)
                            for iri in iris])
 
     @returns_query_result

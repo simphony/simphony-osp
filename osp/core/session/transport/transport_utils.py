@@ -16,7 +16,7 @@ from osp.core.ontology.datatypes import UID
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.buffers import BufferContext, get_buffer_context_mngr
 from osp.core.utils.wrapper_development import create_from_triples
-from osp.core.utils.general import uid_from_general_iri
+from osp.core.utils.general import uid_from_iri
 
 # Import `plugins.serializers.jsonld`,`plugins.parsers.jsonld` for rdflib>=6,
 #  otherwise import them from `rdflib_jsonld`.
@@ -422,10 +422,7 @@ def import_rdf(graph, session, buffer_context, return_uid=None):
     triples = (triple for triple in graph if _import_rdf_filter(triple))
     uid_triples = dict()
     for s, p, o in triples:
-        if isinstance(o, URIRef) \
-                and p not in (RDF.type, OWL.sameAs):
-            _, o = uid_from_general_iri(o, session.graph)
-        s_uid, s = uid_from_general_iri(s, session.graph)
+        s_uid = uid_from_iri(s)
         session.graph.add((s, p, o))
         uid_triples[s_uid] = uid_triples.get(s_uid, set())
         uid_triples[s_uid].add((s, p, o))

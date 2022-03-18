@@ -11,7 +11,7 @@ import pathlib
 from typing import Optional, Union, TextIO, List
 
 import requests
-from rdflib import OWL, RDF, RDFS, Graph, Literal
+from rdflib import OWL, RDF, RDFS, Graph, Literal, URIRef
 from rdflib.parser import Parser as RDFLib_Parser
 from rdflib.plugin import get as get_plugin
 from rdflib.serializer import Serializer as RDFLib_Serializer
@@ -271,33 +271,46 @@ def _import_rdf_file(path, format="xml", session=None, buffer_context=None):
 # Internal utilities (not user-facing).
 
 
-def uid_from_general_iri(iri, graph, _visited=frozenset()):
-    """Get a UUID from a general (not containing a UUID) IRI.
+def iri_from_uid(uid: UID) -> URIRef:
+    """Transform an uid to an IRI.
 
     Args:
-        iri (UriRef): The IRI to convert to UUID.
-        graph (Graph): The rdflib Graph to look for different IRIs for the
-            same individual.
-        _visited (Frozenset): Used for recursive calls.
+        uid: The UID to transform.
 
     Returns:
-        Tuple[UUID, URIRef]: The UUID and an IRI containing this UUID.
+        URIRef: The IRI of the CUDS object with the given UID.
     """
-    if str(iri).startswith(CUDS_IRI_PREFIX):
-        return UID(iri), iri
+    return uid.to_iri()
 
-    for _, _, x in graph.triples((iri, OWL.sameAs, None)):
-        if x not in _visited:
-            return uid_from_general_iri(x, graph, _visited | {iri})
-    for x, _, _ in graph.triples((None, OWL.sameAs, iri)):
-        if x not in _visited:
-            return uid_from_general_iri(x, graph, _visited | {iri})
-    uid = UID()
-    new_iri = uid.to_iri()
-    # The order is important.
-    # (iri, OWL.sameAs, iri_new) would produce new CUDS.
-    graph.add((new_iri, OWL.sameAs, iri))
-    return uid, new_iri
+
+def uid_from_iri(iri: URIRef) -> UID:
+    """Transform an IRI to an uid.
+
+    Args:
+        iri: The IRI to transform.
+
+    Returns:
+        URIRef: The UID of the CUDS object with the given iri.
+    """
+    return UID(iri)
+
+
+def get_custom_datatypes():
+    """Get the set of all custom datatypes used in the ontology.
+
+    Custom datatypes are non standard ones, defined in the CUBA namespace.
+
+    Returns:
+        Set[IRI]: The set of IRI of custom datatypes.
+    """
+    from osp.core.ontology.cuba import rdflib_cuba
+    from osp.core.ontology.namespace_registry import namespace_registry
+    pattern = (None, RDF.type, RDFS.Datatype)
+    result = set()
+    for s, p, o in namespace_registry._graph.triples(pattern):
+        if s in rdflib_cuba:
+            result.add(s)
+    return result
 
 
 def get_custom_datatype_triples():
