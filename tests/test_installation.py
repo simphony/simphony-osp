@@ -235,6 +235,7 @@ class TestInstallation(unittest.TestCase):
             self.assertRaises(RuntimeError,
                               self.installer._sort_for_installation,
                               [file.name], set())
+
     def test_pico_migrate(self):
         """Test migration of installed ontologies."""
         path = os.path.join(self.tempdir.name, ".osp_ontologies")
