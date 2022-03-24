@@ -315,8 +315,8 @@ class OntologyInstallationManager:
             for file in files_to_remove:
                 os.remove(os.path.join(self.path, file))
         if python_36:  # Bound and unbound namespaces manually
-            import osp.core as core
-            import osp.core.namespaces as namespaces
+            from ... import core
+            from .. import namespaces
             if unbound_manually:
                 unbound_manually = unbound_manually.difference(
                     ns for ns in self.namespace_registry
