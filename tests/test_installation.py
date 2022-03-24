@@ -27,6 +27,21 @@ FILES = [
                  "..", "osp", "core", "ontology", "docs", "city.ontology.yml"),
 ]
 
+FILE_WITH_UNSATISFIABLE_REQUIREMENTS = f"""
+identifier: parser_test
+namespaces:
+    parser_test: http://www.osp-core.com/parser_test
+ontology_file: {os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                 "parser_test.ttl")}
+format: "ttl"
+default_relationship: http://www.osp-core.com/parser_test#relationshipA
+active_relationships:
+  - http://www.osp-core.com/parser_test#relationshipA
+  - http://www.osp-core.com/parser_test#relationshipB
+requirements:
+  - fictional_package
+"""
+
 
 class TestInstallation(unittest.TestCase):
     """Test the installation procedure."""
@@ -212,9 +227,14 @@ class TestInstallation(unittest.TestCase):
         r = self.installer._sort_for_installation(
             ["parser_test", "city"], set())
         self.assertEqual(r, ["city", "parser_test"])
-        self.assertRaises(RuntimeError, self.installer._sort_for_installation,
-                          ["parser_test"], set())
 
+        # Test unsatisfiable requirements
+        with tempfile.TemporaryDirectory():
+            with open('ontology_file.yml', 'w') as file:
+                file.write(FILE_WITH_UNSATISFIABLE_REQUIREMENTS)
+            self.assertRaises(RuntimeError,
+                              self.installer._sort_for_installation,
+                              [file.name], set())
     def test_pico_migrate(self):
         """Test migration of installed ontologies."""
         path = os.path.join(self.tempdir.name, ".osp_ontologies")

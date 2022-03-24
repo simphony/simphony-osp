@@ -176,7 +176,7 @@ class OntologyInstallationManager:
             )
             raise RuntimeError(message)
 
-        return remaining_packages
+        return [v for v in remaining_packages.values()]
 
     def _resolve_dependencies_removal(
             self,
@@ -346,18 +346,22 @@ class OntologyInstallationManager:
 
         # If the requirements for an ontology package are bundled with
         # OSP-core, try to install them automatically.
-        package_and_dependents: Dict[str, Set[str]] = \
-            self._resolve_dependencies_install(
-                files, requirements, dict()
-        )
-        files.update({
-            OntologyParser.get_parser(f).identifier: f
-            for f in package_and_dependents
-        })
-        requirements.update({
-            n: OntologyParser.get_parser(f).requirements
-            for n, f in files.items()
-        })
+        package_and_dependents = dict()
+        try:
+            package_and_dependents: Dict[str, Set[str]] = \
+                self._resolve_dependencies_install(
+                    files, requirements, dict()
+            )
+            files.update({
+                OntologyParser.get_parser(f).identifier: f
+                for f in package_and_dependents
+            })
+            requirements.update({
+                n: OntologyParser.get_parser(f).requirements
+                for n, f in files.items()
+            })
+        except FileNotFoundError:
+            pass
         if package_and_dependents:
             dependency_strings: Set[str] = set()
             for package, dependents in (
