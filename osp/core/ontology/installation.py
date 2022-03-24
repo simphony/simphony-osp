@@ -11,6 +11,7 @@ from typing import Dict, Set
 from osp.core.ontology.parser.parser import OntologyParser
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class OntologyInstallationManager:

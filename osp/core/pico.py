@@ -95,6 +95,8 @@ def terminal():
 
     args = parser.parse_args()
     logging.getLogger("osp.core").setLevel(getattr(logging, args.log_level))
+    logging.getLogger("osp.core.ontology.installation")\
+        .setLevel(getattr(logging, args.log_level))
 
     # Force RDF properties warning when running from the terminal and do not
     # offer the option to disable it.
