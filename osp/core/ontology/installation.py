@@ -409,6 +409,14 @@ class OntologyInstallationManager:
         """
         initial_files = files
         additional_files: Dict[str, str] = dict()
+        # The statement below avoids installing the file bundled with
+        # OSP-core when the user provides a custom file providing the same
+        # package identifier.
+        requirements = {
+            n: {req for req in requirements_set
+                if req not in initial_files}
+            for n, requirements_set in requirements.items()
+        }
         new_requirements: Dict[str, Set[str]] = dict()
         for package, requirements_set in requirements.items():
             # Queue the requirements for installation if bundled with
