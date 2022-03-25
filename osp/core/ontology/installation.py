@@ -362,23 +362,6 @@ class OntologyInstallationManager:
             })
         except FileNotFoundError:
             pass
-        if package_and_dependents:
-            dependency_strings: Set[str] = set()
-            for package, dependents in (
-                    (package, dependents)
-                    for package, dependents in package_and_dependents.items()
-                    if dependents
-            ):
-                dependency_strings.add(
-                    f'{package} was queued because '
-                    f'{",".join(dependents)} '
-                    f'depend{"" if len(dependents) > 1 else "s"} on it'
-                )
-            logger.info("Additional ontology packages were queued for "
-                        "installation because some of the packages to be "
-                        "installed depend on them: %s."
-                        % '; '.join(dependency_strings)
-                        )
 
         # order the files
         while requirements:
@@ -396,6 +379,12 @@ class OntologyInstallationManager:
             result += add_to_result
             for x in add_to_result:
                 del requirements[x]
+        dependencies_to_install = set(package_and_dependents) - set(installed)
+        if dependencies_to_install:
+            logger.info(
+                "Also installing dependencies: %s."
+                % ', '.join(dependencies_to_install)
+            )
         logger.info("Will install the following namespaces: %s"
                     % result)
         return [files[n] for n in result]
