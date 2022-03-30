@@ -1,0 +1,7 @@
+identifier: emmo-datamodel
+ontology_file: https://emmo-repo.github.io/datamodel-ontology/versions/0.0.2/metamodel-inferred.ttl
+reference_by_label: Treu
+namespaces:
+    datamodel: http://emmo.info/datamodel#
+active_relationships:
+    - "http://emmo.info/datamodel#composition"

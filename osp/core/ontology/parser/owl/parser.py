@@ -3,18 +3,42 @@
 import io
 import logging
 import os.path
+from itertools import chain
 from typing import Dict, Set, Tuple, Optional
 
-import rdflib
 import requests
 import yaml
 from rdflib import Graph, URIRef
+from rdflib import OWL, RDF, RDFS
 from rdflib.util import guess_format
 
 import osp.core.ontology.parser.owl.keywords as keywords
+import osp.core.warnings as warning_settings
 from osp.core.ontology.parser.parser import OntologyParser
 
 logger = logging.getLogger(__name__)
+
+
+class RDFPropertiesWarning(UserWarning):
+    """Shown when an RDF file containing RDF properties is read.
+
+    RDF properties are not supported by OSP-core, and therefore they are
+    ignored. This warning should not be shown when RDF properties are also
+    doubly defined as OWL object or data properties.
+    """
+
+
+class RDFPropertiesWarningFilter(logging.Filter):
+    """Attaches the `RDFPropertiesWarning` class to the records."""
+
+    def filter(self, record):
+        """Attaches the `RDFPropertiesWarning` to the records."""
+        record.warning_class = RDFPropertiesWarning
+        return True
+
+
+class EmptyOntologyFileError(RuntimeError):
+    """Should be raised when reading an ontology file with no entities."""
 
 
 class OWLParser(OntologyParser):
@@ -66,7 +90,7 @@ class OWLParser(OntologyParser):
     @property
     def active_relationships(self) -> Tuple[URIRef]:
         """Fetch the active relationships from the ontology file."""
-        return tuple(rdflib.URIRef(x) for x in
+        return tuple(URIRef(x) for x in
                      self._yaml_config.get(keywords.ACTIVE_REL_KEY, tuple()))
 
     @property
@@ -89,6 +113,7 @@ class OWLParser(OntologyParser):
             self._graph = self._read_ontology_graph(self._yaml_config,
                                                     self._file_path,
                                                     file_format)
+            self._validate_graph()
         return self._graph
 
     def __init__(self, path: str):
@@ -216,3 +241,67 @@ class OWLParser(OntologyParser):
                     format=file_format)
         file_like.close()
         return graph
+
+    def _validate_graph(self):
+        """Verify that the graph is an OWL ontology or RDFS vocabulary."""
+        owl_entities = bool(next(
+            chain(*(
+                self._graph.subjects(RDF.type, type_)
+                for type_ in {OWL.Class,
+                              OWL.DatatypeProperty,
+                              OWL.ObjectProperty}
+            )),
+            False
+        ))  # True when an OWL entity exists, False otherwise.
+        rdfs_classes = bool(next(
+            iter(self._graph.subjects(RDF.type, RDFS.Class)),
+            False
+        ))  # True when an RDFS class exists, False otherwise.
+
+        rdf_properties = set()
+        rdf_properties_count = 0
+        max_rdf_properties_in_warning = 5
+        for s in self._graph.subjects(RDF.type, RDF.Property):
+            has_owl_version = bool(next(
+                chain(*(
+                    self._graph.subjects(RDF.type, type_)
+                    for type_ in {OWL.DatatypeProperty, OWL.ObjectProperty}
+                )),
+                False
+            ))
+            if not has_owl_version:
+                if len(rdf_properties) < max_rdf_properties_in_warning:
+                    rdf_properties.add(s)
+                rdf_properties_count += 1
+
+        if rdf_properties and warning_settings.rdf_properties_warning \
+                in (True, None):
+            warning_text = (
+                "The ontology package {package} contains the following RDF "
+                "properties: {properties}{more}. \n"
+                "As RDF properties are not supported by OSP-core, "
+                "the aforementioned properties will be ignored."
+                .format(
+                    package=self.identifier,
+                    properties=', '.join((str(identifier)
+                                          for identifier in rdf_properties)),
+                    more=" and " + str(rdf_properties_count
+                                       - max_rdf_properties_in_warning)
+                         + " more" if rdf_properties_count
+                         > max_rdf_properties_in_warning else ""))
+            if warning_settings.rdf_properties_warning is not None:
+                warning_text += (
+                    "\n"
+                    "You can turn off this warning running "
+                    "`import osp.core.warnings as warning_settings; "
+                    "warning_settings.rdf_property_warning = False`."
+                )
+            logger_filter = RDFPropertiesWarningFilter()
+            logger.addFilter(logger_filter)
+            logger.warning(warning_text)
+            logger.removeFilter(logger_filter)
+        if not any((owl_entities, rdfs_classes)):
+            raise EmptyOntologyFileError(
+                f"No ontology entities detected in ontology package "
+                f"{self.identifier}. Are you sure it is an OWL ontology or an "
+                f"RDFS vocabulary?")

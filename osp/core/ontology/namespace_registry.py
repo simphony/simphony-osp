@@ -146,7 +146,8 @@ class NamespaceRegistry:
     def from_iri(self, iri, raise_error=True,
                  allow_types=frozenset({rdflib.OWL.DatatypeProperty,
                                         rdflib.OWL.ObjectProperty,
-                                        rdflib.OWL.Class}),
+                                        rdflib.OWL.Class,
+                                        rdflib.RDFS.Class}),
                  _name=None):
         """Get an entity from IRI.
 
@@ -177,7 +178,7 @@ class NamespaceRegistry:
                 return OntologyAttribute(**kwargs)
             if o == rdflib.OWL.ObjectProperty:
                 return OntologyRelationship(**kwargs)
-            if o == rdflib.OWL.Class:
+            if o in (rdflib.OWL.Class, rdflib.RDFS.Class):
                 return OntologyClass(**kwargs)
         if raise_error:
             raise KeyError(f"IRI {iri} not found in graph or not of any "

@@ -273,7 +273,8 @@ class OntologyNamespace():
         """
         types = [rdflib.OWL.DatatypeProperty,
                  rdflib.OWL.ObjectProperty,
-                 rdflib.OWL.Class]
+                 rdflib.OWL.Class,
+                 rdflib.RDFS.Class]
         return (s
                 for t in types
                 for s, _, _ in self._graph.triples((None, rdflib.RDF.type, t))

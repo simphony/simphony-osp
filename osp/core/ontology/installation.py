@@ -6,10 +6,12 @@ import os
 import shutil
 import sys
 import tempfile
+from typing import Dict, Set
 
 from osp.core.ontology.parser.parser import OntologyParser
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class OntologyInstallationManager:
@@ -120,7 +122,107 @@ class OntologyInstallationManager:
                                  "installed ontology package. "
                                  "Make sure to only specify valid "
                                  "yml files or ontology package names." % pkg)
-        return [v for k, v in installed_pkgs.items() if k not in remove_pkgs]
+
+        remaining_packages = {
+            k: v for k, v in installed_pkgs.items() if k not in remove_pkgs
+        }
+
+        # Block package removal if another package depends on it.
+        remaining_packages_requirements = {
+            name: OntologyParser.get_parser(path).requirements
+            for name, path in remaining_packages.items()
+        }
+        all_conflicts = self._resolve_dependencies_removal(
+            remaining_packages_requirements,
+            dict(),
+            set(remove_pkgs)
+        )
+        if all_conflicts:
+            """Raise an exception."""
+            message = "Cannot remove package{plural} {cannot_remove}{comma} " \
+                      "because other installed packages depend on {pronoun}: "\
+                      "{dependency_list}. " \
+                      "Please remove the packages {all_packages_to_remove} " \
+                      "all together."
+            cannot_remove = set(conflict
+                                for conflicts in all_conflicts.values()
+                                for conflict in conflicts
+                                if conflict in remove_pkgs)
+            plural = "s" if len(cannot_remove) > 1 else ""
+            comma = ";" if plural else ","
+            pronoun = "them" if plural else "it"
+            cannot_remove = ', '.join(cannot_remove)
+            one_dependency = next(iter(all_conflicts.values()))
+            all_dependencies_equal = all(
+                one_dependency == x for x in all_conflicts.values()
+            )
+            if all_dependencies_equal:
+                dependency_list = ', '.join(all_conflicts)
+            else:
+                dependency_list = set()
+                for package, conflicts in all_conflicts.items():
+                    dependency_list.add(f"package {package} depends on "
+                                        f"{', '.join(conflicts)}")
+                dependency_list = '; '.join(dependency_list)
+            all_packages_to_remove = set(all_conflicts) | remove_pkgs
+            last_package = all_packages_to_remove.pop()
+            all_packages_to_remove = ', '.join(
+                all_packages_to_remove
+            ) + ' and ' + last_package
+            message = message.format(
+                plural=plural, cannot_remove=cannot_remove,
+                comma=comma, pronoun=pronoun, dependency_list=dependency_list,
+                all_packages_to_remove=all_packages_to_remove,
+            )
+            raise RuntimeError(message)
+
+        return [v for v in remaining_packages.values()]
+
+    def _resolve_dependencies_removal(
+            self,
+            remaining_packages_requirements: Dict[str, Set[str]],
+            all_conflicts: Dict[str, Set[str]],
+            to_remove: Set[str],
+    ) -> Dict[str, Set[str]]:
+        """Resolve the dependencies when a package is removed.
+
+        Finds out (using recursive calls) all the packages that would need
+        to be removed together with the packages that want to be removed in
+        order not to leave broken dependencies.
+
+        Args:
+            remaining_packages_requirements: The requirements of the
+                packages that would remain installed after uninstalling the
+                packages specified in `to_remove`.
+            all_conflicts: All the conflicts that accumulate as the
+                function is called recursively. At the end, a list of all
+                the packages that would need to be removed to leave the
+                system in a healthy state can be reconstructed from it.
+            to_remove: The packages that are to be removed.
+        """
+        conflicts: Dict[str, Set[str]] = {
+            name: requirements & to_remove
+            for name, requirements in remaining_packages_requirements.items()
+        }
+        conflicts = {
+            name: conflicts
+            for name, conflicts in conflicts.items() if conflicts
+        }
+        all_conflicts.update(conflicts)
+        to_remove.update(conflicts)
+        remaining_packages_requirements = {
+            package: requirements
+            for package, requirements
+            in remaining_packages_requirements.items()
+            if package not in to_remove
+        }
+        if conflicts:
+            self._resolve_dependencies_removal(
+                remaining_packages_requirements,
+                all_conflicts,
+                to_remove
+            )
+        return all_conflicts
 
     def _get_replaced_packages(self, new_packages):
         """Get package paths to install.
@@ -213,8 +315,8 @@ class OntologyInstallationManager:
             for file in files_to_remove:
                 os.remove(os.path.join(self.path, file))
         if python_36:  # Bound and unbound namespaces manually
-            import osp.core as core
-            import osp.core.namespaces as namespaces
+            from ... import core
+            from .. import namespaces
             if unbound_manually:
                 unbound_manually = unbound_manually.difference(
                     ns for ns in self.namespace_registry
@@ -242,6 +344,25 @@ class OntologyInstallationManager:
         requirements = {n: OntologyParser.get_parser(f).requirements for
                         n, f in files.items()}
 
+        # If the requirements for an ontology package are bundled with
+        # OSP-core, try to install them automatically.
+        package_and_dependents = dict()
+        try:
+            package_and_dependents: Dict[str, Set[str]] = \
+                self._resolve_dependencies_install(
+                    files, requirements, dict()
+            )
+            files.update({
+                OntologyParser.get_parser(f).identifier: f
+                for f in package_and_dependents
+            })
+            requirements.update({
+                n: OntologyParser.get_parser(f).requirements
+                for n, f in files.items()
+            })
+        except FileNotFoundError:
+            pass
+
         # order the files
         while requirements:
             add_to_result = list()
@@ -258,9 +379,92 @@ class OntologyInstallationManager:
             result += add_to_result
             for x in add_to_result:
                 del requirements[x]
+        dependencies_to_install = set(package_and_dependents) - set(installed)
+        if dependencies_to_install:
+            logger.info(
+                "Also installing dependencies: %s."
+                % ', '.join(dependencies_to_install)
+            )
         logger.info("Will install the following namespaces: %s"
                     % result)
         return [files[n] for n in result]
+
+    def _resolve_dependencies_install(self,
+                                      files: Dict[str, str],
+                                      requirements: Dict[str, Set[str]],
+                                      dependents: Dict[str, Set[str]]) -> \
+            Dict[str, Set[str]]:
+        """Find and resolve the dependencies of the packages to be installed.
+
+        Automatic resolution of dependencies is only feasible if the
+        dependency is bundled with OSP-core.
+
+        Args:
+            files: The packages that are going to be installed together with
+                their file path.
+            requirements: The dependencies for each package that is going to
+                be installed.
+            dependents: A dictionary with package names and the packages
+                that depend on them.
+        """
+        initial_files = files
+        additional_files: Dict[str, str] = dict()
+        # The statement below avoids installing the file bundled with
+        # OSP-core when the user provides a custom file providing the same
+        # package identifier.
+        requirements = {
+            n: {req for req in requirements_set
+                if req not in initial_files}
+            for n, requirements_set in requirements.items()
+        }
+        new_requirements: Dict[str, Set[str]] = dict()
+        for package, requirements_set in requirements.items():
+            # Queue the requirements for installation if bundled with
+            # OSP-core and not already queued.
+            actually_missing_requirements = {
+                package
+                for package in requirements_set
+                if package not in additional_files
+            }
+            for requirement in actually_missing_requirements:
+                try:
+                    parser = OntologyParser.get_parser(requirement)
+                    additional_files[parser.identifier] = requirement
+                    new_requirements.update({
+                        parser.identifier: parser.requirements
+                    })
+                except FileNotFoundError:
+                    pass
+
+            # Store which packages are requiring the requirements that were
+            # queued for installation to show the information on the logs.
+            # In addition, the `dependents` dictionary keys are the
+            # additional packages to be installed.
+            initially_missing_requirements = {
+                package
+                for package in requirements_set
+                if package not in initial_files
+            }
+            for requirement in initially_missing_requirements:
+                dependents[requirement] = dependents.get(
+                    requirement, set()) | {package}
+        files.update(additional_files)
+        new_requirements_exist = bool(
+            {req
+             for req_set in new_requirements.values()
+             for req in req_set}
+            - {req
+               for req_set in requirements.values()
+               for req in req_set}
+        )
+        if new_requirements_exist:
+            requirements.update(new_requirements)
+            dependents = self._resolve_dependencies_install(
+                files,
+                requirements,
+                dependents
+            )
+        return dependents
 
 
 def pico_migrate(namespace_registry, path):
