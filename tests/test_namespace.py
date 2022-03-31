@@ -144,6 +144,7 @@ class TestNamespaces(unittest.TestCase):
                 rdflib.Literal(True)
             ))
             self.namespace_registry.from_iri.cache_clear()
+            self.namespace_registry._get.cache_clear()
             c = from_iri(city_iri)
             self.assertIsInstance(c, OntologyClass)
             self.assertEqual(c.namespace.get_name(), "city")
