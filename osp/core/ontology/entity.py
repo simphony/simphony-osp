@@ -7,7 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# The properties of the instances of the metaclass OntologyEntity defined below
+# The properties of the instances of the class OntologyEntity defined below
 # may be cached by applying the decorator @lru_cache after the @property
 # decorator. The following parameter fixes the maximum number of different
 # instances of OntologyEntity for which a property may be cached.
