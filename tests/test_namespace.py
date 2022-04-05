@@ -144,6 +144,7 @@ class TestNamespaces(unittest.TestCase):
                 rdflib.Literal(True)
             ))
             self.namespace_registry.from_iri.cache_clear()
+            self.namespace_registry._get.cache_clear()
             c = from_iri(city_iri)
             self.assertIsInstance(c, OntologyClass)
             self.assertEqual(c.namespace.get_name(), "city")
@@ -309,6 +310,12 @@ class TestNamespaces(unittest.TestCase):
 
         # reference by label
         namespace._reference_by_label = True
+        # The above line is artificial (the user is not expected to change
+        # this private variable at runtime). Therefore, the cache for the
+        # `_get_from_label` method needs to be cleared for the test, as it
+        # produces different results depending on the value of
+        # `_reference_by_label`.
+        namespace._get_from_label.cache_clear()
         # dot
         self.assertIsInstance(namespace.City_T, OntologyClass)
         self.assertEqual(namespace.City_T.name, "City_T")

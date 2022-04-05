@@ -93,6 +93,7 @@ class NamespaceRegistry:
         except KeyError:
             return fallback
 
+    @lru_cache(maxsize=5000)
     def _get(self, name):
         """Get the namespace by name.
 
@@ -142,7 +143,7 @@ class NamespaceRegistry:
                                  namespace_registry=self,
                                  iri=ns_iri)
 
-    @lru_cache(maxsize=1024)
+    @lru_cache(maxsize=10000)
     def from_iri(self, iri, raise_error=True,
                  allow_types=frozenset({rdflib.OWL.DatatypeProperty,
                                         rdflib.OWL.ObjectProperty,
@@ -310,6 +311,7 @@ class NamespaceRegistry:
         self._graph = rdflib.Graph()
         self._load_cuba()
         self.from_iri.cache_clear()
+        self._get.cache_clear()
         return self._graph
 
     def store(self, path):

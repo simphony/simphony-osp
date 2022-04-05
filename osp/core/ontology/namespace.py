@@ -1,20 +1,22 @@
 """A namespace in the ontology."""
 
-
-from collections.abc import Iterable
-import rdflib
-import logging
 import itertools
+import logging
+from collections.abc import Iterable
+from functools import lru_cache
+
+import rdflib
+
+from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.parser.yml.case_insensitivity import \
     get_case_insensitive_alternative as alt
 
 logger = logging.getLogger(__name__)
 
 
-class OntologyNamespace():
+class OntologyNamespace:
     """A namespace in the ontology."""
 
     def __init__(self, name, namespace_registry, iri):
@@ -22,7 +24,7 @@ class OntologyNamespace():
 
         Args:
             name (str): The name of the namespace.
-            namespace_registry (OntologyNamespace): The namespace registry.
+            namespace_registry (NamespaceRegistry): The namespace registry.
             iri (rdflib.URIRef): The IRI of the namespace.
         """
         self._name = name
@@ -212,6 +214,7 @@ class OntologyNamespace():
                                                   self.get_from_suffix)
             raise e
 
+    @lru_cache(maxsize=5000)
     def _get_from_label(self, label, lang=None, case_sensitive=False):
         """Get an ontology entity from the registry by label.
 
