@@ -5,23 +5,29 @@ client and a server. The server runs on the remote part and delegates each
 request to the session it wraps.
 """
 
-import os
+import inspect
 import json
 import logging
-import inspect
+import os
+
 from osp.core.session.buffers import BufferContext
-from osp.core.session.wrapper_session import WrapperSession
-from osp.core.session.transport.communication_engine \
-    import CommunicationEngineServer
-from osp.core.session.transport.transport_utils import (
-    INITIALIZE_COMMAND, LOAD_COMMAND, HANDSHAKE_COMMAND, deserialize,
-    deserialize_buffers, serialize_buffers
+from osp.core.session.transport.communication_engine import (
+    CommunicationEngineServer,
 )
+from osp.core.session.transport.transport_utils import (
+    HANDSHAKE_COMMAND,
+    INITIALIZE_COMMAND,
+    LOAD_COMMAND,
+    deserialize,
+    deserialize_buffers,
+    serialize_buffers,
+)
+from osp.core.session.wrapper_session import WrapperSession
 
 logger = logging.getLogger(__name__)
 
 
-class TransportSessionServer():
+class TransportSessionServer:
     """The TransportSession implements the transport layer.
 
     It consists of a
@@ -29,9 +35,15 @@ class TransportSessionServer():
     request to the session it wraps.
     """
 
-    def __init__(self, session_cls, host, port,
-                 session_kwargs=None, file_destination=None,
-                 server_kwargs=None):
+    def __init__(
+        self,
+        session_cls,
+        host,
+        port,
+        session_kwargs=None,
+        file_destination=None,
+        server_kwargs=None,
+    ):
         """Construct the server.
 
         Args:
@@ -76,11 +88,14 @@ class TransportSessionServer():
             self.session_objs[connection_id].close()
             del self.session_objs[connection_id]
         else:
-            logger.warning("User %s disconnected that was not associated with "
-                           "a session" % connection_id)
+            logger.warning(
+                "User %s disconnected that was not associated with "
+                "a session" % connection_id
+            )
 
-    def handle_request(self, command, data, connection_id,
-                       temp_directory=None):
+    def handle_request(
+        self, command, data, connection_id, temp_directory=None
+    ):
         """Handle requests from the client.
 
         Args:
@@ -96,18 +111,21 @@ class TransportSessionServer():
             elif command == INITIALIZE_COMMAND:
                 return self._init_session(data, connection_id)
             elif command == LOAD_COMMAND:
-                return self._load_from_session(data, connection_id,
-                                               temp_directory)
+                return self._load_from_session(
+                    data, connection_id, temp_directory
+                )
             elif (
                 not command.startswith("_")
                 and connection_id in self.session_objs
                 and hasattr(self.session_objs[connection_id], command)
                 and not hasattr(WrapperSession, command)
-                and callable(getattr(self.session_objs[connection_id],
-                                     command))
+                and callable(
+                    getattr(self.session_objs[connection_id], command)
+                )
             ):
-                return self._run_command(data, command, connection_id,
-                                         temp_directory)
+                return self._run_command(
+                    data, command, connection_id, temp_directory
+                )
         except Exception as e:
             logger.error(str(e), exc_info=1)
             return ("ERROR: %s: %s" % (type(e).__name__, e), [])
@@ -129,13 +147,17 @@ class TransportSessionServer():
             buffer_context=BufferContext.USER,
             data=data,
             temp_directory=temp_directory,
-            target_directory=self._file_destination
+            target_directory=self._file_destination,
         )
-        result = getattr(session, command)(*arguments["args"],
-                                           **arguments["kwargs"])
+        result = getattr(session, command)(
+            *arguments["args"], **arguments["kwargs"]
+        )
         additional = {"result": result} if result else dict()
-        return serialize_buffers(session, buffer_context=BufferContext.ENGINE,
-                                 additional_items=additional)
+        return serialize_buffers(
+            session,
+            buffer_context=BufferContext.ENGINE,
+            additional_items=additional,
+        )
 
     def _load_from_session(self, data, connection_id, temp_directory=None):
         """Load cuds_objects from the session.
@@ -152,12 +174,15 @@ class TransportSessionServer():
             buffer_context=None,
             data=data,
             temp_directory=temp_directory,
-            target_directory=self._file_destination
+            target_directory=self._file_destination,
         )["uids"]
         cuds_objects = list(session.load(*uids))
         additional = {"result": cuds_objects}
-        return serialize_buffers(session, buffer_context=BufferContext.ENGINE,
-                                 additional_items=additional)
+        return serialize_buffers(
+            session,
+            buffer_context=BufferContext.ENGINE,
+            additional_items=additional,
+        )
 
     def _init_session(self, data, connection_id):
         """Start a new session.
@@ -183,24 +208,32 @@ class TransportSessionServer():
         if "auth" in args:
             user_kwargs["auth"] = data["auth"]
         if self._session_kwargs and (data["args"] or data["kwargs"]):
-            raise ValueError("This remote session cannot be parameterized by "
-                             "the user. Only provide host and port and no "
-                             "further arguments.")
+            raise ValueError(
+                "This remote session cannot be parameterized by "
+                "the user. Only provide host and port and no "
+                "further arguments."
+            )
         elif self._session_kwargs:
-            session = self.session_cls(**self._session_kwargs,
-                                       **user_kwargs)
+            session = self.session_cls(**self._session_kwargs, **user_kwargs)
         else:
-            session = self.session_cls(*data["args"],
-                                       **data["kwargs"],
-                                       **user_kwargs)
+            session = self.session_cls(
+                *data["args"], **data["kwargs"], **user_kwargs
+            )
         self.com_facility._file_hashes[connection_id].update(data["hashes"])
         self.session_objs[connection_id] = session
-        deserialize(data["root"], session=session,
-                    buffer_context=BufferContext.USER)
+        deserialize(
+            data["root"], session=session, buffer_context=BufferContext.USER
+        )
         return serialize_buffers(session, buffer_context=BufferContext.ENGINE)
 
     def _handshake(self, username, connection_id):
-        return json.dumps({
-            "result": self.session_cls.handshake(
-                username=username, connection_id=connection_id)
-        }), []
+        return (
+            json.dumps(
+                {
+                    "result": self.session_cls.handshake(
+                        username=username, connection_id=connection_id
+                    )
+                }
+            ),
+            [],
+        )

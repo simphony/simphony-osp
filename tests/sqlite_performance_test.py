@@ -4,15 +4,18 @@
 import gc
 import os
 import time
+
 import unittest2 as unittest
-from osp.wrappers.sqlite import SqliteSession
+
 from osp.core.utils.simple_search import find_cuds_object
+from osp.wrappers.sqlite import SqliteSession
 
 try:
     from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.ontology.namespace_registry import namespace_registry
+
     Parser().parse("city")
     city = namespace_registry.city
 
@@ -44,9 +47,9 @@ class TestPerformance(unittest.TestCase):
         self.stop = time.time()
         total = self.stop - self.start
         if total > 60:
-            print('Total time: ' + str(total / 60) + ' minutes.')
+            print("Total time: " + str(total / 60) + " minutes.")
         else:
-            print('Total time: ' + str(total) + ' seconds.')
+            print("Total time: " + str(total) + " seconds.")
         self.session.close()
         self.w._session = None
         gc.collect()
@@ -63,14 +66,15 @@ class TestPerformance(unittest.TestCase):
             c.add(city.Citizen(uid=next(uids)), rel=city.hasInhabitant)
             c.add(city.Citizen(uid=next(uids)), rel=city.encloses)
             c.add(city.Citizen(uid=next(uids)), rel=city.hasPart)
-            c.add(city.Neighborhood(name="", uid=next(uids)),
-                  rel=city.hasInhabitant)
-            c.add(city.Neighborhood(name="", uid=next(uids)),
-                  rel=city.encloses)
-            c.add(city.Neighborhood(name="", uid=next(uids)),
-                  rel=city.hasPart)
-            c.add(city.Street(name="", uid=next(uids)),
-                  rel=city.hasInhabitant)
+            c.add(
+                city.Neighborhood(name="", uid=next(uids)),
+                rel=city.hasInhabitant,
+            )
+            c.add(
+                city.Neighborhood(name="", uid=next(uids)), rel=city.encloses
+            )
+            c.add(city.Neighborhood(name="", uid=next(uids)), rel=city.hasPart)
+            c.add(city.Street(name="", uid=next(uids)), rel=city.hasInhabitant)
             c.add(city.Street(name="", uid=next(uids)), rel=city.encloses)
             c = c.add(city.Street(name="", uid=next(uids)), rel=city.hasPart)
 
@@ -87,11 +91,16 @@ class TestPerformance(unittest.TestCase):
             return
         print("Traverse db")
         for i in range(self.iterations):
-            find_cuds_object(lambda x: True, self.w, rel=city.encloses,
-                             find_all=True, max_depth=10)
+            find_cuds_object(
+                lambda x: True,
+                self.w,
+                rel=city.encloses,
+                find_all=True,
+                max_depth=10,
+            )
             self.session.commit()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     RUN_PERFORMANCE_TEST = True
     unittest.main()

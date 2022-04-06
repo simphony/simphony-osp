@@ -1,19 +1,21 @@
 """Utilities used for the transport layer."""
 
-import json
-import uuid
-import os
-import shutil
-import logging
-import hashlib
-import rdflib
 import ast
 import filecmp
-from typing import Optional, Tuple, Any
+import hashlib
+import json
+import logging
+import os
+import shutil
+import uuid
+from typing import Any, Optional, Tuple
+
+import rdflib
 from rdflib import __version__ as rdflib_version
-if rdflib_version >= '6':
-    from rdflib.plugins.serializers.jsonld import from_rdf as json_from_rdf
+
+if rdflib_version >= "6":
     from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
+    from rdflib.plugins.serializers.jsonld import from_rdf as json_from_rdf
 else:
     import warnings
 
@@ -23,16 +25,17 @@ else:
 
     warn = warnings.warn
     warnings.warn = _silent_warn
-    from rdflib_jsonld.serializer import from_rdf as json_from_rdf
     from rdflib_jsonld.parser import to_rdf as json_to_rdf
+    from rdflib_jsonld.serializer import from_rdf as json_from_rdf
+
     warnings.warn = warn
-from osp.core.namespaces import get_entity, cuba
+from osp.core.namespaces import cuba, get_entity
+from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.datatypes import convert_from, convert_to
 from osp.core.ontology.entity import OntologyEntity
 from osp.core.session.buffers import BufferContext, get_buffer_context_mngr
-from osp.core.utils.wrapper_development import create_from_triples
 from osp.core.utils.general import uid_from_iri
-from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.utils.wrapper_development import create_from_triples
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +46,13 @@ HANDSHAKE_COMMAND = "_handshake"
 serialization_initialized = False
 
 
-def serialize_buffers(session_obj, buffer_context,
-                      additional_items=None, target_directory=None,
-                      file_cuds_uid=True):
+def serialize_buffers(
+    session_obj,
+    buffer_context,
+    additional_items=None,
+    target_directory=None,
+    file_cuds_uid=True,
+):
     """Serialize the buffers and additional items.
 
     Args:
@@ -67,12 +74,18 @@ def serialize_buffers(session_obj, buffer_context,
     files = list()
     if buffer_context is not None:
         added, updated, deleted = session_obj._buffers[buffer_context]
-        files += move_files(get_file_cuds(added.values()),
-                            None, target_directory,
-                            file_cuds_uid=file_cuds_uid)
-        files += move_files(get_file_cuds(updated.values()),
-                            None, target_directory,
-                            file_cuds_uid=file_cuds_uid)
+        files += move_files(
+            get_file_cuds(added.values()),
+            None,
+            target_directory,
+            file_cuds_uid=file_cuds_uid,
+        )
+        files += move_files(
+            get_file_cuds(updated.values()),
+            None,
+            target_directory,
+            file_cuds_uid=file_cuds_uid,
+        )
         result = {
             "added": serializable(added.values()),
             "updated": serializable(updated.values()),
@@ -83,17 +96,26 @@ def serialize_buffers(session_obj, buffer_context,
 
     if additional_items is not None:
         for k, v in additional_items.items():
-            files += move_files(get_file_cuds(v), None, target_directory,
-                                file_cuds_uid=file_cuds_uid)
+            files += move_files(
+                get_file_cuds(v),
+                None,
+                target_directory,
+                file_cuds_uid=file_cuds_uid,
+            )
             result[k] = serializable(v)
     if buffer_context is not None:
         session_obj._reset_buffers(buffer_context)
     return json.dumps(result), files
 
 
-def deserialize_buffers(session_obj, buffer_context, data,
-                        temp_directory=None, target_directory=None,
-                        file_cuds_uid=True):
+def deserialize_buffers(
+    session_obj,
+    buffer_context,
+    data,
+    temp_directory=None,
+    target_directory=None,
+    file_cuds_uid=True,
+):
     """Deserialize serialized buffers.
 
     Add them to the session and push them
@@ -121,21 +143,31 @@ def deserialize_buffers(session_obj, buffer_context, data,
 
         if "expired" in data:
             session_obj.expire(
-                *set(deserialize(json_obj=data["expired"],
-                                 session=session_obj,
-                                 buffer_context=buffer_context))
+                *set(
+                    deserialize(
+                        json_obj=data["expired"],
+                        session=session_obj,
+                        buffer_context=buffer_context,
+                    )
+                )
             )
 
         deserialized = dict()
         for k, v in data.items():
-            d = deserialize(json_obj=v,
-                            session=session_obj,
-                            buffer_context=buffer_context,
-                            _force=(k == "deleted"))
+            d = deserialize(
+                json_obj=v,
+                session=session_obj,
+                buffer_context=buffer_context,
+                _force=(k == "deleted"),
+            )
             deserialized[k] = d
             if k != "deleted":
-                move_files(get_file_cuds(d), temp_directory, target_directory,
-                           file_cuds_uid=file_cuds_uid)
+                move_files(
+                    get_file_cuds(d),
+                    temp_directory,
+                    target_directory,
+                    file_cuds_uid=file_cuds_uid,
+                )
         deleted = deserialized["deleted"] if "deleted" in deserialized else []
 
         for x in deleted:
@@ -144,12 +176,16 @@ def deserialize_buffers(session_obj, buffer_context, data,
         for cuds_object in deleted:
             if cuds_object.uid in session_obj._registry:
                 del session_obj._registry[cuds_object.uid]
-        return {k: v for k, v in deserialized.items()
-                if k not in ["added", "updated", "deleted", "expired"]}
+        return {
+            k: v
+            for k, v in deserialized.items()
+            if k not in ["added", "updated", "deleted", "expired"]
+        }
 
 
-def move_files(file_cuds, temp_directory, target_directory,
-               file_cuds_uid=True):
+def move_files(
+    file_cuds, temp_directory, target_directory, file_cuds_uid=True
+):
     """Move the files associated with the given CUDS. Return all moved CUDS.
 
     Args:
@@ -173,35 +209,41 @@ def move_files(file_cuds, temp_directory, target_directory,
         path = _convert_path_of_file_cuds(cuds)
         base_name = os.path.basename(path)
         if temp_directory is not None:
-            path = os.path.join(temp_directory,
-                                base_name)
+            path = os.path.join(temp_directory, base_name)
         # get target location
         # fix prefix (add in server, remove in client)
         if file_cuds_uid and not base_name.startswith(cuds.uid.hex):
             base_name = cuds.uid.hex + "-" + base_name
-        elif not file_cuds_uid \
-                and base_name.startswith(str(cuds.uid.hex) + '-'):
-            base_name = base_name[len(str(cuds.uid.hex) + '-'):]
+        elif not file_cuds_uid and base_name.startswith(
+            str(cuds.uid.hex) + "-"
+        ):
+            base_name = base_name[len(str(cuds.uid.hex) + "-") :]
         # fix suffix (remove in server)
         if file_cuds_uid:
             name, ext = os.path.splitext(base_name)
-            if name.endswith(f' ({cuds.uid})'):
-                name = name[0:name.find(f' ({cuds.uid})')]
-                base_name = f'{name}{ext}'
+            if name.endswith(f" ({cuds.uid})"):
+                name = name[0 : name.find(f" ({cuds.uid})")]
+                base_name = f"{name}{ext}"
         target_path = os.path.join(target_directory, base_name)
         # copy
-        if (os.path.exists(os.path.dirname(target_path))
-                and os.path.exists(path)) and (
-                not os.path.exists(target_path) or not os.path.samefile(
-                    path, target_path)):
+        if (
+            os.path.exists(os.path.dirname(target_path))
+            and os.path.exists(path)
+        ) and (
+            not os.path.exists(target_path)
+            or not os.path.samefile(path, target_path)
+        ):
             # Append CUDS uid.
-            if not file_cuds_uid and os.path.exists(target_path) and not \
-                    filecmp.cmp(path, target_path):
-                name, ext = os.path.splitext(
-                    os.path.basename(target_path))
-                name += f' ({cuds.uid})'
-                target_path = os.path.join(os.path.dirname(target_path),
-                                           name + ext)
+            if (
+                not file_cuds_uid
+                and os.path.exists(target_path)
+                and not filecmp.cmp(path, target_path)
+            ):
+                name, ext = os.path.splitext(os.path.basename(target_path))
+                name += f" ({cuds.uid})"
+                target_path = os.path.join(
+                    os.path.dirname(target_path), name + ext
+                )
             shutil.copyfile(path, target_path)
             assert cuds.uid not in cuds.session._expired
             cuds.path = target_path
@@ -213,13 +255,14 @@ def move_files(file_cuds, temp_directory, target_directory,
             logger.debug(
                 "Will not move %s to %s" % (repr(path), repr(target_path))
             )
-            cuds.path = ''
+            cuds.path = ""
             if not os.path.exists(os.path.dirname(target_path)):
                 logger.debug("Reason: Target path does not exist")
-            elif os.path.exists(target_path) and \
-                (os.path.exists(path) and os.path.samefile(path,
-                                                           target_path)
-                    or not os.path.exists(path)):
+            elif os.path.exists(target_path) and (
+                os.path.exists(path)
+                and os.path.samefile(path, target_path)
+                or not os.path.exists(path)
+            ):
                 # The above expression has the form A ( BC + ~B ) = ABC + A~B.
                 # The meaning of the first minterm is clear, but the meaning
                 # of the second is not. The reason why it is there is
@@ -227,8 +270,10 @@ def move_files(file_cuds, temp_directory, target_directory,
                 # coincides with the hash of one of the files in the target
                 # directory, the server does not send the file. However,
                 # the cuds path should still be updated.
-                logger.debug("Reason: The exact same file is already present "
-                             "at the destination")
+                logger.debug(
+                    "Reason: The exact same file is already present "
+                    "at the destination"
+                )
                 cuds.path = target_path
             elif not os.path.exists(path):
                 logger.debug("Reason: File to move does not exist")
@@ -256,23 +301,29 @@ def deserialize(json_obj, session, buffer_context, _force=False):
         return None
     if isinstance(json_obj, (str, int, float)):
         return json_obj
-    if isinstance(json_obj, list) \
-            and json_obj and isinstance(json_obj[0], dict) \
-            and "@id" in json_obj[0]:
-        return _to_cuds_object(json_obj, session, buffer_context,
-                               _force=_force)
+    if (
+        isinstance(json_obj, list)
+        and json_obj
+        and isinstance(json_obj[0], dict)
+        and "@id" in json_obj[0]
+    ):
+        return _to_cuds_object(
+            json_obj, session, buffer_context, _force=_force
+        )
     if isinstance(json_obj, list):
-        return [deserialize(x, session, buffer_context, _force=_force)
-                for x in json_obj]
-    if isinstance(json_obj, dict) \
-            and set(["UID"]) == set(json_obj.keys()):
+        return [
+            deserialize(x, session, buffer_context, _force=_force)
+            for x in json_obj
+        ]
+    if isinstance(json_obj, dict) and set(["UID"]) == set(json_obj.keys()):
         return convert_to(json_obj["UID"], "UID")
-    if isinstance(json_obj, dict) \
-            and set(["ENTITY"]) == set(json_obj.keys()):
+    if isinstance(json_obj, dict) and set(["ENTITY"]) == set(json_obj.keys()):
         return get_entity(json_obj["ENTITY"])
     if isinstance(json_obj, dict):
-        return {k: deserialize(v, session, buffer_context, _force=_force)
-                for k, v in json_obj.items()}
+        return {
+            k: deserialize(v, session, buffer_context, _force=_force)
+            for k, v in json_obj.items()
+        }
     raise ValueError("Could not deserialize %s." % json_obj)
 
 
@@ -293,6 +344,7 @@ def serializable(obj, partition_cuds=True, mark_first=False):
         Union[Dict, List, str, None]: The serializable object.
     """
     from osp.core.cuds import Cuds
+
     if obj is None:
         return obj
     if isinstance(obj, (str, int, float)):
@@ -313,8 +365,7 @@ def serializable(obj, partition_cuds=True, mark_first=False):
     try:
         return [serializable(x) for x in obj]
     except TypeError as e:
-        raise ValueError("Could not serialize %s." % obj) \
-            from e
+        raise ValueError("Could not serialize %s." % obj) from e
 
 
 def get_file_cuds(obj):
@@ -331,8 +382,10 @@ def get_file_cuds(obj):
 
     if isinstance(obj, Cuds) and obj.is_a(cuba.File):
         return [obj]
-    if isinstance(obj, (Cuds, str, float, int, uuid.UUID, OntologyEntity)) \
-            or obj is None:
+    if (
+        isinstance(obj, (Cuds, str, float, int, uuid.UUID, OntologyEntity))
+        or obj is None
+    ):
         return []
     if isinstance(obj, dict):
         obj = obj.values()
@@ -350,20 +403,31 @@ def _serializable(cuds_objects, mark_first=False):
     """
     from osp.core.cuds import Cuds
     from osp.core.ontology.namespace_registry import namespace_registry
+
     g = rdflib.Graph()
     g.namespace_manager = namespace_registry._graph.namespace_manager
     g.bind("cuds", rdflib.URIRef("http://www.osp-core.com/cuds#"))
     if mark_first:
-        g.add((rdflib_cuba._serialization, rdflib.RDF.first,
-               rdflib.Literal(str(next(iter(cuds_objects)).uid))))
+        g.add(
+            (
+                rdflib_cuba._serialization,
+                rdflib.RDF.first,
+                rdflib.Literal(str(next(iter(cuds_objects)).uid)),
+            )
+        )
     for cuds_object in cuds_objects:
         if not isinstance(cuds_object, Cuds):
-            raise TypeError(f"Called _serializable with non-CUDS object "
-                            f"{cuds_object} of type {type(cuds_object)}")
+            raise TypeError(
+                f"Called _serializable with non-CUDS object "
+                f"{cuds_object} of type {type(cuds_object)}"
+            )
         for s, p, o in cuds_object.get_triples(include_neighbor_types=True):
             if isinstance(o, rdflib.Literal):
-                o = rdflib.Literal(convert_from(o.toPython(), o.datatype),
-                                   datatype=o.datatype, lang=o.language)
+                o = rdflib.Literal(
+                    convert_from(o.toPython(), o.datatype),
+                    datatype=o.datatype,
+                    lang=o.language,
+                )
             g.add((s, p, o))
     return json_from_rdf(g, auto_compact=len(cuds_objects) > 1)
 
@@ -381,8 +445,10 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
         Cuds: The resulting cuds_object.
     """
     if not isinstance(buffer_context, BufferContext):
-        raise ValueError("Not allowed to deserialize CUDS object "
-                         "with undefined buffer_context")
+        raise ValueError(
+            "Not allowed to deserialize CUDS object "
+            "with undefined buffer_context"
+        )
     with get_buffer_context_mngr(session, buffer_context):
         g = json_to_rdf(json_obj, rdflib.Graph())
         try:
@@ -394,19 +460,24 @@ def _to_cuds_object(json_obj, session, buffer_context, _force=False):
         for s, p, o in g:
             if s == this_s:
                 # datatype conversion
-                if isinstance(o, rdflib.Literal) \
-                        and o.datatype and o.datatype in rdflib_cuba \
-                        and "VECTOR" in o.datatype.toPython():
+                if (
+                    isinstance(o, rdflib.Literal)
+                    and o.datatype
+                    and o.datatype in rdflib_cuba
+                    and "VECTOR" in o.datatype.toPython()
+                ):
                     o = rdflib.Literal(
                         convert_to(ast.literal_eval(o.toPython()), o.datatype),
-                        datatype=o.datatype, lang=o.language
+                        datatype=o.datatype,
+                        lang=o.language,
                     )
                 triples.add((s, p, o))
             else:
                 neighbor_triples.add((s, p, o))
 
-        cuds = create_from_triples(triples, neighbor_triples, session,
-                                   fix_neighbors=False)
+        cuds = create_from_triples(
+            triples, neighbor_triples, session, fix_neighbors=False
+        )
         return cuds
 
 
@@ -428,8 +499,10 @@ def import_rdf(graph, session, buffer_context, return_uid=None):
         List[Cuds]: The deserialized CUDS objects.
     """
     if not isinstance(buffer_context, BufferContext):
-        raise ValueError("Not allowed to deserialize CUDS object "
-                         "with undefined buffer_context")
+        raise ValueError(
+            "Not allowed to deserialize CUDS object "
+            "with undefined buffer_context"
+        )
 
     get_buffer_context_mngr(session, buffer_context)
     triples = (triple for triple in graph if _import_rdf_filter(triple))
@@ -449,34 +522,43 @@ def import_rdf(graph, session, buffer_context, return_uid=None):
     return result if not return_uid else result[0]
 
 
-def _import_rdf_filter(triple: Tuple[Any, Any, Any]) \
-        -> Optional[Tuple[Any, Any, Any]]:
+def _import_rdf_filter(
+    triple: Tuple[Any, Any, Any]
+) -> Optional[Tuple[Any, Any, Any]]:
     """Auxiliary function for `import_rdf`.
 
     Filters triples blank nodes and named individuals.
     """
     s, p, o = triple
-    if isinstance(s, rdflib.BNode) or isinstance(o, rdflib.BNode) \
-            or o == rdflib.OWL.NamedIndividual:
+    if (
+        isinstance(s, rdflib.BNode)
+        or isinstance(o, rdflib.BNode)
+        or o == rdflib.OWL.NamedIndividual
+    ):
         return None
     else:
         return triple
 
 
-def _import_rdf_custom_datatypes(triple: Tuple[Any, Any, Any]) \
-        -> Tuple[Any, Any, Any]:
+def _import_rdf_custom_datatypes(
+    triple: Tuple[Any, Any, Any]
+) -> Tuple[Any, Any, Any]:
     """Auxiliary function for `import_rdf`.
 
     Handles custom datatypes in a triple (if any).
     """
     s, p, o = triple
     # handle custom datatype: VECTORs
-    if isinstance(o, rdflib.Literal) \
-            and o.datatype and o.datatype in rdflib_cuba \
-            and "VECTOR" in o.datatype.toPython():
+    if (
+        isinstance(o, rdflib.Literal)
+        and o.datatype
+        and o.datatype in rdflib_cuba
+        and "VECTOR" in o.datatype.toPython()
+    ):
         o = rdflib.Literal(
             convert_to(ast.literal_eval(o.toPython()), o.datatype),
-            datatype=o.datatype, lang=o.language
+            datatype=o.datatype,
+            lang=o.language,
         )
     return s, p, o
 
@@ -517,7 +599,8 @@ def check_hash(file_path, file_hashes):
             logger.debug(
                 "Hash mismatch for file %s. File on disk has hash %s,"
                 " and last registered version has hash %s."
-                % (filename, sha265hash, file_hashes[filename]))
+                % (filename, sha265hash, file_hashes[filename])
+            )
     file_hashes[filename] = sha265hash
     return False
 
@@ -543,39 +626,43 @@ def get_hash(file_path):
 
 
 def _convert_path_of_file_cuds(file_cuds):
-    if os.name not in ['nt', 'posix']:
-        raise Exception('Your machine is not supported.')
+    if os.name not in ["nt", "posix"]:
+        raise Exception("Your machine is not supported.")
 
     path_type = _determine_path_type_of_file_cuds(file_cuds)
     path = file_cuds.path
 
-    if path_type == 'windows':
+    if path_type == "windows":
         # on windows machine
-        if os.name == 'nt':
+        if os.name == "nt":
             return path
         # on linux machine
         else:
-            return path.replace('\\', '/')
+            return path.replace("\\", "/")
     # linux path
-    elif path_type == 'linux':
+    elif path_type == "linux":
         # on linux machine
-        if os.name == 'posix':
+        if os.name == "posix":
             return path
         # on windows machine
         else:
-            return path.replace('/', '\\')
+            return path.replace("/", "\\")
 
 
 def _determine_path_type_of_file_cuds(file_cuds):
     path = file_cuds.path
-    if '\\' in path and '/' not in path:    # windows path
-        return 'windows'
-    elif '/' in path and '\\' not in path:    # linux path
-        return 'linux'
+    if "\\" in path and "/" not in path:  # windows path
+        return "windows"
+    elif "/" in path and "\\" not in path:  # linux path
+        return "linux"
     # doesn't matter (path is just a file name)
-    elif '/' not in path and '\\' not in path:
-        return 'linux'
+    elif "/" not in path and "\\" not in path:
+        return "linux"
     else:
-        raise Exception("""Inconsistent path attribute for
+        raise Exception(
+            """Inconsistent path attribute for
         CUBA.FILE object {} with
-        path {}.""".format(file_cuds.uid, path))
+        path {}.""".format(
+                file_cuds.uid, path
+            )
+        )

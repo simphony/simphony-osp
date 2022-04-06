@@ -88,4 +88,3 @@
     rdfs:range xsd:string ;
     rdfs:subPropertyOf ns2:attribute ;
     ns3:prefLabel "attributeA"@en .
-

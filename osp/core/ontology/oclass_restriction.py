@@ -1,9 +1,11 @@
 """Restrictions on on ontology classes."""
 
-from enum import Enum
-import rdflib
 import logging
+from enum import Enum
+
+import rdflib
 from rdflib.term import BNode
+
 from osp.core.ontology.attribute import OntologyAttribute
 from osp.core.ontology.relationship import OntologyRelationship
 
@@ -12,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class QUANTIFIER(Enum):
     """The different quantifiers for restrictions."""
+
     SOME = 1
     ONLY = 2
     EXACTLY = 3
@@ -22,11 +25,12 @@ class QUANTIFIER(Enum):
 
 class RTYPE(Enum):
     """The two types of restrictions."""
+
     ATTRIBUTE_RESTRICTION = 1
     RELATIONSHIP_RESTRICTION = 2
 
 
-class Restriction():
+class Restriction:
     """A class to represet restrictions on ontology classes."""
 
     def __init__(self, bnode, namespace_registry):
@@ -47,9 +51,9 @@ class Restriction():
 
     def __str__(self):
         """Transform to string."""
-        return " ".join(map(str, (self._property,
-                                  self.quantifier,
-                                  self.target)))
+        return " ".join(
+            map(str, (self._property, self.quantifier, self.target))
+        )
 
     @property
     def quantifier(self):
@@ -153,7 +157,7 @@ class Restriction():
             (rdflib.OWL.cardinality, QUANTIFIER.EXACTLY),
             (rdflib.OWL.minCardinality, QUANTIFIER.MIN),
             (rdflib.OWL.maxCardinality, QUANTIFIER.MAX),
-            (rdflib.OWL.hasValue, QUANTIFIER.VALUE)
+            (rdflib.OWL.hasValue, QUANTIFIER.VALUE),
         ]:
             if self._check_quantifier(rdflib_predicate, quantifier):
                 return True

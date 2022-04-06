@@ -1,33 +1,55 @@
 """Test the abstract SqlWrapper session."""
 
-import unittest2 as unittest
 import numpy as np
 import rdflib
-from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
-from osp.core.session.db.sql_util import (
-    expand_vector_cols,
-    contract_vector_values, SqlQuery, EqualsCondition, JoinCondition,
-    AndCondition, determine_datatype, get_data_table_name, check_characters,
-    get_expanded_cols
-)
+import unittest2 as unittest
 
-COLS = ['1', '2', '3']
-DTYPES = {"1": rdflib.XSD.integer,
-          "2": rdflib_cuba["_datatypes/VECTOR-2"],
-          "3": rdflib_cuba["_datatypes/VECTOR-2-3"]}
+from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.session.db.sql_util import (
+    AndCondition,
+    EqualsCondition,
+    JoinCondition,
+    SqlQuery,
+    check_characters,
+    contract_vector_values,
+    determine_datatype,
+    expand_vector_cols,
+    get_data_table_name,
+    get_expanded_cols,
+)
+from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
+
+COLS = ["1", "2", "3"]
+DTYPES = {
+    "1": rdflib.XSD.integer,
+    "2": rdflib_cuba["_datatypes/VECTOR-2"],
+    "3": rdflib_cuba["_datatypes/VECTOR-2-3"],
+}
 VALS = [100, np.array([1, 2]), np.array([[1, 2, 3], [2, 3, 4]])]
-EXPANDED_COLS = ['1',
-                 '2___0', '2___1',
-                 '3___0', '3___1', '3___2',
-                 '3___3', '3___4', '3___5']
-EXPANDED_DTYPES = {'1': rdflib.XSD.integer,
-                   '2': rdflib_cuba["_datatypes/VECTOR-2"],
-                   '2___0': rdflib.XSD.float, '2___1': rdflib.XSD.float,
-                   '3': rdflib_cuba["_datatypes/VECTOR-2-3"],
-                   '3___0': rdflib.XSD.float, '3___1': rdflib.XSD.float,
-                   '3___2': rdflib.XSD.float, '3___3': rdflib.XSD.float,
-                   '3___4': rdflib.XSD.float, '3___5': rdflib.XSD.float}
+EXPANDED_COLS = [
+    "1",
+    "2___0",
+    "2___1",
+    "3___0",
+    "3___1",
+    "3___2",
+    "3___3",
+    "3___4",
+    "3___5",
+]
+EXPANDED_DTYPES = {
+    "1": rdflib.XSD.integer,
+    "2": rdflib_cuba["_datatypes/VECTOR-2"],
+    "2___0": rdflib.XSD.float,
+    "2___1": rdflib.XSD.float,
+    "3": rdflib_cuba["_datatypes/VECTOR-2-3"],
+    "3___0": rdflib.XSD.float,
+    "3___1": rdflib.XSD.float,
+    "3___2": rdflib.XSD.float,
+    "3___3": rdflib.XSD.float,
+    "3___4": rdflib.XSD.float,
+    "3___5": rdflib.XSD.float,
+}
 EXPANDED_VALS = [100, 1, 2, 1, 2, 3, 2, 3, 4]
 
 DATA_TABLE_PREFIX = SqlWrapperSession.DATA_TABLE_PREFIX
@@ -53,10 +75,12 @@ class TestSqlUtil(unittest.TestCase):
         # test WHERE
         c1 = EqualsCondition("my_table", "1", VALS[0], DTYPES["1"])
         c2 = EqualsCondition("my_table", "2", VALS[1], DTYPES["2"])
-        c21 = EqualsCondition("my_table", "2___0",
-                              VALS[1][0], EXPANDED_DTYPES["2___0"])
-        c22 = EqualsCondition("my_table", "2___1",
-                              VALS[1][1], EXPANDED_DTYPES["2___1"])
+        c21 = EqualsCondition(
+            "my_table", "2___0", VALS[1][0], EXPANDED_DTYPES["2___0"]
+        )
+        c22 = EqualsCondition(
+            "my_table", "2___1", VALS[1][1], EXPANDED_DTYPES["2___1"]
+        )
         c3 = EqualsCondition("my_table", "3", VALS[2], DTYPES["2"])
         c3 = AndCondition(c1, c2, c3)
         q.where(c1)
@@ -90,51 +114,68 @@ class TestSqlUtil(unittest.TestCase):
         q.join("2ndTable", COLS, DTYPES, alias="alias2")
         self.assertEqual(q.order, ["alias", "alias2"])
         self.assertEqual(q.tables, {"alias": "my_table", "alias2": "2ndTable"})
-        self.assertEqual(q._columns, {"alias": EXPANDED_COLS,
-                                      "alias2": EXPANDED_COLS})
-        self.assertEqual(q.datatypes, {"alias": EXPANDED_DTYPES,
-                                       "alias2": EXPANDED_DTYPES})
+        self.assertEqual(
+            q._columns, {"alias": EXPANDED_COLS, "alias2": EXPANDED_COLS}
+        )
+        self.assertEqual(
+            q.datatypes, {"alias": EXPANDED_DTYPES, "alias2": EXPANDED_DTYPES}
+        )
         self.assertEqual(q.condition, AndCondition(c1))
         q.where(c4)
         self.assertEqual(q.condition, AndCondition(c1, c4))
 
     def test_determine_datatype(self):
         """Test determining the datatype of a table."""
-        self.assertEqual(determine_datatype(data_tbl("XSD_integer")),
-                         rdflib.XSD.integer)
-        self.assertEqual(determine_datatype(data_tbl("OWL_rational")),
-                         rdflib.URIRef('http://www.w3.org/2002/07/owl'
-                                       '#rational'))
+        self.assertEqual(
+            determine_datatype(data_tbl("XSD_integer")), rdflib.XSD.integer
+        )
+        self.assertEqual(
+            determine_datatype(data_tbl("OWL_rational")),
+            rdflib.URIRef("http://www.w3.org/2002/07/owl" "#rational"),
+        )
         # Replaced rdflib.OWL.rational with URIRef('...'), as it seems to
         # have disappeared in rdflib 6.0.0.
         # TODO: return to original form when a fix for rdflib is available.
-        self.assertEqual(determine_datatype(data_tbl("RDF_PlainLiteral")),
-                         rdflib.RDF.PlainLiteral)
-        self.assertEqual(determine_datatype(data_tbl("RDFS_Literal")),
-                         rdflib.RDFS.Literal)
-        self.assertEqual(determine_datatype(data_tbl("VECTOR-2-2")),
-                         rdflib_cuba["_datatypes/VECTOR-2-2"])
+        self.assertEqual(
+            determine_datatype(data_tbl("RDF_PlainLiteral")),
+            rdflib.RDF.PlainLiteral,
+        )
+        self.assertEqual(
+            determine_datatype(data_tbl("RDFS_Literal")), rdflib.RDFS.Literal
+        )
+        self.assertEqual(
+            determine_datatype(data_tbl("VECTOR-2-2")),
+            rdflib_cuba["_datatypes/VECTOR-2-2"],
+        )
 
     def test_get_data_table_name(self):
         """Test getting the name of a data table from data type."""
-        self.assertEqual(get_data_table_name(rdflib.XSD.integer),
-                         data_tbl("XSD_integer"))
-        self.assertEqual(get_data_table_name(
-            rdflib.URIRef('http://www.w3.org/2002/07/owl#rational')),
-            data_tbl("OWL_rational"))
+        self.assertEqual(
+            get_data_table_name(rdflib.XSD.integer), data_tbl("XSD_integer")
+        )
+        self.assertEqual(
+            get_data_table_name(
+                rdflib.URIRef("http://www.w3.org/2002/07/owl#rational")
+            ),
+            data_tbl("OWL_rational"),
+        )
         # Replaced rdflib.OWL.rational with URIRef('...'), as it seems to
         # have disappeared in rdflib 6.0.0.
         # TODO: return to original form when a fix for rdflib is available.
-        self.assertEqual(get_data_table_name(rdflib.RDF.PlainLiteral),
-                         data_tbl("RDF_PlainLiteral"))
-        self.assertEqual(get_data_table_name(rdflib.RDFS.Literal),
-                         data_tbl("RDFS_Literal"))
+        self.assertEqual(
+            get_data_table_name(rdflib.RDF.PlainLiteral),
+            data_tbl("RDF_PlainLiteral"),
+        )
+        self.assertEqual(
+            get_data_table_name(rdflib.RDFS.Literal), data_tbl("RDFS_Literal")
+        )
         self.assertEqual(
             get_data_table_name(rdflib_cuba["_datatypes/VECTOR-2-2"]),
-            data_tbl("VECTOR-2-2")
+            data_tbl("VECTOR-2-2"),
         )
-        self.assertRaises(NotImplementedError,
-                          get_data_table_name, rdflib.SKOS.prefLabel)
+        self.assertRaises(
+            NotImplementedError, get_data_table_name, rdflib.SKOS.prefLabel
+        )
 
     def test_check_characters(self):
         """Test character check."""
@@ -179,9 +220,7 @@ class TestSqlUtil(unittest.TestCase):
     def test_expand_vector_cols(self):
         """Test the expand_vector_cols method."""
         cols, dtypes, vals = expand_vector_cols(
-            columns=COLS,
-            datatypes=DTYPES,
-            values=VALS
+            columns=COLS, datatypes=DTYPES, values=VALS
         )
         self.assertEqual(cols, EXPANDED_COLS)
         self.assertEqual(dtypes, EXPANDED_DTYPES)
@@ -198,5 +237,5 @@ class TestSqlUtil(unittest.TestCase):
         pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

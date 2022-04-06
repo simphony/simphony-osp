@@ -9,10 +9,13 @@ from typing import Iterable, Tuple, Type, Union
 import numpy as np
 import unittest2 as unittest
 
-from osp.core.utils.general import iri_from_uid
-from osp.core.session.db.db_wrapper_session import LargeDatasetWarning, \
-    UnreachableCUDSWarning, logger
 import osp.core.warnings
+from osp.core.session.db.db_wrapper_session import (
+    LargeDatasetWarning,
+    UnreachableCUDSWarning,
+    logger,
+)
+from osp.core.utils.general import iri_from_uid
 from osp.wrappers.sqlite import SqliteSession
 
 try:
@@ -20,6 +23,7 @@ try:
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.ontology.namespace_registry import namespace_registry
+
     Parser().parse("city")
     city = namespace_registry.city
 
@@ -128,17 +132,22 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            self.assertEqual(set(session._registry.keys()),
-                             {c.uid, wrapper.uid})
+            self.assertEqual(
+                set(session._registry.keys()), {c.uid, wrapper.uid}
+            )
             self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(
-                session._registry.get(c.uid)
-                       ._neighbors[city.hasInhabitant],
-                {p1.uid: p1.oclasses, p2.uid: p2.oclasses,
-                 p3.uid: p3.oclasses})
+                session._registry.get(c.uid)._neighbors[city.hasInhabitant],
+                {
+                    p1.uid: p1.oclasses,
+                    p2.uid: p2.oclasses,
+                    p3.uid: p3.oclasses,
+                },
+            )
             self.assertEqual(
                 session._registry.get(c.uid)._neighbors[city.isPartOf],
-                {wrapper.uid: wrapper.oclasses})
+                {wrapper.uid: wrapper.oclasses},
+            )
 
     def test_load_missing(self):
         """Test if missing objects are loaded automatically."""
@@ -157,30 +166,30 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            self.assertEqual(set(session._registry.keys()),
-                             {c.uid, wrapper.uid})
+            self.assertEqual(
+                set(session._registry.keys()), {c.uid, wrapper.uid}
+            )
             cw = wrapper.get(c.uid)
             p1w = cw.get(p1.uid)
             p2w = cw.get(p2.uid)
             p3w = p1w.get(p3.uid)
             self.assertEqual(
                 set(session._registry.keys()),
-                {c.uid, wrapper.uid, p1.uid,
-                 p2.uid, p3.uid})
+                {c.uid, wrapper.uid, p1.uid, p2.uid, p3.uid},
+            )
             self.assertEqual(p1w.name, "Peter")
             self.assertEqual(p2w.name, "Anna")
             self.assertEqual(p3w.name, "Julia")
             self.assertEqual(
                 p3w._neighbors[city.isChildOf],
-                {p1.uid: p1.oclasses, p2.uid: p2.oclasses}
+                {p1.uid: p1.oclasses, p2.uid: p2.oclasses},
             )
             self.assertEqual(
-                p2w._neighbors[city.hasChild],
-                {p3.uid: p3.oclasses}
+                p2w._neighbors[city.hasChild], {p3.uid: p3.oclasses}
             )
             self.assertEqual(
                 p2w._neighbors[city.INVERSE_OF_hasInhabitant],
-                {c.uid: c.oclasses}
+                {c.uid: c.oclasses},
             )
 
     def test_load_by_oclass(self):
@@ -340,12 +349,9 @@ class TestSqliteCity(unittest.TestCase):
         """Test transformation of value lists to SQLite patterns."""
         p, v = SqliteSession._sql_list_pattern("pre", [42, "yo", 1.2, "hey"])
         self.assertEqual(p, ":pre_0, :pre_1, :pre_2, :pre_3")
-        self.assertEqual(v, {
-            "pre_0": 42,
-            "pre_1": "yo",
-            "pre_2": 1.2,
-            "pre_3": "hey"
-        })
+        self.assertEqual(
+            v, {"pre_0": 42, "pre_1": "yo", "pre_2": 1.2, "pre_3": "hey"}
+        )
 
     def test_multiple_users(self):
         """Test what happens if multiple users access the database."""
@@ -362,17 +368,20 @@ class TestSqliteCity(unittest.TestCase):
 
                 cw = wrapper1.add(city.City(name="Karlsruhe"))
                 self.assertEqual(session1._expired, {city1.uid})
-                self.assertEqual(session1._buffers, [
-                    [{cw.uid: cw}, {wrapper1.uid: wrapper1},
-                     dict()],
-                    [dict(), dict(), dict()]
-                ])
+                self.assertEqual(
+                    session1._buffers,
+                    [
+                        [{cw.uid: cw}, {wrapper1.uid: wrapper1}, dict()],
+                        [dict(), dict(), dict()],
+                    ],
+                )
                 session1.commit()
 
     def test_cuds_with_iri(self):
         """Try to assign IRIs as UIDs for CUDS objects."""
-        c = city.City(name="Freiburg", iri="http://example.org/namespace"
-                                           "#Freiburg")
+        c = city.City(
+            name="Freiburg", iri="http://example.org/namespace" "#Freiburg"
+        )
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
@@ -381,8 +390,9 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            self.assertEqual(set(session._registry.keys()),
-                             {c.uid, wrapper.uid})
+            self.assertEqual(
+                set(session._registry.keys()), {c.uid, wrapper.uid}
+            )
             self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(wrapper.get(c.uid).oclass, city.City)
 
@@ -390,14 +400,15 @@ class TestSqliteCity(unittest.TestCase):
         """Tests the warnings emitted when committing big datasets."""
         # Save the original warning settings to restore them at the end of
         # the test.
-        original_warning_setting = \
-            osp.core.warnings.unreachable_cuds_objects
-        original_large_dataset_size = \
+        original_warning_setting = osp.core.warnings.unreachable_cuds_objects
+        original_large_dataset_size = (
             osp.core.warnings.unreachable_cuds_objects_large_dataset_size
+        )
 
-        def count_warnings_by_class(records: Iterable[logging.LogRecord],
-                                    classes: Union[Type, Tuple[Type, ...]]) \
-                -> int:
+        def count_warnings_by_class(
+            records: Iterable[logging.LogRecord],
+            classes: Union[Type, Tuple[Type, ...]],
+        ) -> int:
             """Given log records, count their "classes" if attached.
 
             For each record, checks if it has a `warning_class` attribute,
@@ -405,32 +416,39 @@ class TestSqliteCity(unittest.TestCase):
             provided.
             """
             return sum(
-                bool(issubclass(record.warning_class, classes)
-                     if hasattr(record, 'warning_class') else False)
+                bool(
+                    issubclass(record.warning_class, classes)
+                    if hasattr(record, "warning_class")
+                    else False
+                )
                 for record in records
             )
 
         osp.core.warnings.unreachable_cuds_objects_large_dataset_size = 5
         osp.core.warnings.unreachable_cuds_objects = True
 
-        large_dataset_size = \
+        large_dataset_size = (
             osp.core.warnings.unreachable_cuds_objects_large_dataset_size
+        )
 
         try:
             # No warning: small dataset, all CUDS reachable
             with SqliteSession(DB) as session:
                 wrapper = city.CityWrapper(session=session)
-                wrapper.add(city.Citizen(name='citizen'),
-                            rel=city.hasInhabitant)
+                wrapper.add(
+                    city.Citizen(name="citizen"), rel=city.hasInhabitant
+                )
                 with self.assertLogs(logger=logger) as captured:
-                    logger.warning('At least log entry is needed for '
-                                   '`assertLogs`.')
+                    logger.warning(
+                        "At least log entry is needed for " "`assertLogs`."
+                    )
                     session.commit()
                     self.assertEqual(
                         count_warnings_by_class(
                             captured.records,
-                            (LargeDatasetWarning, UnreachableCUDSWarning)),
-                        0
+                            (LargeDatasetWarning, UnreachableCUDSWarning),
+                        ),
+                        0,
                     )
             if os.path.exists(DB):
                 os.remove(DB)
@@ -438,24 +456,26 @@ class TestSqliteCity(unittest.TestCase):
             # Unreachable CUDS warning: small dataset, some CUDS not reachable
             with SqliteSession(DB) as session:
                 wrapper = city.CityWrapper(session=session)
-                wrapper.add(city.Citizen(name='citizen'),
-                            rel=city.hasInhabitant)
-                city.Citizen(name='citizen')
+                wrapper.add(
+                    city.Citizen(name="citizen"), rel=city.hasInhabitant
+                )
+                city.Citizen(name="citizen")
                 with self.assertLogs(logger=logger) as captured:
-                    logger.warning('At least log entry is needed for '
-                                   '`assertLogs`.')
+                    logger.warning(
+                        "At least log entry is needed for " "`assertLogs`."
+                    )
                     session.commit()
                     self.assertEqual(
                         count_warnings_by_class(
-                            captured.records,
-                            LargeDatasetWarning),
-                        0
+                            captured.records, LargeDatasetWarning
+                        ),
+                        0,
                     )
                     self.assertEqual(
                         count_warnings_by_class(
-                            captured.records,
-                            UnreachableCUDSWarning),
-                        1
+                            captured.records, UnreachableCUDSWarning
+                        ),
+                        1,
                     )
             if os.path.exists(DB):
                 os.remove(DB)
@@ -464,24 +484,28 @@ class TestSqliteCity(unittest.TestCase):
             with SqliteSession(DB) as session:
                 wrapper = city.CityWrapper(session=session)
                 wrapper.add(
-                    *[city.Citizen(name='citizen')
-                      for _ in range(0, large_dataset_size + 1)],
-                    rel=city.hasInhabitant)
+                    *[
+                        city.Citizen(name="citizen")
+                        for _ in range(0, large_dataset_size + 1)
+                    ],
+                    rel=city.hasInhabitant,
+                )
                 with self.assertLogs(logger=logger) as captured:
-                    logger.warning('At least log entry is needed for '
-                                   '`assertLogs`.')
+                    logger.warning(
+                        "At least log entry is needed for " "`assertLogs`."
+                    )
                     session.commit()
                     self.assertEqual(
                         count_warnings_by_class(
-                            captured.records,
-                            LargeDatasetWarning),
-                        1
+                            captured.records, LargeDatasetWarning
+                        ),
+                        1,
                     )
                     self.assertEqual(
                         count_warnings_by_class(
-                            captured.records,
-                            UnreachableCUDSWarning),
-                        0
+                            captured.records, UnreachableCUDSWarning
+                        ),
+                        0,
                     )
             if os.path.exists(DB):
                 os.remove(DB)
@@ -490,25 +514,29 @@ class TestSqliteCity(unittest.TestCase):
             with SqliteSession(DB) as session:
                 wrapper = city.CityWrapper(session=session)
                 wrapper.add(
-                    *[city.Citizen(name='citizen')
-                      for _ in range(0, large_dataset_size + 1)],
-                    rel=city.hasInhabitant)
-                city.Citizen(name='citizen')
+                    *[
+                        city.Citizen(name="citizen")
+                        for _ in range(0, large_dataset_size + 1)
+                    ],
+                    rel=city.hasInhabitant,
+                )
+                city.Citizen(name="citizen")
                 with self.assertLogs(logger=logger) as captured:
-                    logger.warning('At least log entry is needed for '
-                                   '`assertLogs`.')
+                    logger.warning(
+                        "At least log entry is needed for " "`assertLogs`."
+                    )
                     session.commit()
                     self.assertEqual(
                         count_warnings_by_class(
-                            captured.records,
-                            LargeDatasetWarning),
-                        1
+                            captured.records, LargeDatasetWarning
+                        ),
+                        1,
                     )
                     self.assertEqual(
                         count_warnings_by_class(
-                            captured.records,
-                            UnreachableCUDSWarning),
-                        1
+                            captured.records, UnreachableCUDSWarning
+                        ),
+                        1,
                     )
             if os.path.exists(DB):
                 os.remove(DB)
@@ -516,34 +544,41 @@ class TestSqliteCity(unittest.TestCase):
             # Edge case: large dataset warning after unreachable warning
             with SqliteSession(DB) as session:
                 wrapper = city.CityWrapper(session=session)
-                wrapper.add(city.Citizen(name='citizen'),
-                            rel=city.hasInhabitant)
-                [city.Citizen(name='citizen')
-                 for i in range(0, large_dataset_size)]
+                wrapper.add(
+                    city.Citizen(name="citizen"), rel=city.hasInhabitant
+                )
+                [
+                    city.Citizen(name="citizen")
+                    for i in range(0, large_dataset_size)
+                ]
                 with self.assertLogs(logger=logger) as captured:
-                    logger.warning('At least log entry is needed for '
-                                   '`assertLogs`.')
+                    logger.warning(
+                        "At least log entry is needed for " "`assertLogs`."
+                    )
                     session.commit()
                     self.assertEqual(
                         count_warnings_by_class(
-                            captured.records,
-                            LargeDatasetWarning),
-                        1
+                            captured.records, LargeDatasetWarning
+                        ),
+                        1,
                     )
                     self.assertEqual(
                         count_warnings_by_class(
-                            captured.records,
-                            UnreachableCUDSWarning),
-                        1
+                            captured.records, UnreachableCUDSWarning
+                        ),
+                        1,
                     )
                     large_dataset_warning = set(
                         record
                         for record in captured.records
-                        if hasattr(record, 'warning_class')
-                        if issubclass(record.warning_class,
-                                      LargeDatasetWarning)).pop()
-                    self.assertIn('the previous warning',
-                                  large_dataset_warning.msg)
+                        if hasattr(record, "warning_class")
+                        if issubclass(
+                            record.warning_class, LargeDatasetWarning
+                        )
+                    ).pop()
+                    self.assertIn(
+                        "the previous warning", large_dataset_warning.msg
+                    )
             if os.path.exists(DB):
                 os.remove(DB)
 
@@ -552,106 +587,129 @@ class TestSqliteCity(unittest.TestCase):
             with SqliteSession(DB) as session:
                 wrapper = city.CityWrapper(session=session)
                 wrapper.add(
-                    *[city.Citizen(name='citizen')
-                      for _ in range(0, large_dataset_size + 1)],
-                    rel=city.hasInhabitant)
-                city.Citizen(name='citizen')
+                    *[
+                        city.Citizen(name="citizen")
+                        for _ in range(0, large_dataset_size + 1)
+                    ],
+                    rel=city.hasInhabitant,
+                )
+                city.Citizen(name="citizen")
                 with self.assertLogs(logger=logger) as captured:
-                    logger.warning('At least log entry is needed for '
-                                   '`assertLogs`.')
+                    logger.warning(
+                        "At least log entry is needed for " "`assertLogs`."
+                    )
                     session.commit()
                     self.assertEqual(
                         count_warnings_by_class(
                             captured.records,
-                            (LargeDatasetWarning, UnreachableCUDSWarning)),
-                        0
+                            (LargeDatasetWarning, UnreachableCUDSWarning),
+                        ),
+                        0,
                     )
             if os.path.exists(DB):
                 os.remove(DB)
 
         finally:
-            osp.core.warnings.unreachable_cuds_objects = \
+            osp.core.warnings.unreachable_cuds_objects = (
                 original_warning_setting
-            osp.core.warnings.unreachable_cuds_objects_large_dataset_size = \
+            )
+            osp.core.warnings.unreachable_cuds_objects_large_dataset_size = (
                 original_large_dataset_size
+            )
 
 
 def check_state(test_case, c, p1, p2, db=DB):
     """Check if the sqlite tables are in the correct state."""
     with sqlite3.connect(db) as conn:
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table';")
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
         result = set(map(lambda x: x[0], cursor))
-        test_case.assertEqual(result, set([
-            RELATIONSHIP_TABLE, data_tbl("VECTOR-INT-2"), CUDS_TABLE,
-            NAMESPACES_TABLE, ENTITIES_TABLE, TYPES_TABLE,
-            data_tbl("XSD_boolean"), data_tbl("XSD_float"),
-            data_tbl("XSD_integer"), data_tbl("XSD_string")]))
+        test_case.assertEqual(
+            result,
+            set(
+                [
+                    RELATIONSHIP_TABLE,
+                    data_tbl("VECTOR-INT-2"),
+                    CUDS_TABLE,
+                    NAMESPACES_TABLE,
+                    ENTITIES_TABLE,
+                    TYPES_TABLE,
+                    data_tbl("XSD_boolean"),
+                    data_tbl("XSD_float"),
+                    data_tbl("XSD_integer"),
+                    data_tbl("XSD_string"),
+                ]
+            ),
+        )
 
         cursor.execute(
             "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, `to`.`uid` "
             "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `tp`, `%s` AS `to` "
             "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`p`=`tp`.`entity_idx` "
             "AND `x`.`o`=`to`.`cuds_idx`;"
-            % (RELATIONSHIP_TABLE, CUDS_TABLE,
-               ENTITIES_TABLE, CUDS_TABLE))
-        result = set(cursor.fetchall())
-        test_case.assertEqual(result, {
-            (str(uuid.UUID(int=0)), 1, "hasPart", str(c.uid)),
-            (str(c.uid), 1, "hasInhabitant", str(p1.uid)),
-            (str(c.uid), 1, "hasInhabitant", str(p2.uid)),
-            (str(p1.uid), 1, "INVERSE_OF_hasInhabitant",
-             str(c.uid)),
-            (str(p2.uid), 1, "INVERSE_OF_hasInhabitant",
-             str(c.uid)),
-            (str(c.uid), 1, "isPartOf", str(uuid.UUID(int=0)))
-        })
-
-        cursor.execute(
-            "SELECT `ns_idx`, `namespace` FROM `%s`;"
-            % NAMESPACES_TABLE
+            % (RELATIONSHIP_TABLE, CUDS_TABLE, ENTITIES_TABLE, CUDS_TABLE)
         )
         result = set(cursor.fetchall())
-        test_case.assertEqual(result, {
-            (1, "http://www.osp-core.com/city#")
-        })
+        test_case.assertEqual(
+            result,
+            {
+                (str(uuid.UUID(int=0)), 1, "hasPart", str(c.uid)),
+                (str(c.uid), 1, "hasInhabitant", str(p1.uid)),
+                (str(c.uid), 1, "hasInhabitant", str(p2.uid)),
+                (str(p1.uid), 1, "INVERSE_OF_hasInhabitant", str(c.uid)),
+                (str(p2.uid), 1, "INVERSE_OF_hasInhabitant", str(c.uid)),
+                (str(c.uid), 1, "isPartOf", str(uuid.UUID(int=0))),
+            },
+        )
+
+        cursor.execute(
+            "SELECT `ns_idx`, `namespace` FROM `%s`;" % NAMESPACES_TABLE
+        )
+        result = set(cursor.fetchall())
+        test_case.assertEqual(result, {(1, "http://www.osp-core.com/city#")})
 
         cursor.execute(
             "SELECT `ts`.`uid`, `to`.`ns_idx`, `to`.`name` "
             "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `to` "
             "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`o`=`to`.`entity_idx`;"
-            % (TYPES_TABLE, CUDS_TABLE, ENTITIES_TABLE))
+            % (TYPES_TABLE, CUDS_TABLE, ENTITIES_TABLE)
+        )
         result = set(cursor.fetchall())
-        test_case.assertEqual(result, {
-            (str(c.uid), 1, 'City'),
-            (str(p1.uid), 1, 'Citizen'),
-            (str(p2.uid), 1, 'Citizen'),
-            (str(uuid.UUID(int=0)), 1, 'CityWrapper')
-        })
+        test_case.assertEqual(
+            result,
+            {
+                (str(c.uid), 1, "City"),
+                (str(p1.uid), 1, "Citizen"),
+                (str(p2.uid), 1, "Citizen"),
+                (str(uuid.UUID(int=0)), 1, "CityWrapper"),
+            },
+        )
 
         cursor.execute(
             "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, `x`.`o` "
             "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `tp` "
             "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`p`=`tp`.`entity_idx` ;"
-            % (data_tbl("XSD_string"), CUDS_TABLE, ENTITIES_TABLE))
+            % (data_tbl("XSD_string"), CUDS_TABLE, ENTITIES_TABLE)
+        )
         result = set(cursor.fetchall())
-        test_case.assertEqual(result, {
-            (str(p1.uid), 1, 'name', 'Peter'),
-            (str(c.uid), 1, 'name', 'Freiburg'),
-            (str(p2.uid), 1, 'name', 'Georg')
-        })
+        test_case.assertEqual(
+            result,
+            {
+                (str(p1.uid), 1, "name", "Peter"),
+                (str(c.uid), 1, "name", "Freiburg"),
+                (str(p2.uid), 1, "name", "Georg"),
+            },
+        )
 
         cursor.execute(
             "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, "
             "`x`.`o___0` , `x`.`o___1` "
             "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `tp` "
             "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`p`=`tp`.`entity_idx` ;"
-            % (data_tbl("VECTOR-INT-2"), CUDS_TABLE, ENTITIES_TABLE))
+            % (data_tbl("VECTOR-INT-2"), CUDS_TABLE, ENTITIES_TABLE)
+        )
         result = set(cursor.fetchall())
-        test_case.assertEqual(result, {
-            (str(c.uid), 1, 'coordinates', 0, 0)
-        })
+        test_case.assertEqual(result, {(str(c.uid), 1, "coordinates", 0, 0)})
 
 
 def check_db_cleared(test_case, db_file):
@@ -684,31 +742,47 @@ def update_db(db, c, p1, p2, p3):
         cursor = conn.cursor()
         cursor.execute(f"SELECT `uid`, `cuds_idx` FROM {CUDS_TABLE};")
         m = dict(map(lambda x: (uuid.UUID(hex=x[0]), x[1]), cursor))
-        cursor.execute(f"SELECT `name`, `entity_idx` "
-                       f"FROM {ENTITIES_TABLE} ;")
+        cursor.execute(
+            f"SELECT `name`, `entity_idx` " f"FROM {ENTITIES_TABLE} ;"
+        )
         e = dict(cursor)
 
-        cursor.execute(f"UPDATE {data_tbl('XSD_string')} SET o = 'Paris' "
-                       f"WHERE s={m[c.uid]} AND p={e['name']};")
-        cursor.execute(f"UPDATE {data_tbl('XSD_string')} SET o = 'Maria' "
-                       f"WHERE s={m[p1.uid]} AND p={e['name']};")
-        cursor.execute(f"UPDATE {data_tbl('XSD_string')} SET o = 'Jacob' "
-                       f"WHERE s={m[p2.uid]} AND p={e['name']};")
+        cursor.execute(
+            f"UPDATE {data_tbl('XSD_string')} SET o = 'Paris' "
+            f"WHERE s={m[c.uid]} AND p={e['name']};"
+        )
+        cursor.execute(
+            f"UPDATE {data_tbl('XSD_string')} SET o = 'Maria' "
+            f"WHERE s={m[p1.uid]} AND p={e['name']};"
+        )
+        cursor.execute(
+            f"UPDATE {data_tbl('XSD_string')} SET o = 'Jacob' "
+            f"WHERE s={m[p2.uid]} AND p={e['name']};"
+        )
 
-        cursor.execute(f"DELETE FROM {RELATIONSHIP_TABLE} "
-                       f"WHERE s == '{m[p2.uid]}' OR "
-                       f"o = '{m[p2.uid]}'")
-        cursor.execute(f"DELETE FROM {RELATIONSHIP_TABLE} "
-                       f"WHERE s == '{m[p3.uid]}' OR "
-                       f"o = '{m[p3.uid]}'")
-        cursor.execute(f"DELETE FROM {data_tbl('XSD_string')} "
-                       f"WHERE s == '{m[p3.uid]}'")
-        cursor.execute(f"DELETE FROM '{data_tbl('XSD_integer')}' "
-                       f"WHERE s == '{m[p3.uid]}'")
-        cursor.execute(f"DELETE FROM {CUDS_TABLE} "
-                       f"WHERE cuds_idx == '{m[p3.uid]}'")
+        cursor.execute(
+            f"DELETE FROM {RELATIONSHIP_TABLE} "
+            f"WHERE s == '{m[p2.uid]}' OR "
+            f"o = '{m[p2.uid]}'"
+        )
+        cursor.execute(
+            f"DELETE FROM {RELATIONSHIP_TABLE} "
+            f"WHERE s == '{m[p3.uid]}' OR "
+            f"o = '{m[p3.uid]}'"
+        )
+        cursor.execute(
+            f"DELETE FROM {data_tbl('XSD_string')} "
+            f"WHERE s == '{m[p3.uid]}'"
+        )
+        cursor.execute(
+            f"DELETE FROM '{data_tbl('XSD_integer')}' "
+            f"WHERE s == '{m[p3.uid]}'"
+        )
+        cursor.execute(
+            f"DELETE FROM {CUDS_TABLE} " f"WHERE cuds_idx == '{m[p3.uid]}'"
+        )
         conn.commit()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

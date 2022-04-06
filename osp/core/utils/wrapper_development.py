@@ -1,10 +1,12 @@
 """Utilities useful for Wrapper developers."""
 
-import rdflib
 from copy import deepcopy
+
+import rdflib
+
+from osp.core.namespaces import cuba
 from osp.core.ontology.datatypes import convert_to
 from osp.core.utils.general import get_relationships_between
-from osp.core.namespaces import cuba
 
 
 # General utility methods
@@ -20,7 +22,7 @@ def check_arguments(types, *args):
     """
     for arg in args:
         if not isinstance(arg, types):
-            message = '{!r} is not a correct object of allowed types {}'
+            message = "{!r} is not a correct object of allowed types {}"
             raise TypeError(message.format(arg, types))
 
 
@@ -43,21 +45,22 @@ def get_neighbor_diff(cuds1, cuds2, mode="all"):
     """
     allowed_modes = ["all", "active", "non-active"]
     if mode not in allowed_modes:
-        raise ValueError("Illegal mode specified. Choose one of %s"
-                         % allowed_modes)
+        raise ValueError(
+            "Illegal mode specified. Choose one of %s" % allowed_modes
+        )
     if cuds1 is None:
         return []
 
     result = list()
     # Iterate over all neighbors that are in cuds1 but not cuds2.
     for relationship in cuds1._neighbors.keys():
-        if ((
+        if (
             mode == "active"
             and not relationship.is_subclass_of(cuba.activeRelationship)
         ) or (
             mode == "non-active"
             and relationship.is_subclass_of(cuba.activeRelationship)
-        )):
+        ):
             continue
 
         # Get all the neighbors that are no neighbors is cuds2
@@ -65,9 +68,11 @@ def get_neighbor_diff(cuds1, cuds2, mode="all"):
         if cuds2 is not None and relationship in cuds2._neighbors:
             old_neighbor_uids = cuds2._neighbors[relationship].keys()
         new_neighbor_uids = list(
-            cuds1._neighbors[relationship].keys() - old_neighbor_uids)
-        result += list(zip(new_neighbor_uids,
-                           [relationship] * len(new_neighbor_uids)))
+            cuds1._neighbors[relationship].keys() - old_neighbor_uids
+        )
+        result += list(
+            zip(new_neighbor_uids, [relationship] * len(new_neighbor_uids))
+        )
     return result
 
 
@@ -85,8 +90,9 @@ def clone_cuds_object(cuds_object):
     return clone
 
 
-def create_recycle(oclass, kwargs, session, uid,
-                   fix_neighbors=True, _force=False):
+def create_recycle(
+    oclass, kwargs, session, uid, fix_neighbors=True, _force=False
+):
     """Instantiate a cuds_object with a given session.
 
     If cuds_object with same uid is already in the session,
@@ -104,8 +110,9 @@ def create_recycle(oclass, kwargs, session, uid,
     Returns:
         Cuds: The created cuds object.
     """
-    from osp.core.session.wrapper_session import WrapperSession
     from osp.core.cuds import Cuds
+    from osp.core.session.wrapper_session import WrapperSession
+
     uid = convert_to(uid, "UID")
     if isinstance(session, WrapperSession) and uid in session._expired:
         session._expired.remove(uid)
@@ -121,12 +128,11 @@ def create_recycle(oclass, kwargs, session, uid,
         change_oclass(cuds_object, oclass, kwargs, _force=_force)
     else:  # create new
         if oclass is not None:
-            cuds_object = oclass(uid=uid, session=session,
-                                 **kwargs,
-                                 _force=_force)
+            cuds_object = oclass(
+                uid=uid, session=session, **kwargs, _force=_force
+            )
         else:
-            cuds_object = Cuds(uid=uid, session=session,
-                               **kwargs)
+            cuds_object = Cuds(uid=uid, session=session, **kwargs)
     return cuds_object
 
 
@@ -144,11 +150,13 @@ def create_from_cuds_object(cuds_object, session):
     """
     assert cuds_object.session is not session
     kwargs = {k.argname: v for k, v in cuds_object.get_attributes().items()}
-    clone = create_recycle(oclass=cuds_object.oclass,
-                           kwargs=kwargs,
-                           session=session,
-                           uid=cuds_object.uid,
-                           fix_neighbors=False)
+    clone = create_recycle(
+        oclass=cuds_object.oclass,
+        kwargs=kwargs,
+        session=session,
+        uid=cuds_object.uid,
+        fix_neighbors=False,
+    )
     for rel, target_dict in cuds_object._neighbors.items():
         clone._neighbors[rel] = {}
         for uid, target_oclass in target_dict.items():
@@ -175,25 +183,28 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
     if cuds_object.oclass != new_oclass:
         for neighbor in cuds_object.get(rel=cuba.relationship):
             for rel in get_relationships_between(cuds_object, neighbor):
-                neighbor._neighbors[rel.inverse][cuds_object.uid] = \
-                    [new_oclass]
+                neighbor._neighbors[rel.inverse][cuds_object.uid] = [
+                    new_oclass
+                ]
 
     # update attributes
     attributes = new_oclass._get_attributes_values(kwargs, _force=_force)
     cuds_object._graph.remove((cuds_object.iri, None, None))
-    cuds_object._graph.add((
-        cuds_object.iri, rdflib.RDF.type, new_oclass.iri
-    ))
+    cuds_object._graph.add((cuds_object.iri, rdflib.RDF.type, new_oclass.iri))
     for k, v in attributes.items():
-        cuds_object._graph.set((
-            cuds_object.iri, k.iri, rdflib.Literal(k.convert_to_datatype(v),
-                                                   datatype=k.datatype)
-        ))
+        cuds_object._graph.set(
+            (
+                cuds_object.iri,
+                k.iri,
+                rdflib.Literal(k.convert_to_datatype(v), datatype=k.datatype),
+            )
+        )
     cuds_object.session._notify_update(cuds_object)
 
 
-def create_from_triples(triples, neighbor_triples, session,
-                        fix_neighbors=True):
+def create_from_triples(
+    triples, neighbor_triples, session, fix_neighbors=True
+):
     """Create a CUDS object from triples.
 
     Args:
@@ -205,9 +216,10 @@ def create_from_triples(triples, neighbor_triples, session,
         fix_neighbors (bool): Whether to remove the link from the old neighbors
             to this cuds object, defaults to True.
     """
-    from osp.core.utils.general import uid_from_iri
     from osp.core.cuds import Cuds
     from osp.core.session.wrapper_session import WrapperSession
+    from osp.core.utils.general import uid_from_iri
+
     triples = list(triples)
     if not triples:
         return None
@@ -228,11 +240,13 @@ def create_from_triples(triples, neighbor_triples, session,
         for triple in set(triples):
             session.graph.add(triple)
     else:  # create new
-        cuds_object = Cuds(attributes={},
-                           oclass=None,
-                           session=session,
-                           uid=uid,
-                           extra_triples=set(triples))
+        cuds_object = Cuds(
+            attributes={},
+            oclass=None,
+            session=session,
+            uid=uid,
+            extra_triples=set(triples),
+        )
 
     # add the triples
     for triple in set(neighbor_triples):

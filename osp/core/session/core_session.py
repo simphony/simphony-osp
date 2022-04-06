@@ -1,13 +1,15 @@
 """The core session used as default when no backend is connected."""
 import logging
+
 from .session import Session
-from .sparql_backend import SparqlResult, SparqlBindingSet, SPARQLBackend
+from .sparql_backend import SPARQLBackend, SparqlBindingSet, SparqlResult
 
 logger = logging.getLogger(__name__)
 
 
 class CoreSession(Session, SPARQLBackend):
     """Core default session for all objects."""
+
     _warned_sparql_slow = False
 
     def __str__(self):
@@ -37,11 +39,13 @@ class CoreSession(Session, SPARQLBackend):
             query_string (str): The SPARQL query as a string.
         """
         if not CoreSession._warned_sparql_slow:
-            logger.warning('At the moment, SPARQL queries on the default '
-                           'session of OSP-core (the core session) are '
-                           'supported, but slow. For better performance, '
-                           'please perform the query on another session with '
-                           'SPARQL support (e.g. a triple store wrapper).')
+            logger.warning(
+                "At the moment, SPARQL queries on the default "
+                "session of OSP-core (the core session) are "
+                "supported, but slow. For better performance, "
+                "please perform the query on another session with "
+                "SPARQL support (e.g. a triple store wrapper)."
+            )
             CoreSession._warned_sparql_slow = True
         result = self.graph.query(query_string)
         return CoreSession.CoreSessionSparqlResult(result, self)
@@ -61,8 +65,9 @@ class CoreSession(Session, SPARQLBackend):
         def __iter__(self):
             """Iterate the result."""
             for row in self.result:
-                yield CoreSession.CoreSessionSparqlBindingSet(row,
-                                                              self.session)
+                yield CoreSession.CoreSessionSparqlBindingSet(
+                    row, self.session
+                )
 
         def __len__(self):
             """Compute the number of elements in the result."""

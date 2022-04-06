@@ -3,15 +3,18 @@
 # Please install the city ontology: $pico install city
 
 import os
-import sys
 import subprocess
+import sys
 import time
+
 from osp.core.namespaces import city
+from osp.core.session.transport.transport_session_client import (
+    TransportSessionClient,
+)
+from osp.core.session.transport.transport_session_server import (
+    TransportSessionServer,
+)
 from osp.core.utils import pretty_print
-from osp.core.session.transport.transport_session_client import \
-    TransportSessionClient
-from osp.core.session.transport.transport_session_server import \
-    TransportSessionServer
 from osp.wrappers.sqlite import SqliteSession
 
 # Start Server
@@ -22,9 +25,7 @@ if sys.argv[-1] == "server":
     server.startListening()
     exit(0)
 
-args = ["python3",
-        "examples/transport_session_example.py",
-        "server"]
+args = ["python3", "examples/transport_session_example.py", "server"]
 try:
     p = subprocess.Popen(args)
 except FileNotFoundError:
@@ -41,7 +42,7 @@ try:
     n = city.Neighborhood(name="Zähringen")
     s = city.Street(name="Le street")
     b = city.Building(name="Theater")
-    a = city.Address(postalCode=79123, name='Le street', number=12)
+    a = city.Address(postalCode=79123, name="Le street", number=12)
     c.add(p1, p2, p3, rel=city.hasInhabitant)
     c.add(n).add(s).add(b).add(a)
 

@@ -1,11 +1,14 @@
 """You can import the installed namespaces from this module."""
 
-import os as _os
 import logging as _logging
-from osp.core.ontology.installation import OntologyInstallationManager as \
-    _OntologyInstallationManager
-from osp.core.ontology.namespace_registry import namespace_registry \
-    as _namespace_registry
+import os as _os
+
+from osp.core.ontology.installation import (
+    OntologyInstallationManager as _OntologyInstallationManager,
+)
+from osp.core.ontology.namespace_registry import (
+    namespace_registry as _namespace_registry,
+)
 
 _logger = _logging.getLogger(__name__)
 

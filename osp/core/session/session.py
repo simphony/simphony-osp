@@ -1,7 +1,9 @@
 """Abstract Base Class for all Sessions."""
 
-import rdflib
 from abc import ABC, abstractmethod
+
+import rdflib
+
 from osp.core.session.registry import Registry
 from osp.core.session.result import returns_query_result
 from osp.core.utils.general import uid_from_iri
@@ -23,6 +25,7 @@ class Session(ABC):
     def __enter__(self):
         """Establish the connection to the backend."""
         from osp.core.cuds import Cuds
+
         self._previous_session = Cuds._session
         Cuds._session = self
         return self
@@ -30,6 +33,7 @@ class Session(ABC):
     def __exit__(self, *args):
         """Close the connection to the backend."""
         from osp.core.cuds import Cuds
+
         Cuds._session = self._previous_session
         self.close()
 
@@ -66,8 +70,7 @@ class Session(ABC):
         Yields:
             Cuds: The fetched Cuds objects.
         """
-        return self.load(*[uid_from_iri(iri)
-                           for iri in iris])
+        return self.load(*[uid_from_iri(iri) for iri in iris])
 
     @returns_query_result
     def load(self, *uids):
@@ -108,6 +111,7 @@ class Session(ABC):
             cuds_object (Cuds): The CUDS object to be deleted
         """
         from osp.core.namespaces import cuba
+
         if cuds_object.session != self:
             cuds_object = next(self.load(cuds_object.uid))
         if cuds_object.get(rel=cuba.relationship):

@@ -6,14 +6,21 @@ remote side.
 """
 
 import asyncio
-import websockets
-import websockets.exceptions as ws_exceptions
 import logging
 import tempfile
 import uuid
+
+import websockets
+import websockets.exceptions as ws_exceptions
+
 from osp.core.session.transport.communication_utils import (
-    decode_header, encode_header, split_message, join_message, filter_files,
-    encode_files, receive_files
+    decode_header,
+    encode_files,
+    encode_header,
+    filter_files,
+    join_message,
+    receive_files,
+    split_message,
 )
 
 logger = logging.getLogger(__name__)
@@ -24,7 +31,7 @@ VERSION = 1
 DEBUG_MAX = 1000
 
 
-class CommunicationEngineServer():
+class CommunicationEngineServer:
     """Server side of the CommunicationEngine.
 
     The communication engine manages the connection between the remote and
@@ -32,8 +39,9 @@ class CommunicationEngineServer():
     remote side.
     """
 
-    def __init__(self, host, port, handle_request, handle_disconnect,
-                 **kwargs):
+    def __init__(
+        self, host, port, handle_request, handle_disconnect, **kwargs
+    ):
         """Construct the communication engine's server.
 
         Args:
@@ -59,8 +67,9 @@ class CommunicationEngineServer():
     def startListening(self):
         """Start the server on given host + port."""
         event_loop = asyncio.get_event_loop()
-        start_server = websockets.serve(self._serve, self.host, self.port,
-                                        **self.kwargs)
+        start_server = websockets.serve(
+            self._serve, self.host, self.port, **self.kwargs
+        )
         event_loop.run_until_complete(start_server)
         event_loop.run_forever()
 
@@ -78,25 +87,28 @@ class CommunicationEngineServer():
         try:
             while True:
                 with tempfile.TemporaryDirectory() as temp_dir:
-                    command, data = await self._decode(websocket, temp_dir,
-                                                       file_hashes,
-                                                       connection_id)
+                    command, data = await self._decode(
+                        websocket, temp_dir, file_hashes, connection_id
+                    )
                     # let session handle the request
                     response, files = self._handle_request(
                         command=command,
                         data=data,
                         temp_directory=temp_dir,
-                        connection_id=connection_id
+                        connection_id=connection_id,
                     )
 
                     # send the response
                     files = filter_files(files, file_hashes)
-                    logger.debug("Response: %s with %s files"
-                                 % (response[:DEBUG_MAX], len(files)))
+                    logger.debug(
+                        "Response: %s with %s files"
+                        % (response[:DEBUG_MAX], len(files))
+                    )
                     num_blocks, response = split_message(response)
                     await websocket.send(
-                        encode_header([VERSION, num_blocks, len(files)],
-                                      LEN_HEADER)
+                        encode_header(
+                            [VERSION, num_blocks, len(files)], LEN_HEADER
+                        )
                     )
                     for part in response:
                         await websocket.send(part)
@@ -126,22 +138,25 @@ class CommunicationEngineServer():
                 data and binary data.
         """
         bytes_data = await websocket.recv()
-        version, num_blocks, num_files, command = decode_header(bytes_data,
-                                                                LEN_HEADER)
+        version, num_blocks, num_files, command = decode_header(
+            bytes_data, LEN_HEADER
+        )
         if version != VERSION:
-            raise NotImplementedError("No decode implemented for "
-                                      "version %s" % version)
+            raise NotImplementedError(
+                "No decode implemented for " "version %s" % version
+            )
         logger.debug(
             "Received data from %s.\n\t Protocol version: %s,\n\t "
             "Command: %s,\n\t Number of files: %s."
-            % (connection_id, version, command, num_files))
+            % (connection_id, version, command, num_files)
+        )
         data = await join_message(websocket, num_blocks)
         logger.debug("Received data: %s" % data[:DEBUG_MAX])
         await receive_files(num_files, websocket, temp_dir, file_hashes)
         return command, data
 
 
-class CommunicationEngineClient():
+class CommunicationEngineClient:
     """Client side of the CommunicationEngine.
 
     The communication engine manages the connection between the remote and
@@ -167,7 +182,7 @@ class CommunicationEngineClient():
         # default value causes the websockets connection to close
         # unexpectedly. Hence, we chose to never close the connection due to
         # ping timeouts unless the user wishes to do so.
-        self.kwargs['ping_timeout'] = self.kwargs.get('ping_timeout', None)
+        self.kwargs["ping_timeout"] = self.kwargs.get("ping_timeout", None)
         self.handle_response = handle_response
         self.websocket = None
 
@@ -183,7 +198,8 @@ class CommunicationEngineClient():
         """
         event_loop = asyncio.get_event_loop()
         return event_loop.run_until_complete(
-            self._request(command, data, files))
+            self._request(command, data, files)
+        )
 
     def close(self):
         """Close the connection to the server."""
@@ -219,18 +235,18 @@ class CommunicationEngineClient():
         # load result
         with tempfile.TemporaryDirectory() as temp_dir:
             response = await self.websocket.recv()
-            version, num_blocks, num_files = decode_header(response,
-                                                           LEN_HEADER)
-            logger.debug("Response:\n\t Protocol version: %s,\n\t "
-                         "Number of blocks: %s,\n\t Number of files: %s"
-                         % (version, num_blocks, num_files))
+            version, num_blocks, num_files = decode_header(
+                response, LEN_HEADER
+            )
+            logger.debug(
+                "Response:\n\t Protocol version: %s,\n\t "
+                "Number of blocks: %s,\n\t Number of files: %s"
+                % (version, num_blocks, num_files)
+            )
             data = await join_message(self.websocket, num_blocks)
             logger.debug("Response data: %s" % data[:DEBUG_MAX])
             await receive_files(num_files, self.websocket, temp_dir)
-            return self.handle_response(
-                data=data,
-                temp_directory=temp_dir
-            )
+            return self.handle_response(data=data, temp_directory=temp_dir)
 
     def _encode(self, command, data, files):
         """Encode the data to send to the server to bytes.
@@ -246,7 +262,8 @@ class CommunicationEngineClient():
         files = files or []
         num_blocks, data = split_message(data)
         version = 1
-        yield encode_header([version, num_blocks, len(files), command],
-                            LEN_HEADER)
+        yield encode_header(
+            [version, num_blocks, len(files), command], LEN_HEADER
+        )
         yield from data
         yield from encode_files(files)

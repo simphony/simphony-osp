@@ -1,19 +1,23 @@
 """Visualize a CUDS structure using graphviz."""
 
-import graphviz
 import logging
+
+import graphviz
+
 from osp.core.namespaces import cuba
 
 logger = logging.getLogger(__name__)
 
 
-class Cuds2dot():
+class Cuds2dot:
     """Utility for creating a dot and png representation of CUDS objects."""
 
-    label = ("<<TABLE BORDER='0' CELLBORDER='0'>"
-             "<TR><TD>{}</TD></TR>"
-             "{}"
-             "</TABLE>>")
+    label = (
+        "<<TABLE BORDER='0' CELLBORDER='0'>"
+        "<TR><TD>{}</TD></TR>"
+        "{}"
+        "</TABLE>>"
+    )
     attribute = "<TR ALIGN='left'><TD>{}: {}</TD></TR>"
 
     def __init__(self, root):
@@ -31,7 +35,7 @@ class Cuds2dot():
 
     def _initialize_graph(self):
         """Initialize a directed graph with some default settings."""
-        graph = graphviz.Digraph(format='png', name=str(self._root.uid))
+        graph = graphviz.Digraph(format="png", name=str(self._root.uid))
         # graph.node_attr['shape'] = 'circle'
         return graph
 
@@ -51,6 +55,7 @@ class Cuds2dot():
             current: root of the entities to add.
         """
         from osp.core.utils.general import get_relationships_between
+
         current_uid = self.shorten_uid(current.uid)
         for cuds_object in current.iter(rel=cuba.relationship):
             cuds_object_uid = self.shorten_uid(cuds_object.uid)
@@ -73,15 +78,15 @@ class Cuds2dot():
         """
         attr = self.attribute.format("class", cuds_object.oclass)
         for key, value in cuds_object.get_attributes().items():
-            attr += self.attribute.format(
-                key.argname, str(value)
-            )
+            attr += self.attribute.format(key.argname, str(value))
         if uid == self._root_uid:
-            attr += self.attribute.format("session",
-                                          type(self._root.session).__name__)
+            attr += self.attribute.format(
+                "session", type(self._root.session).__name__
+            )
             label = self.label.format(uid, attr)
-            self._graph.node(uid, label=label,
-                             color="lightblue", style="filled")
+            self._graph.node(
+                uid, label=label, color="lightblue", style="filled"
+            )
         else:
             label = self.label.format(uid, attr)
             self._graph.node(uid, label=label)
@@ -97,9 +102,7 @@ class Cuds2dot():
             relationship(OntologyRelationship): relationship between start and
                 end.
         """
-        self._graph.edge(start,
-                         end,
-                         label=str(relationship))
+        self._graph.edge(start, end, label=str(relationship))
 
     @staticmethod
     def shorten_uid(uid):
@@ -112,4 +115,4 @@ class Cuds2dot():
             str: 8 first and 3 last characters separated by '...'.
         """
         uid = str(uid)
-        return uid[:8] + '...' + uid[-3:]
+        return uid[:8] + "..." + uid[-3:]

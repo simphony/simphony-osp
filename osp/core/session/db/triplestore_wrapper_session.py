@@ -5,10 +5,10 @@ from uuid import UUID
 
 from rdflib import RDF, URIRef
 
-from osp.core.utils.wrapper_development import create_from_triples
-from osp.core.utils.general import CUDS_IRI_PREFIX, iri_from_uid, uid_from_iri
-from osp.core.session.sparql_backend import SPARQLBackend
 from osp.core.session.db.db_wrapper_session import DbWrapperSession
+from osp.core.session.sparql_backend import SPARQLBackend
+from osp.core.utils.general import CUDS_IRI_PREFIX, iri_from_uid, uid_from_iri
+from osp.core.utils.wrapper_development import create_from_triples
 
 
 class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
@@ -18,8 +18,11 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
     def _apply_added(self, root_obj, buffer):
         # Perform the SQL-Statements to add the elements
         # in the buffers to the DB.
-        triples = (triple for added in buffer.values() for triple
-                   in self._substitute_root_iri(added.get_triples()))
+        triples = (
+            triple
+            for added in buffer.values()
+            for triple in self._substitute_root_iri(added.get_triples())
+        )
         self._add(*triples)
 
     # OVERRIDE
@@ -32,9 +35,11 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
         for updated in buffer.values():
             pattern = (updated.iri, None, None)
             self._remove(next(self._substitute_root_iri([pattern])))
-        triples_add = (triple for updated in buffer.values()
-                       for triple in
-                       self._substitute_root_iri(updated.get_triples()))
+        triples_add = (
+            triple
+            for updated in buffer.values()
+            for triple in self._substitute_root_iri(updated.get_triples())
+        )
         self._add(*triples_add)
 
     # OVERRIDE
@@ -80,17 +85,25 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
 
     def _substitute_root_iri(self, triples):
         for triple in triples:
-            yield tuple(iri_from_uid(UUID(int=0))
-                        if x is not None and x.startswith(CUDS_IRI_PREFIX)
-                        and uid_from_iri(x) == self.root else x
-                        for x in triple)
+            yield tuple(
+                iri_from_uid(UUID(int=0))
+                if x is not None
+                and x.startswith(CUDS_IRI_PREFIX)
+                and uid_from_iri(x) == self.root
+                else x
+                for x in triple
+            )
 
     def _substitute_zero_iri(self, triples):
         for triple in triples:
-            yield tuple(iri_from_uid(self.root)
-                        if x is not None and x.startswith(CUDS_IRI_PREFIX)
-                        and uid_from_iri(x) == UUID(int=0) else x
-                        for x in triple)
+            yield tuple(
+                iri_from_uid(self.root)
+                if x is not None
+                and x.startswith(CUDS_IRI_PREFIX)
+                and uid_from_iri(x) == UUID(int=0)
+                else x
+                for x in triple
+            )
 
     def _load_by_iri(self, *iris: URIRef):
         """Load the CUDS objects with the given IRIs.
@@ -112,7 +125,7 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
                 triples=triples,
                 neighbor_triples=neighbor_triples,
                 session=self,
-                fix_neighbors=False
+                fix_neighbors=False,
             )
 
     @abstractmethod
@@ -164,18 +177,17 @@ class TripleStoreWrapperSession(DbWrapperSession, SPARQLBackend):
                 }}
             """
             query_result = self._sparql(
-                query_string_template
-                % ' '.join((f"<{s}>" for s in iris))
+                query_string_template % " ".join((f"<{s}>" for s in iris))
             )
             result = dict()
             for row in query_result:
-                result[row['s']] = result.get(row['s'], (set(), set()))
-                triples, type_triples_of_neighbors = result[row['s']]
-                triples |= {(row['s'], row['p'], row['o'])}
-                if row['t'] is not None:
-                    type_triples_of_neighbors |= {(row['o'],
-                                                   RDF.type,
-                                                   row['t'])}
+                result[row["s"]] = result.get(row["s"], (set(), set()))
+                triples, type_triples_of_neighbors = result[row["s"]]
+                triples |= {(row["s"], row["p"], row["o"])}
+                if row["t"] is not None:
+                    type_triples_of_neighbors |= {
+                        (row["o"], RDF.type, row["t"])
+                    }
             del query_result
             yield from result.values()
         except NotImplementedError:  # Fall back to triple patterns.

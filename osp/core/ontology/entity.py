@@ -1,9 +1,10 @@
 """Abstract superclass of any entity in the ontology."""
 
+import logging
 from abc import ABC, abstractmethod
 from functools import lru_cache
+
 import rdflib
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +37,9 @@ class OntologyEntity(ABC):
 
     @property
     def _namespace_name(self):
-        return self._namespace_registry._get_namespace_name_and_iri(
-            self.iri
-        )[0]
+        return self._namespace_registry._get_namespace_name_and_iri(self.iri)[
+            0
+        ]
 
     def __str__(self):
         """Transform the entity into a human readable string."""
@@ -46,8 +47,11 @@ class OntologyEntity(ABC):
 
     def __repr__(self):
         """Transform the entity into a string."""
-        return "<%s %s.%s>" % (self.__class__.__name__,
-                               self._namespace_name, self._name)
+        return "<%s %s.%s>" % (
+            self.__class__.__name__,
+            self._namespace_name,
+            self._name,
+        )
 
     def __eq__(self, other):
         """Check whether two entities are the same.
@@ -131,7 +135,8 @@ class OntologyEntity(ABC):
 
         """
         desc = self.namespace._graph.value(
-            self.iri, rdflib.RDFS.isDefinedBy, None)
+            self.iri, rdflib.RDFS.isDefinedBy, None
+        )
         if desc is None:
             return "To Be Determined"
         return str(desc)
@@ -195,12 +200,14 @@ class OntologyEntity(ABC):
         frontier = {self.iri}
         while frontier:
             current = frontier.pop()
-            yield from self._directly_connected(predicate_iri=predicate_iri,
-                                                inverse=inverse,
-                                                blacklist=blacklist,
-                                                _frontier=frontier,
-                                                _visited=visited,
-                                                _iri=current)
+            yield from self._directly_connected(
+                predicate_iri=predicate_iri,
+                inverse=inverse,
+                blacklist=blacklist,
+                _frontier=frontier,
+                _visited=visited,
+                _iri=current,
+            )
 
     def _special_cases(self, triple):
         """Some supclass statements are often omitted in the ontology.
@@ -218,23 +225,42 @@ class OntologyEntity(ABC):
         if triple == (rdflib.OWL.Nothing, rdflib.RDFS.subClassOf, None):
             return (None, rdflib.RDF.type, rdflib.OWL.Class)
 
-        if triple == (None, rdflib.RDFS.subPropertyOf,
-                      rdflib.OWL.topObjectProperty):
+        if triple == (
+            None,
+            rdflib.RDFS.subPropertyOf,
+            rdflib.OWL.topObjectProperty,
+        ):
             return (None, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
-        if triple == (rdflib.OWL.bottomObjectProperty,
-                      rdflib.RDFS.subPropertyOf, None):
+        if triple == (
+            rdflib.OWL.bottomObjectProperty,
+            rdflib.RDFS.subPropertyOf,
+            None,
+        ):
             return (None, rdflib.RDF.type, rdflib.OWL.ObjectProperty)
 
-        if triple == (None, rdflib.RDFS.subPropertyOf,
-                      rdflib.OWL.topDataProperty):
+        if triple == (
+            None,
+            rdflib.RDFS.subPropertyOf,
+            rdflib.OWL.topDataProperty,
+        ):
             return (None, rdflib.RDF.type, rdflib.OWL.DataProperty)
-        if triple == (rdflib.OWL.bottomDataProperty,
-                      rdflib.RDFS.subPropertyOf, None):
+        if triple == (
+            rdflib.OWL.bottomDataProperty,
+            rdflib.RDFS.subPropertyOf,
+            None,
+        ):
             return (None, rdflib.RDF.type, rdflib.OWL.DataProperty)
         return triple
 
-    def _directly_connected(self, predicate_iri, inverse=False, blacklist=(),
-                            _frontier=None, _visited=None, _iri=None):
+    def _directly_connected(
+        self,
+        predicate_iri,
+        inverse=False,
+        blacklist=(),
+        _frontier=None,
+        _visited=None,
+        _iri=None,
+    ):
         """Get all the entities directly connected with the given predicate.
 
         Args:
@@ -251,8 +277,10 @@ class OntologyEntity(ABC):
         if inverse:
             triple = (None, predicate_iri, _iri or self.iri)
 
-        if predicate_iri in [rdflib.RDFS.subClassOf,
-                             rdflib.RDFS.subPropertyOf]:
+        if predicate_iri in [
+            rdflib.RDFS.subClassOf,
+            rdflib.RDFS.subPropertyOf,
+        ]:
             triple = self._special_cases(triple)
         for x in self.namespace._graph.triples(triple):
             o = x[0 if triple[0] is None else 2]
@@ -265,7 +293,8 @@ class OntologyEntity(ABC):
                     _frontier.add(o)
                 if o not in blacklist:
                     x = self.namespace._namespace_registry.from_iri(
-                        o, raise_error=False)
+                        o, raise_error=False
+                    )
                     if x:
                         yield x
 

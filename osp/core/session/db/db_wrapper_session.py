@@ -10,10 +10,10 @@ import rdflib
 
 import osp.core.warnings as warning_settings
 from osp.core.ontology.namespace_registry import namespace_registry
-from osp.core.session.wrapper_session import consumes_buffers, WrapperSession
-from osp.core.session.result import returns_query_result
 from osp.core.session.buffers import BufferContext, EngineContext
-from osp.core.utils.general import uid_from_iri, CUDS_IRI_PREFIX
+from osp.core.session.result import returns_query_result
+from osp.core.session.wrapper_session import WrapperSession, consumes_buffers
+from osp.core.utils.general import CUDS_IRI_PREFIX, uid_from_iri
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +55,10 @@ class DbWrapperSession(WrapperSession):
             Cuds: The list of loaded cuds objects
         """
         if self.root is None:
-            raise RuntimeError("This Session is not yet initialized. "
-                               "Add it to a wrapper first.")
+            raise RuntimeError(
+                "This Session is not yet initialized. "
+                "Add it to a wrapper first."
+            )
         for subclass in oclass.subclasses:
             yield from self._load_by_oclass(subclass)
 
@@ -149,27 +151,35 @@ class DbWrapperSession(WrapperSession):
         return username, password
 
     # OVERRIDE
-    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object,
-                              uids):
+    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object, uids):
         # do not expire if root is loaded
         x = old_cuds_object or new_cuds_object
         if x and x.uid != self.root:
-            super()._expire_neighour_diff(old_cuds_object, new_cuds_object,
-                                          uids)
+            super()._expire_neighour_diff(
+                old_cuds_object, new_cuds_object, uids
+            )
 
     def _is_cuds_iri(self, iri):
         uid = uid_from_iri(rdflib.URIRef(iri))
-        return uid in self._registry.keys() or \
-            uid == uuid.UUID(int=0) or iri.startswith(CUDS_IRI_PREFIX)
+        return (
+            uid in self._registry.keys()
+            or uid == uuid.UUID(int=0)
+            or iri.startswith(CUDS_IRI_PREFIX)
+        )
 
     @staticmethod
     def _is_cuds_iri_ontology(iri):
-        for s, p, o in namespace_registry._graph\
-                .triples((rdflib.URIRef(iri), rdflib.RDF.type, None)):
-            if o in frozenset({rdflib.OWL.DatatypeProperty,
-                               rdflib.OWL.ObjectProperty,
-                               rdflib.OWL.Class,
-                               rdflib.RDFS.Class}):
+        for s, p, o in namespace_registry._graph.triples(
+            (rdflib.URIRef(iri), rdflib.RDF.type, None)
+        ):
+            if o in frozenset(
+                {
+                    rdflib.OWL.DatatypeProperty,
+                    rdflib.OWL.ObjectProperty,
+                    rdflib.OWL.Class,
+                    rdflib.RDFS.Class,
+                }
+            ):
                 return False
         return True
 
@@ -186,8 +196,10 @@ class DbWrapperSession(WrapperSession):
         """
         large_dataset_warning = LargeDatasetWarning()
         unreachable, reachable = self._registry._get_not_reachable(
-            root_obj, rel=None, return_reachable=True,
-            warning=large_dataset_warning
+            root_obj,
+            rel=None,
+            return_reachable=True,
+            warning=large_dataset_warning,
         )
 
         # Warn about unreachable CUDS
@@ -200,10 +212,16 @@ class DbWrapperSession(WrapperSession):
                 "either add them to the wrapper object or to any other CUDS "
                 "that is reachable from it."
             ).format(
-                cuds=', '.join(str(x) for x in itertools
-                               .islice(unreachable, max_cuds_on_warning)),
-                more=" and " + str(len(unreachable) - max_cuds_on_warning)
-                     + " more" if len(unreachable) > 5 else "")
+                cuds=", ".join(
+                    str(x)
+                    for x in itertools.islice(unreachable, max_cuds_on_warning)
+                ),
+                more=" and "
+                + str(len(unreachable) - max_cuds_on_warning)
+                + " more"
+                if len(unreachable) > 5
+                else "",
+            )
             # A filter is applied to the logger that attaches the warning
             # type to the log records.
             logger_filter = UnreachableCUDSWarningFilter()
@@ -217,8 +235,10 @@ class DbWrapperSession(WrapperSession):
 
         # Warn about large datasets and recommend disabling the unreachable
         # CUDS warning for large datasets.
-        if len(reachable) + len(unreachable) >= \
-                warning_settings.unreachable_cuds_objects_large_dataset_size:
+        if (
+            len(reachable) + len(unreachable)
+            >= warning_settings.unreachable_cuds_objects_large_dataset_size
+        ):
             # Recommend disabling the warning for large datasets.
             large_dataset_warning.warn()
 
@@ -246,6 +266,7 @@ class LargeDatasetWarning(UserWarning):
     Used by `DbWrapperSession._unreachable_warning`, during the commit
     operation.
     """
+
     warned: bool = False
     unreachable_cuds_warning: bool = False
 
@@ -270,9 +291,13 @@ class LargeDatasetWarning(UserWarning):
             "when working with large datasets. You can turn off the "
             "warning by running `import osp.core.warnings as "
             "warning_settings; "
-            "warning_settings.unreachable_cuds_objects = False`.")
-        reference = ("a warning" if not self.unreachable_cuds_warning else
-                     "the previous warning")
+            "warning_settings.unreachable_cuds_objects = False`."
+        )
+        reference = (
+            "a warning"
+            if not self.unreachable_cuds_warning
+            else "the previous warning"
+        )
         warning = warning.format(reference_to_warning=reference)
         # A filter is applied to the logger that attaches the warning
         # type to the log records.

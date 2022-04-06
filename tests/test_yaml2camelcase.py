@@ -1,14 +1,22 @@
 """Test cases for the Yaml2CamelCase tool."""
 
-import yaml
 import tempfile
 import unittest
 from pathlib import Path
+
+import yaml
+
 from osp.core.tools.yaml2camelcase import Yaml2CamelCaseConverter
 
 caps = Path(__file__).parent / "city_caps.ontology.yml"
-camel = Path(__file__).parents[1] / "osp" / "core" / "ontology" / "docs" \
+camel = (
+    Path(__file__).parents[1]
+    / "osp"
+    / "core"
+    / "ontology"
+    / "docs"
     / "city.ontology.yml"
+)
 
 
 class TestYaml2CamelCase(unittest.TestCase):

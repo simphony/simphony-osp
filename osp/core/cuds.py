@@ -6,22 +6,37 @@ has attributes and is connected to other cuds objects via relationships.
 
 import logging
 from copy import deepcopy
-from uuid import uuid4, UUID
-from typing import Any, Dict, Hashable, Iterable, Iterator, List, Optional, \
-    Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Hashable,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
+from uuid import UUID, uuid4
+
 import rdflib
-from rdflib import URIRef, BNode, RDF, Graph, Literal
+from rdflib import RDF, BNode, Graph, Literal, URIRef
+
 import osp.core.warnings as warning_settings
 from osp.core.namespaces import cuba, from_iri
-from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.neighbor_dict import NeighborDictRel
 from osp.core.ontology.attribute import OntologyAttribute
-from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.datatypes import CUDS_IRI_PREFIX
+from osp.core.ontology.oclass import OntologyClass
+from osp.core.ontology.relationship import OntologyRelationship
 from osp.core.session.core_session import core_session
 from osp.core.session.session import Session
-from osp.core.neighbor_dict import NeighborDictRel
-from osp.core.utils.wrapper_development import check_arguments, \
-    clone_cuds_object, create_from_cuds_object, get_neighbor_diff
+from osp.core.utils.wrapper_development import (
+    check_arguments,
+    clone_cuds_object,
+    create_from_cuds_object,
+    get_neighbor_diff,
+)
 
 logger = logging.getLogger("osp.core")
 
@@ -38,30 +53,38 @@ class Cuds:
 
     _session = core_session
 
-    def __init__(self,
-                 # Create from oclass and attributes dict.
-                 attributes: Dict[OntologyAttribute, Any],
-                 oclass: Optional[OntologyClass] = None,
-                 session: Session = None,
-                 iri: URIRef = None,
-                 uid: Union[UUID, URIRef] = None,
-                 # Specify extra triples for the CUDS object.
-                 extra_triples: Iterable[
-                     Tuple[Union[URIRef, BNode],
-                           Union[URIRef, BNode],
-                           Union[URIRef, BNode]]] = tuple()):
+    def __init__(
+        self,
+        # Create from oclass and attributes dict.
+        attributes: Dict[OntologyAttribute, Any],
+        oclass: Optional[OntologyClass] = None,
+        session: Session = None,
+        iri: URIRef = None,
+        uid: Union[UUID, URIRef] = None,
+        # Specify extra triples for the CUDS object.
+        extra_triples: Iterable[
+            Tuple[
+                Union[URIRef, BNode],
+                Union[URIRef, BNode],
+                Union[URIRef, BNode],
+            ]
+        ] = tuple(),
+    ):
         """Initialize a CUDS object."""
         # Set uid. This is a "user-facing" method, so strict types
         # checks are performed.
         if len(set(filter(lambda x: x is not None, (uid, iri)))) > 1:
-            raise ValueError("Tried to initialize a CUDS object specifying, "
-                             "both its IRI and UID. A CUDS object is "
-                             "constrained to have just one UID.")
+            raise ValueError(
+                "Tried to initialize a CUDS object specifying, "
+                "both its IRI and UID. A CUDS object is "
+                "constrained to have just one UID."
+            )
         elif uid is not None and type(uid) not in (UUID, URIRef):
-            raise ValueError('Provide either a UUID or a URIRef object'
-                             'as UID.')
+            raise ValueError(
+                "Provide either a UUID or a URIRef object" "as UID."
+            )
         elif iri is not None and type(iri) is not URIRef:
-            raise ValueError('Provide a URIRef object as IRI.')
+            raise ValueError("Provide a URIRef object as IRI.")
         else:
             self._uid = uid or iri or uuid4()
 
@@ -69,27 +92,32 @@ class Cuds:
         self._graph = Graph()
         if attributes:
             for k, v in attributes.items():
-                self._graph.add((
-                    self.iri, k.iri, Literal(k.convert_to_datatype(v),
-                                             datatype=k.datatype)
-                ))
+                self._graph.add(
+                    (
+                        self.iri,
+                        k.iri,
+                        Literal(k.convert_to_datatype(v), datatype=k.datatype),
+                    )
+                )
         if oclass:
-            self._graph.add((
-                self.iri, RDF.type, oclass.iri
-            ))
+            self._graph.add((self.iri, RDF.type, oclass.iri))
         extra_oclass = False
         for s, p, o in extra_triples:
             if s != self.iri:
-                raise ValueError("Trying to add extra triples to a CUDS "
-                                 "object with a subject that does not match "
-                                 "the CUDS object's IRI.")
+                raise ValueError(
+                    "Trying to add extra triples to a CUDS "
+                    "object with a subject that does not match "
+                    "the CUDS object's IRI."
+                )
             elif p == RDF.type:
                 extra_oclass = True
             self._graph.add((s, p, o))
         oclass_assigned = bool(oclass) or extra_oclass
         if not oclass_assigned:
-            raise TypeError(f"No oclass associated with {self}! "
-                            f"Did you install the required ontology?")
+            raise TypeError(
+                f"No oclass associated with {self}! "
+                f"Did you install the required ontology?"
+            )
 
         self._session = session or Cuds._session
         # Copy temporary graph to the session graph and discard it.
@@ -98,8 +126,11 @@ class Cuds:
     @property
     def iri(self) -> URIRef:
         """Get the IRI of the CUDS object."""
-        return self.uid if type(self.uid) is URIRef else \
-            URIRef(CUDS_NAMESPACE_IRI + str(self.uid))
+        return (
+            self.uid
+            if type(self.uid) is URIRef
+            else URIRef(CUDS_NAMESPACE_IRI + str(self.uid))
+        )
 
     @property
     def uid(self) -> Union[URIRef, UUID]:
@@ -128,7 +159,7 @@ class Cuds:
         if type(value) is UUID:
             invalid = value.int == 0
         else:
-            split = value.split(':')
+            split = value.split(":")
             invalid = not len(split) > 1 or any(x == "" for x in split)
         if invalid:
             raise ValueError(f"Invalid uid: {value}.")
@@ -184,7 +215,8 @@ class Cuds:
             obj = from_iri(p, raise_error=False)
             if isinstance(obj, OntologyAttribute):
                 value = self._rdflib_5_inplace_modification_prevention_filter(
-                    o.toPython(), obj)
+                    o.toPython(), obj
+                )
                 result[obj] = value
         return result
 
@@ -200,9 +232,9 @@ class Cuds:
         """
         return any(oc in oclass.subclasses for oc in self.oclasses)
 
-    def add(self,
-            *args: "Cuds",
-            rel: OntologyRelationship = None) -> Union["Cuds", List["Cuds"]]:
+    def add(
+        self, *args: "Cuds", rel: OntologyRelationship = None
+    ) -> Union["Cuds", List["Cuds"]]:
         """Add CUDS objects to their respective relationship.
 
         If the added objects are associated with the same session,
@@ -227,18 +259,20 @@ class Cuds:
         check_arguments(Cuds, *args)
         rel = rel or self.oclass.namespace.get_default_rel()
         if rel is None:
-            raise TypeError("Missing argument 'rel'! No default "
-                            "relationship specified for namespace %s."
-                            % self.oclass.namespace)
+            raise TypeError(
+                "Missing argument 'rel'! No default "
+                "relationship specified for namespace %s."
+                % self.oclass.namespace
+            )
         result = list()
         # update cuds objects if they are already in the session
         old_objects = self._session.load(
-            *[arg.uid for arg in args if arg.session != self.session])
+            *[arg.uid for arg in args if arg.session != self.session]
+        )
         for arg in args:
             # Recursively add the children to the registry
-            if rel in self._neighbors \
-                    and arg.uid in self._neighbors[rel]:
-                message = '{!r} is already in the container'
+            if rel in self._neighbors and arg.uid in self._neighbors[rel]:
+                message = "{!r} is already in the container"
                 raise ValueError(message.format(arg))
             if self.session != arg.session:
                 arg = self._recursive_store(arg, next(old_objects))
@@ -248,11 +282,13 @@ class Cuds:
             result.append(arg)
         return result[0] if len(args) == 1 else result
 
-    def get(self,
-            *uids: Union[UUID, URIRef],
-            rel: OntologyRelationship = cuba.activeRelationship,
-            oclass: OntologyClass = None,
-            return_rel: bool = False) -> Union["Cuds", List["Cuds"]]:
+    def get(
+        self,
+        *uids: Union[UUID, URIRef],
+        rel: OntologyRelationship = cuba.activeRelationship,
+        oclass: OntologyClass = None,
+        return_rel: bool = False,
+    ) -> Union["Cuds", List["Cuds"]]:
         """Return the contained elements.
 
         Filter elements by given type, uid or relationship.
@@ -283,8 +319,7 @@ class Cuds:
             Union[Cuds, List[Cuds]]: The queried objects.
         """
         result = list(
-            self.iter(*uids, rel=rel, oclass=oclass,
-                      return_rel=return_rel)
+            self.iter(*uids, rel=rel, oclass=oclass, return_rel=return_rel)
         )
         if len(uids) == 1:
             return result[0]
@@ -319,14 +354,16 @@ class Cuds:
         if len(args) == 1:
             old_objects = [old_objects]
         if any(x is None for x in old_objects):
-            message = 'Cannot update because cuds_object not added.'
+            message = "Cannot update because cuds_object not added."
             raise ValueError(message)
 
         result = list()
         for arg, old_cuds_object in zip(args, old_objects):
             if arg.session is self.session:
-                raise ValueError("Please provide CUDS objects from a "
-                                 "different session to update()")
+                raise ValueError(
+                    "Please provide CUDS objects from a "
+                    "different session to update()"
+                )
             # Updates all instances
             result.append(self._recursive_store(arg, old_cuds_object))
 
@@ -334,10 +371,12 @@ class Cuds:
             return result[0]
         return result
 
-    def remove(self,
-               *args: Union["Cuds", UUID, URIRef],
-               rel: OntologyRelationship = cuba.activeRelationship,
-               oclass: OntologyClass = None):
+    def remove(
+        self,
+        *args: Union["Cuds", UUID, URIRef],
+        rel: OntologyRelationship = cuba.activeRelationship,
+        oclass: OntologyClass = None,
+    ):
         """Remove elements from the CUDS object.
 
         Expected calls are remove(), remove(*uids/Cuds),
@@ -361,28 +400,31 @@ class Cuds:
         uids = [arg.uid if isinstance(arg, Cuds) else arg for arg in args]
 
         # Get mapping from uids to connecting relationships
-        _, relationship_mapping = self._get(*uids, rel=rel,
-                                            oclass=oclass, return_mapping=True)
+        _, relationship_mapping = self._get(
+            *uids, rel=rel, oclass=oclass, return_mapping=True
+        )
         if not relationship_mapping:
-            raise RuntimeError("Did not remove any Cuds object, "
-                               "because none matched your filter.")
+            raise RuntimeError(
+                "Did not remove any Cuds object, "
+                "because none matched your filter."
+            )
         uid_relationships = list(relationship_mapping.items())
 
         # load all the neighbors to delete and remove inverse relationship
-        neighbors = self.session.load(
-            *[uid for uid, _ in uid_relationships])
-        for uid_relationship, neighbor in zip(uid_relationships,
-                                              neighbors):
+        neighbors = self.session.load(*[uid for uid, _ in uid_relationships])
+        for uid_relationship, neighbor in zip(uid_relationships, neighbors):
             uid, relationships = uid_relationship
             for relationship in relationships:
                 self._remove_direct(relationship, uid)
                 neighbor._remove_inverse(relationship, self.uid)
 
-    def iter(self,
-             *uids: Union[UUID, URIRef],
-             rel: OntologyRelationship = cuba.activeRelationship,
-             oclass: OntologyClass = None,
-             return_rel: bool = False) -> Iterator["Cuds"]:
+    def iter(
+        self,
+        *uids: Union[UUID, URIRef],
+        rel: OntologyRelationship = cuba.activeRelationship,
+        oclass: OntologyClass = None,
+        return_rel: bool = False,
+    ) -> Iterator["Cuds"]:
         """Iterate over the contained elements.
 
         Only iterate over objects of a given type, uid or oclass.
@@ -411,8 +453,9 @@ class Cuds:
             Iterator[Cuds]: The queried objects.
         """
         if return_rel:
-            collected_uids, mapping = self._get(*uids, rel=rel, oclass=oclass,
-                                                return_mapping=True)
+            collected_uids, mapping = self._get(
+                *uids, rel=rel, oclass=oclass, return_mapping=True
+            )
         else:
             collected_uids = self._get(*uids, rel=rel, oclass=oclass)
 
@@ -449,11 +492,13 @@ class Cuds:
                 del missing[new_cuds_object.uid]
             old_cuds_object = clone_cuds_object(old_cuds_object)
             new_child_getter = new_cuds_object
-            new_cuds_object = create_from_cuds_object(new_cuds_object,
-                                                      add_to.session)
+            new_cuds_object = create_from_cuds_object(
+                new_cuds_object, add_to.session
+            )
             # fix the connections to the neighbors
-            add_to._fix_neighbors(new_cuds_object, old_cuds_object,
-                                  add_to.session, missing)
+            add_to._fix_neighbors(
+                new_cuds_object, old_cuds_object, add_to.session, missing
+            )
             result = result or new_cuds_object
 
             for outgoing_rel in new_cuds_object._neighbors:
@@ -463,11 +508,11 @@ class Cuds:
                     continue
 
                 # add children not already added
-                for child_uid in \
-                        new_cuds_object._neighbors[outgoing_rel]:
+                for child_uid in new_cuds_object._neighbors[outgoing_rel]:
                     if child_uid not in uids_stored:
                         new_child = new_child_getter.get(
-                            child_uid, rel=outgoing_rel)
+                            child_uid, rel=outgoing_rel
+                        )
                         old_child = self.session.load(child_uid).first()
                         queue.append((new_cuds_object, new_child, old_child))
                         uids_stored.add(new_child.uid)
@@ -519,32 +564,42 @@ class Cuds:
 
         # get the parents that got parents after adding the new Cuds
         new_parent_diff = get_neighbor_diff(
-            new_cuds_object, old_cuds_object, mode="non-active")
+            new_cuds_object, old_cuds_object, mode="non-active"
+        )
         # get the neighbors that were neighbors
         # before adding the new cuds_object
-        old_neighbor_diff = get_neighbor_diff(old_cuds_object,
-                                              new_cuds_object)
+        old_neighbor_diff = get_neighbor_diff(old_cuds_object, new_cuds_object)
 
         # Load all the cuds_objects of the session
-        cuds_objects = iter(session.load(
-            *[uid for uid, _ in
-              new_parent_diff + old_neighbor_diff]))
+        cuds_objects = iter(
+            session.load(
+                *[uid for uid, _ in new_parent_diff + old_neighbor_diff]
+            )
+        )
 
         # Perform the fixes
-        Cuds._fix_new_parents(new_cuds_object=new_cuds_object,
-                              new_parents=cuds_objects,
-                              new_parent_diff=new_parent_diff,
-                              missing=missing)
-        Cuds._fix_old_neighbors(new_cuds_object=new_cuds_object,
-                                old_cuds_object=old_cuds_object,
-                                old_neighbors=cuds_objects,
-                                old_neighbor_diff=old_neighbor_diff)
+        Cuds._fix_new_parents(
+            new_cuds_object=new_cuds_object,
+            new_parents=cuds_objects,
+            new_parent_diff=new_parent_diff,
+            missing=missing,
+        )
+        Cuds._fix_old_neighbors(
+            new_cuds_object=new_cuds_object,
+            old_cuds_object=old_cuds_object,
+            old_neighbors=cuds_objects,
+            old_neighbor_diff=old_neighbor_diff,
+        )
 
     @staticmethod
-    def _fix_new_parents(new_cuds_object, new_parents,
-                         new_parent_diff: List[Tuple[Union[UUID, URIRef],
-                                                     OntologyRelationship]],
-                         missing):
+    def _fix_new_parents(
+        new_cuds_object,
+        new_parents,
+        new_parent_diff: List[
+            Tuple[Union[UUID, URIRef], OntologyRelationship]
+        ],
+        missing,
+    ):
         """Fix the relationships of the added Cuds objects.
 
         Fixes relationships to the parents of the added Cuds object.
@@ -561,8 +616,9 @@ class Cuds:
                 session. The recursive_add might add it later.
         """
         # Iterate over the new parents
-        for (parent_uid, relationship), parent in zip(new_parent_diff,
-                                                      new_parents):
+        for (parent_uid, relationship), parent in zip(
+            new_parent_diff, new_parents
+        ):
             if relationship.is_subclass_of(cuba.activeRelationship):
                 continue
             inverse = relationship.inverse
@@ -570,22 +626,24 @@ class Cuds:
             if parent is None:
                 if parent_uid not in missing:
                     missing[parent_uid] = list()
-                missing[parent_uid].append((new_cuds_object,
-                                            relationship))
+                missing[parent_uid].append((new_cuds_object, relationship))
                 continue
 
             # Add the inverse to the parent
             if inverse not in parent._neighbors:
                 parent._neighbors[inverse] = {}
 
-            parent._neighbors[inverse][new_cuds_object.uid] = \
-                new_cuds_object.oclasses
+            parent._neighbors[inverse][
+                new_cuds_object.uid
+            ] = new_cuds_object.oclasses
 
     @staticmethod
-    def _fix_old_neighbors(new_cuds_object, old_cuds_object,
-                           old_neighbors: List[Tuple[Union[UUID, URIRef],
-                                                     OntologyRelationship]],
-                           old_neighbor_diff):
+    def _fix_old_neighbors(
+        new_cuds_object,
+        old_cuds_object,
+        old_neighbors: List[Tuple[Union[UUID, URIRef], OntologyRelationship]],
+        old_neighbor_diff,
+    ):
         """Fix the relationships of the added Cuds objects.
 
         Fixes relationships to Cuds object that were previously neighbors.
@@ -600,26 +658,28 @@ class Cuds:
                 relations they are connected with.
         """
         # iterate over all old neighbors.
-        for (neighbor_uid, relationship), neighbor \
-                in zip(old_neighbor_diff, old_neighbors):
+        for (neighbor_uid, relationship), neighbor in zip(
+            old_neighbor_diff, old_neighbors
+        ):
             inverse = relationship.inverse
 
             # delete the inverse if neighbors are children
             if relationship.is_subclass_of(cuba.activeRelationship):
                 if inverse in neighbor._neighbors:
-                    neighbor._remove_direct(inverse,
-                                            new_cuds_object.uid)
+                    neighbor._remove_direct(inverse, new_cuds_object.uid)
 
             # if neighbor is parent, add missing relationships
             else:
                 if relationship not in new_cuds_object._neighbors:
                     new_cuds_object._neighbors[relationship] = {}
-                for (uid, oclasses), parent in \
-                        zip(old_cuds_object._neighbors[relationship].items(),
-                            neighbor._neighbors):
+                for (uid, oclasses), parent in zip(
+                    old_cuds_object._neighbors[relationship].items(),
+                    neighbor._neighbors,
+                ):
                     if parent is not None:
-                        new_cuds_object \
-                            ._neighbors[relationship][uid] = oclasses
+                        new_cuds_object._neighbors[relationship][
+                            uid
+                        ] = oclasses
 
     def _add_direct(self, cuds_object, rel):
         """Add an cuds_object with a specific relationship.
@@ -677,12 +737,15 @@ class Cuds:
         if uids and oclass is not None:
             raise TypeError("Do not specify both uids and oclass.")
         if rel is not None and not isinstance(rel, OntologyRelationship):
-            raise ValueError("Found object of type %s passed to argument rel. "
-                             "Should be an OntologyRelationship." % type(rel))
+            raise ValueError(
+                "Found object of type %s passed to argument rel. "
+                "Should be an OntologyRelationship." % type(rel)
+            )
         if oclass is not None and not isinstance(oclass, OntologyClass):
-            raise ValueError("Found object of type %s passed to argument "
-                             "oclass. Should be an OntologyClass."
-                             % type(oclass))
+            raise ValueError(
+                "Found object of type %s passed to argument "
+                "oclass. Should be an OntologyClass." % type(oclass)
+            )
 
         if uids:
             check_arguments((UUID, URIRef), *uids)
@@ -699,14 +762,15 @@ class Cuds:
         if not consider_relationships and not return_mapping:
             return [] if not uids else [None] * len(uids)
         elif not consider_relationships:
-            return ([], dict()) if not uids else \
-                ([None] * len(uids), dict())
+            return ([], dict()) if not uids else ([None] * len(uids), dict())
 
         if uids:
-            return self._get_by_uids(uids, consider_relationships,
-                                     return_mapping=return_mapping)
-        return self._get_by_oclass(oclass, consider_relationships,
-                                   return_mapping=return_mapping)
+            return self._get_by_uids(
+                uids, consider_relationships, return_mapping=return_mapping
+            )
+        return self._get_by_oclass(
+            oclass, consider_relationships, return_mapping=return_mapping
+        )
 
     def _get_by_uids(self, uids, relationships, return_mapping):
         """Check for each given uid if it is connected by a given relationship.
@@ -732,12 +796,16 @@ class Cuds:
         """
         collected_uid = [None] * len(uids)
         relationship_mapping = dict()
-        uids_cache = {relationship: set(self._neighbors[relationship])
-                      for relationship in relationships}
+        uids_cache = {
+            relationship: set(self._neighbors[relationship])
+            for relationship in relationships
+        }
         for i, uid in enumerate(uids):
-            relationship_set = {relationship
-                                for relationship in relationships
-                                if uid in uids_cache[relationship]}
+            relationship_set = {
+                relationship
+                for relationship in relationships
+                if uid in uids_cache[relationship]
+            }
             # The following line was a performance hog, and was therefore
             #  replaced by the one above.
             #                   if uid in self._neighbors[relationship]}
@@ -745,9 +813,11 @@ class Cuds:
                 collected_uid[i] = uid
                 relationship_mapping[uid] = relationship_set
 
-        return collected_uid \
-            if not return_mapping else \
-            (collected_uid, relationship_mapping)
+        return (
+            collected_uid
+            if not return_mapping
+            else (collected_uid, relationship_mapping)
+        )
 
     def _get_by_oclass(self, oclass, relationships, return_mapping):
         """Get the cuds_objects with given oclass.
@@ -776,10 +846,10 @@ class Cuds:
 
             # Collect all uids who are object of the current
             # relationship. Possibly filter by OntologyClass.
-            for uid, target_classes \
-                    in self._neighbors[relationship].items():
-                if oclass is None or any(t.is_subclass_of(oclass)
-                                         for t in target_classes):
+            for uid, target_classes in self._neighbors[relationship].items():
+                if oclass is None or any(
+                    t.is_subclass_of(oclass) for t in target_classes
+                ):
                     if uid not in relationship_mapping:
                         relationship_mapping[uid] = set()
                     relationship_mapping[uid].add(relationship)
@@ -862,7 +932,8 @@ class Cuds:
             if self.session:
                 self.session._notify_read(self)
             value = self._rdflib_5_inplace_modification_prevention_filter(
-                self._graph.value(self.iri, identifier).toPython(), identifier)
+                self._graph.value(self.iri, identifier).toPython(), identifier
+            )
             return value
         except AttributeError as e:
             if (  # check if user calls session's methods on wrapper
@@ -896,34 +967,36 @@ class Cuds:
 
     @staticmethod
     def _rdflib_5_inplace_modification_prevention_filter(
-            value: Any, attribute: OntologyAttribute) -> Any:
-        if rdflib.__version__ < "6.0.0" and not isinstance(value,
-                                                           Hashable):
+        value: Any, attribute: OntologyAttribute
+    ) -> Any:
+        if rdflib.__version__ < "6.0.0" and not isinstance(value, Hashable):
             value = deepcopy(value)
             if warning_settings.attributes_cannot_modify_in_place:
                 warning_settings.attributes_cannot_modify_in_place = False
-                logger.warning(f"Attribute {attribute} references the mutable "
-                               f"object {value} of type {type(value)}. Please "
-                               f"note that because you have `rdflib < 6.0.0` "
-                               f"installed, if you modify this object "
-                               f"in-place, the changes will not be reflected "
-                               f"on the cuds object's attribute. \n"
-                               f"For example, executing "
-                               f"`fr = city.City(name='Freiburg', "
-                               f"coordinates=[1, 2]); fr.coordinates[0]=98; "
-                               f"fr.coordinates` would yield `array([1, 2])` "
-                               f"instead of `array([98, 2])`, as you could "
-                               f"expect. Use `fr.coordinates = [98, 2]` "
-                               f"instead, or save the attribute to a "
-                               f"different variable, i.e. `value = "
-                               f"fr.coordinates; value[0] = 98, "
-                               f"fr.coordinates = value`."
-                               f"\n"
-                               f"You will not see this kind of warning again "
-                               f"during this session. You can turn off the "
-                               f"warning by running `import osp.core.warnings "
-                               f"as warning_settings; warning_settings."
-                               f"attributes_cannot_modify_in_place = False`.")
+                logger.warning(
+                    f"Attribute {attribute} references the mutable "
+                    f"object {value} of type {type(value)}. Please "
+                    f"note that because you have `rdflib < 6.0.0` "
+                    f"installed, if you modify this object "
+                    f"in-place, the changes will not be reflected "
+                    f"on the cuds object's attribute. \n"
+                    f"For example, executing "
+                    f"`fr = city.City(name='Freiburg', "
+                    f"coordinates=[1, 2]); fr.coordinates[0]=98; "
+                    f"fr.coordinates` would yield `array([1, 2])` "
+                    f"instead of `array([98, 2])`, as you could "
+                    f"expect. Use `fr.coordinates = [98, 2]` "
+                    f"instead, or save the attribute to a "
+                    f"different variable, i.e. `value = "
+                    f"fr.coordinates; value[0] = 98, "
+                    f"fr.coordinates = value`."
+                    f"\n"
+                    f"You will not see this kind of warning again "
+                    f"during this session. You can turn off the "
+                    f"warning by running `import osp.core.warnings "
+                    f"as warning_settings; warning_settings."
+                    f"attributes_cannot_modify_in_place = False`."
+                )
         return value
 
     def __setattr__(self, name, new_value):
@@ -944,11 +1017,15 @@ class Cuds:
         attr = self._get_attribute_by_argname(name)
         if self.session:
             self.session._notify_read(self)
-        self._graph.set((
-            self.iri, attr.iri,
-            Literal(attr.convert_to_datatype(new_value),
-                    datatype=attr.datatype)
-        ))
+        self._graph.set(
+            (
+                self.iri,
+                attr.iri,
+                Literal(
+                    attr.convert_to_datatype(new_value), datatype=attr.datatype
+                ),
+            )
+        )
         if self.session:
             self.session._notify_update(self)
 
@@ -958,9 +1035,12 @@ class Cuds:
         Returns:
             str: Machine readable string representation for Cuds.
         """
-        return "<%s: %s,  %s: @%s>" % (self.oclass, self.uid,
-                                       type(self.session).__name__,
-                                       hex(id(self.session)))
+        return "<%s: %s,  %s: @%s>" % (
+            self.oclass,
+            self.uid,
+            type(self.session).__name__,
+            hex(id(self.session)),
+        )
 
     def __hash__(self) -> int:
         """Make Cuds objects hashable.
@@ -983,8 +1063,11 @@ class Cuds:
         Returns:
             bool: True if they share the uid and class, False otherwise
         """
-        return isinstance(other, Cuds) and other.oclass == self.oclass \
+        return (
+            isinstance(other, Cuds)
+            and other.oclass == self.oclass
             and self.uid == other.uid
+        )
 
     def __getstate__(self):
         """Get the state for pickling or copying.
@@ -993,8 +1076,11 @@ class Cuds:
             Dict[str, Any]: The state of the object. Does not contain session.
                 Contains the string of the OntologyClass.
         """
-        state = {k: v for k, v in self.__dict__.items()
-                 if k not in {"_session", "_graph"}}
+        state = {
+            k: v
+            for k, v in self.__dict__.items()
+            if k not in {"_session", "_graph"}
+        }
         state["_graph"] = list(self.get_triples(include_neighbor_types=True))
         return state
 

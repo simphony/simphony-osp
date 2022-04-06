@@ -1,21 +1,22 @@
 """Test the API with the EMMO ontology."""
 
 import itertools
-import unittest2 as unittest
-import rdflib
-from osp.core.ontology import OntologyEntity
-from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.attribute import OntologyAttribute
-from osp.core.ontology.oclass_restriction import Restriction, \
-    QUANTIFIER, RTYPE
-from osp.core.ontology.oclass_composition import Composition
 
+import rdflib
+import unittest2 as unittest
+
+from osp.core.ontology import OntologyEntity
+from osp.core.ontology.attribute import OntologyAttribute
+from osp.core.ontology.oclass_composition import Composition
+from osp.core.ontology.oclass_restriction import QUANTIFIER, RTYPE, Restriction
+from osp.core.ontology.relationship import OntologyRelationship
 
 try:
-    from osp.core.namespaces import math, materials, siunits
+    from osp.core.namespaces import materials, math, siunits
 except ImportError:  # When the EMMO ontology is not installed.
     from osp.core.ontology import Parser
     from osp.core.ontology.namespace_registry import namespace_registry
+
     Parser().parse("emmo")
     math = namespace_registry.math
     materials = namespace_registry.materials
@@ -24,14 +25,18 @@ except ImportError:  # When the EMMO ontology is not installed.
 
 # Mappings from OWL objects and ontology classes to enums used
 # in oclass_composition.py.
-quantifier_owl_to_enum = {rdflib.OWL.someValuesFrom: QUANTIFIER.SOME,
-                          rdflib.OWL.allValuesFrom: QUANTIFIER.ONLY,
-                          rdflib.OWL.cardinality: QUANTIFIER.EXACTLY,
-                          rdflib.OWL.minCardinality: QUANTIFIER.MIN,
-                          rdflib.OWL.maxCardinality: QUANTIFIER.MAX,
-                          rdflib.OWL.hasValue: QUANTIFIER.VALUE}
-rtypes = {OntologyRelationship: RTYPE.RELATIONSHIP_RESTRICTION,
-          OntologyAttribute: RTYPE.ATTRIBUTE_RESTRICTION}
+quantifier_owl_to_enum = {
+    rdflib.OWL.someValuesFrom: QUANTIFIER.SOME,
+    rdflib.OWL.allValuesFrom: QUANTIFIER.ONLY,
+    rdflib.OWL.cardinality: QUANTIFIER.EXACTLY,
+    rdflib.OWL.minCardinality: QUANTIFIER.MIN,
+    rdflib.OWL.maxCardinality: QUANTIFIER.MAX,
+    rdflib.OWL.hasValue: QUANTIFIER.VALUE,
+}
+rtypes = {
+    OntologyRelationship: RTYPE.RELATIONSHIP_RESTRICTION,
+    OntologyAttribute: RTYPE.ATTRIBUTE_RESTRICTION,
+}
 
 
 class TestRestrictionsEmmo(unittest.TestCase):
@@ -42,17 +47,26 @@ class TestRestrictionsEmmo(unittest.TestCase):
     each restriction.
     """
 
-    emmo_classes = (math.Integer, math.Real, math.Boolean, math.Vector,
-                    math.Matrix, materials.Nucleus, materials.ElectronCloud,
-                    siunits.Gray, siunits.Watt)
+    emmo_classes = (
+        math.Integer,
+        math.Real,
+        math.Boolean,
+        math.Vector,
+        math.Matrix,
+        materials.Nucleus,
+        materials.ElectronCloud,
+        siunits.Gray,
+        siunits.Watt,
+    )
 
     def iter_restrictions(self):
         """Iterates over all the restrictions present in the test classes."""
         restrictions = iter([])
         for datatype in self.emmo_classes:
-            restrictions = itertools.chain(restrictions,
-                                           (r for r in datatype.axioms
-                                            if type(r) is Restriction))
+            restrictions = itertools.chain(
+                restrictions,
+                (r for r in datatype.axioms if type(r) is Restriction),
+            )
         return restrictions
 
     # def test__str(self):
@@ -68,11 +82,14 @@ class TestRestrictionsEmmo(unittest.TestCase):
             graph = r._graph
             namespace_registry = r._namespace_registry
 
-            properties = graph.objects(subject=b_node,
-                                       predicate=rdflib.OWL.onProperty)
+            properties = graph.objects(
+                subject=b_node, predicate=rdflib.OWL.onProperty
+            )
             properties = list(properties)
-            self.assertTrue(len(properties) == 1, "The restriction refers not "
-                                                  "exactly to one property.")
+            self.assertTrue(
+                len(properties) == 1,
+                "The restriction refers not " "exactly to one property.",
+            )
             prop = namespace_registry.from_iri(properties[0])
             self.assertEqual(prop, r._property)
 
@@ -86,11 +103,16 @@ class TestRestrictionsEmmo(unittest.TestCase):
             graph = r._graph
 
             restriction_predicates = graph.predicates(subject=b_node)
-            quantifiers = [quantifier_owl_to_enum[p]
-                           for p in restriction_predicates
-                           if p in quantifier_owl_to_enum]
-            self.assertEqual(len(quantifiers), 1, "The restriction has not "
-                                                  "exactly one quantifier.")
+            quantifiers = [
+                quantifier_owl_to_enum[p]
+                for p in restriction_predicates
+                if p in quantifier_owl_to_enum
+            ]
+            self.assertEqual(
+                len(quantifiers),
+                1,
+                "The restriction has not " "exactly one quantifier.",
+            )
             quantifier = quantifiers[0]
             self.assertIs(quantifier, r.quantifier)
 
@@ -99,27 +121,37 @@ class TestRestrictionsEmmo(unittest.TestCase):
 
         Also tests _compute_target and _check_quantifier implicitly.
         """
-        quantifiers_reverse = {item: key for key, item
-                               in quantifier_owl_to_enum.items()}
+        quantifiers_reverse = {
+            item: key for key, item in quantifier_owl_to_enum.items()
+        }
 
         for r in self.iter_restrictions():
             b_node = r._bnode
             graph = r._graph
 
             restriction_predicates = graph.predicates(subject=b_node)
-            quantifiers = [quantifier_owl_to_enum[p]
-                           for p in restriction_predicates
-                           if p in quantifier_owl_to_enum]
-            self.assertTrue(len(quantifiers) == 1, "The restriction has not "
-                                                   " one quantifier.")
+            quantifiers = [
+                quantifier_owl_to_enum[p]
+                for p in restriction_predicates
+                if p in quantifier_owl_to_enum
+            ]
+            self.assertTrue(
+                len(quantifiers) == 1,
+                "The restriction has not " " one quantifier.",
+            )
             quantifier = quantifiers[0]
-            self.assertTrue(len(quantifiers) == 1, "The restriction has not "
-                                                   "exactly one quantifier.")
-            targets = graph.objects(subject=b_node,
-                                    predicate=quantifiers_reverse[quantifier])
+            self.assertTrue(
+                len(quantifiers) == 1,
+                "The restriction has not " "exactly one quantifier.",
+            )
+            targets = graph.objects(
+                subject=b_node, predicate=quantifiers_reverse[quantifier]
+            )
             targets = list(targets)
-            self.assertTrue(len(targets) == 1, "The restriction has not "
-                                               "exactly one target.")
+            self.assertTrue(
+                len(targets) == 1,
+                "The restriction has not " "exactly one target.",
+            )
             target_id = targets[0]
             if isinstance(r.target, rdflib.term.Identifier):
                 target_id_restriction = r.target
@@ -128,8 +160,10 @@ class TestRestrictionsEmmo(unittest.TestCase):
             elif isinstance(r.target, Composition):
                 target_id_restriction = r.target._bnode
             else:
-                raise Exception(f"Unit test is incomplete, target of type "
-                                f"{type(r.target)} not considered.")
+                raise Exception(
+                    f"Unit test is incomplete, target of type "
+                    f"{type(r.target)} not considered."
+                )
             self.assertEqual(target_id, target_id_restriction)
 
     def test_rtype(self):
@@ -142,11 +176,14 @@ class TestRestrictionsEmmo(unittest.TestCase):
             graph = r._graph
             namespace_registry = r._namespace_registry
 
-            properties = graph.objects(subject=b_node,
-                                       predicate=rdflib.OWL.onProperty)
+            properties = graph.objects(
+                subject=b_node, predicate=rdflib.OWL.onProperty
+            )
             properties = list(properties)
-            self.assertTrue(len(properties) == 1, "The restriction refers not "
-                                                  "exactly to one property.")
+            self.assertTrue(
+                len(properties) == 1,
+                "The restriction refers not " "exactly to one property.",
+            )
             prop = namespace_registry.from_iri(properties[0])
             restriction_type = rtypes[type(prop)]
             self.assertIs(restriction_type, r.rtype)
@@ -163,8 +200,10 @@ class TestRestrictionsEmmo(unittest.TestCase):
             elif r.rtype == RTYPE.ATTRIBUTE_RESTRICTION:
                 self.assertRaises(AttributeError, getattr, r, "relationship")
             else:
-                raise Exception(f"Incomplete test, restrictions of type "
-                                f"{r.rtype} are not considered.")
+                raise Exception(
+                    f"Incomplete test, restrictions of type "
+                    f"{r.rtype} are not considered."
+                )
 
 
 class TestSpecificRestrictionsEmmo(unittest.TestCase):
@@ -186,22 +225,26 @@ class TestSpecificRestrictionsEmmo(unittest.TestCase):
         # Specific case 1:
         #    math.hasNumericalData QUANTIFIER.SOME
         #    http://www.w3.org/2001/XMLSchema#integer
-        self.restriction_data += [{'string': 'math.hasNumericalData '
-                                             'QUANTIFIER.SOME '
-                                             'http://www.w3.org/2001/XMLSchema'
-                                             '#integer',
-                                   'property': rdflib.URIRef('http://emmo.info'
-                                                             '/emmo/middle'
-                                                             '/math'
-                                                             '#EMMO_faf79f53_'
-                                                             '749d_40b2_807c'
-                                                             '_d34244c192f4'),
-                                   'quantifier': rdflib.OWL.someValuesFrom,
-                                   'target': rdflib.URIRef('http://www.w3.org/'
-                                                           '2001'
-                                                           '/XMLSchema#integer'
-                                                           )}
-                                  ]
+        self.restriction_data += [
+            {
+                "string": "math.hasNumericalData "
+                "QUANTIFIER.SOME "
+                "http://www.w3.org/2001/XMLSchema"
+                "#integer",
+                "property": rdflib.URIRef(
+                    "http://emmo.info"
+                    "/emmo/middle"
+                    "/math"
+                    "#EMMO_faf79f53_"
+                    "749d_40b2_807c"
+                    "_d34244c192f4"
+                ),
+                "quantifier": rdflib.OWL.someValuesFrom,
+                "target": rdflib.URIRef(
+                    "http://www.w3.org/" "2001" "/XMLSchema#integer"
+                ),
+            }
+        ]
 
         # Specific case 2:
         #    mereotopology.hasProperPart QUANTIFIER.ONLY
@@ -214,23 +257,29 @@ class TestSpecificRestrictionsEmmo(unittest.TestCase):
             """
 
             def __str__(self):
-                return '(OPERATOR.NOT math.Mathematical)'
+                return "(OPERATOR.NOT math.Mathematical)"
 
-        self.restriction_data += [{'string': 'mereotopology.hasProperPart '
-                                             'QUANTIFIER.ONLY (OPERATOR.NOT '
-                                             'math.Mathematical)',
-                                   'property': rdflib.URIRef('http://emmo.info'
-                                                             '/emmo/top/'
-                                                             'mereotopology'
-                                                             '#EMMO_9380ab64_'
-                                                             '0363_4804_b13f_'
-                                                             '3a8a94119a76'),
-                                   'quantifier': rdflib.OWL.allValuesFrom,
-                                   'target': PlaceholderComposition()}
-                                  ]
+        self.restriction_data += [
+            {
+                "string": "mereotopology.hasProperPart "
+                "QUANTIFIER.ONLY (OPERATOR.NOT "
+                "math.Mathematical)",
+                "property": rdflib.URIRef(
+                    "http://emmo.info"
+                    "/emmo/top/"
+                    "mereotopology"
+                    "#EMMO_9380ab64_"
+                    "0363_4804_b13f_"
+                    "3a8a94119a76"
+                ),
+                "quantifier": rdflib.OWL.allValuesFrom,
+                "target": PlaceholderComposition(),
+            }
+        ]
 
-        self.restrictions = [self.build_restriction(data)
-                             for data in self.restriction_data]
+        self.restrictions = [
+            self.build_restriction(data) for data in self.restriction_data
+        ]
 
     @staticmethod
     def build_restriction(data):
@@ -253,8 +302,8 @@ class TestSpecificRestrictionsEmmo(unittest.TestCase):
 
         bnode = rdflib.BNode()
         graph.add((bnode, rdflib.RDF.type, rdflib.OWL.Restriction))
-        graph.add((bnode, rdflib.OWL.onProperty, data['property']))
-        graph.add((bnode, data['quantifier'], data['target']))
+        graph.add((bnode, rdflib.OWL.onProperty, data["property"]))
+        graph.add((bnode, data["quantifier"], data["target"]))
         restriction = Restriction(bnode, namespace_registry)
 
         return restriction
@@ -262,10 +311,13 @@ class TestSpecificRestrictionsEmmo(unittest.TestCase):
     def test___str__(self):
         """Tests the string representation of the restriction."""
         for data, restriction in zip(self.restriction_data, self.restrictions):
-            self.assertEqual(data['string'], restriction.__str__(),
-                             f'The string representation of the restriction'
-                             f'does not match the expected one:'
-                             f' {data["string"]}.')
+            self.assertEqual(
+                data["string"],
+                restriction.__str__(),
+                f"The string representation of the restriction"
+                f"does not match the expected one:"
+                f' {data["string"]}.',
+            )
 
     def test__property(self):
         """Test the _property method.
@@ -274,7 +326,7 @@ class TestSpecificRestrictionsEmmo(unittest.TestCase):
         """
         namespace_registry = math._namespace_registry
         for data, restriction in zip(self.restriction_data, self.restrictions):
-            data_property = namespace_registry.from_iri(data['property'])
+            data_property = namespace_registry.from_iri(data["property"])
             self.assertEqual(data_property, restriction._property)
 
     def test_quantifier(self):
@@ -283,7 +335,7 @@ class TestSpecificRestrictionsEmmo(unittest.TestCase):
         Also tests _compute_target and _check_quantifier implicitly.
         """
         for data, restriction in zip(self.restriction_data, self.restrictions):
-            quantifier = quantifier_owl_to_enum[data['quantifier']]
+            quantifier = quantifier_owl_to_enum[data["quantifier"]]
             self.assertIs(quantifier, restriction.quantifier)
 
     def test_target(self):
@@ -292,7 +344,7 @@ class TestSpecificRestrictionsEmmo(unittest.TestCase):
         Also tests _compute_target and _check_quantifier implicitly.
         """
         for data, restriction in zip(self.restriction_data, self.restrictions):
-            target_id = data['target']
+            target_id = data["target"]
             if isinstance(restriction.target, rdflib.term.Identifier):
                 target_id_restriction = restriction.target
             elif isinstance(restriction.target, OntologyEntity):
@@ -300,8 +352,10 @@ class TestSpecificRestrictionsEmmo(unittest.TestCase):
             elif isinstance(restriction.target, Composition):
                 target_id_restriction = restriction.target._bnode
             else:
-                raise Exception(f"Unit test is incomplete, target of type "
-                                f"{type(restriction.target)} not considered.")
+                raise Exception(
+                    f"Unit test is incomplete, target of type "
+                    f"{type(restriction.target)} not considered."
+                )
             self.assertEqual(target_id, target_id_restriction)
 
     def test_rtype(self):
@@ -311,7 +365,7 @@ class TestSpecificRestrictionsEmmo(unittest.TestCase):
         """
         namespace_registry = math._namespace_registry
         for data, restriction in zip(self.restriction_data, self.restrictions):
-            data_property = namespace_registry.from_iri(data['property'])
+            data_property = namespace_registry.from_iri(data["property"])
             data_property_type = type(data_property)
             self.assertIs(rtypes[data_property_type], restriction.rtype)
 
@@ -324,17 +378,21 @@ class TestSpecificRestrictionsEmmo(unittest.TestCase):
         """
         namespace_registry = math._namespace_registry
         for data, restriction in zip(self.restriction_data, self.restrictions):
-            data_property = namespace_registry.from_iri(data['property'])
+            data_property = namespace_registry.from_iri(data["property"])
             class_data_property = type(data_property)
             if rtypes[class_data_property] == RTYPE.RELATIONSHIP_RESTRICTION:
-                self.assertRaises(AttributeError, getattr,
-                                  restriction, "attribute")
+                self.assertRaises(
+                    AttributeError, getattr, restriction, "attribute"
+                )
             elif rtypes[class_data_property] == RTYPE.ATTRIBUTE_RESTRICTION:
-                self.assertRaises(AttributeError, getattr,
-                                  restriction, "relationship")
+                self.assertRaises(
+                    AttributeError, getattr, restriction, "relationship"
+                )
             else:
-                raise Exception(f"Incomplete test, restrictions of type "
-                                f"{restriction.rtype} are not considered.")
+                raise Exception(
+                    f"Incomplete test, restrictions of type "
+                    f"{restriction.rtype} are not considered."
+                )
 
 
 if __name__ == "__main__":

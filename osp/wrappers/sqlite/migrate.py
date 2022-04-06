@@ -1,10 +1,11 @@
 """Migrate sqlite databases with this module."""
 
-import os
 import argparse
 import logging
-from osp.wrappers.sqlite import SqliteSession
+import os
+
 from osp.core.session.db.sql_migrate import SqlMigrate
+from osp.wrappers.sqlite import SqliteSession
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +16,9 @@ def install_from_terminal():
     parser = argparse.ArgumentParser(
         description="Migrate your sqlite database."
     )
-    parser.add_argument("db_file", type=str,
-                        help="The path to the sqlite database file.")
+    parser.add_argument(
+        "db_file", type=str, help="The path to the sqlite database file."
+    )
 
     args = parser.parse_args()
 

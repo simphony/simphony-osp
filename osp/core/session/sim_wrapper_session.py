@@ -1,8 +1,10 @@
 """Abstract class that contains important method of a simulation session."""
 
 from abc import abstractmethod
-from .wrapper_session import WrapperSession, consumes_buffers
+
 from osp.core.session.buffers import BufferContext
+
+from .wrapper_session import WrapperSession, consumes_buffers
 
 
 class SimWrapperSession(WrapperSession):
