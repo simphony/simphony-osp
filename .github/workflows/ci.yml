@@ -11,12 +11,18 @@ jobs:
       - name: Flake8
         run: flake8 . --exclude=*/__init__.py,osp/core/ontology/docs/EMMO/* --ignore=W503 --docstring-convention=google
 
+      - name: isort
+        run: isort --profile black --filter-files --line-length 79 --check-only .
+
+      - black:
+        run: black --check --verbose --diff --line-length 79 .
+
       - name: Radon
         run: |
           radon cc -s -a .,
           radon mi -s .
-        
-      - name: bandit
+
+      - name: Bandit
         run: bandit -r osp --skip B101
   
   test:
