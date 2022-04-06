@@ -1,8 +1,8 @@
 """Defines an abstract base class for backends that support SPARQL queries."""
-from abc import ABC, abstractmethod
 import uuid
-from osp.core.utils.general import iri_from_uid, uid_from_iri
-from osp.core.utils.general import CUDS_IRI_PREFIX
+from abc import ABC, abstractmethod
+
+from osp.core.utils.general import CUDS_IRI_PREFIX, iri_from_uid, uid_from_iri
 
 
 class SPARQLBackend(ABC):
@@ -18,9 +18,11 @@ class SPARQLBackend(ABC):
         Args:
             query_string (): The SPARQL query as a string.
         """
-        return self._sparql(query_string=query_string.replace(
-            str(self.root), str(uuid.UUID(int=0))
-        ))
+        return self._sparql(
+            query_string=query_string.replace(
+                str(self.root), str(uuid.UUID(int=0))
+            )
+        )
         # NOTE: Why is the uid of the root replaced in the query?
         #  Each time that a session is opened, the user is expected to create a
         #  wrapper for the session. The uid of the wrapper is new each time it
@@ -76,6 +78,7 @@ class SparqlResult(ABC):
         def add_datatypes(x):
             x.datatypes = kwargs
             return x
+
         return map(add_datatypes, self.__iter__())
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -102,8 +105,11 @@ class SparqlBindingSet(ABC):
         Handles wrapper IRIs and datatype conversion.
         """
         iri = self._get(variable_name)
-        if iri is not None and iri.startswith(CUDS_IRI_PREFIX) \
-                and uid_from_iri(iri) == uuid.UUID(int=0):
+        if (
+            iri is not None
+            and iri.startswith(CUDS_IRI_PREFIX)
+            and uid_from_iri(iri) == uuid.UUID(int=0)
+        ):
             iri = iri_from_uid(self.session.root)
         return self._check_datatype(variable_name, iri)
 
@@ -138,10 +144,11 @@ class SparqlBindingSet(ABC):
         if variable_type is None:
             return iri
 
-        unknown_type_error = TypeError(f"Variable type {variable_type} not "
-                                       f"understood.")
+        unknown_type_error = TypeError(
+            f"Variable type {variable_type} not " f"understood."
+        )
         try:
-            if variable_type == 'cuds':
+            if variable_type == "cuds":
                 cuds_query = self.session.load_from_iri(iri)
                 return cuds_query.first()
             elif callable(variable_type):

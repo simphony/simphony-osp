@@ -1,8 +1,10 @@
 """This file contains tests for the abstract simulation session."""
 
-from osp.wrappers.simdummy import SimDummySession
-import unittest2 as unittest
 import logging
+
+import unittest2 as unittest
+
+from osp.wrappers.simdummy import SimDummySession
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.CRITICAL)
@@ -12,6 +14,7 @@ try:
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.ontology.namespace_registry import namespace_registry
+
     Parser().parse("city")
     city = namespace_registry.city
 
@@ -30,12 +33,12 @@ class TestSimWrapperCity(unittest.TestCase):
 
             session.run()
 
-            self.assertEqual(len(
-                wrapper.get(oclass=city.Person,
-                            rel=city.hasPart)), 1)
-            self.assertEqual(len(
-                cw.get(oclass=city.Citizen,
-                       rel=city.hasInhabitant)), 1)
+            self.assertEqual(
+                len(wrapper.get(oclass=city.Person, rel=city.hasPart)), 1
+            )
+            self.assertEqual(
+                len(cw.get(oclass=city.Citizen, rel=city.hasInhabitant)), 1
+            )
             self.assertEqual(wrapper.get(p2.uid).name, "Renate")
             self.assertEqual(wrapper.get(p2.uid).age, 55)
             self.assertEqual(cw.get(p1.uid).name, "Hans")
@@ -46,5 +49,5 @@ class TestSimWrapperCity(unittest.TestCase):
             self.assertRaises(RuntimeError, session.run)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

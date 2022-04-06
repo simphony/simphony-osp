@@ -1,41 +1,47 @@
 """An example explaining how to access an installed ontology."""
 
+# This imports the namespace math from the EMMO ontology.
+# This imports the namespace city from the city ontology.
+from osp.core.namespaces import city, math
 from osp.core.ontology.oclass_composition import Composition
 
 # Please install the both the city ontology: $pico install city,
 # and the European Materials & Modelling Ontology (EMMO): $pico install emmo.
 
-# This imports the namespace city from the city ontology.
-from osp.core.namespaces import city
-# This imports the namespace math from the EMMO ontology.
-from osp.core.namespaces import math
-
 
 # Accessing entities by suffix.
-print('The dot notation can be used to fetch entities by suffix given that '
-      'the keyword reference_by_label is set to False in the ontology '
-      'installation file.')
+print(
+    "The dot notation can be used to fetch entities by suffix given that "
+    "the keyword reference_by_label is set to False in the ontology "
+    "installation file."
+)
 print(city.Citizen)
 
-print('Alternative method useful for suffixes with special characters.')
-print(city.get_from_suffix('Citizen'))
+print("Alternative method useful for suffixes with special characters.")
+print(city.get_from_suffix("Citizen"))
 
 # Suffixes are case sensitive:
 # city.citizen -> Fails.
 
 # Accessing entities by label.
-print('The dot notation can be used to fetch entities by label given that '
-      'the keyword reference_by_label is set to True in the ontology '
-      'installation file.')
+print(
+    "The dot notation can be used to fetch entities by label given that "
+    "the keyword reference_by_label is set to True in the ontology "
+    "installation file."
+)
 print(math.Integer)
 
-print('Alternative method useful for labels with special characters.')
-print(math['Integer'])
+print("Alternative method useful for labels with special characters.")
+print(math["Integer"])
 
 # Accessing entities by IRI.
 
-print(math.get_from_iri('http://emmo.info/emmo/middle/math#'
-                        'EMMO_f8bd64d5_5d3e_4ad4_a46e_c30714fecb7f'))
+print(
+    math.get_from_iri(
+        "http://emmo.info/emmo/middle/math#"
+        "EMMO_f8bd64d5_5d3e_4ad4_a46e_c30714fecb7f"
+    )
+)
 
 # Accessing entitites using a string (only useful in rare cases).
 
@@ -79,16 +85,18 @@ from osp.core.namespaces import cuba  # noqa: E402
 
 # These are the classes for the ontology entities
 from osp.core.ontology import (  # noqa: F401, E402
-    OntologyEntity,
+    OntologyAttribute,
     OntologyClass,
+    OntologyEntity,
     OntologyRelationship,
-    OntologyAttribute
 )
 
 print("\nYou can test if an entity is a class")
 print(isinstance(city.LivingBeing, OntologyClass))
-print(not city.LivingBeing.is_subclass_of(cuba.relationship)
-      and not city.LivingBeing.is_subclass_of(cuba.attribute))
+print(
+    not city.LivingBeing.is_subclass_of(cuba.relationship)
+    and not city.LivingBeing.is_subclass_of(cuba.attribute)
+)
 
 print("\nYou can test if an entity is a relationship")
 print(isinstance(city.hasInhabitant, OntologyRelationship))
@@ -107,8 +115,10 @@ print("\nYou can get the non-inherited attributes and their defaults")
 print(city.Citizen.own_attributes)
 print(city.LivingBeing.own_attributes)
 
-print("\nWeb Ontology Language Restrictions and Compositions are supported."
-      "The `axioms` property returns them.")
+print(
+    "\nWeb Ontology Language Restrictions and Compositions are supported."
+    "The `axioms` property returns them."
+)
 tuple(str(x) for x in city.Citizen.axioms)
 
 print("\nAccessing a restriction")
@@ -120,8 +130,9 @@ print(restriction.rtype)
 print(restriction.attribute)
 
 print("\nAccessing a composition")
-composition = tuple(x for x in math.Integer.axioms
-                    if type(x) is Composition)[0]
+composition = tuple(x for x in math.Integer.axioms if type(x) is Composition)[
+    0
+]
 print(composition)
 print(composition.operator)
 print(composition.operands)
@@ -129,15 +140,19 @@ print(composition.operands)
 print("\nYou can get the inverse of a relationship")
 print(city.hasInhabitant.inverse)
 
-print("\nYou can get the argument name of an attribute. "
-      "The argument name is used when instantiating CUDS objects")
+print(
+    "\nYou can get the argument name of an attribute. "
+    "The argument name is used when instantiating CUDS objects"
+)
 print(city.age.argname)
 
 print("\nYou can get the datatype of attributes")
 print(city.age.datatype)
 
-print("\nYou can use the attribute to convert values "
-      "to the datatype of the attribute")
+print(
+    "\nYou can use the attribute to convert values "
+    "to the datatype of the attribute"
+)
 result = city.age.convert_to_datatype("10")
 print(type(result), result)
 

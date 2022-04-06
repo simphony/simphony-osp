@@ -1,15 +1,30 @@
 """Validate the format of a YAML ontology file."""
 
-import re
 import logging
+import re
 
 from osp.core.ontology.parser.yml.keywords import (
-    VERSION_KEY, AUTHOR_KEY, ONTOLOGY_KEY, NAMESPACE_KEY, REQUIREMENTS_KEY,
-    DESCRIPTION_KEY, SUPERCLASSES_KEY,
-    INVERSE_KEY, DEFAULT_REL_KEY, DATATYPE_KEY, ATTRIBUTES_KEY, DISJOINTS_KEY,
-    EQUIVALENT_TO_KEY, DOMAIN_KEY, RANGE_KEY, CHARACTERISTICS_KEY,
-    CARDINALITY_KEY, TARGET_KEY, EXCLUSIVE_KEY, CHARACTERISTICS,
-    DATATYPES
+    ATTRIBUTES_KEY,
+    AUTHOR_KEY,
+    CARDINALITY_KEY,
+    CHARACTERISTICS,
+    CHARACTERISTICS_KEY,
+    DATATYPE_KEY,
+    DATATYPES,
+    DEFAULT_REL_KEY,
+    DESCRIPTION_KEY,
+    DISJOINTS_KEY,
+    DOMAIN_KEY,
+    EQUIVALENT_TO_KEY,
+    EXCLUSIVE_KEY,
+    INVERSE_KEY,
+    NAMESPACE_KEY,
+    ONTOLOGY_KEY,
+    RANGE_KEY,
+    REQUIREMENTS_KEY,
+    SUPERCLASSES_KEY,
+    TARGET_KEY,
+    VERSION_KEY,
 )
 
 logger = logging.getLogger(__name__)
@@ -19,7 +34,8 @@ namespace_name_regex = r"([a-zA-Z])([a-zA-Z]|[0-9]|_)*"
 namespace_name_pattern = re.compile(namespace_name_regex)
 entity_name_pattern = re.compile(r"^%s$" % entity_name_regex)
 qualified_entity_name_pattern = re.compile(
-    r"^%s\.%s$" % (namespace_name_regex, entity_name_regex))
+    r"^%s\.%s$" % (namespace_name_regex, entity_name_regex)
+)
 
 entity_common_keys = {
     DESCRIPTION_KEY: str,
@@ -37,12 +53,13 @@ relationship_definition = {
     DEFAULT_REL_KEY: bool,
     DOMAIN_KEY: "class_expression",
     RANGE_KEY: "class_expression",
-    CHARACTERISTICS_KEY: [re.compile(r"^(%s)$" % "|".join(CHARACTERISTICS))]
+    CHARACTERISTICS_KEY: [re.compile(r"^(%s)$" % "|".join(CHARACTERISTICS))],
 }
 
 attribute_definition = {
-    DATATYPE_KEY: re.compile(r"^(VECTOR:)?(%s)(:\d+)*$"
-                             % "|".join(map(re.escape, DATATYPES)))
+    DATATYPE_KEY: re.compile(
+        r"^(VECTOR:)?(%s)(:\d+)*$" % "|".join(map(re.escape, DATATYPES))
+    )
 }
 
 format_description = {
@@ -52,26 +69,30 @@ format_description = {
         "!" + ONTOLOGY_KEY: {entity_name_pattern: "entity_def"},
         DEFAULT_REL_KEY: qualified_entity_name_pattern,
         AUTHOR_KEY: str,
-        REQUIREMENTS_KEY: [entity_name_pattern]
+        REQUIREMENTS_KEY: [entity_name_pattern],
     },
-    "entity_def": dict(**entity_common_keys, **class_definition,
-                       **relationship_definition, **attribute_definition),
+    "entity_def": dict(
+        **entity_common_keys,
+        **class_definition,
+        **relationship_definition,
+        **attribute_definition
+    ),
     "class_expression": [
         qualified_entity_name_pattern,
-        {qualified_entity_name_pattern:
-            "relationship_class_expression"},
+        {qualified_entity_name_pattern: "relationship_class_expression"},
         {re.compile(r"^(or|and)$"): ["class_expression"]},
-        {re.compile(r"^not$"): "class_expression"}
+        {re.compile(r"^not$"): "class_expression"},
     ],
     "relationship_class_expression": {
         "!" + TARGET_KEY: "class_expression",
-        CARDINALITY_KEY:
-            re.compile(r"^(many|some|\*|\+|\?|\d+\+|\d+-\d|\d+)$"),
-        EXCLUSIVE_KEY: bool
+        CARDINALITY_KEY: re.compile(
+            r"^(many|some|\*|\+|\?|\d+\+|\d+-\d|\d+)$"
+        ),
+        EXCLUSIVE_KEY: bool,
     },
     "class_def": dict(**entity_common_keys, **class_definition),
     "relationship_def": dict(**entity_common_keys, **relationship_definition),
-    "attribute_def": dict(**entity_common_keys, **attribute_definition)
+    "attribute_def": dict(**entity_common_keys, **attribute_definition),
 }
 
 
@@ -102,8 +123,9 @@ def validate(yaml_doc, pattern="/", context=""):
             raise ValueError("%s must be a string." % context)
         yaml_doc = str(yaml_doc)
         if not pattern.match(yaml_doc):
-            raise ValueError("%s does not match %s in %s"
-                             % (yaml_doc, pattern, context))
+            raise ValueError(
+                "%s does not match %s in %s" % (yaml_doc, pattern, context)
+            )
 
     # Pattern is list -> Match list items of yaml doc
     elif isinstance(pattern, list):
@@ -155,9 +177,10 @@ def _validate_format(yaml_doc, format_desc, context):
             except ValueError as e:
                 errors += [e]
         if len(errors) == len(format_desc):
-            raise ValueError("%s has wrong format. Fix one of the following "
-                             "errors: \n - %s"
-                             % (context, "\n - ".join(map(str, errors))))
+            raise ValueError(
+                "%s has wrong format. Fix one of the following "
+                "errors: \n - %s" % (context, "\n - ".join(map(str, errors)))
+            )
 
     # format description is dict -> check the individuals items
     elif isinstance(format_desc, dict):

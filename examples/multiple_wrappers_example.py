@@ -2,16 +2,20 @@
 
 # Please install the city ontology: $pico install city
 
+from getpass import getpass
+
 from osp.core.namespaces import city
 from osp.core.utils import pretty_print
-from getpass import getpass
 from osp.wrappers.simdummy import SimDummySession
+
 try:
-    from osp.wrappers.sqlalchemy_wrapper_session import \
-        SqlAlchemyWrapperSession
+    from osp.wrappers.sqlalchemy_wrapper_session import (
+        SqlAlchemyWrapperSession,
+    )
 except ImportError as e:
-    raise ImportError("For this example, the SQLAlchemy "
-                      "wrapper for SimPhoNy is required!") from e
+    raise ImportError(
+        "For this example, the SQLAlchemy " "wrapper for SimPhoNy is required!"
+    ) from e
 
 # import logging
 # logger = logging.getLogger("osp.core")
@@ -23,18 +27,20 @@ pwd = getpass("Password: ")
 db_name = input("Database name: ")
 host = input("Host: ")
 port = int(input("Port [5432]: ") or 5432)
-postgres_url = 'postgresql://%s:%s@%s:%s/%s' % (user, pwd, host, port, db_name)
+postgres_url = "postgresql://%s:%s@%s:%s/%s" % (user, pwd, host, port, db_name)
 
 # Let's build an EMMO compatible city!
-emmo_town = city.City(name='EMMO town')
+emmo_town = city.City(name="EMMO town")
 
-emmo_town.add(city.Citizen(name='Emanuele Ghedini'), rel=city.hasInhabitant)
-emmo_town.add(city.Citizen(name='Adham Hashibon'), rel=city.hasInhabitant)
-emmo_town.add(city.Citizen(name='Jesper Friis'),
-              city.Citizen(name='Gerhard Goldbeck'),
-              city.Citizen(name='Georg Schmitz'),
-              city.Citizen(name='Anne de Baas'),
-              rel=city.hasInhabitant)
+emmo_town.add(city.Citizen(name="Emanuele Ghedini"), rel=city.hasInhabitant)
+emmo_town.add(city.Citizen(name="Adham Hashibon"), rel=city.hasInhabitant)
+emmo_town.add(
+    city.Citizen(name="Jesper Friis"),
+    city.Citizen(name="Gerhard Goldbeck"),
+    city.Citizen(name="Georg Schmitz"),
+    city.Citizen(name="Anne de Baas"),
+    rel=city.hasInhabitant,
+)
 
 emmo_town.add(city.Neighborhood(name="Ontology"))
 emmo_town.add(city.Neighborhood(name="User cases"))
@@ -49,7 +55,7 @@ for neighborhood in emmo_town.get(oclass=city.Neighborhood):
 onto = emmo_town.get(ontology_uid)
 
 # We can go through inverse relationships
-print(onto.get(rel=city.isPartOf)[0].name + ' is my city!')
+print(onto.get(rel=city.isPartOf)[0].name + " is my city!")
 
 # Working with a DB-wrapper: Store in the DB.
 with SqlAlchemyWrapperSession(postgres_url) as session:
@@ -66,8 +72,7 @@ with SqlAlchemyWrapperSession(postgres_url) as db_session:
 
     # Working with a Simulation wrapper
     with SimDummySession() as sim_session:
-        sim_wrapper = city.CitySimWrapper(numSteps=1,
-                                          session=sim_session)
+        sim_wrapper = city.CitySimWrapper(numSteps=1, session=sim_session)
         new_inhabitant = city.Person(age=31, name="Peter")
         sim_emmo_town, _ = sim_wrapper.add(db_emmo_town, new_inhabitant)
         sim_session.run()

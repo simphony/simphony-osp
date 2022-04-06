@@ -1,16 +1,19 @@
 """Abstract class that contains important method of a session with backend."""
 
-import uuid
 import logging
-import rdflib
+import uuid
 from abc import abstractmethod
+
+import rdflib
+
 from osp.core.namespaces import cuba
-from osp.core.session.session import Session
+from osp.core.session.buffers import BufferContext, BufferType, EngineContext
 from osp.core.session.result import returns_query_result
-from osp.core.utils.wrapper_development import clone_cuds_object, \
-    get_neighbor_diff
-from osp.core.session.buffers import BufferType, BufferContext, \
-    EngineContext
+from osp.core.session.session import Session
+from osp.core.utils.wrapper_development import (
+    clone_cuds_object,
+    get_neighbor_diff,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +26,11 @@ def consumes_buffers(func):
     Args:
         func (Callable): The method to decorate.
     """
+
     def f(session, *args, **kwargs):
         with EngineContext(session):
             func(session, *args, **kwargs)
+
     f.does_consume_buffers = True
     return f
 
@@ -39,8 +44,7 @@ def check_consumes_buffers(func):
     Returns:
         bool: Whether the given method does consume the buffers.
     """
-    return hasattr(func, "does_consume_buffers") \
-        and func.does_consume_buffers
+    return hasattr(func, "does_consume_buffers") and func.does_consume_buffers
 
 
 class WrapperSession(Session):
@@ -84,13 +88,16 @@ class WrapperSession(Session):
             Cuds: The CUDS objects with the given UUID.
         """
         if self.root is None:
-            raise RuntimeError("This Session is not yet initialized. "
-                               "Add it to a wrapper first.")
+            raise RuntimeError(
+                "This Session is not yet initialized. "
+                "Add it to a wrapper first."
+            )
 
         # refresh expired
         expired = frozenset(set(uids) & self._expired)
-        missing_uids = [uid for uid in uids
-                        if uid not in self._registry or uid in expired]
+        missing_uids = [
+            uid for uid in uids if uid not in self._registry or uid in expired
+        ]
         self._expired -= expired
 
         # Load elements not in the registry / expired from the backend
@@ -105,10 +112,12 @@ class WrapperSession(Session):
             # Load from the backend
             old_cuds_object = self._get_old_cuds_object_clone(uid)
             new_cuds_object = self._get_next_missing(missing)
-            self._expire_neighour_diff(old_cuds_object, new_cuds_object,
-                                       uids)
-            if old_cuds_object is not None and new_cuds_object is None \
-                    and uid in self._registry:
+            self._expire_neighour_diff(old_cuds_object, new_cuds_object, uids)
+            if (
+                old_cuds_object is not None
+                and new_cuds_object is None
+                and uid in self._registry
+            ):
                 self._delete_cuds_triples(self._registry.get(uid))
             yield new_cuds_object
 
@@ -163,10 +172,12 @@ class WrapperSession(Session):
         """Get the triples in the core session."""
         from osp.core.utils.simple_search import find_cuds_object
 
-        for cuds_object in find_cuds_object(lambda x: True,
-                                            self._registry.get(self.root),
-                                            cuba.relationship,
-                                            True):
+        for cuds_object in find_cuds_object(
+            lambda x: True,
+            self._registry.get(self.root),
+            cuba.relationship,
+            True,
+        ):
             pass
         return self.graph
 
@@ -186,35 +197,58 @@ class WrapperSession(Session):
                 logger.debug("%s has been deleted %s", x, self)
         plural = "%s CUDS objects have been %s %s"
         singular = "%s CUDS object has been %s %s"
-        logger.info(singular if len(added) == 1 else plural,
-                    len(added), "added to", self)
-        logger.info(singular if len(updated) == 1 else plural,
-                    len(updated), "updated in", self)
-        logger.info(singular if len(deleted) == 1 else plural,
-                    len(deleted), "deleted from", self)
+        logger.info(
+            singular if len(added) == 1 else plural,
+            len(added),
+            "added to",
+            self,
+        )
+        logger.info(
+            singular if len(updated) == 1 else plural,
+            len(updated),
+            "updated in",
+            self,
+        )
+        logger.info(
+            singular if len(deleted) == 1 else plural,
+            len(deleted),
+            "deleted from",
+            self,
+        )
 
     def _store_checks(self, cuds_object):
         # Check if root is wrapper and wrapper is root
-        if cuds_object.is_a(cuba.Wrapper) and self.root is not None \
-                and self.root != cuds_object.uid:
+        if (
+            cuds_object.is_a(cuba.Wrapper)
+            and self.root is not None
+            and self.root != cuds_object.uid
+        ):
             raise RuntimeError("Only one wrapper is allowed per session")
 
         if not cuds_object.is_a(cuba.Wrapper) and self.root is None:
             raise RuntimeError("Please add a wrapper to the session first")
 
         if cuds_object.oclass is None:
-            if any(self.graph.triples((cuds_object.iri, rdflib.RDF.type,
-                                       None))):
-                raise TypeError(f"No oclass associated with {cuds_object}! "
-                                f"However, the cuds is supposed to be of "
-                                "type(s): %s. Did you install the required "
-                                "ontology?" %
-                                ", ".join(o for o in self.graph.objects(
-                                    cuds_object.iri, rdflib.RDF.type))
-                                )
+            if any(
+                self.graph.triples((cuds_object.iri, rdflib.RDF.type, None))
+            ):
+                raise TypeError(
+                    f"No oclass associated with {cuds_object}! "
+                    f"However, the cuds is supposed to be of "
+                    "type(s): %s. Did you install the required "
+                    "ontology?"
+                    % ", ".join(
+                        o
+                        for o in self.graph.objects(
+                            cuds_object.iri, rdflib.RDF.type
+                        )
+                    )
+                )
             else:
-                raise TypeError(f"No oclass associated with {cuds_object}!"
-                                f"Did you install the required ontology?")
+                raise TypeError(
+                    f"No oclass associated with {cuds_object}!"
+                    f"Did you install the required ontology?"
+                )
 
     # OVERRIDE
     def _store(self, cuds_object):
@@ -232,19 +266,25 @@ class WrapperSession(Session):
         added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in deleted:
             if logger.level == logging.DEBUG:
-                logger.debug("Removed %s from deleted buffer in %s of %s"
-                             % (cuds_object, self._current_context, self))
+                logger.debug(
+                    "Removed %s from deleted buffer in %s of %s"
+                    % (cuds_object, self._current_context, self)
+                )
             del deleted[cuds_object.uid]
 
         if cuds_object.uid in self._registry:
             if logger.level == logging.DEBUG:
-                logger.debug("Added %s to updated buffer in %s of %s"
-                             % (cuds_object, self._current_context, self))
+                logger.debug(
+                    "Added %s to updated buffer in %s of %s"
+                    % (cuds_object, self._current_context, self)
+                )
             updated[cuds_object.uid] = cuds_object
         elif not cuds_object.is_a(cuba.Wrapper):
             if logger.level == logging.DEBUG:
-                logger.debug("Added %s to added buffer in %s of %s"
-                             % (cuds_object, self._current_context, self))
+                logger.debug(
+                    "Added %s to added buffer in %s of %s"
+                    % (cuds_object, self._current_context, self)
+                )
             added[cuds_object.uid] = cuds_object
         # store
         super()._store(cuds_object)
@@ -260,17 +300,19 @@ class WrapperSession(Session):
             RuntimeError: The updated object has been deleted previously.
         """
         if logger.level == logging.DEBUG:
-            logger.debug("Called notify_update on %s in %s"
-                         % (cuds_object, self))
+            logger.debug(
+                "Called notify_update on %s in %s" % (cuds_object, self)
+            )
         added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in deleted:
             raise RuntimeError("Cannot update deleted object")
 
-        if cuds_object.uid not in added \
-                and cuds_object.uid not in updated:
+        if cuds_object.uid not in added and cuds_object.uid not in updated:
             if logger.level == logging.DEBUG:
-                logger.debug("Added %s to updated buffer in %s of %s"
-                             % (cuds_object, self._current_context, self))
+                logger.debug(
+                    "Added %s to updated buffer in %s of %s"
+                    % (cuds_object, self._current_context, self)
+                )
             updated[cuds_object.uid] = cuds_object
 
     # OVERRIDE
@@ -285,31 +327,36 @@ class WrapperSession(Session):
         added, updated, deleted = self._buffers[self._current_context]
         if cuds_object.uid in added:
             if logger.level == logging.DEBUG:
-                logger.debug("Removed %s from added buffer in %s of %s"
-                             % (cuds_object, self._current_context, self))
+                logger.debug(
+                    "Removed %s from added buffer in %s of %s"
+                    % (cuds_object, self._current_context, self)
+                )
             del added[cuds_object.uid]
         elif cuds_object.uid in updated:
             if logger.level == logging.DEBUG:
-                logger.debug("Moved %s from updated to deleted buffer in %s "
-                             "of %s"
-                             % (cuds_object, self._current_context, self))
+                logger.debug(
+                    "Moved %s from updated to deleted buffer in %s "
+                    "of %s" % (cuds_object, self._current_context, self)
+                )
             del updated[cuds_object.uid]
             deleted[cuds_object.uid] = cuds_object
         elif cuds_object.uid not in deleted:
             if logger.level == logging.DEBUG:
-                logger.debug("Added %s to deleted buffer in %s of %s"
-                             % (cuds_object, self._current_context, self))
+                logger.debug(
+                    "Added %s to deleted buffer in %s of %s"
+                    % (cuds_object, self._current_context, self)
+                )
             deleted[cuds_object.uid] = cuds_object
 
     # OVERRIDE
     def _notify_read(self, cuds_object):
         if logger.level == logging.DEBUG:
-            logger.debug("Called notify_read on %s in %s"
-                         % (cuds_object, self))
+            logger.debug(
+                "Called notify_read on %s in %s" % (cuds_object, self)
+            )
         if cuds_object.uid in self._expired:
             self.refresh(cuds_object)
-        if cuds_object.uid not in self._registry \
-                and cuds_object._stored:
+        if cuds_object.uid not in self._registry and cuds_object._stored:
             cuds_object._graph = rdflib.Graph()
 
     def _expire(self, uids):
@@ -318,13 +365,14 @@ class WrapperSession(Session):
         Args:
             uids(Set[UUID]): The uids to expire.
         """
-        not_expirable = uids & \
-            self._get_buffer_uids(BufferContext.USER)
+        not_expirable = uids & self._get_buffer_uids(BufferContext.USER)
         logger.debug("Expire %s in %s" % (uids, self))
         if not_expirable:
-            logger.warning("Did not expire %s, because you have uncommitted "
-                           "local changes. You might be out of sync with "
-                           "the backend." % not_expirable)
+            logger.warning(
+                "Did not expire %s, because you have uncommitted "
+                "local changes. You might be out of sync with "
+                "the backend." % not_expirable
+            )
             uids -= not_expirable
         self._expired |= uids
         self._expired &= self._registry.keys()
@@ -392,8 +440,7 @@ class WrapperSession(Session):
             cuds_object = None  # not available in the backend
         return cuds_object
 
-    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object,
-                              uids):
+    def _expire_neighour_diff(self, old_cuds_object, new_cuds_object, uids):
         """Expire outdated neighbors of the just loaded cuds object.
 
         Args:

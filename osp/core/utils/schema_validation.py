@@ -1,10 +1,10 @@
 """Contains methods that check if CUDS objects satisfy a certain schema."""
 
-import yaml
 import logging
 
-from osp.core.namespaces import get_entity
+import yaml
 
+from osp.core.namespaces import get_entity
 
 logger = logging.getLogger(__name__)
 
@@ -31,21 +31,29 @@ def validate_tree_against_schema(root_obj, schema_file):
     Raise:
         Exception: Tells the user which constraint was violated
     """
-    logger.info("""Validating tree of root object {}
-    against schema file {} ...""".format(root_obj.uid, schema_file))
+    logger.info(
+        """Validating tree of root object {}
+    against schema file {} ...""".format(
+            root_obj.uid, schema_file
+        )
+    )
 
     data_model_dict = _load_data_model_from_yaml(schema_file)
-    optional_subtrees, mandatory_subtrees = \
-        _get_optional_and_mandatory_subtrees(data_model_dict)
+    (
+        optional_subtrees,
+        mandatory_subtrees,
+    ) = _get_optional_and_mandatory_subtrees(data_model_dict)
     oclass_groups = _traverse_tree_and_group_all_objects_by_oclass(root_obj)
 
     # first check that the model oclasses that do
     # not specify relationships (their only constraint is to exist)
     # or that are mandatory are all in the tree
-    for model_oclass, relationships in data_model_dict['model'].items():
-        if not relationships or \
-            model_oclass in mandatory_subtrees \
-                or model_oclass not in optional_subtrees:
+    for model_oclass, relationships in data_model_dict["model"].items():
+        if (
+            not relationships
+            or model_oclass in mandatory_subtrees
+            or model_oclass not in optional_subtrees
+        ):
             try:
                 oclass_groups[model_oclass]
             except KeyError:
@@ -57,7 +65,7 @@ def validate_tree_against_schema(root_obj, schema_file):
     for oclass, all_objects_to_check in oclass_groups.items():
         # get the definition for this oclass from the model
         try:
-            relationships = data_model_dict['model'][oclass]
+            relationships = data_model_dict["model"][oclass]
         except KeyError:
             # TODO ask Yoav: is it ok when there is an object
             # in the tree that is not part of the datamodel?
@@ -76,9 +84,9 @@ def validate_tree_against_schema(root_obj, schema_file):
                         object_to_check,
                         neighbor_oclass,
                         relationship,
-                        constraints
+                        constraints,
                     )
-    logger.info('Tree is valid.')
+    logger.info("Tree is valid.")
 
 
 def _load_data_model_from_yaml(data_model_file):
@@ -87,17 +95,11 @@ def _load_data_model_from_yaml(data_model_file):
     return data_model_dict
 
 
-def _check_cuds_object_cardinality(
-    origin_cuds,
-    dest_oclass,
-    rel,
-    constraints
-):
+def _check_cuds_object_cardinality(origin_cuds, dest_oclass, rel, constraints):
 
-    actual_cardinality = len(origin_cuds.get(
-        rel=get_entity(rel),
-        oclass=get_entity(dest_oclass)
-    ))
+    actual_cardinality = len(
+        origin_cuds.get(rel=get_entity(rel), oclass=get_entity(dest_oclass))
+    )
 
     min, max = _interpret_cardinality_value_from_constraints(constraints)
     if actual_cardinality < min or actual_cardinality > max:
@@ -110,24 +112,25 @@ def _check_cuds_object_cardinality(
             min,
             max,
             actual_cardinality,
-            origin_cuds.uid)
+            origin_cuds.uid,
+        )
         raise CardinalityError(message)
 
 
 def _interpret_cardinality_value_from_constraints(constraints):
     # default is arbitrary
     min = 0
-    max = float('inf')
+    max = float("inf")
     if constraints is not None:
-        cardinality_value = constraints.get('cardinality')
+        cardinality_value = constraints.get("cardinality")
         if isinstance(cardinality_value, int):
             min = cardinality_value
             max = cardinality_value
-        elif '-' in cardinality_value:
-            min = int(cardinality_value.split('-')[0])
-            max = int(cardinality_value.split('-')[1])
-        elif '+' in cardinality_value:
-            min = int(cardinality_value.split('+')[0])
+        elif "-" in cardinality_value:
+            min = int(cardinality_value.split("-")[0])
+            max = int(cardinality_value.split("-")[1])
+        elif "+" in cardinality_value:
+            min = int(cardinality_value.split("+")[0])
     return min, max
 
 
@@ -155,7 +158,7 @@ def _traverse_tree_and_group_all_objects_by_oclass(root_obj, result=None):
 def _get_optional_and_mandatory_subtrees(data_model_dict):
     optional_subtrees = set()
     mandatory_subtrees = set()
-    entities = data_model_dict['model']
+    entities = data_model_dict["model"]
     for entity, relationships in entities.items():
         if not relationships:
             continue

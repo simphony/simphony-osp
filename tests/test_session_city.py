@@ -1,18 +1,20 @@
 """Test session basic methods."""
 
 import unittest2 as unittest
+
+from osp.core.cuds import Cuds
 from osp.core.namespaces import cuba
-from osp.core.session.session import Session
-from osp.core.session.wrapper_session import WrapperSession
 from osp.core.session.buffers import BufferContext
 from osp.core.session.core_session import CoreSession
-from osp.core.cuds import Cuds
+from osp.core.session.session import Session
+from osp.core.session.wrapper_session import WrapperSession
 
 try:
     from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.ontology.namespace_registry import namespace_registry
+
     Parser().parse("city")
     city = namespace_registry.city
 
@@ -36,11 +38,21 @@ class TestSessionCity(unittest.TestCase):
             session._reset_buffers(BufferContext.USER)
             session.delete_cuds_object(cities[0])
             self.maxDiff = None
-            self.assertEqual(session._buffers, [
-                [{}, {w.uid: w,
-                      neighborhoods[0].uid: neighborhoods[0],
-                      neighborhoods[1].uid: neighborhoods[1]},
-                 {cities[0].uid: cities[0]}], [{}, {}, {}]])
+            self.assertEqual(
+                session._buffers,
+                [
+                    [
+                        {},
+                        {
+                            w.uid: w,
+                            neighborhoods[0].uid: neighborhoods[0],
+                            neighborhoods[1].uid: neighborhoods[1],
+                        },
+                        {cities[0].uid: cities[0]},
+                    ],
+                    [{}, {}, {}],
+                ],
+            )
             self.assertNotIn(cities[0], session._registry)
             self.assertRaises(AttributeError, getattr, cities[0], "name")
 
@@ -82,32 +94,58 @@ class TestSessionCity(unittest.TestCase):
                     nw.add(s)
         w.remove(cities[1].uid, cities[2].uid)
         expected_deletion = {
-            x.uid for x in session._registry.values()
+            x.uid
+            for x in session._registry.values()
             if (
                 hasattr(x, "name")
-                and x.name in {
-                    "city 2", "neighborhood 2 0", "neighborhood 2 1",
-                    "street 2 0 0", "street 2 0 1", "street 2 1 0",
-                    "street 2 1 1", "city 1", "neighborhood 1 0",
-                    "neighborhood 1 1", "street 1 0 0", "street 1 0 1",
-                    "street 1 1 0", "street 1 1 1"
-                })}
+                and x.name
+                in {
+                    "city 2",
+                    "neighborhood 2 0",
+                    "neighborhood 2 1",
+                    "street 2 0 0",
+                    "street 2 0 1",
+                    "street 2 1 0",
+                    "street 2 1 1",
+                    "city 1",
+                    "neighborhood 1 0",
+                    "neighborhood 1 1",
+                    "street 1 0 0",
+                    "street 1 0 1",
+                    "street 1 1 0",
+                    "street 1 1 1",
+                }
+            )
+        }
         session.prune(rel=None)
         self.assertEqual(
-            set(["wrapper" if k.is_a(cuba.Wrapper) else k.name
-                 for k in session._registry.values()]),
-            set(["city 0", "neighborhood 0 0", "neighborhood 0 1",
-                 "street 0 0 0", "street 0 0 1", "street 0 1 0",
-                 "street 0 1 1", "wrapper"]))
-        self.assertEqual(set([d.uid for d in deleted]),
-                         expected_deletion)
+            set(
+                [
+                    "wrapper" if k.is_a(cuba.Wrapper) else k.name
+                    for k in session._registry.values()
+                ]
+            ),
+            set(
+                [
+                    "city 0",
+                    "neighborhood 0 0",
+                    "neighborhood 0 1",
+                    "street 0 0 0",
+                    "street 0 0 1",
+                    "street 0 1 0",
+                    "street 0 1 1",
+                    "wrapper",
+                ]
+            ),
+        )
+        self.assertEqual(set([d.uid for d in deleted]), expected_deletion)
 
     def test_buffers(self):
         """Test if the buffers work correctly."""
         session = TestWrapperSession()
         self.assertEqual(
             session._buffers,
-            [[dict(), dict(), dict()], [dict(), dict(), dict()]]
+            [[dict(), dict(), dict()], [dict(), dict(), dict()]],
         )
 
         w = city.CityWrapper(session=session)
@@ -119,9 +157,10 @@ class TestSessionCity(unittest.TestCase):
         cw.name = "city 2"
         w.session.prune()
 
-        self.assertEqual(session._buffers, [
-            [{cw.uid: cw}, {w.uid: w}, dict()],
-            [dict(), dict(), dict()]])
+        self.assertEqual(
+            session._buffers,
+            [[{cw.uid: cw}, {w.uid: w}, dict()], [dict(), dict(), dict()]],
+        )
 
         w.session._reset_buffers(BufferContext.USER)
         c2 = city.City(name="city3")
@@ -130,31 +169,35 @@ class TestSessionCity(unittest.TestCase):
         w.remove(cw.uid)
         w.session.prune()
 
-        self.assertEqual(session._buffers, [
-            [{cw2.uid: cw2}, {w.uid: w}, {cw.uid: cw}],
-            [dict(), dict(), dict()]])
+        self.assertEqual(
+            session._buffers,
+            [
+                [{cw2.uid: cw2}, {w.uid: w}, {cw.uid: cw}],
+                [dict(), dict(), dict()],
+            ],
+        )
 
     def test_default_session_context_manager(self):
         """Test changing the default session with a session context manager."""
         default_session = CoreSession()
         Cuds._session = default_session
-        bern = city.City(name='Bern')
+        bern = city.City(name="Bern")
         with TestSession() as session1:
-            freiburg = city.City(name='Freiburg')
+            freiburg = city.City(name="Freiburg")
             with TestSession() as session2:
-                berlin = city.City(name='Berlin')
+                berlin = city.City(name="Berlin")
                 with TestSession() as session3:
-                    madrid = city.City(name='Madrid')
+                    madrid = city.City(name="Madrid")
                     with TestSession() as session4:
-                        beijing = city.City(name='北京')
+                        beijing = city.City(name="北京")
                         self.assertIs(freiburg.session, session1)
                         self.assertIs(berlin.session, session2)
                         self.assertIs(madrid.session, session3)
                         self.assertIs(beijing.session, session4)
-                paris = city.City(name='Paris')
+                paris = city.City(name="Paris")
                 self.assertIs(berlin.session, paris.session)
                 self.assertIsNot(berlin.session, beijing.session)
-        tokyo = city.City(name='Tokyo')
+        tokyo = city.City(name="Tokyo")
         # Test default session restore.
         self.assertIs(bern.session, tokyo.session)
         self.assertIs(bern.session, default_session)

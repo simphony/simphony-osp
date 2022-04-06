@@ -1,13 +1,18 @@
 """Visualize an ontology using graphviz."""
 
-import os
-import graphviz
 import argparse
 import logging
+import os
+
+import graphviz
+
+from osp.core.ontology import (
+    OntologyAttribute,
+    OntologyClass,
+    OntologyRelationship,
+)
 from osp.core.ontology.namespace_registry import namespace_registry
 from osp.core.ontology.parser import OntologyParser
-from osp.core.ontology import OntologyClass, OntologyRelationship, \
-    OntologyAttribute
 
 logger = logging.getLogger(__name__)
 
@@ -15,10 +20,12 @@ logger = logging.getLogger(__name__)
 class Ontology2Dot:
     """Utility for creating a dot and png representation of an ontology."""
 
-    label = ("<<TABLE BORDER='0' CELLBORDER='0'>"
-             "<TR><TD>{}</TD></TR>"
-             "{}"
-             "</TABLE>>")
+    label = (
+        "<<TABLE BORDER='0' CELLBORDER='0'>"
+        "<TR><TD>{}</TD></TR>"
+        "{}"
+        "</TABLE>>"
+    )
     attribute = "<TR ALIGN='left'><TD>{}: {}</TD></TR>"
 
     def __init__(self, namespaces, output_filename, group=False):
@@ -43,7 +50,7 @@ class Ontology2Dot:
     def _initialize_graph(self):
         """Initialize a directed graph with some default settings."""
         graph = graphviz.Digraph(format="png", name="ONTOLOGY")
-        graph.node_attr['shape'] = 'rectangle'
+        graph.node_attr["shape"] = "rectangle"
         return graph
 
     def _get_subgraph(self, namespace):
@@ -111,8 +118,9 @@ class Ontology2Dot:
             attr += self.attribute.format(key.argname, value[0])
         label = self.label.format(str(oclass), attr)
         if oclass.namespace in self._namespaces:
-            graph.node(str(oclass), label=label,
-                       color="#EED5C6", style="filled")
+            graph.node(
+                str(oclass), label=label, color="#EED5C6", style="filled"
+            )
         else:
             graph.node(str(oclass), label=label)
 
@@ -126,15 +134,21 @@ class Ontology2Dot:
         attr = ""
         label = self.label.format(str(rel), attr)
         if rel.namespace in self._namespaces:
-            graph.node(str(rel), label=label,
-                       color="#AFABEB", style="filled")
+            graph.node(str(rel), label=label, color="#AFABEB", style="filled")
         else:
             graph.node(str(rel), label=label)
-        if not rel.inverse.name.startswith("INVERSE_OF") \
-                and rel.inverse not in self._visited:
+        if (
+            not rel.inverse.name.startswith("INVERSE_OF")
+            and rel.inverse not in self._visited
+        ):
             self._add_entity(rel.inverse)
-            self._add_edge(str(rel), str(rel.inverse),
-                           style="dashed", dir="none", label="inverse")
+            self._add_edge(
+                str(rel),
+                str(rel.inverse),
+                style="dashed",
+                dir="none",
+                label="inverse",
+            )
 
     def _add_attribute(self, attribute, graph):
         """Add a node to the graph.
@@ -146,8 +160,9 @@ class Ontology2Dot:
         attr = self.attribute.format("datatype", attribute.datatype)
         label = self.label.format(str(attribute), attr)
         if attribute.namespace in self._namespaces:
-            graph.node(str(attribute), label=label,
-                       color="#7EB874", style="filled")
+            graph.node(
+                str(attribute), label=label, color="#7EB874", style="filled"
+            )
         else:
             graph.node(str(attribute), label=label)
 
@@ -169,19 +184,28 @@ def run_from_terminal():
     # Parse the user arguments
     parser = argparse.ArgumentParser(
         description="Convert an ontology in OWL format to "
-                    "an ontology in YAML format."
+        "an ontology in YAML format."
     )
-    parser.add_argument("to_plot", metavar="to_plot",
-                        type=str, nargs="+",
-                        help="Either installed namespaces or paths "
-                        "to yaml ontology files")
-    parser.add_argument("--output-filename", "-o",
-                        type=os.path.abspath, default=None,
-                        help="The name of the output file")
-    parser.add_argument("--group", "-g",
-                        action="store_true",
-                        help="Whether to organize each namespace in a "
-                        "separate cluster")
+    parser.add_argument(
+        "to_plot",
+        metavar="to_plot",
+        type=str,
+        nargs="+",
+        help="Either installed namespaces or paths " "to yaml ontology files",
+    )
+    parser.add_argument(
+        "--output-filename",
+        "-o",
+        type=os.path.abspath,
+        default=None,
+        help="The name of the output file",
+    )
+    parser.add_argument(
+        "--group",
+        "-g",
+        action="store_true",
+        help="Whether to organize each namespace in a " "separate cluster",
+    )
     args = parser.parse_args()
 
     namespaces = list()
@@ -202,7 +226,7 @@ def run_from_terminal():
     converter = Ontology2Dot(
         namespaces=namespaces,
         output_filename=args.output_filename,
-        group=args.group
+        group=args.group,
     )
     converter.render()
 

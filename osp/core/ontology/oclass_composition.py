@@ -2,19 +2,21 @@
 
 import logging
 from enum import Enum
-from rdflib import OWL, BNode, RDF
+
+from rdflib import OWL, RDF, BNode
 
 logger = logging.getLogger(__name__)
 
 
 class OPERATOR(Enum):
     """Operators to connect different classes."""
+
     AND = 1  # owl:intersectionOf
     OR = 2  # owl:unionOf
     NOT = 3  # owl:complementOf
 
 
-class Composition():
+class Composition:
     """Combine multiple classes using logical formulae."""
 
     def __init__(self, bnode, namespace_registry):
@@ -59,7 +61,7 @@ class Composition():
         for rdflib_predicate, operator in [
             (OWL.unionOf, OPERATOR.OR),
             (OWL.intersectionOf, OPERATOR.AND),
-            (OWL.complementOf, OPERATOR.NOT)
+            (OWL.complementOf, OPERATOR.NOT),
         ]:
             if self._check_operator(rdflib_predicate, operator):
                 return True

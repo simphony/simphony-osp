@@ -3,19 +3,14 @@
 A Dataspace is like a Database backend with added functionalities.
 """
 
-from osp.core.session import TransportSessionClient
-from osp.core.session import DbWrapperSession
+from osp.core.session import DbWrapperSession, TransportSessionClient
 
 
 class DataspaceSession(TransportSessionClient):
     """The dataspace wrapper connects OSP-core to a dataspace."""
 
     def __init__(
-        self,
-        uri,
-        file_destination=None,
-        connect_kwargs=None,
-        **kwargs
+        self, uri, file_destination=None, connect_kwargs=None, **kwargs
     ):
         """Construct the dataspace session.
 
@@ -30,7 +25,9 @@ class DataspaceSession(TransportSessionClient):
                 session object.
         """
         super().__init__(
-            DbWrapperSession, uri, file_destination,
+            DbWrapperSession,
+            uri,
+            file_destination,
             connect_kwargs=connect_kwargs,
             **kwargs
         )

@@ -1,15 +1,19 @@
 """This file contains tests for the Sqlite Wrapper using the City ontology."""
 import os
-import sys
-import subprocess
-import unittest2 as unittest
 import sqlite3
+import subprocess
+import sys
 import time
+
+import unittest2 as unittest
+
+from osp.core.session.transport.transport_session_client import (
+    TransportSessionClient,
+)
+from osp.core.session.transport.transport_session_server import (
+    TransportSessionServer,
+)
 from osp.wrappers.sqlite import SqliteSession
-from osp.core.session.transport.transport_session_client import \
-    TransportSessionClient
-from osp.core.session.transport.transport_session_server import \
-    TransportSessionServer
 
 try:
     from tests.test_sqlite_city import check_state, update_db
@@ -21,6 +25,7 @@ try:
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.ontology.namespace_registry import namespace_registry
+
     Parser().parse("city")
     city = namespace_registry.city
 
@@ -38,9 +43,7 @@ class TestTransportSqliteCity(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up the server as a subprocess."""
-        args = ["python",
-                "tests/test_transport_sqlite_city.py",
-                "server"]
+        args = ["python", "tests/test_transport_sqlite_city.py", "server"]
         p = subprocess.Popen(args, stdout=subprocess.PIPE)
 
         TestTransportSqliteCity.SERVER_STARTED = p
@@ -59,8 +62,9 @@ class TestTransportSqliteCity(unittest.TestCase):
         """Delete table contents."""
         with sqlite3.connect(DB) as conn:
             c = conn.cursor()
-            tables = c.execute("SELECT name FROM sqlite_master "
-                               + "WHERE type='table';")
+            tables = c.execute(
+                "SELECT name FROM sqlite_master " + "WHERE type='table';"
+            )
             tables = list(tables)
             for table in tables:
                 c.execute("DELETE FROM `%s`;" % table[0])
@@ -73,8 +77,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p2 = city.Citizen(name="Georg")
         c.add(p1, p2, rel=city.hasInhabitant)
 
-        with TransportSessionClient(SqliteSession, URI, path=DB) \
-                as session:
+        with TransportSessionClient(SqliteSession, URI, path=DB) as session:
             wrapper = city.CityWrapper(session=session)
             wrapper.add(c)
             session.commit()
@@ -87,8 +90,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1 = city.Citizen(name="Peter")
         c.add(p1, rel=city.hasInhabitant)
 
-        with TransportSessionClient(SqliteSession, URI, path=DB) \
-                as session:
+        with TransportSessionClient(SqliteSession, URI, path=DB) as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
             session.commit()
@@ -108,8 +110,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p3 = city.Citizen(name="Hans")
         c.add(p1, p2, p3, rel=city.hasInhabitant)
 
-        with TransportSessionClient(SqliteSession, URI, path=DB) \
-                as session:
+        with TransportSessionClient(SqliteSession, URI, path=DB) as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
             session.commit()
@@ -135,21 +136,25 @@ class TestTransportSqliteCity(unittest.TestCase):
             wrapper.add(c)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, URI, path=DB) \
-                as session:
+        with TransportSessionClient(SqliteSession, URI, path=DB) as session:
             wrapper = city.CityWrapper(session=session)
-            self.assertEqual(set(session._registry.keys()),
-                             {c.uid, wrapper.uid})
+            self.assertEqual(
+                set(session._registry.keys()), {c.uid, wrapper.uid}
+            )
 
             self.assertEqual(wrapper.get(c.uid).name, "Freiburg")
             self.assertEqual(
-                session._registry.get(c.uid)
-                       ._neighbors[city.hasInhabitant],
-                {p1.uid: p1.oclasses, p2.uid: p2.oclasses,
-                 p3.uid: p3.oclasses})
+                session._registry.get(c.uid)._neighbors[city.hasInhabitant],
+                {
+                    p1.uid: p1.oclasses,
+                    p2.uid: p2.oclasses,
+                    p3.uid: p3.oclasses,
+                },
+            )
             self.assertEqual(
                 session._registry.get(c.uid)._neighbors[city.isPartOf],
-                {wrapper.uid: wrapper.oclasses})
+                {wrapper.uid: wrapper.oclasses},
+            )
 
     def test_load_missing(self):
         """Test if missing objects are loaded automatically."""
@@ -166,33 +171,32 @@ class TestTransportSqliteCity(unittest.TestCase):
             wrapper.add(c)
             session.commit()
 
-        with TransportSessionClient(SqliteSession, URI, path=DB) \
-                as session:
+        with TransportSessionClient(SqliteSession, URI, path=DB) as session:
             wrapper = city.CityWrapper(session=session)
-            self.assertEqual(set(session._registry.keys()),
-                             {c.uid, wrapper.uid})
+            self.assertEqual(
+                set(session._registry.keys()), {c.uid, wrapper.uid}
+            )
             cw = wrapper.get(c.uid)
             p1w = cw.get(p1.uid)
             p2w = cw.get(p2.uid)
             p3w = p1w.get(p3.uid)
             self.assertEqual(
                 set(session._registry.keys()),
-                {c.uid, wrapper.uid, p1.uid,
-                 p2.uid, p3.uid})
+                {c.uid, wrapper.uid, p1.uid, p2.uid, p3.uid},
+            )
             self.assertEqual(p1w.name, "Peter")
             self.assertEqual(p2w.name, "Anna")
             self.assertEqual(p3w.name, "Julia")
             self.assertEqual(
                 p3w._neighbors[city.isChildOf],
-                {p1.uid: p1.oclasses, p2.uid: p2.oclasses}
+                {p1.uid: p1.oclasses, p2.uid: p2.oclasses},
             )
             self.assertEqual(
-                p2w._neighbors[city.hasChild],
-                {p3.uid: p3.oclasses}
+                p2w._neighbors[city.hasChild], {p3.uid: p3.oclasses}
             )
             self.assertEqual(
                 p2w._neighbors[city.INVERSE_OF_hasInhabitant],
-                {c.uid: c.oclasses}
+                {c.uid: c.oclasses},
             )
 
     def test_expiring(self):
@@ -205,8 +209,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1.add(p3, rel=city.hasChild)
         p2.add(p3, rel=city.hasChild)
 
-        with TransportSessionClient(SqliteSession, URI, path=DB)\
-                as session:
+        with TransportSessionClient(SqliteSession, URI, path=DB) as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
             p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)
@@ -261,8 +264,7 @@ class TestTransportSqliteCity(unittest.TestCase):
         p1.add(p3, rel=city.hasChild)
         p2.add(p3, rel=city.hasChild)
 
-        with TransportSessionClient(SqliteSession, URI, path=DB) \
-                as session:
+        with TransportSessionClient(SqliteSession, URI, path=DB) as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.add(c)
             p1w, p2w, p3w = cw.get(p1.uid, p2.uid, p3.uid)

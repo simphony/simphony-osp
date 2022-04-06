@@ -17,8 +17,11 @@ def get_case_insensitive_alternative(name, is_cuba):
     """
     given = name
     name = name[0].upper()
-    if not is_cuba and any(x.islower() for x in given) \
-            and any(x.isupper() for x in given):
+    if (
+        not is_cuba
+        and any(x.islower() for x in given)
+        and any(x.isupper() for x in given)
+    ):
         for x in given[1:]:
             if x.isupper():
                 name += "_"

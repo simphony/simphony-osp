@@ -7,7 +7,7 @@ an inhabitant.
 """
 
 
-class DummyPerson():
+class DummyPerson:
     """A Person in the simulation."""
 
     def __init__(self, name, age):
@@ -29,7 +29,7 @@ class DummyPerson():
         self.age += num_years
 
 
-class DummySyntacticLayer():
+class DummySyntacticLayer:
     """A dummy simulation backend used for testing purposes."""
 
     def __init__(self):

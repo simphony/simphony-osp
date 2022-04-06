@@ -1,9 +1,13 @@
 """This file contains tests for the QueryResult class."""
 
 import unittest2 as unittest
+
 from osp.core.session.core_session import CoreSession
-from osp.core.session.result import QueryResult, ResultEmptyError, \
-    MultipleResultsError
+from osp.core.session.result import (
+    MultipleResultsError,
+    QueryResult,
+    ResultEmptyError,
+)
 
 
 class TestQueryResult(unittest.TestCase):
@@ -23,10 +27,10 @@ class TestQueryResult(unittest.TestCase):
         """Test the __iter__() magic method."""
         r = QueryResult(CoreSession(), iter(range(10)))
         i = iter(r)
-        self.assertEqual(list(zip(i, range(5))),
-                         list(zip(range(5), range(5))))
-        self.assertEqual(list(zip(i, range(5))),
-                         list(zip(range(6, 10), range(5))))
+        self.assertEqual(list(zip(i, range(5))), list(zip(range(5), range(5))))
+        self.assertEqual(
+            list(zip(i, range(5))), list(zip(range(6, 10), range(5)))
+        )
         self.assertEqual(r.all(), list(range(10)))
 
     def test_first(self):

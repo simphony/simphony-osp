@@ -5,16 +5,21 @@ Newer ontology usually have entity names in CamelCase.
 """
 
 import argparse
-import yaml
 import logging
+import os
 import re
 import shutil
-import os
 from copy import deepcopy
 from pathlib import Path
-from osp.core.ontology.parser.yml.keywords import NAMESPACE_KEY, ONTOLOGY_KEY,\
-    SUPERCLASSES_KEY, REQUIREMENTS_KEY
 
+import yaml
+
+from osp.core.ontology.parser.yml.keywords import (
+    NAMESPACE_KEY,
+    ONTOLOGY_KEY,
+    REQUIREMENTS_KEY,
+    SUPERCLASSES_KEY,
+)
 
 entity_name_regex = r"(_|[A-Z])([A-Z]|[0-9]|_)*"
 entity_name_pattern = re.compile(r"^%s$" % entity_name_regex)
@@ -25,7 +30,7 @@ qualified_entity_name_pattern = re.compile(
 logger = logging.getLogger(__name__)
 
 
-class Yaml2CamelCaseConverter():
+class Yaml2CamelCaseConverter:
     """Tool that transforms entity names of  YAML ontologies.
 
     Input: YAML with with entity name in ALL_CAPS
@@ -39,7 +44,7 @@ class Yaml2CamelCaseConverter():
             file_path (path): Path to the yaml file to convert
         """
         self.file_path = file_path
-        with open(file_path, 'r') as file:
+        with open(file_path, "r") as file:
             self.doc = yaml.safe_load(file)
             self.onto_doc = self.doc[ONTOLOGY_KEY]
             self.orig_onto_doc = deepcopy(self.onto_doc)
@@ -50,8 +55,9 @@ class Yaml2CamelCaseConverter():
         """Convert the yaml file to CamelCase."""
         self.doc[NAMESPACE_KEY] = self.namespace
         if REQUIREMENTS_KEY in self.doc:
-            self.doc[REQUIREMENTS_KEY] = [x.lower()
-                                          for x in self.doc[REQUIREMENTS_KEY]]
+            self.doc[REQUIREMENTS_KEY] = [
+                x.lower() for x in self.doc[REQUIREMENTS_KEY]
+            ]
         self.convert_nested_doc(self.onto_doc, pattern=entity_name_pattern)
 
     def convert_nested_doc(self, doc, pattern=qualified_entity_name_pattern):
@@ -124,9 +130,13 @@ class Yaml2CamelCaseConverter():
                 Will always return a bool if internal is False.
         """
         # cuba cases
-        if word in ["CUBA.RELATIONSHIP", "CUBA.ACTIVE_RELATIONSHIP",
-                    "CUBA.PASSIVE_RELATIONSHIP", "CUBA.ATTRIBUTE",
-                    "CUBA.PATH"]:
+        if word in [
+            "CUBA.RELATIONSHIP",
+            "CUBA.ACTIVE_RELATIONSHIP",
+            "CUBA.PASSIVE_RELATIONSHIP",
+            "CUBA.ATTRIBUTE",
+            "CUBA.PATH",
+        ]:
             return False
         if word in ["CUBA.WRAPPER", "CUBA.NOTHING", "CUBA.FILE"]:
             return True
@@ -141,8 +151,12 @@ class Yaml2CamelCaseConverter():
                 return True if x is None and not internal else x
             if word in self.ambiguity_resolution:
                 return self.ambiguity_resolution[word]
-            ar = input(f"Is {word} an ontology class (y/n)? ") \
-                .lower().strip().startswith("y")
+            ar = (
+                input(f"Is {word} an ontology class (y/n)? ")
+                .lower()
+                .strip()
+                .startswith("y")
+            )
             self.ambiguity_resolution[word] = ar
             return ar
 
@@ -153,11 +167,15 @@ class Yaml2CamelCaseConverter():
         subclasses = self.orig_onto_doc[word][SUPERCLASSES_KEY]
         if any(isinstance(subclass, dict) for subclass in subclasses):
             return True
-        if any(self.get_first_letter_caps(subclass, True) is False
-               for subclass in subclasses):
+        if any(
+            self.get_first_letter_caps(subclass, True) is False
+            for subclass in subclasses
+        ):
             return False
-        if any(self.get_first_letter_caps(subclass, True) is True
-               for subclass in subclasses):
+        if any(
+            self.get_first_letter_caps(subclass, True) is True
+            for subclass in subclasses
+        ):
             return True
 
         return None if internal else True
@@ -194,11 +212,17 @@ def run_from_terminal():
     # Parse the user arguments
     parser = argparse.ArgumentParser(
         description="Convert a YAML ontology with ALL_CAPS entity names to a "
-                    "YAML ontology using CamelCase"
+        "YAML ontology using CamelCase"
     )
     parser.add_argument("input", type=Path, help="The input yaml file.")
-    parser.add_argument("-o", "--output", type=Path, required=False,
-                        default=None, help="The input yaml file.")
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        required=False,
+        default=None,
+        help="The input yaml file.",
+    )
     args = parser.parse_args()
 
     c = Yaml2CamelCaseConverter(args.input)

@@ -6,17 +6,16 @@ Each simulation step one person will move to the city and become
 an inhabitant.
 """
 
-from osp.wrappers.simdummy import (
-    DummySyntacticLayer, DummyPerson
-)
 from osp.core.session.sim_wrapper_session import SimWrapperSession
 from osp.core.utils.wrapper_development import change_oclass
+from osp.wrappers.simdummy import DummyPerson, DummySyntacticLayer
 
 try:
     from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.ontology.namespace_registry import namespace_registry
+
     Parser().parse("city")
     city = namespace_registry.city
 
@@ -100,9 +99,7 @@ class SimDummySession(SimWrapperSession):
             Cuds: The loaded City CUDS object.
         """
         c = self._registry.get(uid)
-        inhabitant_uids = set(
-            [x.uid for x in c.get(rel=city.hasInhabitant)]
-        )
+        inhabitant_uids = set([x.uid for x in c.get(rel=city.hasInhabitant)])
         person_uids = self._person_map.keys() - inhabitant_uids
         for person_uid in person_uids:
             self.refresh(person_uid)
@@ -139,9 +136,11 @@ class SimDummySession(SimWrapperSession):
         is_inhabitant, dummy_person = self._engine.get_person(idx)
         if is_inhabitant:
             person = self._registry.get(uid)
-            change_oclass(person, city.Citizen,
-                          {"name": dummy_person.name,
-                           "age": dummy_person.age})
+            change_oclass(
+                person,
+                city.Citizen,
+                {"name": dummy_person.name, "age": dummy_person.age},
+            )
             wrapper.remove(person, rel=city.hasPart)
             c.add(person, rel=city.hasInhabitant)
 
@@ -158,19 +157,20 @@ class SimDummySession(SimWrapperSession):
                 the simulation has been started.
         """
         if self._ran and buffer:
-            raise RuntimeError("Do not add cuds_objects "
-                               "after running the simulation")
+            raise RuntimeError(
+                "Do not add cuds_objects " "after running the simulation"
+            )
         sorted_added = sorted(
             buffer.values(),
-            key=lambda x: x.name if hasattr(x, "name") else "0")
+            key=lambda x: x.name if hasattr(x, "name") else "0",
+        )
         for added in sorted_added:
-            if (
-                added.is_a(city.Person)
-                and self.root in map(lambda x: x.uid,
-                                     added.get(rel=city.isPartOf))
+            if added.is_a(city.Person) and self.root in map(
+                lambda x: x.uid, added.get(rel=city.isPartOf)
             ):
-                idx = self._engine.add_person(DummyPerson(added.name,
-                                                          added.age))
+                idx = self._engine.add_person(
+                    DummyPerson(added.name, added.age)
+                )
                 self._person_map[added.uid] = idx
 
     # OVERRIDE
@@ -186,8 +186,9 @@ class SimDummySession(SimWrapperSession):
                 after the simulation has been started.
         """
         if self._ran and buffer:
-            raise RuntimeError("Do not update cuds_objects after running "
-                               + "the simulation")
+            raise RuntimeError(
+                "Do not update cuds_objects after running " + "the simulation"
+            )
 
     # OVERRIDE
     def _apply_deleted(self, root_obj, buffer):
@@ -202,5 +203,6 @@ class SimDummySession(SimWrapperSession):
                 after the simulation has been started.
         """
         if self._ran and buffer:
-            raise RuntimeError("Do not delete cuds_objects after running "
-                               + "the simulation")
+            raise RuntimeError(
+                "Do not delete cuds_objects after running " + "the simulation"
+            )

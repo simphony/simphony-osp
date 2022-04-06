@@ -1,22 +1,27 @@
 """This test contains test for authentication in transport session."""
 
-import os
-import sys
-import subprocess
-import unittest2 as unittest
 import hashlib
+import os
+import subprocess
+import sys
 import time
+
+import unittest2 as unittest
+
+from osp.core.session.transport.transport_session_client import (
+    TransportSessionClient,
+)
+from osp.core.session.transport.transport_session_server import (
+    TransportSessionServer,
+)
 from osp.wrappers.sqlite import SqliteSession
-from osp.core.session.transport.transport_session_client import \
-    TransportSessionClient
-from osp.core.session.transport.transport_session_server import \
-    TransportSessionServer
 
 try:
     from osp.core.namespaces import city
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.ontology.namespace_registry import namespace_registry
+
     Parser().parse("city")
     city = namespace_registry.city
 
@@ -35,7 +40,8 @@ class AuthSession(SqliteSession):
 
     DB_SALT = "salt"
     DB_PW_HASH = hashlib.sha256(
-        ("correct" + DB_SALT).encode("utf-8")).hexdigest()
+        ("correct" + DB_SALT).encode("utf-8")
+    ).hexdigest()
     CONN_SALTS = dict()
 
     def __init__(self, *args, connection_id, auth, **kwargs):
@@ -50,8 +56,9 @@ class AuthSession(SqliteSession):
         """
         username, auth_string_user = auth
         conn_salt = AuthSession.CONN_SALTS[connection_id]
-        auth_string_server = (
-            AuthSession.DB_PW_HASH + conn_salt).encode("utf-8")
+        auth_string_server = (AuthSession.DB_PW_HASH + conn_salt).encode(
+            "utf-8"
+        )
         auth_string_server = hashlib.sha256(auth_string_server).hexdigest()
 
         if auth_string_user != auth_string_server:
@@ -111,8 +118,10 @@ class SimpleAuthSession(SqliteSession):
             PermissionError: Permission denied.
         """
         username, password = auth
-        if username != SimpleAuthSession.DB_USERNAME \
-                or SimpleAuthSession.DB_PASSWORD != password:
+        if (
+            username != SimpleAuthSession.DB_USERNAME
+            or SimpleAuthSession.DB_PASSWORD != password
+        ):
             raise PermissionError("Login failed: %s" % auth)
         super().__init__(*args, **kwargs)
 
@@ -140,12 +149,11 @@ class TestTransportAuth(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up the servers as subprocesses."""
-        args = ["python",
-                "tests/test_transport_auth.py",
-                "server1"]
+        args = ["python", "tests/test_transport_auth.py", "server1"]
         TestTransportAuth.OUTPUT_FILE = open("output_test_auth", "w")
-        p = subprocess.Popen(args, stderr=TestTransportAuth.OUTPUT_FILE,
-                             stdout=subprocess.PIPE)
+        p = subprocess.Popen(
+            args, stderr=TestTransportAuth.OUTPUT_FILE, stdout=subprocess.PIPE
+        )
         TestTransportAuth.SERVER_STARTED.append(p)
         for line in p.stdout:
             if b"ready" in line:
@@ -153,8 +161,9 @@ class TestTransportAuth(unittest.TestCase):
                 break
 
         args[-1] = "server2"
-        p = subprocess.Popen(args, stderr=TestTransportAuth.OUTPUT_FILE,
-                             stdout=subprocess.PIPE)
+        p = subprocess.Popen(
+            args, stderr=TestTransportAuth.OUTPUT_FILE, stdout=subprocess.PIPE
+        )
         TestTransportAuth.SERVER_STARTED.append(p)
         for line in p.stdout:
             if b"ready" in line:
@@ -176,23 +185,25 @@ class TestTransportAuth(unittest.TestCase):
 
     def test_auth(self):
         """Test authentication."""
-        with TransportSessionClient(AuthSession, URI_CORRECT1, path=DB) \
-                as session:
+        with TransportSessionClient(
+            AuthSession, URI_CORRECT1, path=DB
+        ) as session:
             city.CityWrapper(session=session)
 
-        with TransportSessionClient(AuthSession, URI_WRONG1, path=DB) \
-                as session:
-            self.assertRaises(RuntimeError, city.CityWrapper,
-                              session=session)
+        with TransportSessionClient(
+            AuthSession, URI_WRONG1, path=DB
+        ) as session:
+            self.assertRaises(RuntimeError, city.CityWrapper, session=session)
 
-        with TransportSessionClient(SimpleAuthSession, URI_CORRECT2, path=DB) \
-                as session:
+        with TransportSessionClient(
+            SimpleAuthSession, URI_CORRECT2, path=DB
+        ) as session:
             city.CityWrapper(session=session)
 
-        with TransportSessionClient(SimpleAuthSession, URI_WRONG2, path=DB) \
-                as session:
-            self.assertRaises(RuntimeError, city.CityWrapper,
-                              session=session)
+        with TransportSessionClient(
+            SimpleAuthSession, URI_WRONG2, path=DB
+        ) as session:
+            self.assertRaises(RuntimeError, city.CityWrapper, session=session)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 ---
   version: "0.0.3"
-  
+
   namespace: "default_rel_test_namespace_valid"
   default_rel: cuba.activeRelationship
   ontology:

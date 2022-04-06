@@ -1,6 +1,6 @@
 ---
   version: "0.0.3"
-  
+
   namespace: "default_rel_test_namespace_uninstalled_entity"
   default_rel: cuba.noneExistingRel
   ontology:

@@ -108,14 +108,14 @@ class NamespaceRegistry:
         """
         name = name.lower()
         if name in self._namespaces:
-            return OntologyNamespace(name=name,
-                                     namespace_registry=self,
-                                     iri=self._namespaces[name])
+            return OntologyNamespace(
+                name=name, namespace_registry=self, iri=self._namespaces[name]
+            )
         raise KeyError("Namespace %s not installed." % name)
 
-    def update_namespaces(self,
-                          modules: Iterable = tuple(),
-                          remove: Iterable = tuple()):
+    def update_namespaces(
+        self, modules: Iterable = tuple(), remove: Iterable = tuple()
+    ):
         """Update the namespaces of the namespace registry.
 
         Only needed for Python 3.6.
@@ -139,17 +139,25 @@ class NamespaceRegistry:
         ns_name, ns_iri = self._get_namespace_name_and_iri(ns_iri)
         if ns_name in self._namespaces:
             return self._get(ns_name)
-        return OntologyNamespace(name=ns_name,
-                                 namespace_registry=self,
-                                 iri=ns_iri)
+        return OntologyNamespace(
+            name=ns_name, namespace_registry=self, iri=ns_iri
+        )
 
     @lru_cache(maxsize=10000)
-    def from_iri(self, iri, raise_error=True,
-                 allow_types=frozenset({rdflib.OWL.DatatypeProperty,
-                                        rdflib.OWL.ObjectProperty,
-                                        rdflib.OWL.Class,
-                                        rdflib.RDFS.Class}),
-                 _name=None):
+    def from_iri(
+        self,
+        iri,
+        raise_error=True,
+        allow_types=frozenset(
+            {
+                rdflib.OWL.DatatypeProperty,
+                rdflib.OWL.ObjectProperty,
+                rdflib.OWL.Class,
+                rdflib.RDFS.Class,
+            }
+        ),
+        _name=None,
+    ):
         """Get an entity from IRI.
 
         Args:
@@ -164,12 +172,14 @@ class NamespaceRegistry:
         ns_name, ns_iri = self._get_namespace_name_and_iri(iri)
         if _name is None:
             _name = self._get_entity_name(iri, ns_iri)
-        iri_suffix = iri[len(ns_iri):]
+        iri_suffix = iri[len(ns_iri) :]
 
-        kwargs = {"namespace_registry": self,
-                  "namespace_iri": ns_iri,
-                  "name": _name,
-                  "iri_suffix": iri_suffix}
+        kwargs = {
+            "namespace_registry": self,
+            "namespace_iri": ns_iri,
+            "name": _name,
+            "iri_suffix": iri_suffix,
+        }
         for s, p, o in self._graph.triples((iri, rdflib.RDF.type, None)):
             if o not in allow_types:
                 continue
@@ -182,8 +192,10 @@ class NamespaceRegistry:
             if o in (rdflib.OWL.Class, rdflib.RDFS.Class):
                 return OntologyClass(**kwargs)
         if raise_error:
-            raise KeyError(f"IRI {iri} not found in graph or not of any "
-                           f"type in the set {allow_types}")
+            raise KeyError(
+                f"IRI {iri} not found in graph or not of any "
+                f"type in the set {allow_types}"
+            )
 
     def from_bnode(self, bnode, btype=None):
         """Return restriction, composition represented by given bnode.
@@ -192,10 +204,9 @@ class NamespaceRegistry:
             bnode (BNode): A blank node in the triple store.
             btype (URIRef): The rdf.type of the blank node.
         """
-        from osp.core.ontology.oclass_composition import \
-            get_composition
-        from osp.core.ontology.oclass_restriction import \
-            get_restriction
+        from osp.core.ontology.oclass_composition import get_composition
+        from osp.core.ontology.oclass_restriction import get_restriction
+
         t = btype or self._graph.value(bnode, rdflib.RDF.type)
 
         if t == rdflib.OWL.Restriction:
@@ -241,7 +252,9 @@ class NamespaceRegistry:
             bool: Whether entities should be referenced by label
         """
         return (
-            ns_iri, rdflib_cuba._reference_by_label, rdflib.Literal(True)
+            ns_iri,
+            rdflib_cuba._reference_by_label,
+            rdflib.Literal(True),
         ) in self._graph
 
     def _get_entity_name(self, entity_iri, ns_iri):
@@ -260,30 +273,37 @@ class NamespaceRegistry:
         if self._get_reference_by_label(ns_iri):
             namespace = self.namespace_from_iri(ns_iri)
             labels = tuple(
-                namespace._get_labels_for_iri(entity_iri,
-                                              _return_literal=True,
-                                              _return_label_property=True))
+                namespace._get_labels_for_iri(
+                    entity_iri,
+                    _return_literal=True,
+                    _return_label_property=True,
+                )
+            )
             if not labels:
                 logger.debug(f"No label for {entity_iri}")
             else:
-                labels = sorted(labels,
-                                key=lambda x:
-                                (self._get_entity_name_order_label[x[0]],
-                                 self._get_entity_name_order_language(
-                                     x[1].language)))
+                labels = sorted(
+                    labels,
+                    key=lambda x: (
+                        self._get_entity_name_order_label[x[0]],
+                        self._get_entity_name_order_language(x[1].language),
+                    ),
+                )
                 labels = tuple(label[1].toPython() for label in labels)
                 return labels[0]
-        return entity_iri[len(ns_iri):]
+        return entity_iri[len(ns_iri) :]
 
-    _get_entity_name_order_label = {rdflib.SKOS.prefLabel: 0,
-                                    rdflib.RDFS.label: 1}
+    _get_entity_name_order_label = {
+        rdflib.SKOS.prefLabel: 0,
+        rdflib.RDFS.label: 1,
+    }
 
     @staticmethod
     def _get_entity_name_order_language(language):
-        if language == 'en':
-            return ''
+        if language == "en":
+            return ""
         elif language is None:
-            return '_'
+            return "_"
         else:
             return language
 
@@ -337,23 +357,29 @@ class NamespaceRegistry:
         # Migrate old ontology formats if needed.
         if os.path.exists(os.path.join(path, "parser/yml")):
             from osp.core.ontology.installation import pico_migrate
+
             pico_migrate(self, path)
         # Migrate to 3.5.3.1 format if needed.
-        migration_version_filename = 'last-migration-osp-core-version.txt'
+        migration_version_filename = "last-migration-osp-core-version.txt"
         migration_version_file_path = os.path.join(
-            path, migration_version_filename)
+            path, migration_version_filename
+        )
         if os.path.exists(migration_version_file_path):
             with open(migration_version_file_path, "r") as version_file:
-                from ..pico import compare_version, CompareOperations
+                from ..pico import CompareOperations, compare_version
+
                 version = version_file.read().strip()
                 do_migration = not version or compare_version(
-                    version, "3.5.3.1", operation=CompareOperations.l)
+                    version, "3.5.3.1", operation=CompareOperations.l
+                )
         else:
             do_migration = True
         if do_migration:
             from osp.core.ontology.installation import pico_migrate_v3_5_3_1
-            pico_migrate_v3_5_3_1(path, migration_version_filename,
-                                  namespace_registry=self)
+
+            pico_migrate_v3_5_3_1(
+                path, migration_version_filename, namespace_registry=self
+            )
 
         path_graph = os.path.join(path, "graph.xml")
         path_ns = os.path.join(path, "namespaces.txt")
@@ -371,8 +397,7 @@ class NamespaceRegistry:
         """Load the cuba namespace."""
         path_cuba = os.path.join(os.path.dirname(__file__), "docs", "cuba.ttl")
         self._graph.parse(path_cuba, format="ttl")
-        self.bind("cuba",
-                  rdflib.URIRef("http://www.osp-core.com/cuba#"))
+        self.bind("cuba", rdflib.URIRef("http://www.osp-core.com/cuba#"))
 
     def load_parser(self, parser: OntologyParser):
         """Load new namespace(s) from a parser object.
@@ -381,11 +406,15 @@ class NamespaceRegistry:
             parser (OntologyParser): the ontology parser from where to load
                 the new namespaces
         """
-        namespaces = parser.namespaces.items() \
-            if isinstance(parser.namespaces, dict) else dict()
-        logger.info("Loading namespaces %s." %
-                    '; '.join([f'{name}, {uri}'
-                               for name, uri in namespaces]))
+        namespaces = (
+            parser.namespaces.items()
+            if isinstance(parser.namespaces, dict)
+            else dict()
+        )
+        logger.info(
+            "Loading namespaces %s."
+            % "; ".join([f"{name}, {uri}" for name, uri in namespaces])
+        )
         ontology = Ontology(from_parser=parser)
         # Force default relationships to be installed before installing a new
         # ontology.
@@ -394,24 +423,26 @@ class NamespaceRegistry:
         self._graph += ontology.graph
         # Bind namespaces.
         for name, iri in namespaces:
-            if not (
-                iri.endswith("#") or iri.endswith("/")
-            ):
+            if not (iri.endswith("#") or iri.endswith("/")):
                 iri += "#"
             self.bind(name, iri)
 
-    def _check_default_relationship_installed(self, ontology: Ontology,
-                                              allow_types=frozenset(
-                                                  {rdflib.OWL.ObjectProperty,
-                                                   })
-                                              ):
+    def _check_default_relationship_installed(
+        self,
+        ontology: Ontology,
+        allow_types=frozenset(
+            {
+                rdflib.OWL.ObjectProperty,
+            }
+        ),
+    ):
         if not ontology.default_relationship:
             return
         found = False
         # Check if it is in the namespace to be installed.
-        for s, p, o in ontology.graph.triples((ontology.default_relationship,
-                                               rdflib.RDF.type,
-                                               None)):
+        for s, p, o in ontology.graph.triples(
+            (ontology.default_relationship, rdflib.RDF.type, None)
+        ):
             if o in allow_types:
                 found = True
                 break
@@ -424,10 +455,12 @@ class NamespaceRegistry:
             except KeyError:
                 pass
         if not found:
-            raise ValueError(f'The default relationship '
-                             f'{ontology.default_relationship} defined for '
-                             f'the ontology package {ontology.identifier} '
-                             f'is not installed.')
+            raise ValueError(
+                f"The default relationship "
+                f"{ontology.default_relationship} defined for "
+                f"the ontology package {ontology.identifier} "
+                f"is not installed."
+            )
 
 
 namespace_registry = NamespaceRegistry()

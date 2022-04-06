@@ -33,7 +33,7 @@ ontology:
   HAS_INHABITANT:
     subclass_of:
     - CITY.ENCLOSES
-  
+
   HAS_CHILD:
     subclass_of:
     - CITY.HAS_PART
@@ -43,7 +43,7 @@ ontology:
     subclass_of:
     - CITY.IS_PART_OF
     inverse: CITY.HAS_CHILD
-  
+
   HAS_WORKER:
     subclass_of:
     - CITY.HAS_PART
@@ -81,7 +81,7 @@ ontology:
         exclusive: false
     attributes:
       CITY.NUM_STEPS:
-  
+
   NUM_STEPS:
     subclass_of:
     - CITY.NUMBER

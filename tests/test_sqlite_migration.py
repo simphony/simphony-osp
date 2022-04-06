@@ -1,13 +1,18 @@
 """Test the Sqlite Wrapper with the CITY ontology."""
 
 import os
-import unittest2 as unittest
 import sqlite3
-import numpy as np
 from pathlib import Path
-from osp.core.session.db.sql_migrate import check_supported_schema_version, \
-    detect_current_schema_version, versions
-from osp.core.session.db.sql_migrate import SqlMigrate
+
+import numpy as np
+import unittest2 as unittest
+
+from osp.core.session.db.sql_migrate import (
+    SqlMigrate,
+    check_supported_schema_version,
+    detect_current_schema_version,
+    versions,
+)
 from osp.wrappers.sqlite import SqliteSession
 
 try:
@@ -15,6 +20,7 @@ try:
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.ontology.namespace_registry import namespace_registry
+
     Parser().parse("city")
     city = namespace_registry.city
 
@@ -36,19 +42,27 @@ class TestSqliteCity(unittest.TestCase):
             with sqlite3.connect(DB) as con:
                 con.executescript(f.read())
 
-        self.assertRaises(RuntimeError, check_supported_schema_version,
-                          SqliteSession(DB))
-        self.assertRaises(RuntimeError, city.CityWrapper,
-                          session=SqliteSession(DB))
-        self.assertEqual(detect_current_schema_version(
-            SqliteSession(DB)._get_table_names("")), schema_version
+        self.assertRaises(
+            RuntimeError, check_supported_schema_version, SqliteSession(DB)
+        )
+        self.assertRaises(
+            RuntimeError, city.CityWrapper, session=SqliteSession(DB)
+        )
+        self.assertEqual(
+            detect_current_schema_version(
+                SqliteSession(DB)._get_table_names("")
+            ),
+            schema_version,
         )
 
         with SqliteSession(DB) as session:
             m = SqlMigrate(session)
             m.run()
-            self.assertEqual(detect_current_schema_version(
-                SqliteSession(DB)._get_table_names("")), max(versions.values())
+            self.assertEqual(
+                detect_current_schema_version(
+                    SqliteSession(DB)._get_table_names("")
+                ),
+                max(versions.values()),
             )
             self.assertTrue(check_supported_schema_version(SqliteSession(DB)))
 
@@ -61,16 +75,14 @@ class TestSqliteCity(unittest.TestCase):
             self.assertEqual(len(cities), 1)
             self.assertTrue(c.is_a(city.City))
             self.assertEqual(c.name, "Freiburg")
-            self.assertEqual(c.uid.hex,
-                             "affb72ee61754028bd7e39a92ba3bb77")
+            self.assertEqual(c.uid.hex, "affb72ee61754028bd7e39a92ba3bb77")
             self.assertEqual(c.get(rel=city.isPartOf), [w])
             np.testing.assert_equal(c.coordinates, np.array([42, 12]))
 
             neighborhoods = c.get(oclass=city.Neighborhood)
             n = neighborhoods[0]
             self.assertEqual(len(neighborhoods), 1)
-            self.assertEqual(n.uid.hex,
-                             "e30e0287f52b49f396b939a85fc9460d")
+            self.assertEqual(n.uid.hex, "e30e0287f52b49f396b939a85fc9460d")
             self.assertEqual(n.name, "Zähringen")
             self.assertEqual(n.get(rel=city.isPartOf), [c])
             np.testing.assert_equal(n.coordinates, np.array([0, 0]))
@@ -78,16 +90,16 @@ class TestSqliteCity(unittest.TestCase):
             streets = n.get()
             s = streets[0]
             self.assertEqual(len(streets), 1)
-            self.assertEqual(s.uid.hex,
-                             "25cb6116e9d04ceb81cdd8cfcbead47b")
+            self.assertEqual(s.uid.hex, "25cb6116e9d04ceb81cdd8cfcbead47b")
             self.assertEqual(s.name, "Le street")
             self.assertEqual(s.get(rel=city.isPartOf), [n])
             np.testing.assert_equal(s.coordinates, np.array([1, 98]))
 
             citizen = c.get(rel=city.hasInhabitant)
             citizen = sorted(citizen, key=lambda p: p.name)
-            self.assertEqual([p.name for p in citizen],
-                             ["Hans", "Michel", "Peter"])
+            self.assertEqual(
+                [p.name for p in citizen], ["Hans", "Michel", "Peter"]
+            )
             for p in citizen:
                 self.assertEqual(p.get(rel=city.hasInhabitant.inverse), [c])
                 self.assertEqual(p.get(), [])
@@ -101,5 +113,5 @@ class TestSqliteCity(unittest.TestCase):
         self.run_test()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

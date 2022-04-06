@@ -11,26 +11,25 @@ from osp.core.ontology.entity import OntologyEntity
 
 logger = logging.getLogger(__name__)
 
-BLACKLIST = {OWL.Nothing, OWL.Thing,
-             OWL.NamedIndividual}
+BLACKLIST = {OWL.Nothing, OWL.Thing, OWL.NamedIndividual}
 
 # CACHE Introduced because getting URIRef terms from the namespaces is
 #  computationally expensive.
 CACHE = {
-    'cuba:_default': rdflib_cuba._default,
-    'cuba:_default_attribute': rdflib_cuba._default_attribute,
-    'cuba:_default_value': rdflib_cuba._default_value,
-    'owl:DatatypeProperty': OWL.DatatypeProperty,
-    'owl:Restriction': OWL.Restriction,
-    'owl:allValuesFrom': OWL.allValuesFrom,
-    'owl:cardinality': OWL.cardinality,
-    'owl:minCardinality': OWL.minCardinality,
-    'owl:hasValue': OWL.hasValue,
-    'owl:someValuesFrom': OWL.someValuesFrom,
-    'owl:onProperty': OWL.onProperty,
-    'rdf:type': RDF.type,
-    'rdfs:domain': RDFS.domain,
-    'rdfs:subClassOf': RDFS.subClassOf,
+    "cuba:_default": rdflib_cuba._default,
+    "cuba:_default_attribute": rdflib_cuba._default_attribute,
+    "cuba:_default_value": rdflib_cuba._default_value,
+    "owl:DatatypeProperty": OWL.DatatypeProperty,
+    "owl:Restriction": OWL.Restriction,
+    "owl:allValuesFrom": OWL.allValuesFrom,
+    "owl:cardinality": OWL.cardinality,
+    "owl:minCardinality": OWL.minCardinality,
+    "owl:hasValue": OWL.hasValue,
+    "owl:someValuesFrom": OWL.someValuesFrom,
+    "owl:onProperty": OWL.onProperty,
+    "rdf:type": RDF.type,
+    "rdfs:domain": RDFS.domain,
+    "rdfs:subClassOf": RDFS.subClassOf,
 }
 
 
@@ -63,8 +62,11 @@ class OntologyClass(OntologyEntity):
         for superclass in self.superclasses:
             for attr, v in self._get_attributes(superclass.iri).items():
                 x = attributes.get(attr, (None, None, None))
-                x = (x[0] or v[0], False if x[0] or v[0] else x[1] or v[1],
-                     x[2] or v[2])
+                x = (
+                    x[0] or v[0],
+                    False if x[0] or v[0] else x[1] or v[1],
+                    x[2] or v[2],
+                )
                 attributes[attr] = x
         return attributes
 
@@ -104,8 +106,9 @@ class OntologyClass(OntologyEntity):
                 connected to axioms (subclass or equivalentClass).
         """
         self._cached_axioms = self._cached_axioms or []
-        for o in self._namespace_registry._graph.objects(iri,
-                                                         rdflib_predicate):
+        for o in self._namespace_registry._graph.objects(
+            iri, rdflib_predicate
+        ):
             if not isinstance(o, BNode):
                 continue
             try:
@@ -134,10 +137,11 @@ class OntologyClass(OntologyEntity):
         # Case 2: axioms
         graph = self._namespace_registry._graph
         for a_iri, o in self._get_attributes_identifiers_from_axioms(
-                iri, return_restriction=True):
+            iri, return_restriction=True
+        ):
             a = self._namespace_registry.from_iri(a_iri)
             cuba_default = self._get_default(a_iri, iri)
-            restriction_default = graph.value(o, CACHE['owl:hasValue'])
+            restriction_default = graph.value(o, CACHE["owl:hasValue"])
             default = cuba_default or restriction_default
             dt, obligatory = self._get_datatype_for_restriction(o)
             obligatory = default is None and obligatory
@@ -154,24 +158,30 @@ class OntologyClass(OntologyEntity):
         # Case 1: domain of Datatype
         graph = self._namespace_registry._graph
         blacklist = [OWL.topDataProperty, OWL.bottomDataProperty]
-        for a_iri in graph.subjects(CACHE['rdfs:domain'], iri):
-            if ((a_iri, CACHE['rdf:type'], CACHE['owl:DatatypeProperty'])
-                    not in graph
-                    or isinstance(a_iri, BNode)
-                    or a_iri in blacklist):
+        for a_iri in graph.subjects(CACHE["rdfs:domain"], iri):
+            if (
+                (a_iri, CACHE["rdf:type"], CACHE["owl:DatatypeProperty"])
+                not in graph
+                or isinstance(a_iri, BNode)
+                or a_iri in blacklist
+            ):
                 continue
             yield a_iri
 
-    def _get_attributes_identifiers_from_axioms(self, iri,
-                                                return_restriction=False):
+    def _get_attributes_identifiers_from_axioms(
+        self, iri, return_restriction=False
+    ):
         # Case 2: axioms
         graph = self._namespace_registry._graph
-        for o in graph.objects(iri, CACHE['rdfs:subClassOf']):
-            if (o, CACHE['rdf:type'], CACHE['owl:Restriction']) not in graph:
+        for o in graph.objects(iri, CACHE["rdfs:subClassOf"]):
+            if (o, CACHE["rdf:type"], CACHE["owl:Restriction"]) not in graph:
                 continue
-            a_iri = graph.value(o, CACHE['owl:onProperty'])
-            if (a_iri, CACHE['rdf:type'], CACHE['owl:DatatypeProperty'])\
-                    not in graph or isinstance(a_iri, BNode):
+            a_iri = graph.value(o, CACHE["owl:onProperty"])
+            if (
+                a_iri,
+                CACHE["rdf:type"],
+                CACHE["owl:DatatypeProperty"],
+            ) not in graph or isinstance(a_iri, BNode):
                 continue
             yield a_iri if not return_restriction else (a_iri, o)
 
@@ -180,12 +190,12 @@ class OntologyClass(OntologyEntity):
         dt = None
         g = self._namespace_registry._graph
 
-        dt = g.value(r, CACHE['owl:someValuesFrom'])
+        dt = g.value(r, CACHE["owl:someValuesFrom"])
         obligatory = dt is not None
-        dt = dt or g.value(r, CACHE['owl:allValuesFrom'])
-        dt = dt or g.value(r, CACHE['owl:hasValue'])
-        obligatory = obligatory or (r, CACHE['owl:cardinality']) != 0
-        obligatory = obligatory or (r, CACHE['owl:minCardinality']) != 0
+        dt = dt or g.value(r, CACHE["owl:allValuesFrom"])
+        dt = dt or g.value(r, CACHE["owl:hasValue"])
+        obligatory = obligatory or (r, CACHE["owl:cardinality"]) != 0
+        obligatory = obligatory or (r, CACHE["owl:minCardinality"]) != 0
         return dt, obligatory
 
     def _get_default(self, attribute_iri, superclass_iri):
@@ -200,11 +210,13 @@ class OntologyClass(OntologyEntity):
             Any: the default
         """
         for bnode in self._namespace_registry._graph.objects(
-                superclass_iri, CACHE['cuba:_default']):
-            x = (bnode, CACHE['cuba:_default_attribute'], attribute_iri)
+            superclass_iri, CACHE["cuba:_default"]
+        ):
+            x = (bnode, CACHE["cuba:_default_attribute"], attribute_iri)
             if x in self._namespace_registry._graph:
                 return self._namespace_registry._graph.value(
-                    bnode, CACHE['cuba:_default_value'])
+                    bnode, CACHE["cuba:_default_value"]
+                )
 
     def get_attribute_by_argname(self, name):
         """Get the attribute object with the argname of the object.
@@ -244,7 +256,9 @@ class OntologyClass(OntologyEntity):
                 attribute_name = self._namespace_registry._get_entity_name(
                     identifier,
                     self._namespace_registry._get_namespace_name_and_iri(
-                        identifier)[1])
+                        identifier
+                    )[1],
+                )
                 if attribute_name == name:
                     return identifier
                 elif attribute_name.lower() == name:
@@ -295,39 +309,38 @@ class OntologyClass(OntologyEntity):
                     f"commandline tool to transform entity names to CamelCase."
                 )
             elif not _force and obligatory:
-                raise TypeError("Missing keyword argument: %s" %
-                                attribute.argname)
+                raise TypeError(
+                    "Missing keyword argument: %s" % attribute.argname
+                )
             elif default is not None:
                 attributes[attribute] = default
 
         # Check validity of arguments
         if not _force and kwargs:
-            raise TypeError("Unexpected keyword arguments: %s"
-                            % kwargs.keys())
+            raise TypeError("Unexpected keyword arguments: %s" % kwargs.keys())
         return attributes
 
     def _direct_superclasses(self):
-        return self._directly_connected(RDFS.subClassOf,
-                                        blacklist=BLACKLIST)
+        return self._directly_connected(RDFS.subClassOf, blacklist=BLACKLIST)
 
     def _direct_subclasses(self):
-        return self._directly_connected(RDFS.subClassOf,
-                                        inverse=True, blacklist=BLACKLIST)
+        return self._directly_connected(
+            RDFS.subClassOf, inverse=True, blacklist=BLACKLIST
+        )
 
     def _superclasses(self):
         yield self
-        yield from self._transitive_hull(
-            RDFS.subClassOf,
-            blacklist=BLACKLIST)
+        yield from self._transitive_hull(RDFS.subClassOf, blacklist=BLACKLIST)
 
     def _subclasses(self):
         yield self
         yield from self._transitive_hull(
-            RDFS.subClassOf, inverse=True,
-            blacklist=BLACKLIST)
+            RDFS.subClassOf, inverse=True, blacklist=BLACKLIST
+        )
 
-    def __call__(self, session=None, iri=None, uid=None,
-                 _force=False, **kwargs):
+    def __call__(
+        self, session=None, iri=None, uid=None, _force=False, **kwargs
+    ):
         """Create a Cuds object from this ontology class.
 
         Args:
@@ -347,11 +360,13 @@ class OntologyClass(OntologyEntity):
             Cuds: The created cuds object
         """
         # Accept strings as IRI identifiers and integers as UUID identifiers.
-        types_map = {int: lambda x: uuid.UUID(int=x),
-                     str: lambda x: rdflib.URIRef(x),
-                     rdflib.URIRef: lambda x: x,
-                     uuid.UUID: lambda x: x,
-                     type(None): lambda x: x}
+        types_map = {
+            int: lambda x: uuid.UUID(int=x),
+            str: lambda x: rdflib.URIRef(x),
+            rdflib.URIRef: lambda x: x,
+            uuid.UUID: lambda x: x,
+            type(None): lambda x: x,
+        }
         iri, uid = (types_map[type(x)](x) for x in (iri, uid))
 
         from osp.core.cuds import Cuds
@@ -361,8 +376,10 @@ class OntologyClass(OntologyEntity):
             raise TypeError("Missing keyword argument 'session' for wrapper.")
 
         if self.is_subclass_of(cuba.Nothing):
-            raise TypeError("Cannot instantiate cuds object for ontology class"
-                            " cuba.Nothing.")
+            raise TypeError(
+                "Cannot instantiate cuds object for ontology class"
+                " cuba.Nothing."
+            )
 
         # build attributes dictionary by combining
         # kwargs and defaults
@@ -371,5 +388,5 @@ class OntologyClass(OntologyEntity):
             oclass=self,
             session=session,
             iri=iri,
-            uid=uid
+            uid=uid,
         )

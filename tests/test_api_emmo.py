@@ -1,17 +1,19 @@
 """Test the API with the EMMO ontology."""
 
-import unittest2 as unittest
 import uuid
 
-from osp.core.utils.wrapper_development import create_from_cuds_object
-from osp.core.session.core_session import CoreSession
+import unittest2 as unittest
+
 from osp.core.namespaces import cuba
+from osp.core.session.core_session import CoreSession
+from osp.core.utils.wrapper_development import create_from_cuds_object
 
 try:
-    from osp.core.namespaces import math, holistic, mereotopology
+    from osp.core.namespaces import holistic, math, mereotopology
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.ontology.namespace_registry import namespace_registry
+
     Parser().parse("emmo")
     math = namespace_registry.math
     holistic = namespace_registry.holistic
@@ -33,8 +35,13 @@ class TestAPIEmmo(unittest.TestCase):
 
     def test_creation(self):
         """Test the instantiation and type of the objects."""
-        self.assertRaises(TypeError, math.Real, hasNumericalData=1.2,
-                          uid=0, unwanted="unwanted")
+        self.assertRaises(
+            TypeError,
+            math.Real,
+            hasNumericalData=1.2,
+            uid=0,
+            unwanted="unwanted",
+        )
         self.assertRaises(TypeError, math.Real)
 
         r = math.Real(hasNumericalData=1.2, hasSymbolData="1.2")
@@ -53,8 +60,9 @@ class TestAPIEmmo(unittest.TestCase):
     def test_set_throws_exception(self):
         """Test that setting a value for an invlid key throws an error."""
         c = holistic.Process()
-        self.assertRaises(ValueError, c._neighbors.__setitem__,
-                          "not an allowed key", 15)
+        self.assertRaises(
+            ValueError, c._neighbors.__setitem__, "not an allowed key", 15
+        )
 
     def test_add(self):
         """Test the standard, normal behavior of the add() method."""
@@ -202,8 +210,7 @@ class TestAPIEmmo(unittest.TestCase):
         # remove(rel, oclass)
         c.add(p, rel=mereotopology.hasProperPart)
         c.add(n)
-        c.remove(rel=mereotopology.hasProperPart,
-                 oclass=math.Numerical)
+        c.remove(rel=mereotopology.hasProperPart, oclass=math.Numerical)
         get_all = c.get()
         self.assertIn(n, get_all)
         self.assertNotIn(p, get_all)
@@ -228,9 +235,9 @@ class TestAPIEmmo(unittest.TestCase):
         p = math.Real(hasNumericalData=1.2)
         self.assertEqual(
             p.get_attributes(),
-            {math.hasNumericalData: "1.2"}  # TODO type conversion
+            {math.hasNumericalData: "1.2"},  # TODO type conversion
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

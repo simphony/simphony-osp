@@ -16,6 +16,7 @@ logging = logging.getLogger(__name__)
 
 class OntologyParser(ABC):
     """Generic ontology parser abstract class."""
+
     graph: Graph
 
     @abstractmethod
@@ -102,12 +103,12 @@ class OntologyParser(ABC):
             return file_identifier
         file_identifier = file_identifier.lower()
         a = os.path.join(
-            os.path.dirname(__file__), "../docs",
-            f"{file_identifier}.ontology.yml"
+            os.path.dirname(__file__),
+            "../docs",
+            f"{file_identifier}.ontology.yml",
         )
         b = os.path.join(
-            os.path.dirname(__file__), "../docs",
-            f"{file_identifier}.yml"
+            os.path.dirname(__file__), "../docs", f"{file_identifier}.yml"
         )
         if os.path.exists(a):
             return os.path.abspath(a)
@@ -120,7 +121,7 @@ class OntologyParser(ABC):
         Args:
             path (str): the path of the YAML file.
         """
-        with open(path, 'r') as file:
+        with open(path, "r") as file:
             doc = yaml.safe_load(file)
             if doc is None:
                 raise SyntaxError(f"File {path} is empty.")
@@ -137,6 +138,7 @@ class OntologyParser(ABC):
             bool: Whether the given document is a YAML ontology.
         """
         import osp.core.ontology.parser.yml.keywords as keywords
+
         return keywords.ONTOLOGY_KEY in doc and keywords.NAMESPACE_KEY in doc
 
     @staticmethod
@@ -147,11 +149,13 @@ class OntologyParser(ABC):
             doc (dict): the doc obtained after reading the YAML config file.
         """
         import osp.core.ontology.parser.owl.keywords as keywords
-        return all(x in doc for x in (keywords.RDF_FILE_KEY,
-                                      keywords.IDENTIFIER_KEY))
+
+        return all(
+            x in doc for x in (keywords.RDF_FILE_KEY, keywords.IDENTIFIER_KEY)
+        )
 
     @classmethod
-    def get_parser(cls, path: str) -> 'OntologyParser':
+    def get_parser(cls, path: str) -> "OntologyParser":
         """Parse the given YAML files.
 
         Args:
@@ -159,6 +163,7 @@ class OntologyParser(ABC):
         """
         from osp.core.ontology.parser.owl.parser import OWLParser
         from osp.core.ontology.parser.yml.parser import YMLParser
+
         file_path = cls.parse_file_path(path)
         yaml_doc = cls.load_yaml(file_path)
         if cls.is_yaml_ontology(yaml_doc):
@@ -195,8 +200,10 @@ class Parser:
                 namespace registries, except on unit tests.
         """
         from osp.core.ontology.namespace_registry import namespace_registry
-        self._namespace_registry = parser_namespace_registry or \
-            namespace_registry
+
+        self._namespace_registry = (
+            parser_namespace_registry or namespace_registry
+        )
 
     def parse(self, path: str):
         """Directly loads an ontology in the namespace registry.
@@ -208,6 +215,7 @@ class Parser:
                 configuration file to load.
         """
         from osp.core.ontology.namespace_registry import namespace_registry
+
         parser = OntologyParser.get_parser(path)
         namespace_registry.load_parser(parser)
         if namespace_registry is self._namespace_registry:

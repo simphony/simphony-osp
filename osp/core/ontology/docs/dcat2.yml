@@ -6,7 +6,7 @@ requirements:
     - dcterms
     - prov
     - foaf
-namespaces: 
+namespaces:
     dcat2: http://www.w3.org/ns/dcat#
 
 active_relationships:

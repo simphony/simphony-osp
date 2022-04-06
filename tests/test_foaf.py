@@ -1,13 +1,15 @@
 """Test the API of CUDS objects using the foaf ontology."""
+import uuid
+
 import rdflib
 import unittest2 as unittest
-import uuid
 
 try:
     from osp.core.namespaces import foaf
 except ImportError:
-    from osp.core.ontology.parser.parser import OntologyParser
     from osp.core.ontology.namespace_registry import namespace_registry
+    from osp.core.ontology.parser.parser import OntologyParser
+
     namespace_registry.load_parser(OntologyParser.get_parser("foaf"))
     foaf = namespace_registry.foaf
 
@@ -39,5 +41,5 @@ class TestAPIfoaf(unittest.TestCase):
         # self.assertRaises(AttributeError, c.__setattr__, "age", "2.2")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
