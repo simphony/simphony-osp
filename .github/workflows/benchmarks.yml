@@ -11,7 +11,7 @@ jobs:
     name: Performance check
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       # - uses: actions/setup-python@v1  # (not needed for self-hosted runner)
       #   with:
       #     python-version: '3.8'
