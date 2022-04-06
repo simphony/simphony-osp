@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Flake8
-        run: flake8 . --exclude=*/__init__.py,osp/core/ontology/docs/EMMO/* --ignore=E203, W503 --docstring-convention=google
+        run: flake8 . --exclude=*/__init__.py,osp/core/ontology/docs/EMMO/* --ignore=E203,W503 --docstring-convention=google
 
       # Includes isort, black and other checks, see `.pre-commit.config.yaml`.
       - name: pre-commit
