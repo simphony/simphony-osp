@@ -1,18 +1,22 @@
 """Object to create backend independent queries, conditions and more."""
 
-import rdflib
-from operator import mul
-from osp.core.ontology.datatypes import convert_to, convert_from, \
-    _parse_vector_args
-from osp.core.ontology.cuba import rdflib_cuba
-from functools import reduce
 from copy import deepcopy
+from functools import reduce
+from operator import mul
 
+import rdflib
+
+from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.ontology.datatypes import (
+    _parse_vector_args,
+    convert_from,
+    convert_to,
+)
 
 VEC_PREFIX = str(rdflib_cuba["_datatypes/VECTOR-"])
 
 
-class SqlQuery():
+class SqlQuery:
     """An sql query."""
 
     def __init__(self, table_name, columns, datatypes, alias=None):
@@ -71,7 +75,7 @@ class SqlQuery():
         return self
 
 
-class Condition():
+class Condition:
     """The general condition class."""
 
 
@@ -111,8 +115,12 @@ class EqualsCondition(Condition):
 
     def __hash__(self):
         """Compute hash."""
-        return hash(self.table_name + self.column
-                    + str(self.value) + str(self.datatype))
+        return hash(
+            self.table_name
+            + self.column
+            + str(self.value)
+            + str(self.datatype)
+        )
 
 
 class JoinCondition(Condition):
@@ -144,8 +152,9 @@ class JoinCondition(Condition):
 
     def __hash__(self):
         """Compute hash."""
-        return hash(self.table_name1 + self.table_name2
-                    + self.column1 + self.column2)
+        return hash(
+            self.table_name1 + self.table_name2 + self.column1 + self.column2
+        )
 
 
 class AndCondition(Condition):
@@ -167,8 +176,9 @@ class AndCondition(Condition):
         Returns:
             bool: Wether the two codnitions are equivalent.
         """
-        return isinstance(other, type(self)) \
-            and set(self.conditions) == set(other.conditions)
+        return isinstance(other, type(self)) and set(self.conditions) == set(
+            other.conditions
+        )
 
     def __hash__(self):
         """Compute hash."""
@@ -185,22 +195,25 @@ def determine_datatype(table_name):
         rdflib.URIRef: The datatype of the object column.
     """
     from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
+
     prefix = SqlWrapperSession.DATA_TABLE_PREFIX
 
     if table_name.startswith(prefix + "OWL_"):
-        return rdflib.URIRef(f'http://www.w3.org/2002/07/owl#'
-                             f'{table_name[len(prefix + "OWL_"):]}')
+        return rdflib.URIRef(
+            f"http://www.w3.org/2002/07/owl#"
+            f'{table_name[len(prefix + "OWL_"):]}'
+        )
         # Replaced rdflib.OWL with URIRef('...'), as rdflib.OWL.rational seems
         # to have disappeared in rdflib 6.0.0.
         # TODO: return to original form when a fix for rdflib is available.
     elif table_name.startswith(prefix + "RDFS_"):
-        return getattr(rdflib.RDFS, table_name[len(prefix + "RDFS_"):])
+        return getattr(rdflib.RDFS, table_name[len(prefix + "RDFS_") :])
     elif table_name.startswith(prefix + "RDF_"):
-        return getattr(rdflib.RDF, table_name[len(prefix + "RDF_"):])
+        return getattr(rdflib.RDF, table_name[len(prefix + "RDF_") :])
     elif table_name.startswith(prefix + "XSD_"):
-        return getattr(rdflib.XSD, table_name[len(prefix + "XSD_"):])
+        return getattr(rdflib.XSD, table_name[len(prefix + "XSD_") :])
     else:
-        return getattr(rdflib_cuba, "_datatypes/" + table_name[len(prefix):])
+        return getattr(rdflib_cuba, "_datatypes/" + table_name[len(prefix) :])
 
 
 def get_data_table_name(datatype):
@@ -216,17 +229,18 @@ def get_data_table_name(datatype):
         str: The name of the table.
     """
     from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
+
     prefix = SqlWrapperSession.DATA_TABLE_PREFIX
     if datatype.startswith(str(rdflib.XSD)):
-        return prefix + "XSD_" + datatype[len(str(rdflib.XSD)):]
+        return prefix + "XSD_" + datatype[len(str(rdflib.XSD)) :]
     if datatype.startswith(str(rdflib.OWL)):
-        return prefix + "OWL_" + datatype[len(str(rdflib.OWL)):]
+        return prefix + "OWL_" + datatype[len(str(rdflib.OWL)) :]
     if datatype.startswith(str(rdflib.RDF)):
-        return prefix + "RDF_" + datatype[len(str(rdflib.RDF)):]
+        return prefix + "RDF_" + datatype[len(str(rdflib.RDF)) :]
     if datatype.startswith(str(rdflib.RDFS)):
-        return prefix + "RDFS_" + datatype[len(str(rdflib.RDFS)):]
+        return prefix + "RDFS_" + datatype[len(str(rdflib.RDFS)) :]
     if datatype.startswith(str(rdflib_cuba) + "_datatypes/"):
-        return prefix + datatype[len(str(rdflib_cuba) + "_datatypes/"):]
+        return prefix + datatype[len(str(rdflib_cuba) + "_datatypes/") :]
     raise NotImplementedError(f"Unsupported datatype {datatype}")
 
 
@@ -240,8 +254,21 @@ def check_characters(*to_check):
         ValueError: Invalid character detected.
 
     """
-    forbidden_chars = [";", "\0", "\r", "\x08", "\x09", "\x1a", "\n",
-                       "\r", "\"", "'", "`", "\\", "%"]
+    forbidden_chars = [
+        ";",
+        "\0",
+        "\r",
+        "\x08",
+        "\x09",
+        "\x1a",
+        "\n",
+        "\r",
+        '"',
+        "'",
+        "`",
+        "\\",
+        "%",
+    ]
     to_check = list(to_check)
     str_to_check = str(to_check)
     for c in forbidden_chars:
@@ -264,8 +291,12 @@ def check_characters(*to_check):
             elif isinstance(s, EqualsCondition):
                 to_check += [s.table_name, s.column, s.datatype]
             elif isinstance(s, JoinCondition):
-                to_check += [s.table_name1, s.column1,
-                             s.table_name2, s.column2]
+                to_check += [
+                    s.table_name1,
+                    s.column1,
+                    s.table_name2,
+                    s.column2,
+                ]
             elif s is None:
                 pass
             else:
@@ -302,8 +333,9 @@ def expand_vector_cols(columns, datatypes, values=None):
     # iterate over the columns and look for vectors
     for i, column in enumerate(columns):
         # non vectors are simply added to the result
-        if datatypes[column] is None or \
-                not datatypes[column].startswith(VEC_PREFIX):
+        if datatypes[column] is None or not datatypes[column].startswith(
+            VEC_PREFIX
+        ):
             columns_expanded.append(column)
             datatypes_expanded[column] = datatypes[column]
             if values:
@@ -316,8 +348,7 @@ def expand_vector_cols(columns, datatypes, values=None):
         datatypes_expanded.update({c: datatype for c in expanded_cols})
         datatypes_expanded[column] = datatypes[column]
         if values:
-            values_expanded.extend(convert_from(values[i],
-                                                datatypes[column]))
+            values_expanded.extend(convert_from(values[i], datatypes[column]))
     if values:
         return columns_expanded, datatypes_expanded, values_expanded
     return columns_expanded, datatypes_expanded
@@ -344,8 +375,11 @@ def contract_vector_values(rows, query):
         for (t_alias, column), value in zip(query.columns, row):
 
             vector_datatype, is_vec_elem = handle_vector_item(
-                column, value, query.datatypes[t_alias],
-                temp_vec, vector_datatype
+                column,
+                value,
+                query.datatypes[t_alias],
+                temp_vec,
+                vector_datatype,
             )
             if is_vec_elem:
                 continue
@@ -355,8 +389,11 @@ def contract_vector_values(rows, query):
                 temp_vec = list()
 
             vector_datatype, is_vec_elem = handle_vector_item(
-                column, value, query.datatypes[t_alias],
-                temp_vec, vector_datatype
+                column,
+                value,
+                query.datatypes[t_alias],
+                temp_vec,
+                vector_datatype,
             )
             if is_vec_elem:
                 continue
@@ -365,8 +402,7 @@ def contract_vector_values(rows, query):
             contracted_row.append(value)
 
         if temp_vec:  # add the vector to the result
-            contracted_row.append(convert_to(temp_vec,
-                                             vector_datatype))
+            contracted_row.append(convert_to(temp_vec, vector_datatype))
             temp_vec = list()
         yield contracted_row
 
@@ -380,22 +416,29 @@ def expand_vector_condition(condition):
     Returns:
         Condition: The expanded OSP-core condition.
     """
-    if isinstance(condition, EqualsCondition) \
-            and condition.datatype.startswith(VEC_PREFIX):
+    if isinstance(
+        condition, EqualsCondition
+    ) and condition.datatype.startswith(VEC_PREFIX):
 
-        expanded_cols, datatype = get_expanded_cols(condition.column,
-                                                    condition.datatype)
-        return AndCondition(*[
-            EqualsCondition(table_name=condition.table_name,
-                            column=c, value=v, datatype=datatype)
-            for c, v in zip(expanded_cols, condition.value)
-        ])
+        expanded_cols, datatype = get_expanded_cols(
+            condition.column, condition.datatype
+        )
+        return AndCondition(
+            *[
+                EqualsCondition(
+                    table_name=condition.table_name,
+                    column=c,
+                    value=v,
+                    datatype=datatype,
+                )
+                for c, v in zip(expanded_cols, condition.value)
+            ]
+        )
 
     elif isinstance(condition, AndCondition):
-        return AndCondition(*[
-            expand_vector_condition(c)
-            for c in condition.conditions
-        ])
+        return AndCondition(
+            *[expand_vector_condition(c) for c in condition.conditions]
+        )
     return condition
 
 
@@ -413,16 +456,16 @@ def get_expanded_cols(column, datatype):
     """
     if not datatype.startswith(VEC_PREFIX):
         return [column], datatype
-    vector_args = datatype[len(VEC_PREFIX):].split("-")
+    vector_args = datatype[len(VEC_PREFIX) :].split("-")
     datatype, shape = _parse_vector_args(vector_args)
     size = reduce(mul, map(int, shape))
-    expanded_cols = ["%s___%s" % (column, x)
-                     for x in range(size)]
+    expanded_cols = ["%s___%s" % (column, x) for x in range(size)]
     return expanded_cols, datatype
 
 
-def handle_vector_item(column, value, datatypes, temp_vec,
-                       old_vector_datatype):
+def handle_vector_item(
+    column, value, datatypes, temp_vec, old_vector_datatype
+):
     """Check if a column corresponds to a vector.
 
     If it does, add it to the temp_vec list.
@@ -442,7 +485,7 @@ def handle_vector_item(column, value, datatypes, temp_vec,
     vec_suffix = "___%s" % len(temp_vec)  # suffix of vector column
     if column.endswith(vec_suffix):
         temp_vec.append(value)  # store the vector element
-        orig_col = column[:-len(vec_suffix)]
+        orig_col = column[: -len(vec_suffix)]
         return datatypes[orig_col], True
     return old_vector_datatype, False
 
@@ -460,7 +503,5 @@ def convert_values(rows, query):
     for row in rows:
         output = []
         for value, (t_alias, column) in zip(row, query.columns):
-            output.append(
-                convert_to(value, query.datatypes[t_alias][column])
-            )
+            output.append(convert_to(value, query.datatypes[t_alias][column]))
         yield output

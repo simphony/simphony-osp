@@ -1,13 +1,15 @@
 """A dictionary interface for the related object of a CUDS."""
 
 import uuid
-import rdflib
 from abc import ABC, abstractmethod
-from osp.core.ontology.relationship import OntologyRelationship
-from osp.core.ontology.oclass import OntologyClass
-from osp.core.ontology.namespace_registry import namespace_registry
-from osp.core.utils.general import iri_from_uid, uid_from_iri
+
+import rdflib
+
 from osp.core.namespaces import from_iri
+from osp.core.ontology.namespace_registry import namespace_registry
+from osp.core.ontology.oclass import OntologyClass
+from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.utils.general import iri_from_uid, uid_from_iri
 
 
 class NeighborDict(ABC):
@@ -125,7 +127,7 @@ class NeighborDictRel(NeighborDict):
         super().__init__(
             cuds_object,
             key_check=lambda k: isinstance(k, OntologyRelationship),
-            value_check=lambda v: isinstance(v, dict)
+            value_check=lambda v: isinstance(v, dict),
         )
 
     def _delitem(self, rel):
@@ -144,8 +146,11 @@ class NeighborDictRel(NeighborDict):
     def __bool__(self):
         """Check if there are elements in the dictionary."""
         for s, p, o in self.graph.triples((self.cuds_object.iri, None, None)):
-            if (p, rdflib.RDF.type, rdflib.OWL.ObjectProperty) in \
-                    namespace_registry._graph:
+            if (
+                p,
+                rdflib.RDF.type,
+                rdflib.OWL.ObjectProperty,
+            ) in namespace_registry._graph:
                 return True
         return False
 
@@ -182,7 +187,7 @@ class NeighborDictTarget(NeighborDict):
             value_check=lambda v: (
                 isinstance(v, list)
                 and all(isinstance(x, OntologyClass) for x in v)
-            )
+            ),
         )
 
     def _init(self, dictionary):
@@ -227,5 +232,8 @@ class NeighborDictTarget(NeighborDict):
 
     def _contains(self, item):
         """Checks if an item belongs to the dictionary."""
-        return (self.cuds_object.iri, self.rel.iri, iri_from_uid(item)) \
-            in self.graph
+        return (
+            self.cuds_object.iri,
+            self.rel.iri,
+            iri_from_uid(item),
+        ) in self.graph

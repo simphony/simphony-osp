@@ -1,0 +1,6 @@
+identifier: dcmitype
+ontology_file: https://www.dublincore.org/specifications/dublin-core/dcmi-terms/dublin_core_type.ttl
+reference_by_label: False
+namespaces:
+    dcmitype: "http://purl.org/dc/dcmitype/"
+active_relationships: []

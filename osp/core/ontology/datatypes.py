@@ -1,9 +1,10 @@
 """This module contains methods for datatype conversions."""
 
+import ast
 import uuid
+
 import numpy as np
 from rdflib import RDF, RDFS, XSD, Literal, URIRef
-import ast
 
 from osp.core.ontology.cuba import rdflib_cuba
 
@@ -26,8 +27,7 @@ def convert_to(x, rdf_datatype):
     try:
         datatype = get_python_datatype(rdf_datatype)[0]
     except KeyError as e:
-        raise RuntimeError("unknown datatype %s" % rdf_datatype) \
-            from e
+        raise RuntimeError("unknown datatype %s" % rdf_datatype) from e
     return datatype(x)
 
 
@@ -47,8 +47,7 @@ def convert_from(x, rdf_datatype):
     try:
         datatype = get_python_datatype(rdf_datatype)[1]
     except KeyError as e:
-        raise RuntimeError("unknown datatype %s" % rdf_datatype) \
-            from e
+        raise RuntimeError("unknown datatype %s" % rdf_datatype) from e
     return datatype(x)
 
 
@@ -68,8 +67,8 @@ def to_uid(x):
         pass
     elif isinstance(x, str):
         if x.startswith(CUDS_IRI_PREFIX):
-            x = x[len(CUDS_IRI_PREFIX):]
-        split = x.split(':')
+            x = x[len(CUDS_IRI_PREFIX) :]
+        split = x.split(":")
         if len(split) > 1 and all(y != "" for y in split):
             x = URIRef(x)
         else:
@@ -102,8 +101,10 @@ def to_string(x, maxsize=None):
     """
     x = str(x)
     if maxsize and len(x) > int(maxsize):
-        raise ValueError("String %s is longer than " % x
-                         + "allowed maximum size of %s" % maxsize)
+        raise ValueError(
+            "String %s is longer than " % x
+            + "allowed maximum size of %s" % maxsize
+        )
     return x
 
 
@@ -135,7 +136,7 @@ def from_vector(x):
     Returns:
         List: The converted value
     """
-    return x.reshape((-1, )).tolist()
+    return x.reshape((-1,)).tolist()
 
 
 RDF_DATATYPES = {
@@ -145,7 +146,7 @@ RDF_DATATYPES = {
     XSD.string: (str, str, np.dtype("str")),
     XSD.double: (float, float, np.dtype("double")),
     "UID": (to_uid, str, np.dtype("str")),
-    None: (str, str, np.dtype("str"))
+    None: (str, str, np.dtype("str")),
 }
 
 
@@ -166,10 +167,10 @@ def get_python_datatype(rdf_datatype):
     str_prefix = str(rdflib_cuba["_datatypes/STRING-"])
     vec_prefix = str(rdflib_cuba["_datatypes/VECTOR-"])
     if str(rdf_datatype).startswith(str_prefix):
-        maxsize = int(str(rdf_datatype)[len(str_prefix):])
+        maxsize = int(str(rdf_datatype)[len(str_prefix) :])
         return (lambda x: to_string(x, maxsize=maxsize), str, np.dtype("str"))
     if str(rdf_datatype).startswith(vec_prefix):
-        args = str(rdf_datatype)[len(str_prefix):].split("-")
+        args = str(rdf_datatype)[len(str_prefix) :].split("-")
         dtype, shape = _parse_vector_args(args)
         np_dtype = RDF_DATATYPES[dtype][2]
         return (lambda x: to_vector(x, np_dtype, shape), from_vector, np_dtype)
@@ -181,7 +182,7 @@ YML_DATATYPES = {
     "INT": XSD.integer,
     "FLOAT": XSD.float,
     "STRING": XSD.string,
-    "UID": "UID"
+    "UID": "UID",
 }
 
 
@@ -262,8 +263,9 @@ def _add_vector_datatype(graph, shape, dtype):
         [type]: [description]
     """
     shape = list(map(int, shape))
-    iri = rdflib_cuba[f"_datatypes/VECTOR-{dtype}-"
-                      + "-".join(map(str, shape))]
+    iri = rdflib_cuba[
+        f"_datatypes/VECTOR-{dtype}-" + "-".join(map(str, shape))
+    ]
     triple = (iri, RDF.type, RDFS.Datatype)
     if graph is None or triple in graph:
         return iri

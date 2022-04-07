@@ -1,0 +1,8 @@
+---
+identifier: prov
+ontology_file: http://www.w3.org/ns/prov-o
+format: ttl
+reference_by_label: False
+namespaces:
+    prov: http://www.w3.org/ns/prov#
+active_relationships: []

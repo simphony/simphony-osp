@@ -11,10 +11,10 @@ ontology:
   ClassA:
     attributes:
       parser_test.attributeA: DEFAULT_A
-    subclass_of: 
+    subclass_of:
     - cuba.Entity
     description: "Class A"
-  
+
   ClassB:
     attributes:
       parser_test.attributeA: DEFAULT_B
@@ -36,7 +36,7 @@ ontology:
   ClassE:
     attributes:
       parser_test.attributeA:
-    subclass_of: 
+    subclass_of:
     - cuba.Entity
 
   attributeA:
@@ -73,7 +73,7 @@ ontology:
         cardinality: some
         exclusive: true
     default_rel: true
-  
+
   relationshipB:
     subclass_of:
     - parser_test.relationshipA
@@ -83,7 +83,7 @@ ontology:
       - parser_test.ClassC
       - not: parser_test.ClassD
     default_rel: false
-  
+
   relationshipC:
     subclass_of:
     - cuba.relationship

@@ -1,19 +1,23 @@
 """Test the dataspace wrapper."""
 
-import os
-import sys
-import subprocess
-import unittest2 as unittest
-import sqlite3
 import logging
+import os
+import sqlite3
+import subprocess
+import sys
 import time
-from osp.wrappers.sqlite import SqliteSession
-from osp.core.session.transport.transport_session_client import \
-    TransportSessionClient
-from osp.wrappers.dataspace import DataspaceSession
+
+import unittest2 as unittest
+
 from osp.core.session import DbWrapperSession
-from osp.core.session.transport.transport_session_server import \
-    TransportSessionServer
+from osp.core.session.transport.transport_session_client import (
+    TransportSessionClient,
+)
+from osp.core.session.transport.transport_session_server import (
+    TransportSessionServer,
+)
+from osp.wrappers.dataspace import DataspaceSession
+from osp.wrappers.sqlite import SqliteSession
 
 try:
     from tests.test_sqlite_city import check_state
@@ -25,6 +29,7 @@ try:
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.ontology.namespace_registry import namespace_registry
+
     Parser().parse("city")
     city = namespace_registry.city
 
@@ -42,9 +47,7 @@ class TestDataspaceWrapper(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up the server as a subprocess."""
-        args = ["python",
-                "tests/test_dataspace_wrapper.py",
-                "server"]
+        args = ["python", "tests/test_dataspace_wrapper.py", "server"]
         p = subprocess.Popen(args, stdout=subprocess.PIPE)
 
         TestDataspaceWrapper.SERVER_STARTED = p
@@ -63,8 +66,9 @@ class TestDataspaceWrapper(unittest.TestCase):
         """Clear the database."""
         with sqlite3.connect(DB) as conn:
             c = conn.cursor()
-            tables = c.execute("SELECT name FROM sqlite_master "
-                               + "WHERE type='table';")
+            tables = c.execute(
+                "SELECT name FROM sqlite_master " + "WHERE type='table';"
+            )
             tables = list(tables)
             for table in tables:
                 c.execute("DELETE FROM `%s`;" % table[0])
@@ -124,8 +128,7 @@ class TestDataspaceWrapper(unittest.TestCase):
     def test_user_parameterize(self):
         """Test parameterizing the dataspace as a client."""
         with TransportSessionClient(
-            DbWrapperSession,
-            URI, path="dataspace.db"
+            DbWrapperSession, URI, path="dataspace.db"
         ) as session:
             self.assertRaises(RuntimeError, city.CityWrapper, session=session)
 
@@ -136,9 +139,8 @@ if __name__ == "__main__":
             "osp.core.session.transport.transport_session_server"
         ).addFilter(lambda record: False)
         server = TransportSessionServer(
-            SqliteSession, HOST, PORT, session_kwargs={
-                "path": DB
-            })
+            SqliteSession, HOST, PORT, session_kwargs={"path": DB}
+        )
         print("ready", flush=True)
         server.startListening()
     else:

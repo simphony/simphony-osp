@@ -1,14 +1,18 @@
 """This file contains tests for the transport session."""
 
-import sys
-import subprocess
-import unittest2 as unittest
 import logging
+import subprocess
+import sys
 import time
-from osp.core.session.transport.transport_session_client import \
-    TransportSessionClient
-from osp.core.session.transport.transport_session_server import \
-    TransportSessionServer
+
+import unittest2 as unittest
+
+from osp.core.session.transport.transport_session_client import (
+    TransportSessionClient,
+)
+from osp.core.session.transport.transport_session_server import (
+    TransportSessionServer,
+)
 from osp.wrappers.simdummy import SimDummySession
 
 logger = logging.getLogger("osp.core")
@@ -19,6 +23,7 @@ try:
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.ontology.namespace_registry import namespace_registry
+
     Parser().parse("city")
     city = namespace_registry.city
 
@@ -38,9 +43,7 @@ class TestTransportSimWrapperCity(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up the server as a subprocess."""
-        args = ["python",
-                "tests/test_transport_sim_wrapper.py",
-                "server"]
+        args = ["python", "tests/test_transport_sim_wrapper.py", "server"]
         p = subprocess.Popen(args, stdout=subprocess.PIPE)
 
         TestTransportSimWrapperCity.SERVER_STARTED = p
@@ -56,8 +59,7 @@ class TestTransportSimWrapperCity(unittest.TestCase):
 
     def test_dummy_sim_wrapper(self):
         """Create a dummy simulation syntactic layer + test it."""
-        with TransportSessionClient(SimDummySession, URI) \
-                as session:
+        with TransportSessionClient(SimDummySession, URI) as session:
             wrapper = city.CitySimWrapper(numSteps=1, session=session)
             c = city.City(name="Freiburg")
             p1 = city.Person(name="Hans", age=34)
@@ -66,12 +68,12 @@ class TestTransportSimWrapperCity(unittest.TestCase):
 
             session.run()
 
-            self.assertEqual(len(
-                wrapper.get(oclass=city.Person,
-                            rel=city.hasPart)), 1)
-            self.assertEqual(len(
-                cw.get(oclass=city.Citizen,
-                       rel=city.hasInhabitant)), 1)
+            self.assertEqual(
+                len(wrapper.get(oclass=city.Person, rel=city.hasPart)), 1
+            )
+            self.assertEqual(
+                len(cw.get(oclass=city.Citizen, rel=city.hasInhabitant)), 1
+            )
             self.assertEqual(wrapper.get(p2.uid).name, "Renate")
             self.assertEqual(wrapper.get(p2.uid).age, 55)
             self.assertEqual(cw.get(p1.uid).name, "Hans")
@@ -82,7 +84,7 @@ class TestTransportSimWrapperCity(unittest.TestCase):
             self.assertRaises(RuntimeError, session.run)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if sys.argv[-1] == "server":
         sys.path.append("tests")
         server = TransportSessionServer(SimDummySession, HOST, PORT)

@@ -12,13 +12,15 @@ def returns_query_result(func):
     Returns:
         Callable: The wrapped function.
     """
+
     def f(session, *args, **kwargs):
         iterator = func(session, *args, **kwargs)
         return QueryResult(session, iterator)
+
     return f
 
 
-class QueryResult():
+class QueryResult:
     """The result of a query in the session."""
 
     def __init__(self, session, result_iterator):
@@ -106,12 +108,14 @@ class QueryResult():
         x = self.first()
         if len(self._elements) > 1:
             raise MultipleResultsError(
-                "Found %s result elements" % len(self.all()))
+                "Found %s result elements" % len(self.all())
+            )
         try:
             x = next(self._iterator)
             self._elements.append(x)
             raise MultipleResultsError(
-                "Found %s result elements" % len(self.all()))
+                "Found %s result elements" % len(self.all())
+            )
         except StopIteration:
             pass
         if x is None and raise_result_empty_error:

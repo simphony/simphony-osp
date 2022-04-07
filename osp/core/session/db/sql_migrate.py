@@ -1,19 +1,17 @@
 """This file contains a tool for migrating from old to new database schemas."""
 
 import uuid
+
 import rdflib
+
+from osp.core.namespaces import cuba, get_entity
 from osp.core.session.db.sql_util import SqlQuery
-from osp.core.namespaces import get_entity
 from osp.core.utils.general import iri_from_uid
-from osp.core.namespaces import cuba
 
 INT = rdflib.XSD.integer
 STR = rdflib.XSD.string
 
-versions = {
-    "OSP_MASTER": 0,
-    "OSP_V1_CUDS": 1
-}
+versions = {"OSP_MASTER": 0, "OSP_V1_CUDS": 1}
 
 supported_versions = [1]
 
@@ -35,9 +33,11 @@ def detect_current_schema_version(tables):
     try:
         return min(v for tbl, v in versions.items() if tbl in tables)
     except ValueError:
-        raise RuntimeError("No valid data on database found. "
-                           "Either database is corrupt or it has been created "
-                           "with a newer version of osp-core")
+        raise RuntimeError(
+            "No valid data on database found. "
+            "Either database is corrupt or it has been created "
+            "with a newer version of osp-core"
+        )
 
 
 def check_supported_schema_version(sql_session):
@@ -51,12 +51,14 @@ def check_supported_schema_version(sql_session):
     """
     tables = sql_session._get_table_names("")
     if detect_current_schema_version(tables) not in supported_versions:
-        raise RuntimeError("Please update your database by running "
-                           "$python -m osp.wrappers.<sql_module>.migrate")
+        raise RuntimeError(
+            "Please update your database by running "
+            "$python -m osp.wrappers.<sql_module>.migrate"
+        )
     return True
 
 
-class SqlMigrate():
+class SqlMigrate:
     """Tool to migrate from old to new database schema."""
 
     def __init__(self, sql_session):
@@ -94,8 +96,9 @@ class SqlMigrate():
     def migrate_master_0_1(self):
         """Migrate the OSP_MASTER table."""
         c = self.session._do_db_select(
-            SqlQuery("OSP_MASTER", ["uid", "oclass"],
-                     {"uid": "UID", "oclass": STR})
+            SqlQuery(
+                "OSP_MASTER", ["uid", "oclass"], {"uid": "UID", "oclass": STR}
+            )
         )
         for uid, oclass in c:
             oclass = get_entity(oclass) if oclass != "" else cuba.Wrapper
@@ -106,16 +109,20 @@ class SqlMigrate():
             cuds_idx = self.get_cuds_idx_0_1(uid)
 
             self.session._do_db_insert(
-                "OSP_V1_TYPES", ["s", "o"], [cuds_idx, oclass_idx],
-                {"s": INT, "o": INT}
+                "OSP_V1_TYPES",
+                ["s", "o"],
+                [cuds_idx, oclass_idx],
+                {"s": INT, "o": INT},
             )
 
     def migrate_relations_0_1(self):
         """Migrate the relations from v0 to v1."""
         c = self.session._do_db_select(
-            SqlQuery("OSP_RELATIONSHIPS", ["origin", "target", "name"],
-                     {"origin": "UID", "target": "UID",
-                      "name": STR})
+            SqlQuery(
+                "OSP_RELATIONSHIPS",
+                ["origin", "target", "name"],
+                {"origin": "UID", "target": "UID", "name": STR},
+            )
         )
         for origin, target, name in c:
             rel = get_entity(name)
@@ -126,16 +133,20 @@ class SqlMigrate():
             o = self.get_cuds_idx_0_1(target)
 
             self.session._do_db_insert(
-                "OSP_V1_RELATIONS", ["s", "p", "o"], [s, p, o],
-                {"s": INT, "p": INT, "o": INT}
+                "OSP_V1_RELATIONS",
+                ["s", "p", "o"],
+                [s, p, o],
+                {"s": INT, "p": INT, "o": INT},
             )
 
             if target == uuid.UUID(int=0):
                 ns_idx = self.get_ns_idx_0_1(rel.inverse.namespace.get_iri())
                 p = self.get_entity_idx_0_1(ns_idx, rel.inverse)
                 self.session._do_db_insert(
-                    "OSP_V1_RELATIONS", ["s", "p", "o"], [o, p, s],
-                    {"s": INT, "p": INT, "o": INT}
+                    "OSP_V1_RELATIONS",
+                    ["s", "p", "o"],
+                    [o, p, s],
+                    {"s": INT, "p": INT, "o": INT},
                 )
 
     def migrate_data_0_1(self):
@@ -158,13 +169,14 @@ class SqlMigrate():
     def migrate_data_triple_0_1(self, attr, datatype, cuds_idx, value):
         """Migrate a single data triple from v0 to v1."""
         from osp.core.session.db.sql_util import get_data_table_name
+
         ns_idx = self.get_ns_idx_0_1(attr.namespace.get_iri())
         attr_idx = self.get_entity_idx_0_1(ns_idx, attr)
         self.session._do_db_insert(
             get_data_table_name(datatype),
             ["s", "p", "o"],
             [cuds_idx, attr_idx, value],
-            {"s": INT, "p": INT, "o": datatype}
+            {"s": INT, "p": INT, "o": datatype},
         )
 
     def get_cuds_idx_0_1(self, uid):
@@ -172,8 +184,7 @@ class SqlMigrate():
         cuds_iri = str(iri_from_uid(uid))
         if cuds_iri not in self.cuds:
             self.cuds[cuds_iri] = self.session._do_db_insert(
-                "OSP_V1_CUDS", ["uid"], [str(uid)],
-                {"uid": "UID"}
+                "OSP_V1_CUDS", ["uid"], [str(uid)], {"uid": "UID"}
             )
         cuds_idx = self.cuds[cuds_iri]
         return cuds_idx
@@ -183,8 +194,10 @@ class SqlMigrate():
         ns_iri = str(ns_iri)
         if ns_iri not in self.namespaces:
             self.namespaces[ns_iri] = self.session._do_db_insert(
-                "OSP_V1_NAMESPACES", ["namespace"], [ns_iri],
-                {"namespace": STR}
+                "OSP_V1_NAMESPACES",
+                ["namespace"],
+                [ns_iri],
+                {"namespace": STR},
             )
         ns_idx = self.namespaces[ns_iri]
         return ns_idx
@@ -194,8 +207,10 @@ class SqlMigrate():
         entity_iri = str(entity.iri)
         if entity_iri not in self.entities:
             self.entities[entity_iri] = self.session._do_db_insert(
-                "OSP_V1_ENTITIES", ["ns_idx", "name"],
-                [ns_idx, entity.name], {"ns_idx": INT, "name": STR}
+                "OSP_V1_ENTITIES",
+                ["ns_idx", "name"],
+                [ns_idx, entity.name],
+                {"ns_idx": INT, "name": STR},
             )
         return self.entities[entity_iri]
 
@@ -203,8 +218,9 @@ class SqlMigrate():
         """Get the columns specification of CUDS tables in schema v0."""
         attributes = list(oclass.attributes)
         columns = [x.argname for x in attributes] + ["uid"]
-        datatypes = dict(uid="UID", **{x.argname: x.datatype
-                                       for x in attributes})
+        datatypes = dict(
+            uid="UID", **{x.argname: x.datatype for x in attributes}
+        )
         return attributes, columns, datatypes
 
     def delete_old_tables_0(self):
@@ -215,16 +231,12 @@ class SqlMigrate():
     def no_migration(self):
         """Do nothing."""
 
-    procedures = {
-        0: {
-            0: no_migration,
-            1: migrate_0_1
-        }
-    }
+    procedures = {0: {0: no_migration, 1: migrate_0_1}}
 
 
 if __name__ == "__main__":
     from osp.wrappers.sqlite import SqliteSession
+
     session = SqliteSession("test.db")
     m = SqlMigrate(session)
     m.run()

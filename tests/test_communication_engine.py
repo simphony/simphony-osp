@@ -5,27 +5,35 @@ from distutils.version import StrictVersion
 
 import unittest2 as unittest
 import websockets.exceptions as ws_exceptions
+
 # The latest websockets compatible with Python 3.6 is `websockets==9.1`.
 # Therefore, OSP-core will use `websockets < 10` when running on Python 3.6.
 # websockets >= 10 requires a Close frame object for the `ConnectionClosedOK`
 # exception, whereas websockets < 10 does not.
 from websockets import __version__ as websockets_version
-if not StrictVersion(websockets_version) < StrictVersion('10.0'):
+
+if not StrictVersion(websockets_version) < StrictVersion("10.0"):
     from websockets.frames import Close
 
-from osp.core.session.transport.communication_engine import \
-    CommunicationEngineClient, CommunicationEngineServer
-from osp.core.session.transport.communication_engine import LEN_HEADER
+from osp.core.session.transport.communication_engine import (
+    LEN_HEADER,
+    CommunicationEngineClient,
+    CommunicationEngineServer,
+)
 from osp.core.session.transport.communication_utils import (
-    encode_header, decode_header, split_message
+    decode_header,
+    encode_header,
+    split_message,
 )
 
 
 def async_test(test):
     """Test asynchronous functions with this decorator."""
+
     def decorate(self):
         event_loop = asyncio.get_event_loop()
         event_loop.run_until_complete(test(self))
+
     return decorate
 
 
@@ -67,12 +75,14 @@ class MockWebsocket:
         try:
             return next(self.iter)
         except StopIteration:
-            frame = {'code': 1000, 'reason': None}
+            frame = {"code": 1000, "reason": None}
             raise (
                 ws_exceptions.ConnectionClosedOK(**frame)
-                if StrictVersion(websockets_version) < StrictVersion('10.0')
+                if StrictVersion(websockets_version) < StrictVersion("10.0")
                 else ws_exceptions.ConnectionClosedOK(
-                    rcvd=Close(**frame), sent=None))
+                    rcvd=Close(**frame), sent=None
+                )
+            )
 
 
 class TestCommunicationEngine(unittest.TestCase):
@@ -91,9 +101,10 @@ class TestCommunicationEngine(unittest.TestCase):
             return command + "-" + data + "!", []
 
         server = CommunicationEngineServer(
-            host=None, port=None,
+            host=None,
+            port=None,
             handle_request=handle_request,
-            handle_disconnect=lambda u: disconnects.append(u)
+            handle_disconnect=lambda u: disconnects.append(u),
         )
 
         websocket = MockWebsocket(
@@ -102,9 +113,9 @@ class TestCommunicationEngine(unittest.TestCase):
                 encode_header([1, 3, 0, "greet"], LEN_HEADER),
                 *split_message("Hello", block_size=2)[1],
                 encode_header([1, 2, 0, "say_goodbye"], LEN_HEADER),
-                *split_message("Bye", block_size=2)[1]
+                *split_message("Bye", block_size=2)[1],
             ],
-            sent_data=response
+            sent_data=response,
         )
 
         await server._serve(websocket, None)
@@ -134,7 +145,9 @@ class TestCommunicationEngine(unittest.TestCase):
         requests = []
         client = CommunicationEngineClient(
             uri=None,
-            handle_response=lambda data, temp_directory: responses.append(data)
+            handle_response=lambda data, temp_directory: responses.append(
+                data
+            ),
         )
         client.websocket = MockWebsocket(
             id=7,
@@ -144,11 +157,12 @@ class TestCommunicationEngine(unittest.TestCase):
                 encode_header([1, 2, 0], LEN_HEADER),
                 *split_message("bye", block_size=2)[1],
             ],
-            sent_data=requests
+            sent_data=requests,
         )
         await client._request("greet", "Hello")
-        version, num_blocks, num_files, command = decode_header(requests[0],
-                                                                LEN_HEADER)
+        version, num_blocks, num_files, command = decode_header(
+            requests[0], LEN_HEADER
+        )
         self.assertEqual(version, 1)
         self.assertEqual(num_blocks, 1)
         self.assertEqual(num_files, 0)
@@ -157,8 +171,9 @@ class TestCommunicationEngine(unittest.TestCase):
         self.assertEqual(responses, ["hello"])
 
         await client._request("say_goodbye", "Bye")
-        version, num_blocks, num_files, command = decode_header(requests[2],
-                                                                LEN_HEADER)
+        version, num_blocks, num_files, command = decode_header(
+            requests[2], LEN_HEADER
+        )
         self.assertEqual(version, 1)
         self.assertEqual(num_blocks, 1)
         self.assertEqual(num_files, 0)
@@ -167,5 +182,5 @@ class TestCommunicationEngine(unittest.TestCase):
         self.assertEqual(responses, ["hello", "bye"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

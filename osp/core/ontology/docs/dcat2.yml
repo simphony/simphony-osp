@@ -2,6 +2,15 @@
 identifier: dcat2
 ontology_file: https://www.w3.org/ns/dcat2.rdf
 reference_by_label: False
-namespaces: 
+requirements:
+    - dcterms
+    - prov
+    - foaf
+namespaces:
     dcat2: http://www.w3.org/ns/dcat#
-active_relationships: [] 
+
+active_relationships:
+    - http://www.w3.org/ns/dcat#catalog
+    - http://www.w3.org/ns/dcat#dataset
+    - http://www.w3.org/ns/dcat#service
+    - http://www.w3.org/ns/dcat#record

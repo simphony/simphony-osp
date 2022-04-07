@@ -5,23 +5,30 @@ client and a server. The client is a WrapperSession, that wraps another
 session that runs on the server. Each request will be sent to the server
 """
 
-import os
 import json
 import logging
+import os
 import tempfile
 import urllib.parse
-from osp.core.namespaces import cuba
-from osp.core.session.buffers import BufferType
-from osp.core.session.wrapper_session import check_consumes_buffers, \
-    WrapperSession
-from osp.core.session.transport.communication_engine \
-    import CommunicationEngineClient
-from osp.core.session.buffers import BufferContext
-from osp.core.session.transport.transport_utils import (
-    INITIALIZE_COMMAND, LOAD_COMMAND, HANDSHAKE_COMMAND, deserialize_buffers,
-    serializable, serialize_buffers, get_hash_dir
-)
 
+from osp.core.namespaces import cuba
+from osp.core.session.buffers import BufferContext, BufferType
+from osp.core.session.transport.communication_engine import (
+    CommunicationEngineClient,
+)
+from osp.core.session.transport.transport_utils import (
+    HANDSHAKE_COMMAND,
+    INITIALIZE_COMMAND,
+    LOAD_COMMAND,
+    deserialize_buffers,
+    get_hash_dir,
+    serializable,
+    serialize_buffers,
+)
+from osp.core.session.wrapper_session import (
+    WrapperSession,
+    check_consumes_buffers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +41,16 @@ class TransportSessionClient(WrapperSession):
     session that runs on the server. Each request will be sent to the server
     """
 
-    def __init__(self, session_cls, uri, file_destination=None,
-                 connect_kwargs=None, file_uid=False, *args, **kwargs):
+    def __init__(
+        self,
+        session_cls,
+        uri,
+        file_destination=None,
+        connect_kwargs=None,
+        file_uid=False,
+        *args,
+        **kwargs
+    ):
         """Construct the client of the transport session.
 
         Args:
@@ -67,13 +82,15 @@ class TransportSessionClient(WrapperSession):
             engine=CommunicationEngineClient(
                 uri=uri,
                 handle_response=self._receive,
-                **(connect_kwargs or dict()))
+                **(connect_kwargs or dict())
+            )
         )
         self.auth = None
         if uri is not None:
             handshake = self._engine.send(HANDSHAKE_COMMAND, username or "")
-            self.auth = self.session_cls.compute_auth(username, password,
-                                                      handshake)
+            self.auth = self.session_cls.compute_auth(
+                username, password, handshake
+            )
 
     # OVERRIDE
     def _store(self, cuds_object):
@@ -84,17 +101,18 @@ class TransportSessionClient(WrapperSession):
                 "kwargs": self.kwargs,
                 "root": serializable(cuds_object),
                 "hashes": get_hash_dir(self._file_destination),
-                "auth": self.auth
+                "auth": self.auth,
             }
             super()._store(cuds_object)
-            self._engine.send(INITIALIZE_COMMAND,
-                              json.dumps(data))
+            self._engine.send(INITIALIZE_COMMAND, json.dumps(data))
             if not cuds_object.is_a(cuba.Wrapper):
-                logger.debug("Remove %s from added buffer in context %s of "
-                             "session %s" % (cuds_object,
-                                             self._current_context, self))
-                del self._buffers[self._current_context][
-                    BufferType.ADDED][cuds_object.uid]
+                logger.debug(
+                    "Remove %s from added buffer in context %s of "
+                    "session %s" % (cuds_object, self._current_context, self)
+                )
+                del self._buffers[self._current_context][BufferType.ADDED][
+                    cuds_object.uid
+                ]
             return
         super()._store(cuds_object)
 
@@ -109,11 +127,11 @@ class TransportSessionClient(WrapperSession):
     def _load_from_backend(self, uids, expired=None):
         expired = expired or self._expired
         data, files = serialize_buffers(
-            self, buffer_context=None,
-            additional_items={"uids": uids,
-                              "expired": expired},
+            self,
+            buffer_context=None,
+            additional_items={"uids": uids, "expired": expired},
             target_directory=self._file_destination,
-            file_cuds_uid=self.file_uid
+            file_cuds_uid=self.file_uid,
         )
         yield from self._engine.send(LOAD_COMMAND, data, files)
 
@@ -132,10 +150,11 @@ class TransportSessionClient(WrapperSession):
         arguments = {"args": args, "kwargs": kwargs}
         buffer_context = BufferContext.USER if consume_buffers else None
         data, files = serialize_buffers(
-            self, buffer_context=buffer_context,
+            self,
+            buffer_context=buffer_context,
             additional_items=arguments,
             target_directory=self._file_destination,
-            file_cuds_uid=self.file_uid
+            file_cuds_uid=self.file_uid,
         )
         return self._engine.send(command, data, files)
 
@@ -157,7 +176,7 @@ class TransportSessionClient(WrapperSession):
             data=data,
             temp_directory=temp_directory,
             target_directory=self._file_destination,
-            file_cuds_uid=self.file_uid
+            file_cuds_uid=self.file_uid,
         )
         result = None
         if remainder and "expired" in remainder:
@@ -198,14 +217,17 @@ class TransportSessionClient(WrapperSession):
             Callable: A Method that will trigger a request to the server.
         """
         # Send each method call to the server.
-        if not attr.startswith("_") and \
-                hasattr(self.session_cls, attr) and \
-                callable(getattr(self.session_cls, attr)):
-            consume_buffers = check_consumes_buffers(getattr(self.session_cls,
-                                                             attr))
-            return lambda *args, **kwargs: self._send(attr,
-                                                      consume_buffers,
-                                                      *args, **kwargs)
+        if (
+            not attr.startswith("_")
+            and hasattr(self.session_cls, attr)
+            and callable(getattr(self.session_cls, attr))
+        ):
+            consume_buffers = check_consumes_buffers(
+                getattr(self.session_cls, attr)
+            )
+            return lambda *args, **kwargs: self._send(
+                attr, consume_buffers, *args, **kwargs
+            )
         else:
             raise AttributeError("Unknown attribute %s" % attr)
 
@@ -213,5 +235,6 @@ class TransportSessionClient(WrapperSession):
     def __str__(self):
         """Convert the object to string."""
         return "TransportSessionClient connected to %s on %s" % (
-            self.session_cls, self._engine.uri
+            self.session_cls,
+            self._engine.uri,
         )

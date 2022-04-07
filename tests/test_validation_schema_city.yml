@@ -10,10 +10,10 @@ model:
         city.hasPart:
             city.Neighborhood:
                 cardinality: 1
-    
+
     city.Neighborhood:
         city.hasPart:
-            city.Street: 
+            city.Street:
                 cardinality: 1+
 
 display_value: city.City.name

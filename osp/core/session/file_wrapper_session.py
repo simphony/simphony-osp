@@ -1,10 +1,10 @@
 """Abstract class for a File Wrapper Session."""
 
 from abc import abstractmethod
-from osp.core.session.wrapper_session import consumes_buffers
-from osp.core.session.wrapper_session import WrapperSession
-from osp.core.session.result import returns_query_result
+
 from osp.core.session.buffers import BufferContext, EngineContext
+from osp.core.session.result import returns_query_result
+from osp.core.session.wrapper_session import WrapperSession, consumes_buffers
 
 
 class FileWrapperSession(WrapperSession):
@@ -46,8 +46,10 @@ class FileWrapperSession(WrapperSession):
             Cuds: The loaded CUDS objects.
         """
         if self.root is None:
-            raise RuntimeError("This Session is not yet initialized. "
-                               "Add it to a wrapper first.")
+            raise RuntimeError(
+                "This Session is not yet initialized. "
+                "Add it to a wrapper first."
+            )
         for subclass in oclass.subclasses:
             yield from self._load_by_oclass(subclass)
 

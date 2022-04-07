@@ -1,8 +1,15 @@
 """This file contains utility method used for searching in CUDS objects."""
 
 
-def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
-                     current_depth=0, visited=None):
+def find_cuds_object(
+    criterion,
+    root,
+    rel,
+    find_all,
+    max_depth=float("inf"),
+    current_depth=0,
+    visited=None,
+):
     """Recursively finds an element inside a container.
 
     Use the given relationship for traversal.
@@ -34,13 +41,15 @@ def find_cuds_object(criterion, root, rel, find_all, max_depth=float("inf"),
     if current_depth < max_depth:
         for sub in root.iter(rel=rel):
             if sub.uid not in visited:
-                result = find_cuds_object(criterion=criterion,
-                                          root=sub,
-                                          rel=rel,
-                                          find_all=find_all,
-                                          max_depth=max_depth,
-                                          current_depth=current_depth + 1,
-                                          visited=visited)
+                result = find_cuds_object(
+                    criterion=criterion,
+                    root=sub,
+                    rel=rel,
+                    find_all=find_all,
+                    max_depth=max_depth,
+                    current_depth=current_depth + 1,
+                    visited=visited,
+                )
                 if not find_all and result is not None:
                     return result
                 if result is not None:
@@ -89,7 +98,7 @@ def find_cuds_objects_by_oclass(oclass, root, rel):
         criterion=lambda cuds_object: cuds_object.is_a(oclass),
         root=root,
         rel=rel,
-        find_all=True
+        find_all=True,
     )
 
 
@@ -110,11 +119,13 @@ def find_cuds_objects_by_attribute(attribute, value, root, rel):
         List[Cuds]: The found cuds objects.
     """
     return find_cuds_object(
-        criterion=(lambda cuds_object: hasattr(cuds_object, attribute)
-                   and getattr(cuds_object, attribute) == value),
+        criterion=(
+            lambda cuds_object: hasattr(cuds_object, attribute)
+            and getattr(cuds_object, attribute) == value
+        ),
         root=root,
         rel=rel,
-        find_all=True
+        find_all=True,
     )
 
 
@@ -133,18 +144,18 @@ def find_relationships(find_rel, root, consider_rel, find_sub_rels=False):
         List[Cuds]: The cuds objects having the given relationship.
     """
     if find_sub_rels:
+
         def criterion(cuds_object):
             for rel in cuds_object._neighbors.keys():
                 if find_rel.is_superclass_of(rel):
                     return True
             return False
+
     else:
+
         def criterion(cuds_object):
             return find_rel in cuds_object._neighbors
 
     return find_cuds_object(
-        criterion=criterion,
-        root=root,
-        rel=consider_rel,
-        find_all=True
+        criterion=criterion, root=root, rel=consider_rel, find_all=True
     )

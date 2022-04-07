@@ -9,25 +9,33 @@
 # p = Parser()
 # p.parse("city")
 
-import uuid
-import re
 import os
-from rdflib import URIRef
-from osp.wrappers.sqlite import SqliteSession
-from osp.core.namespaces import city
-from osp.core.utils import import_cuds, export_cuds, branch, pretty_print
+import re
+import uuid
 
-uuid_re = re.compile(r".*(http://www\.osp-core\.com/cuds#"
-                     r"([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}"
-                     r"-[a-z0-9]{4}-[a-z0-9]{12})).*")
+from rdflib import URIRef
+
+from osp.core.namespaces import city
+from osp.core.utils import branch, export_cuds, import_cuds, pretty_print
+from osp.wrappers.sqlite import SqliteSession
+
+uuid_re = re.compile(
+    r".*(http://www\.osp-core\.com/cuds#"
+    r"([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}"
+    r"-[a-z0-9]{4}-[a-z0-9]{12})).*"
+)
 
 # Create CUDS structure
-c = branch(branch(city.City(name="Freiburg"),
-                  city.City(name="Pablo"),
-                  city.City(name="Yoav"),
-                  rel=city.hasInhabitant),
-           city.Neighborhood(name="Stühlinger"),
-           city.Neighborhood(name="Herdern"))
+c = branch(
+    branch(
+        city.City(name="Freiburg"),
+        city.City(name="Pablo"),
+        city.City(name="Yoav"),
+        rel=city.hasInhabitant,
+    ),
+    city.Neighborhood(name="Stühlinger"),
+    city.Neighborhood(name="Herdern"),
+)
 
 # Export from Core Session
 export_cuds(path="test.rdf", format="ttl")
@@ -64,8 +72,10 @@ with SqliteSession(path="test.db") as session:
                 match = uuid_re.match(line)
                 if match:
                     uid = uuid.UUID(match[2])
-                    line = line.replace(match[1], "http://city.com/"
-                                        + session._registry.get(uid).name)
+                    line = line.replace(
+                        match[1],
+                        "http://city.com/" + session._registry.get(uid).name,
+                    )
                 print("\t", line, end="")
                 print(line, end="", file=f2)
 

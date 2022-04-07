@@ -5,17 +5,18 @@
 from osp.core.namespaces import city
 from osp.core.utils import pretty_print
 
-
 # Let's build an EMMO compatible city!
-emmo_town = city.City(name='EMMO town', coordinates=[42, 42])
+emmo_town = city.City(name="EMMO town", coordinates=[42, 42])
 
-emmo_town.add(city.Citizen(name='Emanuele Ghedini'), rel=city.hasInhabitant)
-emmo_town.add(city.Citizen(name='Adham Hashibon'), rel=city.hasInhabitant)
-emmo_town.add(city.Citizen(name='Jesper Friis'),
-              city.Citizen(name='Gerhard Goldbeck'),
-              city.Citizen(name='Georg Schmitz'),
-              city.Citizen(name='Anne de Baas'),
-              rel=city.hasInhabitant)
+emmo_town.add(city.Citizen(name="Emanuele Ghedini"), rel=city.hasInhabitant)
+emmo_town.add(city.Citizen(name="Adham Hashibon"), rel=city.hasInhabitant)
+emmo_town.add(
+    city.Citizen(name="Jesper Friis"),
+    city.Citizen(name="Gerhard Goldbeck"),
+    city.Citizen(name="Georg Schmitz"),
+    city.Citizen(name="Anne de Baas"),
+    rel=city.hasInhabitant,
+)
 
 emmo_town.add(city.Neighborhood(name="Ontology"))
 emmo_town.add(city.Neighborhood(name="User cases"))

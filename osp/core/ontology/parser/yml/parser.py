@@ -1,20 +1,22 @@
 """Parses YAML ontologies."""
 
-from typing import Tuple, Set, Dict, Optional
-import os
 import logging
-from rdflib import BNode, Graph, URIRef, Literal, RDF, RDFS, OWL, XSD, SKOS
-from rdflib.graph import ReadOnlyGraphAggregate
+import os
+from typing import Dict, Optional, Set, Tuple
+
 import yaml
+from rdflib import OWL, RDF, RDFS, SKOS, XSD, BNode, Graph, Literal, URIRef
+from rdflib.graph import ReadOnlyGraphAggregate
+
+import osp.core.ontology.parser.yml.keywords as keywords
 from osp.core.ontology.cuba import rdflib_cuba
 from osp.core.ontology.datatypes import get_rdflib_datatype
-from osp.core.ontology.parser.parser import OntologyParser
-from osp.core.ontology.parser.yml.validator import validate
-from osp.core.ontology.parser.yml.case_insensitivity import \
-    get_case_insensitive_alternative as alt
 from osp.core.ontology.namespace_registry import namespace_registry
-import osp.core.ontology.parser.yml.keywords as keywords
-
+from osp.core.ontology.parser.parser import OntologyParser
+from osp.core.ontology.parser.yml.case_insensitivity import (
+    get_case_insensitive_alternative as alt,
+)
+from osp.core.ontology.parser.yml.validator import validate
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +60,12 @@ class YMLParser(OntologyParser):
     @property
     def active_relationships(self) -> Tuple[URIRef]:
         """Fetch the active relationships from the ontology file."""
-        return tuple(iri for iri in self.graph.subjects(
-            RDFS.subPropertyOf, rdflib_cuba.activeRelationship))
+        return tuple(
+            iri
+            for iri in self.graph.subjects(
+                RDFS.subPropertyOf, rdflib_cuba.activeRelationship
+            )
+        )
 
     @property
     def default_relationship(self) -> Optional[URIRef]:
@@ -124,7 +130,8 @@ class YMLParser(OntologyParser):
             # self._load_class_expressions(entity) TODO
             if types[entity_name] == "relationship":
                 self._set_inverse(entity_name, entity_doc)
-            #     self._parse_rel_characteristics(entity_name, entity_doc) TODO
+                # TODO
+                # self._parse_rel_characteristics(entity_name, entity_doc)
                 self._check_default_rel_flag_on_entity(entity_name, entity_doc)
             elif types[entity_name] == "attribute":
                 self._set_datatype(entity_name)
@@ -151,8 +158,9 @@ class YMLParser(OntologyParser):
         logger.debug("Parse entity definition for %s" % entity_name)
         iri = self._get_iri(entity_name)
         if keywords.DESCRIPTION_KEY in entity_doc:
-            description = Literal(entity_doc[keywords.DESCRIPTION_KEY],
-                                  lang="en")
+            description = Literal(
+                entity_doc[keywords.DESCRIPTION_KEY], lang="en"
+            )
             self._graph.add((iri, RDFS.isDefinedBy, description))
         label = Literal(entity_name, lang="en")
         self._graph.add((iri, SKOS.prefLabel, label))
@@ -181,18 +189,26 @@ class YMLParser(OntologyParser):
             # same type as parent
             superclass_iri = self._get_iri(name, namespace, entity_name)
             triple = (superclass_iri, RDF.type, None)
-            for _, _, o in (ReadOnlyGraphAggregate(
-                    [self._graph, namespace_registry._graph]).triples(triple)):
-                if o in {OWL.Class, OWL.ObjectProperty,
-                         OWL.DatatypeProperty,
-                         OWL.FunctionalProperty}:
+            for _, _, o in ReadOnlyGraphAggregate(
+                [self._graph, namespace_registry._graph]
+            ).triples(triple):
+                if o in {
+                    OWL.Class,
+                    RDFS.Class,
+                    OWL.ObjectProperty,
+                    OWL.DatatypeProperty,
+                    OWL.FunctionalProperty,
+                }:
                     types.add(o)
 
             if namespace == self._namespace:
-                queue += [self.split_name(x)
-                          for x in self._ontology_doc[name]
-                          [keywords.SUPERCLASSES_KEY]
-                          if isinstance(x, str)]
+                queue += [
+                    self.split_name(x)
+                    for x in self._ontology_doc[name][
+                        keywords.SUPERCLASSES_KEY
+                    ]
+                    if isinstance(x, str)
+                ]
         if not types:
             raise ValueError(f"Could not determine type of {entity_name}")
         for t in types:
@@ -209,18 +225,30 @@ class YMLParser(OntologyParser):
         """
         if isinstance(superclass_doc, str):
             namespace, superclass_name = self.split_name(superclass_doc)
-            superclass_iri = self._get_iri(superclass_name, namespace,
-                                           entity_name)
+            superclass_iri = self._get_iri(
+                superclass_name, namespace, entity_name
+            )
             predicate = RDFS.subPropertyOf
-            if (iri, RDF.type, OWL.Class) in ReadOnlyGraphAggregate(
-                    [self._graph, namespace_registry._graph]):
+            graph = ReadOnlyGraphAggregate(
+                [self._graph, namespace_registry._graph]
+            )
+            if (iri, RDF.type, OWL.Class) in graph or (
+                iri,
+                RDF.type,
+                RDFS.Class,
+            ) in graph:
                 predicate = RDFS.subClassOf
 
             self._graph.add((iri, predicate, superclass_iri))
 
-    def _get_iri(self, entity_name=None, namespace=None,
-                 current_entity=None, _case_sensitive=False,
-                 _for_default_rel=False):
+    def _get_iri(
+        self,
+        entity_name=None,
+        namespace=None,
+        current_entity=None,
+        _case_sensitive=False,
+        _for_default_rel=False,
+    ):
         """Get the iri of the given entity and namespace.
 
         Args:
@@ -242,12 +270,13 @@ class YMLParser(OntologyParser):
         namespace = namespace.lower()
         entity_name = entity_name or ""
         try:  # Namespace already in graph?
-            ns_iri = next(iri for name, iri in self._graph.namespaces()
-                          if name == namespace)
-        except StopIteration:
-            ns_iri = URIRef(
-                f"http://www.osp-core.com/{namespace}#"
+            ns_iri = next(
+                iri
+                for name, iri in self._graph.namespaces()
+                if name == namespace
             )
+        except StopIteration:
+            ns_iri = URIRef(f"http://www.osp-core.com/{namespace}#")
 
         if not entity_name:
             return ns_iri
@@ -257,21 +286,27 @@ class YMLParser(OntologyParser):
         if self.reference_style:
             literal = Literal(entity_name, lang="en")
             try:
-                iri = next(s for s, p, o in self._graph.triples(
-                    (None, SKOS.prefLabel, literal)
-                ) if s.startswith(ns_iri))
+                iri = next(
+                    s
+                    for s, p, o in self._graph.triples(
+                        (None, SKOS.prefLabel, literal)
+                    )
+                    if s.startswith(ns_iri)
+                )
             except StopIteration:
                 pass
 
         # check if constructed iri exists
-        if ((
+        if (
             namespace == self._namespace
             and entity_name not in self._ontology_doc
         ) or (
             namespace != self._namespace
-            and (iri, None, None) not in ReadOnlyGraphAggregate(
-                [self._graph, namespace_registry._graph])
-        )):
+            and (iri, None, None)
+            not in ReadOnlyGraphAggregate(
+                [self._graph, namespace_registry._graph]
+            )
+        ):
             if _case_sensitive and not _for_default_rel:
                 raise AttributeError(
                     f"Reference to undefined entity {namespace}.{entity_name} "
@@ -279,14 +314,17 @@ class YMLParser(OntologyParser):
                 )
             else:
                 case_sensitive_result = self._get_iri_case_insensitive(
-                    entity_name, namespace, current_entity,
-                    _for_default_rel=_for_default_rel)
+                    entity_name,
+                    namespace,
+                    current_entity,
+                    _for_default_rel=_for_default_rel,
+                )
             iri = case_sensitive_result if case_sensitive_result else iri
         return iri
 
-    def _get_iri_case_insensitive(self, entity_name, namespace,
-                                  current_entity,
-                                  _for_default_rel=False):
+    def _get_iri_case_insensitive(
+        self, entity_name, namespace, current_entity, _for_default_rel=False
+    ):
         """Try to get iri with alternative naming convention of entity.
 
         This method is for backwards compatibility only.
@@ -327,7 +365,8 @@ class YMLParser(OntologyParser):
                     f"Referenced undefined entity '{namespace}.{entity_name}' "
                     f"in definition of entity {current_entity}. "
                     f"For backwards compatibility reasons we also  looked for "
-                    f"{namespace}.{alternative} and failed.") from e
+                    f"{namespace}.{alternative} and failed."
+                ) from e
 
     @staticmethod
     def split_name(name):
@@ -346,8 +385,9 @@ class YMLParser(OntologyParser):
             a, b = name.split(".")
             return a.lower(), b
         except ValueError as e:
-            raise ValueError("Reference to entity '%s' without namespace"
-                             % name) from e
+            raise ValueError(
+                "Reference to entity '%s' without namespace" % name
+            ) from e
 
     def _add_attributes(self, entity_name, entity_doc):
         """Add a attribute to an ontology class.
@@ -369,16 +409,21 @@ class YMLParser(OntologyParser):
 
         # Add the attributes one by one
         for attribute_name, default in attributes_def.items():
-            attribute_namespace, attribute_name = \
-                self.split_name(attribute_name)
+            attribute_namespace, attribute_name = self.split_name(
+                attribute_name
+            )
 
-            attribute_iri = self._get_iri(attribute_name, attribute_namespace,
-                                          entity_name)
+            attribute_iri = self._get_iri(
+                attribute_name, attribute_namespace, entity_name
+            )
             x = (attribute_iri, RDF.type, OWL.DatatypeProperty)
-            if x not in ReadOnlyGraphAggregate([self._graph,
-                                                namespace_registry._graph]):
-                raise ValueError(f"Invalid attribute {attribute_namespace}."
-                                 f"{attribute_name} of entity {entity_name}")
+            if x not in ReadOnlyGraphAggregate(
+                [self._graph, namespace_registry._graph]
+            ):
+                raise ValueError(
+                    f"Invalid attribute {attribute_namespace}."
+                    f"{attribute_name} of entity {entity_name}"
+                )
             self._add_attribute(iri, attribute_iri, default)
 
     def _add_attribute(self, class_iri, attribute_iri, default):
@@ -390,23 +435,22 @@ class YMLParser(OntologyParser):
             default (Any): The default value.
         """
         bnode = BNode()
+        self._graph.add((class_iri, RDFS.subClassOf, bnode))
+        self._graph.add((bnode, RDF.type, OWL.Restriction))
         self._graph.add(
-            (class_iri, RDFS.subClassOf, bnode))
-        self._graph.add(
-            (bnode, RDF.type, OWL.Restriction))
-        self._graph.add(
-            (bnode, OWL.cardinality,
-             Literal(1, datatype=XSD.integer)))
-        self._graph.add(
-            (bnode, OWL.onProperty, attribute_iri))
+            (bnode, OWL.cardinality, Literal(1, datatype=XSD.integer))
+        )
+        self._graph.add((bnode, OWL.onProperty, attribute_iri))
 
         if default is not None:
             bnode = BNode()
             self._graph.add((class_iri, rdflib_cuba._default, bnode))
             self._graph.add(
-                (bnode, rdflib_cuba._default_attribute, attribute_iri))
+                (bnode, rdflib_cuba._default_attribute, attribute_iri)
+            )
             self._graph.add(
-                (bnode, rdflib_cuba._default_value, Literal(default)))
+                (bnode, rdflib_cuba._default_value, Literal(default))
+            )
 
     def _set_inverse(self, entity_name, entity_doc):
         """Set a triple describing the inverse of relationship entity.
@@ -429,12 +473,11 @@ class YMLParser(OntologyParser):
         #         "Conflicting inverses for %s, %s, %s"
         #         % (entity, inverse, inverse.inverse)
         #     )
-        inverse_iri = self._get_iri(inverse_name, inverse_namespace,
-                                    entity_name)
-        iri = self._get_iri(entity_name)
-        self._graph.add(
-            (iri, OWL.inverseOf, inverse_iri)
+        inverse_iri = self._get_iri(
+            inverse_name, inverse_namespace, entity_name
         )
+        iri = self._get_iri(entity_name)
+        self._graph.add((iri, OWL.inverseOf, inverse_iri))
 
     def _assert_default_relationship_occurrence(self):
         """Assures that only one default relationship is defined in the yaml.
@@ -459,12 +502,15 @@ class YMLParser(OntologyParser):
         If yes, save that accordingly.
         """
         if keywords.DEFAULT_REL_KEY in self._yaml_doc:
-            namespace, entity_name = self._yaml_doc[keywords.DEFAULT_REL_KEY]\
-                .split('.')
+            namespace, entity_name = self._yaml_doc[
+                keywords.DEFAULT_REL_KEY
+            ].split(".")
 
-            self._default_rel = self._get_iri(namespace=namespace,
-                                              entity_name=entity_name,
-                                              _for_default_rel=True)
+            self._default_rel = self._get_iri(
+                namespace=namespace,
+                entity_name=entity_name,
+                _for_default_rel=True,
+            )
 
     def _check_default_rel_flag_on_entity(self, entity_name, entity_doc):
         """Check if the given relationship is the default.
@@ -475,8 +521,10 @@ class YMLParser(OntologyParser):
             entity_name (str): The name of the relationship entity.
             entity_doc (dict): The YAML doc describing the entity.
         """
-        if keywords.DEFAULT_REL_KEY in entity_doc \
-                and entity_doc[keywords.DEFAULT_REL_KEY]:
+        if (
+            keywords.DEFAULT_REL_KEY in entity_doc
+            and entity_doc[keywords.DEFAULT_REL_KEY]
+        ):
             self._default_rel = self._get_iri(entity_name)
 
     def _set_datatype(self, entity_name):
@@ -494,8 +542,11 @@ class YMLParser(OntologyParser):
 
         if datatype_def is not None:
             self._graph.add(
-                (self._get_iri(entity_name), RDFS.range,
-                 get_rdflib_datatype(datatype_def, self._graph))
+                (
+                    self._get_iri(entity_name),
+                    RDFS.range,
+                    get_rdflib_datatype(datatype_def, self._graph),
+                )
             )
 
     def _validate_entity(self, entity_name, entity_doc):
@@ -518,12 +569,18 @@ class YMLParser(OntologyParser):
         rel_triple = (iri, RDF.type, OWL.ObjectProperty)
         attr_triple = (iri, RDF.type, OWL.DatatypeProperty)
         status = (
-            class_triple in ReadOnlyGraphAggregate(
-                [self._graph, namespace_registry._graph]),
-            rel_triple in ReadOnlyGraphAggregate(
-                [self._graph, namespace_registry._graph]),
-            attr_triple in ReadOnlyGraphAggregate(
-                [self._graph, namespace_registry._graph])
+            class_triple
+            in ReadOnlyGraphAggregate(
+                [self._graph, namespace_registry._graph]
+            ),
+            rel_triple
+            in ReadOnlyGraphAggregate(
+                [self._graph, namespace_registry._graph]
+            ),
+            attr_triple
+            in ReadOnlyGraphAggregate(
+                [self._graph, namespace_registry._graph]
+            ),
         )
         if sum(status) != 1:
             raise RuntimeError(f"Couldn't determine type of {entity_name}")
@@ -535,8 +592,9 @@ class YMLParser(OntologyParser):
             t = "attribute"
 
         validate(
-            entity_doc, t + "_def",
-            context="<%s>/ONTOLOGY/%s" % (os.path.basename(self._file_path),
-                                          entity_name)
+            entity_doc,
+            t + "_def",
+            context="<%s>/ONTOLOGY/%s"
+            % (os.path.basename(self._file_path), entity_name),
         )
         return t

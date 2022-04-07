@@ -62,9 +62,8 @@ print("internal dict of c:", c._neighbors, "\n")
 print("\nAdding neighborhoods to Cuds object in a loop:")
 for i in range(6):
     print("Added neighborhood %s" % i)
-    c.add(city.Neighborhood(
-        name="neighborhood %s" % i))
+    c.add(city.Neighborhood(name="neighborhood %s" % i))
 print("internal dict of c:", c._neighbors, "\n")
 
-print('Trying out the `is_a` method trivially with the new neighborhoods.')
+print("Trying out the `is_a` method trivially with the new neighborhoods.")
 print(all(n.is_a(city.Neighborhood) for n in c.get(oclass=city.Neighborhood)))

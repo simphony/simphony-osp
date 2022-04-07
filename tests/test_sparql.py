@@ -1,5 +1,6 @@
 """Test SPARQL queries API (on the core session)."""
 import unittest
+
 from osp.core.utils import sparql
 
 try:
@@ -7,6 +8,7 @@ try:
 except ImportError:
     from osp.core.ontology import Parser
     from osp.core.ontology.namespace_registry import namespace_registry
+
     Parser().parse("city")
     city = namespace_registry.city
 
@@ -21,6 +23,7 @@ class TestSPARQL(unittest.TestCase):
         query using both the `sparql` function from utils and the sparql method
         of the session.
         """
+
         def is_freiburg(iri):
             value = str(iri)
             if value == "Freiburg":
@@ -28,7 +31,7 @@ class TestSPARQL(unittest.TestCase):
             else:
                 return False
 
-        freiburg = city.City(name='Freiburg')
+        freiburg = city.City(name="Freiburg")
         karl = city.Citizen(name="Karl", age=47)
         freiburg.add(karl, rel=city.hasInhabitant)
         core_session = freiburg.session
@@ -41,10 +44,10 @@ class TestSPARQL(unittest.TestCase):
                           }}
                  """
         datatypes = dict(
-            citizen='cuds',
+            citizen="cuds",
             citizen_age=int,
             citizen_name=str,
-            city_name=is_freiburg
+            city_name=is_freiburg,
         )
         results_none = sparql(query, session=None)
         results_core_session = sparql(query, session=core_session)
@@ -53,26 +56,34 @@ class TestSPARQL(unittest.TestCase):
         self.assertEqual(len(results_core_session), 1)
         self.assertEqual(len(results_core_session_method), 1)
 
-        results = (next(results_none(**datatypes)),
-                   next(results_core_session(**datatypes)),
-                   next(results_core_session_method(**datatypes)))
-        self.assertTrue(all(result["citizen"].is_a(karl.oclass)
-                            for result in results))
-        self.assertTrue(all(result["citizen_age"] == karl.age
-                            for result in results))
-        self.assertTrue(all(result["citizen_name"] == karl.name
-                            for result in results))
-        self.assertTrue(all(result["city_name"]
-                            for result in results))
+        results = (
+            next(results_none(**datatypes)),
+            next(results_core_session(**datatypes)),
+            next(results_core_session_method(**datatypes)),
+        )
+        self.assertTrue(
+            all(result["citizen"].is_a(karl.oclass) for result in results)
+        )
+        self.assertTrue(
+            all(result["citizen_age"] == karl.age for result in results)
+        )
+        self.assertTrue(
+            all(result["citizen_name"] == karl.name for result in results)
+        )
+        self.assertTrue(all(result["city_name"] for result in results))
 
-        results = (next(iter(results_none)),
-                   next(iter(results_core_session)),
-                   next(iter(results_core_session_method)))
-        self.assertTrue(all(result['citizen'] == karl.iri
-                            for result in results))
-        self.assertTrue(all(type(result["citizen_age"]) != int
-                            for result in results))
+        results = (
+            next(iter(results_none)),
+            next(iter(results_core_session)),
+            next(iter(results_core_session_method)),
+        )
+        self.assertTrue(
+            all(result["citizen"] == karl.iri for result in results)
+        )
+        self.assertTrue(
+            all(type(result["citizen_age"]) != int for result in results)
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,7 @@
 """Utility functions for printing CUDS objects in a nice way."""
 
 import sys
+
 from osp.core.namespaces import cuba
 
 
@@ -62,17 +63,20 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
     pp_sub = ""
     filtered_relationships = filter(
         lambda x: x.is_subclass_of(cuba.activeRelationship),
-        cuds_object._neighbors.keys())
+        cuds_object._neighbors.keys(),
+    )
     sorted_relationships = sorted(filtered_relationships, key=str)
     visited = visited or set()
     visited.add(cuds_object.uid)
     for i, relationship in enumerate(sorted_relationships):
-        pp_sub += level_indentation \
-            + " |_Relationship %s:" % relationship
+        pp_sub += level_indentation + " |_Relationship %s:" % relationship
         sorted_elements = sorted(
             cuds_object.iter(rel=relationship, return_rel=True),
-            key=lambda x: (str(x[0].oclass), str(x[1]),
-                           x[0].name if hasattr(x[0], "name") else False)
+            key=lambda x: (
+                str(x[0].oclass),
+                str(x[1]),
+                x[0].name if hasattr(x[0], "name") else False,
+            ),
         )
         for j, (element, rel) in enumerate(sorted_elements):
             if rel != relationship:
@@ -81,8 +85,9 @@ def _pp_subelements(cuds_object, level_indentation="\n  ", visited=None):
                 indentation = level_indentation + "   "
             else:
                 indentation = level_indentation + " | "
-            pp_sub += indentation + _pp_cuds_object_name(element,
-                                                         print_oclass=True)
+            pp_sub += indentation + _pp_cuds_object_name(
+                element, print_oclass=True
+            )
             if j == len(sorted_elements) - 1:
                 indentation += "   "
             else:
@@ -113,8 +118,10 @@ def _pp_values(cuds_object, indentation="\n          "):
         str: The resulting string to print.
     """
     result = []
-    sorted_attributes = sorted(cuds_object.get_attributes().items(),
-                               key=lambda x: (str(x[0]), str(x[1])))
+    sorted_attributes = sorted(
+        cuds_object.get_attributes().items(),
+        key=lambda x: (str(x[0]), str(x[1])),
+    )
     for attribute, value in sorted_attributes:
         if attribute.argname != "name":
             result.append("%s: %s" % (attribute.argname, value))

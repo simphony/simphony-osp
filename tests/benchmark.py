@@ -2,8 +2,8 @@
 # import cProfile
 # import pstats
 import time
-from typing import Union
 from abc import ABC, abstractmethod
+from typing import Union
 
 
 class Benchmark(ABC):
@@ -80,9 +80,9 @@ class Benchmark(ABC):
         if not self.started and not self.finished:
             self._benchmark_set_up()
         elif self.started and not self.finished:
-            raise RuntimeError('This benchmark has already started.')
+            raise RuntimeError("This benchmark has already started.")
         else:  # Both are true.
-            raise StopIteration('This benchmark is finished.')
+            raise StopIteration("This benchmark is finished.")
 
     @abstractmethod
     def _benchmark_set_up(self):
@@ -106,7 +106,7 @@ class Benchmark(ABC):
                 already executed.
         """
         if self.finished:
-            raise StopIteration('This benchmark is finished.')
+            raise StopIteration("This benchmark is finished.")
         iteration = self.iterations
         start = time.process_time()
         # self._profiler.enable()
@@ -139,15 +139,16 @@ class Benchmark(ABC):
         self.tear_down()
 
     @classmethod
-    def iterate_pytest_benchmark(cls, benchmark, size: int = 500,
-                                 *args, **kwargs):
+    def iterate_pytest_benchmark(
+        cls, benchmark, size: int = 500, *args, **kwargs
+    ):
         """Template wrapper function for pytest-benchmark.
 
         Can be overridden on a benchmark basis if desired.
         """
-        kwargs['iterations'] = kwargs.get('rounds', 1)
-        kwargs['rounds'] = kwargs.get('rounds', size)
-        kwargs['warmup_rounds'] = kwargs.get('warmup_rounds', 0)
+        kwargs["iterations"] = kwargs.get("rounds", 1)
+        kwargs["rounds"] = kwargs.get("rounds", size)
+        kwargs["warmup_rounds"] = kwargs.get("warmup_rounds", 0)
         benchmark_instance = cls(size=size)
         benchmark_instance.set_up()
         benchmark.pedantic(benchmark_instance.iterate, *args, **kwargs)

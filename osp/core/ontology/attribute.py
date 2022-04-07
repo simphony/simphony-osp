@@ -1,9 +1,11 @@
 """An attribute defined in the ontology."""
 
-from osp.core.ontology.entity import OntologyEntity
-from osp.core.ontology.datatypes import convert_from, convert_to
 import logging
+
 import rdflib
+
+from osp.core.ontology.datatypes import convert_from, convert_to
+from osp.core.ontology.entity import OntologyEntity
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +62,9 @@ class OntologyAttribute(OntologyEntity):
             return datatypes.pop()
         if len(datatypes) == 0:
             return None
-        raise RuntimeError(f"More than one datatype associated to {self}:"
-                           f" {datatypes}")
+        raise RuntimeError(
+            f"More than one datatype associated to {self}:" f" {datatypes}"
+        )
 
     def convert_to_datatype(self, value):
         """Convert to the datatype of the value.
@@ -86,19 +89,23 @@ class OntologyAttribute(OntologyEntity):
         return convert_from(value, self.datatype)
 
     def _direct_superclasses(self):
-        return self._directly_connected(rdflib.RDFS.subPropertyOf,
-                                        blacklist=BLACKLIST)
+        return self._directly_connected(
+            rdflib.RDFS.subPropertyOf, blacklist=BLACKLIST
+        )
 
     def _direct_subclasses(self):
-        return self._directly_connected(rdflib.RDFS.subPropertyOf,
-                                        inverse=True, blacklist=BLACKLIST)
+        return self._directly_connected(
+            rdflib.RDFS.subPropertyOf, inverse=True, blacklist=BLACKLIST
+        )
 
     def _superclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
-                                         blacklist=BLACKLIST)
+        yield from self._transitive_hull(
+            rdflib.RDFS.subPropertyOf, blacklist=BLACKLIST
+        )
 
     def _subclasses(self):
         yield self
-        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
-                                         inverse=True, blacklist=BLACKLIST)
+        yield from self._transitive_hull(
+            rdflib.RDFS.subPropertyOf, inverse=True, blacklist=BLACKLIST
+        )

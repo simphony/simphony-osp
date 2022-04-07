@@ -1,24 +1,27 @@
 """Test the API with the EMMO ontology."""
 
-import unittest2 as unittest
 import rdflib
-from osp.core.ontology import OntologyEntity
-from osp.core.ontology.oclass_restriction import Restriction
-from osp.core.ontology.oclass_composition import Composition, OPERATOR
+import unittest2 as unittest
 
+from osp.core.ontology import OntologyEntity
+from osp.core.ontology.oclass_composition import OPERATOR, Composition
+from osp.core.ontology.oclass_restriction import Restriction
 
 try:
     from osp.core.namespaces import math
 except ImportError:  # When the EMMO ontology is not installed.
     from osp.core.ontology import Parser
     from osp.core.ontology.namespace_registry import namespace_registry
+
     Parser().parse("emmo")
     math = namespace_registry.math
 
 
-predicate_to_operator = {rdflib.OWL.unionOf: OPERATOR.OR,
-                         rdflib.OWL.intersectionOf: OPERATOR.AND,
-                         rdflib.OWL.complementOf: OPERATOR.NOT}
+predicate_to_operator = {
+    rdflib.OWL.unionOf: OPERATOR.OR,
+    rdflib.OWL.intersectionOf: OPERATOR.AND,
+    rdflib.OWL.complementOf: OPERATOR.NOT,
+}
 
 
 class TestCompositionsEMMO(unittest.TestCase):
@@ -32,63 +35,87 @@ class TestCompositionsEMMO(unittest.TestCase):
 
         # Example 1:
         #   (math.Mathematical OPERATOR.AND perceptual.Symbol)
-        self.composition_data += [{'string': '(math.Mathematical OPERATOR.AND'
-                                             ' perceptual.Symbol)',
-                                   'operator': rdflib.OWL.intersectionOf,
-                                   'operands': (rdflib.URIRef('http://emmo.'
-                                                              'info/emmo'
-                                                              '/middle/math'
-                                                              '#EMMO_54ee6b5e_'
-                                                              '5261_44a8_86eb_'
-                                                              '5717e7fdb9d0'),
-                                                rdflib.URIRef('http://emmo.'
-                                                              'info/emmo'
-                                                              '/middle'
-                                                              '/perceptual'
-                                                              '#EMMO_a1083d0a_'
-                                                              'c1fb_471f_8e20_'
-                                                              'a98f881ad527')),
-                                   }]
+        self.composition_data += [
+            {
+                "string": "(math.Mathematical OPERATOR.AND"
+                " perceptual.Symbol)",
+                "operator": rdflib.OWL.intersectionOf,
+                "operands": (
+                    rdflib.URIRef(
+                        "http://emmo."
+                        "info/emmo"
+                        "/middle/math"
+                        "#EMMO_54ee6b5e_"
+                        "5261_44a8_86eb_"
+                        "5717e7fdb9d0"
+                    ),
+                    rdflib.URIRef(
+                        "http://emmo."
+                        "info/emmo"
+                        "/middle"
+                        "/perceptual"
+                        "#EMMO_a1083d0a_"
+                        "c1fb_471f_8e20_"
+                        "a98f881ad527"
+                    ),
+                ),
+            }
+        ]
 
         # Example 2:
         #   (reductionistic.State OPERATOR.OR reductionistic.Existent)
-        self.composition_data += [{'string': '(reductionistic.State '
-                                             'OPERATOR.OR '
-                                             'reductionistic.Existent)',
-                                   'operator': rdflib.OWL.unionOf,
-                                   'operands': (rdflib.URIRef('http://emmo'
-                                                              '.info/emmo'
-                                                              '/middle'
-                                                              '/reductionistic'
-                                                              '#EMMO_36c79456_'
-                                                              'e29c_400d_8bd3_'
-                                                              '0eedddb82652'),
-                                                rdflib.URIRef('http://emmo'
-                                                              '.info/emmo'
-                                                              '/middle'
-                                                              '/reductionistic'
-                                                              '#EMMO_52211e5e_'
-                                                              'd767_4812_845e_'
-                                                              'eb6b402c476a')),
-                                   }]
+        self.composition_data += [
+            {
+                "string": "(reductionistic.State "
+                "OPERATOR.OR "
+                "reductionistic.Existent)",
+                "operator": rdflib.OWL.unionOf,
+                "operands": (
+                    rdflib.URIRef(
+                        "http://emmo"
+                        ".info/emmo"
+                        "/middle"
+                        "/reductionistic"
+                        "#EMMO_36c79456_"
+                        "e29c_400d_8bd3_"
+                        "0eedddb82652"
+                    ),
+                    rdflib.URIRef(
+                        "http://emmo"
+                        ".info/emmo"
+                        "/middle"
+                        "/reductionistic"
+                        "#EMMO_52211e5e_"
+                        "d767_4812_845e_"
+                        "eb6b402c476a"
+                    ),
+                ),
+            }
+        ]
 
         # Example 3:
         #   (OPERATOR.NOT physicalistic.Matter)
-        self.composition_data += [{'string': '(OPERATOR.NOT '
-                                             'physicalistic.Matter)',
-                                   'operator': rdflib.OWL.complementOf,
-                                   'operands': (rdflib.URIRef('http://emmo'
-                                                              '.info/emmo/'
-                                                              'middle/'
-                                                              'physicalistic'
-                                                              '#EMMO_5b2222df_'
-                                                              '4da6_442f_8244_'
-                                                              '96e9e45887d1'),
-                                                ),
-                                   }]
+        self.composition_data += [
+            {
+                "string": "(OPERATOR.NOT " "physicalistic.Matter)",
+                "operator": rdflib.OWL.complementOf,
+                "operands": (
+                    rdflib.URIRef(
+                        "http://emmo"
+                        ".info/emmo/"
+                        "middle/"
+                        "physicalistic"
+                        "#EMMO_5b2222df_"
+                        "4da6_442f_8244_"
+                        "96e9e45887d1"
+                    ),
+                ),
+            }
+        ]
 
-        self.compositions = [self.build_composition(data)
-                             for data in self.composition_data]
+        self.compositions = [
+            self.build_composition(data) for data in self.composition_data
+        ]
 
     @staticmethod
     def build_composition(data):
@@ -108,23 +135,27 @@ class TestCompositionsEMMO(unittest.TestCase):
         graph = namespace_registry._graph
 
         # Create collection of operands if there is more than one.
-        if len(data['operands']) > 1:
+        if len(data["operands"]) > 1:
             collection = rdflib.collection.Collection(graph, rdflib.BNode())
-            for operand in data['operands']:
+            for operand in data["operands"]:
                 collection.append(operand)
             target = collection.uri
-        elif len(data['operands']) == 1 \
-                and data['operator'] == rdflib.OWL.complementOf:
-            target = data['operands'][0]
+        elif (
+            len(data["operands"]) == 1
+            and data["operator"] == rdflib.OWL.complementOf
+        ):
+            target = data["operands"][0]
         else:
-            raise Exception(f'Illegal combination of operator '
-                            f'{data["operator"]} and '
-                            f'operands {data["operands"]}.')
+            raise Exception(
+                f"Illegal combination of operator "
+                f'{data["operator"]} and '
+                f'operands {data["operands"]}.'
+            )
 
         # Add collection of operands to the graph and create the composition.
         bnode = rdflib.BNode()
         graph.add((bnode, rdflib.RDF.type, rdflib.OWL.Class))
-        graph.add((bnode, data['operator'], target))
+        graph.add((bnode, data["operator"], target))
 
         composition = Composition(bnode, namespace_registry)
         return composition
@@ -136,10 +167,13 @@ class TestCompositionsEMMO(unittest.TestCase):
         implicitly.
         """
         for data, composition in zip(self.composition_data, self.compositions):
-            self.assertEqual(data['string'], composition.__str__(),
-                             f'The string representation of the composition'
-                             f' does not match the expected one: '
-                             f'{data["string"]}.')
+            self.assertEqual(
+                data["string"],
+                composition.__str__(),
+                f"The string representation of the composition"
+                f" does not match the expected one: "
+                f'{data["string"]}.',
+            )
 
     def test_operator(self):
         """Tests the operator method.
@@ -148,7 +182,7 @@ class TestCompositionsEMMO(unittest.TestCase):
         implicitly.
         """
         for data, composition in zip(self.composition_data, self.compositions):
-            operator = predicate_to_operator[data['operator']]
+            operator = predicate_to_operator[data["operator"]]
             self.assertIs(operator, composition.operator)
 
     def test_operands(self):
@@ -158,9 +192,10 @@ class TestCompositionsEMMO(unittest.TestCase):
         implicitly.
         """
         for data, composition in zip(self.composition_data, self.compositions):
-            operand_uids = tuple(get_uid(operand)
-                                 for operand in composition.operands)
-            self.assertEqual(data['operands'], operand_uids)
+            operand_uids = tuple(
+                get_uid(operand) for operand in composition.operands
+            )
+            self.assertEqual(data["operands"], operand_uids)
 
 
 def get_uid(operand):
@@ -169,8 +204,9 @@ def get_uid(operand):
     If the operand is already referenced by an uid, no changes are
     performed on the input.
     """
-    if isinstance(operand, rdflib.term.Identifier) \
-            or isinstance(operand, rdflib.BNode):
+    if isinstance(operand, rdflib.term.Identifier) or isinstance(
+        operand, rdflib.BNode
+    ):
         operand_uid = operand
     elif isinstance(operand, OntologyEntity):
         operand_uid = operand.iri
@@ -179,8 +215,10 @@ def get_uid(operand):
     elif isinstance(operand.target, Restriction):
         operand_uid = operand._bnode
     else:
-        raise Exception(f"Unit test is incomplete, operands of type "
-                        f"{type(operand)} are not considered.")
+        raise Exception(
+            f"Unit test is incomplete, operands of type "
+            f"{type(operand)} are not considered."
+        )
     return operand_uid
 
 

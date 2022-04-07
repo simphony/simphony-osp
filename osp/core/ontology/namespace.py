@@ -1,20 +1,23 @@
 """A namespace in the ontology."""
 
-
-from collections.abc import Iterable
-import rdflib
-import logging
 import itertools
-from osp.core.ontology.entity import OntologyEntity
-from osp.core.ontology.relationship import OntologyRelationship
+import logging
+from collections.abc import Iterable
+from functools import lru_cache
+
+import rdflib
+
 from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.parser.yml.case_insensitivity import \
-    get_case_insensitive_alternative as alt
+from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.parser.yml.case_insensitivity import (
+    get_case_insensitive_alternative as alt,
+)
+from osp.core.ontology.relationship import OntologyRelationship
 
 logger = logging.getLogger(__name__)
 
 
-class OntologyNamespace():
+class OntologyNamespace:
     """A namespace in the ontology."""
 
     def __init__(self, name, namespace_registry, iri):
@@ -22,15 +25,16 @@ class OntologyNamespace():
 
         Args:
             name (str): The name of the namespace.
-            namespace_registry (OntologyNamespace): The namespace registry.
+            namespace_registry (NamespaceRegistry): The namespace registry.
             iri (rdflib.URIRef): The IRI of the namespace.
         """
         self._name = name
         self._namespace_registry = namespace_registry
         self._iri = rdflib.URIRef(str(iri))
         self._default_rel = -1
-        self._reference_by_label = \
-            namespace_registry._get_reference_by_label(self._iri)
+        self._reference_by_label = namespace_registry._get_reference_by_label(
+            self._iri
+        )
 
     def __dir__(self):
         """Attributes available for the OntologyNamespace class.
@@ -39,8 +43,11 @@ class OntologyNamespace():
             Iterable: the available attributes, which include the methods and
                       the ontology entities in the namespace.
         """
-        entity_autocompletion = self._iter_labels() \
-            if self._reference_by_label else self._iter_suffixes()
+        entity_autocompletion = (
+            self._iter_labels()
+            if self._reference_by_label
+            else self._iter_suffixes()
+        )
         return itertools.chain(dir(super()), entity_autocompletion)
 
     def __str__(self):
@@ -68,8 +75,11 @@ class OntologyNamespace():
         Returns:
             bool: Whether the given namespace is the same.
         """
-        return self._name == other._name and self._iri == other._iri \
+        return (
+            self._name == other._name
+            and self._iri == other._iri
             and self._namespace_registry is other._namespace_registry
+        )
 
     def __hash__(self):
         """Compute a has value."""
@@ -88,9 +98,9 @@ class OntologyNamespace():
         """Get the default relationship of the namespace."""
         if self._default_rel == -1:
             self._default_rel = None
-            for s, p, o in self._graph.triples((self._iri,
-                                                rdflib_cuba._default_rel,
-                                                None)):
+            for s, p, o in self._graph.triples(
+                (self._iri, rdflib_cuba._default_rel, None)
+            ):
                 self._default_rel = self._namespace_registry.from_iri(o)
         return self._default_rel
 
@@ -150,8 +160,10 @@ class OntologyNamespace():
                 label = contents[0]
                 lang = contents[1]
         else:
-            raise TypeError(f'{type(self).capitalize()} indices must be of '
-                            f'type {str} or (label: str, lang: str).')
+            raise TypeError(
+                f"{type(self).capitalize()} indices must be of "
+                f"type {str} or (label: str, lang: str)."
+            )
 
         return self._get_from_label(label, lang, case_sensitive=True)
 
@@ -191,8 +203,9 @@ class OntologyNamespace():
         if rdflib.URIRef(str(iri)) in self:
             return self._namespace_registry.from_iri(str(iri), _name=_name)
         else:
-            raise KeyError(f"The IRI {iri} does not belong to the namespace"
-                           f"{self}.")
+            raise KeyError(
+                f"The IRI {iri} does not belong to the namespace" f"{self}."
+            )
 
     def get_from_suffix(self, suffix, case_sensitive=False):
         """Get an ontology entity from its namespace suffix.
@@ -208,10 +221,10 @@ class OntologyNamespace():
             return self.get_from_iri(iri, _name=suffix)
         except KeyError as e:
             if not case_sensitive:
-                return self._get_case_insensitive(suffix,
-                                                  self.get_from_suffix)
+                return self._get_case_insensitive(suffix, self.get_from_suffix)
             raise e
 
+    @lru_cache(maxsize=5000)
     def _get_from_label(self, label, lang=None, case_sensitive=False):
         """Get an ontology entity from the registry by label.
 
@@ -238,30 +251,35 @@ class OntologyNamespace():
                 _name = label if self._reference_by_label else None
                 results.append(self.get_from_iri(iri, _name=_name))
         if len(results) == 0:
-            error = "No element with label %s was found in namespace %s."\
-                    % (label, self)
+            error = "No element with label %s was found in namespace %s." % (
+                label,
+                self,
+            )
             if inverse:
-                error += f' Therefore, INVERSE_OF_{label} could not be found.'
+                error += f" Therefore, INVERSE_OF_{label} could not be found."
             raise KeyError(error)
         elif len(results) >= 2:
             element_suffixes = (r._iri_suffix for r in results)
-            error = (f"There are multiple elements "
-                     f"({', '.join(element_suffixes)}) with label"
-                     f" {label} for namespace {self}."
-                     f"\n"
-                     f"Please refer to a specific element of the "
-                     f"list by calling get_from_iri(IRI) for "
-                     f"namespace {self} for one of the following "
-                     f"IRIs: " + "{iris}.")\
-                .format(iris=', '.join(entity.iri for entity in results))
+            error = (
+                f"There are multiple elements "
+                f"({', '.join(element_suffixes)}) with label"
+                f" {label} for namespace {self}."
+                f"\n"
+                f"Please refer to a specific element of the "
+                f"list by calling get_from_iri(IRI) for "
+                f"namespace {self} for one of the following "
+                f"IRIs: " + "{iris}."
+            ).format(iris=", ".join(entity.iri for entity in results))
             if inverse:
-                error += f' Therefore, INVERSE_OF_{label} could not be found.'
+                error += f" Therefore, INVERSE_OF_{label} could not be found."
             raise KeyError(error)
         if inverse:
             if type(results[0]) is not OntologyRelationship:
-                raise KeyError(f"The entity {label} is not an ontology "
-                               f"relationship. Therefore INVERSE_OF_{label} "
-                               f"does not exist.")
+                raise KeyError(
+                    f"The entity {label} is not an ontology "
+                    f"relationship. Therefore INVERSE_OF_{label} "
+                    f"does not exist."
+                )
             results[0] = results[0].inverse
         return results[0]
 
@@ -271,13 +289,18 @@ class OntologyNamespace():
         :return: An iterator over the entity IRIs.
         :rtype: Iterator[rdflib.URIRef]
         """
-        types = [rdflib.OWL.DatatypeProperty,
-                 rdflib.OWL.ObjectProperty,
-                 rdflib.OWL.Class]
-        return (s
-                for t in types
-                for s, _, _ in self._graph.triples((None, rdflib.RDF.type, t))
-                if s in self)
+        types = [
+            rdflib.OWL.DatatypeProperty,
+            rdflib.OWL.ObjectProperty,
+            rdflib.OWL.Class,
+            rdflib.RDFS.Class,
+        ]
+        return (
+            s
+            for t in types
+            for s, _, _ in self._graph.triples((None, rdflib.RDF.type, t))
+            if s in self
+        )
 
     def __iter__(self):
         """Iterate over the ontology entities in the namespace.
@@ -285,8 +308,9 @@ class OntologyNamespace():
         :return: An iterator over the entities.
         :rtype: Iterator[OntologyEntity]
         """
-        return (self._namespace_registry.from_iri(iri)
-                for iri in self._iter_iris())
+        return (
+            self._namespace_registry.from_iri(iri) for iri in self._iter_iris()
+        )
 
     def _iter_labels(self):
         """Iterate over the labels of the ontology entities in the namespace.
@@ -294,8 +318,9 @@ class OntologyNamespace():
         :return: An iterator over the entity labels.
         :rtype: Iterator[str]
         """
-        return itertools.chain(*(self._get_labels_for_iri(iri)
-                                 for iri in self._iter_iris()))
+        return itertools.chain(
+            *(self._get_labels_for_iri(iri) for iri in self._iter_iris())
+        )
 
     def _iter_suffixes(self):
         """Iterate over suffixes of the ontology entities in the namespace.
@@ -303,7 +328,7 @@ class OntologyNamespace():
         :return: An iterator over the entity suffixes.
         :rtype: Iterator[str]
         """
-        return (str(iri)[len(str(self._iri)):] for iri in self._iter_iris())
+        return (str(iri)[len(str(self._iri)) :] for iri in self._iter_iris())
 
     def __contains__(self, item):
         """Check whether the given entity is part of the namespace.
@@ -324,10 +349,12 @@ class OntologyNamespace():
             item = item.iri
 
         if not isinstance(item, (rdflib.URIRef, rdflib.BNode)):
-            raise TypeError(f'in {type(self)} requires {str}, '
-                            f'{rdflib.URIRef}, {OntologyEntity} or '
-                            f'{rdflib.BNode} as left operand, '
-                            f'not {type(item)}.')
+            raise TypeError(
+                f"in {type(self)} requires {str}, "
+                f"{rdflib.URIRef}, {OntologyEntity} or "
+                f"{rdflib.BNode} as left operand, "
+                f"not {type(item)}."
+            )
 
         if isinstance(item, rdflib.BNode):
             return False
@@ -348,15 +375,21 @@ class OntologyNamespace():
             iter: An iterator that goes through all the subjects belonging
                   to the namespace.
         """
-        subjects = (subject for subject in self._graph.subjects()
-                    if subject in self)
+        subjects = (
+            subject for subject in self._graph.subjects() if subject in self
+        )
         if unique:
             return set(subjects)
         else:
             return subjects
 
-    def _get_labels_for_iri(self, iri, lang=None, _return_literal=False,
-                            _return_label_property=False):
+    def _get_labels_for_iri(
+        self,
+        iri,
+        lang=None,
+        _return_literal=False,
+        _return_label_property=False,
+    ):
         """Returns all the available labels for the given IRI.
 
         Args:
@@ -369,6 +402,7 @@ class OntologyNamespace():
             Union[str, rdflib.Literal]: Either the text of the label or the
                                         rdflib.Literal representing the label.
         """
+
         def filter_language(literal):
             if lang is None:
                 return True
@@ -376,14 +410,18 @@ class OntologyNamespace():
                 return literal.language is None
             else:
                 return literal.language == lang
-        labels = filter(lambda label_tuple: filter_language(label_tuple[1]),
-                        ((prop, literal) for prop in self._label_properties
-                         for literal in self._graph.objects(iri, prop))
-                        )
+
+        labels = filter(
+            lambda label_tuple: filter_language(label_tuple[1]),
+            (
+                (prop, literal)
+                for prop in self._label_properties
+                for literal in self._graph.objects(iri, prop)
+            ),
+        )
 
         if not _return_literal:
-            labels = ((prop, literal.toPython())
-                      for prop, literal in labels)
+            labels = ((prop, literal.toPython()) for prop, literal in labels)
         if not _return_label_property:
             return (literal for prop, literal in labels)
         else:

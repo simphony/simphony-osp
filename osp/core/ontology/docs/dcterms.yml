@@ -1,0 +1,9 @@
+---
+identifier: dcterms
+ontology_file: https://www.dublincore.org/specifications/dublin-core/dcmi-terms/dublin_core_terms.ttl
+reference_by_label: False
+requirements:
+    - dcmitype
+namespaces:
+    dcterms: "http://purl.org/dc/terms/"
+active_relationships: []

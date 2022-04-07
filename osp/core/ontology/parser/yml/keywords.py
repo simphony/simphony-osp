@@ -35,13 +35,7 @@ CHARACTERISTICS = {
     "functional",
     "irreflexive",
     "asymmetric",
-    "inversefunctional"
+    "inversefunctional",
 }
 
-DATATYPES = {
-    "BOOL",
-    "INT",
-    "FLOAT",
-    "STRING",
-    "VECTOR"
-}
+DATATYPES = {"BOOL", "INT", "FLOAT", "STRING", "VECTOR"}
