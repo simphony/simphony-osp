@@ -37,8 +37,8 @@ setup(
             "Remote = simphony_osp.interfaces.remote:Remote",
         },
         "console_scripts": {
-            "pico = simphony_osp.core.utils.pico:pico",
-            "semantic2dot = simphony_osp.core.tools.semantic2dot"
+            "pico = simphony_osp.utils.pico:pico",
+            "semantic2dot = simphony_osp.tools.semantic2dot"
             ":run_from_terminal",
         },
     },
