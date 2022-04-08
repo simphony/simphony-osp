@@ -5,14 +5,15 @@ from typing import Dict, Optional
 from rdflib import Graph, URIRef
 from rdflib.term import Identifier
 
-from simphony_osp.core.interfaces.interface import Interface, BufferType
+from simphony_osp.interfaces.interface import BufferType, Interface
 
 
-class SQLAlchemyInterface(Interface):
+class SQLAlchemy(Interface):
     """An interface to an SQL database using SQLAlchemy."""
 
     _identifier: Identifier = URIRef(
-        'https://www.simphony-project.eu/SQLAlchemy')
+        "https://www.simphony-project.eu/SQLAlchemy"
+    )
     """The identifier of the graph serving as context of the saved triples."""
 
     _uri: Optional[str] = None
@@ -42,8 +43,9 @@ class SQLAlchemyInterface(Interface):
         """
         # TODO: Create databases if create is `True`.
         if self._uri is not None and self._uri != configuration:
-            raise RuntimeError(f'A different project database {self._uri}'
-                               f'is already open!')
+            raise RuntimeError(
+                f"A different database {self._uri}" f"is already open!"
+            )
 
         self.base = Graph("SQLAlchemy", identifier=self._identifier)
         self.base.open(configuration, create=True)

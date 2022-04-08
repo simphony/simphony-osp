@@ -2,10 +2,10 @@
 
 from pathlib import Path
 
-from simphony_osp.interfaces.sqlalchemy.interface import SQLAlchemyInterface
+from simphony_osp.interfaces.sqlalchemy.interface import SQLAlchemy
 
 
-class SQLiteInterface(SQLAlchemyInterface):
+class SQLite(SQLAlchemy):
     """An interface to an SQLite database.
 
     It just uses the SQLAlchemy wrapper with "sqlite" as prefix, so that the
@@ -24,8 +24,9 @@ class SQLiteInterface(SQLAlchemyInterface):
             create: Whether to create the database file if it does not exist.
         """
         if not create and not Path(configuration).is_file():
-            raise FileNotFoundError(f'Database file {configuration} does not '
-                                    f'exist.')
-        return super().open(configuration='sqlite:///' + configuration)
+            raise FileNotFoundError(
+                f"Database file {configuration} does not " f"exist."
+            )
+        return super().open(configuration="sqlite:///" + configuration)
 
     # ↑ ---------------- ↑

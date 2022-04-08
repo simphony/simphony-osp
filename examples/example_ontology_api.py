@@ -61,38 +61,55 @@ print(f"  {c.get(oclass=city.Citizen)}")
 print("\nAdding neighborhoods to Cuds object in a loop:")
 for i in range(6):
     print("  Added neighborhood %s" % i)
-    c.add(city.Neighborhood(
-        name="neighborhood %s" % i))
+    c.add(city.Neighborhood(name="neighborhood %s" % i))
 
-print('\nTrying out the `is_a` method trivially with the city and the new '
-      'neighborhoods.')
-print("  Is the city an instance of `city.City` or of a subclass of it? %s" %
-      c.is_a(city.City))
-print("  Are all neighborhoods instances of `city.Neighborhood` or of a "
-      "subclass of it? %s" %
-      all(n.is_a(city.Neighborhood) for n in c.get(oclass=city.Neighborhood)))
+print(
+    "\nTrying out the `is_a` method trivially with the city and the new "
+    "neighborhoods."
+)
+print(
+    "  Is the city an instance of `city.City` or of a subclass of it? %s"
+    % c.is_a(city.City)
+)
+print(
+    "  Are all neighborhoods instances of `city.Neighborhood` or of a "
+    "subclass of it? %s"
+    % all(n.is_a(city.Neighborhood) for n in c.get(oclass=city.Neighborhood))
+)
 
 # Functionalities exposed through subscripting.
 
-print("\nAdd, get and remove cuds using subscripting. The object returned by "
-      "the subscripting notation call behaves like a Python set, but has "
-      "some additional capabilities.")
+print(
+    "\nAdd, get and remove cuds using subscripting. The object returned by "
+    "the subscripting notation call behaves like a Python set, but has "
+    "some additional capabilities."
+)
 
-print("  Such set-like object has the additional `one`, `any` and "
-      "`all` methods.")
+print(
+    "  Such set-like object has the additional `one`, `any` and "
+    "`all` methods."
+)
 
-print("  - any: retrieve an arbitrary element from the set (without "
-      "removing it).")
+print(
+    "  - any: retrieve an arbitrary element from the set (without "
+    "removing it)."
+)
 print(f"     {c[city.hasInhabitant].any().name}")
-print("  - one: retrieve an arbitrary element from the set. An exception "
-      "will be raised if not exactly one element is in the set.")
+print(
+    "  - one: retrieve an arbitrary element from the set. An exception "
+    "will be raised if not exactly one element is in the set."
+)
 print(f"     {c[city.hasInhabitant].one().name}")
-print("  - all: returns the set-like object itself. It is redundant, but you "
-      "can use it to improve readability.")
+print(
+    "  - all: returns the set-like object itself. It is redundant, but you "
+    "can use it to improve readability."
+)
 print(f"     {c[city.hasInhabitant].all()}")
 
-print("  Both single objects and sets can be assigned. Assigning `None` is "
-      "equivalent to assigning an empty set.")
+print(
+    "  Both single objects and sets can be assigned. Assigning `None` is "
+    "equivalent to assigning an empty set."
+)
 c[city.hasInhabitant] = p1
 print(f"     {c[city.hasInhabitant].any().name}")
 c[city.hasInhabitant] = None
@@ -107,9 +124,11 @@ c[city.hasInhabitant] = {p1, p2}
 print(f"     {c[city.hasInhabitant]}")
 print(f"     p2: {p2}")
 
-print("  Apart from the typical in-place operations for sets (e.g. `=^`), "
-      "`+=` and `-=` are also supported to add or remove single elements "
-      "from the sets.")
+print(
+    "  Apart from the typical in-place operations for sets (e.g. `=^`), "
+    "`+=` and `-=` are also supported to add or remove single elements "
+    "from the sets."
+)
 c[city.hasInhabitant] -= p1
 print(f"     {c[city.hasInhabitant]}")
 c[city.hasInhabitant] += p1
@@ -118,20 +137,25 @@ c[city.hasInhabitant] = {p2}
 print(f"     {c[city.hasInhabitant]}")
 c[city.hasInhabitant] ^= {p2}
 print(f"     {c[city.hasInhabitant]}")
-print("  Also the usual (not in-place) operations between sets are "
-      "supported.")
+print(
+    "  Also the usual (not in-place) operations between sets are " "supported."
+)
 print(f"     {c[city.hasInhabitant] | {p1, p2}}")
 print(f"     {c[city.hasInhabitant]}")
 
-print("\nThe subscripting also works for attributes. In particular, it can be "
-      "used to assign multiple values to the same attribute.")
-c[city['name']] = {'Freiburg', 'Freiburg im Breisgau'}
+print(
+    "\nThe subscripting also works for attributes. In particular, it can be "
+    "used to assign multiple values to the same attribute."
+)
+c[city["name"]] = {"Freiburg", "Freiburg im Breisgau"}
 print(f"  {c[city['name']]}")
-print("  Be aware that when multiple values are assigned, the dot notation "
-      "will raise an exception.")
-c[city['name']] += {'Stadt', 'City'}
+print(
+    "  Be aware that when multiple values are assigned, the dot notation "
+    "will raise an exception."
+)
+c[city["name"]] += {"Stadt", "City"}
 print(f"  {c[city['name']]}")
 print(f"  {c[city['name']].any()}")
 # c.name -> Exception
-c[city['name']] -= {'Stadt', 'City', 'Freiburg'}
+c[city["name"]] -= {"Stadt", "City", "Freiburg"}
 print(f"  {c[city['name']]}")

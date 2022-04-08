@@ -3,7 +3,7 @@
 
 ## Note
 
-For applications where performance is important, we recommend v3.4.2 
+For applications where performance is important, we recommend v3.4.2
 The performance optimizations will be done as a next step to v3.5.X
 
 # OSP core

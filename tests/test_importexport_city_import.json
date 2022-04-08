@@ -1,1 +1,46 @@
-[{"@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000003", "@type": ["https://www.simphony-project.eu/city#Person"]}, {"@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000002", "@type": ["https://www.simphony-project.eu/city#Person"]}, {"@id": "https://www.simphony-project.eu/cuba#_serialization", "http://www.w3.org/1999/02/22-rdf-syntax-ns#first": [{"@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-00000000007b"}]}, {"@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-00000000007b", "@type": ["https://www.simphony-project.eu/city#Citizen"], "https://www.simphony-project.eu/city#age": [{"@value": 23}], "https://www.simphony-project.eu/city#hasChild": [{"@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000002"}, {"@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000003"}], "https://www.simphony-project.eu/city#name": [{"@value": "Peter"}]}]
+[
+  {
+    "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000003",
+    "@type": [
+      "https://www.simphony-project.eu/city#Person"
+    ]
+  },
+  {
+    "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000002",
+    "@type": [
+      "https://www.simphony-project.eu/city#Person"
+    ]
+  },
+  {
+    "@id": "https://www.simphony-project.eu/cuba#_serialization",
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#first": [
+      {
+        "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-00000000007b"
+      }
+    ]
+  },
+  {
+    "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-00000000007b",
+    "@type": [
+      "https://www.simphony-project.eu/city#Citizen"
+    ],
+    "https://www.simphony-project.eu/city#age": [
+      {
+        "@value": 23
+      }
+    ],
+    "https://www.simphony-project.eu/city#hasChild": [
+      {
+        "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000002"
+      },
+      {
+        "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000003"
+      }
+    ],
+    "https://www.simphony-project.eu/city#name": [
+      {
+        "@value": "Peter"
+      }
+    ]
+  }
+]

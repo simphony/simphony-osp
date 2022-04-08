@@ -4,8 +4,8 @@ import unittest
 
 from rdflib import URIRef
 
-from simphony_osp.core.ontology.parser import OntologyParser
-from simphony_osp.core.session import Session
+from simphony_osp.ontology.parser import OntologyParser
+from simphony_osp.session.session import Session
 
 
 class TestContainer(unittest.TestCase):
@@ -19,8 +19,8 @@ class TestContainer(unittest.TestCase):
 
         The new TBox contains CUBA, OWL, RDFS and City.
         """
-        ontology = Session(identifier='test-tbox', ontology=True)
-        ontology.load_parser(OntologyParser.get_parser('city'))
+        ontology = Session(identifier="test-tbox", ontology=True)
+        ontology.load_parser(OntologyParser.get_parser("city"))
         cls.prev_default_ontology = Session.ontology
         Session.ontology = ontology
 
@@ -43,8 +43,9 @@ class TestContainer(unittest.TestCase):
         self.assertEqual(container.num_references, 0)
 
         with container:
-            self.assertIs(Session.get_default_session(),
-                          container.session_linked)
+            self.assertIs(
+                Session.get_default_session(), container.session_linked
+            )
             self.assertTrue(container.is_open)
         self.assertIsNone(container.session_linked)
         self.assertFalse(container.is_open)
@@ -59,8 +60,9 @@ class TestContainer(unittest.TestCase):
             self.assertIs(session, container.session_linked)
         self.assertIsNone(container.session_linked)
         self.assertFalse(container.is_open)
-        self.assertRaises(TypeError,
-                          lambda x: setattr(container, 'opens_in', x), 8)
+        self.assertRaises(
+            TypeError, lambda x: setattr(container, "opens_in", x), 8
+        )
         container.opens_in = None
 
         another_container = cuba.Container()
@@ -69,16 +71,16 @@ class TestContainer(unittest.TestCase):
         self.assertRaises(RuntimeError, another_container.open)
         container.open()
         with another_container:
-            self.assertIs(Session.get_default_session(),
-                          container.session_linked)
-            self.assertIs(container.session_linked,
-                          another_container.session_linked)
+            self.assertIs(
+                Session.get_default_session(), container.session_linked
+            )
+            self.assertIs(
+                container.session_linked, another_container.session_linked
+            )
         container.close()
 
         fr_session = Session()
-        fr = city.City(name='Freiburg',
-                       coordinates=[0, 0],
-                       session=fr_session)
+        fr = city.City(name="Freiburg", coordinates=[0, 0], session=fr_session)
         container.references = {fr.iri}
         default_session = Session.get_default_session()
 
@@ -92,7 +94,7 @@ class TestContainer(unittest.TestCase):
                 self.assertSetEqual({fr}, set(container))
                 self.assertIn(fr, container)
 
-        broken_reference = URIRef('http://example.org/things#something')
+        broken_reference = URIRef("http://example.org/things#something")
         container.references = {broken_reference}
         self.assertIn(broken_reference, container.references)
         self.assertNotIn(fr, container)
@@ -126,7 +128,7 @@ class TestContainer(unittest.TestCase):
         with fr_session:
             with container:
                 self.assertSetEqual({fr}, set(container))
-                pr = city.City(name='Paris', coordinates=[0, 0])
+                pr = city.City(name="Paris", coordinates=[0, 0])
                 self.assertSetEqual({fr, pr}, set(container))
 
     def test_container_multiple_sessions(self):
@@ -135,7 +137,7 @@ class TestContainer(unittest.TestCase):
         Each session is meant to contain a different version of the same
         individual.
         """
-        from simphony_osp.namespaces import cuba, city
+        from simphony_osp.namespaces import city, cuba
 
         container = cuba.Container()
 
@@ -143,7 +145,7 @@ class TestContainer(unittest.TestCase):
         session_1 = Session()
         session_2 = Session()
 
-        klaus = city.Citizen(name='Klaus', age=5)
+        klaus = city.Citizen(name="Klaus", age=5)
         session_1.update(klaus)
         session_2.update(klaus)
         klaus_1 = session_1.from_identifier(klaus.identifier)

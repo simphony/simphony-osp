@@ -1,9 +1,0 @@
-identifier: city
-ontology_file: city.ttl
-format: 'turtle'
-reference_by_label: False
-namespaces:
-    city: https://www.simphony-project.eu/city#
-active_relationships:
-    - https://www.simphony-project.eu/city#encloses
-default_relationship: https://www.simphony-project.eu/city#hasPart

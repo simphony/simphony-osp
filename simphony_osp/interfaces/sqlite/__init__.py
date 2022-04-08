@@ -1,5 +1,5 @@
 """SQLite interface for the SimPhoNy OSP."""
 
-from simphony_osp.interfaces.sqlite.interface import SQLiteInterface
+from simphony_osp.interfaces.sqlite.interface import SQLite as SQLite
 
-__all__ = ['SQLiteInterface']
+__all__ = ["SQLite"]

@@ -3,10 +3,10 @@
 # Please install the city ontology: $pico install city
 
 import os
+
 from osp.core.namespaces import city
 from osp.core.tools import pretty_print
 from osp.wrappers import sqlite
-
 
 try:
     # Construct the Datastructure.
@@ -17,7 +17,7 @@ try:
     n = city.Neighborhood(name="Zähringen", coordinates=[0, 0])
     s = city.Street(name="Le street", coordinates=[0, 0])
     b = city.Building(name="Theater")
-    a = city.Address(postalCode=79123, name='Le street', number=12)
+    a = city.Address(postalCode=79123, name="Le street", number=12)
     c.add(p1, p2, p3, rel=city.hasInhabitant)
     c.add(n).add(s).add(b).add(a)
 

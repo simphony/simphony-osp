@@ -1,66 +1,39 @@
-"""Lets interfaces be used in a user-friendly way.
+"""Interfaces between the SimPhoNy OSP and other software."""
 
-It scans the installed interfaces and adds their names to __dir__.
+import sys
+from typing import Type
 
-When the name of an interface requested, the returned object is a
-`_WrapperSpawner` class, which is subclass of the `Wrapper` class from
-osp.core.wrapper that has as default interface the one requested by the user.
-"""
+from simphony_osp.interfaces.interface import Interface
+from simphony_osp.session.wrapper import WrapperSpawner as Wrapper
 
-import importlib as _importlib
-import logging as _logging
-import os as _os
-import pkgutil as _package_utils
-import sys as _sys
-from typing import Type as _Type
+if sys.version_info < (3, 8):
+    from importlib_metadata import entry_points
+else:
+    from importlib.metadata import entry_points
 
-from simphony_osp.core.interfaces.interface import Interface as _Interface
-from simphony_osp.core.wrapper import WrapperSpawner as _Wrapper
+__all__ = []
 
-_logger = _logging.getLogger(__name__)
-
-_self = __import__(__name__)
-
-# Get all installed interfaces.
-_interfaces = dict()
-for _module_info in _package_utils.iter_modules(
-        (_os.path.join(_path, 'simphony_osp/interfaces')
-         for _path in _sys.path),
-        f'{_self.__name__}.interfaces.'):
-    try:
-        _module = _importlib.import_module(_module_info.name)
-    except ImportError as e:
-        _logger.warning(f'Failed to import {_module_info.name}: {e}.')
-
-    # Find interfaces in modules.
-    try:
-        _names = _module.__dict__['__all__']
-    except KeyError:
-        _names = [_k for _k in _module.__dict__ if not _k.startswith('_')]
-
-    for _name in _names:
-        _x = getattr(_module, _name)
-        try:
-            if issubclass(_x, _Interface):
-                _interfaces[_module_info.name.split('.')[-1]] = _x
-            break
-        except TypeError:
-            pass
+# Retrieve all wrappers from package entry points.
+package_entry_points = entry_points()
+if sys.version_info >= (3, 10):
+    wrappers = package_entry_points.select(group="simphony_osp.wrappers")
+else:
+    wrappers = package_entry_points.get("simphony_osp.wrappers", tuple())
+del package_entry_points
+wrappers = {entry_point.name: entry_point.load() for entry_point in wrappers}
 
 
-# Get a wrapper.
 def __getattr__(name: str):
-    if name not in _interfaces:
+    if name not in wrappers:
         raise AttributeError(name)
 
-    class _WrapperSpawner(_Wrapper):
-
+    class _WrapperSpawner(Wrapper):
         @classmethod
-        def _get_interface(cls) -> _Type[_Interface]:
-            return _interfaces[name]
+        def _get_interface(cls) -> Type[Interface]:
+            return wrappers[name]
 
     return _WrapperSpawner
 
 
 def __dir__():
-    return list(_interfaces.keys())
+    return list(wrappers.keys())
