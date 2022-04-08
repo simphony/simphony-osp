@@ -20,7 +20,7 @@ setup(
     long_description=README_TEXT,
     packages=find_packages(exclude=("examples", "tests")),
     package_data={
-        "simphony_osp.core.ontology.files": [
+        "simphony_osp.ontology.files": [
             "*.yml",
             "*.ttl",
             "*.xml",
