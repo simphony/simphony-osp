@@ -298,6 +298,10 @@ class Container(Environment, OntologyIndividual):
                                         cuba.contains.identifier,
                                         individual.identifier))
 
+        result = (self._session_linked.from_identifier(i.identifier)
+                  for i in individuals)
+        return next(result) if len(individuals) == 1 else list(result)
+
     def remove(self, *individuals: OntologyIndividual):
         """Removes ontology individuals from a container.
 
