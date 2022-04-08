@@ -1,5 +1,6 @@
 """Module containing tools for the users of the SimPhoNy OSP."""
 
+from simphony_osp.tools.pretty_print import pretty_print
 from simphony_osp.tools.remote import host
 from simphony_osp.tools.search import (
     find_cuds_object,
