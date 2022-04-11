@@ -1,4 +1,8 @@
-"""Test the ontology API."""
+"""Test all public API methods.
+
+The public API methods are the methods that are available to the users,
+and available in the user documentation.
+"""
 
 import tempfile
 import unittest
@@ -15,12 +19,12 @@ from simphony_osp.ontology.oclass import OntologyClass
 from simphony_osp.ontology.parser import OntologyParser
 from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.session.session import Session
-from simphony_osp.tools.search import sparql
+from simphony_osp.tools import sparql
 from simphony_osp.utils.datatypes import UID
 
 
-class TestCityOntology(unittest.TestCase):
-    """Test the ontology API using the city ontology."""
+class TestSession(unittest.TestCase):
+    """Tests the session class public methods."""
 
     ontology: Session
     prev_default_ontology: Session
@@ -102,6 +106,101 @@ class TestCityOntology(unittest.TestCase):
 
         # Test the `graph` property.
         self.assertTrue(isinstance(ontology.graph, Graph))
+
+    def test_sparql(self):
+        """Test SPARQL by creating a city and performing a very simple query.
+
+        Create a city with a single inhabitant and perform a very simple SPARQL
+        query using both the `sparql` function from utils and the sparql method
+        of the session.
+        """
+        # Clear the default session's contents.
+        Session.get_default_session().clear()
+
+        from simphony_osp.namespaces import city
+
+        def is_freiburg(iri):
+            value = str(iri)
+            if value == "Freiburg":
+                return True
+            else:
+                return False
+
+        freiburg = city.City(name="Freiburg", coordinates=[0, 0])
+        karl = city.Citizen(name="Karl", age=47)
+        freiburg.add(karl, rel=city.hasInhabitant)
+        default_session = freiburg.session
+        query = f"""SELECT ?city_name ?citizen ?citizen_age ?citizen_name
+                    WHERE {{ ?city a <{city.City.iri}> .
+                             ?city <{city['name'].iri}> ?city_name .
+                             ?city <{city.hasInhabitant.iri}> ?citizen .
+                             ?citizen <{city['name'].iri}> ?citizen_name .
+                             ?citizen <{city.age.iri}> ?citizen_age .
+                          }}
+                 """
+        datatypes = dict(
+            citizen=OntologyIndividual,
+            citizen_age=int,
+            citizen_name=str,
+            city_name=is_freiburg,
+        )
+        results_none = sparql(query, session=None)
+        results_default_session = sparql(query, session=default_session)
+        results_default_session_method = default_session.sparql(query)
+        self.assertEqual(len(results_none), 1)
+        self.assertEqual(len(results_default_session), 1)
+        self.assertEqual(len(results_default_session_method), 1)
+
+        results = (
+            next(results_none(**datatypes)),
+            next(results_default_session(**datatypes)),
+            next(results_default_session_method(**datatypes)),
+        )
+        self.assertTrue(
+            all(result["citizen"].is_a(karl.oclass) for result in results)
+        )
+        self.assertTrue(
+            all(result["citizen_age"] == karl.age for result in results)
+        )
+        self.assertTrue(
+            all(result["citizen_name"] == karl.name for result in results)
+        )
+        self.assertTrue(all(result["city_name"] for result in results))
+
+        results = (
+            next(iter(results_none)),
+            next(iter(results_default_session)),
+            next(iter(results_default_session_method)),
+        )
+        self.assertTrue(
+            all(result["citizen"] == karl.iri for result in results)
+        )
+        self.assertTrue(
+            all(type(result["citizen_age"]) != int for result in results)
+        )
+
+
+class TestOntologyEntityCity(unittest.TestCase):
+    """Test the ontology API using the city ontology."""
+
+    ontology: Session
+    prev_default_ontology: Session
+
+    @classmethod
+    def setUpClass(cls):
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains CUBA, OWL, RDFS and City.
+        """
+        cls.ontology = Session(identifier="test-tbox", ontology=True)
+        cls.ontology.load_parser(OntologyParser.get_parser("city"))
+        cls.prev_default_ontology = Session.ontology
+        Session.ontology = cls.ontology
+
+    @classmethod
+    def tearDownClass(cls):
+        """Restore the previous default TBox."""
+        Session.ontology = cls.prev_default_ontology
 
     def test_attribute(self):
         """Tests the OntologyAttribute subclass.
@@ -799,17 +898,17 @@ class TestCityOntology(unittest.TestCase):
         self.assertSetEqual(set(), paris[city.hasMajor])
 
         # Test attributes -> goto
-        # TestFOAFOntology.test_bracket_notation.
+        # TestOntologyEntityFOAF.test_bracket_notation.
 
 
-class TestFOAFOntology(unittest.TestCase):
+class TestOntologyEntityFOAF(unittest.TestCase):
     """Test the ontology API using the FOAF ontology.
 
     Tests only features not tested with the City ontology.
     """
 
     # TODO: Extend the City ontology with annotation properties so that this
-    #  test can be merged with `TestCityOntology`.
+    #  test can be merged with `TestOntologyEntityCity`.
 
     ontology: Session
     prev_default_ontology: Session
@@ -1055,242 +1154,174 @@ class TestFOAFOntology(unittest.TestCase):
         # test_api_city.TestAPICity.test_bracket_notation.
 
 
-class TestLoadParsers(unittest.TestCase):
-    """Test merging ontology packages in the ontology."""
-
-    def setUp(self) -> None:
-        """Set up ontology."""
-        self.ontology = Session(identifier="some_ontology", ontology=True)
-
-    def test_loading_packages(self):
-        """Test merging several ontology packages."""
-        parsers = (
-            OntologyParser.get_parser("foaf"),
-            OntologyParser.get_parser("emmo"),
-            OntologyParser.get_parser("dcat2"),
-            OntologyParser.get_parser("city"),
-        )
-        for parser in parsers:
-            self.ontology.load_parser(parser)
-
-        # Test that all namespaces were loaded.
-        required_namespaces = {
-            "cuba": "https://www.simphony-project.eu/cuba#",
-            "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
-            "owl": "http://www.w3.org/2002/07/owl#",
-        }
-        city_namespaces = {"city": "https://www.simphony-project.eu/city#"}
-        foaf_namespaces = {"foaf": "http://xmlns.com/foaf/0.1/"}
-        dcat2_namespaces = {"dcat2": "http://www.w3.org/ns/dcat#"}
-        emmo_namespaces = {
-            "annotations": "http://emmo.info/emmo/top/annotations#",
-            "holistic": "http://emmo.info/emmo/middle/holistic#",
-            "isq": "http://emmo.info/emmo/middle/isq#",
-            "manufacturing": "http://emmo.info/emmo/middle/manufacturing#",
-            "materials": "http://emmo.info/emmo/middle/materials#",
-            "math": "http://emmo.info/emmo/middle/math#",
-            "meretopology": "http://emmo.info/emmo/top/mereotopology#",
-            "metrology": "http://emmo.info/emmo/middle/metrology#",
-            "models": "http://emmo.info/emmo/middle/models#",
-            "perceptual": "http://emmo.info/emmo/middle/perceptual#",
-            "physical": "http://emmo.info/emmo/top/physical#",
-            "physicalistic": "http://emmo.info/emmo/middle/physicalistic#",
-            "properties": "http://emmo.info/emmo/middle/properties#",
-            "reductionistic": "http://emmo.info/emmo/middle/reductionistic#",
-            "semiotics": "http://emmo.info/emmo/middle/semiotics#",
-            "siunits": "http://emmo.info/emmo/middle/siunits#",
-            "top": "http://emmo.info/emmo/top#",
-        }
-        expected_namespaces = dict()
-        for nss in (
-            required_namespaces,
-            foaf_namespaces,
-            dcat2_namespaces,
-            emmo_namespaces,
-            city_namespaces,
-        ):
-            expected_namespaces.update(nss)
-        self.assertSetEqual(
-            set(
-                OntologyNamespace(iri=iri, name=name, ontology=self.ontology)
-                for name, iri in expected_namespaces.items()
-            ),
-            set(self.ontology.namespaces),
-        )
-
-        # Check that names of the namespaces were loaded.
-        self.assertSetEqual(
-            set(expected_namespaces.keys()),
-            set(ns.name for ns in self.ontology.namespaces),
-        )
-
-        # Check that the default relationships were properly loaded.
-        expected_default_relationships = {
-            OntologyNamespace(
-                iri=iri, name=name, ontology=self.ontology
-            ): OntologyRelationship(
-                uid=UID(
-                    "http://emmo.info/emmo/top/mereotopology#"
-                    "EMMO_17e27c22_37e1_468c_9dd7_95e137f73e7f"
-                ),
-                session=self.ontology,
-            )
-            for name, iri in emmo_namespaces.items()
-        }
-        expected_default_relationships.update(
-            {
-                OntologyNamespace(
-                    iri="https://www.simphony-project.eu/city#",
-                    name="city",
-                    ontology=self.ontology,
-                ): OntologyRelationship(
-                    uid=UID("https://www.simphony-project.eu/city#hasPart"),
-                    session=self.ontology,
-                )
-            }
-        )
-        expected_default_relationships.update(
-            {
-                OntologyNamespace(
-                    iri="http://www.w3.org/2002/07/owl#",
-                    name="owl",
-                    ontology=self.ontology,
-                ): OntologyRelationship(
-                    uid=UID("http://www.w3.org/2002/07/owl#topObjectProperty"),
-                    session=self.ontology,
-                )
-            }
-        )
-        self.assertDictEqual(
-            expected_default_relationships, self.ontology.default_relationships
-        )
-
-        # Check that the active relationships were properly loaded.
-        self.assertSetEqual(
-            {
-                OntologyRelationship(
-                    uid=UID(
-                        "http://emmo.info/emmo/top/mereotopology#"
-                        "EMMO_8c898653_1118_4682_9bbf_6cc334d16a99"
-                    ),
-                    session=self.ontology,
-                ),
-                OntologyRelationship(
-                    uid=UID(
-                        "http://emmo.info/emmo/middle/semiotics#"
-                        "EMMO_60577dea_9019_4537_ac41_80b0fb563d41"
-                    ),
-                    session=self.ontology,
-                ),
-                OntologyRelationship(
-                    uid=UID(
-                        "https://www.simphony-project.eu/"
-                        "cuba#activeRelationship"
-                    ),
-                    session=self.ontology,
-                ),
-                OntologyRelationship(
-                    uid=UID("https://www.simphony-project.eu/city#encloses"),
-                    session=self.ontology,
-                ),
-            },
-            set(self.ontology.active_relationships),
-        )
-
-        # Check that the reference styles were properly loaded.
-        self.assertDictEqual(
-            {
-                OntologyNamespace(
-                    iri=iri, name=name, ontology=self.ontology
-                ): True
-                if name in emmo_namespaces
-                else False
-                for name, iri in expected_namespaces.items()
-            },
-            self.ontology.reference_styles,
-        )
-
-        # Try to fetch all the namespaces by name.
-        self.assertSetEqual(
-            set(self.ontology.namespaces),
-            set(
-                self.ontology.get_namespace(name)
-                for name in expected_namespaces
-            ),
-        )
-
-    def test_sparql(self):
-        """Test SPARQL by creating a city and performing a very simple query.
-
-        Create a city with a single inhabitant and perform a very simple SPARQL
-        query using both the `sparql` function from utils and the sparql method
-        of the session.
-        """
-        # Clear the default session's contents.
-        Session.get_default_session().clear()
-
-        from simphony_osp.namespaces import city
-
-        def is_freiburg(iri):
-            value = str(iri)
-            if value == "Freiburg":
-                return True
-            else:
-                return False
-
-        freiburg = city.City(name="Freiburg", coordinates=[0, 0])
-        karl = city.Citizen(name="Karl", age=47)
-        freiburg.add(karl, rel=city.hasInhabitant)
-        default_session = freiburg.session
-        query = f"""SELECT ?city_name ?citizen ?citizen_age ?citizen_name
-                    WHERE {{ ?city a <{city.City.iri}> .
-                             ?city <{city['name'].iri}> ?city_name .
-                             ?city <{city.hasInhabitant.iri}> ?citizen .
-                             ?citizen <{city['name'].iri}> ?citizen_name .
-                             ?citizen <{city.age.iri}> ?citizen_age .
-                          }}
-                 """
-        datatypes = dict(
-            citizen=OntologyIndividual,
-            citizen_age=int,
-            citizen_name=str,
-            city_name=is_freiburg,
-        )
-        results_none = sparql(query, session=None)
-        results_default_session = sparql(query, session=default_session)
-        results_default_session_method = default_session.sparql(query)
-        self.assertEqual(len(results_none), 1)
-        self.assertEqual(len(results_default_session), 1)
-        self.assertEqual(len(results_default_session_method), 1)
-
-        results = (
-            next(results_none(**datatypes)),
-            next(results_default_session(**datatypes)),
-            next(results_default_session_method(**datatypes)),
-        )
-        self.assertTrue(
-            all(result["citizen"].is_a(karl.oclass) for result in results)
-        )
-        self.assertTrue(
-            all(result["citizen_age"] == karl.age for result in results)
-        )
-        self.assertTrue(
-            all(result["citizen_name"] == karl.name for result in results)
-        )
-        self.assertTrue(all(result["city_name"] for result in results))
-
-        results = (
-            next(iter(results_none)),
-            next(iter(results_default_session)),
-            next(iter(results_default_session_method)),
-        )
-        self.assertTrue(
-            all(result["citizen"] == karl.iri for result in results)
-        )
-        self.assertTrue(
-            all(type(result["citizen_age"]) != int for result in results)
-        )
-
-
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestContainer(unittest.TestCase):
+    """Tests the containers."""
+
+    prev_default_ontology: Session
+
+    @classmethod
+    def setUpClass(cls):
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains CUBA, OWL, RDFS and City.
+        """
+        ontology = Session(identifier="test-tbox", ontology=True)
+        ontology.load_parser(OntologyParser.get_parser("city"))
+        cls.prev_default_ontology = Session.ontology
+        Session.ontology = ontology
+
+    @classmethod
+    def tearDownClass(cls):
+        """Restore the previous default TBox."""
+        Session.ontology = cls.prev_default_ontology
+
+    def test_container(self):
+        """Test the container ontology individual."""
+        from simphony_osp.namespaces import city, cuba
+
+        container = cuba.Container()
+
+        self.assertIsNone(container.opens_in)
+        self.assertIsNone(container.session_linked)
+        self.assertFalse(container.is_open)
+        self.assertSetEqual(set(), set(container.references))
+        self.assertEqual(len(container.references), 0)
+        self.assertEqual(container.num_references, 0)
+
+        with container:
+            self.assertIs(
+                Session.get_default_session(), container.session_linked
+            )
+            self.assertTrue(container.is_open)
+        self.assertIsNone(container.session_linked)
+        self.assertFalse(container.is_open)
+
+        self.assertEqual(len(container), 0)
+        self.assertSetEqual(set(), set(container))
+
+        session = Session()
+        container.opens_in = session
+        with container:
+            self.assertTrue(container.is_open)
+            self.assertIs(session, container.session_linked)
+        self.assertIsNone(container.session_linked)
+        self.assertFalse(container.is_open)
+        self.assertRaises(
+            TypeError, lambda x: setattr(container, "opens_in", x), 8
+        )
+        container.opens_in = None
+
+        another_container = cuba.Container()
+
+        another_container.opens_in = container
+        self.assertRaises(RuntimeError, another_container.open)
+        container.open()
+        with another_container:
+            self.assertIs(
+                Session.get_default_session(), container.session_linked
+            )
+            self.assertIs(
+                container.session_linked, another_container.session_linked
+            )
+        container.close()
+
+        fr_session = Session()
+        fr = city.City(name="Freiburg", coordinates=[0, 0], session=fr_session)
+        container.references = {fr.iri}
+        default_session = Session.get_default_session()
+
+        self.assertIn(fr.iri, container.references)
+        self.assertEqual(container.num_references, 1)
+        with fr_session:
+            with container:
+                self.assertIs(fr_session, container.session_linked)
+                self.assertIs(default_session, container.session)
+                self.assertEqual(len(container), 1)
+                self.assertSetEqual({fr}, set(container))
+                self.assertIn(fr, container)
+
+        broken_reference = URIRef("http://example.org/things#something")
+        container.references = {broken_reference}
+        self.assertIn(broken_reference, container.references)
+        self.assertNotIn(fr, container)
+        self.assertEqual(container.num_references, 1)
+        with fr_session:
+            self.assertEqual(len(container), 0)
+            self.assertSetEqual(set(), set(container))
+            self.assertNotIn(fr, container)
+
+        container.connect(broken_reference)
+        self.assertEqual(container.num_references, 1)
+        container.connect(broken_reference)
+        self.assertEqual(container.num_references, 1)
+        container.disconnect(broken_reference)
+        self.assertEqual(container.num_references, 0)
+
+        with fr_session:
+            container.add(fr)
+            self.assertSetEqual({fr}, set(container))
+            self.assertTrue(all(x.session is fr_session for x in container))
+            container.remove(fr)
+            self.assertEqual(container.num_references, 0)
+            self.assertSetEqual(set(), set(container))
+            container.add(fr)
+            self.assertSetEqual({fr}, set(container))
+
+        with container:
+            self.assertEqual(container.num_references, 1)
+            self.assertSetEqual(set(), set(container))
+
+        with fr_session:
+            with container:
+                self.assertSetEqual({fr}, set(container))
+                pr = city.City(name="Paris", coordinates=[0, 0])
+                self.assertSetEqual({fr, pr}, set(container))
+
+    def test_container_multiple_sessions(self):
+        """Test opening the container in different sessions.
+
+        Each session is meant to contain a different version of the same
+        individual.
+        """
+        from simphony_osp.namespaces import city, cuba
+
+        container = cuba.Container()
+
+        default_session = Session.get_default_session()
+        session_1 = Session()
+        session_2 = Session()
+
+        klaus = city.Citizen(name="Klaus", age=5)
+        session_1.update(klaus)
+        session_2.update(klaus)
+        klaus_1 = session_1.from_identifier(klaus.identifier)
+        klaus_1.age = 10
+        klaus_2 = session_2.from_identifier(klaus.identifier)
+        klaus_2.age = 20
+
+        self.assertIs(klaus.session, default_session)
+        self.assertIs(klaus_1.session, session_1)
+        self.assertIs(klaus_2.session, session_2)
+        self.assertEqual(klaus.age, 5)
+        self.assertEqual(klaus_1.age, 10)
+        self.assertEqual(klaus_2.age, 20)
+
+        container.connect(klaus.identifier)
+
+        with container:
+            klaus_from_container = set(container).pop()
+            self.assertEqual(klaus_from_container.age, 5)
+
+        with session_1:
+            with container:
+                klaus_from_container = set(container).pop()
+                self.assertEqual(klaus_from_container.age, 10)
+
+        with session_2:
+            with container:
+                klaus_from_container = set(container).pop()
+                self.assertEqual(klaus_from_container.age, 20)

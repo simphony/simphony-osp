@@ -8,6 +8,7 @@ from simphony_osp.tools.search import (
     find_cuds_objects_by_attribute,
     find_cuds_objects_by_oclass,
     find_relationships,
+    sparql,
 )
 from simphony_osp.tools.semantic2dot import Semantic2Dot
 from simphony_osp.utils.general import (
@@ -23,7 +24,8 @@ __all__ = [
     "pretty_print",
     # simphony_osp.tools.semantic2dot
     "Semantic2Dot",
-    # simphony_osp.tools.simple_search
+    # simphony_osp.tools.search
+    "sparql",
     "find_cuds_object",
     "find_cuds_objects_by_attribute",
     "find_cuds_objects_by_oclass",

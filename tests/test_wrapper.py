@@ -22,9 +22,9 @@ from simphony_osp.wrappers import Dataspace, Remote, SQLite
 
 
 class TestWrapper(unittest.TestCase):
-    """Test the full end-user experience of using wrapper.
+    """Test the full end-user experience of using a wrapper.
 
-    The wrapper used for the test is the `sqlite` wrapper.
+    The wrapper used for the test is the `SQLite` wrapper.
     """
 
     file_name: str = "TestSQLiteSession"
@@ -164,6 +164,7 @@ class TestWrapper(unittest.TestCase):
     def test_wrapper_sparql(self) -> None:
         """Test SPARQL queries on wrappers."""
         from simphony_osp.namespaces import city, cuba
+        from simphony_osp.tools import sparql
         from simphony_osp.wrappers import SQLite
 
         with SQLite(self.file_name, create=True) as wrapper:
@@ -174,28 +175,29 @@ class TestWrapper(unittest.TestCase):
             matthias = city.Citizen(name="Matthias", age=37)
             freiburg[city.hasInhabitant] = {marco, matthias}
 
-            graph = wrapper.graph
-            query = graph.query(
-                f"""
+            result = list(
+                sparql(
+                    f"""
                 SELECT ?age WHERE {{
                     <{matthias.iri}> <{city.age.iri}> ?age .
                 }}
             """
+                )
             )
-            result = list(query)
             self.assertEqual(len(result), 1)
             self.assertEqual(len(result[0]), 1)
             self.assertEqual(Literal("37", datatype=XSD.integer), result[0][0])
 
             graph = wrapper.graph
-            query = graph.query(
-                f"""
+            result = list(
+                sparql(
+                    f"""
                 SELECT ?item WHERE {{
                     <{wrapper.iri}> <{cuba.contains.iri}> ?item .
                 }}
             """
+                )
             )
-            result = list(query)
             self.assertEqual(len(result), 3)
             self.assertTrue(all(len(row) == 1 for row in result))
             self.assertSetEqual(
@@ -205,7 +207,7 @@ class TestWrapper(unittest.TestCase):
 
 
 class TestDataspaceWrapper(unittest.TestCase):
-    """Test the full end-user experience of using wrapper.
+    """Test the full end-user experience of using a wrapper.
 
     The wrapper used for the test is the `dataspace` wrapper.
     """
@@ -379,8 +381,8 @@ class TestDataspaceWrapper(unittest.TestCase):
                 )
 
 
-class TestRemoteStoreSQLite(unittest.TestCase):
-    """Test the RemoteStoreClient store.
+class TestRemoteSQLite(unittest.TestCase):
+    """Test the Remote wrapper.
 
     The wrapper used for the test on the remote side is the `sqlite` wrapper.
     """
@@ -411,15 +413,15 @@ class TestRemoteStoreSQLite(unittest.TestCase):
         Session.ontology = cls.prev_default_ontology
 
     def setUp(self) -> None:
-        """Start a RemoteStoreServer for a new test."""
+        """Start the InterfaceServer for a new test."""
         self.start_server()
 
     def tearDown(self):
-        """Stop a RemoteStoreServer after a test."""
+        """Stop the InterfaceServer after a test."""
         self.stop_server()
 
     def start_server(self):
-        """Start a RemoteStoreServer."""
+        """Start an InterfaceServer."""
         if self.server_proc:
             self.server_proc.terminate()
             self.server_proc.join(30)
@@ -443,10 +445,10 @@ class TestRemoteStoreSQLite(unittest.TestCase):
                 s.close()
 
     def launch_server(self):
-        """Launch a RemoteStoreServer."""
+        """Launch an InterfaceServer."""
         host(
             SQLite,
-            TestRemoteStoreSQLite.db_file,
+            TestRemoteSQLite.db_file,
             True,
             hostname=self.host,
             port=self.port,
@@ -456,7 +458,7 @@ class TestRemoteStoreSQLite(unittest.TestCase):
         exit(0)
 
     def stop_server(self):
-        """Stop a running RemoteStoreServer."""
+        """Stop a running InterfaceServer."""
         if self.server_proc:
             self.server_proc.terminate()
             self.server_proc.join(30)
@@ -473,7 +475,7 @@ class TestRemoteStoreSQLite(unittest.TestCase):
         self.server_proc = None
 
     def wrapper_generator(self) -> Wrapper:
-        """Generate sessions based on a RemoteStoreClient."""
+        """Generate a wrapper object using the Remote wrapper."""
         wrapper = Remote(f"ws://user:pass@{self.host}:{self.port}")
         return wrapper
 

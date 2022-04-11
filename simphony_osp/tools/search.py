@@ -1,7 +1,8 @@
-"""This file contains utility method used for searching in CUDS objects."""
+"""Utilities for searching entities."""
+
 from typing import Optional
 
-from simphony_osp.session.session import Session
+from simphony_osp.session.session import QueryResult, Session
 
 
 def find_cuds_object(
@@ -164,31 +165,22 @@ def find_relationships(find_rel, root, consider_rel, find_sub_rels=False):
     )
 
 
-def sparql(query_string: str, session: Optional = None):
-    """Performs a SPARQL query on a session (if supported by the session).
+def sparql(query: str, session: Optional[Session] = None) -> QueryResult:
+    """Performs a SPARQL query on a session.
 
     Args:
-        query_string (str): A string with the SPARQL query to perform.
-        session (Session, optional): The session on which the SPARQL query
-            will be performed. If no session is specified, then the current
-            default session is used. This means that, when no session is
-            specified, inside session `with` statements, the query will be
-            performed on the session associated with such statement, while
-            outside, it will be performed on the SimPhoNy default session,
-            the core session.
+        query: A string with the SPARQL query to perform.
+        session: The session on which the SPARQL query will be performed. If no
+            session is specified, then the current default session is used.
+            This means that, when no session is specified, inside session
+            `with` statements, the query will be performed on the session
+            associated with such statement, while outside, it will be
+            performed on the SimPhoNy default session.
 
     Returns:
-        SparqlResult: A SparqlResult object, which can be iterated to obtain
-            the output rows. Then for each `row`, the value for each query
-            variable can be retrieved as follows: `row['variable']`.
-
-    Raises:
-        NotImplementedError: when the session does not support SPARQL queries.
+        A QueryResult object, which can be iterated to obtain
+        the output rows. Then for each `row`, the value for each query
+        variable can be retrieved as follows: `row['variable']`.
     """
     session = session or Session.get_default_session()
-    try:
-        return session.sparql(query_string)
-    except AttributeError or NotImplementedError:
-        raise NotImplementedError(
-            f"The session {session} does not support" f" SPARQL queries."
-        )
+    return session.sparql(query)

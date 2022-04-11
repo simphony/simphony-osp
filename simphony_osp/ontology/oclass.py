@@ -226,7 +226,7 @@ class OntologyClass(OntologyEntity):
         Returns:
             The default python object.
         """
-        for bnode in self.session.ontology_graph.objects(
+        for bnode in self.session.graph_and_overlay.objects(
             self.iri, cuba_namespace._default
         ):
             if (
@@ -234,7 +234,7 @@ class OntologyClass(OntologyEntity):
                 cuba_namespace._default_attribute,
                 attribute.iri,
             ) in self.session.graph:
-                literal = self.session.ontology_graph.value(
+                literal = self.session.graph_and_overlay.value(
                     bnode, cuba_namespace._default_value
                 )
                 return (
@@ -253,7 +253,7 @@ class OntologyClass(OntologyEntity):
             lambda x: isinstance(x, OntologyClass),
             (
                 self.session.from_identifier(o)
-                for o in self.session.ontology_graph.objects(
+                for o in self.session.graph_and_overlay.objects(
                     self.iri, RDFS.subClassOf
                 )
             ),
@@ -269,7 +269,7 @@ class OntologyClass(OntologyEntity):
             lambda x: isinstance(x, OntologyClass),
             (
                 self.session.from_identifier(s)
-                for s in self.session.ontology_graph.subjects(
+                for s in self.session.graph_and_overlay.subjects(
                     RDFS.subClassOf, self.iri
                 )
             ),
@@ -291,7 +291,7 @@ class OntologyClass(OntologyEntity):
             lambda x: isinstance(x, OntologyClass),
             (
                 self.session.from_identifier(x)
-                for x in self.session.ontology_graph.transitiveClosure(
+                for x in self.session.graph_and_overlay.transitiveClosure(
                     closure, self.identifier
                 )
             ),
@@ -315,7 +315,7 @@ class OntologyClass(OntologyEntity):
             lambda x: isinstance(x, OntologyClass),
             (
                 self.session.from_identifier(x)
-                for x in self.session.ontology_graph.transitiveClosure(
+                for x in self.session.graph_and_overlay.transitiveClosure(
                     closure, self.identifier
                 )
             ),

@@ -77,7 +77,8 @@ class TestImportExport(unittest.TestCase):
         """Test importing and exporting the `application/rdf+xml` mime type."""
         with Session() as session:
             test_data_path = str(
-                Path(__file__).parent / "test_importexport_data.owl"
+                Path(__file__).parent
+                / "test_simphony_osp_tools_importexport_data.owl"
             )
             loaded_objects = import_cuds(
                 test_data_path, format="application/rdf+xml"
@@ -96,7 +97,8 @@ class TestImportExport(unittest.TestCase):
         """Test guessing and importing the `application/rdf+xml` mime type."""
         with Session() as session:
             test_data_path = str(
-                Path(__file__).parent / "test_importexport_data.owl"
+                Path(__file__).parent
+                / "test_simphony_osp_tools_importexport_data.owl"
             )
             loaded_objects = import_cuds(test_data_path)
             data_integrity(self, session, loaded_objects, label="import")
@@ -105,7 +107,8 @@ class TestImportExport(unittest.TestCase):
         """Test importing and exporting the `text/turtle` mime type."""
         with Session() as session:
             test_data_path = str(
-                Path(__file__).parent / "test_importexport_data.ttl"
+                Path(__file__).parent
+                / "test_simphony_osp_tools_importexport_data.ttl"
             )
             loaded_objects = import_cuds(test_data_path, format="text/turtle")
             data_integrity(self, session, loaded_objects, label="import")
@@ -120,7 +123,8 @@ class TestImportExport(unittest.TestCase):
         """Test guessing and importing the `text/turtle` mime type."""
         with Session() as session:
             test_data_path = str(
-                Path(__file__).parent / "test_importexport_data.ttl"
+                Path(__file__).parent
+                / "test_simphony_osp_tools_importexport_data.ttl"
             )
             loaded_objects = import_cuds(test_data_path)
             data_integrity(self, session, loaded_objects, label="import")
@@ -129,7 +133,8 @@ class TestImportExport(unittest.TestCase):
         """Test importing and exporting the `application/ld+json` mime type."""
         with Session() as session:
             test_data_path = str(
-                Path(__file__).parent / "test_importexport_data.json"
+                Path(__file__).parent
+                / "test_simphony_osp_tools_importexport_data.json"
             )
             loaded_objects = import_cuds(
                 test_data_path, format="application/ld+json"
@@ -149,7 +154,8 @@ class TestImportExport(unittest.TestCase):
         """Test guessing and importing the `application/ld+json` mime type."""
         with Session() as session:
             test_data_path = str(
-                Path(__file__).parent / "test_importexport_data.json"
+                Path(__file__).parent
+                / "test_simphony_osp_tools_importexport_data.json"
             )
             loaded_objects = import_cuds(test_data_path)
             data_integrity(self, session, loaded_objects, label="import")
@@ -161,7 +167,8 @@ class TestImportExport(unittest.TestCase):
         """
         # Importing
         test_data_path = str(
-            Path(__file__).parent / "test_importexport_city_import.json"
+            Path(__file__).parent
+            / "test_simphony_osp_tools_importexport_city_import.json"
         )
         with open(test_data_path, "r") as file:
             json_doc = json.loads(file.read())
@@ -178,7 +185,8 @@ class TestImportExport(unittest.TestCase):
             )
         # Exporting
         test_data_path = str(
-            Path(__file__).parent / "test_importexport_city_export.json"
+            Path(__file__).parent
+            / "test_simphony_osp_tools_importexport_city_export.json"
         )
         with open(test_data_path, "r") as file:
             json_doc = json.loads(file.read())
@@ -222,7 +230,8 @@ class TestImportExport(unittest.TestCase):
         """Test importing the `text/turtle` mime type from a file handle."""
         with Session() as session:
             test_data_path = str(
-                Path(__file__).parent / "test_importexport_data.ttl"
+                Path(__file__).parent
+                / "test_simphony_osp_tools_importexport_data.ttl"
             )
             with open(test_data_path, "r") as test_data_file:
                 loaded_objects = import_cuds(
@@ -234,7 +243,8 @@ class TestImportExport(unittest.TestCase):
         """Test importing the `text/turtle` mime type from a file-like."""
         with Session() as session:
             test_data_path = str(
-                Path(__file__).parent / "test_importexport_data.ttl"
+                Path(__file__).parent
+                / "test_simphony_osp_tools_importexport_data.ttl"
             )
             with open(test_data_path, "r") as test_data_file:
                 test_data = test_data_file.read()
@@ -247,7 +257,8 @@ class TestImportExport(unittest.TestCase):
         another_session = Session()
         with Session() as session:
             test_data_path = str(
-                Path(__file__).parent / "test_importexport_data.ttl"
+                Path(__file__).parent
+                / "test_simphony_osp_tools_importexport_data.ttl"
             )
             with open(test_data_path, "r") as test_data_file:
                 test_data = test_data_file.read()

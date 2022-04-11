@@ -63,7 +63,7 @@ class OntologyRelationship(OntologyEntity):
         """
         return (
             self.session.from_identifier(o)
-            for o in self.session.ontology_graph.objects(
+            for o in self.session.graph_and_overlay.objects(
                 self.iri, RDFS.subPropertyOf
             )
         )
@@ -76,7 +76,7 @@ class OntologyRelationship(OntologyEntity):
         """
         return (
             self.session.from_identifier(s)
-            for s in self.session.ontology_graph.subjects(
+            for s in self.session.graph_and_overlay.subjects(
                 RDFS.subPropertyOf, self.iri
             )
         )
@@ -95,7 +95,7 @@ class OntologyRelationship(OntologyEntity):
 
         yield from (
             self.session.from_identifier(x)
-            for x in self.session.ontology_graph.transitiveClosure(
+            for x in self.session.graph_and_overlay.transitiveClosure(
                 closure, self.identifier
             )
         )
@@ -116,7 +116,7 @@ class OntologyRelationship(OntologyEntity):
 
         yield from (
             self.session.from_identifier(x)
-            for x in self.session.ontology_graph.transitiveClosure(
+            for x in self.session.graph_and_overlay.transitiveClosure(
                 closure, self.identifier
             )
         )

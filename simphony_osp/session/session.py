@@ -2,6 +2,7 @@
 
 import itertools
 import logging
+from inspect import isclass
 from typing import (
     TYPE_CHECKING,
     Dict,
@@ -17,7 +18,9 @@ from typing import (
 import rdflib
 from rdflib import OWL, RDF, RDFS, SKOS, BNode, Graph, Literal, URIRef
 from rdflib.graph import ReadOnlyGraphAggregate
-from rdflib.term import Identifier, Node
+from rdflib.plugins.sparql.processor import SPARQLResult
+from rdflib.query import ResultRow
+from rdflib.term import Identifier, Node, Variable
 
 from simphony_osp.ontology.annotation import OntologyAnnotation
 from simphony_osp.ontology.attribute import OntologyAttribute
@@ -28,8 +31,7 @@ from simphony_osp.ontology.parser import OntologyParser
 from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.ontology.utils import compatible_classes
 from simphony_osp.utils.cuba_namespace import cuba_namespace
-from simphony_osp.utils.datatypes import UID
-from simphony_osp.utils.sparql import SparqlResult
+from simphony_osp.utils.datatypes import UID, Triple
 
 logger = logging.getLogger(__name__)
 
@@ -140,8 +142,8 @@ class Environment:
 class Session(Environment):
     """Interface to a Graph containing OWL ontology entities."""
 
-    #  Public API
-    # ↓ -------- ↓
+    # ↓ --------------------- Public API --------------------- ↓ #
+    """These methods are meant to be available to the end-user."""
 
     identifier: Optional[str] = None
     """A label for the session.
@@ -200,18 +202,6 @@ class Session(Environment):
     this will define the default label. Then the default label will default to
     english. If also not available, then any language will be used.
     """
-
-    @property
-    def driver(self) -> Optional["InterfaceDriver"]:
-        """The SimPhoNy interface on which the base graph is based on.
-
-        Points to the interface response for realizing the base graph of the
-        session. Not all graphs have to be based on an interface. In such
-        cases, the value of this attribute is `None`.
-        """
-        return self._interface_driver
-
-    _interface_driver: Optional["InterfaceDriver"] = None
 
     @property
     def namespaces(self) -> List[OntologyNamespace]:
@@ -446,21 +436,6 @@ class Session(Environment):
                 (key.iri, cuba_namespace._reference_by_label, Literal(value))
             )
 
-    def load_parser(self, parser: OntologyParser):
-        """Merge ontology packages with this ontology from a parser object.
-
-        Args:
-            parser: the ontology parser from where to load the new namespaces.
-        """
-        # Force default relationships to be installed before installing a new
-        # ontology.
-        self._check_default_relationship_installed(parser)
-
-        self.ontology._graph += parser.graph
-        self.ontology._overlay += self._overlay_from_parser(parser)
-        for name, iri in parser.namespaces.items():
-            self.bind(name, iri)
-
     def commit(self) -> None:
         """Commit the changes made to the session's graph."""
         self._graph.commit()
@@ -500,6 +475,26 @@ class Session(Environment):
             )
         super().close()
         self.graph.close(commit_pending_transaction=False)
+
+    def sparql(self, query: str) -> "QueryResult":
+        """Perform a SPARQL CONSTRUCT, DESCRIBE, SELECT or ASK query.
+
+        The query is performed on the session's data.
+
+        Args:
+            query: String to use as query.
+        """
+        result = self.graph.query(query)
+        return QueryResult(
+            {
+                "type_": result.type,
+                "vars_": result.vars,
+                "bindings": result.bindings,
+                "askAnswer": result.askAnswer,
+                "graph": result.graph,
+            },
+            session=self,
+        )
 
     def __init__(
         self,
@@ -659,7 +654,7 @@ class Session(Environment):
         lang: Optional[str] = None,
         case_sensitive: bool = False,
     ) -> Set["OntologyEntity"]:
-        """Get an ontology entity from the registry by label.
+        """Get an ontology entity from its label.
 
         Args:
             label: The label of the ontology entity.
@@ -727,97 +722,29 @@ class Session(Environment):
         """
         self._update_and_merge_helper(entity, mode=False)
 
-    # ↑ -------- ↑
-    #  Public API
-
-    def _update_and_merge_helper(
-        self,
-        entity: "OntologyEntity",
-        mode: bool,
-        visited: Optional[set] = None,
-    ) -> None:
-        """Private `merge` and `update` helper.
-
-        Args:
-            entity: The ontology entity to merge.
-            mode: True means update, False means merge.
-            visited: Entities that have already been updated or merged.
-        """
-        if entity.session is None:  # Newly created entity.
-            if mode:
-                self._graph.remove((entity.iri, None, None))
-            for t in entity.graph.triples((None, None, None)):
-                self._graph.add(t)
-        elif entity not in self:  # Entity from another session.
-            active_relationship = self.ontology.from_identifier(
-                cuba_namespace.activeRelationship
-            )
-            try:
-                existing = self.from_identifier(entity.identifier)
-            except KeyError:
-                existing = None
-
-            self._track_identifiers(entity.identifier)
-
-            # Clear old types, active relationships and attributes for
-            # the update operation.
-            if existing and mode:
-                # Clear old types.
-                self._graph.remove((existing.identifier, RDF.type, None))
-
-                for p in existing.graph.predicates(existing.identifier, None):
-                    try:
-                        predicate = self.ontology.from_identifier(p)
-                    except KeyError:
-                        continue
-                    # Clear attributes or active relationships.
-                    if isinstance(predicate, OntologyAttribute) or (
-                        isinstance(predicate, OntologyRelationship)
-                        and active_relationship in predicate.superclasses
-                    ):
-                        self._graph.remove((existing.identifier, p, None))
-
-            # Merge new types, active relationships and attributes.
-            # The double for loop pattern (first loop over p, then loop over o)
-            # is used because calling `self.ontology.from_identifier` is
-            # expensive.
-            visited = visited if visited is not None else set()
-            for p in entity.graph.predicates(entity.identifier, None):
-                try:
-                    predicate = self.ontology.from_identifier(p)
-                except KeyError:
-                    # Merge new types.
-                    if p == RDF.type:
-                        for o in entity.graph.objects(entity.identifier, p):
-                            self._graph.add((entity.identifier, p, o))
-                    continue
-
-                for o in entity.graph.objects(entity.identifier, p):
-                    if isinstance(predicate, OntologyAttribute):
-                        # Merge attributes.
-                        self._graph.add((entity.identifier, p, o))
-                    elif (
-                        isinstance(predicate, OntologyRelationship)
-                        and active_relationship in predicate.superclasses
-                    ):
-                        # Merge active relationships.
-                        obj = entity.session.from_identifier(o)
-                        if not isinstance(obj, OntologyIndividual):
-                            continue
-                        if obj.identifier not in visited:
-                            visited.add(obj.identifier)
-                            self._update_and_merge_helper(obj, mode, visited)
-                        self._graph.add((entity.identifier, p, o))
-
-    creation_set: Set[Identifier]
-    _namespaces: Dict[URIRef, str]
-    _graph: Graph
-    _overlay: Graph
-    _driver: Optional["Interface"] = None
+    # ↑ --------------------- Public API --------------------- ↑ #
 
     @property
-    def _session_linked(self) -> "Session":
-        return self
+    def graph(self) -> Graph:
+        """Returns the session's graph."""
+        return self._graph
+
+    @property
+    def graph_and_overlay(self) -> Graph:
+        """Returns an aggregate of the session's graph and overlay."""
+        return ReadOnlyGraphAggregate(
+            [self.ontology._graph, self.ontology._overlay]
+        )
+
+    @property
+    def driver(self) -> Optional["InterfaceDriver"]:
+        """The SimPhoNy interface on which the base graph is based on.
+
+        Points to the interface response for realizing the base graph of the
+        session. Not all graphs have to be based on an interface. In such
+        cases, the value of this attribute is `None`.
+        """
+        return self._interface_driver
 
     @classmethod
     def get_default_session(cls) -> Optional["Session"]:
@@ -846,17 +773,20 @@ class Session(Environment):
             pass
         cls._stack_default_environment.append(session)
 
-    @property
-    def graph(self) -> Graph:
-        """Returns the session's graph."""
-        return self._graph
+    def load_parser(self, parser: OntologyParser):
+        """Merge ontology packages with this ontology from a parser object.
 
-    @property
-    def ontology_graph(self) -> Graph:
-        """Returns an aggregate of the session's graph and overlay."""
-        return ReadOnlyGraphAggregate(
-            [self.ontology._graph, self.ontology._overlay]
-        )
+        Args:
+            parser: the ontology parser from where to load the new namespaces.
+        """
+        # Force default relationships to be installed before installing a new
+        # ontology.
+        self._check_default_relationship_installed(parser)
+
+        self.ontology._graph += parser.graph
+        self.ontology._overlay += self._overlay_from_parser(parser)
+        for name, iri in parser.namespaces.items():
+            self.bind(name, iri)
 
     def iter_identifiers(self) -> Iterator[Union[BNode, URIRef]]:
         """Iterate over all the ontology entity identifiers in the session."""
@@ -947,6 +877,97 @@ class Session(Environment):
         """Get all the entities stored in the session."""
         return set(x for x in self)
 
+    _interface_driver: Optional["InterfaceDriver"] = None
+
+    def _update_and_merge_helper(
+        self,
+        entity: "OntologyEntity",
+        mode: bool,
+        visited: Optional[set] = None,
+    ) -> None:
+        """Private `merge` and `update` helper.
+
+        Args:
+            entity: The ontology entity to merge.
+            mode: True means update, False means merge.
+            visited: Entities that have already been updated or merged.
+        """
+        if entity.session is None:  # Newly created entity.
+            if mode:
+                self._graph.remove((entity.iri, None, None))
+            for t in entity.graph.triples((None, None, None)):
+                self._graph.add(t)
+        elif entity not in self:  # Entity from another session.
+            active_relationship = self.ontology.from_identifier(
+                cuba_namespace.activeRelationship
+            )
+            try:
+                existing = self.from_identifier(entity.identifier)
+            except KeyError:
+                existing = None
+
+            self._track_identifiers(entity.identifier)
+
+            # Clear old types, active relationships and attributes for
+            # the update operation.
+            if existing and mode:
+                # Clear old types.
+                self._graph.remove((existing.identifier, RDF.type, None))
+
+                for p in existing.graph.predicates(existing.identifier, None):
+                    try:
+                        predicate = self.ontology.from_identifier(p)
+                    except KeyError:
+                        continue
+                    # Clear attributes or active relationships.
+                    if isinstance(predicate, OntologyAttribute) or (
+                        isinstance(predicate, OntologyRelationship)
+                        and active_relationship in predicate.superclasses
+                    ):
+                        self._graph.remove((existing.identifier, p, None))
+
+            # Merge new types, active relationships and attributes.
+            # The double for loop pattern (first loop over p, then loop over o)
+            # is used because calling `self.ontology.from_identifier` is
+            # expensive.
+            visited = visited if visited is not None else set()
+            for p in entity.graph.predicates(entity.identifier, None):
+                try:
+                    predicate = self.ontology.from_identifier(p)
+                except KeyError:
+                    # Merge new types.
+                    if p == RDF.type:
+                        for o in entity.graph.objects(entity.identifier, p):
+                            self._graph.add((entity.identifier, p, o))
+                    continue
+
+                for o in entity.graph.objects(entity.identifier, p):
+                    if isinstance(predicate, OntologyAttribute):
+                        # Merge attributes.
+                        self._graph.add((entity.identifier, p, o))
+                    elif (
+                        isinstance(predicate, OntologyRelationship)
+                        and active_relationship in predicate.superclasses
+                    ):
+                        # Merge active relationships.
+                        obj = entity.session.from_identifier(o)
+                        if not isinstance(obj, OntologyIndividual):
+                            continue
+                        if obj.identifier not in visited:
+                            visited.add(obj.identifier)
+                            self._update_and_merge_helper(obj, mode, visited)
+                        self._graph.add((entity.identifier, p, o))
+
+    creation_set: Set[Identifier]
+    _namespaces: Dict[URIRef, str]
+    _graph: Graph
+    _overlay: Graph
+    _driver: Optional["Interface"] = None
+
+    @property
+    def _session_linked(self) -> "Session":
+        return self
+
     def __str__(self):
         """Convert the session to a string."""
         # TODO: Return the kind of RDFLib store attached too.
@@ -968,24 +989,8 @@ class Session(Environment):
             if not entity_triples_exist:
                 self.creation_set.add(identifier)
 
-    def sparql(self, query_string):
-        """Execute the given SPARQL query on the backend.
-
-        Args:
-            query_string (str): A string with the SPARQL query to perform.
-
-        Returns:
-            SparqlResult: A SparqlResult object, which can be iterated to
-                obtain he output rows. Then for each `row`, the value for each
-                query variable can be retrieved as follows: `row['variable']`.
-        """
-        # TODO: Support update queries.
-        return SparqlResult(
-            session=self, rdflib_result=self._graph.query(query_string)
-        )
-
-    # Legacy code
-    # ↓ ------- ↓
+    # ↓ ----------------- Legacy code ----------------- ↓ #
+    """This code should be either modernized or removed."""
 
     def _update_overlay(self) -> Graph:
         graph = self._graph
@@ -1102,7 +1107,7 @@ class Session(Environment):
                 break
         # If not, found, find it in the namespace registry.
         if not found:
-            for s, p, o in self.ontology_graph.triples(
+            for s, p, o in self.graph_and_overlay.triples(
                 (parser.default_relationship, rdflib.RDF.type, None)
             ):
                 if o in allow_types:
@@ -1116,12 +1121,11 @@ class Session(Environment):
                 f"is not installed."
             )
 
-    # Legacy code
-    # ↑ ------- ↑
+    # ↑ ----------------- Legacy code ----------------- ↑ #
 
 
-# Legacy code
-# ↓ ------- ↓
+# ↓ ----------------- Legacy code ----------------- ↓ #
+"""This code should be either modernized or removed."""
 
 
 def _check_duplicate_labels(graph: Graph, namespace: Union[str, URIRef]):
@@ -1199,8 +1203,70 @@ def _check_namespaces(namespace_iris: Iterable[URIRef], graph: Graph):
             break
 
 
-# Legacy code
-# ↑ ------- ↑
+# ↑ ----------------- Legacy code ----------------- ↑ #
+
+
+class QueryResult(SPARQLResult):
+    """SPARQL query result."""
+
+    session: Session
+
+    def __init__(self, *args, session: Optional[Session] = None, **kwargs):
+        """Initialize the query result.
+
+        Namely, a session is linked to this query result so that if ontology
+        individuals are requested,
+
+        Args:
+            session: Session to which this result is linked to.
+        """
+        self.session = session or Session.get_default_session()
+        super().__init__(*args, **kwargs)
+
+    def __call__(
+        self, **kwargs
+    ) -> Union[Iterator[Triple], Iterator[bool], Iterator[ResultRow],]:
+        """Select the datatypes of the query results ofr SELECT queries.
+
+        Args:
+            **kwargs: For each variable name on the query, a callable
+                can be specified as keyword argument. When retrieving
+                results, this callable will be run on the RDFLib item from the
+                result. Literals are an exception. The callable will
+                be applied on top of the result of the `toPython()` method
+                of the callable.
+
+        Raises:
+            ValueError: When the query that produced this result object is
+                not a SELECT query.
+        """
+        if self.type != "SELECT":
+            if kwargs:
+                raise ValueError(
+                    f"Result datatypes cannot be converted for "
+                    f"{self.type} queries."
+                )
+            yield from self
+            return
+
+        for key, value in kwargs.items():
+            """Filter certain provided callables and replace them by others."""
+            if isclass(value) and issubclass(value, OntologyIndividual):
+                """Replace OntologyIndividual with spawning the individual
+                from its identifier."""
+                kwargs[key] = lambda x: self.session.from_identifier(x)
+
+        for row in self:
+            """Yield the rows with the applied datatype transformation."""
+            values = {
+                Variable(var): kwargs.get(str(var), lambda x: x)(
+                    row[i]
+                    if not isinstance(row[i], Literal)
+                    else row[i].toPython()
+                )
+                for i, var in enumerate(self.vars)
+            }
+            yield ResultRow(values, self.vars)
 
 
 Session.set_default_session(Session(identifier="default session"))
