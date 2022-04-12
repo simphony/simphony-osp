@@ -1,0 +1,26 @@
+---
+identifier: emmo
+ontology_file: https://raw.githubusercontent.com/emmo-repo/emmo-repo.github.io/master/versions/1.0.0-alpha2/emmo-inferred.owl
+reference_by_label: True
+namespaces:
+    annotations: http://emmo.info/emmo/top/annotations
+    mereotopology: http://emmo.info/emmo/top/mereotopology
+    physical: http://emmo.info/emmo/top/physical
+    top: http://emmo.info/emmo/top
+    semiotics: http://emmo.info/emmo/middle/semiotics
+    perceptual: http://emmo.info/emmo/middle/perceptual
+    reductionistic: http://emmo.info/emmo/middle/reductionistic
+    holistic: http://emmo.info/emmo/middle/holistic
+    physicalistic: http://emmo.info/emmo/middle/physicalistic
+    math: http://emmo.info/emmo/middle/math
+    properties: http://emmo.info/emmo/middle/properties
+    materials: http://emmo.info/emmo/middle/materials
+    metrology: http://emmo.info/emmo/middle/metrology
+    models: http://emmo.info/emmo/middle/models
+    manufacturing: http://emmo.info/emmo/middle/manufacturing
+    isq: http://emmo.info/emmo/middle/isq
+    siunits: http://emmo.info/emmo/middle/siunits
+active_relationships:
+    - http://emmo.info/emmo/top/mereotopology#EMMO_8c898653_1118_4682_9bbf_6cc334d16a99
+    - http://emmo.info/emmo/middle/semiotics#EMMO_60577dea_9019_4537_ac41_80b0fb563d41
+default_relationship: http://emmo.info/emmo/top/mereotopology#EMMO_17e27c22_37e1_468c_9dd7_95e137f73e7f

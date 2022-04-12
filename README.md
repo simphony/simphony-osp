@@ -3,7 +3,7 @@
 
 ## Note
 
-For applications where performance is important, we recommend v3.4.2 
+For applications where performance is important, we recommend v3.4.2
 The performance optimizations will be done as a next step to v3.5.X
 
 # OSP core
@@ -36,7 +36,7 @@ We provide the tool `ontology2dot` to visualize your ontologies. You can visuali
 ontology2dot <installed-namespace-1> ... <installed-namespace-n> <path/to/ontology-1.yml> ... <path/to/ontology-m.yml>
 
 # Alternative
-python -m osp.core.tools.ontology2dot <installed-namespace-1> ... <installed-namespace-n> <path/to/ontology-1.yml> ... <path/to/ontology-m.yml>
+python -m simphony_osp.tools.ontology2dot <installed-namespace-1> ... <installed-namespace-n> <path/to/ontology-1.yml> ... <path/to/ontology-m.yml>
 ```
 
 You can use parameter `-g` to group the namespaces. Use `-o` to change the filename of the resulting png file.
@@ -65,7 +65,7 @@ Further examples can be found in the /examples folder. There the usage of wrappe
 
 ## Troubleshooting
 
-If installation fails, try to install the dependencies one by one before installing osp-core.
+If installation fails, try to install the dependencies one by one before installing simphony-osp.
 The dependencies are listed at the top of this readme file.
 
 On Windows, unittests can fail when you use a virtual environment.
@@ -76,7 +76,7 @@ From our experience, this will not happen if you use the virtual environements o
 ### Directory structure
 
 - osp/core -- The source code
-  - tools -- various tools to work with osp-core.
+  - tools -- various tools to work with simphony-osp.
   - ontology -- the parser and generation of the entities and classes.
     - yml -- The supplied ontology files
   - session -- Different abstract classes for wrappers.
@@ -85,4 +85,5 @@ From our experience, this will not happen if you use the virtual environements o
 
 ## Acknowledgements
 
-The OSP-core Python package originates from the European Project [SimPhoNy](https://www.simphony-project.eu/) (Project Nr. 604005). We would like to acknowledge and thank our project partners, especially [Enthought, Inc](https://www.enthought.com/), [Centre Internacional de Mètodes Numèrics a l'Enginyeria (CIMNE)](https://cimne.com/) and the [University of Jyväskylä](https://www.jyu.fi/en), for their important contributions to some of the core concepts of OSP-core, which were originally demonstrated under the project https://github.com/simphony/simphony-common.
+The SimPhoNy Python package originates from the European Project [SimPhoNy]
+(https://www.simphony-project.eu/) (Project Nr. 604005). We would like to acknowledge and thank our project partners, especially [Enthought, Inc](https://www.enthought.com/), [Centre Internacional de Mètodes Numèrics a l'Enginyeria (CIMNE)](https://cimne.com/) and the [University of Jyväskylä](https://www.jyu.fi/en), for their important contributions to some of the core concepts of OSP-core, which were originally demonstrated under the project https://github.com/simphony/simphony-common.

@@ -1,0 +1,71 @@
+[
+  {
+    "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000001",
+    "@type": [
+      "https://www.simphony-project.eu/city#City"
+    ],
+    "https://www.simphony-project.eu/city#coordinates": [
+      {
+        "@type": "https://www.simphony-project.eu/types#Vector",
+        "@value": "13YOs0RR9300000000000000000000"
+      }
+    ],
+    "https://www.simphony-project.eu/city#hasPart": [
+      {
+        "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000002"
+      }
+    ],
+    "https://www.simphony-project.eu/city#name": [
+      {
+        "@value": "Freiburg"
+      }
+    ]
+  },
+  {
+    "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000002",
+    "@type": [
+      "https://www.simphony-project.eu/city#Neighborhood"
+    ],
+    "https://www.simphony-project.eu/city#coordinates": [
+      {
+        "@type": "https://www.simphony-project.eu/types#Vector",
+        "@value": "13YOs0RR9300000000000000000000"
+      }
+    ],
+    "https://www.simphony-project.eu/city#hasPart": [
+      {
+        "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000003"
+      }
+    ],
+    "https://www.simphony-project.eu/city#name": [
+      {
+        "@value": "Littenweiler"
+      }
+    ]
+  },
+  {
+    "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000003",
+    "@type": [
+      "https://www.simphony-project.eu/city#Street"
+    ],
+    "https://www.simphony-project.eu/city#coordinates": [
+      {
+        "@type": "https://www.simphony-project.eu/types#Vector",
+        "@value": "13YOs0RR9300000000000000000000"
+      }
+    ],
+    "https://www.simphony-project.eu/city#name": [
+      {
+        "@value": "Schwarzwaldstra\u00dfe"
+      }
+    ]
+  },
+  {
+    "@id": "https://www.simphony-project.eu/cuba#_serialization",
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#first": [
+      {
+        "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000001"
+      }
+    ]
+  }
+]

@@ -1,0 +1,296 @@
+@prefix : <https://www.simphony-project.eu/city#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@base <https://www.simphony-project.eu/city#> .
+
+<https://www.simphony-project.eu/city#> rdf:type owl:Ontology ;
+                                 owl:versionIRI :version_4.0.0 ;
+                                 rdfs:comment "Sample ontology for SimPhoNy OSP."@en .
+
+#################################################################
+#    Datatypes
+#################################################################
+
+###  https://www.simphony-project.eu/types#Vector
+<https://www.simphony-project.eu/types#Vector> rdf:type rdfs:Datatype .
+
+
+#################################################################
+#    Object Properties
+#################################################################
+
+###  https://www.simphony-project.eu/city#encloses
+:encloses rdf:type owl:ObjectProperty ;
+          owl:inverseOf :isEnclosedBy ;
+          rdfs:label "encloses"@en .
+
+
+###  https://www.simphony-project.eu/city#hasChild
+:hasChild rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf :hasPart ;
+          owl:inverseOf :isChildOf ;
+          rdfs:label "has child"@en .
+
+
+###  https://www.simphony-project.eu/city#hasInhabitant
+:hasInhabitant rdf:type owl:ObjectProperty ;
+               rdfs:subPropertyOf :encloses ;
+               rdfs:label "has inhabitant"@en .
+
+
+###  https://www.simphony-project.eu/city#hasMajor
+:hasMajor rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf :hasWorker ;
+          rdfs:range :Citizen ;
+          rdfs:label "has major"@en .
+
+
+###  https://www.simphony-project.eu/city#hasPart
+:hasPart rdf:type owl:ObjectProperty ;
+         rdfs:subPropertyOf :encloses ;
+         owl:inverseOf :isPartOf ;
+         rdf:type owl:TransitiveProperty ;
+         rdfs:label "has part"@en .
+
+
+###  https://www.simphony-project.eu/city#hasWorker
+:hasWorker rdf:type owl:ObjectProperty ;
+           rdfs:subPropertyOf :hasPart ;
+           owl:inverseOf :worksIn ;
+           rdfs:range :Person ;
+           rdfs:label "has worker"@en .
+
+
+###  https://www.simphony-project.eu/city#isChildOf
+:isChildOf rdf:type owl:ObjectProperty ;
+           rdfs:subPropertyOf :isPartOf ;
+           rdfs:label "is child of"@en .
+
+
+###  https://www.simphony-project.eu/city#isEnclosedBy
+:isEnclosedBy rdf:type owl:ObjectProperty ;
+              rdfs:label "is enclosed by"@en .
+
+
+###  https://www.simphony-project.eu/city#isPartOf
+:isPartOf rdf:type owl:ObjectProperty ;
+          rdfs:subPropertyOf :isEnclosedBy ;
+          rdfs:label "is part of"@en .
+
+
+###  https://www.simphony-project.eu/city#worksIn
+:worksIn rdf:type owl:ObjectProperty ;
+         rdfs:subPropertyOf :isPartOf ;
+         rdfs:label "works in"@en .
+
+
+#################################################################
+#    Data properties
+#################################################################
+
+###  https://www.simphony-project.eu/city#age
+:age rdf:type owl:DatatypeProperty ;
+     rdfs:subPropertyOf :number ;
+     rdfs:label "age"@en .
+
+
+###  https://www.simphony-project.eu/city#coordinates
+:coordinates rdf:type owl:DatatypeProperty ;
+             rdfs:range <https://www.simphony-project.eu/types#Vector> ;
+             rdfs:label "coordinates"@en .
+
+
+###  https://www.simphony-project.eu/city#name
+:name rdf:type owl:DatatypeProperty ,
+               owl:FunctionalProperty ;
+      rdfs:range xsd:string ;
+      rdfs:label "name"@en .
+
+
+###  https://www.simphony-project.eu/city#number
+:number rdf:type owl:DatatypeProperty ;
+        rdfs:range xsd:integer ;
+        rdfs:label "number"@en .
+
+
+###  https://www.simphony-project.eu/city#postalCode
+:postalCode rdf:type owl:DatatypeProperty ;
+            rdfs:subPropertyOf :number ;
+            rdfs:label "postal code"@en .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  https://www.simphony-project.eu/city#Address
+:Address rdf:type owl:Class ;
+         rdfs:subClassOf [ rdf:type owl:Restriction ;
+                           owl:onProperty :isPartOf ;
+                           owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                           owl:onClass :Building
+                         ] ,
+                         [ rdf:type owl:Restriction ;
+                           owl:onProperty :name ;
+                           owl:cardinality "1"^^xsd:nonNegativeInteger
+                         ] ,
+                         [ rdf:type owl:Restriction ;
+                           owl:onProperty :number ;
+                           owl:cardinality "1"^^xsd:nonNegativeInteger
+                         ] ,
+                         [ rdf:type owl:Restriction ;
+                           owl:onProperty :postalCode ;
+                           owl:cardinality "1"^^xsd:nonNegativeInteger
+                         ] ;
+         rdfs:label "Address"@en .
+
+
+###  https://www.simphony-project.eu/city#ArchitecturalComponent
+:ArchitecturalComponent rdf:type owl:Class ;
+                        rdfs:label "Architectural Component"@en .
+
+
+###  https://www.simphony-project.eu/city#ArchitecturalStructure
+:ArchitecturalStructure rdf:type owl:Class ;
+                        rdfs:subClassOf :GeographicalPlace ;
+                        rdfs:label "Architectural Structure"@en .
+
+
+###  https://www.simphony-project.eu/city#Building
+:Building rdf:type owl:Class ;
+          rdfs:subClassOf :ArchitecturalStructure ,
+                          [ rdf:type owl:Restriction ;
+                            owl:onProperty :hasPart ;
+                            owl:someValuesFrom :Floor
+                          ] ,
+                          [ rdf:type owl:Restriction ;
+                            owl:onProperty :hasPart ;
+                            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                            owl:onClass :Address
+                          ] ,
+                          [ rdf:type owl:Restriction ;
+                            owl:onProperty :isPartOf ;
+                            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                            owl:onClass :Street
+                          ] ;
+          rdfs:label "Building"@en .
+
+
+###  https://www.simphony-project.eu/city#Citizen
+:Citizen rdf:type owl:Class ;
+         rdfs:subClassOf :Person ;
+         rdfs:label "Citizen"@en .
+
+
+###  https://www.simphony-project.eu/city#City
+:City rdf:type owl:Class ;
+      rdfs:subClassOf :PopulatedPlace ,
+                      [ rdf:type owl:Restriction ;
+                        owl:onProperty :hasPart ;
+                        owl:someValuesFrom :Neighborhood
+                      ] ,
+                      [ rdf:type owl:Restriction ;
+                        owl:onProperty :hasMajor ;
+                        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                        owl:onClass :Citizen
+                      ] ;
+      rdfs:label "City"@en .
+
+
+###  https://www.simphony-project.eu/city#Floor
+:Floor rdf:type owl:Class ;
+       rdfs:subClassOf :ArchitecturalComponent ;
+       rdfs:label "Floor"@en .
+
+
+###  https://www.simphony-project.eu/city#GeographicalPlace
+:GeographicalPlace rdf:type owl:Class ;
+                   rdfs:subClassOf [ rdf:type owl:Restriction ;
+                                     owl:onProperty :name ;
+                                     owl:cardinality "1"^^xsd:nonNegativeInteger
+                                   ] ;
+                   rdfs:label "Geographical Place"@en .
+
+
+###  https://www.simphony-project.eu/city#LivingBeing
+:LivingBeing rdf:type owl:Class ;
+             rdfs:subClassOf [ rdf:type owl:Restriction ;
+                               owl:onProperty :isChildOf ;
+                               owl:maxQualifiedCardinality "2"^^xsd:nonNegativeInteger ;
+                               owl:onClass :LivingBeing
+                             ] ,
+                             [ rdf:type owl:Restriction ;
+                               owl:onProperty :age ;
+                               owl:cardinality "1"^^xsd:nonNegativeInteger
+                             ] ,
+                             [ rdf:type owl:Restriction ;
+                               owl:onProperty :name ;
+                               owl:cardinality "1"^^xsd:nonNegativeInteger
+                             ] ;
+             rdfs:comment "A living being."@en ;
+             rdfs:label "Living Being"@en .
+
+
+###  https://www.simphony-project.eu/city#Neighborhood
+:Neighborhood rdf:type owl:Class ;
+              rdfs:subClassOf :PopulatedPlace ,
+                              [ rdf:type owl:Restriction ;
+                                owl:onProperty :hasPart ;
+                                owl:someValuesFrom :Street
+                              ] ,
+                              [ rdf:type owl:Restriction ;
+                                owl:onProperty :isPartOf ;
+                                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                owl:onClass :City
+                              ] ;
+              rdfs:label "Neighborhood"@en .
+
+
+###  https://www.simphony-project.eu/city#Person
+:Person rdf:type owl:Class ;
+        rdfs:subClassOf :LivingBeing ,
+                        [ rdf:type owl:Restriction ;
+                          owl:onProperty :worksIn ;
+                          owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                          owl:onClass :PopulatedPlace
+                        ] ;
+        rdfs:label "Person"@en .
+
+
+###  https://www.simphony-project.eu/city#PopulatedPlace
+:PopulatedPlace rdf:type owl:Class ;
+                rdfs:subClassOf :GeographicalPlace ,
+                                [ rdf:type owl:Restriction ;
+                                  owl:onProperty :hasInhabitant ;
+                                  owl:someValuesFrom :Citizen
+                                ] ,
+                                [ rdf:type owl:Restriction ;
+                                  owl:onProperty :hasWorker ;
+                                  owl:someValuesFrom :Person
+                                ] ,
+                                [ rdf:type owl:Restriction ;
+                                  owl:onProperty :coordinates ;
+                                  owl:cardinality "1"^^xsd:nonNegativeInteger
+                                ] ;
+                rdfs:label "Populated Place"@en .
+
+
+###  https://www.simphony-project.eu/city#Street
+:Street rdf:type owl:Class ;
+        rdfs:subClassOf :PopulatedPlace ,
+                        [ rdf:type owl:Restriction ;
+                          owl:onProperty :hasPart ;
+                          owl:someValuesFrom :Building
+                        ] ,
+                        [ rdf:type owl:Restriction ;
+                          owl:onProperty :isPartOf ;
+                          owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                          owl:onClass :Neighborhood
+                        ] ;
+        rdfs:label "Street"@en .
+
+
+###  Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi
