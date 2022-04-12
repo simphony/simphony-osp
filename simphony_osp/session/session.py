@@ -1225,7 +1225,7 @@ class QueryResult(SPARQLResult):
 
     def __call__(
         self, **kwargs
-    ) -> Union[Iterator[Triple], Iterator[bool], Iterator[ResultRow],]:
+    ) -> Union[Iterator[Triple], Iterator[bool], Iterator[ResultRow]]:
         """Select the datatypes of the query results ofr SELECT queries.
 
         Args:

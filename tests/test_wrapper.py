@@ -188,7 +188,6 @@ class TestWrapper(unittest.TestCase):
             self.assertEqual(len(result[0]), 1)
             self.assertEqual(Literal("37", datatype=XSD.integer), result[0][0])
 
-            graph = wrapper.graph
             result = list(
                 sparql(
                     f"""
