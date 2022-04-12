@@ -11,8 +11,6 @@ if sys.version_info < (3, 8):
 else:
     from importlib.metadata import entry_points
 
-__all__ = []
-
 # Retrieve all wrappers from package entry points.
 package_entry_points = entry_points()
 if sys.version_info >= (3, 10):
