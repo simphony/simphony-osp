@@ -40,16 +40,16 @@ class TestRegistryCity(unittest.TestCase):
         registry = c.session._registry
         self.assertEqual(
             registry.get_subtree(c.uid),
-            {c, p, n, s})
+            set([c, p, n, s]))
         self.assertEqual(
             registry.get_subtree(c.uid, rel=cuba.activeRelationship),
-            {c, p, n, s})
+            set([c, p, n, s]))
         self.assertEqual(
             registry.get_subtree(n.uid),
-            {c, p, n, s})
+            set([c, p, n, s]))
         self.assertEqual(
             registry.get_subtree(n.uid, rel=cuba.activeRelationship),
-            {n, s})
+            set([n, s]))
 
     def test_prune(self):
         """Test the pruning method."""
@@ -67,16 +67,19 @@ class TestRegistryCity(unittest.TestCase):
         registry.prune(*[c.uid for c in cities[0:2]])
         self.assertEqual(
             set([k.name for k in registry.values()]),
-            {"city 0", "city 1", "neighborhood 0 0", "neighborhood 0 1",
-             "neighborhood 1 0", "neighborhood 1 1", "street 0 0 0",
-             "street 0 0 1", "street 0 1 0", "street 0 1 1", "street 1 0 0",
-             "street 1 0 1", "street 1 1 0", "street 1 1 1"})
+            set(["city 0", "city 1", "neighborhood 0 0", "neighborhood 0 1",
+                 "neighborhood 1 0", "neighborhood 1 1", "street 0 0 0",
+                 "street 0 0 1", "street 0 1 0", "street 0 1 1",
+                 "street 1 0 0", "street 1 0 1", "street 1 1 0",
+                 "street 1 1 1"]))
 
         root, = [n for n in cities[0].get() if n.name == "neighborhood 0 0"]
         registry.prune(root, rel=cuba.activeRelationship)
         self.assertEqual(
             set([k.name for k in registry.values()]),
-            {"neighborhood 0 0", "street 0 0 0", "street 0 0 1"})
+            set(["neighborhood 0 0",
+                 "street 0 0 0",
+                 "street 0 0 1"]))
 
     def test_get_not_reachable(self):
         """Test the pruning method."""
@@ -94,10 +97,11 @@ class TestRegistryCity(unittest.TestCase):
         result = registry._get_not_reachable(cities[2].uid)
         self.assertEqual(
             set([k.name for k in result]),
-            {"city 0", "city 1", "neighborhood 0 0", "neighborhood 0 1",
-             "neighborhood 1 0", "neighborhood 1 1", "street 0 0 0",
-             "street 0 0 1", "street 0 1 0", "street 0 1 1", "street 1 0 0",
-             "street 1 0 1", "street 1 1 0", "street 1 1 1"})
+            set(["city 0", "city 1", "neighborhood 0 0", "neighborhood 0 1",
+                 "neighborhood 1 0", "neighborhood 1 1", "street 0 0 0",
+                 "street 0 0 1", "street 0 1 0", "street 0 1 1",
+                 "street 1 0 0", "street 1 0 1", "street 1 1 0",
+                 "street 1 1 1"]))
 
         roots = [
             n for n in cities[0].get() if n.name.startswith("neighborhood 0")
@@ -105,7 +109,7 @@ class TestRegistryCity(unittest.TestCase):
         registry.prune(*roots, rel=cuba.passiveRelationship)
         self.assertEqual(
             set([k.name for k in registry.values()]),
-            {"neighborhood 0 0", "neighborhood 0 1", "city 0"})
+            set(["neighborhood 0 0", "neighborhood 0 1", "city 0"]))
 
     def test_filter(self):
         """Test the filter method."""

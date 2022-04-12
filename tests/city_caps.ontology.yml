@@ -126,7 +126,7 @@ ontology:
   COORDINATES:
     subclass_of:
     - CUBA.ATTRIBUTE
-    datatype: VECTOR
+    datatype: VECTOR:INT:2
 
   ADDRESS:
     subclass_of:

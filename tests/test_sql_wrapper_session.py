@@ -1,14 +1,14 @@
 """Test the abstract SqlWrapper session."""
 
-import numpy as np
 import unittest2 as unittest
-from rdflib import RDF, XSD, Literal
-
+import rdflib
+import uuid
+import numpy as np
 from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.datatypes import UID, Vector
 from osp.core.session import SqlWrapperSession
 from osp.core.session.db.sql_util import AndCondition, JoinCondition, \
     EqualsCondition
+from osp.core.utils.general import iri_from_uid
 from osp.core.namespaces import cuba
 
 try:
@@ -46,38 +46,41 @@ class TestSqlWrapperSession(unittest.TestCase):
     def test_queries_subject_given(self):
         """Test computing the queries corresponding to a triple pattern."""
         r = sorted(self.session._queries(
-            pattern=(UID(1).to_iri(), None, None)),
-            key=lambda x: x[1])
+            pattern=(iri_from_uid(uuid.UUID(int=1)),
+                     None, None)), key=lambda x: x[1])
         self.assertEqual(len(r), 4)
-        self.assertEqual(r[0][1], data_tbl("CUSTOM_Vector"))
+        self.assertEqual(r[0][1], data_tbl("VECTOR-2-2"))
         self.assertEqual(r[1][1], data_tbl("XSD_string"))
         self.assertEqual(r[2][1], RELATIONSHIP_TABLE)
         self.assertEqual(r[3][1], TYPES_TABLE)
-        self.assertEqual(r[0][2], Vector.iri)
-        self.assertEqual(r[1][2], XSD.string)
-        self.assertEqual(r[2][2], XSD.integer)
-        self.assertEqual(r[3][2], XSD.integer)
-        self.assertEqual(r[0][0].order, ["ts", "tp",
-                                         data_tbl("CUSTOM_Vector")])
+        self.assertEqual(r[0][2], rdflib_cuba["_datatypes/VECTOR-2-2"])
+        self.assertEqual(r[1][2], rdflib.XSD.string)
+        self.assertEqual(r[2][2], rdflib.XSD.integer)
+        self.assertEqual(r[3][2], rdflib.XSD.integer)
+        self.assertEqual(r[0][0].order, ["ts", "tp", data_tbl("VECTOR-2-2")])
 
         # first query
         self.assertEqual(r[0][0]._columns, {
             "ts": ["uid"], "tp": ["ns_idx", "name"],
-            data_tbl("CUSTOM_Vector"): ["o"]})
+            data_tbl("VECTOR-2-2"): ["o___0", "o___1", "o___2", "o___3"]})
         self.assertEqual(r[0][0].condition, AndCondition(
-            JoinCondition(data_tbl("CUSTOM_Vector"), "s", "ts", "cuds_idx"),
-            JoinCondition(data_tbl("CUSTOM_Vector"), "p", "tp", "entity_idx"),
-            EqualsCondition("ts", "uid", UID(1), UID.iri)
+            JoinCondition(data_tbl("VECTOR-2-2"), "s", "ts", "cuds_idx"),
+            JoinCondition(data_tbl("VECTOR-2-2"), "p", "tp", "entity_idx"),
+            EqualsCondition("ts", "uid", str(uuid.UUID(int=1)), "UID")
         ))
         self.assertEqual(r[0][0].datatypes, {
-            data_tbl("CUSTOM_Vector"): {"o": Vector.iri},
-            "ts": {"uid": UID.iri, "cuds_idx": XSD.integer},
-            "tp": {"name": XSD.string, "ns_idx": XSD.integer,
-                   "entity_idx": XSD.integer}
+            data_tbl("VECTOR-2-2"): {"o": rdflib_cuba["_datatypes/VECTOR-2-2"],
+                                     "o___0": rdflib.XSD.float,
+                                     "o___1": rdflib.XSD.float,
+                                     "o___2": rdflib.XSD.float,
+                                     "o___3": rdflib.XSD.float},
+            "ts": {"uid": "UID", "cuds_idx": rdflib.XSD.integer},
+            "tp": {"name": rdflib.XSD.string, "ns_idx": rdflib.XSD.integer,
+                   "entity_idx": rdflib.XSD.integer}
         })
         self.assertEqual(r[0][0].tables, {
             "ts": CUDS_TABLE, "tp": ENTITIES_TABLE,
-            data_tbl("CUSTOM_Vector"): data_tbl("CUSTOM_Vector")
+            data_tbl("VECTOR-2-2"): data_tbl("VECTOR-2-2")
         })
 
         # second query
@@ -87,13 +90,13 @@ class TestSqlWrapperSession(unittest.TestCase):
         self.assertEqual(r[1][0].condition, AndCondition(
             JoinCondition(data_tbl("XSD_string"), "s", "ts", "cuds_idx"),
             JoinCondition(data_tbl("XSD_string"), "p", "tp", "entity_idx"),
-            EqualsCondition("ts", "uid", UID(1), UID.iri)
+            EqualsCondition("ts", "uid", str(uuid.UUID(int=1)), "UID")
         ))
         self.assertEqual(r[1][0].datatypes, {
-            data_tbl("XSD_string"): {"o": XSD.string},
-            "ts": {"uid": UID.iri, "cuds_idx": XSD.integer},
-            "tp": {"name": XSD.string, "ns_idx": XSD.integer,
-                   "entity_idx": XSD.integer}
+            data_tbl("XSD_string"): {"o": rdflib.XSD.string},
+            "ts": {"uid": "UID", "cuds_idx": rdflib.XSD.integer},
+            "tp": {"name": rdflib.XSD.string, "ns_idx": rdflib.XSD.integer,
+                   "entity_idx": rdflib.XSD.integer}
         })
         self.assertEqual(r[1][0].tables, {
             "ts": CUDS_TABLE, "tp": ENTITIES_TABLE,
@@ -108,13 +111,13 @@ class TestSqlWrapperSession(unittest.TestCase):
             JoinCondition(RELATIONSHIP_TABLE, "s", "ts", "cuds_idx"),
             JoinCondition(RELATIONSHIP_TABLE, "p", "tp", "entity_idx"),
             JoinCondition(RELATIONSHIP_TABLE, "o", "to", "cuds_idx"),
-            EqualsCondition("ts", "uid", UID(1), UID.iri)
+            EqualsCondition("ts", "uid", str(uuid.UUID(int=1)), "UID")
         ))
         self.assertEqual(r[2][0].datatypes, {
-            "ts": {"uid": UID.iri, "cuds_idx": XSD.integer},
-            "tp": {"name": XSD.string, "ns_idx": XSD.integer,
-                   "entity_idx": XSD.integer},
-            "to": {"uid": UID.iri, "cuds_idx": XSD.integer},
+            "ts": {"uid": "UID", "cuds_idx": rdflib.XSD.integer},
+            "tp": {"name": rdflib.XSD.string, "ns_idx": rdflib.XSD.integer,
+                   "entity_idx": rdflib.XSD.integer},
+            "to": {"uid": "UID", "cuds_idx": rdflib.XSD.integer},
             RELATIONSHIP_TABLE: {}
         })
         self.assertEqual(r[2][0].tables, {
@@ -128,12 +131,12 @@ class TestSqlWrapperSession(unittest.TestCase):
         self.assertEqual(r[3][0].condition, AndCondition(
             JoinCondition(TYPES_TABLE, "s", "ts", "cuds_idx"),
             JoinCondition(TYPES_TABLE, "o", "to", "entity_idx"),
-            EqualsCondition("ts", "uid", UID(1), UID.iri)
+            EqualsCondition("ts", "uid", str(uuid.UUID(int=1)), "UID")
         ))
         self.assertEqual(r[3][0].datatypes, {
-            "ts": {"uid": UID.iri, "cuds_idx": XSD.integer},
-            "to": {"name": XSD.string, "ns_idx": XSD.integer,
-                   "entity_idx": XSD.integer},
+            "ts": {"uid": "UID", "cuds_idx": rdflib.XSD.integer},
+            "to": {"name": rdflib.XSD.string, "ns_idx": rdflib.XSD.integer,
+                   "entity_idx": rdflib.XSD.integer},
             TYPES_TABLE: {}
         })
         self.assertEqual(r[3][0].tables, {
@@ -148,7 +151,7 @@ class TestSqlWrapperSession(unittest.TestCase):
             key=lambda x: x[1]
         )
         self.assertEqual(len(r), 1)
-        self.assertEqual(r[0][1:], (RELATIONSHIP_TABLE, XSD.integer))
+        self.assertEqual(r[0][1:], (RELATIONSHIP_TABLE, rdflib.XSD.integer))
         self.assertEqual(r[0][0]._columns, {
             "ts": ["uid"], "tp": ["ns_idx", "name"], RELATIONSHIP_TABLE: [],
             "to": ["uid"]})
@@ -156,14 +159,15 @@ class TestSqlWrapperSession(unittest.TestCase):
             JoinCondition(RELATIONSHIP_TABLE, "s", "ts", "cuds_idx"),
             JoinCondition(RELATIONSHIP_TABLE, "p", "tp", "entity_idx"),
             JoinCondition(RELATIONSHIP_TABLE, "o", "to", "cuds_idx"),
-            EqualsCondition("tp", "ns_idx", 1, XSD.integer),
-            EqualsCondition("tp", "name", "activeRelationship", XSD.string)
+            EqualsCondition("tp", "ns_idx", 1, rdflib.XSD.integer),
+            EqualsCondition("tp", "name", "activeRelationship",
+                            rdflib.XSD.string)
         ))
         self.assertEqual(r[0][0].datatypes, {
-            "ts": {"uid": UID.iri, "cuds_idx": XSD.integer},
-            "tp": {"name": XSD.string, "ns_idx": XSD.integer,
-                   "entity_idx": XSD.integer},
-            "to": {"uid": UID.iri, "cuds_idx": XSD.integer},
+            "ts": {"uid": "UID", "cuds_idx": rdflib.XSD.integer},
+            "tp": {"name": rdflib.XSD.string, "ns_idx": rdflib.XSD.integer,
+                   "entity_idx": rdflib.XSD.integer},
+            "to": {"uid": "UID", "cuds_idx": rdflib.XSD.integer},
             RELATIONSHIP_TABLE: {}
         })
         self.assertEqual(r[0][0].tables, {
@@ -173,11 +177,11 @@ class TestSqlWrapperSession(unittest.TestCase):
 
         # type
         r = sorted(self.session._queries(
-            pattern=(None, RDF.type, None)),
+            pattern=(None, rdflib.RDF.type, None)),
             key=lambda x: x[1]
         )
         self.assertEqual(len(r), 1)
-        self.assertEqual(r[0][1:], (TYPES_TABLE, XSD.integer))
+        self.assertEqual(r[0][1:], (TYPES_TABLE, rdflib.XSD.integer))
         self.assertEqual(r[0][0]._columns, {
             "ts": ["uid"], TYPES_TABLE: [], "to": ["ns_idx", "name"]})
         self.assertEqual(r[0][0].condition, AndCondition(
@@ -185,9 +189,9 @@ class TestSqlWrapperSession(unittest.TestCase):
             JoinCondition(TYPES_TABLE, "o", "to", "entity_idx")
         ))
         self.assertEqual(r[0][0].datatypes, {
-            "ts": {"uid": UID.iri, "cuds_idx": XSD.integer},
-            "to": {"name": XSD.string, "ns_idx": XSD.integer,
-                   "entity_idx": XSD.integer},
+            "ts": {"uid": "UID", "cuds_idx": rdflib.XSD.integer},
+            "to": {"name": rdflib.XSD.string, "ns_idx": rdflib.XSD.integer,
+                   "entity_idx": rdflib.XSD.integer},
             TYPES_TABLE: {}
         })
         self.assertEqual(r[0][0].tables, {
@@ -200,57 +204,69 @@ class TestSqlWrapperSession(unittest.TestCase):
             key=lambda x: x[1]
         )
         self.assertEqual(len(r), 1)
-        self.assertEqual(r[0][1:], (data_tbl("CUSTOM_Vector"), Vector.iri))
+        self.assertEqual(r[0][1:], (data_tbl("VECTOR-INT-2"),
+                                    rdflib_cuba["_datatypes/VECTOR-INT-2"]))
         self.assertEqual(r[0][0]._columns, {
             "ts": ["uid"], "tp": ["ns_idx", "name"],
-            data_tbl("CUSTOM_Vector"): ["o"]})
+            data_tbl("VECTOR-INT-2"): ["o___0", "o___1"]})
         self.assertEqual(r[0][0].condition, AndCondition(
-            JoinCondition(data_tbl("CUSTOM_Vector"), "s", "ts", "cuds_idx"),
-            JoinCondition(data_tbl("CUSTOM_Vector"), "p", "tp", "entity_idx"),
-            EqualsCondition("tp", "ns_idx", 2, XSD.integer),
-            EqualsCondition("tp", "name", "coordinates", XSD.string)
+            JoinCondition(data_tbl("VECTOR-INT-2"), "s", "ts", "cuds_idx"),
+            JoinCondition(data_tbl("VECTOR-INT-2"), "p", "tp", "entity_idx"),
+            EqualsCondition("tp", "ns_idx", 2, rdflib.XSD.integer),
+            EqualsCondition("tp", "name", "coordinates", rdflib.XSD.string)
         ))
         self.assertEqual(r[0][0].datatypes, {
-            data_tbl("CUSTOM_Vector"): {"o": Vector.iri},
-            "ts": {"uid": UID.iri, "cuds_idx": XSD.integer},
-            "tp": {"name": XSD.string, "ns_idx": XSD.integer,
-                   "entity_idx": XSD.integer}
+            data_tbl("VECTOR-INT-2"): {
+                "o": rdflib_cuba["_datatypes/VECTOR-INT-2"],
+                "o___1": rdflib.XSD.integer,
+                "o___0": rdflib.XSD.integer
+            },
+            "ts": {"uid": "UID", "cuds_idx": rdflib.XSD.integer},
+            "tp": {"name": rdflib.XSD.string, "ns_idx": rdflib.XSD.integer,
+                   "entity_idx": rdflib.XSD.integer}
         })
         self.assertEqual(r[0][0].tables, {
             "ts": CUDS_TABLE, "tp": ENTITIES_TABLE,
-            data_tbl("CUSTOM_Vector"): data_tbl("CUSTOM_Vector")
+            data_tbl("VECTOR-INT-2"): data_tbl("VECTOR-INT-2")
         })
 
         # data with value
-        dtype = Vector.iri
+        dtype = rdflib_cuba["_datatypes/VECTOR-INT-2"]
         r = sorted(self.session._queries(
             pattern=(None, city.coordinates.iri,
-                     Literal(np.array([1, 1]), datatype=dtype))),
+                     rdflib.Literal(np.array([1, 1]), datatype=dtype))),
                    key=lambda x: x[1])
         self.assertEqual(len(r), 1)
-        self.assertEqual(r[0][1:], (data_tbl("CUSTOM_Vector"), Vector.iri))
+        self.assertEqual(r[0][1:], (data_tbl("VECTOR-INT-2"),
+                                    rdflib_cuba["_datatypes/VECTOR-INT-2"]))
         self.assertEqual(r[0][0]._columns, {
             "ts": ["uid"], "tp": ["ns_idx", "name"],
-            data_tbl("CUSTOM_Vector"): ["o"]})
+            data_tbl("VECTOR-INT-2"): ["o___0", "o___1"]})
         self.assertEqual(r[0][0].condition, AndCondition(
-            JoinCondition(data_tbl("CUSTOM_Vector"), "s", "ts", "cuds_idx"),
-            JoinCondition(data_tbl("CUSTOM_Vector"), "p", "tp", "entity_idx"),
-            EqualsCondition("tp", "ns_idx", 2, XSD.integer),
-            EqualsCondition("tp", "name", "coordinates", XSD.string),
-            EqualsCondition(data_tbl("CUSTOM_Vector"), "o", Vector([1, 1]),
-                            Vector.iri),
+            JoinCondition(data_tbl("VECTOR-INT-2"), "s", "ts", "cuds_idx"),
+            JoinCondition(data_tbl("VECTOR-INT-2"), "p", "tp", "entity_idx"),
+            EqualsCondition("tp", "ns_idx", 2, rdflib.XSD.integer),
+            EqualsCondition("tp", "name", "coordinates", rdflib.XSD.string),
+            AndCondition(
+                EqualsCondition(data_tbl("VECTOR-INT-2"), "o___0",
+                                1, rdflib.XSD.integer),
+                EqualsCondition(data_tbl("VECTOR-INT-2"), "o___1",
+                                1, rdflib.XSD.integer),
+            )
         ))
         self.assertEqual(r[0][0].datatypes, {
-            data_tbl("CUSTOM_Vector"): {
-                "o": Vector.iri,
+            data_tbl("VECTOR-INT-2"): {
+                "o": rdflib_cuba["_datatypes/VECTOR-INT-2"],
+                "o___0": rdflib.XSD.integer,
+                "o___1": rdflib.XSD.integer
             },
-            "ts": {"uid": UID.iri, "cuds_idx": XSD.integer},
-            "tp": {"name": XSD.string, "ns_idx": XSD.integer,
-                   "entity_idx": XSD.integer}
+            "ts": {"uid": "UID", "cuds_idx": rdflib.XSD.integer},
+            "tp": {"name": rdflib.XSD.string, "ns_idx": rdflib.XSD.integer,
+                   "entity_idx": rdflib.XSD.integer}
         })
         self.assertEqual(r[0][0].tables, {
             "ts": CUDS_TABLE, "tp": ENTITIES_TABLE,
-            data_tbl("CUSTOM_Vector"): data_tbl("CUSTOM_Vector")
+            data_tbl("VECTOR-INT-2"): data_tbl("VECTOR-INT-2")
         })
 
     def test_queries_object_given(self):
@@ -260,31 +276,31 @@ class TestSqlWrapperSession(unittest.TestCase):
             pattern=(None, None, city.City.iri)),
             key=lambda x: x[1])
         self.assertEqual(len(r), 1)
-        self.assertEqual(r[0][1:], (TYPES_TABLE, XSD.integer))
+        self.assertEqual(r[0][1:], (TYPES_TABLE, rdflib.XSD.integer))
         self.assertEqual(r[0][0]._columns, {
             "ts": ["uid"], "to": ["ns_idx", "name"], TYPES_TABLE: []})
         self.assertEqual(r[0][0].condition, AndCondition(
             JoinCondition(TYPES_TABLE, "s", "ts", "cuds_idx"),
             JoinCondition(TYPES_TABLE, "o", "to", "entity_idx"),
-            EqualsCondition("to", "ns_idx", 2, XSD.integer),
-            EqualsCondition("to", "name", "City", XSD.string)
+            EqualsCondition("to", "ns_idx", 2, rdflib.XSD.integer),
+            EqualsCondition("to", "name", "City", rdflib.XSD.string)
         ))
         self.assertEqual(r[0][0].datatypes, {
-            "ts": {"uid": UID.iri, "cuds_idx": XSD.integer},
-            "to": {"name": XSD.string, "ns_idx": XSD.integer,
-                   "entity_idx": XSD.integer},
+            "ts": {"uid": "UID", "cuds_idx": rdflib.XSD.integer},
+            "to": {"name": rdflib.XSD.string, "ns_idx": rdflib.XSD.integer,
+                   "entity_idx": rdflib.XSD.integer},
             TYPES_TABLE: {}
         })
         self.assertEqual(r[0][0].tables, {
             "ts": CUDS_TABLE, "to": ENTITIES_TABLE, TYPES_TABLE: TYPES_TABLE
         })
 
-        # UID given
-        r = sorted(
-            self.session._queries(pattern=(None, None, UID(1).to_iri())),
+        # UUID given
+        r = sorted(self.session._queries(
+            pattern=(None, None, iri_from_uid(uuid.UUID(int=1)))),
             key=lambda x: x[1])
         self.assertEqual(len(r), 1)
-        self.assertEqual(r[0][1:], (RELATIONSHIP_TABLE, XSD.integer))
+        self.assertEqual(r[0][1:], (RELATIONSHIP_TABLE, rdflib.XSD.integer))
         self.assertEqual(r[0][0]._columns, {
             "ts": ["uid"], "tp": ["ns_idx", "name"], RELATIONSHIP_TABLE: [],
             "to": ["uid"]})
@@ -292,13 +308,13 @@ class TestSqlWrapperSession(unittest.TestCase):
             JoinCondition(RELATIONSHIP_TABLE, "s", "ts", "cuds_idx"),
             JoinCondition(RELATIONSHIP_TABLE, "p", "tp", "entity_idx"),
             JoinCondition(RELATIONSHIP_TABLE, "o", "to", "cuds_idx"),
-            EqualsCondition("to", "uid", UID(1), UID.iri)
+            EqualsCondition("to", "uid", str(uuid.UUID(int=1)), "UID")
         ))
         self.assertEqual(r[0][0].datatypes, {
-            "ts": {"uid": UID.iri, "cuds_idx": XSD.integer},
-            "tp": {"name": XSD.string, "ns_idx": XSD.integer,
-                   "entity_idx": XSD.integer},
-            "to": {"uid": UID.iri, "cuds_idx": XSD.integer},
+            "ts": {"uid": "UID", "cuds_idx": rdflib.XSD.integer},
+            "tp": {"name": rdflib.XSD.string, "ns_idx": rdflib.XSD.integer,
+                   "entity_idx": rdflib.XSD.integer},
+            "to": {"uid": "UID", "cuds_idx": rdflib.XSD.integer},
             RELATIONSHIP_TABLE: {}
         })
         self.assertEqual(r[0][0].tables, {
@@ -309,109 +325,113 @@ class TestSqlWrapperSession(unittest.TestCase):
     def test_construct_remove_condition(self):
         """Test construction a remove condition."""
         # from rel table
-        r = sorted(
-            self.session._queries(
-                pattern=(UID(1).to_iri(),
-                         city.hasInhabitant.iri,
-                         UID(2).to_iri()),
-                mode="delete"),
-            key=lambda x: x[1])
+        r = sorted(self.session._queries(
+            pattern=(iri_from_uid(uuid.UUID(int=1)),
+                     city.hasInhabitant.iri,
+                     iri_from_uid(uuid.UUID(int=2))), mode="delete"),
+                   key=lambda x: x[1])
         self.assertEqual(len(r), 1)
         self.assertEqual(r[0][1], RELATIONSHIP_TABLE)
-        self.assertEqual(r[0][2], XSD.integer)
+        self.assertEqual(r[0][2], rdflib.XSD.integer)
         self.assertEqual(r[0][0], AndCondition(
-            EqualsCondition(RELATIONSHIP_TABLE, "s", UID(1), XSD.integer),
-            EqualsCondition(RELATIONSHIP_TABLE, "p", 42, XSD.integer),
-            EqualsCondition(RELATIONSHIP_TABLE, "o", UID(2), XSD.integer)
+            EqualsCondition(RELATIONSHIP_TABLE, "s", 1, rdflib.XSD.integer),
+            EqualsCondition(RELATIONSHIP_TABLE, "p", 42, rdflib.XSD.integer),
+            EqualsCondition(RELATIONSHIP_TABLE, "o", 2, rdflib.XSD.integer)
         ))
         # from types table
         r = sorted(self.session._queries(
-            pattern=(UID(1).to_iri(), RDF.type,
+            pattern=(iri_from_uid(uuid.UUID(int=1)), rdflib.RDF.type,
                      city.City.iri),
             mode="delete"), key=lambda x: x[1])
         self.assertEqual(len(r), 1)
         self.assertEqual(r[0][1], TYPES_TABLE)
-        self.assertEqual(r[0][2], XSD.integer)
+        self.assertEqual(r[0][2], rdflib.XSD.integer)
         self.assertEqual(r[0][0], AndCondition(
-            EqualsCondition(TYPES_TABLE, "s", UID(1), XSD.integer),
-            EqualsCondition(TYPES_TABLE, "o", 42, XSD.integer)
+            EqualsCondition(TYPES_TABLE, "s", 1, rdflib.XSD.integer),
+            EqualsCondition(TYPES_TABLE, "o", 42, rdflib.XSD.integer)
         ))
 
     def test_rows_to_triples(self):
         """Test transforming sql table rows to triples."""
         # relationship table
         cursor = iter([
-            (UID(1), 2, "hasInhabitant", UID(2)),
-            (UID(1), 1, "activeRelationship", UID(3))
+            (uuid.UUID(int=1), 2, "hasInhabitant", uuid.UUID(int=2)),
+            (uuid.UUID(int=1), 1, "activeRelationship", uuid.UUID(int=3))
         ])
         triples = list(
             self.session._rows_to_triples(cursor, RELATIONSHIP_TABLE,
-                                          XSD.integer)
+                                          rdflib.XSD.integer)
         )
         self.assertEqual(triples, [
-            (UID(1).to_iri(),
+            (iri_from_uid(uuid.UUID(int=1)),
              city.hasInhabitant.iri,
-             UID(2).to_iri()),
-            (UID(1).to_iri(),
+             iri_from_uid(uuid.UUID(int=2))),
+            (iri_from_uid(uuid.UUID(int=1)),
              cuba.activeRelationship.iri,
-             UID(3).to_iri())
+             iri_from_uid(uuid.UUID(int=3)))
         ])
 
         # types table
         cursor = iter([
-            (UID(1), 2, "City"), (UID(2), 1, "Entity")
+            (uuid.UUID(int=1), 2, "City"), (uuid.UUID(int=2), 1, "Entity")
         ])
         triples = list(
-            self.session._rows_to_triples(cursor, TYPES_TABLE, XSD.integer)
+            self.session._rows_to_triples(cursor, TYPES_TABLE,
+                                          rdflib.XSD.integer)
         )
         self.assertEqual(sorted(triples), sorted([
-            (UID(1).to_iri(), RDF.type, city.City.iri),
-            (UID(2).to_iri(), RDF.type, cuba.Entity.iri)
+            (iri_from_uid(uuid.UUID(int=1)), rdflib.RDF.type,
+             city.City.iri),
+            (iri_from_uid(uuid.UUID(int=2)), rdflib.RDF.type,
+             cuba.Entity.iri)
         ]))
 
         # data table
         cursor = iter([
-            (UID(1), 2, "coordinates", np.array([1, 2])),
-            (UID(2), 1, "attribute", np.array([3, 4]))
+            (uuid.UUID(int=1), 2, "coordinates", np.array([1, 2])),
+            (uuid.UUID(int=2), 1, "attribute", np.array([3, 4]))
         ])
         triples = list(
             self.session._rows_to_triples(
-                cursor, data_tbl("CUSTOM_Vector"), Vector.iri)
+                cursor, data_tbl("VECTOR-INT-2"),
+                rdflib_cuba["_datatypes/VECTOR-INT-2"])
         )
         self.assertEqual(triples, [
-            (UID(1).to_iri(), city.coordinates.iri,
-             Literal(np.array([1, 2]), datatype=Vector.iri)),
-            (UID(2).to_iri(), cuba.attribute.iri,
-             Literal(np.array([3, 4]), datatype=Vector.iri))
+            (iri_from_uid(uuid.UUID(int=1)), city.coordinates.iri,
+             rdflib.Literal(np.array([1, 2]),
+                            datatype=rdflib_cuba["_datatypes/VECTOR-INT-2"])),
+            (iri_from_uid(uuid.UUID(int=2)), cuba.attribute.iri,
+             rdflib.Literal(np.array([3, 4]),
+                            datatype=rdflib_cuba["_datatypes/VECTOR-INT-2"]))
         ])
 
     def test_get_values(self):
         """Test the get values method for adding triples."""
         v = self.session._get_values(
-            (UID(1).to_iri(), city.hasInhabitant.iri,
-             UID(2).to_iri()), RELATIONSHIP_TABLE)
-        self.assertEqual(v, (UID(1), 42, UID(2)))
+            (iri_from_uid(uuid.UUID(int=1)), city.hasInhabitant.iri,
+             iri_from_uid(uuid.UUID(int=2))), RELATIONSHIP_TABLE)
+        self.assertEqual(v, (1, 42, 2))
         v = self.session._get_values(
-            (UID(1).to_iri(), city.coordinates.iri,
-             Literal([1, 2], datatype=Vector.iri)),
-            data_tbl("CUSTOM_Vector"))
-        np.testing.assert_equal(v, (UID(1), 42, [1, 2]))
+            (iri_from_uid(uuid.UUID(int=1)), city.coordinates.iri,
+             rdflib.Literal(np.array([1, 2]),
+                            datatype=rdflib_cuba["_datatypes/VECTOR-INT-2"])),
+            data_tbl("VECTOR-INT-2"))
+        np.testing.assert_equal(v, (1, 42, np.array([1, 2])))
         v = self.session._get_values(
-            (UID(1).to_iri(),
-             XSD.anyURI,
+            (iri_from_uid(uuid.UUID(int=1)),
+             rdflib.XSD.anyURI,
              city.City.iri),
             TYPES_TABLE)
         # The next assertion should pass using any value for the predicate
         # in the previous function.
-        self.assertEqual(v, (UID(1), 42))
+        self.assertEqual(v, (1, 42))
 
 
 class MockSqlWrapperSession(SqlWrapperSession):
     """A SqlWrapper session for testing purposes."""
 
     def __init__(self, engine=None,
-                 data_tables=(data_tbl("XSD_string"),
-                              data_tbl("CUSTOM_Vector"))):
+                 data_tables=(data_tbl("XSD_string"), data_tbl("VECTOR-2-2"))):
         """Call the super constructor."""
         self._data_tables = data_tables
         super().__init__(engine)
@@ -441,7 +461,7 @@ class MockSqlWrapperSession(SqlWrapperSession):
             and list(query._columns.values()) == [["cuds_idx", "uid"]]
 
         ):
-            yield query.condition.value, query.condition.value
+            yield int(query.condition.value[-1]), query.condition.value
         elif (
             list(query.tables.values()) == [ENTITIES_TABLE]
             and list(query._columns.values()) == [
@@ -454,8 +474,8 @@ class MockSqlWrapperSession(SqlWrapperSession):
             and list(query._columns.values()) == [
                 ["ns_idx", "namespace"]]
         ):
-            yield 1, str(cuba.get_iri())
-            yield 2, str(city.get_iri())
+            yield (1, cuba.get_iri())
+            yield (2, city.get_iri())
 
     def _db_update(self, *args, **kwargs):
         """Do nothing."""

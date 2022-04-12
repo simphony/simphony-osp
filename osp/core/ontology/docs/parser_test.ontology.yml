@@ -45,7 +45,7 @@ ontology:
     - cuba.attribute
 
   attributeB:
-    datatype: VECTOR
+    datatype: VECTOR:INT:2:2
     subclass_of:
     - cuba.attribute
 

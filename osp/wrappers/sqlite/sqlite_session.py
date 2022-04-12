@@ -1,11 +1,9 @@
 """A session to connect osp-core to a SQLite backend."""
 
 import sqlite3
-
-from rdflib import XSD
-
-from osp.core.ontology.datatypes import UID, Vector
-from osp.core.session.db.sql_util import AndCondition, EqualsCondition, \
+import rdflib
+from osp.core.ontology.cuba import rdflib_cuba
+from osp.core.session.db.sql_util import EqualsCondition, AndCondition, \
     JoinCondition
 from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
 
@@ -230,17 +228,19 @@ class SqliteSession(SqlWrapperSession):
         """
         if rdflib_datatype is None:
             return "TEXT"
-        if rdflib_datatype == UID.iri:
-            return 'TEXT'
-        if rdflib_datatype == Vector.iri:
-            return 'BLOB'
-        if rdflib_datatype == XSD.integer:
-            return "INTEGER"
-        if rdflib_datatype == XSD.boolean:
-            return "BOOLEAN"
-        if rdflib_datatype == XSD.float:
-            return "REAL"
-        if rdflib_datatype == XSD.string:
+        if rdflib_datatype == "UID":
             return "TEXT"
-        raise NotImplementedError(f"Unsupported data type "
-                                  f"{rdflib_datatype}!")
+        if rdflib_datatype == rdflib.XSD.integer:
+            return "INTEGER"
+        if rdflib_datatype == rdflib.XSD.boolean:
+            return "BOOLEAN"
+        if rdflib_datatype == rdflib.XSD.float:
+            return "REAL"
+        if rdflib_datatype == rdflib.XSD.string:
+            return "REAL"
+        if str(rdflib_datatype).startswith(
+                str(rdflib_cuba["_datatypes/STRING-"])):
+            return "TEXT"
+        else:
+            raise NotImplementedError(f"Unsupported data type "
+                                      f"{rdflib_datatype}!")
