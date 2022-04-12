@@ -18,7 +18,7 @@ def returns_query_result(func):
     return f
 
 
-class QueryResult:
+class QueryResult():
     """The result of a query in the session."""
 
     def __init__(self, session, result_iterator):
@@ -84,14 +84,6 @@ class QueryResult:
             except StopIteration:
                 return None
         return self._elements[0]
-
-    def any(self):
-        """Return any element of the result.
-
-        Returns:
-            Any element from the result if not empty, else None.
-        """
-        return self.first()
 
     def one(self, raise_result_empty_error=True):
         """Get the first element in the result.

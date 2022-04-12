@@ -1,14 +1,13 @@
 """A dictionary interface for the related object of a CUDS."""
 
+import uuid
+import rdflib
 from abc import ABC, abstractmethod
-
-from rdflib import OWL, RDF
-
-from osp.core.namespaces import from_iri
-from osp.core.ontology.datatypes import UID
-from osp.core.ontology.namespace_registry import namespace_registry
-from osp.core.ontology.oclass import OntologyClass
 from osp.core.ontology.relationship import OntologyRelationship
+from osp.core.ontology.oclass import OntologyClass
+from osp.core.ontology.namespace_registry import namespace_registry
+from osp.core.utils.general import iri_from_uid, uid_from_iri
+from osp.core.namespaces import from_iri
 
 
 class NeighborDict(ABC):
@@ -139,7 +138,8 @@ class NeighborDictRel(NeighborDict):
     def __bool__(self):
         """Check if there are elements in the dictionary."""
         for s, p, o in self.graph.triples((self.cuds_object.iri, None, None)):
-            if (p, RDF.type, OWL.ObjectProperty) in namespace_registry._graph:
+            if (p, rdflib.RDF.type, rdflib.OWL.ObjectProperty) in \
+                    namespace_registry._graph:
                 return True
         return False
 
@@ -150,7 +150,8 @@ class NeighborDictRel(NeighborDict):
                                                  None, None))
         ])
         for p in predicates:
-            if (p, RDF.type, OWL.ObjectProperty) in namespace_registry._graph:
+            if (p, rdflib.RDF.type, rdflib.OWL.ObjectProperty) \
+                    in namespace_registry._graph:
                 yield from_iri(p)
 
 
@@ -165,7 +166,7 @@ class NeighborDictTarget(NeighborDict):
         self.rel = rel
         super().__init__(
             cuds_object,
-            key_check=lambda k: isinstance(k, UID),
+            key_check=lambda k: isinstance(k, (uuid.UUID, rdflib.URIRef)),
             value_check=lambda v: (
                 isinstance(v, list)
                 and all(isinstance(x, OntologyClass) for x in v)
@@ -179,7 +180,7 @@ class NeighborDictTarget(NeighborDict):
 
     def _delitem(self, uid):
         """Delete an item from the dictionary."""
-        iri = UID(uid).to_iri()
+        iri = iri_from_uid(uid)
         self.graph.remove((self.cuds_object.iri, self.rel.iri, iri))
 
     def _setitem(self, uid, oclasses):
@@ -187,27 +188,28 @@ class NeighborDictTarget(NeighborDict):
 
         Also add the oclass of the related CUDS object.
         """
-        iri = uid.to_iri()
+        iri = iri_from_uid(uid)
         self.cuds_object._check_valid_add(oclasses, self.rel)
         self.graph.add((self.cuds_object.iri, self.rel.iri, iri))
         for oclass in oclasses:
-            self.graph.add((iri, RDF.type, oclass.iri))
+            self.graph.add((iri, rdflib.RDF.type, oclass.iri))
 
     def _getitem(self, uid):
         """Get the oclass of the object with the given UUID."""
-        iri = uid.to_iri()
+        iri = iri_from_uid(uid)
         if (self.cuds_object.iri, self.rel.iri, iri) in self.graph:
             result = list()
-            for o in self.graph.objects(iri, RDF.type):
+            for _, _, o in self.graph.triples((iri, rdflib.RDF.type, None)):
                 result.append(from_iri(o))
             return result
         raise KeyError(uid)
 
     def _iter(self):
-        """Iterate over the over the UIDs of the related CUDS objects.
+        """Iterate over the over the UUIDs of the related CUDS objects.
 
         Yields:
-            UID: The UIDs of the CUDS object related with self.rel.
+            UUID: The UUIDs of the CUDS object related with self.rel.
         """
-        for o in self.graph.objects(self.cuds_object.iri, self.rel.iri):
-            yield UID(o)
+        for s, p, o in self.graph.triples((self.cuds_object.iri,
+                                           self.rel.iri, None)):
+            yield uid_from_iri(o)

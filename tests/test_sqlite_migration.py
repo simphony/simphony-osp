@@ -2,10 +2,9 @@
 
 import os
 import unittest2 as unittest
-import shutil
+import sqlite3
 import numpy as np
 from pathlib import Path
-
 from osp.core.session.db.sql_migrate import check_supported_schema_version, \
     detect_current_schema_version, versions
 from osp.core.session.db.sql_migrate import SqlMigrate
@@ -19,8 +18,7 @@ except ImportError:
     Parser().parse("city")
     city = namespace_registry.city
 
-DB_TEMPLATE = str(Path(__file__).parent / "test_sqlite_migration_template.db")
-DB = str(Path(__file__).parent / "test_sqlite_migration.db")
+DB = "test_sqlite_migration.db"
 
 
 class TestSqliteCity(unittest.TestCase):
@@ -32,8 +30,11 @@ class TestSqliteCity(unittest.TestCase):
             os.remove(DB)
 
     def run_migration(self, schema_version):
-        """Run the migration."""
-        shutil.copy(DB_TEMPLATE, DB)
+        """Load the data from the given schema version + run the migration."""
+        filename = f"sqlite_schema_v{schema_version}.sql"
+        with open(Path(__file__).parent / filename, encoding="utf-8") as f:
+            with sqlite3.connect(DB) as con:
+                con.executescript(f.read())
 
         self.assertRaises(RuntimeError, check_supported_schema_version,
                           SqliteSession(DB))
@@ -56,44 +57,47 @@ class TestSqliteCity(unittest.TestCase):
         with SqliteSession(DB) as session:
             w = city.CityWrapper(session=session)
             cities = w.get(rel=city.hasPart)
+            c = cities[0]
             self.assertEqual(len(cities), 1)
-            c = cities.one()
             self.assertTrue(c.is_a(city.City))
             self.assertEqual(c.name, "Freiburg")
-            self.assertEqual(c.uid.data.hex,
+            self.assertEqual(c.uid.hex,
                              "affb72ee61754028bd7e39a92ba3bb77")
-            self.assertSetEqual(c.get(rel=city.isPartOf), {w})
-            self.assertEqual(c.coordinates, np.array([42, 12]))
+            self.assertEqual(c.get(rel=city.isPartOf), [w])
+            np.testing.assert_equal(c.coordinates, np.array([42, 12]))
 
             neighborhoods = c.get(oclass=city.Neighborhood)
-            n = neighborhoods.one()
+            n = neighborhoods[0]
             self.assertEqual(len(neighborhoods), 1)
-            self.assertEqual(n.uid.data.hex,
+            self.assertEqual(n.uid.hex,
                              "e30e0287f52b49f396b939a85fc9460d")
             self.assertEqual(n.name, "Zähringen")
-            self.assertSetEqual(n.get(rel=city.isPartOf), {c})
-            self.assertEqual(n.coordinates, np.array([0, 0]))
+            self.assertEqual(n.get(rel=city.isPartOf), [c])
+            np.testing.assert_equal(n.coordinates, np.array([0, 0]))
 
             streets = n.get()
-            s = streets.one()
+            s = streets[0]
             self.assertEqual(len(streets), 1)
-            self.assertEqual(s.uid.data.hex,
+            self.assertEqual(s.uid.hex,
                              "25cb6116e9d04ceb81cdd8cfcbead47b")
             self.assertEqual(s.name, "Le street")
-            self.assertSetEqual(s.get(rel=city.isPartOf), {n})
-            self.assertEqual(s.coordinates, np.array([1, 98]))
+            self.assertEqual(s.get(rel=city.isPartOf), [n])
+            np.testing.assert_equal(s.coordinates, np.array([1, 98]))
 
             citizen = c.get(rel=city.hasInhabitant)
             citizen = sorted(citizen, key=lambda p: p.name)
             self.assertEqual([p.name for p in citizen],
                              ["Hans", "Michel", "Peter"])
             for p in citizen:
-                self.assertSetEqual(p.get(rel=city.hasInhabitant.inverse), {c})
-                self.assertSetEqual(p.get(), set())
+                self.assertEqual(p.get(rel=city.hasInhabitant.inverse), [c])
+                self.assertEqual(p.get(), [])
 
-    def test_migrate_v1(self):
-        """Test migration from v1 to v2."""
-        self.run_migration(1)
+    def test_migrate_v0(self):
+        """Test migration from schema from v0."""
+        # load old schema and run migration
+
+        # connect to db and check if
+        self.run_migration(0)
         self.run_test()
 
 

@@ -34,7 +34,7 @@ setup(
         "osp.core.ontology.docs": ["*.yml", "*.ttl", "*.xml", "EMMO/*.owl"],
     },
     include_package_data=True,
-    python_requires=">=3.7",
+    python_requires=">=3.6",
     entry_points={
         'wrappers': 'osp-core = osp.core.session.core_session:CoreSession',
         'console_scripts': {
@@ -46,20 +46,22 @@ setup(
     },
     install_requires=[
         "PyYaml",
-        "websockets < 10",
+        "websockets",
         "requests",
         "numpy",
         "graphviz",
         "rdflib >= 5.0.0, < 6.0.0; python_version < '3.7'",
         "rdflib >= 6.0.0, < 7.0.0; python_version >= '3.7'",
-        "rdflib-jsonld == 0.6.1; python_version < '3.7'",
+        "rdflib-jsonld; python_version < '3.7'",
     ],
     setup_requires=[
         "PyYaml",
-        "websockets < 10",
+        "websockets",
         "requests",
         "numpy",
         "graphviz",
-        "rdflib >= 6.0.2, < 7.0.0",
+        "rdflib >= 5.0.0, < 6.0.0; python_version < '3.7'",
+        "rdflib >= 6.0.0, < 7.0.0; python_version >= '3.7'",
+        "rdflib-jsonld; python_version < '3.7'",
     ],
 )

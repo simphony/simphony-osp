@@ -289,9 +289,9 @@ def data_integrity(testcase, session, loaded_objects, label=None):
                               "objects."):
         for i in range(1, 4):
             cuds = object[i]
-            neighbor = cuds.get(rel=test_importexport.isLeftOf).one()
+            neighbor = cuds.get(rel=test_importexport.isLeftOf)[0]
             testcase.assertIs(neighbor, object[i + 1])
-            neighbor = cuds.get(rel=test_importexport.isNextTo).one()
+            neighbor = cuds.get(rel=test_importexport.isNextTo)[0]
             testcase.assertIs(neighbor, object[i + 1])
 
 

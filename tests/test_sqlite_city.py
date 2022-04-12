@@ -1,11 +1,11 @@
 """Test the Sqlite Wrapper with the CITY ontology."""
 
 import os
-
-import sqlite3
+from osp.core.utils.general import iri_from_uid
+import uuid
 import unittest2 as unittest
-
-from osp.core.ontology.datatypes import UID
+import sqlite3
+import numpy as np
 from osp.wrappers.sqlite import SqliteSession
 
 try:
@@ -50,7 +50,7 @@ class TestSqliteCity(unittest.TestCase):
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
             cw = wrapper.get(c.uid)
-            self.assertEqual(cw.coordinates, [42, 24])
+            np.testing.assert_array_equal(cw.coordinates, [42, 24])
 
     def test_insert(self):
         """Test inserting in the sqlite table."""
@@ -203,7 +203,7 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            wrapper.get(c.uid)
+            cs = wrapper.get(c.uid)
             r = session.load_by_oclass(city.Street)
             self.assertRaises(StopIteration, next, r)
 
@@ -232,8 +232,8 @@ class TestSqliteCity(unittest.TestCase):
 
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
-            wrapper.get(c.uid)
-            r = session.load_from_iri(UID(1).to_iri())
+            cs = wrapper.get(c.uid)
+            r = session.load_from_iri(iri_from_uid(uuid.UUID(int=1)))
             self.assertEqual(set(r), {None})
 
     def test_expiring(self):
@@ -265,7 +265,7 @@ class TestSqliteCity(unittest.TestCase):
             session.expire_all()
             self.assertEqual(p1w.name, "Maria")
             self.assertEqual(set(cw.get()), {p1w})
-            self.assertSetEqual(p2w.get(), set())
+            self.assertEqual(p2w.get(), list())
             self.assertFalse(hasattr(p3w, "name"))
             self.assertNotIn(p3w.uid, session._registry)
 
@@ -297,7 +297,7 @@ class TestSqliteCity(unittest.TestCase):
             self.assertEqual(cw.name, "Paris")
             self.assertEqual(p1w.name, "Maria")
             self.assertEqual(set(cw.get()), {p1w})
-            self.assertSetEqual(p2w.get(), set())
+            self.assertEqual(p2w.get(), list())
             self.assertFalse(hasattr(p3w, "name"))
             self.assertNotIn(p3w.uid, session._registry)
 
@@ -305,7 +305,7 @@ class TestSqliteCity(unittest.TestCase):
         """Test clearing the database."""
         # db is empty (no error occurs)
         with SqliteSession(DB) as session:
-            city.CityWrapper(session=session)
+            wrapper = city.CityWrapper(session=session)
             session._clear_database()
         with SqliteSession(DB) as session:
             wrapper = city.CityWrapper(session=session)
@@ -387,13 +387,11 @@ def check_state(test_case, c, p1, p2, db=DB):
         cursor.execute(
             "SELECT name FROM sqlite_master WHERE type='table';")
         result = set(map(lambda x: x[0], cursor))
-        test_case.assertEqual(result,
-                              {RELATIONSHIP_TABLE, data_tbl("CUSTOM_Vector"),
-                               data_tbl("CUSTOM_UID"), CUDS_TABLE,
-                               NAMESPACES_TABLE, ENTITIES_TABLE, TYPES_TABLE,
-                               data_tbl("XSD_boolean"), data_tbl("XSD_float"),
-                               data_tbl("XSD_integer"),
-                               data_tbl("XSD_string")})
+        test_case.assertEqual(result, set([
+            RELATIONSHIP_TABLE, data_tbl("VECTOR-INT-2"), CUDS_TABLE,
+            NAMESPACES_TABLE, ENTITIES_TABLE, TYPES_TABLE,
+            data_tbl("XSD_boolean"), data_tbl("XSD_float"),
+            data_tbl("XSD_integer"), data_tbl("XSD_string")]))
 
         cursor.execute(
             "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, `to`.`uid` "
@@ -404,14 +402,14 @@ def check_state(test_case, c, p1, p2, db=DB):
                ENTITIES_TABLE, CUDS_TABLE))
         result = set(cursor.fetchall())
         test_case.assertEqual(result, {
-            (str(UID(0)), 1, "hasPart", str(c.uid)),
+            (str(uuid.UUID(int=0)), 1, "hasPart", str(c.uid)),
             (str(c.uid), 1, "hasInhabitant", str(p1.uid)),
             (str(c.uid), 1, "hasInhabitant", str(p2.uid)),
             (str(p1.uid), 1, "INVERSE_OF_hasInhabitant",
              str(c.uid)),
             (str(p2.uid), 1, "INVERSE_OF_hasInhabitant",
              str(c.uid)),
-            (str(c.uid), 1, "isPartOf", str(UID(0)))
+            (str(c.uid), 1, "isPartOf", str(uuid.UUID(int=0)))
         })
 
         cursor.execute(
@@ -433,7 +431,7 @@ def check_state(test_case, c, p1, p2, db=DB):
             (str(c.uid), 1, 'City'),
             (str(p1.uid), 1, 'Citizen'),
             (str(p2.uid), 1, 'Citizen'),
-            (str(UID(0)), 1, 'CityWrapper')
+            (str(uuid.UUID(int=0)), 1, 'CityWrapper')
         })
 
         cursor.execute(
@@ -446,6 +444,17 @@ def check_state(test_case, c, p1, p2, db=DB):
             (str(p1.uid), 1, 'name', 'Peter'),
             (str(c.uid), 1, 'name', 'Freiburg'),
             (str(p2.uid), 1, 'name', 'Georg')
+        })
+
+        cursor.execute(
+            "SELECT `ts`.`uid`, `tp`.`ns_idx`, `tp`.`name`, "
+            "`x`.`o___0` , `x`.`o___1` "
+            "FROM `%s` AS `x`, `%s` AS `ts`, `%s` AS `tp` "
+            "WHERE `x`.`s`=`ts`.`cuds_idx` AND `x`.`p`=`tp`.`entity_idx` ;"
+            % (data_tbl("VECTOR-INT-2"), CUDS_TABLE, ENTITIES_TABLE))
+        result = set(cursor.fetchall())
+        test_case.assertEqual(result, {
+            (str(c.uid), 1, 'coordinates', 0, 0)
         })
 
 
@@ -478,7 +487,7 @@ def update_db(db, c, p1, p2, p3):
     with sqlite3.connect(db) as conn:
         cursor = conn.cursor()
         cursor.execute(f"SELECT `uid`, `cuds_idx` FROM {CUDS_TABLE};")
-        m = dict(map(lambda x: (UID(x[0]), x[1]), cursor))
+        m = dict(map(lambda x: (uuid.UUID(hex=x[0]), x[1]), cursor))
         cursor.execute(f"SELECT `name`, `entity_idx` "
                        f"FROM {ENTITIES_TABLE} ;")
         e = dict(cursor)

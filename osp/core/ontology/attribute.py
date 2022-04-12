@@ -1,17 +1,14 @@
 """An attribute defined in the ontology."""
 
-import logging
-
-from rdflib import OWL, RDFS, XSD, Literal
-
-from osp.core.ontology.datatypes import RDF_TO_PYTHON
 from osp.core.ontology.entity import OntologyEntity
-
+from osp.core.ontology.datatypes import convert_from, convert_to
+import logging
+import rdflib
 
 logger = logging.getLogger(__name__)
 
 
-BLACKLIST = {OWL.bottomDataProperty, OWL.topDataProperty}
+BLACKLIST = {rdflib.OWL.bottomDataProperty, rdflib.OWL.topDataProperty}
 
 
 class OntologyAttribute(OntologyEntity):
@@ -23,7 +20,7 @@ class OntologyAttribute(OntologyEntity):
         Args:
             namespace_registry (OntologyNamespaceRegistry): The namespace
                 registry where all namespaces are stored.
-            namespace_iri (URIRef): The IRI of the namespace.
+            namespace_iri (rdflib.URIRef): The IRI of the namespace.
             name (str): The name of the attribute.
             iri_suffix (str): namespace_iri +  namespace_registry make up the
                 namespace of this entity.
@@ -51,11 +48,12 @@ class OntologyAttribute(OntologyEntity):
             RuntimeError: More than one datatype associated with the attribute.
                 # TODO should be allowed
         """
-        blacklist = [RDFS.Literal]
+        blacklist = [rdflib.RDFS.Literal]
         superclasses = self.superclasses
         datatypes = set()
         for superclass in superclasses:
-            for o in self.namespace._graph.objects(superclass.iri, RDFS.range):
+            triple = (superclass.iri, rdflib.RDFS.range, None)
+            for _, _, o in self.namespace._graph.triples(triple):
                 if o not in blacklist:
                     datatypes.add(o)
         if len(datatypes) == 1:
@@ -74,33 +72,33 @@ class OntologyAttribute(OntologyEntity):
         Returns:
             Any: The converted value
         """
-        # TODO: Very similar to
-        #  `osp.core.session.db.sql_wrapper_session.SqlWrapperSession
-        #  ._convert_to_datatype`. Unify somehow.
-        if isinstance(value, Literal):
-            result = Literal(value.toPython(), datatype=self.datatype,
-                             lang=value.language).toPython()
-            if isinstance(result, Literal):
-                result = RDF_TO_PYTHON[self.datatype or XSD.string](
-                    value.value)
-        else:
-            result = RDF_TO_PYTHON[self.datatype or XSD.string](value)
-        return result
+        return convert_to(value, self.datatype)
+
+    def convert_to_basic_type(self, value):
+        """Convert from the datatype of the value to a python basic type.
+
+        Args:
+            value(Any): The value to convert
+
+        Returns:
+            Any: The converted value
+        """
+        return convert_from(value, self.datatype)
 
     def _direct_superclasses(self):
-        return self._directly_connected(RDFS.subPropertyOf,
+        return self._directly_connected(rdflib.RDFS.subPropertyOf,
                                         blacklist=BLACKLIST)
 
     def _direct_subclasses(self):
-        return self._directly_connected(RDFS.subPropertyOf,
+        return self._directly_connected(rdflib.RDFS.subPropertyOf,
                                         inverse=True, blacklist=BLACKLIST)
 
     def _superclasses(self):
         yield self
-        yield from self._transitive_hull(RDFS.subPropertyOf,
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
                                          blacklist=BLACKLIST)
 
     def _subclasses(self):
         yield self
-        yield from self._transitive_hull(RDFS.subPropertyOf,
+        yield from self._transitive_hull(rdflib.RDFS.subPropertyOf,
                                          inverse=True, blacklist=BLACKLIST)

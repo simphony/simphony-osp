@@ -1,14 +1,24 @@
 """Object to create backend independent queries, conditions and more."""
 
-from rdflib import OWL, RDF, RDFS, XSD, URIRef, Literal
+import rdflib
+from operator import mul
+from osp.core.ontology.datatypes import convert_to, convert_from, \
+    _parse_vector_args
+from osp.core.ontology.cuba import rdflib_cuba
+from functools import reduce
+from copy import deepcopy
 
 
-class SqlQuery:
+VEC_PREFIX = str(rdflib_cuba["_datatypes/VECTOR-"])
+
+
+class SqlQuery():
     """An sql query."""
 
-    def __init__(self, table_name: str, columns, datatypes, alias=None):
+    def __init__(self, table_name, columns, datatypes, alias=None):
         """Initialize the query."""
         alias = alias or table_name
+        columns, datatypes = expand_vector_cols(columns, datatypes)
         check_characters(table_name, columns, datatypes, alias)
 
         self.order = [alias]
@@ -26,6 +36,7 @@ class SqlQuery:
 
     def where(self, condition):
         """Filter the results."""
+        condition = expand_vector_condition(deepcopy(condition))
         check_characters(condition)
         if condition is None:
             return self
@@ -48,6 +59,7 @@ class SqlQuery:
     def join(self, table_name, columns, datatypes, alias=None):
         """Join with another table."""
         alias = alias or table_name
+        columns, datatypes = expand_vector_cols(columns, datatypes)
         check_characters(table_name, columns, datatypes, alias)
 
         if alias in self.tables:
@@ -59,7 +71,7 @@ class SqlQuery:
         return self
 
 
-class Condition:
+class Condition():
     """The general condition class."""
 
 
@@ -77,7 +89,7 @@ class EqualsCondition(Condition):
         """
         self.table_name = table_name
         self.column = column
-        self.value = Literal(value, datatype=datatype).toPython()
+        self.value = convert_from(value, datatype)
         self.datatype = datatype
 
     def __eq__(self, other):
@@ -87,7 +99,7 @@ class EqualsCondition(Condition):
             other (Condition): The other condition.
 
         Returns:
-            bool: Whether the two conditions are equal.
+            bool: Wether the two codnitions are equal.
         """
         return (
             isinstance(other, type(self))
@@ -120,7 +132,7 @@ class JoinCondition(Condition):
             other (Condition): The other condition.
 
         Returns:
-            bool: Whether the two conditions are equivalent.
+            bool: Wether the two codnitions are equivalent.
         """
         return (
             isinstance(other, type(self))
@@ -153,7 +165,7 @@ class AndCondition(Condition):
             other (Condition): The other condition.
 
         Returns:
-            bool: Whether the two conditions are equivalent.
+            bool: Wether the two codnitions are equivalent.
         """
         return isinstance(other, type(self)) \
             and set(self.conditions) == set(other.conditions)
@@ -163,63 +175,58 @@ class AndCondition(Condition):
         return hash("".join([str(hash(c)) for c in self.conditions]))
 
 
-def determine_datatype(table_name: str) -> URIRef:
+def determine_datatype(table_name):
     """Determine the datatype of column o for the table with given table name.
 
     Args:
         table_name (str): The name of the data table.
 
     Returns:
-        URIRef: The datatype of the object column.
+        rdflib.URIRef: The datatype of the object column.
     """
     from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
     prefix = SqlWrapperSession.DATA_TABLE_PREFIX
 
     if table_name.startswith(prefix + "OWL_"):
-        return URIRef(f'http://www.w3.org/2002/07/owl#'
-                      f'{table_name[len(prefix + "OWL_"):]}')
-        # Replaced OWL with URIRef('...'), as OWL.rational seems
+        return rdflib.URIRef(f'http://www.w3.org/2002/07/owl#'
+                             f'{table_name[len(prefix + "OWL_"):]}')
+        # Replaced rdflib.OWL with URIRef('...'), as rdflib.OWL.rational seems
         # to have disappeared in rdflib 6.0.0.
         # TODO: return to original form when a fix for rdflib is available.
     elif table_name.startswith(prefix + "RDFS_"):
-        return getattr(RDFS, table_name[len(prefix + "RDFS_"):])
+        return getattr(rdflib.RDFS, table_name[len(prefix + "RDFS_"):])
     elif table_name.startswith(prefix + "RDF_"):
-        return getattr(RDF, table_name[len(prefix + "RDF_"):])
+        return getattr(rdflib.RDF, table_name[len(prefix + "RDF_"):])
     elif table_name.startswith(prefix + "XSD_"):
-        return getattr(XSD, table_name[len(prefix + "XSD_"):])
-    elif table_name.startswith(prefix + "CUSTOM_"):
-        return URIRef('http://www.osp-core.com/types#') \
-            + table_name[len(prefix + "CUSTOM_"):]
+        return getattr(rdflib.XSD, table_name[len(prefix + "XSD_"):])
     else:
-        raise NotImplementedError(f"Table name {table_name} does not match "
-                                  f"any known datatype.")
+        return getattr(rdflib_cuba, "_datatypes/" + table_name[len(prefix):])
 
 
-def get_data_table_name(datatype: URIRef) -> str:
+def get_data_table_name(datatype):
     """Get the name of the table for the given datatype.
 
     Args:
-        datatype: The datatype of the object column.
+        datatype (rdflib.URIRef): The datatype of the object column.
 
     Raises:
         NotImplementedError: The given datatype is not supported.
 
     Returns:
-        The name of the table.
+        str: The name of the table.
     """
     from osp.core.session.db.sql_wrapper_session import SqlWrapperSession
     prefix = SqlWrapperSession.DATA_TABLE_PREFIX
-    if datatype.startswith(str(XSD)):
-        return prefix + "XSD_" + datatype[len(str(XSD)):]
-    if datatype.startswith(str(OWL)):
-        return prefix + "OWL_" + datatype[len(str(OWL)):]
-    if datatype.startswith(str(RDF)):
-        return prefix + "RDF_" + datatype[len(str(RDF)):]
-    if datatype.startswith(str(RDFS)):
-        return prefix + "RDFS_" + datatype[len(str(RDFS)):]
-    if datatype.startswith(str(URIRef('http://www.osp-core.com/types#'))):
-        return prefix + "CUSTOM_" + \
-            datatype[len(str(URIRef('http://www.osp-core.com/types#'))):]
+    if datatype.startswith(str(rdflib.XSD)):
+        return prefix + "XSD_" + datatype[len(str(rdflib.XSD)):]
+    if datatype.startswith(str(rdflib.OWL)):
+        return prefix + "OWL_" + datatype[len(str(rdflib.OWL)):]
+    if datatype.startswith(str(rdflib.RDF)):
+        return prefix + "RDF_" + datatype[len(str(rdflib.RDF)):]
+    if datatype.startswith(str(rdflib.RDFS)):
+        return prefix + "RDFS_" + datatype[len(str(rdflib.RDFS)):]
+    if datatype.startswith(str(rdflib_cuba) + "_datatypes/"):
+        return prefix + datatype[len(str(rdflib_cuba) + "_datatypes/"):]
     raise NotImplementedError(f"Unsupported datatype {datatype}")
 
 
@@ -265,6 +272,181 @@ def check_characters(*to_check):
                 raise ValueError("%s - %s" % (s, str_to_check))
 
 
+def expand_vector_cols(columns, datatypes, values=None):
+    """Expand columns of vectors.
+
+    SQL databases are not able to store vectors in general.
+    So we instead create a column for each element in the vector.
+    Therefore we need generate the column descriptions for each of those
+    columns.
+    During insertion, we need to transform the vectors
+    into their individual values.
+
+    This method expands the column description and the values, if given.
+
+    Args:
+        columns(List[str]): The columns to expand.
+        datatypes(Dict[str, str]): The datatypes for each column.
+            VECTORs will be expanded.
+        values(List[Any], optional, optional): The values to expand,
+            defaults to None
+
+    Returns:
+        Tuple[List[str], Dict[str, str], (List[Any])]: The expanded
+            columns, datatypes (and values, if given)
+    """
+    columns_expanded = list()
+    datatypes_expanded = dict(datatypes)
+    values_expanded = list()
+
+    # iterate over the columns and look for vectors
+    for i, column in enumerate(columns):
+        # non vectors are simply added to the result
+        if datatypes[column] is None or \
+                not datatypes[column].startswith(VEC_PREFIX):
+            columns_expanded.append(column)
+            datatypes_expanded[column] = datatypes[column]
+            if values:
+                values_expanded.append(values[i])
+            continue
+
+        # create a column for each element in the vector
+        expanded_cols, datatype = get_expanded_cols(column, datatypes[column])
+        columns_expanded.extend(expanded_cols)
+        datatypes_expanded.update({c: datatype for c in expanded_cols})
+        datatypes_expanded[column] = datatypes[column]
+        if values:
+            values_expanded.extend(convert_from(values[i],
+                                                datatypes[column]))
+    if values:
+        return columns_expanded, datatypes_expanded, values_expanded
+    return columns_expanded, datatypes_expanded
+
+
+def contract_vector_values(rows, query):
+    """Contract vector values in a row of a database into one vector.
+
+    Args:
+        rows(Iterator[List[Any]]): The rows fetched from the database
+        query(SqlQuery): The corresponding query-
+
+    Returns:
+        Iterator[List[Any]]: The rows with vectors being a single item
+            in each row.
+    """
+    rows = convert_values(rows, query)
+    for row in rows:
+        contracted_row = list()
+        temp_vec = list()  # collect the elements of the vectors here
+        vector_datatype = None
+
+        # iterate over the columns and look for vector columns
+        for (t_alias, column), value in zip(query.columns, row):
+
+            vector_datatype, is_vec_elem = handle_vector_item(
+                column, value, query.datatypes[t_alias],
+                temp_vec, vector_datatype
+            )
+            if is_vec_elem:
+                continue
+
+            if temp_vec:  # add the vector to the result
+                contracted_row.append(convert_to(temp_vec, vector_datatype))
+                temp_vec = list()
+
+            vector_datatype, is_vec_elem = handle_vector_item(
+                column, value, query.datatypes[t_alias],
+                temp_vec, vector_datatype
+            )
+            if is_vec_elem:
+                continue
+
+            # non vectors are simply added to the result
+            contracted_row.append(value)
+
+        if temp_vec:  # add the vector to the result
+            contracted_row.append(convert_to(temp_vec,
+                                             vector_datatype))
+            temp_vec = list()
+        yield contracted_row
+
+
+def expand_vector_condition(condition):
+    """Expand a condition on a vector to condition on multiple columns.
+
+    Args:
+        condition (Condition): A osp-core condition.
+
+    Returns:
+        Condition: The expanded OSP-core condition.
+    """
+    if isinstance(condition, EqualsCondition) \
+            and condition.datatype.startswith(VEC_PREFIX):
+
+        expanded_cols, datatype = get_expanded_cols(condition.column,
+                                                    condition.datatype)
+        return AndCondition(*[
+            EqualsCondition(table_name=condition.table_name,
+                            column=c, value=v, datatype=datatype)
+            for c, v in zip(expanded_cols, condition.value)
+        ])
+
+    elif isinstance(condition, AndCondition):
+        return AndCondition(*[
+            expand_vector_condition(c)
+            for c in condition.conditions
+        ])
+    return condition
+
+
+def get_expanded_cols(column, datatype):
+    """Get the expanded columns for the given column.
+
+    Args:
+        column (str): The column name to expand.
+        datatype (rdflib.URIRef): The datatype of the column.
+            Expand if it is a vector.
+
+    Returns:
+        Tuple[List[str], rdflib.URIRef]: ist of resulting columns and their
+            datatype,
+    """
+    if not datatype.startswith(VEC_PREFIX):
+        return [column], datatype
+    vector_args = datatype[len(VEC_PREFIX):].split("-")
+    datatype, shape = _parse_vector_args(vector_args)
+    size = reduce(mul, map(int, shape))
+    expanded_cols = ["%s___%s" % (column, x)
+                     for x in range(size)]
+    return expanded_cols, datatype
+
+
+def handle_vector_item(column, value, datatypes, temp_vec,
+                       old_vector_datatype):
+    """Check if a column corresponds to a vector.
+
+    If it does, add it to the temp_vec list.
+    Used during contract_vector_values
+
+    Args:
+        column(str): The currect column to consider in the contraction
+        value(Any): The value of the column
+        datatypes(Dict): Maps a datatype to each column
+        temp_vec(List[float]): The elements of the current vector.
+        old_vector_datatype(str): The vector datatype of the old iteration.
+
+    Returns:
+        Tuple[str, bool]: The new vector datatype and whether the current
+            column corresponds to a vector.
+    """
+    vec_suffix = "___%s" % len(temp_vec)  # suffix of vector column
+    if column.endswith(vec_suffix):
+        temp_vec.append(value)  # store the vector element
+        orig_col = column[:-len(vec_suffix)]
+        return datatypes[orig_col], True
+    return old_vector_datatype, False
+
+
 def convert_values(rows, query):
     """Convert the values in the database to the correct datatype.
 
@@ -279,8 +461,6 @@ def convert_values(rows, query):
         output = []
         for value, (t_alias, column) in zip(row, query.columns):
             output.append(
-                Literal(value,
-                        datatype=query.datatypes[t_alias][column])
-                .toPython()
+                convert_to(value, query.datatypes[t_alias][column])
             )
         yield output

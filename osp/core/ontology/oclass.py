@@ -1,15 +1,12 @@
 """A class defined in the ontology."""
+import uuid
 
-import logging
-from typing import Any, Dict, List, Optional, Set, Union
-from uuid import UUID
+import rdflib
 
-from rdflib import OWL, RDFS, RDF, BNode, URIRef
-
-from osp.core.ontology.attribute import OntologyAttribute
-from osp.core.ontology.cuba import rdflib_cuba
-from osp.core.ontology.datatypes import UID
 from osp.core.ontology.entity import OntologyEntity
+from osp.core.ontology.cuba import rdflib_cuba
+import logging
+from rdflib import OWL, RDFS, RDF, BNode
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +116,7 @@ class OntologyClass(OntologyEntity):
                     or a_iri in blacklist:
                 continue
             a = self.namespace._namespace_registry.from_iri(a_iri)
-            default = self._get_default(a, iri)
+            default = self._get_default(a_iri, iri)
             attributes[a] = (default, False, None)
 
         # Case 2: axioms
@@ -132,7 +129,7 @@ class OntologyClass(OntologyEntity):
             if triple not in graph or isinstance(a_iri, BNode):
                 continue
             a = self.namespace._namespace_registry.from_iri(a_iri)
-            cuba_default = self._get_default(a, iri)
+            cuba_default = self._get_default(a_iri, iri)
             restriction_default = graph.value(o, OWL.hasValue)
             default = cuba_default or restriction_default
             dt, obligatory = self._get_datatype_for_restriction(o)
@@ -155,27 +152,23 @@ class OntologyClass(OntologyEntity):
         obligatory = obligatory or (r, OWL.minCardinality) != 0
         return dt, obligatory
 
-    def _get_default(self,
-                     attribute: OntologyAttribute,
-                     superclass_iri: URIRef):
+    def _get_default(self, attribute_iri, superclass_iri):
         """Get the default of the attribute with the given iri.
 
         Args:
-            attribute_iri: The attribute.
-            superclass_iri: IRI of the superclass that defines the default.
+            attribute_iri (URIRef): IRI of the attribute
+            superclass_iri (URIRef): IRI of the superclass that defines
+                the default.
 
         Returns:
             Any: the default
         """
         triple = (superclass_iri, rdflib_cuba._default, None)
         for _, _, bnode in self.namespace._graph.triples(triple):
-            x = (bnode, rdflib_cuba._default_attribute, attribute.iri)
+            x = (bnode, rdflib_cuba._default_attribute, attribute_iri)
             if x in self.namespace._graph:
-                in_graph = self.namespace._graph.value(
-                    bnode, rdflib_cuba._default_value)
-                return attribute.convert_to_datatype(in_graph) \
-                    if in_graph is not None \
-                    else None
+                return self.namespace._graph.value(bnode,
+                                                   rdflib_cuba._default_value)
 
     def get_attribute_by_argname(self, name):
         """Get the attribute object with the argname of the object.
@@ -201,24 +194,21 @@ class OntologyClass(OntologyEntity):
                 )
                 return attribute
 
-    def _get_attributes_values(self,
-                               kwargs: Dict[str, Union[Any, Set[Any]]],
-                               _force: bool) -> Dict[OntologyAttribute,
-                                                     List[Any]]:
+    def _get_attributes_values(self, kwargs, _force):
         """Get the cuds object's attributes from the given kwargs.
 
         Combine defaults and given attribute attributes
 
         Args:
-            kwargs: The user specified keyword arguments.
-            _force: Skip checks.
+            kwargs (dict[str, Any]): The user specified keyword arguments
+            _force (bool): Skip checks.
 
         Raises:
             TypeError: Unexpected keyword argument.
             TypeError: Missing keyword argument.
 
         Returns:
-            The resulting attributes.
+            [Dict[OntologyAttribute, Any]]: The resulting attributes.
         """
         kwargs = dict(kwargs)
         attributes = dict()
@@ -243,18 +233,6 @@ class OntologyClass(OntologyEntity):
                                 attribute.argname)
             elif default is not None:
                 attributes[attribute] = default
-            else:
-                continue
-
-            # Turn attribute into a mutable sequence.
-            if not isinstance(attributes[attribute], Set):
-                attributes[attribute] = [attributes[attribute]]
-            else:
-                attributes[attribute] = list(attributes[attribute])
-
-            # Set the appropriate hashable data type for the arguments.
-            for i, value in enumerate(attributes[attribute]):
-                attributes[attribute][i] = attribute.convert_to_datatype(value)
 
         # Check validity of arguments
         if not _force and kwargs:
@@ -282,47 +260,33 @@ class OntologyClass(OntologyEntity):
             RDFS.subClassOf, inverse=True,
             blacklist=BLACKLIST)
 
-    def __call__(self,
-                 session=None,
-                 iri: Optional[Union[URIRef, str, UID]] = None,
-                 uid: Optional[Union[UUID, str, UID]] = None,
-                 _force: bool = False,
-                 **kwargs):
+    def __call__(self, session=None, iri=None, uid=None,
+                 _force=False, **kwargs):
         """Create a Cuds object from this ontology class.
 
         Args:
-            uid: The identifier of the Cuds object. Should be set to None in
-                most cases. Then a new identifier is generated, defaults to
-                None. Defaults to None.
-            iri: The same as the uid, but exclusively for IRI identifiers.
+            uid (Union[UUID, int], optional): The identifier of the
+                Cuds object. Should be set to None in most cases. Then a new
+                identifier is generated, defaults to None. Defaults to None.
+            iri (Union[URIRef, str], optional): The same as the uid, but
+                exclusively for IRI identifiers.
             session (Session, optional): The session to create the cuds object
                 in, defaults to None. Defaults to None.
-            _force: Skip validity checks. Defaults to False.
+            _force (bool, optional): Skip validity checks. Defaults to False.
 
         Raises:
             TypeError: Error occurred during instantiation.
 
         Returns:
-            Cuds, The created cuds object
+            Cuds: The created cuds object
         """
-        if None not in (uid, iri):
-            raise ValueError("Tried to initialize a CUDS object specifying, "
-                             "both its IRI and UID. A CUDS object is "
-                             "constrained to have just one UID.")
-        elif uid is not None and not isinstance(uid, (UUID, int, UID)):
-            raise ValueError('Provide either a UUID or a URIRef object '
-                             'as UID.')
-            # NOTE: The error message is not wrong, the user is not meant to
-            #  provide a UID object, only OSP-core itself.
-        elif iri is not None and not isinstance(iri, (URIRef, str, UID)):
-            raise ValueError('Provide either a string or an URIRef object as '
-                             'IRI.')
-            # NOTE: The error message is not wrong, the user is not meant to
-            #  provide a UID object, only OSP-core itself.
-        else:
-            uid = (UID(uid) if uid else None) or \
-                (UID(iri) if iri else None) or \
-                UID()
+        # Accept strings as IRI identifiers and integers as UUID identifiers.
+        types_map = {int: lambda x: uuid.UUID(int=x),
+                     str: lambda x: rdflib.URIRef(x),
+                     rdflib.URIRef: lambda x: x,
+                     uuid.UUID: lambda x: x,
+                     type(None): lambda x: x}
+        iri, uid = (types_map[type(x)](x) for x in (iri, uid))
 
         from osp.core.cuds import Cuds
         from osp.core.namespaces import cuba
@@ -340,5 +304,6 @@ class OntologyClass(OntologyEntity):
             attributes=self._get_attributes_values(kwargs, _force=_force),
             oclass=self,
             session=session,
+            iri=iri,
             uid=uid
         )

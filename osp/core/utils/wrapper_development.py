@@ -1,11 +1,10 @@
 """Utilities useful for Wrapper developers."""
+
+import rdflib
 from copy import deepcopy
-
-from rdflib import RDF, Literal
-
-from osp.core.namespaces import cuba
-from osp.core.ontology.datatypes import UID
+from osp.core.ontology.datatypes import convert_to
 from osp.core.utils.general import get_relationships_between
+from osp.core.namespaces import cuba
 
 
 # General utility methods
@@ -82,13 +81,7 @@ def clone_cuds_object(cuds_object):
         return None
     session = cuds_object._session
     clone = deepcopy(cuds_object)
-    # TODO: Potential inefficiency spotted, what graph is exactly being
-    #  copied?.
-    # print('Potential inefficiency',
-    #       clone._graph is not session.graph,
-    #       len(clone._graph), len(session.graph))
     clone._session = session
-    # clone._graph = session.graph  # Causes bug with expiration mechanism.
     return clone
 
 
@@ -113,7 +106,7 @@ def create_recycle(oclass, kwargs, session, uid,
     """
     from osp.core.session.wrapper_session import WrapperSession
     from osp.core.cuds import Cuds
-    uid = UID(uid)
+    uid = convert_to(uid, "UID")
     if isinstance(session, WrapperSession) and uid in session._expired:
         session._expired.remove(uid)
 
@@ -189,14 +182,13 @@ def change_oclass(cuds_object, new_oclass, kwargs, _force=False):
     attributes = new_oclass._get_attributes_values(kwargs, _force=_force)
     cuds_object._graph.remove((cuds_object.iri, None, None))
     cuds_object._graph.add((
-        cuds_object.iri, RDF.type, new_oclass.iri
+        cuds_object.iri, rdflib.RDF.type, new_oclass.iri
     ))
     for k, v in attributes.items():
-        for e in v:
-            cuds_object._graph.set((
-                cuds_object.iri, k.iri,
-                Literal(k.convert_to_datatype(e), datatype=k.datatype)
-            ))
+        cuds_object._graph.set((
+            cuds_object.iri, k.iri, rdflib.Literal(k.convert_to_datatype(v),
+                                                   datatype=k.datatype)
+        ))
     cuds_object.session._notify_update(cuds_object)
 
 
@@ -213,13 +205,14 @@ def create_from_triples(triples, neighbor_triples, session,
         fix_neighbors (bool): Whether to remove the link from the old neighbors
             to this cuds object, defaults to True.
     """
+    from osp.core.utils.general import uid_from_iri
     from osp.core.cuds import Cuds
     from osp.core.session.wrapper_session import WrapperSession
     triples = list(triples)
     if not triples:
         return None
 
-    uid = UID(triples[0][0])
+    uid = uid_from_iri(triples[0][0])
     if isinstance(session, WrapperSession) and uid in session._expired:
         session._expired.remove(uid)
 
