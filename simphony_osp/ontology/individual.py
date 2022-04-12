@@ -569,7 +569,7 @@ class RelationshipSet(ObjectSet):
                         ),
                     )
                     first = next(found, (None, None))
-                    yield identifier, *first
+                    yield tuple((identifier, *first))
                     if first != (None, None):
                         yield from ((identifier, *f) for f in found)
 
