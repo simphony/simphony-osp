@@ -2,13 +2,13 @@
 
 # Please install the city ontology: $pico install city
 
-from osp.core.namespaces import city
+from simphony_osp.namespaces import city
 
 print("Creating a City object, c...")
 c = city.City(name="Freiburg", coordinates=[47, 7])
 print("Creating Citizen objects, p1, p2...")
-p1 = city.Citizen(name="Peter")
-p2 = city.Citizen(name="Anne")
+p1 = city.Citizen(name="Peter", age=25)
+p2 = city.Citizen(name="Anne", age=28)
 
 # Functionalities exposed as Python properties.
 
@@ -22,9 +22,9 @@ print("  IRI of c: " + str(c.iri))
 print("  IRI of p1: " + str(p1.iri))
 print("  IRI of p2: " + str(p2.iri))
 
-print("  oclass of c: " + str(c.oclass))
-print("  oclass of p1: " + str(p1.oclass))
-print("  oclass of p2: " + str(p2.oclass))
+print("  classes of c: " + str(c.classes))
+print("  classes of p1: " + str(p1.classes))
+print("  classes of p2: " + str(p2.classes))
 
 print("Checking attributes of the CUDS objects...")
 print(f"  Name of c: {c.name}. Coordinates of c: {c.coordinates}.")
@@ -39,10 +39,10 @@ print(f"  Name of p1: {p1.name}.")
 # Functionalities exposed as Python methods.
 
 print("\nAdding p1 to c...")
-c.add(p1, rel=city.hasInhabitant)
+c.connect(p1, rel=city.hasInhabitant)
 
 print("Adding p2 to c...")
-c.add(p2, rel=city.hasInhabitant)
+c.connect(p2, rel=city.hasInhabitant)
 
 print("\nElements in c:")
 for el in c.iter():
@@ -55,13 +55,15 @@ print("\nGetting city.Citizen from c:")
 print(f"  {c.get(oclass=city.Citizen)}")
 
 print("\nRemove p1:")
-c.remove(p1.uid)
+c.disconnect(p1.uid)
 print(f"  {c.get(oclass=city.Citizen)}")
 
 print("\nAdding neighborhoods to Cuds object in a loop:")
 for i in range(6):
     print("  Added neighborhood %s" % i)
-    c.add(city.Neighborhood(name="neighborhood %s" % i))
+    c.connect(
+        city.Neighborhood(name="neighborhood %s" % i, coordinates=[0, 0])
+    )
 
 print(
     "\nTrying out the `is_a` method trivially with the city and the new "

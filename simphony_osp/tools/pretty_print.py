@@ -5,14 +5,14 @@ from functools import reduce
 from operator import add
 from typing import Iterable, Optional, Set
 
-from simphony_osp.namespaces import cuba
+from simphony_osp.namespaces import simphony
 from simphony_osp.ontology.attribute import OntologyAttribute
+from simphony_osp.ontology.composition import Composition
 from simphony_osp.ontology.entity import OntologyEntity
 from simphony_osp.ontology.individual import OntologyIndividual
 from simphony_osp.ontology.oclass import OntologyClass
-from simphony_osp.ontology.oclass_composition import Composition
-from simphony_osp.ontology.oclass_restriction import Restriction
 from simphony_osp.ontology.relationship import OntologyRelationship
+from simphony_osp.ontology.restriction import Restriction
 
 
 def pretty_print(entity: OntologyEntity, file=sys.stdout):
@@ -43,7 +43,7 @@ def pretty_print(entity: OntologyEntity, file=sys.stdout):
     superclasses = (
         set(
             superclass
-            for class_ in entity.oclasses
+            for class_ in entity.classes
             for superclass in class_.superclasses
         )
         if isinstance(entity, OntologyIndividual)
@@ -54,7 +54,7 @@ def pretty_print(entity: OntologyEntity, file=sys.stdout):
 
     if isinstance(entity, OntologyIndividual):
         # Classes
-        classes = set(entity.oclasses)
+        classes = set(entity.classes)
         labels = _pp_list_of_labels_or_uids(classes)
         pp["classes"] = f"\n  type{'s' if len(classes) > 1 else ''}: {labels}"
         # Attribute values
@@ -137,7 +137,7 @@ def _pp_individual_subelements(
         except KeyError:
             pass
     filtered_relationships = filter(
-        lambda x: x.is_subclass_of(cuba.activeRelationship),
+        lambda x: x.is_subclass_of(simphony.activeRelationship),
         consider_relationships,
     )
     sorted_relationships = sorted(filtered_relationships, key=str)
@@ -197,7 +197,7 @@ def _pp_individual_values(cuds_object, indentation="\n          "):
     """
     result = []
     sorted_attributes = sorted(
-        cuds_object.attributes_get().items(),
+        cuds_object.attributes().items(),
         key=lambda x: (
             f"\0{x[0].label}"
             if x[0].label is not None

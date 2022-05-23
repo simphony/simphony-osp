@@ -1,18 +1,19 @@
 """An ontology individual."""
+from __future__ import annotations
 
 import functools
-import itertools
 import logging
 from abc import ABC
-from collections import OrderedDict
 from itertools import chain
+from types import MappingProxyType
 from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
+    FrozenSet,
     Iterable,
     Iterator,
-    List,
+    Mapping,
     MutableSet,
     Optional,
     Set,
@@ -21,7 +22,7 @@ from typing import (
     Union,
 )
 
-from rdflib import RDF, Literal, URIRef
+from rdflib import OWL, RDF, Literal, URIRef
 from rdflib.term import Identifier, Node
 
 from simphony_osp.ontology.annotation import OntologyAnnotation
@@ -30,7 +31,6 @@ from simphony_osp.ontology.entity import OntologyEntity
 from simphony_osp.ontology.oclass import OntologyClass
 from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.ontology.utils import DataStructureSet
-from simphony_osp.utils.cuba_namespace import cuba_namespace
 from simphony_osp.utils.datatypes import (
     ATTRIBUTE_VALUE_TYPES,
     UID,
@@ -54,6 +54,12 @@ class ResultEmptyError(Exception):
 
 class MultipleResultsError(Exception):
     """Only a single result is expected, but there were multiple."""
+
+
+class ExistingIndividualException(ValueError):
+    """To be raised when a provided CUDS is already linked."""
+
+    pass
 
 
 class ObjectSet(DataStructureSet, ABC):
@@ -80,13 +86,16 @@ class ObjectSet(DataStructureSet, ABC):
     implementations of this class: `AttributeSet`,
     `RelationshipSet` and `AnnotationSet`)."""
 
-    _individual: "OntologyIndividual"
+    _individual: OntologyIndividual
     """The ontology individual to which this object is linked to.
     Whenever the set is modified, the modification will affect this ontology
     individual."""
 
+    # Public API
+    # ↓ ------ ↓
+
     @property
-    def individual(self) -> "OntologyIndividual":
+    def individual(self) -> OntologyIndividual:
         """Ontology individual that this set refers to."""
         return self._individual
 
@@ -94,36 +103,6 @@ class ObjectSet(DataStructureSet, ABC):
     def predicate(self) -> Union[OntologyPredicate]:
         """Predicate that this set refers to."""
         return self._predicate
-
-    @property
-    def _predicates(
-        self,
-    ) -> Optional[
-        Union[
-            Set[OntologyAttribute],
-            Set[OntologyRelationship],
-            Set[OntologyAnnotation],
-        ]
-    ]:
-        """All the predicates to which this instance refers to.
-
-        Returns:
-            Such predicates, or `None` if no main predicate is
-            associated with this `ObjectSet`.
-        """
-        return (
-            self._predicate.subclasses if self._predicate is not None else None
-        )
-
-    def __init__(
-        self,
-        predicate: Optional[OntologyPredicate],
-        individual: "OntologyIndividual",
-    ):
-        """Fix the linked predicate and CUDS object."""
-        self._individual = individual
-        self._predicate = predicate
-        super().__init__()
 
     def __repr__(self) -> str:
         """Return repr(self)."""
@@ -184,6 +163,39 @@ class ObjectSet(DataStructureSet, ABC):
         """
         return self
 
+    # ↑ ------ ↑
+    # Public API
+
+    @property
+    def _predicates(
+        self,
+    ) -> Optional[
+        Union[
+            Set[OntologyAttribute],
+            Set[OntologyRelationship],
+            Set[OntologyAnnotation],
+        ]
+    ]:
+        """All the predicates to which this instance refers to.
+
+        Returns:
+            Such predicates, or `None` if no main predicate is
+            associated with this `ObjectSet`.
+        """
+        return (
+            self._predicate.subclasses if self._predicate is not None else None
+        )
+
+    def __init__(
+        self,
+        predicate: Optional[OntologyPredicate],
+        individual: OntologyIndividual,
+    ):
+        """Fix the linked predicate and CUDS object."""
+        self._individual = individual
+        self._predicate = predicate
+        super().__init__()
+
 
 class AttributeSet(ObjectSet):
     """A set interface to an ontology individual's attributes.
@@ -203,36 +215,8 @@ class AttributeSet(ObjectSet):
     and ontology individual (when single-threading).
     """
 
-    _predicate: OntologyAttribute
-
-    @property
-    def _predicates(self) -> Set[OntologyAttribute]:
-        """All the attributes to which this instance refers to.
-
-        Returns:
-            Such predicates are the subproperties of the main predicate, or
-            if it is none, all the subproperties.
-        """
-        predicates = super()._predicates
-        if predicates is None:
-            predicates = set(self._individual.attributes_generator())
-            # The code below is technically true, but makes no
-            #  difference due to how `attributes_generator` is written.
-            # predicates = set(itertools.chain(
-            #    subclasses
-            #    for attributes in
-            #    self._individual.attributes_generator(_notify_read=True)
-            #    for subclasses in attributes.subclasses
-            # ))
-        return predicates
-
-    def __init__(
-        self,
-        attribute: Optional[OntologyAttribute],
-        individual: "OntologyIndividual",
-    ):
-        """Fix the liked OntologyAttribute and ontology individual."""
-        super().__init__(attribute, individual)
+    # Public API
+    # ↓ ------ ↓
 
     def __iter__(self) -> Iterator[AttributeValue]:
         """The values assigned to the referred predicates.
@@ -243,7 +227,7 @@ class AttributeSet(ObjectSet):
             The mentioned values.
         """
         yielded: Set[AttributeValue] = set()
-        for value in itertools.chain(
+        for value in chain(
             *(
                 self._individual.attributes_value_generator(
                     attribute=attribute
@@ -292,6 +276,40 @@ class AttributeSet(ObjectSet):
         for attribute in self._predicates:
             self._individual.attributes_delete(attribute, removed)
 
+    # ↑ ------ ↑
+    # Public API
+
+    _predicate: OntologyAttribute
+
+    @property
+    def _predicates(self) -> Set[OntologyAttribute]:
+        """All the attributes to which this instance refers to.
+
+        Returns:
+            Such predicates are the subproperties of the main predicate, or
+            if it is none, all the subproperties.
+        """
+        predicates = super()._predicates
+        if predicates is None:
+            predicates = set(self._individual.attributes_generator())
+            # The code below is technically true, but makes no
+            #  difference due to how `attributes_generator` is written.
+            # predicates = set(chain(
+            #    subclasses
+            #    for attributes in
+            #    self._individual.attributes_generator(_notify_read=True)
+            #    for subclasses in attributes.subclasses
+            # ))
+        return predicates
+
+    def __init__(
+        self,
+        attribute: Optional[OntologyAttribute],
+        individual: OntologyIndividual,
+    ):
+        """Fix the liked OntologyAttribute and ontology individual."""
+        super().__init__(attribute, individual)
+
 
 class RelationshipSet(ObjectSet):
     """A set interface to an ontology individual's relationships.
@@ -310,110 +328,6 @@ class RelationshipSet(ObjectSet):
     relationship and ontology individual (when single-threading).
     """
 
-    _predicate: Optional[OntologyRelationship]
-    _class_filter: Optional[OntologyClass]
-    _uid_filter: Optional[Tuple[UID]]
-    _inverse: bool = False
-
-    def __init__(
-        self,
-        relationship: Optional[OntologyRelationship],
-        individual: "OntologyIndividual",
-        oclass: Optional[OntologyClass] = None,
-        inverse: bool = False,
-        uids: Optional[Iterable[UID]] = None,
-    ):
-        """Fix the liked OntologyRelationship and ontology individual."""
-        if relationship is not None and not isinstance(
-            relationship, OntologyRelationship
-        ):
-            raise TypeError(
-                "Found object of type %s. "
-                "Should be an OntologyRelationship." % type(relationship)
-            )
-        if oclass is not None and not isinstance(oclass, OntologyClass):
-            raise TypeError(
-                "Found object of type %s. Should be "
-                "an OntologyClass." % type(oclass)
-            )
-        uids = tuple(uids) if uids is not None else None
-        if uids is not None:
-            for uid in uids:
-                if not isinstance(uid, UID):
-                    raise TypeError(
-                        "Found object of type %s. Should be an UID."
-                        % type(uid)
-                    )
-
-        self._class_filter = oclass
-        self._inverse = inverse
-        self._uid_filter = uids
-        super().__init__(relationship, individual)
-
-    def __iter__(self) -> Iterator["OntologyIndividual"]:
-        """Iterate over individuals assigned to `self._predicates`.
-
-        Note: no class filter.
-
-        Returns:
-            The mentioned underlying set.
-        """
-        if self._uid_filter:
-            last_identifier = None
-            for i, r, t in self.iter_low_level():
-                if i == last_identifier:
-                    continue
-                elif (r, t) == (None, None):
-                    yield None
-                else:
-                    item = self._individual.session.from_identifier(i)
-                    if not self._class_filter or item.is_a(self._class_filter):
-                        yield item
-                    else:
-                        yield None
-                last_identifier = i
-        else:
-            yielded: Set[Node] = set()
-            for i, r, t in self.iter_low_level():
-                item = self._individual.session.from_identifier(i)
-                if i in yielded or (
-                    self._class_filter and not item.is_a(self._class_filter)
-                ):
-                    continue
-                yielded.add(i)
-                yield item
-
-    def __contains__(self, item: "OntologyIndividual") -> bool:
-        """Check if an individual is connected via the relationship."""
-        if item not in self.individual.session:
-            return False
-
-        original_uid_filter = self._uid_filter
-        try:
-            self._uid_filter = (item.uid,)
-            return next(iter(self)) is not None
-        finally:
-            self._uid_filter = original_uid_filter
-
-    def __invert__(self) -> "RelationshipSet":
-        """Get the inverse RelationshipSet."""
-        return self.inverse
-
-    @property
-    def inverse(self) -> "RelationshipSet":
-        """Get the inverse RelationshipSet.
-
-        Returns a RelationshipSet that works in the inverse direction: the
-        ontology individuals displayed are the ones which are the subject of
-        the relationship.
-        """
-        return RelationshipSet(
-            relationship=self._predicate,
-            individual=self.individual,
-            oclass=self._class_filter,
-            inverse=not self._inverse,
-        )
-
     @staticmethod
     def prevent_class_filtering(func):
         """Decorator breaking methods when class filtering is enabled."""
@@ -431,8 +345,77 @@ class RelationshipSet(ObjectSet):
     # Bind static method to use as decorator.
     prevent_class_filtering = prevent_class_filtering.__get__(object, None)
 
+    # Public API
+    # ↓ ------ ↓
+
+    def __iter__(self) -> Iterator[OntologyIndividual]:
+        """Iterate over individuals assigned to `self._predicates`.
+
+        Note: no class filter.
+
+        Returns:
+            The mentioned underlying set.
+        """
+        if self._uid_filter:
+            last_identifier = None
+            for i, r, t in self.iter_low_level():
+                if i == last_identifier:
+                    continue
+                elif (r, t) == (None, None):
+                    yield None
+                else:
+                    item = self._individual.session.from_identifier_typed(
+                        i, typing=OntologyIndividual
+                    )
+                    if not self._class_filter or item.is_a(self._class_filter):
+                        yield item
+                    else:
+                        yield None
+                last_identifier = i
+        else:
+            yielded: Set[Node] = set()
+            for i, r, t in self.iter_low_level():
+                item = self._individual.session.from_identifier(i)
+                if i in yielded or (
+                    self._class_filter and not item.is_a(self._class_filter)
+                ):
+                    continue
+                yielded.add(i)
+                yield item
+
+    def __contains__(self, item: OntologyIndividual) -> bool:
+        """Check if an individual is connected via the relationship."""
+        if item not in self.individual.session:
+            return False
+
+        original_uid_filter = self._uid_filter
+        try:
+            self._uid_filter = (item.uid,)
+            return next(iter(self)) is not None
+        finally:
+            self._uid_filter = original_uid_filter
+
+    def __invert__(self) -> RelationshipSet:
+        """Get the inverse RelationshipSet."""
+        return self.inverse
+
+    @property
+    def inverse(self) -> RelationshipSet:
+        """Get the inverse RelationshipSet.
+
+        Returns a RelationshipSet that works in the inverse direction: the
+        ontology individuals displayed are the ones which are the subject of
+        the relationship.
+        """
+        return RelationshipSet(
+            relationship=self._predicate,
+            individual=self.individual,
+            oclass=self._class_filter,
+            inverse=not self._inverse,
+        )
+
     @prevent_class_filtering
-    def update(self, other: Iterable["OntologyIndividual"]) -> None:
+    def update(self, other: Iterable[OntologyIndividual]) -> None:
         """Update the set with the union of itself and other."""
         # The individuals to update might be already attached. Given an
         #  individual from `other`, several situations may arise:
@@ -463,9 +446,7 @@ class RelationshipSet(ObjectSet):
             )
 
     @prevent_class_filtering
-    def intersection_update(
-        self, other: Iterable["OntologyIndividual"]
-    ) -> None:
+    def intersection_update(self, other: Iterable[OntologyIndividual]) -> None:
         """Update the set with the intersection of itself and another."""
         # Note: please read the comment on the `update` method.
         underlying_set = set(self)
@@ -480,7 +461,7 @@ class RelationshipSet(ObjectSet):
         self._individual.relationships_connect(*added, rel=self._predicate)
 
     @prevent_class_filtering
-    def difference_update(self, other: Iterable["OntologyIndividual"]) -> None:
+    def difference_update(self, other: Iterable[OntologyIndividual]) -> None:
         """Remove all elements of another set from this set."""
         # Note: please read the comment on the `update` method.
         removed = set(self) & set(other)
@@ -490,7 +471,7 @@ class RelationshipSet(ObjectSet):
 
     @prevent_class_filtering
     def symmetric_difference_update(
-        self, other: Iterable["OntologyIndividual"]
+        self, other: Iterable[OntologyIndividual]
     ) -> None:
         """Update with the symmetric difference of it and another."""
         # Note: please read the comment on the `update` method.
@@ -504,6 +485,49 @@ class RelationshipSet(ObjectSet):
 
         added = result.difference(underlying_set)
         self._individual.relationships_connect(*added, rel=self._predicate)
+
+    # ↑ ------ ↑
+    # Public API
+
+    _predicate: Optional[OntologyRelationship]
+    _class_filter: Optional[OntologyClass]
+    _uid_filter: Optional[Tuple[UID]]
+    _inverse: bool = False
+
+    def __init__(
+        self,
+        relationship: Optional[OntologyRelationship],
+        individual: OntologyIndividual,
+        oclass: Optional[OntologyClass] = None,
+        inverse: bool = False,
+        uids: Optional[Iterable[UID]] = None,
+    ):
+        """Fix the liked OntologyRelationship and ontology individual."""
+        if relationship is not None and not isinstance(
+            relationship, OntologyRelationship
+        ):
+            raise TypeError(
+                "Found object of type %s. "
+                "Should be an OntologyRelationship." % type(relationship)
+            )
+        if oclass is not None and not isinstance(oclass, OntologyClass):
+            raise TypeError(
+                "Found object of type %s. Should be "
+                "an OntologyClass." % type(oclass)
+            )
+        uids = tuple(uids) if uids is not None else None
+        if uids is not None:
+            for uid in uids:
+                if not isinstance(uid, UID):
+                    raise TypeError(
+                        "Found object of type %s. Should be an UID."
+                        % type(uid)
+                    )
+
+        self._class_filter = oclass
+        self._inverse = inverse
+        self._uid_filter = uids
+        super().__init__(relationship, individual)
 
     def iter_low_level(
         self,
@@ -595,10 +619,13 @@ class AnnotationSet(ObjectSet):
     def __init__(
         self,
         annotation: Optional[OntologyAnnotation],
-        individual: "OntologyIndividual",
+        individual: OntologyIndividual,
     ) -> None:
         """Fix the linked OntologyAnnotation and ontology individual."""
         super().__init__(annotation, individual)
+
+    # Public API
+    # ↓ ------ ↓
 
     def __iter__(self) -> Iterator[AnnotationValue]:
         """Iterate over annotations linked to the individual."""
@@ -636,6 +663,9 @@ class AnnotationSet(ObjectSet):
             self._predicate, set(self) ^ set(other)
         )
 
+    # ↑ ------ ↑
+    # Public API
+
 
 class OntologyIndividual(OntologyEntity):
     """An ontology individual."""
@@ -650,7 +680,7 @@ class OntologyIndividual(OntologyEntity):
         merge: bool = False,
         class_: Optional[OntologyClass] = None,
         attributes: Optional[
-            Dict["OntologyAttribute", Iterable[AttributeValue]]
+            Mapping["OntologyAttribute", Iterable[AttributeValue]]
         ] = None,
     ) -> None:
         """Initialize the ontology individual."""
@@ -703,41 +733,22 @@ class OntologyIndividual(OntologyEntity):
     # ↓ ------ ↓
 
     @property
-    def oclass(self) -> Optional[OntologyClass]:
-        """Get the ontology class of the ontology individual.
-
-        Returns:
-            The ontology class of the ontology individual. If the individual
-            belongs to multiple classes, then ONLY ONE of them is returned.
-            When the ontology individual does not belong to any ontology class.
-        """
-        oclasses = self.oclasses
-        return oclasses[0] if oclasses else None
-
-    @oclass.setter
-    def oclass(self, value: OntologyClass) -> None:
-        """Set the ontology class of the ontology individual.
-
-        Args:
-            value: The new ontology class of the ontology individual.
-        """
-        self.oclasses = {value}
-
-    @property
-    def oclasses(self) -> Tuple[OntologyClass]:
+    def classes(self) -> FrozenSet[OntologyClass]:
         """Get the ontology classes of this ontology individual.
 
         Returns:
-            A tuple with all the ontology classes of the ontology
-            individual. When the individual has no classes, the tuple is empty.
+            A set with all the ontology classes of the ontology
+            individual. When the individual has no classes, the set is empty.
         """
-        return tuple(
-            self.session.ontology.from_identifier(o)
+        return frozenset(
+            self.session.ontology.from_identifier_typed(
+                o, typing=OntologyClass
+            )
             for o in self.session.graph.objects(self.identifier, RDF.type)
         )
 
-    @oclasses.setter
-    def oclasses(self, value: Iterable[OntologyClass]) -> None:
+    @classes.setter
+    def classes(self, value: Iterable[OntologyClass]) -> None:
         """Set the ontology classes of this ontology individual.
 
         Args:
@@ -752,59 +763,74 @@ class OntologyIndividual(OntologyEntity):
         for x in identifiers:
             self.session.graph.add((self.identifier, RDF.type, x))
 
-    def is_a(self, oclass: OntologyClass) -> bool:
+    def is_a(self, ontology_class: OntologyClass) -> bool:
         """Check if the individual is an instance of the given ontology class.
 
         Args:
-            oclass: The ontology class to test against.
+            ontology_class: The ontology class to test against.
 
         Returns:
             Whether the ontology individual is an instance of such ontology
                 class.
         """
-        return any(oc in oclass.subclasses for oc in self.oclasses)
+        return any(oc in ontology_class.subclasses for oc in self.classes)
 
     def __dir__(self) -> Iterable[str]:
-        """Show the individual's attributes as autocompletion suggestions."""
-        result = iter(())
-        attributes_and_namespaces = (
-            (attr, ns)
-            for oclass in self.oclasses
-            for attr in oclass.attribute_declaration
-            for ns in attr.session.namespaces
-            if attr in ns
-        )
-        for attribute, namespace in attributes_and_namespaces:
-            if namespace.reference_style:
-                result = itertools.chain(
-                    result, attribute.iter_labels(return_literal=False)
-                )
-            else:
-                result = itertools.chain(
-                    result, (attribute.iri[len(namespace.iri) :],)
-                )
-        return itertools.chain(super().__dir__(), result)
+        """Show the individual's attributes as autocompletion suggestions.
 
-    def __getattr__(self, name: str) -> AttributeValue:
-        """Retrieve an attribute whose domain matches the individual's oclass.
+        This method takes care of the autocompletion for the dot notation.
+        """
+        attribute_autocompletion = filter(
+            lambda x: x.isidentifier(), self._attribute_autocompletion()
+        )
+        return chain(super().__dir__(), attribute_autocompletion)
+
+    def _ipython_key_completions_(self):
+        """Show the individual's predicates as tab completion suggestions.
+
+        The predicates include its attributes, relationships and annotations.
+
+        This method is specific for the bracket notation ([], __getitem__).
+        """
+        return chain(
+            super().__dir__(),
+            self._attribute_autocompletion(),
+            self._relationship_autocompletion(),
+            self._annotation_autocompletion(),
+        )
+
+    def __getattr__(self, name: str) -> AttributeSet:
+        """Retrieve the value of an attribute of the individual.
 
         Args:
-            name: The name of the attribute.
+            name: The label or suffix of the attribute.
 
         Raises:
-            AttributeError: Unknown attribute name.
+            AttributeError: Unknown attribute label or suffix.
+            AttributeError: Multiple attributes for the given label or suffix.
 
         Returns:
             The value of the attribute (a python object).
         """
-        # TODO: The current behavior is to fail with non functional attributes.
-        #  However, the check is based on the amount of values set for an
-        #  attribute and not its definition as functional or non-functional
-        #  in the ontology.
-        # TODO: If an attribute whose domain is not explicitly specified was
-        #  already fixed with __setitem__, then this should also give back
-        #  such attributes.
-        attr = self._attributes_get_by_name(name)
+        attributes = self._attributes_get_by_name(name)
+        num_attributes = len(attributes)
+        if num_attributes == 0:
+            raise AttributeError(
+                f"No attribute associated with {self} with label or prefix "
+                f"{name} found."
+            )
+        elif num_attributes >= 2:
+            error = (
+                f"There are multiple attributes with label or suffix {name} "
+                f"associated with {self}:"
+                f" {', '.join(r.iri for r in attributes)}. "
+                f"Please use an OntologyAttribute object together with the "
+                f"indexing notation `individual[attribute]` to access the "
+                f"values of this attribute."
+            )
+            raise AttributeError(error)
+        attr = attributes.pop()
+
         values = self.attributes_value_generator(attr)
         value = next(values, None)
         if next(values, None) is not None:
@@ -829,18 +855,36 @@ class OntologyIndividual(OntologyEntity):
         """Set the value(s) of an attribute.
 
         Args:
-            name: The name of the attribute.
+            name: The label or suffix of the attribute.
             value: The new value.
 
         Raises:
-            AttributeError: Unknown attribute name.
+            AttributeError: Unknown attribute label or suffix.
+            AttributeError: Multiple attributes for the given label or suffix.
         """
         if name.startswith("_"):
             super().__setattr__(name, value)
             return
 
         try:
-            attr = self._attributes_get_by_name(name)
+            attributes = self._attributes_get_by_name(name)
+            num_attributes = len(attributes)
+            if num_attributes == 0:
+                raise AttributeError(
+                    f"No attribute, associated with {self} with label or"
+                    f"prefix {name} found."
+                )
+            elif num_attributes >= 2:
+                error = (
+                    f"There are multiple attributes with label or suffix "
+                    f"{name} associated with {self}:"
+                    f" {', '.join(r.iri for r in attributes)}. "
+                    f"Please use an OntologyAttribute object together with the"
+                    f" indexing notation `individual[attribute]` to access "
+                    f"the values of this attribute."
+                )
+                raise AttributeError(error)
+            attr = attributes.pop()
             value = {value} if value is not None else set()
             self.attributes_set(attr, value)
         except AttributeError as e:
@@ -851,7 +895,7 @@ class OntologyIndividual(OntologyEntity):
                 raise e
 
     def __getitem__(
-        self, rel: OntologyPredicate
+        self, rel: Union[OntologyPredicate, str]
     ) -> Union[AttributeSet, RelationshipSet, AnnotationSet]:
         """Retrieve linked individuals, attribute values or annotation values.
 
@@ -867,6 +911,9 @@ class OntologyIndividual(OntologyEntity):
           all the annotation values assigned to the specified annotation
           property. Such set can be modified in-place to modify the existing
           connections.
+        - When `rel` is a string, the string is resolved to an
+          OntologyAttribute, OntologyRelationship or OntologyAnnotation with a
+          matching label, and then one of the cases above applies.
 
         The reason why a set is returned and not a list, or any other
         container allowing repeated elements, is that the underlying RDF
@@ -875,13 +922,65 @@ class OntologyIndividual(OntologyEntity):
         Args:
             rel: An ontology attribute, an ontology relationship or an ontology
                 annotation (OWL datatype property, OWL object property,
-                OWL annotation property).
+                OWL annotation property). Alternatively a string, which will be
+                resolved, using labels, to one of the classes described above.
 
         Raises:
+            KeyError: Unknown attribute, relationship or annotation label or
+                suffix.
+            KeyError: Multiple attributes, relationships or annotations found
+                for the given label or suffix.
             TypeError: Trying to use something that is neither an
-                OntologyAttribute, an OntologyRelationship or an
-                OntologyAnnotation as index.
+                OntologyAttribute, an OntologyRelationship, an
+                OntologyAnnotation or a string as index.
         """
+        if isinstance(rel, str):
+            """Resolve string to an attribute, relationship or annotation."""
+            entities = set()
+
+            # Try to find a matching attribute.
+            try:
+                entities |= self._attributes_get_by_name(rel)
+            except AttributeError:
+                pass
+
+            # Try to find a matching relationship.
+            entities |= set(
+                relationship
+                for _, relationship in self.relationships_iter(return_rel=True)
+                for label in relationship.iter_labels(return_literal=False)
+                if rel == label or relationship.iri.endswith(rel)
+            )
+
+            # Try to find a matching annotation.
+            entities |= set(
+                annotation
+                for _, annotation in self.annotations_iter(return_rel=True)
+                for label in annotation.iter_labels(
+                    return_literal=False, return_prop=False
+                )
+                if rel == label or annotation.iri.endswith(rel)
+            )
+
+            num_entities = len(entities)
+            if num_entities == 0:
+                raise KeyError(
+                    f"No attribute, relationship or annotation "
+                    f"associated with {self} with label or suffix {rel} found."
+                )
+            elif num_entities >= 2:
+                raise KeyError(
+                    f"There are multiple attributes, relationships or "
+                    f"annotations with label or suffix {rel} associated with "
+                    f"{self}:"
+                    f"{', '.join(r.iri for r in entities)}. "
+                    f"Please use an OntologyAttribute, OntologyRelationship "
+                    f"or OntologyAnnotation object together with the "
+                    f"indexing notation `individual[entity]` to access the "
+                    f"values of this attribute, relationship or annotation."
+                )
+            rel = entities.pop()
+
         if isinstance(rel, OntologyAttribute):
             set_class = AttributeSet
         elif isinstance(rel, OntologyRelationship):
@@ -898,7 +997,7 @@ class OntologyIndividual(OntologyEntity):
 
     def __setitem__(
         self,
-        rel: OntologyPredicate,
+        rel: Union[OntologyPredicate, str],
         values: Optional[Union[PredicateValue, Set[PredicateValue]]],
     ) -> None:
         """Manages object, data and annotation properties.
@@ -911,6 +1010,9 @@ class OntologyIndividual(OntologyEntity):
           such attribute.
         - When `rel` is an OntologyAnnotation, to replace the annotation
           values of such annotation property.
+        - When `rel` is a string, the string is resolved to an
+          OntologyAttribute, OntologyRelationship or OntologyAnnotation with a
+          matching label, and then one of the cases above applies.
 
         This function only accepts hashable objects as input, as the
         underlying RDF graph does not accept duplicate statements.
@@ -918,16 +1020,23 @@ class OntologyIndividual(OntologyEntity):
         Args:
             rel: Either an ontology attribute, an ontology relationship or
                 an ontology annotation (OWL datatype property, OWL object
-                property, OWL annotation property).
+                property, OWL annotation property). Alternatively a string,
+                which will be resolved, using labels, to one of the classes
+                described above.
             values: Either a single element compatible with the OWL standard
                 (this includes ontology individuals) or a set of such
                 elements.
 
         Raises:
+            KeyError: Unknown attribute, relationship or annotation label or
+                suffix.
+            KeyError: Multiple attributes, relationships or annotations found
+                for the given label or suffix.
             TypeError: Trying to assign attributes using an object property,
                 trying to assign ontology individuals using a data property,
                 trying to use something that is neither an OntologyAttribute,
-                an OntologyRelationship nor an OntologyAnnotation as index.
+                an OntologyRelationship, an OntologyAnnotation nor a string as
+                index.
         """
         if (
             isinstance(values, ObjectSet)
@@ -952,6 +1061,53 @@ class OntologyIndividual(OntologyEntity):
 
         # Classify the values by type.
         values = self._classify_by_type(values)
+
+        if isinstance(rel, str):
+            """Resolve string to an attribute, relationship or annotation."""
+            entities = set()
+
+            # Try to find a matching attribute.
+            try:
+                entities |= self._attributes_get_by_name(rel)
+            except AttributeError:
+                pass
+
+            # Try to find a matching relationship.
+            entities |= set(
+                relationship
+                for _, relationship in self.relationships_iter(return_rel=True)
+                for label in relationship.iter_labels(return_literal=False)
+                if rel == label or relationship.iri.endswith(rel)
+            )
+
+            # Try to find a matching annotation.
+            entities |= set(
+                annotation
+                for _, annotation in self.annotations_iter(return_rel=True)
+                for label in annotation.iter_labels(
+                    return_literal=False, return_prop=False
+                )
+                if rel == label or annotation.iri.endswith(rel)
+            )
+
+            num_entities = len(entities)
+            if num_entities == 0:
+                raise KeyError(
+                    f"No attribute, relationship or annotation "
+                    f"associated with {self} with label or suffix {rel} found."
+                )
+            elif num_entities >= 2:
+                raise KeyError(
+                    f"There are multiple attributes, relationships or "
+                    f"annotations with label or suffix {rel} associated with "
+                    f"{self}:"
+                    f"{', '.join(r.iri for r in entities)}. "
+                    f"Please use an OntologyAttribute, OntologyRelationship "
+                    f"or OntologyAnnotation object together with the "
+                    f"indexing notation `individual[entity]` to access the "
+                    f"values of this attribute, relationship or annotation."
+                )
+            rel = entities.pop()
 
         # Perform assignments.
         if isinstance(rel, OntologyRelationship):
@@ -1010,164 +1166,259 @@ class OntologyIndividual(OntologyEntity):
         Args:
             rel: Either an ontology attribute, an ontology relationship or
                 an ontology annotation (OWL datatype property, OWL object
-                property, OWL annotation property).
+                property, OWL annotation property). Alternatively a string,
+                which will be resolved, using labels, to one of the classes
+                described above.
         """
         self.__setitem__(rel=rel, values=set())
 
-    def add(
+    def connect(
         self,
-        *individuals: "OntologyIndividual",
-        rel: Optional[Union[OntologyRelationship, Identifier]] = None,
-    ) -> Union["OntologyIndividual", List["OntologyIndividual"]]:
-        """Link CUDS objects to another CUDS objects.
-
-        If the added objects are associated with the same session,
-        only a link is created. Otherwise, a deepcopy is made and added
-        to the session of this CUDS object.
+        *individuals: Union[OntologyIndividual, Identifier, str],
+        rel: Union[OntologyRelationship, Identifier],
+    ) -> None:
+        """Connect ontology individuals to other ontology individuals.
 
         Args:
-            individuals: The objects to be added
+            individuals: The objects to be added. Their identifiers may also
+                be used.
             rel: The relationship between the objects.
 
         Raises:
-            TypeError: Either
-                - no relationship given and no default specified, or
-                - objects not of type CUDS provided as positional arguments.
-            ValueError: Added a CUDS object that is already in the container.
-            Note: in fact, the exception raised is
-            `ExistingIndividualException`, but it is a subclass of
-            `ValueError`.
-
-        Returns:
-            The CUDS objects that have been added, associated with the
-                session of the current CUDS object. The result type is a list
-                if more than one CUDS object was provided.
+            TypeError: Objects that are not ontology individuals,
+                identifiers or strings provided as positional arguments.
+            TypeError: Object that is not an ontology relationship or the
+                identifier of an ontology relationship passed as keyword
+                argument `rel`.
+            RuntimeError: Ontology individuals that belong to a different
+                session provided.
         """
-        for x in individuals:
+        individuals = list(individuals)
+        for i, x in enumerate(individuals):
+            if isinstance(x, str):
+                if not isinstance(x, Identifier):
+                    x = URIRef(x)
+                x = self.session.from_identifier_typed(
+                    x, typing=OntologyIndividual
+                )
+                individuals[i] = x
             if not isinstance(x, OntologyIndividual):
                 raise TypeError(
-                    f"Expected {OntologyIndividual} objects, not "
-                    f"{type(x)}."
+                    f"Expected {OntologyIndividual}, {Identifier} or {str} "
+                    f"objects, not {type(x)}."
                 )
+            elif x not in self.session:
+                raise RuntimeError(
+                    "Cannot connect an ontology individual that belongs to "
+                    "a different session, please add it to this session "
+                    "first using `session.add`."
+                )
+        individuals = set(individuals)
 
         if isinstance(rel, Identifier):
-            rel = self.session.ontology.from_identifier(rel)
-        rel = rel or next(
-            (
-                oclass.namespace.default_relationship
-                for oclass in self.oclasses
-            ),
-            None,
-        )
-        if rel is None:
-            raise TypeError(
-                "Missing argument 'rel'! No default "
-                "relationship specified for namespace %s."
-                % self.oclass.namespace
+            rel = self.session.ontology.from_identifier_typed(
+                rel,
+                typing=OntologyRelationship,
             )
-
-        self.relationships_connect(*individuals, rel=rel)
-        result = (
-            self.session.from_identifier(i.identifier) for i in individuals
-        )
-        return next(result) if len(individuals) == 1 else list(result)
-
-    class ExistingIndividualException(ValueError):
-        """To be raised when a provided CUDS is already linked."""
-
-        pass
-
-    def get(
-        self,
-        *uids: UID,
-        rel: Optional[
-            Union[OntologyRelationship, Identifier]
-        ] = cuba_namespace.activeRelationship,
-        oclass: OntologyClass = None,
-        return_rel: bool = False,
-    ) -> Union[
-        "RelationshipSet",
-        Optional["OntologyIndividual"],
-        Tuple[Optional["OntologyIndividual"], ...],
-        Tuple[Tuple["OntologyIndividual", OntologyRelationship]],
-    ]:
-        """Return the contained elements.
-
-        Only return objects with given uids, connected through a certain
-        relationship and its sub-relationships and optionally filter by oclass.
-
-        Expected calls are get(), get(rel=___), get(oclass=___),
-        get(rel=___, oclass=___), get(*uids), get(*uids, rel=___). In
-        addition, all the previous calls are possible with the argument
-        `return_rel=True`. The structure of the output can vary depending on
-        the form used for the call. See the "Returns:" section of this
-        docstring for more details on this..
-
-        Args:
-            uids: Filter the elements to be returned by their UIDs.
-            rel: Filters allowing only CUDS objects which are connected by a
-                subclass of the given relationship. Defaults to
-                cuba.activeRelationship. When none, all relationships are
-                accepted.
-            oclass: Only return elements which are a subclass of the given
-                ontology class. Defaults to None (no filter).
-            return_rel: Whether to return the connecting
-                relationship. Defaults to False.
-
-        Returns:
-            Calls without `*uids` (RelationshipSet): The result of the
-                call is a set-like object. This corresponds to
-                the calls `get()`, `get(rel=___)`, `get(oclass=___)`,
-                `get(rel=___, oclass=___)`, with the parameter `return_rel`
-                unset or set to False.
-            Calls with `uids` (Optional["Cuds"],
-                    Tuple[Optional["Cuds"], ...]):
-                The position of each element in the result is determined by
-                the position of the corresponding UID in the given list of
-                UIDs. In this case, the result can contain `None` values if
-                a given UID is not a child of this CUDS object. When only
-                one UID is specified, a single object is returned instead of a
-                Tuple. This description corresponds to the calls `get(*uids)`,
-                `get(*uids, rel=___)`.
-            Calls with `return_rel=True` (Tuple[
-                    Tuple["Cuds", OntologyRelationship]]):
-                The dependence of the order of the elements is maintained
-                for the calls with `uids`, a non-deterministic order is used
-                for the calls without `uids`. No `None` values are contained
-                in the result (such UIDs are simply skipped).
-                Moreover, the elements returned are now pairs of CUDS
-                objects and the relationship connecting such object to this
-                one. When only one UID is specified, a single pair is
-                returned instead of a Tuple. This description corresponds to
-                any call of the form `get(..., return_rel=True)`.
-        """
-        if isinstance(rel, Identifier):
-            rel = self.session.ontology.from_identifier(rel)
-
-        if uids and oclass is not None:
-            raise ValueError("Do not specify both uids and oclass.")
-        if rel is not None and not isinstance(rel, OntologyRelationship):
+        elif not isinstance(rel, OntologyRelationship):
             raise TypeError(
                 "Found object of type %s passed to argument rel. "
                 "Should be an OntologyRelationship." % type(rel)
             )
+
+        self[rel] |= individuals
+
+    def disconnect(
+        self,
+        *individuals: Union[OntologyIndividual, Identifier, str],
+        rel: Union[OntologyRelationship, Identifier] = OWL.topObjectProperty,
+        oclass: Optional[OntologyClass] = None,
+    ) -> None:
+        """Disconnect ontology individuals from this one.
+
+        Args:
+            individuals: Specify the individuals to disconnect. When no
+                individuals are specified, all connected individuals are
+                considered.
+            rel: Only remove individuals which are connected by subclass of the
+                given relationship. Defaults to OWL.topObjectProperty (any
+                relationship).
+            oclass: Only remove elements which are a subclass of the given
+                ontology class. Defaults to None (no filter).
+
+        Raises:
+            TypeError: Objects that are not ontology individuals,
+                identifiers or strings provided as positional arguments.
+            TypeError: Object that is not an ontology relationship or the
+                identifier of an ontology relationship passed as keyword
+                argument `rel`.
+            TypeError: Object that is not an ontology class passed as
+                keyword argument `oclass`.
+            RuntimeError: Ontology individuals that belong to a different
+                session provided.
+        """
+        individuals = list(individuals)
+        for i, x in enumerate(individuals):
+            if isinstance(x, str):
+                if not isinstance(x, Identifier):
+                    x = URIRef(x)
+                x = self.session.from_identifier_typed(
+                    x, typing=OntologyIndividual
+                )
+                individuals[i] = x
+            if not isinstance(x, OntologyIndividual):
+                raise TypeError(
+                    f"Expected {OntologyIndividual}, {Identifier} or {str} "
+                    f"objects, not {type(x)}."
+                )
+            elif x not in self.session:
+                raise RuntimeError(
+                    "Cannot connect an ontology individual that belongs to "
+                    "a different session, please add it to this session "
+                    "first using `session.add`."
+                )
+        individuals = set(individuals)
+
+        if isinstance(rel, Identifier):
+            rel = self.session.ontology.from_identifier_typed(
+                rel, typing=OntologyRelationship
+            )
+        elif not isinstance(rel, OntologyRelationship):
+            raise TypeError(
+                "Found object of type %s passed to argument rel. "
+                "Should be an OntologyRelationship." % type(rel)
+            )
+
         if oclass is not None and not isinstance(oclass, OntologyClass):
             raise TypeError(
                 "Found object of type %s passed to argument "
-                "class. Should be an OntologyClass." % type(oclass)
+                "oclass. Should be an OntologyClass." % type(oclass)
+            )
+
+        individuals = individuals or self[rel]
+
+        if oclass:
+            individuals = set(x for x in individuals if x.is_a(oclass))
+
+        self[rel] -= individuals
+
+    def get(
+        self,
+        *individuals: Union[OntologyIndividual, Identifier, str],
+        rel: Union[OntologyRelationship, Identifier] = OWL.topObjectProperty,
+        oclass: Optional[OntologyClass] = None,
+        return_rel: bool = False,
+    ) -> Union[
+        RelationshipSet,
+        Optional[OntologyIndividual],
+        Tuple[Optional[OntologyIndividual], ...],
+        Tuple[Tuple[OntologyIndividual, OntologyRelationship]],
+    ]:
+        """Return the connected individuals.
+
+        The structure of the output can vary depending on the form used for
+        the call. See the "Returns:" section of this
+        docstring for more details on this.
+
+        Args:
+            individuals: Restrict the elements to be returned to a certain
+                subset of the connected elements.
+            rel: Only return individuals which are connected by a subclass
+                of the given relationship. Defaults to
+                OWL.topObjectProperty (any relationship).
+            oclass: Only yield individuals which are a subclass of the given
+                ontology class. Defaults to None (no filter).
+            return_rel: Whether to return the connecting relationship.
+                Defaults to False.
+
+        Returns:
+            Calls without `*individuals` (RelationshipSet): The result of the
+                call is a set-like object. This corresponds to
+                the calls `get()`, `get(rel=___)`, `get(oclass=___)`,
+                `get(rel=___, oclass=___)`, with the parameter `return_rel`
+                unset or set to False.
+            Calls with `*individuals` (Optional[OntologyIndividual],
+                    Tuple[Optional["OntologyIndividual"], ...]):
+                The position of each element in the result is determined by
+                the position of the corresponding identifier/individual in the
+                given list of identifiers/individuals. In this case, the result
+                can contain `None` values if a given identifier/individual is
+                not connected to this individual, or if it does not satisfy
+                the class filter. When only one individual or identifier is
+                specified, a single object is returned instead of a Tuple.
+                This description corresponds to the calls `get(*individuals)`,
+                `get(*uids, rel=___)`, `get(*uids, rel=___, oclass=___)`,
+                with the parameter `return_rel` unset or set to False.
+            Calls with `return_rel=True` (Tuple[
+                    Tuple[OntologyIndividual, OntologyRelationship]]):
+                The dependence of the order of the elements is maintained
+                for the calls with `*individuals`, a non-deterministic order is
+                used for the calls without `*individuals`. No `None` values
+                are contained in the result (such identifiers or individuals
+                are simply skipped). Moreover, the elements returned are now
+                pairs of individuals and the relationship connecting this
+                individual to such ones. This description corresponds to any
+                call of the form `get(..., return_rel=True)`.
+
+        Raises:
+            TypeError: Objects that are not ontology individuals,
+                identifiers or strings provided as positional arguments.
+            TypeError: Object that is not an ontology relationship or the
+                identifier of an ontology relationship passed as keyword
+                argument `rel`.
+            TypeError: Object that is not an ontology class passed as
+                keyword argument `oclass`.
+            RuntimeError: Ontology individuals that belong to a different
+                session provided.
+        """
+        identifiers = list(individuals)
+        for i, x in enumerate(identifiers):
+            if not isinstance(x, (OntologyIndividual, Identifier, str)):
+                raise TypeError(
+                    f"Expected {OntologyIndividual}, {Identifier} or {str} "
+                    f"objects, not {type(x)}."
+                )
+            elif isinstance(x, OntologyIndividual) and x not in self.session:
+                raise RuntimeError(
+                    "Cannot get an individual that belongs to "
+                    "a different session, please add it to this session "
+                    "first using `session.add`."
+                )
+
+            if isinstance(x, str):
+                if not isinstance(x, Identifier):
+                    x = URIRef(x)
+                identifiers[i] = UID(x)
+            elif isinstance(x, OntologyIndividual):
+                identifiers[i] = UID(x.identifier)
+
+        if isinstance(rel, Identifier):
+            rel = self.session.ontology.from_identifier_typed(
+                rel, typing=OntologyRelationship
+            )
+        elif not isinstance(rel, OntologyRelationship):
+            raise TypeError(
+                "Found object of type %s passed to argument rel. "
+                "Should be an OntologyRelationship." % type(rel)
+            )
+
+        if oclass is not None and not isinstance(oclass, OntologyClass):
+            raise TypeError(
+                "Found object of type %s passed to argument "
+                "oclass. Should be an OntologyClass." % type(oclass)
             )
 
         relationship_set = RelationshipSet(
-            rel, self, oclass=oclass, uids=uids or None
+            rel, self, oclass=oclass, uids=tuple(identifiers) or None
         )
 
         if not return_rel:
-            if not uids:
+            if not identifiers:
                 return relationship_set
             else:
                 return (
-                    next(iter(relationship_set))
-                    if len(uids) == 1
+                    next(iter(relationship_set), None)
+                    if len(identifiers) <= 1
                     else tuple(relationship_set)
                 )
         else:
@@ -1178,279 +1429,227 @@ class OntologyIndividual(OntologyEntity):
                 session = self.session
                 result += [
                     (
-                        session.from_identifier(i),
-                        session.ontology.from_identifier(r),
+                        session.from_identifier_typed(
+                            i, typing=OntologyIndividual
+                        ),
+                        session.ontology.from_identifier_typed(
+                            r, typing=OntologyRelationship
+                        ),
                     )
                 ]
-            if len(uids) == 1:
-                return result[0] if result else None
-            else:
-                return tuple(result)
+            return tuple(result)
 
     def iter(
         self,
-        *uids: UID,
-        rel: Optional[
-            Union[OntologyRelationship, Identifier]
-        ] = cuba_namespace.activeRelationship,
+        *individuals: Union[OntologyIndividual, Identifier, str],
+        rel: Union[OntologyRelationship, Identifier] = OWL.topObjectProperty,
         oclass: Optional[OntologyClass] = None,
         return_rel: bool = False,
     ) -> Union[
-        Iterator["OntologyIndividual"],
-        Iterator[Optional["OntologyIndividual"]],
-        Iterator[Tuple["OntologyIndividual", OntologyRelationship]],
+        Iterator[OntologyIndividual],
+        Iterator[Optional[OntologyIndividual]],
+        Iterator[Tuple[OntologyIndividual, OntologyRelationship]],
     ]:
-        """Iterate over the contained elements.
+        """Iterate over the connected individuals.
 
-        Only iterate over objects with given uids, connected through a certain
-        relationship and its sub-relationships and optionally filter by oclass.
-
-        Expected calls are iter(), iter(rel=___), iter(oclass=___),
-        iter(rel=___, oclass=___), iter(*uids), iter(*uids, rel=___). In
-        addition, all the previous calls are possible with the argument
-        `return_rel=True`. The structure of the output can vary depending on
-        the form used for the call. See the "Returns:" section of this
-        docstring for more details on this.
+        The structure of the output can vary depending on the form used for
+        the call. See the "Returns:" section of this docstring for more
+        details on this.
 
         Args:
-            uids: Filter the elements to be returned by their UIDs.
-            rel: Filters allowing only CUDS objects which are connected by a
-                subclass of the given relationship. Defaults to
-                cuba.activeRelationship. When none, all relationships are
-                accepted.
-            oclass: Only return elements which are a subclass of the given
+            individuals: Restrict the elements to be returned to a certain
+                subset of the connected elements.
+            rel: Only yield individuals which are connected by a subclass
+                of the given relationship. Defaults to
+                OWL.topObjectProperty (any relationship).
+            oclass: Only yield individuals which are a subclass of the given
                 ontology class. Defaults to None (no filter).
-            return_rel: Whether to return the connecting
-                relationship. Defaults to False.
+            return_rel: Whether to yield the connecting relationship.
+                Defaults to False.
 
         Returns:
-            Calls without `*uids` (Iterator["Cuds"]): The position of each
-                element in the result is non-deterministic. This corresponds to
-                the calls `iter()`, `iter(rel=___)`, `iter(oclass=___)`,
-                `iter(rel=___, oclass=___)`, with the parameter `return_rel`
-                unset or set to False.
-            Calls with `uids` (Iterator[Optional["Cuds"]]): The position of
-                each element in the result is determined by the position of
-                the corresponding UID in the given list of UIDs. In this
-                case, the result can contain `None` values if a given UID is
-                not a child of this CUDS object. This corresponds to the calls
-                `iter(*uids)`, `iter(*uids, rel=___)`.
+            Calls without `*individuals` (Iterator[OntologyIndividual]): The
+                position of each element in the result is non-deterministic.
+                This corresponds to the calls `iter()`, `iter(rel=___)`,
+                `iter(oclass=___)`, `iter(rel=___, oclass=___)`, with the
+                parameter `return_rel` unset or set to False.
+            Calls with `*individuals` (Iterator[Optional[
+                    OntologyIndividual]]):
+                The position of each element in the result is determined by the
+                position of the corresponding identifier/individual in the
+                given list of identifiers/individuals. In this case, the result
+                can contain `None` values if a given identifier/individual is
+                not connected to this individual, or if it does not satisfy
+                the class filter. This description corresponds to the calls
+                `iter(*uids)`, `iter(*uids, rel=___)`,
+                `iter(*uids, rel=___, oclass=`___`)`.
             Calls with `return_rel=True` (Iterator[
-                    Tuple["Cuds", OntologyRelationship]]):
-                The dependence of the order of the elements on whether
-                `uids` are specified or not is maintained, no `None` values
-                are contained in the result (such UIDs are simply skipped).
-                Moreover, the elements returned are now pairs of CUDS
-                objects and the relationship connecting such object to this
-                one. This corresponds to any call of the form
-                `iter(..., return_rel=True)`.
-        """
-        if isinstance(rel, Identifier):
-            rel = self.session.ontology.from_identifier(rel)
+                    Tuple[OntologyIndividual, OntologyRelationship]]):
+                The dependence of the order of the elements is maintained
+                for the calls with `*individuals`. No `None` values
+                are contained in the result (such identifiers or individuals
+                are simply skipped). Moreover, the elements returned are now
+                pairs of individualsand the relationship connecting this
+                individual to such ones. This description corresponds to any
+                call of the form `iter(..., return_rel=True)`.
 
-        if uids and oclass is not None:
-            raise ValueError("Do not specify both uids and oclass.")
-        if rel is not None and not isinstance(rel, OntologyRelationship):
-            raise TypeError(
-                "Found object of type %s passed to argument rel. "
-                "Should be an OntologyRelationship." % type(rel)
-            )
-        if oclass is not None and not isinstance(oclass, OntologyClass):
-            raise TypeError(
-                "Found object of type %s passed to argument "
-                "class. Should be an OntologyClass." % type(oclass)
-            )
-
-        relationship_set = RelationshipSet(
-            rel, self, oclass=oclass, uids=uids or None
-        )
-
-        if not return_rel:
-            yield from iter(relationship_set)
-        else:
-            for (i, r, t) in relationship_set.iter_low_level():
-                if not t:
-                    continue
-                session = self.session
-                yield (
-                    (
-                        session.from_identifier(i),
-                        session.ontology.from_identifier(r),
-                    )
-                )
-
-    def update(
-        self, *individuals: "OntologyIndividual"
-    ) -> Union["OntologyIndividual", List["OntologyIndividual"]]:
-        """Update the Cuds object.
-
-        Updates the object by providing updated versions of CUDS objects
-        that are directly in the container of this CUDS object.
-        The updated versions must be associated with a different session.
-
-        Args:
-            individuals: The updated versions to use to update the current
-                object.
 
         Raises:
-            ValueError: Provided a CUDS objects is not in the container of the
-                current CUDS
-            ValueError: Provided CUDS object is associated with the same
-                session as the current CUDS object. Therefore, it is not an
-                updated version.
-            TypeError: Provided objects that are not of type
-                OntologyIndividual as positional arguments.
-
-        Returns:
-            The CUDS objects that have been updated, associated with the
-            session of the current CUDS object. Result type is a list,
-            if more than one CUDS object is returned.
+            TypeError: Objects that are not ontology individuals,
+                identifiers or strings provided as positional arguments.
+            TypeError: Object that is not an ontology relationship or the
+                identifier of an ontology relationship passed as keyword
+                argument `rel`.
+            TypeError: Object that is not an ontology class passed as
+                keyword argument `oclass`.
+            RuntimeError: Ontology individuals that belong to a different
+                session provided.
         """
-        for x in individuals:
-            if not isinstance(x, OntologyIndividual):
+        identifiers = list(individuals)
+        for n, x in enumerate(identifiers):
+            if not isinstance(x, (OntologyIndividual, Identifier, str)):
                 raise TypeError(
-                    f"Expected {OntologyIndividual} objects, not "
-                    f"{type(x)}."
+                    f"Expected {OntologyIndividual}, {Identifier} or {str} "
+                    f"objects, not {type(x)}."
+                )
+            elif isinstance(x, OntologyIndividual) and x not in self.session:
+                raise RuntimeError(
+                    "Cannot get an individual that belongs to "
+                    "a different session, please add it to this session "
+                    "first using `session.add`."
                 )
 
-        result = set()
-        for x in individuals:
-            try:
-                pointer = self.session.from_identifier(x.identifier)
-                result.add(pointer)
-            except KeyError:
-                raise ValueError(
-                    f"Cannot update because individual {x} not " f"added."
-                )
-            if x in self.session:
-                raise ValueError(
-                    "Please provide CUDS objects from a "
-                    "different session to update()"
-                )
+            if isinstance(x, str):
+                if not isinstance(x, Identifier):
+                    x = URIRef(x)
+                identifiers[n] = UID(x)
+            elif isinstance(x, OntologyIndividual):
+                identifiers[n] = UID(x.identifier)
 
-        for x in individuals:
-            self.session.update(x)
-
-        return result.pop() if len(individuals) == 1 else result
-
-    def remove(
-        self,
-        *uids_or_individuals: Union["OntologyIndividual", UID],
-        rel: Optional[
-            Union[OntologyRelationship, Identifier]
-        ] = cuba_namespace.activeRelationship,
-        oclass: Optional[OntologyClass] = None,
-    ) -> None:
-        """Remove elements from the CUDS object.
-
-        Expected calls are remove(), remove(*uids_or_individuals),
-        remove(rel=___), remove(oclass=___),
-        remove(*uids_or_individuals, rel=___), remove(rel=___, oclass=___).
-
-        Args:
-            uids_or_individuals: Optionally, specify the UIDs of the elements
-                to remove or provide the elements themselves.
-            rel: Only remove individuals which are connected by subclass of the
-                given relationship. Defaults to cuba.activeRelationship. Can be
-                set to none, in which case, all the contained elements will
-                be removed.
-            oclass: Only remove elements which are a subclass of the given
-                ontology class. Defaults to None (no filter).
-
-        Raises:
-            RuntimeError: No CUDS object removed, because none of the
-                specified CUDS objects are not in the container of the
-                current CUDS object directly.
-            TypeError: Incorrect argument types.
-            ValueError: Both uids and an oclass passed to the function.
-        """
         if isinstance(rel, Identifier):
-            rel = self.session.ontology.from_identifier(rel)
-
-        if uids_or_individuals and oclass is not None:
-            raise ValueError("Do not specify both uids and oclass.")
-        if rel is not None and not isinstance(rel, OntologyRelationship):
+            rel = self.session.ontology.from_identifier_typed(
+                rel, typing=OntologyRelationship
+            )
+        elif not isinstance(rel, OntologyRelationship):
             raise TypeError(
                 "Found object of type %s passed to argument rel. "
                 "Should be an OntologyRelationship." % type(rel)
             )
+
         if oclass is not None and not isinstance(oclass, OntologyClass):
             raise TypeError(
                 "Found object of type %s passed to argument "
                 "oclass. Should be an OntologyClass." % type(oclass)
             )
-        uids = list()
-        for x in uids_or_individuals:
-            if isinstance(x, OntologyIndividual):
-                uids += [x.uid]
-            elif isinstance(x, UID):
-                uids += [x]
-            else:
-                raise TypeError(
-                    f"Expected {OntologyIndividual} or {UID} "
-                    f"objects, not {type(x)}."
-                )
 
-        # Get relationships to be removed.
-        consider_relationships = set()
-        for predicate in self.session.graph.predicates(self.identifier, None):
-            try:
-                relationship = self.session.ontology.from_identifier(predicate)
-                if isinstance(relationship, OntologyRelationship):
-                    consider_relationships |= {relationship}
-            except KeyError:
-                pass
-        if rel:
-            consider_relationships &= set(rel.subclasses)
+        relationship_set = RelationshipSet(
+            rel, self, oclass=oclass, uids=tuple(identifiers) or None
+        )
 
-        mapping = OrderedDict((uid, set()) for uid in uids)
-        for rel in consider_relationships:
-            connected_identifiers = self.session.graph.objects(
-                self.identifier, rel.identifier
-            )
-            connected_uids = map(UID, connected_identifiers)
-            if uids:
-                connected_uids = set(connected_uids) & set(uids)
-            mapping.update(
-                (uid, mapping.get(uid, set()) | {rel})
-                for uid in connected_uids
-            )
-        if not mapping:
-            logger.warning(
-                "Did not remove any Cuds object, because none "
-                "matched your filter."
-            )
-            return
+        # In the following section, return is used instead of yield so that
+        # code runs until the `return` statement when iter is called (
+        # otherwise the exceptions above would not be raised until the first
+        # item from the iterator is requested).
+        if not return_rel:
+            iterator = iter(relationship_set)
+        else:
 
-        for uid, relationship_set in mapping.items():
-            relationship_set = relationship_set or {None}
-            for relationship in (r.identifier for r in relationship_set):
-                if oclass and not self.session.from_identifier(
-                    uid.to_identifier()
-                ).is_a(oclass):
-                    continue
-                self.session.graph.remove(
-                    (self.identifier, relationship, uid.to_identifier())
-                )
+            def iterator() -> Iterator[
+                Tuple[OntologyIndividual, OntologyRelationship]
+            ]:
+                """Helper iterator.
+
+                The purpose of defining this iterator is to be able to
+                return it, instead of using the `yield` keyword on the main
+                function, as described on the comment above.
+                """
+                for (i, r, t) in relationship_set.iter_low_level():
+                    if not t:
+                        continue
+                    session = self.session
+                    yield (
+                        (
+                            session.from_identifier_typed(
+                                i, typing=OntologyIndividual
+                            ),
+                            session.ontology.from_identifier_typed(
+                                r, typing=OntologyRelationship
+                            ),
+                        )
+                    )
+
+            iterator = iterator()
+        return iterator
 
     # ↑ ------ ↑
     # Public API
 
-    def _get_direct_superclasses(self) -> Iterable["OntologyEntity"]:
-        return (
-            x for oclass in self.oclasses for x in oclass.direct_superclasses
+    def _attribute_autocompletion(self) -> Iterable[str]:
+        """Compute individual's attributes as autocompletion suggestions."""
+        result = iter(())
+        attributes = (
+            attr
+            for oclass in self.classes
+            for attr in chain(
+                oclass.attributes.keys(),
+                oclass.optional_attributes,
+                self.attributes_generator(),
+            )
+        )
+        for attribute in attributes:
+            result = chain(
+                result,
+                attribute.iter_labels(return_literal=False),
+                (attribute.iri[len(attribute.namespace.iri) :],),
+            )
+        return result
+
+    def _relationship_autocompletion(self) -> Iterable[str]:
+        """Compute individual's relationships as autocompletion suggestions."""
+        result = iter(())
+        relationships = (
+            relationship
+            for _, relationship in self.relationships_iter(return_rel=True)
+        )
+        for relationship in relationships:
+            result = chain(
+                result,
+                relationship.iter_labels(return_literal=False),
+                (relationship.iri[len(relationship.namespace.iri) :],),
+            )
+        return result
+
+    def _annotation_autocompletion(self) -> Iterable[str]:
+        """Compute individual's annotations as autocompletion suggestions."""
+        result = iter(())
+        annotation_properties = (
+            annotation for annotation, _ in self.annotations_iter()
+        )
+        for annotation in annotation_properties:
+            result = chain(
+                result,
+                annotation.iter_labels(
+                    return_literal=False, return_prop=False
+                ),
+                (annotation.iri[len(annotation.namespace.iri) :],),
+            )
+        return result
+
+    def _get_direct_superclasses(self) -> Iterable["OntologyClass"]:
+        yield from (
+            x for oclass in self.classes for x in oclass.direct_superclasses
         )
 
     def _get_direct_subclasses(self) -> Iterable["OntologyClass"]:
-        return (
-            x for oclass in self.oclasses for x in oclass.direct_subclasses
+        yield from (
+            x for oclass in self.classes for x in oclass.direct_subclasses
         )
 
     def _get_superclasses(self) -> Iterable["OntologyClass"]:
-        return (x for oclass in self.oclasses for x in oclass.superclasses)
+        yield from (x for oclass in self.classes for x in oclass.superclasses)
 
     def _get_subclasses(self) -> Iterable["OntologyClass"]:
-        return (x for oclass in self.oclasses for x in oclass.subclasses)
+        yield from (x for oclass in self.classes for x in oclass.subclasses)
 
     # Annotation handling
     # ↓ --------------- ↓
@@ -1485,7 +1684,7 @@ class OntologyIndividual(OntologyEntity):
         """Adds annotations to the ontology individual."""
         if not isinstance(values, dict):
             values = self._classify_by_type(values)
-        for value in itertools.chain(
+        for value in chain(
             *(
                 values.get(key, set())
                 for key in (
@@ -1538,7 +1737,7 @@ class OntologyIndividual(OntologyEntity):
             values = self._classify_by_type(values)
 
         self.session.graph.remove((self.iri, annotation.iri, None))
-        for value in itertools.chain(
+        for value in chain(
             *(
                 values.get(key, set())
                 for key in (
@@ -1578,39 +1777,83 @@ class OntologyIndividual(OntologyEntity):
             elif isinstance(obj, Literal):
                 yield obj.toPython()
 
+    def annotations_iter(
+        self,
+        rel: Optional[OntologyAnnotation] = None,
+        return_rel: bool = False,
+    ) -> Iterator[AnnotationValue]:
+        """Iterate over the connected ontology individuals.
+
+        Args:
+            rel: Only return the annotation values which are connected by
+                the given annotation. Defaults to None (any relationship).
+            return_rel: Whether to return the connecting
+                relationship. Defaults to False.
+
+        Returns:
+            Iterator with the queried ontology individuals.
+        """
+        entities_and_annotations = (
+            (
+                self.session.from_identifier(o),
+                self.session.ontology.from_identifier(p),
+            )
+            for s, p, o in self.session.graph.triples(
+                (
+                    self.identifier,
+                    rel.identifier if rel is not None else None,
+                    None,
+                )
+            )
+            if not (isinstance(o, Literal) or p == RDF.type)
+        )
+        entities_and_annotations = filter(
+            lambda x: isinstance(x, OntologyAnnotation),
+            entities_and_annotations,
+        )
+        if return_rel:
+            yield from entities_and_annotations
+        else:
+            yield from map(lambda x: x[0], entities_and_annotations)
+
     # ↑ --------------- ↑
     # Annotation handling
 
     # Attribute handling
     # ↓ -------------- ↓
 
-    def attributes_get(self) -> Dict[OntologyAttribute, Set[AttributeValue]]:
+    @property
+    def attributes(
+        self,
+    ) -> Mapping[OntologyAttribute, FrozenSet[AttributeValue]]:
         """Get the attributes of this individual as a dictionary."""
-        return {
-            attr: set(gen)
-            for attr, gen in self.attributes_attribute_and_value_generator()
-        }
-
-    def _attributes_get_by_name(self, name: str) -> OntologyAttribute:
-        """Get an attribute of this individual by name."""
-        attributes_and_reference_styles = (
-            (attr, ns.reference_style)
-            for oclass in self.oclasses
-            for attr in oclass.attribute_declaration.keys()
-            for ns in attr.session.namespaces
-            if attr in ns
+        generator = self.attributes_attribute_and_value_generator()
+        return MappingProxyType(
+            {attr: frozenset(gen) for attr, gen in generator}
         )
-        for attr, reference_style in attributes_and_reference_styles:
+
+    def _attributes_get_by_name(self, name: str) -> Set[OntologyAttribute]:
+        """Get an attribute of this individual by name."""
+        attributes = (
+            attr
+            for oclass in self.classes
+            for attr in chain(
+                oclass.attributes.keys(),
+                oclass.optional_attributes,
+                self.attributes_generator(),
+            )
+        )
+        attributes = (
+            attr
+            for attr in attributes
             if any(
                 (
-                    reference_style
-                    and name in attr.iter_labels(return_literal=False),
-                    not reference_style
-                    and str(attr.identifier).endswith(name),
+                    str(attr.identifier).endswith(name),
+                    name in attr.iter_labels(return_literal=False),
                 )
-            ):
-                return attr
-        raise AttributeError(name)
+            )
+        )
+        return set(attributes)
 
     @staticmethod
     def _attributes_modifier(func):
@@ -1791,8 +2034,10 @@ class OntologyIndividual(OntologyEntity):
         """
         for predicate in self.session.graph.predicates(self.iri, None):
             try:
-                obj = self.session.ontology.from_identifier(predicate)
-            except KeyError:
+                obj = self.session.ontology.from_identifier_typed(
+                    predicate, typing=OntologyAttribute
+                )
+            except (KeyError, TypeError):
                 continue
             if isinstance(obj, OntologyAttribute):
                 yield obj
@@ -1816,7 +2061,7 @@ class OntologyIndividual(OntologyEntity):
     # ↓ ----------------- ↓
 
     def relationships_connect(
-        self, *other: "OntologyIndividual", rel: OntologyRelationship
+        self, *other: OntologyIndividual, rel: OntologyRelationship
     ):
         """Connect other ontology individuals to this one.
 
@@ -1844,7 +2089,7 @@ class OntologyIndividual(OntologyEntity):
 
     def relationships_disconnect(
         self,
-        *other: "OntologyIndividual",
+        *other: OntologyIndividual,
         rel: Optional[OntologyRelationship] = None,
     ):
         """Disconnect ontology individuals from this one.
@@ -1887,7 +2132,7 @@ class OntologyIndividual(OntologyEntity):
         rel: Optional[OntologyRelationship] = None,
         oclass: Optional[OntologyClass] = None,
         return_rel: bool = False,
-    ) -> Iterator["OntologyIndividual"]:
+    ) -> Iterator[OntologyIndividual]:
         """Iterate over the connected ontology individuals.
 
         Args:
@@ -1902,7 +2147,10 @@ class OntologyIndividual(OntologyEntity):
             Iterator with the queried ontology individuals.
         """
         entities_and_relationships = (
-            (self.session.from_identifier(o), self.session.from_identifier(p))
+            (
+                self.session.from_identifier(o),
+                self.session.ontology.from_identifier(p),
+            )
             for s, p, o in self.session.graph.triples(
                 (
                     self.identifier,
@@ -1910,6 +2158,7 @@ class OntologyIndividual(OntologyEntity):
                     None,
                 )
             )
+            if not (isinstance(o, Literal) or p == RDF.type)
         )
         if oclass:
             entities_and_relationships = (
@@ -1923,5 +2172,5 @@ class OntologyIndividual(OntologyEntity):
         else:
             yield from map(lambda x: x[0], entities_and_relationships)
 
-    # ↑ -------------- ↑
+    # ↑ ----------------- ↑
     # Relationship handling

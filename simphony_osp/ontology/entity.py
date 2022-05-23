@@ -1,10 +1,12 @@
 """Abstract superclass of any entity in the ontology."""
+from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
 from functools import lru_cache
 from typing import (
     TYPE_CHECKING,
+    FrozenSet,
     Iterable,
     Iterator,
     List,
@@ -66,9 +68,8 @@ class OntologyEntity(ABC):
         See the docstring for `label_literal` for more information on the
         definition of preferred label.
         """
-        return (
-            str(self.label_literal) if self.label_literal is not None else None
-        )
+        label_literal = self.label_literal
+        return str(label_literal) if label_literal is not None else None
 
     @label.setter
     def label(self, value: str) -> None:
@@ -79,19 +80,13 @@ class OntologyEntity(ABC):
         See the docstring for `label_literal` for more information on the
         definition of preferred label.
         """
+        label_literal = self.label_literal
         language = (
-            self.label_literal.language
-            if self.label_literal is not None
-            else None
+            label_literal.language if label_literal is not None else None
         )
         self.label_literal = (
             Literal(value, lang=language) if value is not None else None
         )
-
-    @property
-    def namespace(self) -> Optional["OntologyNamespace"]:
-        """Return the ontology namespace to which this entity is associated."""
-        return next((x for x in self.session.namespaces if self in x), None)
 
     @property
     def label_lang(self) -> Optional[str]:
@@ -100,11 +95,8 @@ class OntologyEntity(ABC):
         See the docstring for `label_literal` for more information on the
         definition of preferred label.
         """
-        return (
-            self.label_literal.language
-            if self.label_literal is not None
-            else None
-        )
+        label_literal = self.label_literal
+        return label_literal.language if label_literal is not None else None
 
     @label_lang.setter
     def label_lang(self, value: str) -> None:
@@ -114,6 +106,11 @@ class OntologyEntity(ABC):
         definition of preferred label.
         """
         self.label_literal = Literal(self.label_literal, lang=value)
+
+    @property
+    def namespace(self) -> Optional["OntologyNamespace"]:
+        """Return the ontology namespace to which this entity is associated."""
+        return next((x for x in self.session.namespaces if self in x), None)
 
     @property
     def session(self) -> "Session":
@@ -134,45 +131,45 @@ class OntologyEntity(ABC):
 
     @property
     @lru_cache(maxsize=entity_cache_size)
-    def direct_superclasses(self) -> Set["OntologyEntity"]:
+    def direct_superclasses(self) -> FrozenSet[OntologyEntity]:
         """Get the direct superclasses of the entity.
 
         Returns:
             The direct superclasses of the entity.
         """
-        return set(self._get_direct_superclasses())
+        return frozenset(self._get_direct_superclasses())
 
     @property
     @lru_cache(maxsize=entity_cache_size)
-    def direct_subclasses(self) -> Set["OntologyEntity"]:
+    def direct_subclasses(self) -> FrozenSet[OntologyEntity]:
         """Get the direct subclasses of the entity.
 
         Returns:
             The direct subclasses of the entity.
         """
-        return set(self._get_direct_subclasses())
+        return frozenset(self._get_direct_subclasses())
 
     @property
     @lru_cache(maxsize=entity_cache_size)
-    def superclasses(self) -> Set[Union["OntologyEntity"]]:
+    def superclasses(self) -> FrozenSet[OntologyEntity]:
         """Get the superclass of the entity.
 
         Returns:
             The direct superclasses of the entity.
 
         """
-        return set(self._get_superclasses())
+        return frozenset(self._get_superclasses())
 
     @property
     @lru_cache(maxsize=entity_cache_size)
-    def subclasses(self) -> Set["OntologyEntity"]:
+    def subclasses(self) -> FrozenSet[OntologyEntity]:
         """Get the subclasses of the entity.
 
         Returns:
             The direct subclasses of the entity
 
         """
-        return set(self._get_subclasses())
+        return frozenset(self._get_subclasses())
 
     def is_superclass_of(self, other: "OntologyEntity") -> bool:
         """Perform a superclass check.
@@ -181,7 +178,7 @@ class OntologyEntity(ABC):
             other: The other ontology entity.
 
         Returns:
-            Whether self is a superclass of other.
+            Whether self is a superclass of the other other entity.
         """
         return self in other.superclasses
 
@@ -192,10 +189,54 @@ class OntologyEntity(ABC):
             other: The other entity.
 
         Returns:
-            bool: Whether self is a subclass of other.
+            bool: Whether self is a subclass of the other entity.
 
         """
         return self in other.subclasses
+
+    def __str__(self) -> str:
+        """Transform the entity into a human-readable string."""
+        return (
+            f"{self.label}"
+            if hasattr(self, "label") and self.label is not None
+            else f"{self.uid}"
+        )
+
+    def __repr__(self) -> str:
+        """Transform the entity into a string."""
+        header = f"{self.__class__.__name__}"
+        elements = [
+            f"{self.label}"
+            if hasattr(self, "label") and self.label is not None
+            else None,
+            f"{self.uid}",
+        ]
+        elements = filter(lambda x: x is not None, elements)
+        return f"<{header}: {' '.join(elements)}>"
+
+    def __eq__(self, other: "OntologyEntity") -> bool:
+        """Check whether two entities are the same.
+
+        Args:
+            other: The other entity.
+
+        Returns:
+            bool: Whether the two entities are the same.
+        """
+        # TODO: Blank nodes with different IDs.
+        return (
+            isinstance(other, OntologyEntity)
+            and self.session == other.session
+            and self.uid == other.uid
+        )
+
+    def __hash__(self) -> int:
+        """Make the entity hashable."""
+        return hash((self.uid, self.session))
+
+    def __bool__(self):
+        """Returns the boolean value of the entity, always true."""
+        return True
 
     # ↑ ------ ↑
     # Public API
@@ -423,47 +464,3 @@ class OntologyEntity(ABC):
             # Otherwise, it is None -> do not change what is stored.
         self._session = session
         self.__graph = None
-
-    def __str__(self) -> str:
-        """Transform the entity into a human-readable string."""
-        return (
-            f"{self.label}"
-            if hasattr(self, "label") and self.label is not None
-            else f"{self.uid}"
-        )
-
-    def __repr__(self) -> str:
-        """Transform the entity into a string."""
-        header = f"{self.__class__.__name__}"
-        elements = [
-            f"{self.label}"
-            if hasattr(self, "label") and self.label is not None
-            else None,
-            f"{self.uid}",
-        ]
-        elements = filter(lambda x: x is not None, elements)
-        return f"<{header}: {' '.join(elements)}>"
-
-    def __eq__(self, other: "OntologyEntity") -> bool:
-        """Check whether two entities are the same.
-
-        Args:
-            other: The other entity.
-
-        Returns:
-            bool: Whether the two entities are the same.
-        """
-        # TODO: Blank nodes with different IDs.
-        return (
-            isinstance(other, OntologyEntity)
-            and self.session == other.session
-            and self.uid == other.uid
-        )
-
-    def __hash__(self) -> int:
-        """Make the entity hashable."""
-        return hash((self.uid, self.session))
-
-    def __bool__(self):
-        """Returns the boolean value of the entity, always true."""
-        return True

@@ -1,0 +1,57 @@
+"""A collection of utility methods for SimPhoNy.
+
+These are potentially useful for every user of SimPhoNy.
+"""
+
+import logging
+from typing import Optional, Set
+
+from simphony_osp.ontology.individual import OntologyIndividual
+from simphony_osp.ontology.relationship import OntologyRelationship
+
+logger = logging.getLogger(__name__)
+
+__all__ = [
+    "branch",
+    "get_relationships_between",
+]
+
+
+def branch(
+    individual, *individuals, rel: Optional[OntologyRelationship] = None
+) -> OntologyIndividual:
+    """Like `connect`, but returns the element you connect to.
+
+    This makes it easier to create large structures involving ontology
+    individuals.
+
+    Args:
+        individual: The ontology individual that is the subject of the
+            connections to be created.
+        individuals: Ontology individuals to connect to.
+        rel: Relationship to use.
+
+    Returns:
+        The ontology individual that is the subject of the connections to be
+        created (the first argument).
+    """
+    individual.connect(*individuals, rel=rel)
+    return individual
+
+
+def get_relationships_between(
+    subj: OntologyIndividual, obj: OntologyIndividual
+) -> Set[OntologyRelationship]:
+    """Get the set of relationships between two cuds objects.
+
+    Args:
+        subj: The subject ontology individual.
+        obj: The object ontology individual.
+
+    Returns:
+        The set of relationships between subject and object.
+    """
+    return set(
+        relationship
+        for individual, relationship in subj.get(obj, return_rel=True)
+    )

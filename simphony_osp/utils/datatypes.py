@@ -315,8 +315,8 @@ class UID(CustomDataType):
         elif isinstance(value, BNode):
             value = value
         elif isinstance(value, (str, URIRef)):
-            if value.startswith(CUDS_IRI_PREFIX):
-                value = value[len(CUDS_IRI_PREFIX) :]
+            if value.startswith(ENTITY_IRI_PREFIX):
+                value = value[len(ENTITY_IRI_PREFIX) :]
             split = value.split(":")
             if len(split) > 1 and all(y != "" for y in split):
                 value = URIRef(value)
@@ -372,7 +372,7 @@ class UID(CustomDataType):
         elif isinstance(self.data, URIRef):
             return_iri = self.data
         elif isinstance(self.data, UUID):
-            return_iri = URIRef(CUDS_IRI_PREFIX + str(self.data))
+            return_iri = URIRef(ENTITY_IRI_PREFIX + str(self.data))
         else:
             raise RuntimeError(f"Illegal UID type {type(self.data)}.")
         return return_iri
@@ -411,7 +411,7 @@ for datatype in (UID, UUID, URIRef, str, int, bytes):
         datatype_specific=True,
     )
 
-CUDS_IRI_PREFIX = "https://www.simphony-project.eu/cuds#"
+ENTITY_IRI_PREFIX = "https://www.simphony-project.eu/entity#"
 
 # --- RDF TO PYTHON --- #
 

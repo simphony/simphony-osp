@@ -21,6 +21,14 @@ class OntologyAnnotation(OntologyEntity):
     rdf_type = {OWL.AnnotationProperty, RDF.Property}
     rdf_identifier = Identifier
 
+    # Public API
+    # ↓ ------ ↓
+
+    # No methods meant for the user.
+
+    # ↑ ------ ↑
+    # Public API
+
     def __init__(
         self,
         uid: UID,

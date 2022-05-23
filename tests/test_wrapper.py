@@ -35,7 +35,7 @@ class TestWrapper(unittest.TestCase):
     def setUpClass(cls):
         """Create a TBox and set it as the default ontology.
 
-        The new TBox contains CUBA, OWL, RDFS and City.
+        The new TBox contains SimPhoNy, OWL, RDFS and City.
         """
         ontology = Session(identifier="test_tbox", ontology=True)
         ontology.load_parser(OntologyParser.get_parser("city"))
@@ -85,7 +85,7 @@ class TestWrapper(unittest.TestCase):
             self.assertEqual(freiburg.coordinates, [22, 58])
 
         with SQLite(self.file_name) as wrapper:
-            freiburg = wrapper.session.from_identifier(freiburg_identifier)
+            freiburg = wrapper.from_identifier(freiburg_identifier)
             citizens = list(freiburg[city.hasInhabitant])
 
             self.assertEqual("Freiburg", freiburg.name)
@@ -125,49 +125,13 @@ class TestWrapper(unittest.TestCase):
             paris = set(wrapper).pop()
             self.assertEqual(paris.name, "Paris")
 
-    def test_wrapper_root(self) -> None:
-        """Test using an ontology entity as wrapper."""
-        from simphony_osp.namespaces import city
-        from simphony_osp.wrappers import SQLite
-
-        fr = city.City(
-            iri="http://example.org/Freiburg",
-            name="Freiburg",
-            coordinates=[0, 0],
-        )
-
-        with SQLite(
-            self.file_name, create=True, root=fr
-        ) as freiburg_as_wrapper_1:
-            marco = city.Citizen(
-                iri="http://example.org/citizens#Marco", name="Marco", age=50
-            )
-            matthias = city.Citizen(name="Matthias", age=37)
-
-            freiburg_as_wrapper_1[city.hasInhabitant] = {marco, matthias}
-
-            freiburg_as_wrapper_1.commit()
-
-        with SQLite(
-            self.file_name, root="http://example.org/Freiburg"
-        ) as freiburg_as_wrapper_2:
-            citizens = list(freiburg_as_wrapper_2[city.hasInhabitant])
-
-            self.assertEqual("Freiburg", freiburg_as_wrapper_2.name)
-            self.assertSetEqual(
-                {"Marco", "Matthias"}, {citizen.name for citizen in citizens}
-            )
-            self.assertSetEqual(
-                {50, 37}, {citizen.age for citizen in citizens}
-            )
-
     def test_wrapper_sparql(self) -> None:
         """Test SPARQL queries on wrappers."""
-        from simphony_osp.namespaces import city, cuba
+        from simphony_osp.namespaces import city
         from simphony_osp.tools import sparql
         from simphony_osp.wrappers import SQLite
 
-        with SQLite(self.file_name, create=True) as wrapper:
+        with SQLite(self.file_name, create=True):
             freiburg = city.City(name="Freiburg", coordinates=[20, 58])
             marco = city.Citizen(
                 iri="http://example.org/citizens#Marco", name="Marco", age=50
@@ -188,22 +152,6 @@ class TestWrapper(unittest.TestCase):
             self.assertEqual(len(result[0]), 1)
             self.assertEqual(Literal("37", datatype=XSD.integer), result[0][0])
 
-            result = list(
-                sparql(
-                    f"""
-                SELECT ?item WHERE {{
-                    <{wrapper.iri}> <{cuba.contains.iri}> ?item .
-                }}
-            """
-                )
-            )
-            self.assertEqual(len(result), 3)
-            self.assertTrue(all(len(row) == 1 for row in result))
-            self.assertSetEqual(
-                set(x for row in result for x in row),
-                {marco.iri, freiburg.iri, matthias.iri},
-            )
-
 
 class TestDataspaceWrapper(unittest.TestCase):
     """Test the full end-user experience of using a wrapper.
@@ -219,7 +167,7 @@ class TestDataspaceWrapper(unittest.TestCase):
     def setUpClass(cls):
         """Create a TBox and set it as the default ontology.
 
-        The new TBox contains CUBA, OWL, RDFS and City.
+        The new TBox contains SimPhoNy, OWL, RDFS and City.
         """
         ontology = Session(identifier="test_tbox", ontology=True)
         ontology.load_parser(OntologyParser.get_parser("city"))
@@ -269,7 +217,7 @@ class TestDataspaceWrapper(unittest.TestCase):
             self.assertEqual(freiburg.coordinates, [22, 58])
 
         with Dataspace(self.dataspace_directory.name, False) as wrapper:
-            freiburg = wrapper.session.from_identifier(freiburg_identifier)
+            freiburg = wrapper.from_identifier(freiburg_identifier)
             citizens = list(freiburg[city.hasInhabitant])
 
             self.assertEqual("Freiburg", freiburg.name)
@@ -306,7 +254,7 @@ class TestDataspaceWrapper(unittest.TestCase):
 
         with Dataspace(self.dataspace_directory.name, False) as wrapper:
             self.assertEqual(len(wrapper), 1)
-            paris = wrapper.get().one()
+            paris = set(wrapper).pop()
             self.assertEqual(paris.name, "Paris")
             wrapper.delete(paris)
             wrapper.commit()
@@ -316,14 +264,14 @@ class TestDataspaceWrapper(unittest.TestCase):
 
     def test_files(self):
         """Test handling files."""
-        from simphony_osp.namespaces import cuba
+        from simphony_osp.namespaces import simphony
 
         with NamedTemporaryFile("w", suffix=".txt") as os_file:
             os_file.write("text")
 
             # Test creating file object and filling it with a file.
             with Dataspace(self.dataspace_directory.name, True) as wrapper:
-                file = cuba.File()
+                file = simphony.File()
                 file_identifier = file.identifier
                 file.upload(os_file.name)
                 file_name = b64encode(
@@ -349,7 +297,7 @@ class TestDataspaceWrapper(unittest.TestCase):
 
             # Test recovering the previous file and downloading it.
             with Dataspace(self.dataspace_directory.name, False) as wrapper:
-                file = wrapper.session.from_identifier(file_identifier)
+                file = wrapper.from_identifier(file_identifier)
                 with TemporaryDirectory() as temp_dir:
                     destination = Path(temp_dir) / "filename"
                     self.assertFalse(destination.is_file())
@@ -358,7 +306,7 @@ class TestDataspaceWrapper(unittest.TestCase):
 
             # Test deleting the file.
             with Dataspace(self.dataspace_directory.name, False) as wrapper:
-                file = wrapper.session.from_identifier(file_identifier)
+                file = wrapper.from_identifier(file_identifier)
                 wrapper.delete(file)
                 wrapper.commit()
                 self.assertFalse(
@@ -369,14 +317,14 @@ class TestDataspaceWrapper(unittest.TestCase):
                     )
                 )
                 self.assertRaises(
-                    KeyError, wrapper.session.from_identifier, file_identifier
+                    KeyError, wrapper.from_identifier, file_identifier
                 )
                 wrapper.commit()
 
             # Test that the file remains deleted.
             with Dataspace(self.dataspace_directory.name, False) as wrapper:
                 self.assertRaises(
-                    KeyError, wrapper.session.from_identifier, file_identifier
+                    KeyError, wrapper.from_identifier, file_identifier
                 )
 
 
@@ -399,7 +347,7 @@ class TestRemoteSQLite(unittest.TestCase):
     def setUpClass(cls):
         """Create a TBox and set it as the default ontology.
 
-        The new TBox contains CUBA, OWL, RDFS and City.
+        The new TBox contains SimPhoNy, OWL, RDFS and City.
         """
         ontology = Session(identifier="test_tbox", ontology=True)
         ontology.load_parser(OntologyParser.get_parser("city"))
@@ -491,7 +439,7 @@ class TestRemoteSQLite(unittest.TestCase):
         del freiburg
 
         with self.wrapper_generator() as wrapper:
-            freiburg = wrapper.session.from_identifier(freiburg_identifier)
+            freiburg = wrapper.from_identifier(freiburg_identifier)
             klaus = freiburg[city.hasInhabitant].one()
             self.assertEqual(freiburg.name, "Freiburg")
             self.assertEqual(klaus.name, "Klaus")
@@ -502,7 +450,7 @@ class TestRemoteSQLite(unittest.TestCase):
         del freiburg
 
         with self.wrapper_generator() as wrapper:
-            freiburg = wrapper.session.from_identifier(freiburg_identifier)
+            freiburg = wrapper.from_identifier(freiburg_identifier)
             self.assertIsNone(freiburg[city.hasInhabitant].any())
 
 

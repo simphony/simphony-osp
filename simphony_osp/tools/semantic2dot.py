@@ -213,7 +213,7 @@ class Semantic2Dot:
         """
         attributes = self._attribute.format("class", individual.oclass)
 
-        for key, value in individual.attributes_get().items():
+        for key, value in individual.attributes().items():
             label = self._element_label(key)
             if len(value) == 1:
                 value = value.pop()

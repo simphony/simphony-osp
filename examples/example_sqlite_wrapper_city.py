@@ -18,12 +18,12 @@ try:
     s = city.Street(name="Le street", coordinates=[0, 0])
     b = city.Building(name="Theater")
     a = city.Address(postalCode=79123, name="Le street", number=12)
-    c.add(p1, p2, p3, rel=city.hasInhabitant)
-    c.add(n).add(s).add(b).add(a)
+    c.connect(p1, p2, p3, rel=city.hasInhabitant)
+    c.connect(n).connect(s).connect(b).connect(a)
 
     print("Connect to DB via sqlite session")
     with sqlite("test.db") as wrapper:
-        wrapper.add(c)
+        wrapper.connect(c)
         wrapper.commit()
 
     print("Reconnect and check if data is still there")
