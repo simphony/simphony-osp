@@ -47,7 +47,6 @@ class TestSessionAPI(unittest.TestCase):
 
     def test_identifier(self):
         """Test the identifier attribute of the session."""
-
         with Session() as session:
             self.assertIsNone(session.identifier)
 
@@ -60,7 +59,6 @@ class TestSessionAPI(unittest.TestCase):
 
     def test_ontology(self):
         """Test the ontology attribute of a session."""
-
         self.assertIs(self.ontology.ontology, self.ontology)
 
         with Session() as session:

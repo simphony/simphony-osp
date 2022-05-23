@@ -31,7 +31,6 @@ from simphony_osp.ontology.attribute import OntologyAttribute
 from simphony_osp.ontology.entity import OntologyEntity
 from simphony_osp.ontology.individual import OntologyIndividual
 from simphony_osp.ontology.namespace import OntologyNamespace
-from simphony_osp.ontology.oclass import OntologyClass
 from simphony_osp.ontology.parser import OntologyParser
 from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.ontology.utils import compatible_classes
@@ -305,9 +304,14 @@ class Session(Environment):
         )
 
     def __bool__(self) -> bool:
+        """Evaluate the truth value of the session.
+
+        Such value is always true.
+        """
         return True
 
     def __len__(self) -> int:
+        """Return the number of ontology entities within the session."""
         return sum(1 for _ in self)
 
     def __str__(self):
@@ -384,6 +388,19 @@ class Session(Environment):
     def from_identifier_typed(
         self, identifier: Node, typing: Type[ENTITY]
     ) -> ENTITY:
+        """Get an ontology entity from its identifier, enforcing a type check.
+
+        Args:
+            identifier: The identifier of the entity.
+            typing: The expected type of the ontology entity matching the
+                given identifier.
+
+        Raises:
+            KeyError: The ontology entity is not stored in this session.
+
+        Returns:
+            The OntologyEntity.
+        """
         entity = self.from_identifier(identifier)
         if not isinstance(entity, typing):
             raise TypeError(f"{identifier} is not of class {typing}.")

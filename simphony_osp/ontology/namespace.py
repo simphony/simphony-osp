@@ -5,7 +5,7 @@ import logging
 from itertools import chain
 from typing import TYPE_CHECKING, Any, Iterable, Iterator, Optional, Set, Union
 
-from rdflib import BNode, URIRef
+from rdflib import URIRef
 from rdflib.term import Identifier
 
 from simphony_osp.ontology.entity import OntologyEntity

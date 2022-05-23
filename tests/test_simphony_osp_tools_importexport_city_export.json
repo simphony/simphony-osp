@@ -1,6 +1,6 @@
 [
   {
-    "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000001",
+    "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-000000000001",
     "@type": [
       "https://www.simphony-project.eu/city#City"
     ],
@@ -12,10 +12,10 @@
     ],
     "https://www.simphony-project.eu/city#hasPart": [
       {
-        "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000002"
+        "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-000000000002"
       },
       {
-        "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000003"
+        "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-000000000003"
       }
     ],
     "https://www.simphony-project.eu/city#name": [
@@ -30,7 +30,7 @@
     ]
   },
   {
-    "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000002",
+    "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-000000000002",
     "@type": [
       "https://www.simphony-project.eu/city#Neighborhood"
     ],
@@ -47,7 +47,7 @@
     ]
   },
   {
-    "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-000000000003",
+    "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-000000000003",
     "@type": [
       "https://www.simphony-project.eu/city#Street"
     ],

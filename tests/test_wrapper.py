@@ -127,11 +127,11 @@ class TestWrapper(unittest.TestCase):
 
     def test_wrapper_sparql(self) -> None:
         """Test SPARQL queries on wrappers."""
-        from simphony_osp.namespaces import city, simphony
+        from simphony_osp.namespaces import city
         from simphony_osp.tools import sparql
         from simphony_osp.wrappers import SQLite
 
-        with SQLite(self.file_name, create=True) as wrapper:
+        with SQLite(self.file_name, create=True):
             freiburg = city.City(name="Freiburg", coordinates=[20, 58])
             marco = city.Citizen(
                 iri="http://example.org/citizens#Marco", name="Marco", age=50

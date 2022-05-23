@@ -1,10 +1,6 @@
 """Module containing tools for the users of the SimPhoNy OSP."""
 
-from simphony_osp.tools.general import (
-    branch,
-    delete_cuds_object_recursively,
-    get_relationships_between,
-)
+from simphony_osp.tools.general import branch, get_relationships_between
 from simphony_osp.tools.import_export import export_cuds, import_cuds
 from simphony_osp.tools.pretty_print import pretty_print
 from simphony_osp.tools.remote import host
@@ -36,7 +32,6 @@ __all__ = [
     # simphony_osp.tools.general
     "branch",
     "get_relationships_between",
-    "delete_cuds_object_recursively",
     # simphony_osp.utils.remote
     "host",
 ]

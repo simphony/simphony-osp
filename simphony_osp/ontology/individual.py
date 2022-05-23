@@ -13,7 +13,6 @@ from typing import (
     FrozenSet,
     Iterable,
     Iterator,
-    List,
     Mapping,
     MutableSet,
     Optional,
@@ -1210,9 +1209,9 @@ class OntologyIndividual(OntologyEntity):
                 )
             elif x not in self.session:
                 raise RuntimeError(
-                    f"Cannot connect an ontology individual that belongs to "
-                    f"a different session, please add it to this session "
-                    f"first using `session.add`."
+                    "Cannot connect an ontology individual that belongs to "
+                    "a different session, please add it to this session "
+                    "first using `session.add`."
                 )
         individuals = set(individuals)
 
@@ -1274,9 +1273,9 @@ class OntologyIndividual(OntologyEntity):
                 )
             elif x not in self.session:
                 raise RuntimeError(
-                    f"Cannot connect an ontology individual that belongs to "
-                    f"a different session, please add it to this session "
-                    f"first using `session.add`."
+                    "Cannot connect an ontology individual that belongs to "
+                    "a different session, please add it to this session "
+                    "first using `session.add`."
                 )
         individuals = set(individuals)
 
@@ -1381,9 +1380,9 @@ class OntologyIndividual(OntologyEntity):
                 )
             elif isinstance(x, OntologyIndividual) and x not in self.session:
                 raise RuntimeError(
-                    f"Cannot get an individual that belongs to "
-                    f"a different session, please add it to this session "
-                    f"first using `session.add`."
+                    "Cannot get an individual that belongs to "
+                    "a different session, please add it to this session "
+                    "first using `session.add`."
                 )
 
             if isinstance(x, str):
@@ -1515,9 +1514,9 @@ class OntologyIndividual(OntologyEntity):
                 )
             elif isinstance(x, OntologyIndividual) and x not in self.session:
                 raise RuntimeError(
-                    f"Cannot get an individual that belongs to "
-                    f"a different session, please add it to this session "
-                    f"first using `session.add`."
+                    "Cannot get an individual that belongs to "
+                    "a different session, please add it to this session "
+                    "first using `session.add`."
                 )
 
             if isinstance(x, str):
@@ -1828,11 +1827,9 @@ class OntologyIndividual(OntologyEntity):
         self,
     ) -> Mapping[OntologyAttribute, FrozenSet[AttributeValue]]:
         """Get the attributes of this individual as a dictionary."""
+        generator = self.attributes_attribute_and_value_generator()
         return MappingProxyType(
-            {
-                attr: frozenset(gen)
-                for attr, gen in self.attributes_attribute_and_value_generator()
-            }
+            {attr: frozenset(gen) for attr, gen in generator}
         )
 
     def _attributes_get_by_name(self, name: str) -> Set[OntologyAttribute]:
