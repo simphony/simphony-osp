@@ -366,7 +366,8 @@ class RelationshipSet(ObjectSet):
                     yield None
                 else:
                     item = self._individual.session.from_identifier_typed(
-                        i, typing=OntologyIndividual)
+                        i, typing=OntologyIndividual
+                    )
                     if not self._class_filter or item.is_a(self._class_filter):
                         yield item
                     else:
