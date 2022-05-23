@@ -1,16 +1,16 @@
 """Special kind of ontology individual designed to organize entities."""
 
 import logging
-from typing import Dict, Iterable, Iterator, Optional, Tuple, Union
+from typing import Iterable, Iterator, Mapping, Optional, Tuple, Union
 from weakref import ReferenceType, ref
 
 from rdflib import URIRef
 
-from simphony_osp.namespaces import cuba
+from simphony_osp.namespaces import simphony
 from simphony_osp.ontology.attribute import OntologyAttribute
 from simphony_osp.ontology.individual import OntologyIndividual
 from simphony_osp.session.session import Environment, Session
-from simphony_osp.utils.cuba_namespace import cuba_namespace
+from simphony_osp.utils import simphony_namespace
 from simphony_osp.utils.datatypes import UID, AttributeValue, Triple
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class Container(Environment, OntologyIndividual):
     """Special kind of ontology individual designed to organize entities."""
 
-    rdf_type = cuba_namespace.Container
+    rdf_type = simphony_namespace.Container
 
     def __init__(
         self,
@@ -27,7 +27,7 @@ class Container(Environment, OntologyIndividual):
         session: Optional[Session] = None,
         triples: Optional[Iterable[Triple]] = None,
         attributes: Optional[
-            Dict[OntologyAttribute, Iterable[AttributeValue]]
+            Mapping[OntologyAttribute, Iterable[AttributeValue]]
         ] = None,
         merge: bool = False,
     ) -> None:
@@ -36,7 +36,7 @@ class Container(Environment, OntologyIndividual):
             uid=uid,
             session=session,
             triples=triples,
-            class_=cuba.Container,
+            class_=simphony.Container,
             attributes=attributes,
             merge=merge,
         )
@@ -117,7 +117,7 @@ class Container(Environment, OntologyIndividual):
 
         """
         return tuple(
-            self._session.graph.objects(self.identifier, cuba.contains.iri)
+            self._session.graph.objects(self.identifier, simphony.contains.iri)
         )
 
     @references.setter
@@ -128,16 +128,18 @@ class Container(Environment, OntologyIndividual):
         """
         provided = set(value)
         existing = set(
-            self._session.graph.objects(self.identifier, cuba.contains.iri)
+            self._session.graph.objects(self.identifier, simphony.contains.iri)
         )
         add = provided - existing
         remove = existing - provided
         for iri in remove:
             self._session.graph.remove(
-                (self.identifier, cuba.contains.iri, iri)
+                (self.identifier, simphony.contains.iri, iri)
             )
         for iri in add:
-            self._session.graph.add((self.identifier, cuba.contains.iri, iri))
+            self._session.graph.add(
+                (self.identifier, simphony.contains.iri, iri)
+            )
 
     @property
     def num_references(self) -> int:
@@ -147,7 +149,9 @@ class Container(Environment, OntologyIndividual):
         """
         return len(
             set(
-                self._session.graph.objects(self.identifier, cuba.contains.iri)
+                self._session.graph.objects(
+                    self.identifier, simphony.contains.iri
+                )
             )
         )
 
@@ -299,7 +303,7 @@ class Container(Environment, OntologyIndividual):
           (put individual in added/updated buffer).
 
         - (Link individual) Add triples (URIRef(f'<self.iri>'),
-          <cuba:contains>,  URIRef(f'{individual.iri}')) for each
+          <simphony:contains>,  URIRef(f'{individual.iri}')) for each
           individual in `individuals` to `self.session`'s graph.
 
           Such a triple means that the individual is linked to the container.
@@ -313,7 +317,7 @@ class Container(Environment, OntologyIndividual):
                 self.session.graph.add(
                     (
                         self.identifier,
-                        cuba.contains.identifier,
+                        simphony.contains.identifier,
                         individual.identifier,
                     )
                 )
@@ -339,7 +343,7 @@ class Container(Environment, OntologyIndividual):
           `session_linked`'s bag.
 
         - (Unlink individual) Remove all triples with the pattern
-          (URIRef(f'<self.iri>'), <cuba:contains>,
+          (URIRef(f'<self.iri>'), <simphony:contains>,
           URIRef(f'{individual.iri}')) from `self.session`'s graph.  This means
           that the individual is no longer linked to the container.
         """
@@ -363,7 +367,7 @@ class Container(Environment, OntologyIndividual):
                 self.session.graph.remove(
                     (
                         self.identifier,
-                        cuba.contains.identifier,
+                        simphony.contains.identifier,
                         individual.identifier,
                     )
                 )

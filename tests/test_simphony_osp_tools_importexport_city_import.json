@@ -12,14 +12,6 @@
     ]
   },
   {
-    "@id": "https://www.simphony-project.eu/cuba#_serialization",
-    "http://www.w3.org/1999/02/22-rdf-syntax-ns#first": [
-      {
-        "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-00000000007b"
-      }
-    ]
-  },
-  {
     "@id": "https://www.simphony-project.eu/cuds#00000000-0000-0000-0000-00000000007b",
     "@type": [
       "https://www.simphony-project.eu/city#Citizen"
@@ -40,6 +32,11 @@
     "https://www.simphony-project.eu/city#name": [
       {
         "@value": "Peter"
+      }
+    ],
+    "https://www.simphony-project.eu/simphony#main": [
+      {
+        "@value": true
       }
     ]
   }

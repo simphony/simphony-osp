@@ -193,14 +193,13 @@ class TestImportExport(unittest.TestCase):
         with Session():
             c = branch(
                 city.City(name="Freiburg", coordinates=[0, 0], uid=1),
-                branch(
-                    city.Neighborhood(
+                city.Neighborhood(
                         name="Littenweiler", coordinates=[0, 0], uid=2
                     ),
-                    city.Street(
+                city.Street(
                         name="Schwarzwaldstraße", coordinates=[0, 0], uid=3
-                    ),
                 ),
+                rel=city.hasPart,
             )
             export_file = io.StringIO()
             export_cuds(c, file=export_file, format="application/ld+json")
@@ -218,8 +217,8 @@ class TestImportExport(unittest.TestCase):
         c = city.City(name="Freiburg", coordinates=[47, 7])
         p1 = city.Citizen(name="Peter", age=25)
         p2 = city.Citizen(name="Anne", age=25)
-        c.add(p1, rel=city.hasInhabitant)
-        c.add(p2, rel=city.hasInhabitant)
+        c.connect(p1, rel=city.hasInhabitant)
+        c.connect(p2, rel=city.hasInhabitant)
         exported_file = io.StringIO()
         export_cuds(c, file=exported_file, format="text/turtle")
         exported_file.seek(0)
@@ -344,7 +343,7 @@ def data_integrity(testcase, session, loaded_objects, label=None):
         # Blocks 1, 2 and 4 are both blocks and forests.
         expected_classes = (test_importexport.Block, test_importexport.Forest)
         loaded_classes_for_object = tuple(
-            object[i].oclasses for i in range(1, 2, 4)
+            object[i].classes for i in range(1, 2, 4)
         )
 
         sub_test_classes(
@@ -353,7 +352,7 @@ def data_integrity(testcase, session, loaded_objects, label=None):
 
         # Block 3 is both a block and water.
         expected_classes = (test_importexport.Block, test_importexport.Water)
-        loaded_classes_for_object = (object[3].oclasses,)
+        loaded_classes_for_object = (object[3].classes,)
 
         sub_test_classes(
             testcase, expected_classes, loaded_classes_for_object, label=label

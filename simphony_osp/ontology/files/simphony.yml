@@ -1,0 +1,8 @@
+identifier: simphony
+ontology_file: simphony.ttl
+format: 'turtle'
+reference_by_label: False
+namespaces:
+    simphony: https://www.simphony-project.eu/simphony#
+active_relationships:
+    - https://www.simphony-project.eu/simphony#activeRelationship

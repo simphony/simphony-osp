@@ -1,16 +1,20 @@
 """A class defined in the ontology."""
+from __future__ import annotations
 
 import logging
 from functools import lru_cache
+from itertools import chain
+from types import MappingProxyType
 from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
+    FrozenSet,
     Iterable,
     Iterator,
+    Mapping,
     Optional,
     Set,
-    Tuple,
     Union,
 )
 from uuid import UUID
@@ -18,13 +22,12 @@ from uuid import UUID
 from rdflib import OWL, RDF, RDFS, BNode, URIRef
 from rdflib.term import Identifier
 
+from simphony_osp.ontology.attribute import OntologyAttribute
 from simphony_osp.ontology.entity import OntologyEntity
-from simphony_osp.utils.cuba_namespace import cuba_namespace
+from simphony_osp.ontology.restriction import Restriction
 from simphony_osp.utils.datatypes import UID, AttributeValue, Triple
 
 if TYPE_CHECKING:
-    from simphony_osp.ontology.attribute import OntologyAttribute
-    from simphony_osp.ontology.oclass_restriction import Restriction
     from simphony_osp.session.session import Session
 
 logger = logging.getLogger(__name__)
@@ -38,344 +41,55 @@ class OntologyClass(OntologyEntity):
     rdf_type = {OWL.Class, RDFS.Class}
     rdf_identifier = URIRef
 
-    def __init__(
-        self,
-        uid: UID,
-        session: Optional["Session"] = None,
-        triples: Optional[Iterable[Triple]] = None,
-        merge: bool = False,
-    ) -> None:
-        """Initialize the ontology class.
-
-        Args:
-            uid: UID identifying the ontology class.
-            session: Session where the entity is stored.
-            triples: Construct the class with the provided triples.
-            merge: Whether overwrite the potentially existing entity in the
-                session with the provided triples or just merge them with
-                the existing ones.
-        """
-        super().__init__(uid, session, triples, merge=merge)
-        logger.debug("Instantiated ontology class %s" % self)
+    # ↓ --------------------- Public API --------------------- ↓ #
 
     @property
-    def attributes(self) -> Dict["OntologyAttribute", Set[Any]]:
-        """Get the class attributes.
+    def attributes(
+        self,
+    ) -> Mapping[OntologyAttribute, FrozenSet[Optional[AttributeValue]]]:
+        """Get the attributes of this class.
 
-        Non-mandatory attributes or attributes without a default value will
-        not be returned. Mandatory attributes without a default value will
-        have None as value.
-
-        Returns:
-            The resulting attributes.
+        The attributes that all instances of this class are expected to
+        have. A class can have attributes because one of its superclasses (
+        including itself) has a default value for an attribute, or because
+        the axioms affecting the superclass explicitly state that the class has
+        such an attribute.
         """
-        attributes = self.attribute_declaration
-        result = dict()
-        for attribute, (
-            default,
-            mandatory,
-        ) in self.attribute_declaration.items():
-            if default is not None or mandatory:
-                attributes[attribute] = default
-        return result
+        attributes: Dict[
+            OntologyAttribute, FrozenSet[Optional[AttributeValue]]
+        ]
+        superclass: OntologyClass
+
+        attributes = self._direct_attributes
+
+        # Inherit attributes from the direct superclasses, which recursively
+        # inherit from their own superclasses.
+        for superclass in self.direct_superclasses:
+            for attribute, default in superclass.attributes.items():
+                attributes[attribute] = (
+                    attributes.get(attribute, None) or default
+                )
+        return MappingProxyType(attributes)
 
     @property
     @lru_cache(maxsize=None)
-    def axioms(self) -> Tuple["Restriction"]:
+    def axioms(self) -> FrozenSet[Restriction]:
         """Get all the axioms for the ontology class.
 
-        Include axioms of superclasses.
+        Includes axioms inherited from its superclasses.
 
         Returns:
-            Tuple of axioms for the ontology class.
+            Axioms for the ontology class.
         """
-        axioms = tuple()
+        axioms: Set[Restriction] = set()
         for superclass in self.superclasses:
-            axioms += self._compute_axioms(
+            axioms |= self._compute_axioms(
                 superclass.identifier, RDFS.subClassOf
             )
-            axioms += self._compute_axioms(
+            axioms |= self._compute_axioms(
                 superclass.identifier, OWL.equivalentClass
             )
-        return tuple(axioms)
-
-    def _compute_axioms(
-        self, identifier: Identifier, predicate: URIRef
-    ) -> Tuple["Restriction"]:
-        """Compute the axioms for the class with the given identifier.
-
-        Does not include superclasses.
-
-        Args:
-            identifier: The IRI of the class.
-            predicate: The predicate to which the class is connected to
-                axioms (subclass or equivalentClass).
-
-        Returns:
-            Tuple of computed axioms.
-        """
-        axioms = tuple()
-        for o in self.session.graph.objects(identifier, predicate):
-            if not isinstance(o, BNode):
-                continue
-            try:
-                axioms += (self.session.from_identifier(o),)
-            except KeyError:
-                pass
-        return axioms
-
-    @property
-    def attribute_declaration(
-        self,
-    ) -> Dict["OntologyAttribute", Tuple[Optional[AttributeValue], bool]]:
-        """Get the attributes of this ontology class, and their settings.
-
-        Returns:
-            Mapping from attributes to default attribute values and whether
-            they are mandatory or not.
-        """
-        attributes = self._direct_attributes
-        for superclass in self.direct_superclasses:
-            for attribute, (
-                new_default,
-                new_mandatory,
-            ) in superclass.attribute_declaration.items():
-                default, mandatory = attributes.get(attribute, (None, False))
-                default, mandatory = (
-                    default or new_default,
-                    False
-                    if default or new_default
-                    else mandatory or new_mandatory,
-                )
-                attributes[attribute] = default, mandatory
-        return attributes
-
-    @property
-    def _direct_attributes(
-        self,
-    ) -> Dict["OntologyAttribute", Tuple[Optional[AttributeValue], bool]]:
-        """Get the non-inherited attributes of this ontology class.
-
-        Returns:
-            Mapping from attributes to a tuple indicating:
-            - default value of the attribute,
-            - whether the attribute is mandatory or not,
-            - IRI of the attribute datatype.
-        """
-        identifier = self.identifier
-        graph = self.session.graph
-        attributes = dict()
-
-        # Case 1: class is part of the domain of a DatatypeProperty.
-        blacklist = [OWL.topDataProperty, OWL.bottomDataProperty]
-        for s in graph.subjects(RDFS.domain, self.identifier):
-            if (
-                s,
-                RDF.type,
-                OWL.DatatypeProperty,
-            ) not in graph or s in blacklist:
-                continue
-            attribute = self.session.from_identifier(s)
-            default = self._get_default_python_object(attribute)
-            attributes[attribute] = (default, False)
-
-        # Case 2: from axioms.
-        for r in graph.objects(identifier, RDFS.subClassOf):
-            # Must be a restriction.
-            if (r, RDF.type, OWL.Restriction) not in graph:
-                continue
-
-            # Must the property must be a DatatypeProperty.
-            a = graph.value(r, OWL.onProperty)
-            if (a, RDF.type, OWL.DatatypeProperty) not in graph:
-                continue
-
-            attribute = self.session.from_identifier(a)
-            cuba_default = self._get_default_python_object(attribute)
-
-            # TODO: Move restriction default and obligatory logic to
-            #  restriction class?
-            # restriction = self.session.from_identifier(r)
-            restriction_default = graph.value(r, OWL.hasValue)
-            obligatory = any(
-                (
-                    self.session.graph.value(r, OWL.someValuesFrom),
-                    self.session.graph.value(r, OWL.allValuesFrom),
-                    self.session.graph.value(r, OWL.hasValue),
-                    self.session.graph.value(r, OWL.cardinality) != 0,
-                    self.session.graph.value(r, OWL.minCardinality != 0),
-                )
-            )
-
-            default = cuba_default or restriction_default
-            obligatory = default is None and obligatory
-
-            attributes[attribute] = (default, obligatory)
-
-        # TODO more cases
-        return attributes
-
-    def _get_default_python_object(
-        self, attribute: "OntologyAttribute"
-    ) -> AttributeValue:
-        """Get the default python object for the given attribute.
-
-        Args:
-            attribute: The attribute.
-
-        Returns:
-            The default python object.
-        """
-        for bnode in self.session.graph_and_overlay.objects(
-            self.iri, cuba_namespace._default
-        ):
-            if (
-                bnode,
-                cuba_namespace._default_attribute,
-                attribute.iri,
-            ) in self.session.graph:
-                literal = self.session.graph_and_overlay.value(
-                    bnode, cuba_namespace._default_value
-                )
-                return (
-                    attribute.convert_to_datatype(literal)
-                    if literal is not None
-                    else None
-                )
-
-    def _get_direct_superclasses(self) -> Iterator[OntologyEntity]:
-        """Get all the direct superclasses of this ontology class.
-
-        Returns:
-            The direct superclasses.
-        """
-        return filter(
-            lambda x: isinstance(x, OntologyClass),
-            (
-                self.session.from_identifier(o)
-                for o in self.session.graph_and_overlay.objects(
-                    self.iri, RDFS.subClassOf
-                )
-            ),
-        )
-
-    def _get_direct_subclasses(self) -> Iterator[OntologyEntity]:
-        """Get all the direct subclasses of this ontology class.
-
-        Returns:
-            The direct subclasses.
-        """
-        return filter(
-            lambda x: isinstance(x, OntologyClass),
-            (
-                self.session.from_identifier(s)
-                for s in self.session.graph_and_overlay.subjects(
-                    RDFS.subClassOf, self.iri
-                )
-            ),
-        )
-
-    def _get_superclasses(self) -> Iterator[OntologyEntity]:
-        """Get all the superclasses of this ontology class.
-
-        Yields:
-            The superclasses.
-        """
-        yield self
-
-        def closure(node, graph):
-            for o in graph.objects(node, RDFS.subClassOf):
-                yield o
-
-        yield from filter(
-            lambda x: isinstance(x, OntologyClass),
-            (
-                self.session.from_identifier(x)
-                for x in self.session.graph_and_overlay.transitiveClosure(
-                    closure, self.identifier
-                )
-            ),
-        )
-
-        yield self.session.from_identifier(OWL.Thing)
-
-    def _get_subclasses(self) -> Iterator[OntologyEntity]:
-        """Get all the subclasses of this ontology class.
-
-        Yields:
-            The subclasses.
-        """
-        yield self
-
-        def closure(node, graph):
-            for s in graph.subjects(RDFS.subClassOf, node):
-                yield s
-
-        yield from filter(
-            lambda x: isinstance(x, OntologyClass),
-            (
-                self.session.from_identifier(x)
-                for x in self.session.graph_and_overlay.transitiveClosure(
-                    closure, self.identifier
-                )
-            ),
-        )
-
-    def _kwargs_to_attributes(
-        self, kwargs, _skip_checks: bool
-    ) -> Dict["OntologyAttribute", Set[Any]]:
-        """Combine class attributes with the ones from the given kwargs.
-
-        Args:
-            kwargs: The user specified keyword arguments.
-            _skip_checks: When true, allow mandatory attributes to be left
-                undefined.
-
-        Raises:
-            TypeError: Unexpected keyword argument.
-            TypeError: Missing keyword argument.
-
-        Returns:
-            The resulting mixture.
-        """
-        kwargs = dict(kwargs)
-        attributes = dict()
-        for attribute, (
-            default,
-            obligatory,
-        ) in self.attribute_declaration.items():
-            labels = set(attribute.iter_labels(return_literal=False))
-            if attribute.namespace is not None:
-                labels |= {
-                    attribute.identifier[len(attribute.namespace.iri) :]
-                }
-            label = next(filter(lambda x: x in kwargs, labels), None)
-            if label is not None:
-                attributes[attribute] = kwargs[label]
-                del kwargs[label]
-            elif not _skip_checks and obligatory:
-                raise TypeError(
-                    "Missing keyword argument: %s" % attribute.label
-                )
-            elif default is not None:
-                attributes[attribute] = default
-            else:
-                continue
-
-            # Turn attribute into a mutable sequence.
-            if not isinstance(attributes[attribute], Set):
-                attributes[attribute] = [attributes[attribute]]
-            else:
-                attributes[attribute] = list(attributes[attribute])
-
-            # Set the appropriate hashable data type for the arguments.
-            for i, value in enumerate(attributes[attribute]):
-                attributes[attribute][i] = attribute.convert_to_datatype(value)
-
-        # Check validity of arguments
-        if not _skip_checks and kwargs:
-            raise TypeError("Unexpected keyword arguments: %s" % kwargs.keys())
-        return attributes
+        return frozenset(axioms)
 
     def __call__(
         self,
@@ -383,7 +97,7 @@ class OntologyClass(OntologyEntity):
         iri: Optional[Union[URIRef, str, UID]] = None,
         uid: Optional[Union[UUID, str, UID]] = None,
         _force: bool = False,
-        **kwargs
+        **kwargs,
     ):
         """Create an OntologyIndividual object from this ontology class.
 
@@ -428,10 +142,10 @@ class OntologyClass(OntologyEntity):
                 or UID()
             )
 
-        from simphony_osp.namespaces import cuba
+        from simphony_osp.namespaces import simphony
         from simphony_osp.ontology.individual import OntologyIndividual
 
-        if self.is_subclass_of(cuba.Container):
+        if self.is_subclass_of(simphony.Container):
             from simphony_osp.ontology.interactive.container import Container
 
             result = Container(
@@ -442,7 +156,7 @@ class OntologyClass(OntologyEntity):
                 ),
             )
             return result
-        elif self.is_subclass_of(cuba.File):
+        elif self.is_subclass_of(simphony.File):
             from simphony_osp.ontology.interactive.file import File
 
             path = kwargs.get("path", None)
@@ -455,7 +169,7 @@ class OntologyClass(OntologyEntity):
                     kwargs, _skip_checks=_force
                 ),
             )
-            result[cuba.path] = path
+            result[simphony.path] = path
             return result
         # TODO: Multiclass individuals.
 
@@ -467,3 +181,306 @@ class OntologyClass(OntologyEntity):
             class_=self,
             attributes=self._kwargs_to_attributes(kwargs, _skip_checks=_force),
         )
+
+    # ↑ --------------------- Public API --------------------- ↑ #
+
+    def __init__(
+        self,
+        uid: UID,
+        session: Optional["Session"] = None,
+        triples: Optional[Iterable[Triple]] = None,
+        merge: bool = False,
+    ) -> None:
+        """Initialize the ontology class.
+
+        Args:
+            uid: UID identifying the ontology class.
+            session: Session where the entity is stored.
+            triples: Construct the class with the provided triples.
+            merge: Whether overwrite the potentially existing entity in the
+                session with the provided triples or just merge them with
+                the existing ones.
+        """
+        super().__init__(uid, session, triples, merge=merge)
+        logger.debug("Instantiated ontology class %s" % self)
+
+    @property
+    def optional_attributes(self) -> FrozenSet[OntologyAttribute]:
+        """Get the optional attributes of this class.
+
+        The optional attributes are the non-mandatory attributes (those not
+        returned by the `attributes` property) that have the class defined
+        as their domain, or any of its superclasses.
+        """
+        superclass: OntologyClass
+        attributes = frozenset(
+            self._direct_optional_attributes
+            | set(
+                attribute
+                for superclass in self.direct_superclasses
+                for attribute in superclass.optional_attributes
+            )
+        )
+        return attributes
+
+    def _compute_axioms(
+        self, identifier: Identifier, predicate: URIRef
+    ) -> FrozenSet[Restriction]:
+        """Compute the axioms for the class with the given identifier.
+
+        Does not include superclasses.
+
+        Args:
+            identifier: The IRI of the class.
+            predicate: The predicate to which the class is connected to
+                axioms (subclass or equivalentClass).
+
+        Returns:
+            Tuple of computed axioms.
+        """
+        axioms: Set[Restriction] = set()
+        for o in self.session.graph.objects(identifier, predicate):
+            if not isinstance(o, BNode):
+                continue
+            try:
+                axioms.add(self.session.from_identifier_typed(o, Restriction))
+            except (KeyError, TypeError):
+                pass
+        return frozenset(axioms)
+
+    @property
+    def _direct_attributes(
+        self,
+    ) -> Dict[OntologyAttribute, FrozenSet[Optional[AttributeValue]]]:
+        """Get the non-inherited attributes of this ontology class.
+
+        Returns:
+            Mapping from attributes to the default value of the attribute.
+            Mandatory attributes without a default value are mapped to `None`.
+        """
+        graph = self.session.graph
+        attributes = dict()
+
+        # From axioms.
+        restrictions_on_data_properties = (
+            # Yield both the restriction and the property.
+            (restriction_iri, prop_iri)
+            # Must be a restriction.
+            for restriction_iri in graph.objects(
+                self.identifier, RDFS.subClassOf
+            )
+            if (restriction_iri, RDF.type, OWL.Restriction) in graph
+            # The property must be a DatatypeProperty.
+            for prop_iri in (
+                graph.value(restriction_iri, OWL.onProperty, any=False),
+            )
+            if (prop_iri, RDF.type, OWL.DatatypeProperty) in graph
+        )
+        for restriction_iri, prop_iri in restrictions_on_data_properties:
+            attribute = self.session.from_identifier_typed(
+                prop_iri, typing=OntologyAttribute
+            )
+
+            # Get restriction default.
+            default = graph.value(restriction_iri, OWL.hasValue)
+
+            # Determine if attribute is mandatory.
+            obligatory = any(
+                (
+                    self.session.graph.value(
+                        restriction_iri, OWL.someValuesFrom
+                    ),
+                    self.session.graph.value(
+                        restriction_iri, OWL.allValuesFrom
+                    ),
+                    self.session.graph.value(restriction_iri, OWL.hasValue),
+                    self.session.graph.value(restriction_iri, OWL.cardinality)
+                    != 0,
+                    self.session.graph.value(
+                        restriction_iri, OWL.minCardinality != 0
+                    ),
+                )
+            )
+
+            if default or obligatory:
+                attributes[attribute] = attributes.get(attribute, default)
+
+        # TODO more cases
+        return attributes
+
+    @property
+    def _direct_optional_attributes(
+        self,
+    ) -> FrozenSet[OntologyAttribute]:
+        """Get the non-inherited optional attributes of this ontology class.
+
+        The optional non-inherited attributes are the non-mandatory attributes
+        (those not returned by the `_direct_attributes` property) that have
+        the class defined as their domain, or any of its superclasses.
+
+        Returns:
+            A frozen set containing all the non-inherited optional
+            attributes of the class.
+        """
+        graph = self.session.graph
+        attributes = set()
+
+        # Class is part of the domain of a DatatypeProperty.
+        blacklist = [OWL.topDataProperty, OWL.bottomDataProperty]
+        target_properties = (
+            s
+            for s in graph.subjects(RDFS.domain, self.identifier)
+            if (s, RDF.type, OWL.DatatypeProperty) in graph or s in blacklist
+        )
+        for identifier in target_properties:
+            attribute = self.session.from_identifier_typed(
+                identifier, typing=OntologyAttribute
+            )
+            attributes.add(attribute)
+        return frozenset(attributes)
+
+    def _get_direct_superclasses(self) -> Iterator[OntologyClass]:
+        """Get all the direct superclasses of this ontology class.
+
+        Returns:
+            The direct superclasses.
+        """
+        for o in self.session.graph_and_overlay.objects(
+            self.iri, RDFS.subClassOf
+        ):
+            try:
+                yield self.session.from_identifier_typed(
+                    o, typing=OntologyClass
+                )
+            except TypeError:
+                pass
+
+    def _get_direct_subclasses(self) -> Iterator[OntologyClass]:
+        """Get all the direct subclasses of this ontology class.
+
+        Returns:
+            The direct subclasses.
+        """
+        for s in self.session.graph_and_overlay.subjects(
+            RDFS.subClassOf, self.iri
+        ):
+            try:
+                yield self.session.from_identifier_typed(
+                    s, typing=OntologyClass
+                )
+            except TypeError:
+                pass
+
+    def _get_superclasses(self) -> Iterator[OntologyClass]:
+        """Get all the superclasses of this ontology class.
+
+        Yields:
+            The superclasses.
+        """
+        yield self
+
+        def closure(node, graph):
+            for o in graph.objects(node, RDFS.subClassOf):
+                yield o
+
+        yield from filter(
+            lambda x: isinstance(x, OntologyClass),
+            (
+                self.session.from_identifier(x)
+                for x in self.session.graph_and_overlay.transitiveClosure(
+                    closure, self.identifier
+                )
+            ),
+        )
+
+        yield self.session.from_identifier(OWL.Thing)
+
+    def _get_subclasses(self) -> Iterator[OntologyClass]:
+        """Get all the subclasses of this ontology class.
+
+        Yields:
+            The subclasses.
+        """
+        yield self
+
+        def closure(node, graph):
+            for s in graph.subjects(RDFS.subClassOf, node):
+                yield s
+
+        yield from filter(
+            lambda x: isinstance(x, OntologyClass),
+            (
+                self.session.from_identifier(x)
+                for x in self.session.graph_and_overlay.transitiveClosure(
+                    closure, self.identifier
+                )
+            ),
+        )
+
+    def _kwargs_to_attributes(
+        self, kwargs: Mapping, _skip_checks: bool
+    ) -> Mapping[OntologyAttribute, FrozenSet[Any]]:
+        """Combine class attributes with the ones from the given kwargs.
+
+        Args:
+            kwargs: The user specified keyword arguments.
+            _skip_checks: When true, allow mandatory attributes to be left
+                undefined.
+
+        Raises:
+            TypeError: Unexpected keyword argument.
+            TypeError: Missing keyword argument.
+
+        Returns:
+            The resulting mixture.
+        """
+        kwargs = dict(kwargs)
+
+        attributes = dict()
+        attribute_declaration = {
+            attribute: (default, mandatory)
+            for attribute, default, mandatory in chain(
+                ((attr, None, False) for attr in self.optional_attributes),
+                ((attr, def_, True) for attr, def_ in self.attributes.items()),
+            )
+        }
+        for attribute, (
+            default,
+            obligatory,
+        ) in attribute_declaration.items():
+            labels = set(attribute.iter_labels(return_literal=False))
+            if attribute.namespace is not None:
+                labels |= {
+                    attribute.identifier[len(attribute.namespace.iri) :]
+                }
+            label = next(filter(lambda x: x in kwargs, labels), None)
+            if label is not None:
+                attributes[attribute] = kwargs[label]
+                del kwargs[label]
+            elif not _skip_checks and obligatory:
+                raise TypeError(
+                    "Missing keyword argument: %s" % attribute.label
+                )
+            elif default is not None:
+                attributes[attribute] = default
+            else:
+                continue
+
+            # Turn attribute into a mutable sequence.
+            if not isinstance(attributes[attribute], FrozenSet):
+                attributes[attribute] = [attributes[attribute]]
+            else:
+                attributes[attribute] = list(attributes[attribute])
+
+            # Set the appropriate hashable data type for the arguments.
+            attributes[attribute] = frozenset(
+                {
+                    attribute.convert_to_datatype(value)
+                    for value in attributes[attribute]
+                }
+            )
+
+        # Check validity of arguments
+        if not _skip_checks and kwargs:
+            raise TypeError("Unexpected keyword arguments: %s" % kwargs.keys())
+        return MappingProxyType(attributes)

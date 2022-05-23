@@ -70,6 +70,9 @@ class Restriction(OntologyEntity):
             )
         super().__init__(uid, session, triples, merge=merge)
 
+    # Public API
+    # ↓ ------ ↓
+
     def __str__(self) -> str:
         """Transform to string."""
         return " ".join(
@@ -101,35 +104,6 @@ class Restriction(OntologyEntity):
         except KeyError:
             pass
         return target
-
-    @lru_cache(maxsize=None)
-    def _get_quantifier_and_target(
-        self,
-    ) -> Tuple[Optional[QUANTIFIER], Optional[Identifier]]:
-        """Get both the quantifier and the target of the restriction.
-
-        Since the calculation of one involves the calculation of the other,
-        this function returns both, and caches the result. Then,
-        then each individual element can be queried through the properties
-        `quantifier` and `target`.
-
-        Returns:
-            A tuple where the first element is a quantifier (if any) and
-            the second element the identifier of the target (if any).
-        """
-        for predicate, quantifier in [
-            (OWL.someValuesFrom, QUANTIFIER.SOME),
-            (OWL.allValuesFrom, QUANTIFIER.ONLY),
-            (OWL.cardinality, QUANTIFIER.EXACTLY),
-            (OWL.minCardinality, QUANTIFIER.MIN),
-            (OWL.maxCardinality, QUANTIFIER.MAX),
-            (OWL.hasValue, QUANTIFIER.VALUE),
-        ]:
-            x = self.session.graph.value(self.identifier, predicate)
-            if x:
-                return quantifier, x
-        else:
-            return None, None
 
     @property
     # @lru_cache(maxsize=None)  # _property already cached
@@ -185,6 +159,38 @@ class Restriction(OntologyEntity):
                 f" were expected."
             )
 
+    # ↑ ------ ↑
+    # Public API
+
+    @lru_cache(maxsize=None)
+    def _get_quantifier_and_target(
+        self,
+    ) -> Tuple[Optional[QUANTIFIER], Optional[Identifier]]:
+        """Get both the quantifier and the target of the restriction.
+
+        Since the calculation of one involves the calculation of the other,
+        this function returns both, and caches the result. Then,
+        then each individual element can be queried through the properties
+        `quantifier` and `target`.
+
+        Returns:
+            A tuple where the first element is a quantifier (if any) and
+            the second element the identifier of the target (if any).
+        """
+        for predicate, quantifier in [
+            (OWL.someValuesFrom, QUANTIFIER.SOME),
+            (OWL.allValuesFrom, QUANTIFIER.ONLY),
+            (OWL.cardinality, QUANTIFIER.EXACTLY),
+            (OWL.minCardinality, QUANTIFIER.MIN),
+            (OWL.maxCardinality, QUANTIFIER.MAX),
+            (OWL.hasValue, QUANTIFIER.VALUE),
+        ]:
+            x = self.session.graph.value(self.identifier, predicate)
+            if x:
+                return quantifier, x
+        else:
+            return None, None
+
     @property
     @lru_cache(maxsize=None)
     def _property(self) -> Union[OntologyRelationship, OntologyAttribute]:
@@ -218,11 +224,3 @@ class Restriction(OntologyEntity):
     def _get_subclasses(self) -> Iterable["OntologyEntity"]:
         """Restrictions have no subclasses."""
         return iter(())
-
-
-def get_restriction(
-    identifier: BNode, session: "Session"
-) -> Optional[Restriction]:
-    """Return the restriction object represented by given BNode (or None)."""
-    r = Restriction(UID(identifier), session)
-    return r

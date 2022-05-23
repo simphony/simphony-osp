@@ -7,9 +7,10 @@ and available in the user documentation.
 import tempfile
 import unittest
 from decimal import Decimal
+from types import MappingProxyType
 from typing import Hashable
 
-from rdflib import RDFS, XSD, Graph, Literal, URIRef
+from rdflib import RDFS, SKOS, XSD, Graph, Literal, URIRef
 
 from simphony_osp.ontology.annotation import OntologyAnnotation
 from simphony_osp.ontology.attribute import OntologyAttribute
@@ -20,10 +21,9 @@ from simphony_osp.ontology.parser import OntologyParser
 from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.session.session import Session
 from simphony_osp.tools import sparql
-from simphony_osp.utils.datatypes import UID
 
 
-class TestSession(unittest.TestCase):
+class TestSessionAPI(unittest.TestCase):
     """Tests the session class public methods."""
 
     ontology: Session
@@ -33,7 +33,7 @@ class TestSession(unittest.TestCase):
     def setUpClass(cls):
         """Create a TBox and set it as the default ontology.
 
-        The new TBox contains CUBA, OWL, RDFS and City.
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
         """
         cls.ontology = Session(identifier="test-tbox", ontology=True)
         cls.ontology.load_parser(OntologyParser.get_parser("city"))
@@ -45,7 +45,475 @@ class TestSession(unittest.TestCase):
         """Restore the previous default TBox."""
         Session.ontology = cls.prev_default_ontology
 
+    def test_identifier(self):
+        """Test the identifier attribute of the session."""
+
+        with Session() as session:
+            self.assertIsNone(session.identifier)
+
+        with Session(identifier="identifier") as session:
+            self.assertEqual(session.identifier, "identifier")
+            session.identifier = "bcd"
+            self.assertEqual(session.identifier, "bcd")
+            session.identifier = None
+            self.assertIsNone(session.identifier)
+
     def test_ontology(self):
+        """Test the ontology attribute of a session."""
+
+        self.assertIs(self.ontology.ontology, self.ontology)
+
+        with Session() as session:
+            self.assertIs(session.ontology, self.ontology)
+
+        with Session() as ontology:
+            with Session(ontology=ontology) as abox:
+                self.assertIs(abox.ontology, ontology)
+
+    def test_label_properties(self):
+        """Test the label_properties attribute of a session.
+
+        The test also changes the properties and verifies that the session
+        reacts as expected.
+        """
+        from simphony_osp.namespaces import city
+
+        with Session() as session:
+            self.assertIsInstance(session.label_properties, tuple)
+            self.assertTrue(
+                all(isinstance(x, URIRef) for x in session.label_properties)
+            )
+
+            fr = city.City(name="Freiburg", coordinates=[0, 0])
+            self.assertIsNone(fr.label)
+
+            session.graph.add(
+                (
+                    fr.iri,
+                    SKOS.prefLabel,
+                    Literal("Freiburg prefLabel", datatype=None, lang=None),
+                )
+            )
+            session.graph.add(
+                (
+                    fr.iri,
+                    RDFS.label,
+                    Literal("Freiburg label", datatype=None, lang=None),
+                )
+            )
+
+            self.assertEqual(fr.label, "Freiburg prefLabel")
+
+            session.label_properties = (RDFS.label, SKOS.prefLabel)
+            self.assertEqual(fr.label, "Freiburg label")
+
+    def test_label_languages(self):
+        """Test the label_languages attribute of a session.
+
+        The test also changes the properties and verifies that the session
+        reacts as expected.
+        """
+        from simphony_osp.namespaces import city
+
+        with Session() as session:
+            self.assertIsInstance(session.label_languages, tuple)
+            self.assertTrue(
+                all(isinstance(x, str) for x in session.label_languages)
+            )
+
+            fr = city.City(name="Freiburg", coordinates=[0, 0])
+            self.assertIsNone(fr.label)
+
+            session.graph.add(
+                (
+                    fr.iri,
+                    SKOS.prefLabel,
+                    Literal("Freiburg no language", datatype=None, lang=None),
+                )
+            )
+            session.graph.add(
+                (
+                    fr.iri,
+                    SKOS.prefLabel,
+                    Literal("Freiburg German", datatype=None, lang="de"),
+                )
+            )
+            session.graph.add(
+                (
+                    fr.iri,
+                    SKOS.prefLabel,
+                    Literal("Freiburg Italian", datatype=None, lang="it"),
+                )
+            )
+            session.graph.add(
+                (
+                    fr.iri,
+                    SKOS.prefLabel,
+                    Literal("Freiburg English", datatype=None, lang="en"),
+                )
+            )
+
+            self.assertEqual(fr.label, "Freiburg English")
+
+            session.label_languages = ("it", "en", "de")
+            self.assertEqual(fr.label, "Freiburg Italian")
+
+            session.label_languages = ("jp",)
+            self.assertIn(
+                fr.label,
+                {
+                    "Freiburg English",
+                    "Freiburg Italian",
+                    "Freiburg German",
+                    "Freiburg no language",
+                },
+            )
+
+    def test_commit(self):
+        """Test the commit method.
+
+        This functionality cannot be tested directly on the session class,
+        because sessions themselves do not persist the data. Head to
+        `test_wrapper.py` for a test of this functionality.
+
+        Here, it is only checked that the method is callable and raises no
+        exceptions.
+        """
+        with Session() as session:
+            session.commit()
+
+    # @unittest.skip("Cannot be directly tested")
+    def test_compute(self):
+        """Test the compute method.
+
+        This functionality cannot be fully tested directly on the session
+        class, because sessions are not attached in general to simulation
+        engines. Head to `test_wrapper.py` for actual tests of simulation
+        functionality.
+
+        This tests only checks that an attribute error is raised when no
+        simulation functionality is available.
+        """
+        with Session() as session:
+            self.assertRaises(AttributeError, session.compute)
+
+    def test_close(self):
+        """Test the close method.
+
+        This functionality cannot be fully tested directly on the session
+        class, because sessions are not always attached to a graph that can
+        be closed. However, some aspects may still be tested.
+        """
+        # Opening and closing a session should raise no exceptions.
+        session = Session()
+        session.close()
+
+        # Using the context manager should work.
+        with Session():
+            pass
+
+        # Closing a session that is being actively used in a context manager
+        # should fail.
+        with Session() as session:
+            self.assertRaises(RuntimeError, session.close)
+
+    def test_sparql(self):
+        """Test SPARQL by creating a city and performing a very simple query.
+
+        Create a city with a single inhabitant and perform a very simple SPARQL
+        query using both the `sparql` function from utils and the sparql method
+        of the session.
+        """
+        # Clear the default session's contents.
+        Session.get_default_session().clear()
+
+        from simphony_osp.namespaces import city
+
+        def is_freiburg(iri):
+            value = str(iri)
+            if value == "Freiburg":
+                return True
+            else:
+                return False
+
+        freiburg = city.City(name="Freiburg", coordinates=[0, 0])
+        karl = city.Citizen(name="Karl", age=47)
+        freiburg.connect(karl, rel=city.hasInhabitant)
+        default_session = freiburg.session
+        query = f"""SELECT ?city_name ?citizen ?citizen_age ?citizen_name
+                    WHERE {{ ?city a <{city.City.iri}> .
+                             ?city <{city['name'].iri}> ?city_name .
+                             ?city <{city.hasInhabitant.iri}> ?citizen .
+                             ?citizen <{city['name'].iri}> ?citizen_name .
+                             ?citizen <{city.age.iri}> ?citizen_age .
+                          }}
+                 """
+        datatypes = dict(
+            citizen=OntologyIndividual,
+            citizen_age=int,
+            citizen_name=str,
+            city_name=is_freiburg,
+        )
+        results_none = sparql(query, session=None)
+        results_default_session = sparql(query, session=default_session)
+        results_default_session_method = default_session.sparql(query)
+        self.assertEqual(len(results_none), 1)
+        self.assertEqual(len(results_default_session), 1)
+        self.assertEqual(len(results_default_session_method), 1)
+
+        results = (
+            next(results_none(**datatypes)),
+            next(results_default_session(**datatypes)),
+            next(results_default_session_method(**datatypes)),
+        )
+        self.assertTrue(
+            all(
+                result["citizen"].is_a(next(iter(karl.classes)))
+                for result in results
+            )
+        )
+        self.assertTrue(
+            all(result["citizen_age"] == karl.age for result in results)
+        )
+        self.assertTrue(
+            all(result["citizen_name"] == karl.name for result in results)
+        )
+        self.assertTrue(all(result["city_name"] for result in results))
+
+        results = (
+            next(iter(results_none)),
+            next(iter(results_default_session)),
+            next(iter(results_default_session_method)),
+        )
+        self.assertTrue(
+            all(result["citizen"] == karl.iri for result in results)
+        )
+        self.assertTrue(
+            all(type(result["citizen_age"]) != int for result in results)
+        )
+
+    def test_contains(self):
+        """Tests the __contains__ method functionality."""
+        from simphony_osp.namespaces import city
+
+        fr = city.City(name="Freiburg", coordinates=[0, 0])
+        pr = city.City(
+            name="Paris", coordinates=[0, 0], iri="http://example.org/Paris"
+        )
+
+        with Session() as session_A:
+            fr_a = city.City(name="Freiburg", coordinates=[0, 0])
+            pr_a = city.City(
+                name="Paris",
+                coordinates=[0, 0],
+                iri="http://example.org/Paris",
+            )
+            with Session() as session_B:
+                fr_b = city.City(name="Freiburg", coordinates=[0, 0])
+                pr_b = city.City(
+                    name="Paris",
+                    coordinates=[0, 0],
+                    iri="http://example.org/Paris",
+                )
+
+                self.assertNotIn(fr, session_A)
+                self.assertNotIn(pr, session_A)
+                self.assertIn(fr_a, session_A)
+                self.assertIn(pr_a, session_A)
+                self.assertNotIn(fr_b, session_A)
+                self.assertNotIn(pr_b, session_A)
+
+                self.assertNotIn(fr, session_B)
+                self.assertNotIn(pr, session_B)
+                self.assertNotIn(fr_a, session_B)
+                self.assertNotIn(pr_a, session_B)
+                self.assertIn(fr_b, session_B)
+                self.assertIn(pr_b, session_B)
+
+    def test_iter(self):
+        """Tests the __iter__ method functionality."""
+        from simphony_osp.namespaces import city
+
+        with Session() as session:
+            self.assertSetEqual(set(session), set())
+            fr = city.City(name="Freiburg", coordinates=[100, 5])
+            self.assertSetEqual(set(session), {fr})
+            lena = city.Citizen(name="Lena", age=90)
+            bob = city.Citizen(name="Bob", age=2)
+            self.assertSetEqual(set(session), {fr, lena, bob})
+            session.delete(fr, bob)
+            self.assertSetEqual(set(session), {lena})
+            session.delete(lena)
+            self.assertSetEqual(set(session), set())
+
+    def test_bool(self):
+        """Tests the bool method functionality.
+
+        Should always return True.
+        """
+        self.assertTrue(Session())
+
+    def test_len(self):
+        """Tests the __len__ method functionality."""
+        from simphony_osp.namespaces import city
+
+        with Session() as session:
+            self.assertEqual(len(session), 0)
+            city.City(name="Freiburg", coordinates=[0, 0])
+            city.City(
+                name="Freiburg",
+                coordinates=[0, 0],
+                iri="http://example.org/Freiburg",
+            )
+            city.City(
+                name="Freiburg",
+                coordinates=[0, 0],
+                iri="http://example.org/Freiburg",
+            )
+            self.assertEqual(len(session), 2)
+
+    def test_from_identifier(self):
+        """Tests the from_identifier method."""
+        # TODO: skipped so far because this method is used all over
+        #  SimPhoNy, very unlikely to be failing.
+        pass
+
+    def test_from_identifier_typed(self):
+        """Tests the from_identifier_typed method."""
+        # TODO: skipped so far because this method is used all over
+        #  SimPhoNy, very unlikely to be failing.
+        pass
+
+    def test_from_label(self):
+        """Tests the from_label method."""
+        from simphony_osp.namespaces import city
+
+        self.ontology.lock()
+        with self.ontology as ontology:
+            citizens = ontology.from_label("Citizen")
+            self.assertSetEqual(citizens, {city.Citizen})
+            cities = ontology.from_label("City")
+            self.assertSetEqual(cities, {city.City})
+        self.ontology.unlock()
+
+        with Session() as session:
+            citizen_1 = city.Citizen(name="Cz1", age=25)
+            citizen_2 = city.Citizen(name="Cz2", age=25)
+            self.assertRaises(KeyError, session.from_label, "Some label")
+            citizen_1.label = "Label 1"
+            citizen_1.label_lang = "en"
+            citizen_2.label = "Label 2"
+            citizen_2.label_lang = "jp"
+            self.assertSetEqual(session.from_label("Label 1"), {citizen_1})
+            self.assertSetEqual(session.from_label("Label 2"), {citizen_2})
+            self.assertRaises(
+                KeyError, session.from_label, "LabeL 1", None, True
+            )
+            self.assertSetEqual(
+                session.from_label("Label 1", case_sensitive=False),
+                {citizen_1},
+            )
+            self.assertRaises(KeyError, session.from_label, "Label 2", "en")
+            self.assertSetEqual(
+                session.from_label("Label 2", "jp"), {citizen_2}
+            )
+
+            citizen_1.label = "Label"
+            citizen_2.label = "label"
+            self.assertSetEqual(
+                session.from_label("Label"), {citizen_1, citizen_2}
+            )
+
+    def test_add(self):
+        """Test the session's add method.
+
+        Lets the user bring ontology entities from other sessions.
+        """
+        from simphony_osp.namespaces import city, owl
+
+        fr = city.City(name="Freiburg", coordinates=[0, 0])
+        klaus = city.Citizen(name="Klaus", age=59)
+        fr[city.hasInhabitant] = klaus
+
+        with Session() as session:
+            self.assertEqual(len(session), 0)
+            fr_in_session = session.add(fr)
+            self.assertEqual(len(session), 1)
+            session.add(klaus)
+            self.assertEqual(len(session), 2)
+            self.assertEqual(len(fr_in_session[owl.topObjectProperty]), 0)
+
+        with Session() as session:
+            fr_in_session, klaus_in_session = session.add(fr, klaus)
+            self.assertEqual(len(session), 2)
+            self.assertEqual(len(fr_in_session[owl.topObjectProperty]), 1)
+            self.assertEqual(
+                fr_in_session[city.hasInhabitant].any(), klaus_in_session
+            )
+
+        with Session():
+            klaus_outer = city.Citizen(
+                name="Klaus outer", age=20, iri=klaus.iri
+            )
+            with Session() as session_inner:
+                self.assertEqual(len(session_inner), 0)
+                fr_s, kl_s = session_inner.add(fr, klaus)
+                self.assertEqual(len(session_inner), 2)
+                self.assertEqual(len(fr_s[owl.topObjectProperty]), 1)
+                self.assertEqual(fr_s[city.hasInhabitant].any(), kl_s)
+                self.assertRaises(RuntimeError, session_inner.add, klaus_outer)
+                self.assertEqual(kl_s.age, 59)
+                self.assertEqual(kl_s.name, "Klaus")
+                session_inner.add(klaus_outer, exists_ok=True)
+                self.assertEqual(kl_s.age, 20)
+                self.assertEqual(kl_s.name, "Klaus outer")
+                session_inner.add(klaus, exists_ok=True, merge=True)
+                self.assertRaises(RuntimeError, lambda: kl_s.age)
+                self.assertRaises(RuntimeError, lambda: kl_s.name)
+                self.assertSetEqual(kl_s[city.age], {20, 59})
+                self.assertSetEqual(
+                    kl_s[city["name"]], {"Klaus", "Klaus outer"}
+                )
+                session_inner.add(klaus, exists_ok=True, merge=False)
+                self.assertEqual(kl_s.age, 59)
+                self.assertEqual(kl_s.name, "Klaus")
+
+    def test_delete(self):
+        """Test the session's delete method.
+
+        Lets the user delete ontology entities.
+        """
+        from simphony_osp.namespaces import city
+
+        klaus_outside = city.Citizen(name="Klaus", age=59)
+
+        with Session() as session:
+            fr = city.City(name="Freiburg", coordinates=[0, 0])
+            klaus = city.Citizen(name="Klaus", age=59)
+            fr[city.hasInhabitant] = klaus
+            self.assertEqual(len(session), 2)
+            self.assertEqual(len(fr[city.hasInhabitant]), 1)
+            self.assertRaises(ValueError, session.delete, klaus_outside)
+            session.delete(klaus)
+            self.assertEqual(len(fr[city.hasInhabitant]), 0)
+            self.assertEqual(len(session), 1)
+
+    def test_clear(self):
+        """Tests the clear method of the session.
+
+        Gets rid of all the ontology entities in the session.
+        """
+        from simphony_osp.namespaces import city
+
+        with Session() as session:
+            fr = city.City(name="Freiburg", coordinates=[0, 0])
+            klaus = city.Citizen(name="Klaus", age=59)
+            fr[city.hasInhabitant] = klaus
+            self.assertEqual(len(session), 2)
+            session.clear()
+            self.assertEqual(len(session), 0)
+
+    def test_as_ontology(self):
         """Tests the Session class used as an ontology."""
         ontology = self.ontology
 
@@ -107,80 +575,8 @@ class TestSession(unittest.TestCase):
         # Test the `graph` property.
         self.assertTrue(isinstance(ontology.graph, Graph))
 
-    def test_sparql(self):
-        """Test SPARQL by creating a city and performing a very simple query.
 
-        Create a city with a single inhabitant and perform a very simple SPARQL
-        query using both the `sparql` function from utils and the sparql method
-        of the session.
-        """
-        # Clear the default session's contents.
-        Session.get_default_session().clear()
-
-        from simphony_osp.namespaces import city
-
-        def is_freiburg(iri):
-            value = str(iri)
-            if value == "Freiburg":
-                return True
-            else:
-                return False
-
-        freiburg = city.City(name="Freiburg", coordinates=[0, 0])
-        karl = city.Citizen(name="Karl", age=47)
-        freiburg.add(karl, rel=city.hasInhabitant)
-        default_session = freiburg.session
-        query = f"""SELECT ?city_name ?citizen ?citizen_age ?citizen_name
-                    WHERE {{ ?city a <{city.City.iri}> .
-                             ?city <{city['name'].iri}> ?city_name .
-                             ?city <{city.hasInhabitant.iri}> ?citizen .
-                             ?citizen <{city['name'].iri}> ?citizen_name .
-                             ?citizen <{city.age.iri}> ?citizen_age .
-                          }}
-                 """
-        datatypes = dict(
-            citizen=OntologyIndividual,
-            citizen_age=int,
-            citizen_name=str,
-            city_name=is_freiburg,
-        )
-        results_none = sparql(query, session=None)
-        results_default_session = sparql(query, session=default_session)
-        results_default_session_method = default_session.sparql(query)
-        self.assertEqual(len(results_none), 1)
-        self.assertEqual(len(results_default_session), 1)
-        self.assertEqual(len(results_default_session_method), 1)
-
-        results = (
-            next(results_none(**datatypes)),
-            next(results_default_session(**datatypes)),
-            next(results_default_session_method(**datatypes)),
-        )
-        self.assertTrue(
-            all(result["citizen"].is_a(karl.oclass) for result in results)
-        )
-        self.assertTrue(
-            all(result["citizen_age"] == karl.age for result in results)
-        )
-        self.assertTrue(
-            all(result["citizen_name"] == karl.name for result in results)
-        )
-        self.assertTrue(all(result["city_name"] for result in results))
-
-        results = (
-            next(iter(results_none)),
-            next(iter(results_default_session)),
-            next(iter(results_default_session_method)),
-        )
-        self.assertTrue(
-            all(result["citizen"] == karl.iri for result in results)
-        )
-        self.assertTrue(
-            all(type(result["citizen_age"]) != int for result in results)
-        )
-
-
-class TestOntologyEntityCity(unittest.TestCase):
+class TestOntologyAPICity(unittest.TestCase):
     """Test the ontology API using the city ontology."""
 
     ontology: Session
@@ -190,7 +586,7 @@ class TestOntologyEntityCity(unittest.TestCase):
     def setUpClass(cls):
         """Create a TBox and set it as the default ontology.
 
-        The new TBox contains CUBA, OWL, RDFS and City.
+        The new TBox contains SimPhoNy, OWL, RDFS and City.
         """
         cls.ontology = Session(identifier="test-tbox", ontology=True)
         cls.ontology.load_parser(OntologyParser.get_parser("city"))
@@ -209,24 +605,12 @@ class TestOntologyEntityCity(unittest.TestCase):
         """
         from simphony_osp.namespaces import city, owl
 
-        # Test with city:name attribute.
         name = city["name"]
         age = city.age
         number = city.number
-        self.assertTrue(isinstance(name, OntologyAttribute))
 
-        # Test `uid` property.
-        self.assertEqual(
-            name.uid, UID(URIRef("https://www.simphony-project.eu/city#name"))
-        )
-        name.uid = UID(
-            URIRef("https://www.simphony-project.eu/city#other_name")
-        )
-        self.assertEqual(
-            name.uid,
-            UID(URIRef("https://www.simphony-project.eu/city#other_name")),
-        )
-        name.uid = UID(URIRef("https://www.simphony-project.eu/city#name"))
+        # Test with city:name attribute.
+        self.assertTrue(isinstance(name, OntologyAttribute))
 
         # Test `identifier property`.
         self.assertEqual(
@@ -245,38 +629,14 @@ class TestOntologyEntityCity(unittest.TestCase):
 
         # Test `label_lang` property.
         self.assertEqual("en", name.label_lang)
+        # TODO: Test setter
 
-        # Test 'label_literal' property.
-        self.assertEqual(Literal("name", lang="en"), name.label_literal)
-
-        # Test `iter_labels` method.
-        # Test `lang = None`, `return_prop = False`, `return_literal = True`.
-        self.assertTupleEqual(
-            (Literal("name", lang="en"),), tuple(name.iter_labels())
-        )
-        # Test `lang = "en"`, `return_prop = False`, `return_literal = True`.
-        self.assertTupleEqual(
-            (Literal("name", lang="en"),), tuple(name.iter_labels(lang="en"))
-        )
-        # Test `lang = None`, `return_prop = True`, `return_literal = True`.
-        self.assertTupleEqual(
-            ((Literal("name", lang="en"), URIRef(RDFS.label)),),
-            tuple(name.iter_labels(return_prop=True)),
-        )
-        # Test `lang = None`, `return_prop = True`, `return_literal = False`.
-        self.assertTupleEqual(
-            (("name", URIRef(RDFS.label)),),
-            tuple(name.iter_labels(return_literal=False, return_prop=True)),
-        )
-        # Test `lang = None`, `return_prop = False`, `return_literal = False`.
-        self.assertTupleEqual(
-            ("name",),
-            tuple(name.iter_labels(return_literal=False, return_prop=False)),
-        )
+        # Test `namespace` property.
+        self.assertEqual(name.namespace, city)
 
         # Test `session` property.
         self.assertIs(name.session, self.ontology)
-        # TODO: Test setter.
+        # TODO: Test setter
 
         # Test `direct_superclasses` property.
         self.assertSetEqual(set(), name.direct_superclasses)
@@ -289,33 +649,6 @@ class TestOntologyEntityCity(unittest.TestCase):
 
         # Test `subclasses` property.
         self.assertSetEqual({name}, name.subclasses)
-
-        # Test `triples` property.
-        self.assertSetEqual(
-            {
-                (
-                    URIRef("https://www.simphony-project.eu/city#name"),
-                    URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
-                    URIRef("http://www.w3.org/2002/07/owl#DatatypeProperty"),
-                ),
-                (
-                    URIRef("https://www.simphony-project.eu/city#name"),
-                    URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
-                    URIRef("http://www.w3.org/2002/07/owl#FunctionalProperty"),
-                ),
-                (
-                    URIRef("https://www.simphony-project.eu/city#name"),
-                    URIRef("http://www.w3.org/2000/01/rdf-schema#label"),
-                    Literal("name", lang="en"),
-                ),
-                (
-                    URIRef("https://www.simphony-project.eu/city#name"),
-                    URIRef("http://www.w3.org/2000/01/rdf-schema#range"),
-                    URIRef("http://www.w3.org/2001/XMLSchema#string"),
-                ),
-            },
-            name.triples,
-        )
 
         # Test `is_superclass_of` method.
         self.assertTrue(age.is_superclass_of(age))
@@ -335,43 +668,44 @@ class TestOntologyEntityCity(unittest.TestCase):
         # Test `__hash__` method.
         self.assertTrue(isinstance(number, Hashable))
 
+        # Test `__bool__` method.
+        self.assertTrue(name)
+
         # Test `datatype` property.
         self.assertEqual(XSD.string, name.datatype)
         self.assertEqual(
             city.age.datatype,
-            URIRef("http://www.w3.org/2001/XMLSchema#integer"),
+            XSD.integer,
         )
-
-        # Test `convert_to_datatype` method.
-        self.assertEqual(5, city.age.convert_to_datatype("5"))
 
     def test_oclass(self):
         """Tests the OntologyClass subclass.
 
-        Does NOT include methods inherited from OntologyEntity.
+        Does NOT include methods inherited from OntologyEntity. Such methods
+        were already tested in `test_attribute`.
         """
         from simphony_osp.namespaces import city
 
-        # Test with city:Person class.
         person = city.Person
+
+        # Test with city:Person class.
         self.assertTrue(isinstance(person, OntologyClass))
 
         # Test the `attributes` property.
-        self.assertDictEqual(dict(), person.attributes)
+        self.assertDictEqual(
+            {city.age: None, city["name"]: None}, dict(person.attributes)
+        )
 
         # Test the `axioms` property.
         self.assertEqual(4, len(person.axioms))
 
-        # Test the `attribute declaration` .
-        expected = {city["name"]: (None, True), city.age: (None, True)}
-        print(person.attribute_declaration)
-        self.assertDictEqual(expected, person.attribute_declaration)
-
         # Test `__call__` method.
-        # self.assertTrue(isinstance(person(), OntologyIndividual))
+        self.assertTrue(
+            isinstance(person(name="Person name", age=50), OntologyIndividual)
+        )
 
     def test_oclass_composition(self):
-        """Tests the Compsition subclass.
+        """Tests the Composition subclass.
 
         Does NOT include methods inherited from OntologyEntity.
         """
@@ -391,60 +725,22 @@ class TestOntologyEntityCity(unittest.TestCase):
 
         Does NOT include methods inherited from OntologyEntity.
         """
+        from simphony_osp.namespaces import city
+
+        has_worker = city.hasWorker
+        has_inhabitant = city.hasInhabitant
+
         # Test with city:hasWorker relationship.
-        has_worker = self.ontology.from_identifier(
-            URIRef("https://www.simphony-project.eu/city#hasWorker")
-        )
         self.assertTrue(isinstance(has_worker, OntologyRelationship))
 
-    def test_namespace(self):
-        """Tests the OntologyNamespace class."""
-        ontology = self.ontology
+        # Test `inverse` method.
+        self.assertEqual(has_worker.inverse, city.worksIn)
 
-        # Get the namespace from the ontology.
-        city_namespace = ontology.get_namespace("city")
-        self.assertTrue(isinstance(city_namespace, OntologyNamespace))
+        # Test with city:hasInhabitant relationship.
+        self.assertTrue(isinstance(has_inhabitant, OntologyRelationship))
 
-        # Test the `name` property.
-        self.assertEqual(city_namespace.name, "city")
-
-        # Test the `iri` property.
-        self.assertEqual(
-            city_namespace.iri, URIRef("https://www.simphony-project.eu/city#")
-        )
-
-        # Test the `__eq__` method.
-        self.assertEqual(ontology.get_namespace("city"), city_namespace)
-
-        # Test the `__getattr__` method.
-        has_inhabitant = ontology.from_identifier(
-            URIRef("https://www.simphony-project.eu/city#hasInhabitant")
-        )
-        self.assertEqual(
-            has_inhabitant, getattr(city_namespace, "hasInhabitant")
-        )
-
-        # Test the `__getitem__` method.
-        name = ontology.from_identifier(
-            URIRef("https://www.simphony-project.eu/city#name")
-        )
-        self.assertFalse(city_namespace.reference_style)
-        self.assertEqual(name, city_namespace["name"])
-
-        # Test the `__dir__` method.
-        self.assertIn("hasMajor", dir(city_namespace))
-
-        # Test the `__iter__` method.
-        self.assertEqual(28, len(tuple(city_namespace)))
-        self.assertIn(name, tuple(city_namespace))
-        self.assertIn(has_inhabitant, tuple(city_namespace))
-
-        # Test the `__contains__` method.
-        self.assertIn(name, city_namespace)
-        self.assertIn(has_inhabitant, city_namespace)
-        self.assertIn(name.iri, city_namespace)
-        self.assertIn(has_inhabitant.iri, city_namespace)
-        self.assertNotIn(URIRef("other:some_iri"), city_namespace)
+        # Test `inverse` method.
+        self.assertEqual(has_inhabitant.inverse, None)
 
     def test_individual(self):
         """Tests the OntologyIndividual subclass.
@@ -453,7 +749,7 @@ class TestOntologyEntityCity(unittest.TestCase):
         """
         from simphony_osp.namespaces import city, owl
 
-        # Test the `__init__` method by creating new individuals.
+        # Test creating new individuals.
         freiburg = city.City(name="Freiburg", coordinates=[0, 0])
         paris = city.City(name="Paris", coordinates=[0, 0])
         altstadt = city.Neighborhood(name="Altstadt", coordinates=[0, 0])
@@ -473,22 +769,52 @@ class TestOntologyEntityCity(unittest.TestCase):
             TypeError, OntologyIndividual, oclass=None, attributes={}
         )
 
-        # Test the class related methods `oclass`, `oclasses`, `is_a`.
-        self.assertTrue(isinstance(marc, OntologyIndividual))
-        self.assertEqual(marc.oclass, city.Citizen)
-        self.assertSetEqual(set(marc.oclasses), {city.Citizen})
+        # Test the class related methods `classes`, `is_a`.
+        self.assertIsInstance(marc, OntologyIndividual)
+        self.assertIsInstance(marc.classes, frozenset)
+        self.assertSetEqual(set(marc.classes), {city.Citizen})
         self.assertTrue(marc.is_a(city.Citizen))
         self.assertTrue(marc.is_a(city.LivingBeing))
         self.assertTrue(marc.is_a(city.Person))
         self.assertFalse(marc.is_a(city.City))
+        self.assertFalse(marc.is_a(city.ArchitecturalStructure))
+        marc.classes = {city.ArchitecturalStructure, city.Citizen}
+        self.assertSetEqual(
+            set(marc.classes), {city.ArchitecturalStructure, city.Citizen}
+        )
+        self.assertSetEqual(
+            set(marc.superclasses),
+            {
+                city.ArchitecturalStructure,
+                city.Citizen,
+                owl.Thing,
+                city.Person,
+                city.GeographicalPlace,
+                city.LivingBeing,
+            },
+        )
+        marc.classes = {city.Citizen}
 
         # Test the `__dir__` method.
         self.assertTrue("age" in dir(marc))
 
+        # Test the `_ipython_key_completions` method.
+        self.assertSetEqual(freiburg[city.hasInhabitant], set())
+        self.assertRaises(KeyError, lambda: freiburg["has inhabitant"])
+        self.assertNotIn(
+            "has inhabitant", freiburg._ipython_key_completions_()
+        )
+        freiburg[city.hasInhabitant] = sveta
+        self.assertSetEqual(freiburg["has inhabitant"], {sveta})
+        self.assertIn("has inhabitant", freiburg._ipython_key_completions_())
+
         # Test the `__getattr__` and `__setattr__` methods.
         self.assertEqual(25, marc.age)
         marc.age = "30"
-        self.assertEqual(marc.age, 30)
+        self.assertEqual(30, marc.age)
+        marc.age = 25
+        marc[city.age] += 55
+        self.assertRaises(RuntimeError, lambda: marc.age)
         marc.age = 25
 
         # Test the `__getitem__`, `__setitem__` and `__delitem__` methods.
@@ -505,69 +831,122 @@ class TestOntologyEntityCity(unittest.TestCase):
         del marc[city.age]
         self.assertIsNone(marc.age)
         marc[city.age] = 25
-
-        # Test subscripting notation for ontology individuals.
+        self.assertSetEqual(marc["age"], {25})
         freiburg[city.hasInhabitant] = marc
         self.assertEqual(freiburg[city.hasInhabitant].one(), marc)
         freiburg[city.hasInhabitant] += {sveta}
         self.assertSetEqual(freiburg[city.hasInhabitant], {marc, sveta})
+        self.assertSetEqual(freiburg["hasInhabitant"], {marc, sveta})
+        self.assertSetEqual(freiburg["has inhabitant"], {marc, sveta})
+        self.assertRaises(KeyError, lambda z: freiburg[z], "has Inhabitant")
         freiburg[city.hasInhabitant] -= {marc}
         self.assertSetEqual(freiburg[city.hasInhabitant], {sveta})
         freiburg[city.hasInhabitant].clear()
         self.assertSetEqual(freiburg[city.hasInhabitant], set())
+        self.assertSetEqual(freiburg[city["name"]], {"Freiburg"})
+        self.assertSetEqual(freiburg["name"], {"Freiburg"})
+        self.assertRaises(KeyError, lambda z: freiburg[z], "Name")
+        self.assertRaises(
+            KeyError, freiburg.__setitem__, "has inhabitant", {marc, sveta}
+        )
+        freiburg[city.hasInhabitant] = {marc}
+        freiburg["has inhabitant"] += sveta
+        self.assertSetEqual(freiburg["hasInhabitant"], {marc, sveta})
+        freiburg[city.hasInhabitant].clear()
+        self.assertSetEqual(freiburg[city.hasInhabitant], set())
+        freiburg["name"].clear()
+        self.assertSetEqual(freiburg["name"], set())
+        freiburg["name"] = "Freiburg"
+        self.assertEqual(freiburg.name, "Freiburg")
+        # More detailed tests of this functionality available in
+        # `test_bracket_notation`.
 
-        # Test `add` method of ontology individuals.
-        self.assertRaises(TypeError, freiburg.add, "a string")
-        freiburg.add(altstadt)
-        self.assertEqual(freiburg.get(altstadt.uid).uid, altstadt.uid)
-        # get_inverse = n.get(rel=city.isPartOf)
-        # self.assertSetEqual(get_inverse, {c})
-        altstadt.add(dreherstrasse)
-        freiburg.add(marc, rel=city.hasInhabitant)
-        freiburg.add(sveta, rel=city.hasInhabitant.identifier)
+        # Test `connect` method of ontology individuals.
+        self.assertRaises(TypeError, freiburg.connect, "a string")
+        self.assertRaises(TypeError, freiburg.connect, altstadt)
+        freiburg.connect(altstadt, rel=city.hasPart)
+        self.assertEqual(freiburg.get(altstadt).uid, altstadt.uid)
+        altstadt.connect(dreherstrasse, rel=city.hasPart)
+        freiburg.connect(marc, rel=city.hasInhabitant)
+        freiburg.connect(sveta, rel=city.hasInhabitant.identifier)
         self.assertSetEqual({marc, sveta}, freiburg[city.hasInhabitant])
         self.assertSetEqual({dreherstrasse}, altstadt[city.hasPart])
-        freiburg.add(paris, rel=owl.topObjectProperty)
-        f1 = paris.add(freiburg, rel=owl.topObjectProperty)
-        f2 = paris.add(freiburg, rel=owl.topObjectProperty)
-        self.assertEqual(f1, f2)
-        # Test containment behavior.
-        another_session = Session(ontology=self.ontology)
-        another_session.update(freiburg)
-        new_freiburg = another_session.from_identifier(freiburg.identifier)
-        self.assertIs(new_freiburg.session, another_session)
-        self.assertIsNot(freiburg.session, another_session)
-        self.assertIsNot(freiburg[city.hasInhabitant].any(), another_session)
+        x = freiburg.connect(paris, rel=owl.topObjectProperty)
+        self.assertIsNone(x)
+        with Session():
+            pr = city.City(name="Paris", coordinates=[0, 0])
+            self.assertRaises(
+                RuntimeError,
+                lambda p: pr.connect(p, rel=city.hasInhabitant),
+                marc,
+            )
+
+        # Test `disconnect` method of ontology individuals.
+        self.assertRaises(TypeError, freiburg.disconnect, 518)
+        # remove()
         self.assertSetEqual({marc, sveta}, freiburg[city.hasInhabitant])
-        self.assertNotIn(marc, new_freiburg[city.hasInhabitant])
-        self.assertNotIn(sveta, new_freiburg[city.hasInhabitant])
-        new_marc = another_session.from_identifier(marc.identifier)
-        new_sveta = another_session.from_identifier(sveta.identifier)
+        freiburg.disconnect()
+        self.assertSetEqual(set(), freiburg[city.hasInhabitant])
+        # remove(*individuals)
+        freiburg[city.hasInhabitant] = {marc, sveta}
+        self.assertSetEqual({marc, sveta}, freiburg[city.hasInhabitant])
+        freiburg.disconnect(marc)
+        self.assertSetEqual({sveta}, freiburg[city.hasInhabitant])
+        freiburg.disconnect(sveta)
+        self.assertSetEqual(set(), freiburg[city.hasInhabitant])
+        freiburg[city.hasInhabitant] = {marc, sveta}
+        # remove(rel=___)
+        freiburg[city.hasInhabitant] = {marc, sveta}
+        freiburg[city.hasPart] = {altstadt}
+        self.assertSetEqual({altstadt}, freiburg[city.hasPart])
+        self.assertSetEqual({marc, sveta}, freiburg[city.hasInhabitant])
+        freiburg.disconnect(rel=city.hasPart)
+        self.assertSetEqual({marc, sveta}, freiburg[city.hasInhabitant])
+        self.assertSetEqual(set(), freiburg[city.hasPart])
+        # remove(oclass=___)
+        freiburg[city.hasPart] = {altstadt}
+        self.assertSetEqual({altstadt}, freiburg[city.hasPart])
+        self.assertSetEqual({marc, sveta}, freiburg[city.hasInhabitant])
+        freiburg.disconnect(oclass=city.Citizen)
+        self.assertSetEqual({altstadt}, freiburg[city.hasPart])
+        self.assertSetEqual(set(), freiburg[city.hasInhabitant])
+        # remove(*individuals, rel=___)
+        freiburg[city.hasInhabitant] = {marc, sveta}
+        self.assertSetEqual({altstadt}, freiburg[city.hasPart])
+        self.assertSetEqual({marc, sveta}, freiburg[city.hasInhabitant])
+        freiburg.disconnect(marc, sveta, rel=city.hasInhabitant)
+        self.assertSetEqual(set(), freiburg[city.hasInhabitant])
+        self.assertSetEqual({altstadt}, freiburg[city.hasPart])
+        # remove(rel=___, oclass=___)
+        freiburg[city.hasInhabitant] = {marc, sveta}
+        freiburg[city.hasInhabitant] += {altstadt}
+        self.assertSetEqual({altstadt}, freiburg[city.hasPart])
         self.assertSetEqual(
-            {new_marc, new_sveta}, new_freiburg[city.hasInhabitant]
+            {marc, sveta, altstadt}, freiburg[city.hasInhabitant]
         )
-        self.assertSetEqual(set(), marc[city.hasChild])
-        child_1 = city.Citizen(name="Baby 1", age=2)
-        child_2 = city.Citizen(name="Baby 2", age=2, session=another_session)
-        marc[city.hasChild] = child_1
-        new_marc[city.hasChild] = child_2
-        self.assertSetEqual({child_1}, marc[city.hasChild])
-        self.assertSetEqual({child_2}, new_marc[city.hasChild])
+        freiburg.disconnect(rel=city.hasInhabitant, oclass=city.Citizen)
+        self.assertSetEqual({altstadt}, freiburg[city.hasPart])
+        self.assertSetEqual({altstadt}, freiburg[city.hasInhabitant])
+        # restore city configuration for next tests
+        freiburg[city.hasInhabitant] = {marc, sveta}
+        freiburg[owl.topObjectProperty] += paris
 
         # Test `get` method of ontology individuals.
-        self.assertRaises(TypeError, freiburg.get, "not an UID")
-        self.assertRaises(
-            ValueError, freiburg.get, sveta.uid, oclass=city.Neighborhood
-        )
+        # test exceptions
+        self.assertRaises(TypeError, freiburg.get, 518)
         self.assertRaises(TypeError, freiburg.get, oclass=city.hasInhabitant)
         self.assertRaises(TypeError, freiburg.get, rel=city.Citizen)
+        with Session() as session:
+            sv = session.add(sveta)
+            self.assertRaises(RuntimeError, freiburg.get, sv)
         # get()
-        self.assertSetEqual({marc, sveta, altstadt}, freiburg.get())
-        # get(*uids)
-        self.assertEqual(marc, freiburg.get(marc.uid))
-        self.assertEqual(sveta, freiburg.get(sveta.uid))
-        self.assertTupleEqual((sveta, marc), freiburg.get(sveta.uid, marc.uid))
-        self.assertIsNone(freiburg.get(UID()))
+        self.assertSetEqual({marc, sveta, altstadt, paris}, freiburg.get())
+        # get(*individuals)
+        self.assertEqual(marc, freiburg.get(marc))
+        self.assertEqual(sveta, freiburg.get(sveta.identifier))
+        self.assertEqual(sveta, freiburg.get(str(sveta.identifier)))
+        self.assertTupleEqual((sveta, marc), freiburg.get(sveta, marc))
+        self.assertIsNone(freiburg.get("http://example.org/individual"))
         # get(rel=___)
         self.assertSetEqual(
             {marc, sveta}, freiburg.get(rel=city.hasInhabitant)
@@ -582,16 +961,21 @@ class TestOntologyEntityCity(unittest.TestCase):
         self.assertSetEqual(
             set(), freiburg.get(oclass=city.ArchitecturalStructure)
         )
-        # get(*uids, rel=___)
-        self.assertEqual(marc, freiburg.get(marc.uid, rel=city.hasInhabitant))
-        self.assertIsNone(freiburg.get(marc.uid, rel=city.hasPart))
+        self.assertIsNone(freiburg.get(sveta, oclass=city.Neighborhood))
+        # get(*individuals, rel=___)
+        self.assertEqual(marc, freiburg.get(marc, rel=city.hasInhabitant))
+        self.assertIsNone(freiburg.get(marc, rel=city.hasPart))
         # get(rel=___, oclass=___)
         self.assertSetEqual(
             {marc, sveta},
             freiburg.get(rel=city.hasInhabitant, oclass=city.Citizen),
         )
+        self.assertSetEqual(
+            set(),
+            freiburg.get(rel=city.hasInhabitant, oclass=city.City),
+        )
         # return_rel=True
-        get_marc, get_marc_rel = freiburg.get(marc.uid, return_rel=True)
+        ((get_marc, get_marc_rel),) = freiburg.get(marc, return_rel=True)
         self.assertEqual(get_marc, marc)
         self.assertEqual(get_marc_rel, city.hasInhabitant)
         self.assertSetEqual(
@@ -604,9 +988,56 @@ class TestOntologyEntityCity(unittest.TestCase):
         )
 
         # Test `iter` method of ontology individuals.
-        self.assertSetEqual({marc, sveta, altstadt}, set(freiburg.iter()))
+        # test exceptions
+        self.assertRaises(TypeError, freiburg.iter, 518)
+        self.assertRaises(TypeError, freiburg.iter, oclass=city.hasInhabitant)
+        self.assertRaises(TypeError, freiburg.iter, rel=city.Citizen)
+        with Session() as session:
+            sv = session.add(sveta)
+            self.assertRaises(RuntimeError, freiburg.iter, sv)
+        self.assertSetEqual(
+            {marc, sveta, altstadt, paris}, set(freiburg.iter())
+        )
+        # iter()
+        self.assertSetEqual(
+            {marc, sveta, altstadt, paris}, set(freiburg.iter())
+        )
+        # iter(*individuals)
+        self.assertSetEqual({marc}, set(freiburg.iter(marc)))
+        self.assertSetEqual({sveta}, set(freiburg.iter(sveta.identifier)))
+        self.assertEqual({sveta}, set(freiburg.iter(str(sveta.identifier))))
+        self.assertTupleEqual((sveta, marc), tuple(freiburg.iter(sveta, marc)))
+        self.assertSetEqual(
+            {None}, set(freiburg.iter("http://example.org/individual"))
+        )
+        # iter(rel=___)
+        self.assertSetEqual(
+            {marc, sveta}, set(freiburg.iter(rel=city.hasInhabitant))
+        )
+        self.assertSetEqual(
+            {marc, sveta, altstadt}, set(freiburg.iter(rel=city.encloses))
+        )
+        # iter(oclass=___)
+        self.assertSetEqual(
+            {marc, sveta}, set(freiburg.iter(oclass=city.Citizen))
+        )
+        self.assertSetEqual(set(), set(freiburg.iter(oclass=city.Building)))
+        self.assertSetEqual(
+            {sveta, marc}, set(freiburg.iter(oclass=city.Person))
+        )
+        self.assertSetEqual(
+            set(), set(freiburg.iter(oclass=city.ArchitecturalStructure))
+        )
+        self.assertSetEqual(
+            {None}, set(freiburg.iter(sveta, oclass=city.Neighborhood))
+        )
+        # iter(*individuals, rel=___)
+        self.assertSetEqual(
+            {marc}, set(freiburg.iter(marc, rel=city.hasInhabitant))
+        )
+        self.assertSetEqual({None}, set(freiburg.iter(marc, rel=city.hasPart)))
         # return_rel=True
-        get_marc, get_marc_rel = next(freiburg.iter(marc.uid, return_rel=True))
+        get_marc, get_marc_rel = next(freiburg.iter(marc, return_rel=True))
         self.assertEqual(get_marc, marc)
         self.assertEqual(get_marc_rel, city.hasInhabitant)
         self.assertSetEqual(
@@ -618,99 +1049,138 @@ class TestOntologyEntityCity(unittest.TestCase):
             set(freiburg.iter(rel=city.encloses, return_rel=True)),
         )
 
-        # Test `update` method of ontology individuals.
-        session = Session(ontology=self.ontology)
-        napoli = city.City(name="Napoli", coordinates=[0, 0])
-        neighborhood = city.Neighborhood(
-            name="Quartieri Spagnoli", coordinates=[0, 0]
-        )
-        session.update(neighborhood)
-        new_neighborhood = session.from_identifier(neighborhood.identifier)
-        new_street = city.Street(
-            name="Via Concordia", coordinates=[0, 0], session=session
-        )
-        new_neighborhood.add(new_street)
-        napoli.add(neighborhood)
-        self.assertSetEqual(set(), neighborhood.get(oclass=city.Street))
-        napoli.update(new_neighborhood)
-        street = napoli.session.from_identifier(new_street.identifier)
-        self.assertSetEqual({street}, neighborhood.get(oclass=city.Street))
-        self.assertRaises(ValueError, napoli.update, neighborhood)
-        other_neighborgood = city.Neighborhood(
-            name="Vasto", coordinates=[0, 0]
-        )
-        self.assertRaises(ValueError, napoli.update, other_neighborgood)
-
-        # Test `remove` method of ontology individuals.
-        self.assertRaises(TypeError, freiburg.remove, "a string")
-        self.assertRaises(
-            ValueError, freiburg.remove, altstadt.uid, oclass=city.Street
-        )
-        # remove()
-        self.assertSetEqual({marc, sveta}, freiburg[city.hasInhabitant])
-        freiburg.remove()
-        self.assertSetEqual(set(), freiburg[city.hasInhabitant])
-        # remove(*uids_or_individuals)
-        freiburg[city.hasInhabitant] = {marc, sveta}
-        self.assertSetEqual({marc, sveta}, freiburg[city.hasInhabitant])
-        freiburg.remove(marc.uid)
-        self.assertSetEqual({sveta}, freiburg[city.hasInhabitant])
-        freiburg.remove(sveta)
-        self.assertSetEqual(set(), freiburg[city.hasInhabitant])
-        freiburg[city.hasInhabitant] = {marc, sveta}
-        # remove(rel=___)
-        freiburg[city.hasInhabitant] = {marc, sveta}
-        freiburg[city.hasPart] = {altstadt}
-        self.assertSetEqual({altstadt}, freiburg[city.hasPart])
-        self.assertSetEqual({marc, sveta}, freiburg[city.hasInhabitant])
-        freiburg.remove(rel=city.hasPart)
-        self.assertSetEqual({marc, sveta}, freiburg[city.hasInhabitant])
-        self.assertSetEqual(set(), freiburg[city.hasPart])
-        # remove(oclass=___)
-        freiburg[city.hasPart] = {altstadt}
-        self.assertSetEqual({altstadt}, freiburg[city.hasPart])
-        self.assertSetEqual({marc, sveta}, freiburg[city.hasInhabitant])
-        freiburg.remove(oclass=city.Citizen)
-        self.assertSetEqual({altstadt}, freiburg[city.hasPart])
-        self.assertSetEqual(set(), freiburg[city.hasInhabitant])
-        # remove(*uids_or_individuals, rel=___)
-        freiburg[city.hasInhabitant] = {marc, sveta}
-        self.assertSetEqual({altstadt}, freiburg[city.hasPart])
-        self.assertSetEqual({marc, sveta}, freiburg[city.hasInhabitant])
-        freiburg.remove(marc, sveta, rel=city.hasInhabitant)
-        self.assertSetEqual(set(), freiburg[city.hasInhabitant])
-        self.assertSetEqual({altstadt}, freiburg[city.hasPart])
-        # remove(rel=___, oclass=___)
-        freiburg[city.hasInhabitant] = {marc, sveta}
-        freiburg[city.hasInhabitant] += {altstadt}
-        self.assertSetEqual({altstadt}, freiburg[city.hasPart])
-        self.assertSetEqual(
-            {marc, sveta, altstadt}, freiburg[city.hasInhabitant]
-        )
-        freiburg.remove(rel=city.hasInhabitant, oclass=city.Citizen)
-        self.assertSetEqual({altstadt}, freiburg[city.hasPart])
-        self.assertSetEqual({altstadt}, freiburg[city.hasInhabitant])
-
-        # Test `attributes_get` method of individuals.
+        # Test `attributes` method of individuals.
+        self.assertIsInstance(marc.attributes, MappingProxyType)
         self.assertDictEqual(
-            marc.attributes_get(), {city["name"]: {"Marc"}, city.age: {25}}
+            dict(marc.attributes), {city["name"]: {"Marc"}, city.age: {25}}
         )
 
-    def test_multi_session(self):
-        """Test several methods within a session context manager."""
+    def test_namespace(self):
+        """Tests the OntologyNamespace class."""
         from simphony_osp.namespaces import city
 
-        with Session() as session:
-            freiburg = city.City(
-                name="Freiburg", coordinates=[0, 0], session=session
-            )
-            marc_city = city.Citizen(name="Marc", age=25, session=session)
-            sveta = city.Citizen(name="Sveta", age=25)
-            mario = city.Citizen(name="Mario", age=25)
-            sveta_city = marc_city.add(sveta)
-            mario.add(sveta)
-            freiburg.add(mario)
-            self.assertIn(sveta_city, marc_city.get())
+        self.assertTrue(isinstance(city, OntologyNamespace))
+
+        # Test the `__init__` method.
+        city_again = OntologyNamespace(
+            URIRef("https://www.simphony-project.eu/city#"),
+            ontology=self.ontology,
+            name="city",
+        )
+        self.assertTrue(isinstance(city, OntologyNamespace))
+
+        # Test the `name` property.
+        self.assertEqual(city.name, "city")
+
+        # Test the `iri` property.
+        self.assertEqual(
+            city.iri, URIRef("https://www.simphony-project.eu/city#")
+        )
+
+        # Test the `ontology` property.
+        self.assertIs(city.ontology, self.ontology)
+
+        # Test the `__eq__` method.
+        self.assertEqual(city_again, city)
+        empty_ontology = Session(ontology=True)
+        city_empty_ontology = OntologyNamespace(
+            URIRef("https://www.simphony-project.eu/city#"),
+            ontology=empty_ontology,
+            name="city",
+        )
+        self.assertNotEqual(city, city_empty_ontology)
+        city_different_iri = OntologyNamespace(
+            URIRef("https://www.simphony-project.eu/city_dif#"),
+            ontology=self.ontology,
+            name="city_dif",
+        )
+        self.assertNotEqual(city, city_different_iri)
+
+        # Test the `__hash__` method.
+        self.assertNotEqual(city.__hash__(), city_empty_ontology.__hash__())
+        self.assertNotEqual(city.__hash__(), city_different_iri.__hash__())
+
+        # Test the `__getattr__` method.
+        has_inhabitant = self.ontology.from_identifier(
+            URIRef("https://www.simphony-project.eu/city#hasInhabitant")
+        )
+        self.assertEqual(has_inhabitant, getattr(city, "hasInhabitant"))
+        self.assertRaises(
+            AttributeError, lambda x: getattr(city, x), "does_not_exist"
+        )
+
+        # Test the `__getitem__` method.
+        name = self.ontology.from_identifier(
+            URIRef("https://www.simphony-project.eu/city#name")
+        )
+        self.assertEqual(name, city["name"])
+
+        # Test the `__dir__` method.
+        self.assertIn("hasMajor", dir(city))
+        self.assertIn("hasInhabitant", dir(city))
+
+        # Test the `_ipython_key_completions_` method.
+        self.assertIn("hasMajor", city._ipython_key_completions_())
+        self.assertIn("hasInhabitant", city._ipython_key_completions_())
+        self.assertIn("has inhabitant", city._ipython_key_completions_())
+
+        # Test the `__iter__` method.
+        self.assertEqual(28, len(tuple(city)))
+        self.assertIn(name, tuple(city))
+        self.assertIn(has_inhabitant, tuple(city))
+
+        # Test the `__contains__` method.
+        self.assertIn(name, city)
+        self.assertIn(has_inhabitant, city)
+        self.assertIn(name.iri, city)
+        self.assertIn(has_inhabitant.iri, city)
+        self.assertNotIn(URIRef("other:some_iri"), city)
+
+        # Test the `__len__` method.
+        self.assertEqual(28, len(city))
+
+        # Test the `get` method.
+        self.assertEqual(city.hasInhabitant, city.get("has inhabitant"))
+        self.assertEqual(city.hasInhabitant, city.get("hasInhabitant"))
+        self.assertRaises(KeyError, city.get, "not existing")
+        self.assertEqual("Text", city.get("not existing", "Text"))
+        self.assertEqual(
+            city.hasInhabitant, city.get("has inhabitant", "Text")
+        )
+
+        # Test the `from_suffix` method.
+        self.assertEqual(city.hasInhabitant, city.from_suffix("hasInhabitant"))
+        self.assertRaises(KeyError, city.from_suffix, "a_suffix")
+        self.assertRaises(ValueError, city.from_suffix, "has inhabitant")
+
+        # Test the `from_iri` method.
+        self.assertEqual(
+            city.hasInhabitant, city.from_iri(city.hasInhabitant.iri)
+        )
+        self.assertEqual(
+            city.hasInhabitant, city.from_iri(str(city.hasInhabitant.iri))
+        )
+        self.assertRaises(
+            KeyError,
+            city.from_iri,
+            "http://example.org/namespace#hasInhabitant",
+        )
+        self.assertRaises(
+            KeyError,
+            city.from_iri,
+            "https://www.simphony-project.eu/city#hasinhabitant",
+        )
+        self.assertRaises(
+            ValueError,
+            city.from_iri,
+            "https://www.simphony-project.eu/city#has " "Inhabitant",
+        )
+
+        # Test the `from_label` method.
+        self.assertRaises(KeyError, city.from_label, "Name", None, True)
+        self.assertEqual(city["name"], city.from_label("name"))
+        self.assertEqual(city["name"], city.from_label("Name"))
+        self.assertRaises(KeyError, city.from_label, "Name", "jp", False)
 
     def test_bracket_notation(self):
         """Detailed test of the functionality of the bracket notation."""
@@ -897,18 +1367,21 @@ class TestOntologyEntityCity(unittest.TestCase):
         self.assertSetEqual({marc, clement, aimee}, paris[city.hasWorker])
         self.assertSetEqual(set(), paris[city.hasMajor])
 
+        # Test annotations -> goto
+        # TestOntologyAPIFOAF.test_bracket_notation.
+
         # Test attributes -> goto
-        # TestOntologyEntityFOAF.test_bracket_notation.
+        # TestOntologyAPIFOAF.test_bracket_notation.
 
 
-class TestOntologyEntityFOAF(unittest.TestCase):
+class TestOntologyAPIFOAF(unittest.TestCase):
     """Test the ontology API using the FOAF ontology.
 
     Tests only features not tested with the City ontology.
     """
 
-    # TODO: Extend the City ontology with annotation properties so that this
-    #  test can be merged with `TestOntologyEntityCity`.
+    # TODO: Extend the City ontology with so that this
+    #  test can be merged with `TestOntologyAPICity`.
 
     ontology: Session
     prev_default_ontology: Session
@@ -917,7 +1390,7 @@ class TestOntologyEntityFOAF(unittest.TestCase):
     def setUpClass(cls):
         """Create a TBox and set it as the default ontology.
 
-        The new TBox contains CUBA, OWL, RDFS and FOAF.
+        The new TBox contains SimPhoNy, OWL, RDFS and FOAF.
         """
         with tempfile.NamedTemporaryFile(
             "w", suffix=".yml", delete=False
@@ -1150,12 +1623,11 @@ class TestOntologyEntityFOAF(unittest.TestCase):
         self.assertSetEqual({"marc_skype", "marc_discord"}, marc[foaf.nick])
         self.assertSetEqual(set(), marc[foaf.skypeID])
 
+        # --- Test annotations ---
+        # TODO
+
         # Test relationships -> goto
         # test_api_city.TestAPICity.test_bracket_notation.
-
-
-if __name__ == "__main__":
-    unittest.main()
 
 
 class TestContainer(unittest.TestCase):
@@ -1167,7 +1639,7 @@ class TestContainer(unittest.TestCase):
     def setUpClass(cls):
         """Create a TBox and set it as the default ontology.
 
-        The new TBox contains CUBA, OWL, RDFS and City.
+        The new TBox contains SimPhoNy, OWL, RDFS and City.
         """
         ontology = Session(identifier="test-tbox", ontology=True)
         ontology.load_parser(OntologyParser.get_parser("city"))
@@ -1181,9 +1653,9 @@ class TestContainer(unittest.TestCase):
 
     def test_container(self):
         """Test the container ontology individual."""
-        from simphony_osp.namespaces import city, cuba
+        from simphony_osp.namespaces import city, simphony
 
-        container = cuba.Container()
+        container = simphony.Container()
 
         self.assertIsNone(container.opens_in)
         self.assertIsNone(container.session_linked)
@@ -1215,7 +1687,7 @@ class TestContainer(unittest.TestCase):
         )
         container.opens_in = None
 
-        another_container = cuba.Container()
+        another_container = simphony.Container()
 
         another_container.opens_in = container
         self.assertRaises(RuntimeError, another_container.open)
@@ -1287,9 +1759,9 @@ class TestContainer(unittest.TestCase):
         Each session is meant to contain a different version of the same
         individual.
         """
-        from simphony_osp.namespaces import city, cuba
+        from simphony_osp.namespaces import city, simphony
 
-        container = cuba.Container()
+        container = simphony.Container()
 
         default_session = Session.get_default_session()
         session_1 = Session()
@@ -1325,3 +1797,7 @@ class TestContainer(unittest.TestCase):
             with container:
                 klaus_from_container = set(container).pop()
                 self.assertEqual(klaus_from_container.age, 20)
+
+
+if __name__ == "__main__":
+    unittest.main()

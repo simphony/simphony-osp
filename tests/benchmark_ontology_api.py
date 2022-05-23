@@ -56,7 +56,7 @@ class IndividualAddDefault(Benchmark):
         )
 
     def _benchmark_iterate(self, iteration=None):
-        self.city.add(self.neighborhoods[iteration])
+        self.city.connect(self.neighborhoods[iteration])
 
     def _benchmark_tear_down(self):
         pass
@@ -79,7 +79,7 @@ class IndividualAddRel(Benchmark):
         )
 
     def _benchmark_iterate(self, iteration=None):
-        self.city.add(self.citizens[iteration], rel=city.hasInhabitant)
+        self.city.connect(self.citizens[iteration], rel=city.hasInhabitant)
 
     def _benchmark_tear_down(self):
         pass
@@ -105,7 +105,7 @@ class IndividualGetByUIDUUID(Benchmark):
         )
         self.uids = tuple(citizen.uid for citizen in self.citizens)
         for citizen in self.citizens:
-            self.city.add(citizen, rel=city.hasInhabitant)
+            self.city.connect(citizen, rel=city.hasInhabitant)
 
     def _benchmark_iterate(self, iteration: int = None):
         self.city.get(self.uids[iteration])
@@ -136,7 +136,7 @@ class IndividualGetByUIDURIRef(Benchmark):
             for i in range(self.size)
         )
         for citizen in self.citizens:
-            self.city.add(citizen, rel=city.hasInhabitant)
+            self.city.connect(citizen, rel=city.hasInhabitant)
 
     def _benchmark_iterate(self, iteration: int = None):
         self.city.get(self.uids[iteration])
@@ -167,7 +167,7 @@ class IndividualGetByRel(Benchmark):
         things = tuple(things)
         rel = {position: city.hasInhabitant}
         for i, thing in enumerate(things):
-            self.city.add(thing, rel=rel.get(i, city.hasPart))
+            self.city.connect(thing, rel=rel.get(i, city.hasPart))
 
     def _benchmark_iterate(self, iteration: int = None):
         self.city.get(rel=city.hasInhabitant)
@@ -198,7 +198,7 @@ class IndividualGetByOclass(Benchmark):
         things = tuple(things)
         rel = {position: city.hasInhabitant}
         for i, thing in enumerate(things):
-            self.city.add(thing, rel=rel.get(i, city.hasPart))
+            self.city.connect(thing, rel=rel.get(i, city.hasPart))
 
     def _benchmark_iterate(self, iteration: int = None):
         self.city.get(oclass=city.Citizen)
@@ -227,7 +227,7 @@ class IndividualIterByUIDUUID(Benchmark):
         )
         self.uids = tuple(citizen.uid for citizen in self.citizens)
         for citizen in self.citizens:
-            self.city.add(citizen, rel=city.hasInhabitant)
+            self.city.connect(citizen, rel=city.hasInhabitant)
         self.iterator = self.city.iter(*self.uids)
 
     def _benchmark_iterate(self, iteration: int = None):
@@ -258,7 +258,7 @@ class IndividualIterByUIDURIRef(Benchmark):
             for i in range(self.size)
         )
         for citizen in self.citizens:
-            self.city.add(citizen, rel=city.hasInhabitant)
+            self.city.connect(citizen, rel=city.hasInhabitant)
         self.iterator = self.city.iter(*map(UID, self.iris))
 
     def _benchmark_iterate(self, iteration: int = None):
@@ -290,7 +290,7 @@ class IndividualIterByRel(Benchmark):
         things = tuple(things)
         rel = {position: city.hasInhabitant}
         for i, thing in enumerate(things):
-            self.city.add(thing, rel=rel.get(i, city.hasPart))
+            self.city.connect(thing, rel=rel.get(i, city.hasPart))
 
     def _benchmark_iterate(self, iteration: int = None):
         next(self.city.iter(rel=city.hasInhabitant))
@@ -321,7 +321,7 @@ class IndividualIterByOclass(Benchmark):
         things = tuple(things)
         rel = {position: city.hasInhabitant}
         for i, thing in enumerate(things):
-            self.city.add(thing, rel=rel.get(i, city.hasPart))
+            self.city.connect(thing, rel=rel.get(i, city.hasPart))
 
     def _benchmark_iterate(self, iteration: int = None):
         next(self.city.iter(oclass=city.Citizen))

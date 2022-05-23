@@ -29,7 +29,7 @@ class TestLoadParsers(unittest.TestCase):
 
         # Test that all namespaces were loaded.
         required_namespaces = {
-            "cuba": "https://www.simphony-project.eu/cuba#",
+            "simphony": "https://www.simphony-project.eu/simphony#",
             "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
             "owl": "http://www.w3.org/2002/07/owl#",
         }
@@ -139,7 +139,7 @@ class TestLoadParsers(unittest.TestCase):
                 OntologyRelationship(
                     uid=UID(
                         "https://www.simphony-project.eu/"
-                        "cuba#activeRelationship"
+                        "simphony#activeRelationship"
                     ),
                     session=self.ontology,
                 ),

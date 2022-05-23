@@ -1,8 +1,0 @@
-identifier: cuba
-ontology_file: cuba.ttl
-format: 'turtle'
-reference_by_label: False
-namespaces:
-    cuba: https://www.simphony-project.eu/cuba#
-active_relationships:
-    - https://www.simphony-project.eu/cuba#activeRelationship

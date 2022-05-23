@@ -1,13 +1,13 @@
 """Special kind of ontology individual designed to organize entities."""
 
 import logging
-from typing import Dict, Iterable, Optional
+from typing import Iterable, Mapping, Optional
 
-from simphony_osp.namespaces import cuba
+from simphony_osp.namespaces import simphony
 from simphony_osp.ontology.attribute import OntologyAttribute
 from simphony_osp.ontology.individual import OntologyIndividual
 from simphony_osp.session.session import Session
-from simphony_osp.utils.cuba_namespace import cuba_namespace
+from simphony_osp.utils import simphony_namespace
 from simphony_osp.utils.datatypes import UID, AttributeValue, Triple
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ buf_size = 1024
 class File(OntologyIndividual):
     """Ontology individual representing a file."""
 
-    rdf_type = cuba_namespace.File
+    rdf_type = simphony_namespace.File
 
     def __init__(
         self,
@@ -26,7 +26,7 @@ class File(OntologyIndividual):
         session: Optional[Session] = None,
         triples: Optional[Iterable[Triple]] = None,
         attributes: Optional[
-            Dict[OntologyAttribute, Iterable[AttributeValue]]
+            Mapping[OntologyAttribute, Iterable[AttributeValue]]
         ] = None,
         merge: bool = False,
     ) -> None:
@@ -35,7 +35,7 @@ class File(OntologyIndividual):
             uid=uid,
             session=session,
             triples=triples,
-            class_=cuba.File,
+            class_=simphony.File,
             attributes=attributes,
             merge=merge,
         )

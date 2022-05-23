@@ -38,7 +38,7 @@ def host(
         if password and pass_ != pass_:
             raise PermissionError
         wrapper_object = wrapper(*args, **kwargs)
-        interface = wrapper_object.interface
+        interface = wrapper_object.driver.interface
         return interface
 
     interface_server = InterfaceServer(

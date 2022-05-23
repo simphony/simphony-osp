@@ -1,4 +1,5 @@
 """Abstract Base Class for all Sessions."""
+from __future__ import annotations
 
 import itertools
 import logging
@@ -6,12 +7,15 @@ from inspect import isclass
 from typing import (
     TYPE_CHECKING,
     Dict,
+    FrozenSet,
     Iterable,
     Iterator,
     List,
     Optional,
     Set,
     Tuple,
+    Type,
+    TypeVar,
     Union,
 )
 
@@ -27,16 +31,19 @@ from simphony_osp.ontology.attribute import OntologyAttribute
 from simphony_osp.ontology.entity import OntologyEntity
 from simphony_osp.ontology.individual import OntologyIndividual
 from simphony_osp.ontology.namespace import OntologyNamespace
+from simphony_osp.ontology.oclass import OntologyClass
 from simphony_osp.ontology.parser import OntologyParser
 from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.ontology.utils import compatible_classes
-from simphony_osp.utils.cuba_namespace import cuba_namespace
+from simphony_osp.utils import simphony_namespace
 from simphony_osp.utils.datatypes import UID, Triple
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from simphony_osp.interfaces.interface import Interface, InterfaceDriver
+
+ENTITY = TypeVar("ENTITY", bound=OntologyEntity)
 
 
 class Environment:
@@ -45,31 +52,33 @@ class Environment:
     E.g. sessions, containers.
     """
 
-    _session_linked: Optional["Session"] = None
-    _stack_default_environment: List["Environment"] = []
-    _environment_references: Set["Environment"] = set()
+    # ↓ --------------------- Public API --------------------- ↓ #
+
+    def lock(self):
+        """Increase the lock count.
+
+        See the docstring of `locked` for an explanation of what locking an
+        environment means.
+        """
+        self._lock += 1
+
+    def unlock(self):
+        """Decrease the lock count.
+
+        See the docstring of `locked` for an explanation of what locking an
+        environment means.
+        """
+        self._lock = self._lock - 1 if self._lock > 0 else 0
 
     @property
-    def subscribers(self) -> Set["Environment"]:
-        """Environments that depend on this instance.
+    def locked(self) -> bool:
+        """Whether the environment is locked or not.
 
-        Such environments will be closed when this instance is closed.
+        A locked environment will not be closed when using it as a context
+        manager and leaving the context. Useful for setting it as the
+        default environment when it is not intended to close it afterwards.
         """
-        return self._subscribers
-
-    @subscribers.setter
-    def subscribers(self, value: Set["Environment"]):
-        """Setter for the private  `_subscribers` attribute."""
-        self._subscribers = value
-
-    _subscribers: Set["Environment"]
-    """A private attribute is used in order not to interfere with the
-    `__getattr__`method from OntologyIndividual."""
-
-    def __init__(self, *args, **kwargs):
-        """Initialize the environment with an empty set of subscribers."""
-        self._subscribers = set()
-        super().__init__(*args, **kwargs)
+        return self._lock > 0
 
     def __enter__(self):
         """Set this as the default environment."""
@@ -93,42 +102,44 @@ class Environment:
             self.close()
         return False
 
-    @property
-    def locked(self) -> bool:
-        """Whether the environment is locked or not.
-
-        A locked environment will not be closed when using it as a context
-        manager and leaving the context. Useful for setting it as the
-        default environment when it is not intended to close it afterwards.
-        """
-        return self._lock > 0
-
-    def lock(self):
-        """Increase the lock count.
-
-        See the docstring of `locked` for an explanation of what locking an
-        environment means.
-        """
-        self._lock += 1
-
-    def unlock(self):
-        """Decrease the lock count.
-
-        See the docstring of `locked` for an explanation of what locking an
-        environment means.
-        """
-        self._lock = self._lock - 1 if self._lock > 0 else 0
-
-    _lock: int = 0
-    """See the docstring of `locked` for an explanation of what locking an
-    environment means."""
-
     def close(self):
         """Close this environment."""
         for environment in self.subscribers:
             environment.close()
             self.subscribers.remove(environment)
         self._environment_references.remove(self)
+
+    # ↑ --------------------- Public API --------------------- ↑ #
+
+    _session_linked: Optional["Session"] = None
+    _stack_default_environment: List["Environment"] = []
+    _environment_references: Set["Environment"] = set()
+
+    _lock: int = 0
+    """See the docstring of `locked` for an explanation of what locking an
+    environment means."""
+
+    _subscribers: Set["Environment"]
+    """A private attribute is used in order not to interfere with the
+    `__getattr__`method from OntologyIndividual."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the environment with an empty set of subscribers."""
+        self._subscribers = set()
+        super().__init__(*args, **kwargs)
+
+    @property
+    def subscribers(self) -> Set["Environment"]:
+        """Environments that depend on this instance.
+
+        Such environments will be closed when this instance is closed.
+        """
+        return self._subscribers
+
+    @subscribers.setter
+    def subscribers(self, value: Set["Environment"]):
+        """Setter for the private  `_subscribers` attribute."""
+        self._subscribers = value
 
     @classmethod
     def get_default_environment(cls) -> Optional["Environment"]:
@@ -202,6 +213,403 @@ class Session(Environment):
     this will define the default label. Then the default label will default to
     english. If also not available, then any language will be used.
     """
+
+    def commit(self) -> None:
+        """Commit pending changes to the session's graph."""
+        self._graph.commit()
+        if self.ontology is not self:
+            self.ontology.commit()
+        else:
+            self._overlay.commit()
+        self.creation_set = set()
+
+    def compute(self, *args, **kwargs) -> None:
+        """Run simulations on supported graph stores."""
+        from simphony_osp.interfaces.remote.client import RemoteStoreClient
+
+        if self._driver is not None:
+            self.commit()
+            self._driver.compute(*args, **kwargs)
+        elif isinstance(self._graph.store, RemoteStoreClient):
+            self._graph.store.execute_method("run")
+        else:
+            raise AttributeError(
+                f"Session {self} is not attached to a "
+                f"simulation engine. Thus, the attribute "
+                f"`compute` is not available."
+            )
+
+    def close(self) -> None:
+        """Close the connection to the session's backend.
+
+        Sessions are an interface to a graph linked to an RDFLib store (a
+        backend). If the session will not be used anymore, then it makes
+        sense to close the connection to such backend to free resources.
+        """
+        if self in self._stack_default_environment:
+            raise RuntimeError(
+                "Cannot close a session that is currently "
+                "being used as a context manager."
+            )
+        super().close()
+        self.graph.close(commit_pending_transaction=False)
+
+    def sparql(self, query: str, ontology: bool = False) -> QueryResult:
+        """Perform a SPARQL CONSTRUCT, DESCRIBE, SELECT or ASK query.
+
+        The query is performed on the session's data (the ontology is not
+        included).
+
+        Args:
+            query: String to use as query.
+            ontology: Whether to include the ontology in the query or not.
+                When the ontology is included, only read-only queries are
+                possible.
+        """
+        graph = (
+            self.graph
+            if not ontology
+            else ReadOnlyGraphAggregate([self.graph, self.ontology.graph])
+        )
+        result = graph.query(query)
+        return QueryResult(
+            {
+                "type_": result.type,
+                "vars_": result.vars,
+                "bindings": result.bindings,
+                "askAnswer": result.askAnswer,
+                "graph": result.graph,
+            },
+            session=self,
+        )
+
+    def __enter__(self):
+        """Sets the session as the default session."""
+        super().__enter__()
+        self.creation_set = set()
+        return self
+
+    def __contains__(self, item: "OntologyEntity"):
+        """Check whether an ontology entity is stored on the session."""
+        return item.session is self
+
+    def __iter__(self) -> Iterator["OntologyEntity"]:
+        """Iterate over all the ontology entities in the session.
+
+        This operation can be computationally VERY expensive.
+        """
+        # Warning: entities can be repeated.
+        return (
+            self.from_identifier(identifier)
+            for identifier in self.iter_identifiers()
+        )
+
+    def __bool__(self) -> bool:
+        return True
+
+    def __len__(self) -> int:
+        return sum(1 for _ in self)
+
+    def __str__(self):
+        """Convert the session to a string."""
+        # TODO: Return the kind of RDFLib store attached too.
+        return (
+            f"<{self.__class__.__module__}.{self.__class__.__name__}: "
+            f"{self.identifier if self.identifier is not None else ''} "
+            f"at {hex(id(self))}>"
+        )
+
+    def from_identifier(self, identifier: Node) -> OntologyEntity:
+        """Get an ontology entity from its identifier.
+
+        Args:
+            identifier: The identifier of the entity.
+
+        Raises:
+            KeyError: The ontology entity is not stored in this session.
+
+        Returns:
+            The OntologyEntity.
+        """
+        # WARNING: This method is a central point in SimPhoNy. Change with
+        #  care.
+        # TIP: Since the method is a central point in SimPhoNy, any
+        #  optimization it gets will speed up SimPhoNy, while bad code in
+        #  this method will slow it down.
+
+        """Look for compatible Python classes to spawn."""
+        compatible = set()
+
+        for rdf_type in self._graph.objects(identifier, RDF.type):
+            # Look for compatible embedded classes.
+            found = compatible_classes(rdf_type, identifier)
+            if not found:
+                # If not an embedded class, then the type may be known in
+                # the ontology. This means that an ontology individual would
+                # have to be spawned.
+                try:
+                    self.ontology.from_identifier(rdf_type)
+                    compatible |= {OntologyIndividual}
+                except KeyError:
+                    pass
+            else:
+                compatible |= found
+
+        """Some ontologies are hybrid RDFS and OWL ontologies (i.e. FOAF).
+        In such cases, object and datatype properties are preferred to
+        annotation properties."""
+        if OntologyAnnotation in compatible and any(
+            x in compatible for x in (OntologyRelationship, OntologyAttribute)
+        ):
+            compatible.remove(OntologyAnnotation)
+        if len(compatible) == 0:
+            # The individual belongs to an unknown class.
+            raise KeyError(
+                f"Identifier {identifier} does not match any OWL "
+                f"entity, any entity natively supported by "
+                f"SimPhoNy, nor an ontology individual "
+                f"belonging to a class in the ontology."
+            )
+        elif len(compatible) >= 2:
+            compatible = map(str, compatible)
+            raise RuntimeError(
+                f"Two or more python classes ("
+                f"{', '.join(compatible)}) "
+                f"could be spawned from {identifier}."
+            )
+        else:
+            python_class = compatible.pop()
+            return python_class(uid=UID(identifier), session=self, merge=None)
+
+    def from_identifier_typed(
+        self, identifier: Node, typing: Type[ENTITY]
+    ) -> ENTITY:
+        entity = self.from_identifier(identifier)
+        if not isinstance(entity, typing):
+            raise TypeError(f"{identifier} is not of class {typing}.")
+        return entity
+
+    def from_label(
+        self,
+        label: str,
+        lang: Optional[str] = None,
+        case_sensitive: bool = False,
+    ) -> Set[OntologyEntity]:
+        """Get an ontology entity from its label.
+
+        Args:
+            label: The label of the ontology entity.
+            lang: The language of the label.
+            case_sensitive: when false, look for similar labels with
+                different capitalization.
+
+        Raises:
+            KeyError: Unknown label.
+
+        Returns:
+            The ontology entity.
+        """
+        results = set()
+        for identifier in self.iter_identifiers():
+            entity_labels = self.iter_labels(
+                entity=identifier,
+                lang=lang,
+                return_prop=False,
+                return_literal=False,
+            )
+            if case_sensitive is False:
+                entity_labels = (label.lower() for label in entity_labels)
+                comp_label = label.lower()
+            else:
+                comp_label = label
+            if comp_label in entity_labels:
+                results.add(self.from_identifier(identifier))
+        if len(results) == 0:
+            error = "No element with label %s was found in ontology %s." % (
+                label,
+                self,
+            )
+            raise KeyError(error)
+        return results
+
+    def add(
+        self,
+        *individuals: Union[OntologyIndividual, Iterable[OntologyIndividual]],
+        merge: bool = False,
+        exists_ok: bool = False,
+    ) -> Union[OntologyIndividual, FrozenSet[OntologyIndividual]]:
+        """Copies the ontology entities to the session."""
+        # Unpack iterables
+        individuals = list(
+            individual
+            for x in individuals
+            for individual in (
+                x if not isinstance(x, OntologyIndividual) else (x,)
+            )
+        )
+        # Get the identifiers of the individuals
+        identifiers = list(individual.identifier for individual in individuals)
+
+        # Paste the individuals
+        """The attributes of the individuals are always kept. The
+        relationships between the individuals are only kept when they are
+        pasted together.
+        """
+        if (
+            any(
+                (identifier, None, None) in self.graph
+                for identifier in identifiers
+            )
+            and exists_ok is False
+        ):
+            raise RuntimeError(
+                "Some of the added entities already exist on the session."
+            )
+        delete = (
+            (individual.identifier, None, None)
+            for individual in individuals
+            if individual.session is not self
+        )
+        add = (
+            (s, p, o)
+            for individual in individuals
+            for s, p, o in individual.session.graph.triples(
+                (individual.identifier, None, None)
+            )
+            if (p == RDF.type or isinstance(o, Literal) or o in identifiers)
+        )
+        if not merge:
+            """Replace previous individuals if merge is False."""
+            for pattern in delete:
+                self.graph.remove(pattern)
+        self.graph.addN((s, p, o, self.graph) for s, p, o in add)
+        added_objects = list(
+            self.from_identifier_typed(identifier, typing=OntologyIndividual)
+            for identifier in identifiers
+        )
+        return (
+            next(iter(added_objects), None)
+            if len(added_objects) <= 1
+            else added_objects
+        )
+
+    def delete(
+        self,
+        *entities: Union[
+            Union["OntologyEntity", Identifier],
+            Iterable[Union[OntologyEntity, Identifier]],
+        ],
+    ):
+        """Remove an ontology entity from the session."""
+        entities = frozenset(
+            entity
+            for x in entities
+            for entity in (
+                x if not isinstance(x, (OntologyEntity, Identifier)) else (x,)
+            )
+        )
+
+        for entity in entities:
+            if entity not in self:
+                raise ValueError(f"Entity {entity} not contained in {self}.")
+
+        for entity in entities:
+            if isinstance(entity, OntologyEntity):
+                entity = entity.identifier
+            self._track_identifiers(entity, delete=True)
+            self._graph.remove((entity, None, None))
+            self._graph.remove((None, None, entity))
+
+    def clear(self):
+        """Clear all the data stored in the session."""
+        self._graph.remove((None, None, None))
+
+    # ↑ --------------------- Public API --------------------- ↑ #
+
+    def __init__(
+        self,
+        base: Optional[Graph] = None,  # The graph must be OPEN already.
+        driver: Optional["InterfaceDriver"] = None,
+        ontology: Optional[Union["Session", bool]] = None,
+        identifier: Optional[str] = None,
+        namespaces: Dict[str, URIRef] = None,
+        from_parser: Optional[OntologyParser] = None,
+    ):
+        """Initialize the session."""
+        super().__init__()
+        self._environment_references.add(self)
+        # Base the session graph either on a store if passed or an empty graph.
+        if base is not None:
+            self._graph = base
+        else:
+            self._graph = Graph()
+
+        self._interface_driver = driver
+
+        # Configure the ontology for this session
+        if isinstance(ontology, Session):
+            self.ontology = ontology
+        elif ontology is True:
+            self.ontology = self
+        elif ontology is not None:
+            raise TypeError(
+                f"Invalid ontology argument: {ontology}."
+                f"Expected either a `Session` or `bool` object, "
+                f"got {type(ontology)} instead."
+            )
+
+        self.creation_set = set()
+        self._storing = list()
+
+        self._namespaces = dict()
+        self._overlay = Graph()
+        # Load the essential TBox required by ontologies.
+        if self.ontology is self:
+            for parser in (
+                OntologyParser.get_parser("simphony"),
+                OntologyParser.get_parser("owl"),
+                OntologyParser.get_parser("rdfs"),
+            ):
+                self.ontology.load_parser(parser)
+        if from_parser:  # Compute session graph from an ontology parser.
+            if self.ontology is not self:
+                raise RuntimeError(
+                    "Cannot load parsers in sessions which "
+                    "are not their own ontology. Load the "
+                    "parser on the ontology instead."
+                )
+            if namespaces is not None:
+                logger.warning(
+                    f"Namespaces bindings {namespaces} ignored, "
+                    f"as the session {self} is being created from "
+                    f"a parser."
+                )
+            self.load_parser(from_parser)
+            self.identifier = identifier or from_parser.identifier
+        else:  # Create an empty session.
+            self.identifier = identifier
+            namespaces = namespaces if namespaces is not None else dict()
+            for key, value in namespaces.items():
+                self.bind(key, value)
+
+    def merge(self, entity: "OntologyEntity") -> None:
+        """Merge a given ontology entity with what is in the session.
+
+        Copies the ontology entity to the session, but does not remove any
+        old triples referring to the entity.
+
+        Args:
+            entity: The ontology entity to store.
+        """
+        self._update_and_merge_helper(entity, mode=False)
+
+    def update(self, entity: "OntologyEntity") -> None:
+        """Store a copy of given ontology entity in the session.
+
+        Args:
+            entity: The ontology entity to store.
+        """
+        self._update_and_merge_helper(entity, mode=True)
 
     @property
     def namespaces(self) -> List[OntologyNamespace]:
@@ -307,7 +715,7 @@ class Session(Environment):
         return tuple(
             OntologyRelationship(UID(s), self)
             for s in self.ontology._overlay.subjects(
-                RDFS.subPropertyOf, cuba_namespace.activeRelationship
+                RDFS.subPropertyOf, simphony_namespace.activeRelationship
             )
         )
 
@@ -319,7 +727,7 @@ class Session(Environment):
         value = iter(()) if value is None else value
 
         for triple in self.ontology._overlay.triples(
-            (None, RDFS.subPropertyOf, cuba_namespace.activeRelationship)
+            (None, RDFS.subPropertyOf, simphony_namespace.activeRelationship)
         ):
             self.ontology._overlay.remove(triple)
         for relationship in value:
@@ -327,7 +735,7 @@ class Session(Environment):
                 (
                     relationship.iri,
                     RDFS.subPropertyOf,
-                    cuba_namespace.activeRelationship,
+                    simphony_namespace.activeRelationship,
                 )
             )
 
@@ -343,7 +751,7 @@ class Session(Environment):
             ns: (OntologyRelationship(UID(o), self.ontology),)
             for ns in self.namespaces
             for o in self.ontology._overlay.objects(
-                ns.iri, cuba_namespace._default_rel
+                ns.iri, simphony_namespace._default_rel
             )
         }
         for key, value in default_relationships.items():
@@ -375,14 +783,14 @@ class Session(Environment):
                 relationships when a dict is provided..
         """
         if value is None:
-            remove = ((None, cuba_namespace._default_rel, None),)
+            remove = ((None, simphony_namespace._default_rel, None),)
             add = dict()
         elif isinstance(value, OntologyRelationship):
-            remove = ((None, cuba_namespace._default_rel, None),)
+            remove = ((None, simphony_namespace._default_rel, None),)
             add = {ns.iri: value.iri for ns in self.namespaces}
         elif isinstance(value, Dict):
             remove = (
-                (ns.iri, cuba_namespace._default_rel, None)
+                (ns.iri, simphony_namespace._default_rel, None)
                 for ns in value.keys()
             )
             add = {ns.iri: rel.iri for ns, rel in value.items()}
@@ -398,7 +806,7 @@ class Session(Environment):
             self.ontology._overlay.remove(pattern)
         for ns_iri, rel_iri in add.items():
             self.ontology._overlay.add(
-                (ns_iri, cuba_namespace._default_rel, rel_iri)
+                (ns_iri, simphony_namespace._default_rel, rel_iri)
             )
 
     @property
@@ -411,7 +819,7 @@ class Session(Environment):
         true_reference_styles = (
             s
             for s in self.ontology._overlay.subjects(
-                cuba_namespace._reference_by_label, Literal(True)
+                simphony_namespace._reference_by_label, Literal(True)
             )
         )
         for s in true_reference_styles:
@@ -429,300 +837,16 @@ class Session(Environment):
         if isinstance(value, bool):
             value = {ns: value for ns in self.namespaces}
         self.ontology._overlay.remove(
-            (None, cuba_namespace._reference_by_label, None)
+            (None, simphony_namespace._reference_by_label, None)
         )
         for key, value in value.items():
             self.ontology._overlay.add(
-                (key.iri, cuba_namespace._reference_by_label, Literal(value))
-            )
-
-    def commit(self) -> None:
-        """Commit the changes made to the session's graph."""
-        self._graph.commit()
-        if self.ontology is not self:
-            self.ontology.commit()
-        else:
-            self._overlay.commit()
-        self.creation_set = set()
-
-    def compute(self, *args, **kwargs) -> None:
-        """Run simulations on supported graph stores."""
-        from simphony_osp.interfaces.remote.client import RemoteStoreClient
-
-        if self._driver is not None:
-            self.commit()
-            self._driver.compute(*args, **kwargs)
-        elif isinstance(self._graph.store, RemoteStoreClient):
-            self._graph.store.execute_method("run")
-        else:
-            raise AttributeError(
-                f"Session {self} is not attached to a "
-                f"simulation engine. Thus, the attribute "
-                f"`compute` is not available."
-            )
-
-    def close(self):
-        """Close the connection to the backend.
-
-        Sessions act on a graph linked to an RDFLib store (a backend). If
-        the session will not be used anymore, then it makes sense to close
-        the connection to such backend to free resources.
-        """
-        if self in self._stack_default_environment:
-            raise RuntimeError(
-                "Cannot close a session that is currently "
-                "being used as a context manager."
-            )
-        super().close()
-        self.graph.close(commit_pending_transaction=False)
-
-    def sparql(self, query: str) -> "QueryResult":
-        """Perform a SPARQL CONSTRUCT, DESCRIBE, SELECT or ASK query.
-
-        The query is performed on the session's data.
-
-        Args:
-            query: String to use as query.
-        """
-        result = self.graph.query(query)
-        return QueryResult(
-            {
-                "type_": result.type,
-                "vars_": result.vars,
-                "bindings": result.bindings,
-                "askAnswer": result.askAnswer,
-                "graph": result.graph,
-            },
-            session=self,
-        )
-
-    def __init__(
-        self,
-        base: Graph = None,  # The graph must be OPEN already.
-        driver: Optional["InterfaceDriver"] = None,
-        ontology: Optional[Union["Session", bool]] = None,
-        identifier: Optional[str] = None,
-        namespaces: Dict[str, URIRef] = None,
-        from_parser: Optional[OntologyParser] = None,
-    ):
-        """Initialize the session."""
-        super().__init__()
-        self._environment_references.add(self)
-        # Base the session graph either on a store if passed or an empty graph.
-        if base is not None:
-            self._graph = base
-        else:
-            self._graph = Graph()
-
-        self._interface_driver = driver
-
-        # Configure the ontology for this session
-        if isinstance(ontology, Session):
-            self.ontology = ontology
-        elif ontology is True:
-            self.ontology = self
-        elif ontology is not None:
-            raise TypeError(
-                f"Invalid ontology argument: {ontology}."
-                f"Expected either a `Session` or `bool` object, "
-                f"got {type(ontology)} instead."
-            )
-
-        self.creation_set = set()
-        self._storing = list()
-
-        self._namespaces = dict()
-        self._overlay = Graph()
-        # Load the essential TBox required by ontologies.
-        if self.ontology is self:
-            for parser in (
-                OntologyParser.get_parser("cuba"),
-                OntologyParser.get_parser("owl"),
-                OntologyParser.get_parser("rdfs"),
-            ):
-                self.ontology.load_parser(parser)
-        if from_parser:  # Compute session graph from an ontology parser.
-            if self.ontology is not self:
-                raise RuntimeError(
-                    "Cannot load parsers in sessions which "
-                    "are not their own ontology. Load the "
-                    "parser on the ontology instead."
+                (
+                    key.iri,
+                    simphony_namespace._reference_by_label,
+                    Literal(value),
                 )
-            if namespaces is not None:
-                logger.warning(
-                    f"Namespaces bindings {namespaces} ignored, "
-                    f"as the session {self} is being created from "
-                    f"a parser."
-                )
-            self.load_parser(from_parser)
-            self.identifier = identifier or from_parser.identifier
-        else:  # Create an empty session.
-            self.identifier = identifier
-            namespaces = namespaces if namespaces is not None else dict()
-            for key, value in namespaces.items():
-                self.bind(key, value)
-
-    def __enter__(self):
-        """Enter session context manager.
-
-        This sets the session as the default session.
-        """
-        super().__enter__()
-        self.creation_set = set()
-        return self
-
-    def __contains__(self, item: "OntologyEntity"):
-        """Check whether an ontology entity is stored on the session."""
-        return item.session is self
-
-    def __iter__(self) -> Iterator["OntologyEntity"]:
-        """Iterate over all the ontology entities in the session.
-
-        This operation can be computationally VERY expensive.
-        """
-        # Warning: entities can be repeated.
-        return (
-            self.from_identifier(identifier)
-            for identifier in self.iter_identifiers()
-        )
-
-    def from_identifier(self, identifier: Node) -> "OntologyEntity":
-        """Get an ontology entity from its identifier.
-
-        Args:
-            identifier: The identifier of the entity.
-
-        Raises:
-            KeyError: The ontology entity is not stored in this session.
-
-        Returns:
-            The OntologyEntity.
-        """
-        # WARNING: This method is a central point in SimPhoNy. Change with
-        #  care.
-        # TIP: Since the method is a central point in SimPhoNy, any
-        #  optimization it gets will speed up SimPhoNy, while bad code in
-        #  this method will slow it down.
-        # TODO: make return type hint more specific, IDE gets confused.
-        # Look for compatible Python classes to spawn.
-        compatible = set()
-
-        for rdf_type in self._graph.objects(identifier, RDF.type):
-            # Look for compatible embedded classes.
-            found = compatible_classes(rdf_type, identifier)
-            if not found:
-                # If not an embedded class, then the type may be known in
-                # the ontology. This means that an ontology individual would
-                # have to be spawned.
-                try:
-                    self.ontology.from_identifier(rdf_type)
-                    compatible |= {OntologyIndividual}
-                except KeyError:
-                    pass
-            else:
-                compatible |= found
-
-        """Some ontologies are hybrid RDFS and OWL ontologies (i.e. FOAF).
-        In such cases, object and datatype properties are preferred to
-        annotation properties."""
-        if OntologyAnnotation in compatible and any(
-            x in compatible for x in (OntologyRelationship, OntologyAttribute)
-        ):
-            compatible.remove(OntologyAnnotation)
-        if len(compatible) == 0:
-            # The individual belongs to an unknown class.
-            raise KeyError(
-                f"Identifier {identifier} does not match any OWL "
-                f"entity, any entity natively supported by "
-                f"SimPhoNy, nor an ontology individual "
-                f"belonging to a class in the ontology."
             )
-        elif len(compatible) >= 2:
-            compatible = map(str, compatible)
-            raise RuntimeError(
-                f"Two or more python classes ("
-                f"{', '.join(compatible)}) "
-                f"could be spawned from {identifier}."
-            )
-        else:
-            python_class = compatible.pop()
-            return python_class(uid=UID(identifier), session=self, merge=None)
-
-    def from_label(
-        self,
-        label: str,
-        lang: Optional[str] = None,
-        case_sensitive: bool = False,
-    ) -> Set["OntologyEntity"]:
-        """Get an ontology entity from its label.
-
-        Args:
-            label: The label of the ontology entity.
-            lang: The language of the label.
-            case_sensitive: when false, look for similar labels with
-                different capitalization.
-
-        Raises:
-            KeyError: Unknown label.
-
-        Returns:
-            OntologyEntity: The ontology entity.
-        """
-        results = set()
-        for identifier in self.iter_identifiers():
-            entity_labels = self.iter_labels(
-                entity=identifier,
-                lang=lang,
-                return_prop=False,
-                return_literal=False,
-            )
-            if case_sensitive is False:
-                entity_labels = (label.lower() for label in entity_labels)
-                comp_label = label.lower()
-            else:
-                comp_label = label
-            if comp_label in entity_labels:
-                results.add(self.from_identifier(identifier))
-        if len(results) == 0:
-            error = "No element with label %s was found in ontology %s." % (
-                label,
-                self,
-            )
-            raise KeyError(error)
-        return results
-
-    def delete(self, entity: Union["OntologyEntity", Identifier]):
-        """Remove an ontology entity from the session."""
-        if isinstance(entity, OntologyEntity):
-            entity = entity.identifier
-        self._track_identifiers(entity, delete=True)
-        self._graph.remove((entity, None, None))
-        self._graph.remove((None, None, entity))
-
-    def clear(self):
-        """Clear all the data stored in the session."""
-        self._graph.remove((None, None, None))
-
-    def update(self, entity: "OntologyEntity") -> None:
-        """Store a copy of given ontology entity in the session.
-
-        Args:
-            entity: The ontology entity to store.
-        """
-        self._update_and_merge_helper(entity, mode=True)
-
-    def merge(self, entity: "OntologyEntity") -> None:
-        """Merge a given ontology entity with what is in the session.
-
-        Copies the ontology entity to the session, but does not remove any
-        old triples referring to the entity.
-
-        Args:
-            entity: The ontology entity to store.
-        """
-        self._update_and_merge_helper(entity, mode=False)
-
-    # ↑ --------------------- Public API --------------------- ↑ #
 
     @property
     def graph(self) -> Graph:
@@ -899,7 +1023,7 @@ class Session(Environment):
                 self._graph.add(t)
         elif entity not in self:  # Entity from another session.
             active_relationship = self.ontology.from_identifier(
-                cuba_namespace.activeRelationship
+                simphony_namespace.activeRelationship
             )
             try:
                 existing = self.from_identifier(entity.identifier)
@@ -968,15 +1092,6 @@ class Session(Environment):
     def _session_linked(self) -> "Session":
         return self
 
-    def __str__(self):
-        """Convert the session to a string."""
-        # TODO: Return the kind of RDFLib store attached too.
-        return (
-            f"<{self.__class__.__module__}.{self.__class__.__name__}: "
-            f"{self.identifier if self.identifier is not None else ''} "
-            f"at {hex(id(self))}>"
-        )
-
     def _track_identifiers(self, identifier, delete=False):
         # Keep track of new additions while inside context manager.
         if delete:
@@ -1032,15 +1147,15 @@ class Session(Environment):
             return
         for namespace in parser.namespaces.values():
             self._graph.remove(
-                (URIRef(namespace), cuba_namespace._default_rel, None)
+                (URIRef(namespace), simphony_namespace._default_rel, None)
             )
             overlay.remove(
-                (URIRef(namespace), cuba_namespace._default_rel, None)
+                (URIRef(namespace), simphony_namespace._default_rel, None)
             )
             overlay.add(
                 (
                     URIRef(namespace),
-                    cuba_namespace._default_rel,
+                    simphony_namespace._default_rel,
                     URIRef(parser.default_relationship),
                 )
             )
@@ -1062,7 +1177,11 @@ class Session(Environment):
             #     # `namespace_registry.py`
             #     # (NamespaceRegistry._check_default_relationship_installed).
             overlay.add(
-                (iri, RDFS.subPropertyOf, cuba_namespace.activeRelationship)
+                (
+                    iri,
+                    RDFS.subPropertyOf,
+                    simphony_namespace.activeRelationship,
+                )
             )
 
     @staticmethod
@@ -1081,7 +1200,7 @@ class Session(Environment):
                 overlay.add(
                     (
                         URIRef(namespace),
-                        cuba_namespace._reference_by_label,
+                        simphony_namespace._reference_by_label,
                         Literal(True),
                     )
                 )
@@ -1223,6 +1342,8 @@ class QueryResult(SPARQLResult):
         self.session = session or Session.get_default_session()
         super().__init__(*args, **kwargs)
 
+    # ↓ --------------------- Public API --------------------- ↓ #
+
     def __call__(
         self, **kwargs
     ) -> Union[Iterator[Triple], Iterator[bool], Iterator[ResultRow]]:
@@ -1267,6 +1388,8 @@ class QueryResult(SPARQLResult):
                 for i, var in enumerate(self.vars)
             }
             yield ResultRow(values, self.vars)
+
+    # ↑ --------------------- Public API --------------------- ↑ #
 
 
 Session.set_default_session(Session(identifier="default session"))

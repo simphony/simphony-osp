@@ -18,10 +18,10 @@ from rdflib.graph import ModificationException, ReadOnlyGraphAggregate
 from rdflib.plugins.stores.memory import SimpleMemory
 from rdflib.query import Result
 from rdflib.store import Store
-from rdflib.term import Identifier, Node
+from rdflib.term import Node
 
 from simphony_osp.session.session import Session
-from simphony_osp.utils.cuba_namespace import cuba_namespace
+from simphony_osp.utils import simphony_namespace
 from simphony_osp.utils.datatypes import Pattern, Triple
 
 if TYPE_CHECKING:
@@ -514,10 +514,10 @@ class InterfaceDriver(Store):
         # Queue file removal for removed file objects.
         for s in chain(
             self._buffer_uncaught[BufferType.DELETED][
-                : RDF.type : cuba_namespace.File
+                : RDF.type : simphony_namespace.File
             ],
             self._buffer_caught[BufferType.DELETED][
-                : RDF.type : cuba_namespace.File
+                : RDF.type : simphony_namespace.File
             ],
         ):
             self.queue(s, None)
@@ -774,20 +774,6 @@ class Interface(ABC):
     entities will be available during commit. If such lists are not
     going to be used, then this property can be set to `True` to
     increase performance.
-    """
-
-    root: Optional[Identifier] = None
-    """Define a custom root object.
-
-    When desired, this property may return an IRI for a custom root
-    entity for the wrapper. This is the IRI of the ontology entity that
-    the user will get when invoking the wrapper. The method `populate`
-    should have created such entity. Defining a custom root entity is
-    OPTIONAL.
-
-    When no IRI is provided by this property (`None` is returned),
-    the user gets a virtual container instead. You cannot access such
-    container.
     """
 
     @abstractmethod
