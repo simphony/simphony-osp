@@ -19,7 +19,6 @@ from typing import (
     Union,
 )
 
-import rdflib
 from rdflib import OWL, RDF, RDFS, SKOS, BNode, Graph, Literal, URIRef
 from rdflib.graph import ReadOnlyGraphAggregate
 from rdflib.plugins.sparql.processor import SPARQLResult
@@ -786,7 +785,6 @@ class Session(Environment):
         Args:
             parser: the ontology parser from where to load the new namespaces.
         """
-
         self.ontology._graph += parser.graph
         for name, iri in parser.namespaces.items():
             self.bind(name, iri)

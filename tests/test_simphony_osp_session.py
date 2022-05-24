@@ -2,11 +2,8 @@
 
 import unittest
 
-from simphony_osp.ontology.namespace import OntologyNamespace
 from simphony_osp.ontology.parser import OntologyParser
-from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.session.session import Session
-from simphony_osp.utils.datatypes import UID
 
 
 class TestLoadParsers(unittest.TestCase):

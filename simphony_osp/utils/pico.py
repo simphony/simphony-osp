@@ -427,9 +427,9 @@ class Pico:
 
         return path
 
-    def set_default_installation_path(self, value: Optional[Union[str,
-                                                                  Path]]) \
-            -> None:
+    def set_default_installation_path(
+        self, value: Optional[Union[str, Path]]
+    ) -> None:
         """Set the path where ontologies are installed by default."""
         path = self.path
 

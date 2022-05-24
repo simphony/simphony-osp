@@ -4,15 +4,15 @@ The public API methods are the methods that are available to the users,
 and available in the user documentation.
 """
 
-import tempfile
-import unittest
 import os
 import shutil
+import tempfile
+import unittest
 from decimal import Decimal
+from importlib import import_module
+from pathlib import Path
 from types import MappingProxyType
 from typing import Hashable
-from pathlib import Path
-from importlib import import_module
 
 from rdflib import RDFS, SKOS, XSD, Graph, Literal, URIRef
 
@@ -25,8 +25,8 @@ from simphony_osp.ontology.parser import OntologyParser
 from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.session.session import Session
 from simphony_osp.tools import sparql
+from simphony_osp.tools.pico import install, namespaces, packages, uninstall
 from simphony_osp.utils.pico import pico
-from simphony_osp.tools.pico import install, uninstall, packages, namespaces
 
 
 class TestSessionAPI(unittest.TestCase):
@@ -1615,9 +1615,7 @@ class TestPico(unittest.TestCase):
         The new TBox contains SimPhoNy, OWL, RDFS and FOAF.
         """
         self.path = Path(".TEST_OSP_CORE_INSTALLATION").absolute()
-        os.makedirs(
-            self.path, exist_ok=True
-        )
+        os.makedirs(self.path, exist_ok=True)
 
         pico.set_default_installation_path(self.path)
 
@@ -1628,11 +1626,14 @@ class TestPico(unittest.TestCase):
 
     def test_install(self):
         """Test the installation of ontologies."""
-        self.assertRaises(ModuleNotFoundError,
-                          import_module, 'city',
-                          'simphony_osp.namespaces')
+        self.assertRaises(
+            ModuleNotFoundError,
+            import_module,
+            "city",
+            "simphony_osp.namespaces",
+        )
 
-        install('city')
+        install("city")
 
         from simphony_osp.namespaces import city
 
@@ -1643,64 +1644,68 @@ class TestPico(unittest.TestCase):
         import simphony_osp.namespaces as namespaces_module
 
         # Install the ontology first and guarantee that it worked.
-        self.assertRaises(ModuleNotFoundError,
-                          import_module, 'city',
-                          'simphony_osp.namespaces')
-        install('city')
+        self.assertRaises(
+            ModuleNotFoundError,
+            import_module,
+            "city",
+            "simphony_osp.namespaces",
+        )
+        install("city")
 
         from simphony_osp.namespaces import city
+
         self.assertTrue(city.City)
 
         # Now test uninstallation.
-        uninstall('city')
-        self.assertRaises(ModuleNotFoundError,
-                          import_module, 'city',
-                          'simphony_osp.namespaces')
+        uninstall("city")
+        self.assertRaises(
+            ModuleNotFoundError,
+            import_module,
+            "city",
+            "simphony_osp.namespaces",
+        )
         self.assertRaises(
             AttributeError, lambda: getattr(namespaces_module, "city")
         )
         self.assertRaises(AttributeError, lambda: city.City)
 
         # Test that reinstalling makes the existing namespace work again.
-        install('city')
+        install("city")
         self.assertTrue(city.City)
 
     def test_packages(self):
         """Test listing installed packages."""
         self.assertTupleEqual(tuple(), packages())
-        install('city')
-        self.assertTupleEqual(('city', ), packages())
-        uninstall('city')
+        install("city")
+        self.assertTupleEqual(("city",), packages())
+        uninstall("city")
         self.assertTupleEqual(tuple(), packages())
 
     def test_namespaces(self):
         """Test listing ontology namespaces."""
         self.assertDictEqual(
             {
-                "simphony":
-                    URIRef('https://www.simphony-project.eu/simphony#'),
-                "owl":
-                    URIRef('http://www.w3.org/2002/07/owl#'),
-                "rdfs":
-                    URIRef('http://www.w3.org/2000/01/rdf-schema#'),
-             },
-            {ns.name: ns.iri for ns in namespaces()}
+                "simphony": URIRef(
+                    "https://www.simphony-project.eu/simphony#"
+                ),
+                "owl": URIRef("http://www.w3.org/2002/07/owl#"),
+                "rdfs": URIRef("http://www.w3.org/2000/01/rdf-schema#"),
+            },
+            {ns.name: ns.iri for ns in namespaces()},
         )
 
-        install('city')
+        install("city")
 
         self.assertDictEqual(
             {
-                "simphony":
-                    URIRef('https://www.simphony-project.eu/simphony#'),
-                "owl":
-                    URIRef('http://www.w3.org/2002/07/owl#'),
-                "rdfs":
-                    URIRef('http://www.w3.org/2000/01/rdf-schema#'),
-                "city":
-                    URIRef('https://www.simphony-project.eu/city#'),
-             },
-            {ns.name: ns.iri for ns in namespaces()}
+                "simphony": URIRef(
+                    "https://www.simphony-project.eu/simphony#"
+                ),
+                "owl": URIRef("http://www.w3.org/2002/07/owl#"),
+                "rdfs": URIRef("http://www.w3.org/2000/01/rdf-schema#"),
+                "city": URIRef("https://www.simphony-project.eu/city#"),
+            },
+            {ns.name: ns.iri for ns in namespaces()},
         )
 
 
