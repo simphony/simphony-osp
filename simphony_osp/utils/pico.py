@@ -1,292 +1,104 @@
-"""Pico is a commandline tool used to install ontologies."""
+"""Pico is a tool to manage SimPhoNy's installed ontologies.
 
-import argparse
+This file contains the non-public-facing elements of pico.
+"""
+
 import glob
 import logging
 import os
-from typing import Hashable, List, Optional, Set, Tuple
+from pathlib import Path
+from typing import (
+    Callable,
+    Dict,
+    Hashable,
+    Iterable,
+    Iterator,
+    List,
+    MutableMapping,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
+from simphony_osp.ontology.namespace import OntologyNamespace
 from simphony_osp.ontology.parser import OntologyParser
+from simphony_osp.session.session import Session
 
 logger = logging.getLogger(__name__)
 
-
-class OntologyInstallationManager:
-    """This class handles the installation of ontologies."""
-
-    path: str = os.path.join(
-        os.environ.get("OSP_ONTOLOGIES_DIR") or os.path.expanduser("~"),
-        ".simphony-osp",
-    )
-
-    def __init__(self, path: Optional["str"] = None):
-        """Initialize the installer.
-
-        Args:
-            ontology: The session to which the installed ontologies will be
-                added. Defaults to the default ontology.
-            path: Installation destination. When unspecified, the default
-                location specified as a class variable is used.
-        """
-        if path is not None:
-            self.path = path
-        os.makedirs(self.path, exist_ok=True)
-
-    @property
-    def installed_packages(self) -> Tuple[Tuple[str, str], ...]:
-        """Get the list of installed packages.
-
-        Returns:
-            A tuple of two-component tuples, where the first element is the
-            identifier of the ontology packages and the second their path.
-        """
-        paths = tuple(
-            os.path.join(self.path, yml)
-            for yml in (
-                x
-                for x in os.listdir(self.path)
-                if "yml" in os.path.splitext(x)[1]
-            )
-        )
-        parsers = (OntologyParser.get_parser(path) for path in paths)
-        return tuple(
-            (parser.identifier, path) for parser, path in zip(parsers, paths)
-        )
-
-    def install(self, *files: str, overwrite: bool = False):
-        """Install given packages. Skip already installed ones.
-
-        Args:
-            files: The ontology files to install.
-            overwrite: Whether to overwrite already installed packages.
-        """
-        installed_identifiers_and_paths = self.installed_packages
-        installed_identifiers, _ = (
-            zip(*installed_identifiers_and_paths)
-            if installed_identifiers_and_paths
-            else (tuple(), tuple())
-        )
-        installed_identifiers = set(installed_identifiers)
-        del installed_identifiers_and_paths
-        new_parsers = {OntologyParser.get_parser(path) for path in files}
-        new_identifiers = {parser.identifier for parser in new_parsers}
-        install_parsers = (
-            {
-                parser
-                for parser in new_parsers
-                if parser.identifier not in installed_identifiers
-            }
-            if not overwrite
-            else new_parsers
-        )
-        for identifier in new_identifiers & new_parsers:
-            logger.info(
-                "Skipping package with identifier %s, "
-                "because it is already installed." % identifier
-            )
-        del new_parsers, new_identifiers
-
-        # Check that dependencies of packages to be installed are satisfied.
-        install_identifiers = set(
-            parser.identifier for parser in install_parsers
-        )
-        required_identifiers = set(
-            requirement
-            for parser in install_parsers
-            for requirement in parser.requirements
-        )
-        missing_requirements = required_identifiers - (
-            installed_identifiers | install_identifiers
-        )
-        if missing_requirements:
-            missing_requirements_dict = dict()
-            for parser in install_parsers:
-                missing = tuple(
-                    x in missing_requirements for x in parser.requirements
-                )
-                if missing:
-                    missing_requirements_dict[parser.identifier] = missing
-            raise RuntimeError(
-                "Installation failed. Unsatisfied requirements: \n - %s"
-                % "\n - ".join(
-                    [
-                        "%s: %s" % (n, r)
-                        for n, r in missing_requirements_dict.items()
-                    ]
-                )
-            )
-
-        if installed_identifiers:
-            logger.info(
-                "The following packages are already installed: %s."
-                % ", ".join(installed_identifiers)
-            )
-        if install_identifiers:
-            logger.info(
-                "Will install the following packages: %s."
-                % ", ".join(install_identifiers)
-            )
-            logger.info(
-                "Will install the following namespaces: %s."
-                % ", ".join(
-                    name
-                    for parser in install_parsers
-                    for name in parser.namespaces.keys()
-                )
-            )
-
-        for parser in install_parsers:
-            parser.install(self.path)
-
-        logger.info("Installation successful")
-
-    def uninstall(self, *files_or_packages):
-        """Uninstall given packages."""
-        remove_parsers = {
-            OntologyParser.get_parser(path) for path in files_or_packages
-        }
-        remove_identifiers = {parser.identifier for parser in remove_parsers}
-        existing_identifiers = {
-            identifier for identifier, _ in self.installed_packages
-        }
-
-        non_installed_identifiers = remove_identifiers - existing_identifiers
-        if non_installed_identifiers:
-            raise RuntimeError(
-                f"Cannot uninstall the following packages, "
-                f"as they are not installed: "
-                f"{', '.join(non_installed_identifiers)}."
-            )
-
-        files_to_remove = (
-            glob.glob(os.path.join(self.path, f"{identifier}*"))
-            for identifier in remove_identifiers
-        )
-        files_to_remove = set(
-            file for glob_list in files_to_remove for file in glob_list
-        )
-        for file in files_to_remove:
-            os.remove(file)
-
-        logger.info("Uninstallation successful")
-
-    @property
-    def topologically_sorted_parsers(self) -> List[OntologyParser]:
-        """Returns a list of parsers, topologically sorted.
-
-        As the parsers are topologically sorted with respect to their
-        requirements, they can be loaded in order without triggering missing
-        ontology entity errors.
-        """
-        paths = {
-            os.path.join(self.path, yml)
-            for yml in (
-                x
-                for x in os.listdir(self.path)
-                if "yml" in os.path.splitext(x)[1]
-            )
-        }
-        parsers = {OntologyParser.get_parser(path) for path in paths}
-        directed_edges = {
-            (requirement, parser.identifier)
-            for parser in parsers
-            for requirement in parser.requirements or (None,)
-        }
-        sorted_identifiers = topological_sort(directed_edges)
-        parsers = sorted(
-            parsers, key=lambda x: sorted_identifiers.index(x.identifier)
-        )
-        return parsers
+HASHABLE = TypeVar("HASHABLE", bound=Hashable)
 
 
-def pico():
-    """Install ontologies from the terminal."""
-    # Entry point
-    parser = argparse.ArgumentParser(
-        description="This tool enables to manage the ontologies used by "
-        "SimPhoNy."
-    )
-    parser.add_argument(
-        "--log-level",
-        default="INFO",
-        type=str.upper,
-        help="set the logging level",
-    )
+def graph_set_to_dict(
+    arcs: Set[Tuple[HASHABLE, HASHABLE]]
+) -> MutableMapping[HASHABLE, Set[HASHABLE]]:
+    """Convert the graph from a set of arcs to a dictionary (fast lookup).
 
-    # --- Available commands ---
-    subparsers = parser.add_subparsers(title="command", dest="command")
+    Transforms a set of arcs into a dictionary of arcs.
 
-    # list
-    subparsers.add_parser("list", help="Lists all the installed ontologies")
+    Args:
+        arcs: A set of arcs (directed edges) represented by tuples, where
+            their first element is the tail and the second the head.
 
-    # install
-    install_parser = subparsers.add_parser(
-        "install", help="Install ontologies"
-    )
-    install_parser.add_argument(
-        "files", nargs="+", type=str, help="List of yaml files to install"
-    )
-    install_parser.add_argument(
-        "--overwrite",
-        action="store_true",
-        help="Overwrite the existing ontologies,"
-        "if they are already installed",
-    )
-
-    # uninstall parser
-    uninstall_parser = subparsers.add_parser(
-        "uninstall", help="Uninstall ontologies"
-    )
-    uninstall_parser.add_argument(
-        "packages",
-        nargs="+",
-        type=str,
-        help="List of ontology packages to uninstall",
-    )
-
-    args = parser.parse_args()
-    logging.getLogger("simphony_osp").setLevel(
-        getattr(logging, args.log_level)
-    )
-
-    ontology_installer = OntologyInstallationManager()
-
-    try:
-        installed_identifiers = [
-            identifier
-            for identifier, _ in ontology_installer.installed_packages
-        ]
-        if args.command == "install" and args.overwrite:
-            ontology_installer.install(*args.files, overwrite=True)
-        elif args.command == "install":
-            ontology_installer.install(*args.files, overwrite=False)
-        elif args.command == "uninstall":
-            if args.packages == ["all"]:
-                args.packages = [
-                    identifier
-                    for identifier, _ in ontology_installer.installed_packages
-                ]
-            ontology_installer.uninstall(*args.packages)
-        elif args.command == "list":
-            print("Packages:")
-            print("\n".join(map(lambda x: "\t- " + x, installed_identifiers)))
-            from simphony_osp.session.session import Session
-
-            installed_namespaces = tuple(
-                namespace.name for namespace in Session.ontology.namespaces
-            )
-            print("Namespaces:")
-            print("\n".join(map(lambda x: "\t- " + x, installed_namespaces)))
-    except Exception:
-        logger.error("An Exception occurred during installation.", exc_info=1)
-        if args.log_level != "DEBUG":
-            logger.error(
-                "Consider running 'pico --log-level debug %s ...'"
-                % args.command
-            )
+    Returns:
+        A dictionary of arcs, where the keys represent the tail of an arc
+        and each value is a set of heads for such tail. Therefore,
+        each key-value pair represents several arcs.
+    """
+    graph = dict()
+    for x, y in arcs:
+        if x not in graph:
+            graph[x] = {y}
+        else:
+            graph[x] |= {y}
+        if y not in graph:
+            graph[y] = set()
+    return graph
 
 
-def topological_sort(edges: Set[Tuple[Hashable, Hashable]]):
+def depth_first_search(
+    graph: MutableMapping[HASHABLE, Set[HASHABLE]],
+    start: Iterable[HASHABLE],
+    goal: Callable[[HASHABLE], bool],
+) -> Iterator[HASHABLE]:
+    """Implementation of depth first search graph algorithm.
+
+    This implementation assumes that the provided set of arcs represents a
+    directed graph. Arcs will only be traversed from their tails to their
+    heads.
+
+    This implementation is in the form of a generator. This means that the
+    algorithm will look for a "goal" node, but instead of returning it,
+    it will yield it. This implies that after returning the first node,
+    if the iterator is called again, it will return more "goal" nodes that
+    satisfy the goal function.
+
+    Args:
+        graph: A dictionary of arcs, where the keys represent the tail of an
+            arc and each value is a set of heads for such tail. Therefore, each
+            key-value pair represents several arcs.
+        start: The starting nodes.
+        goal: A function that evaluates at every node to determine whether
+            it is a "goal" node (should be yielded) or not.
+
+    Yields:
+        Nodes that satisfy the goal condition.
+    """
+    visited = set()
+    queue = list(set(start))
+    while queue:
+        node = queue.pop()
+        if goal(node):
+            yield node
+        visited.add(node)
+        for neighbor in graph.get(node, set()):
+            if neighbor not in visited:
+                queue.append(neighbor)
+
+
+def topological_sort(graph: MutableMapping[Hashable, Set[Hashable]]):
     """Kanh's algorithm for topological sort.
 
     Kahn, Arthur B. (1962), "Topological sorting of large networks",
@@ -294,19 +106,10 @@ def topological_sort(edges: Set[Tuple[Hashable, Hashable]]):
     S2CID 16728233
 
     Args:
-        edges: A set of directed edge pairs (the first element is the tail
-            and the second the head).
+        graph: A dictionary of arcs, where the keys represent the tail of an
+            arc and each value is a set of heads for such tail. Therefore, each
+            key-value pair represents several arcs.
     """
-    # Structure the graph as a dict for fast lookup.
-    graph = dict()
-    for x, y in edges:
-        if x not in graph:
-            graph[x] = {y}
-        else:
-            graph[x] |= {y}
-        if y not in graph:
-            graph[y] = set()
-
     result = []
     no_incoming_edges = set(graph.keys()) - {
         x for s in graph.values() for x in s
@@ -321,11 +124,387 @@ def topological_sort(edges: Set[Tuple[Hashable, Hashable]]):
 
     if {y for x in graph.values() for y in x}:
         raise ValueError(
-            "The provided set of edges has cycles, therefore "
+            "The provided set of arcs has cycles, therefore "
             "topological sorting is unfeasible."
         )
     return tuple(result)
 
 
-if __name__ == "__main__":
-    pico()
+class Pico:
+    """This class manages the installed ontologies."""
+
+    def __init__(self, path: Optional[Union[str, Path]] = None):
+        """Initialize pico.
+
+        Args:
+            path: Installation destination. When unspecified, the default
+                location is used.
+        """
+        self._ontology = Session(identifier="pico ontologies", ontology=True)
+        os.makedirs(self.path, exist_ok=True)
+        if path is not None:
+            self.path = path
+        self._reload_installed_ontologies()
+
+    @property
+    def ontology(self) -> Session:
+        """Ontology containing all the installed packages.
+
+        This ontology is reloaded every time a change in the installed
+        ontologies is done through an instance of this class.
+
+        WARNING: Be careful not to instantiate two instances of `Pico` using
+        the same `path`.
+        """
+        return self._ontology
+
+    @property
+    def path(self) -> Path:
+        """Path where ontologies are installed."""
+        return self._path or self.get_default_installation_path()
+
+    @path.setter
+    def path(self, value: Optional[str]):
+        """Set the path where ontologies are installed."""
+        self._path = value if value is None else Path(value)
+        self._reload_installed_ontologies()
+
+    @property
+    def packages(self) -> Tuple[str]:
+        """Returns the identifiers of all installed packages."""
+        return tuple(self._package_names)
+
+    @property
+    def namespaces(self) -> Tuple[OntologyNamespace]:
+        """Returns namespace objects for all the installed namespaces."""
+        return tuple(Session.ontology.namespaces)
+
+    def install(
+        self, *files: Union[Path, str], overwrite: bool = False
+    ) -> None:
+        """Install ontology packages.
+
+        Args:
+            files: Paths of `yml` files describing the ontologies to install.
+                Alternatively, identifiers of ontology packages that are
+                bundled with SimPhoNy.
+            overwrite: Whether to overwrite already installed ontology
+                packages.
+        """
+        files: Tuple[Path] = tuple(Path(file) for file in files)
+        installed_identifiers: Set[str] = set(self._package_names)
+        new_parsers: Dict[str, Tuple[OntologyParser, Path]] = {
+            parser.identifier: (parser, path)
+            for path in files
+            for parser in (OntologyParser.get_parser(path),)
+        }
+        new_identifiers = set(new_parsers)
+        if overwrite:
+            installed_identifiers -= new_identifiers
+        skip_identifiers = new_identifiers & installed_identifiers
+        install_parsers: Dict[str, Tuple[OntologyParser, Path]] = {
+            identifier: (parser, path)
+            for identifier, (parser, path) in new_parsers.items()
+            if identifier not in skip_identifiers
+        }
+        for identifier in skip_identifiers:
+            logger.info(
+                "Skipping package with identifier %s, "
+                "because it is already installed." % identifier
+            )
+        del new_parsers, new_identifiers, skip_identifiers
+
+        # Resolve the dependencies using DFS with the goal function below.
+        # - create requirements graph
+        requirements_graph = {
+            identifier: parser.requirements
+            for identifier, (parser, path) in install_parsers.items()
+        }
+        missing_requirements = set()
+
+        def explore_dependencies(node: str) -> False:
+            """Generate the dependency graph.
+
+            Goal function for the DFS algorithm that loads each
+            package (if not loaded already or installed), evaluates its
+            dependencies and adds them to the graph.
+
+            When a package fails to load, it is added to a set of missing
+            requirements, that is later used to raise an exception.
+            """
+            if (
+                node not in installed_identifiers
+                and node not in install_parsers
+            ):
+                try:
+                    parser = OntologyParser.get_parser(node)
+                    install_parsers[parser.identifier] = (parser, Path(node))
+                    requirements_graph[node] = parser.requirements
+                except FileNotFoundError:
+                    requirements_graph[node] = set()
+                    missing_requirements.add(node)
+            return False
+
+        depth_first_search_iterator = depth_first_search(
+            requirements_graph, requirements_graph, explore_dependencies
+        )
+        # Since the goal function is always false, asking for the next item
+        # is enough to explore the whole graph.
+        next(depth_first_search_iterator, None)
+
+        # Raise exception if there are missing requirements.
+        if missing_requirements:
+            missing_requirements_dict = dict()
+            print(install_parsers)
+            for identifier, (parser, path) in install_parsers.items():
+                missing = tuple(
+                    x for x in parser.requirements if x in missing_requirements
+                )
+                if missing:
+                    missing_requirements_dict[parser.identifier] = missing
+            raise RuntimeError(
+                "Installation failed. Unsatisfied requirements: \n - %s"
+                % "\n - ".join(
+                    [
+                        "%s: %s" % (n, r)
+                        for n, r in missing_requirements_dict.items()
+                    ]
+                )
+            )
+
+        if install_parsers:
+            logger.info(
+                "Will install the following packages: %s."
+                % ", ".join(install_parsers)
+            )
+            logger.info(
+                "Will install the following namespaces: %s."
+                % ", ".join(
+                    name
+                    for identifier, (parser, path) in install_parsers.items()
+                    for name in parser.namespaces.keys()
+                )
+            )
+
+            for identifier, (parser, path) in install_parsers.items():
+                parser.install(self.path)
+
+            logger.info("Installation successful")
+
+            self._reload_installed_ontologies()
+
+    def uninstall(self, *packages: str) -> None:
+        """Uninstall ontology packages.
+
+        Args:
+            packages: Identifiers of the ontology packages to uninstall.
+        """
+        installed_identifiers: Set[str] = set(self._package_names)
+        remove_identifiers: Set[str] = set(packages)
+        not_installed_identifiers: Set[str] = (
+            remove_identifiers - installed_identifiers
+        )
+        if not_installed_identifiers:
+            raise RuntimeError(
+                f"Cannot uninstall the following packages, "
+                f"as they are not installed: "
+                f"{', '.join(not_installed_identifiers)}."
+            )
+
+        # Load the installed packages and create a dependency graph. In such
+        # a graph, given an arc, the tail is a package and the head a
+        # package that depends on it.
+        paths = {
+            os.path.join(self.path, yml)
+            for yml in (
+                x
+                for x in os.listdir(self.path)
+                if "yml" in str(os.path.splitext(x)[1])
+            )
+        }
+        parsers = {OntologyParser.get_parser(path) for path in paths}
+        directed_edges = {
+            (requirement, parser.identifier)
+            for parser in parsers
+            for requirement in parser.requirements
+        }
+        requirements_graph = graph_set_to_dict(directed_edges)
+        del directed_edges, parsers, paths
+
+        depth_first_search_iterator = depth_first_search(
+            requirements_graph,
+            remove_identifiers,
+            lambda node: True,
+            # Every node reachable from the starting nodes is required to be
+            # removed to leave the system in a healthy state.
+        )
+        should_be_removed = set(depth_first_search_iterator)
+
+        # Block package removal if another package depends on it.
+        conflicts = should_be_removed - remove_identifiers
+        if conflicts:
+            # Create a graph of conflicts from the requirements graph.
+            detailed_conflicts = {
+                (target, source)
+                for source, targets in requirements_graph.items()
+                if source in should_be_removed
+                for target in targets
+                if target in conflicts
+            }
+            detailed_conflicts = graph_set_to_dict(detailed_conflicts)
+            # Filter out tails with no heads.
+            detailed_conflicts = {
+                key: value
+                for key, value in detailed_conflicts.items()
+                if value
+            }
+
+            message = (
+                "Cannot remove package{plural} {cannot_remove}{comma} "
+                "because other installed packages depend on {pronoun}: "
+                "{dependency_list}. "
+                "Please remove the packages {all_packages_to_remove} "
+                "all together."
+            )
+            plural = "s" if len(remove_identifiers) > 1 else ""
+            comma = ";" if plural else ","
+            pronoun = "them" if plural else "it"
+            cannot_remove = ", ".join(remove_identifiers)
+            one_dependency = next(iter(detailed_conflicts.values()))
+            all_dependencies_equal = all(
+                one_dependency == x for x in detailed_conflicts.values()
+            )
+            if all_dependencies_equal:
+                dependency_list = ", ".join(detailed_conflicts)
+            else:
+                dependency_list = set()
+                for package, conflict_list in detailed_conflicts.items():
+                    dependency_list.add(
+                        f"package {package} depends on "
+                        f"{', '.join(conflict_list)}"
+                    )
+                dependency_list = "; ".join(dependency_list)
+            all_packages_to_remove = set(should_be_removed)
+            last_package = all_packages_to_remove.pop()
+            all_packages_to_remove = (
+                ", ".join(all_packages_to_remove) + " and " + last_package
+            )
+            message = message.format(
+                plural=plural,
+                cannot_remove=cannot_remove,
+                comma=comma,
+                pronoun=pronoun,
+                dependency_list=dependency_list,
+                all_packages_to_remove=all_packages_to_remove,
+            )
+            raise RuntimeError(message)
+
+        if remove_identifiers:
+            files_to_remove = (
+                glob.glob(os.path.join(self.path, f"{identifier}*"))
+                for identifier in remove_identifiers
+            )
+            files_to_remove = set(
+                file for glob_list in files_to_remove for file in glob_list
+            )
+            for file in files_to_remove:
+                os.remove(file)
+
+            logger.info("Uninstallation successful")
+
+            self._reload_installed_ontologies()
+
+    @staticmethod
+    def get_default_installation_path() -> Path:
+        """Get the path where ontologies are installed by default."""
+        # Get the path from the environment variable if defined.
+        path = os.environ.get("SIMPHONY_ONTOLOGIES_DIR")
+        if path:
+            path = Path(path)
+
+        # If the environment variable is not defined, use the default path.
+        path = path or Path.home() / ".simphony-osp"
+
+        return path
+
+    def set_default_installation_path(self, value: Optional[Union[str,
+                                                                  Path]]) \
+            -> None:
+        """Set the path where ontologies are installed by default."""
+        path = self.path
+
+        if value is not None:
+            os.environ["SIMPHONY_ONTOLOGIES_DIR"] = str(value)
+        else:
+            del os.environ["SIMPHONY_ONTOLOGIES_DIR"]
+
+        if path != self.path:
+            self._reload_installed_ontologies()
+
+    _path: Optional[Path] = None
+    _ontology: Session
+
+    @property
+    def _package_names(self) -> Iterator[str]:
+        """Get the names of the installed packages.
+
+        Returns:
+            Identifiers of the installed packages.
+        """
+        return (
+            OntologyParser.get_parser(path).identifier
+            for path in self._package_paths
+        )
+
+    @property
+    def _package_paths(self) -> Iterator[Path]:
+        """Get the paths of the files describing the installed packages."""
+        return (
+            Path(self.path) / yml
+            for yml in (
+                str(x)
+                for x in os.listdir(self.path)
+                if "yml" in str(os.path.splitext(x)[1])
+            )
+        )
+
+    @property
+    def _package_names_paths(self) -> Iterator[Tuple[str, Path]]:
+        """Get both the identifiers and the paths of the installed packages."""
+        return (
+            (OntologyParser.get_parser(path).identifier, path)
+            for path in self._package_paths
+        )
+
+    @property
+    def _topologically_sorted_parsers(self) -> List[OntologyParser]:
+        """Returns a list of parsers, topologically sorted.
+
+        As the parsers are topologically sorted with respect to their
+        requirements, they can be loaded in order without triggering missing
+        ontology entity errors.
+        """
+        paths = self._package_paths
+        parsers = {OntologyParser.get_parser(path) for path in paths}
+        directed_edges = {
+            (requirement, parser.identifier)
+            for parser in parsers
+            for requirement in parser.requirements or (None,)
+        }
+        graph = graph_set_to_dict(directed_edges)
+        sorted_identifiers = topological_sort(graph)
+        parsers = sorted(
+            parsers, key=lambda x: sorted_identifiers.index(x.identifier)
+        )
+        return parsers
+
+    def _reload_installed_ontologies(self):
+        self._ontology.clear()
+        for parser in self._topologically_sorted_parsers:
+            self._ontology.load_parser(parser)
+
+
+# Create a pico singleton for the default directory and set the installed
+# packages as the default ontology.
+pico = Pico()
+Session.ontology = pico.ontology

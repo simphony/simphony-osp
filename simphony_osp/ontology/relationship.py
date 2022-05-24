@@ -1,9 +1,10 @@
 """A relationship defined in the ontology."""
+from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING, Iterable, Iterator, Optional
 
-from rdflib import OWL, RDFS
+from rdflib import OWL, RDF, RDFS
 from rdflib.term import Identifier
 
 from simphony_osp.ontology.entity import OntologyEntity
@@ -26,8 +27,8 @@ class OntologyRelationship(OntologyEntity):
     # ↓ --------------------- Public API --------------------- ↓ #
 
     @property
-    def inverse(self) -> Optional["OntologyRelationship"]:
-        """Get the onverse relationship if it exists."""
+    def inverse(self) -> Optional[OntologyRelationship]:
+        """Get the inverse relationship if it exists."""
         inverse = self.session.graph.objects(self.identifier, OWL.inverseOf)
         inverse = next(iter(inverse), None)
         inverse = (
@@ -59,33 +60,29 @@ class OntologyRelationship(OntologyEntity):
         super().__init__(uid, session, triples, merge=merge)
         logger.debug("Create ontology relationship %s" % self)
 
-    def _get_direct_superclasses(self) -> Iterator[OntologyEntity]:
+    def _get_direct_superclasses(self) -> Iterator[OntologyRelationship]:
         """Get all the direct superclasses of this relationship.
 
         Returns:
             The direct superrelationships.
         """
         return (
-            self.session.from_identifier(o)
-            for o in self.session.graph_and_overlay.objects(
-                self.iri, RDFS.subPropertyOf
-            )
+            self.session.from_identifier_typed(o, typing=OntologyRelationship)
+            for o in self.session.graph.objects(self.iri, RDFS.subPropertyOf)
         )
 
-    def _get_direct_subclasses(self) -> Iterator[OntologyEntity]:
+    def _get_direct_subclasses(self) -> Iterator[OntologyRelationship]:
         """Get all the direct subclasses of this relationship.
 
         Returns:
             OntologyRelationship: The direct subrelationships
         """
         return (
-            self.session.from_identifier(s)
-            for s in self.session.graph_and_overlay.subjects(
-                RDFS.subPropertyOf, self.iri
-            )
+            self.session.from_identifier_typed(s, typing=OntologyRelationship)
+            for s in self.session.graph.subjects(RDFS.subPropertyOf, self.iri)
         )
 
-    def _get_superclasses(self) -> Iterator[OntologyEntity]:
+    def _get_superclasses(self) -> Iterator[OntologyRelationship]:
         """Get all the superclasses of this relationship.
 
         Yields:
@@ -98,15 +95,17 @@ class OntologyRelationship(OntologyEntity):
                 yield o
 
         yield from (
-            self.session.from_identifier(x)
-            for x in self.session.graph_and_overlay.transitiveClosure(
+            self.session.from_identifier_typed(x, typing=OntologyRelationship)
+            for x in self.session.graph.transitiveClosure(
                 closure, self.identifier
             )
         )
 
-        yield self.session.from_identifier(OWL.topObjectProperty)
+        yield self.session.from_identifier_typed(
+            OWL.topObjectProperty, typing=OntologyRelationship
+        )
 
-    def _get_subclasses(self) -> Iterator[OntologyEntity]:
+    def _get_subclasses(self) -> Iterator[OntologyRelationship]:
         """Get all the subclasses of this relationship.
 
         Yields:
@@ -118,9 +117,21 @@ class OntologyRelationship(OntologyEntity):
             for s in graph.subjects(RDFS.subPropertyOf, node):
                 yield s
 
-        yield from (
-            self.session.from_identifier(x)
-            for x in self.session.graph_and_overlay.transitiveClosure(
-                closure, self.identifier
+        if self.iri == OWL.topObjectProperty:
+            yield from (
+                self.session.from_identifier_typed(
+                    s, typing=OntologyRelationship
+                )
+                for s in self.session.graph.subjects(
+                    RDF.type, OWL.ObjectProperty
+                )
             )
-        )
+        else:
+            yield from (
+                self.session.from_identifier_typed(
+                    x, typing=OntologyRelationship
+                )
+                for x in self.session.graph.transitiveClosure(
+                    closure, self.identifier
+                )
+            )

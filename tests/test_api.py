@@ -6,9 +6,13 @@ and available in the user documentation.
 
 import tempfile
 import unittest
+import os
+import shutil
 from decimal import Decimal
 from types import MappingProxyType
 from typing import Hashable
+from pathlib import Path
+from importlib import import_module
 
 from rdflib import RDFS, SKOS, XSD, Graph, Literal, URIRef
 
@@ -21,6 +25,8 @@ from simphony_osp.ontology.parser import OntologyParser
 from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.session.session import Session
 from simphony_osp.tools import sparql
+from simphony_osp.utils.pico import pico
+from simphony_osp.tools.pico import install, uninstall, packages, namespaces
 
 
 class TestSessionAPI(unittest.TestCase):
@@ -534,16 +540,6 @@ class TestSessionAPI(unittest.TestCase):
         )
         self.assertTrue(isinstance(name, OntologyAttribute))
 
-        # Test `active_relationships property`.
-        self.assertIn(encloses, ontology.active_relationships)
-        ontology.active_relationships = (has_inhabitant,)
-        self.assertIn(has_inhabitant, ontology.active_relationships)
-        self.assertNotIn(encloses, ontology.active_relationships)
-        ontology.active_relationships = (encloses, has_inhabitant)
-        self.assertIn(encloses, ontology.active_relationships)
-        self.assertIn(has_inhabitant, ontology.active_relationships)
-        ontology.active_relationships = (encloses,)
-
         # Test the `get_namespace` method.
         self.assertRaises(KeyError, ontology.get_namespace, "fake")
         city_namespace = ontology.get_namespace("city")
@@ -552,23 +548,6 @@ class TestSessionAPI(unittest.TestCase):
         self.assertEqual(
             city_namespace.iri, URIRef("https://www.simphony-project.eu/city#")
         )
-
-        # Test `default_relationship` property.
-        original_default_relationships = ontology.default_relationships
-        self.assertIn(has_part, ontology.default_relationships.values())
-        ontology.default_relationships = {city_namespace: has_inhabitant}
-        self.assertIn(has_inhabitant, ontology.default_relationships.values())
-        ontology.default_relationships = None
-        self.assertDictEqual(ontology.default_relationships, dict())
-        ontology.default_relationships = original_default_relationships
-        self.assertIn(has_part, ontology.default_relationships.values())
-
-        # Test `reference_styles` property.
-        self.assertFalse(ontology.reference_styles[city_namespace])
-        ontology.reference_styles = {city_namespace: True}
-        self.assertTrue(ontology.reference_styles[city_namespace])
-        ontology.reference_styles = {city_namespace: False}
-        self.assertFalse(ontology.reference_styles[city_namespace])
 
         # Test the `graph` property.
         self.assertTrue(isinstance(ontology.graph, Graph))
@@ -1394,15 +1373,11 @@ class TestOntologyAPIFOAF(unittest.TestCase):
             "w", suffix=".yml", delete=False
         ) as file:
             foaf_modified: str = """
-            active_relationships:
-              - http://xmlns.com/foaf/0.1/member
-            default_relationship: http://xmlns.com/foaf/0.1/knows
-            format: xml
             identifier: foaf
+            format: xml
             namespaces:
               foaf: http://xmlns.com/foaf/0.1/
             ontology_file: http://xmlns.com/foaf/spec/index.rdf
-            reference_by_label: false
             """
             file.write(foaf_modified)
             file.seek(0)
@@ -1626,6 +1601,107 @@ class TestOntologyAPIFOAF(unittest.TestCase):
 
         # Test relationships -> goto
         # test_api_city.TestAPICity.test_bracket_notation.
+
+
+class TestPico(unittest.TestCase):
+    """Tests the usage of pico."""
+
+    prev_default_ontology: Session
+    path: Path
+
+    def setUp(self):
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SimPhoNy, OWL, RDFS and FOAF.
+        """
+        self.path = Path(".TEST_OSP_CORE_INSTALLATION").absolute()
+        os.makedirs(
+            self.path, exist_ok=True
+        )
+
+        pico.set_default_installation_path(self.path)
+
+    def tearDown(self):
+        """Restore the previous default TBox."""
+        pico.set_default_installation_path(None)
+        shutil.rmtree(self.path)
+
+    def test_install(self):
+        """Test the installation of ontologies."""
+        self.assertRaises(ModuleNotFoundError,
+                          import_module, 'city',
+                          'simphony_osp.namespaces')
+
+        install('city')
+
+        from simphony_osp.namespaces import city
+
+        self.assertTrue(city.City)
+
+    def test_uninstall(self):
+        """Test the uninstallation of ontologies."""
+        import simphony_osp.namespaces as namespaces_module
+
+        # Install the ontology first and guarantee that it worked.
+        self.assertRaises(ModuleNotFoundError,
+                          import_module, 'city',
+                          'simphony_osp.namespaces')
+        install('city')
+
+        from simphony_osp.namespaces import city
+        self.assertTrue(city.City)
+
+        # Now test uninstallation.
+        uninstall('city')
+        self.assertRaises(ModuleNotFoundError,
+                          import_module, 'city',
+                          'simphony_osp.namespaces')
+        self.assertRaises(
+            AttributeError, lambda: getattr(namespaces_module, "city")
+        )
+        self.assertRaises(AttributeError, lambda: city.City)
+
+        # Test that reinstalling makes the existing namespace work again.
+        install('city')
+        self.assertTrue(city.City)
+
+    def test_packages(self):
+        """Test listing installed packages."""
+        self.assertTupleEqual(tuple(), packages())
+        install('city')
+        self.assertTupleEqual(('city', ), packages())
+        uninstall('city')
+        self.assertTupleEqual(tuple(), packages())
+
+    def test_namespaces(self):
+        """Test listing ontology namespaces."""
+        self.assertDictEqual(
+            {
+                "simphony":
+                    URIRef('https://www.simphony-project.eu/simphony#'),
+                "owl":
+                    URIRef('http://www.w3.org/2002/07/owl#'),
+                "rdfs":
+                    URIRef('http://www.w3.org/2000/01/rdf-schema#'),
+             },
+            {ns.name: ns.iri for ns in namespaces()}
+        )
+
+        install('city')
+
+        self.assertDictEqual(
+            {
+                "simphony":
+                    URIRef('https://www.simphony-project.eu/simphony#'),
+                "owl":
+                    URIRef('http://www.w3.org/2002/07/owl#'),
+                "rdfs":
+                    URIRef('http://www.w3.org/2000/01/rdf-schema#'),
+                "city":
+                    URIRef('https://www.simphony-project.eu/city#'),
+             },
+            {ns.name: ns.iri for ns in namespaces()}
+        )
 
 
 class TestContainer(unittest.TestCase):

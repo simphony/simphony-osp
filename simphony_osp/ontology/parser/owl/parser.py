@@ -3,7 +3,7 @@
 import io
 import logging
 import os.path
-from typing import Dict, Optional, Set, Tuple
+from typing import Dict, Optional, Set, Union
 
 import requests
 import yaml
@@ -20,15 +20,20 @@ class OWLParser(OntologyParser):
     """Parses OWL ontologies."""
 
     _file_path: str
-    _graph: Graph = None  # For lazy evaluation.
-    _yaml_config: dict
+    _graph: Optional[Graph] = None  # For lazy evaluation.
+    _yaml_config: Union[dict, list]
+
+    def __init__(self, path: str):
+        """Initialize the OWL ontology parser."""
+        self._yaml_config = self._load_yaml_config(path)
+        self._file_path = self.parse_file_path(path)
 
     @property
     def identifier(self) -> str:
         """Get the identifier of the loaded ontology package.
 
         Returns:
-            str: The identifier of the loaded ontology package.
+            The identifier of the loaded ontology package.
         """
         return self._yaml_config[keywords.IDENTIFIER_KEY].lower()
 
@@ -37,8 +42,7 @@ class OWLParser(OntologyParser):
         """Fetch the namespaces from the ontology files.
 
         Returns:
-            Dict[str, URIRef]: A dictionary containing the defined namespace
-                names and URIs.
+            A dictionary containing the defined namespace names and URIs.
         """
         namespaces = {
             label.lower(): URIRef(value)
@@ -54,7 +58,7 @@ class OWLParser(OntologyParser):
 
     @property
     def requirements(self) -> Set[str]:
-        """Fetch the requirements from the ontology file."""
+        """Fetch the dependencies from the ontology file."""
         requirements = self._yaml_config.get(keywords.REQUIREMENTS_KEY, list())
         if not isinstance(requirements, list):
             raise ValueError(
@@ -63,27 +67,6 @@ class OWLParser(OntologyParser):
                 f"to specify a list."
             )
         return set(requirements)
-
-    @property
-    def active_relationships(self) -> Tuple[URIRef]:
-        """Fetch the active relationships from the ontology file."""
-        return tuple(
-            URIRef(x)
-            for x in self._yaml_config.get(keywords.ACTIVE_REL_KEY, tuple())
-        )
-
-    @property
-    def default_relationship(self) -> Optional[URIRef]:
-        """Fetch the default relationship from the ontology file."""
-        default_relationship = self._yaml_config.get(
-            keywords.DEFAULT_REL_KEY, None
-        )
-        return URIRef(default_relationship) if default_relationship else None
-
-    @property
-    def reference_style(self) -> bool:
-        """Whether to reference entities by labels or iri suffix."""
-        return self._yaml_config.get(keywords.REFERENCE_STYLE_KEY, False)
 
     @property
     def graph(self) -> Graph:
@@ -95,11 +78,6 @@ class OWLParser(OntologyParser):
             )
         return self._graph
 
-    def __init__(self, path: str):
-        """Initialize the OWL ontology parser."""
-        self._yaml_config = self._load_yaml_config(path)
-        self._file_path = self.parse_file_path(path)
-
     def install(self, destination: str):
         """Store the parsed files at the given destination.
 
@@ -107,7 +85,7 @@ class OWLParser(OntologyParser):
         directory. So usually the destination will be `~/.simphony-osp`.
 
         Args:
-            destination (str): the SimPhoNy data directory.
+            destination: the SimPhoNy data directory.
         """
         # TODO: This function is related to exporting ontologies.
         rdf_relative_path = f"{self.identifier}.xml"
@@ -141,10 +119,10 @@ class OWLParser(OntologyParser):
         Loads the YAML config file into the Parser object. Validates it first.
 
         Args:
-            path (str): path of the YAML config file to load.
+            path: path of the YAML config file to load.
 
         Returns:
-            doc (list): YAML doc for the specified config file, validated
+            doc: YAML doc for the specified config file, validated
                 by `_validate_yaml_config`.
 
         Raises:
@@ -164,7 +142,7 @@ class OWLParser(OntologyParser):
         """Validate the given YAML config file for the OWL ontology.
 
         Args:
-            doc (list): the path of the YAML config file.
+            doc: the path of the YAML config file.
 
         Raises:
             SyntaxError: needed keywords not found in file.
@@ -197,8 +175,8 @@ class OWLParser(OntologyParser):
         """Get the ontology from the file specified in the configuration file.
 
         Args:
-            yaml_config_doc: The YAML doc resulting from loading the
-                a YAML config file for OWL ontologies. The doc must have been
+            yaml_config_doc: The YAML doc resulting from loading the YAML
+                config file for OWL ontologies. The doc must have been
                 validated with `_validate_yaml_config` before being passed to
                 this function.
             yaml_config_path: The path where the YAML config file was

@@ -1,7 +1,5 @@
 identifier: rdfs
 ontology_file: rdfs.ttl
 format: 'turtle'
-reference_by_label: False
 namespaces:
     rdfs: http://www.w3.org/2000/01/rdf-schema#
-active_relationships: []

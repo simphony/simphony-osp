@@ -1,8 +1,5 @@
 identifier: owl
 ontology_file: owl.ttl
 format: 'turtle'
-reference_by_label: False
 namespaces:
     owl: http://www.w3.org/2002/07/owl#
-active_relationships: []
-default_relationship: http://www.w3.org/2002/07/owl#topObjectProperty

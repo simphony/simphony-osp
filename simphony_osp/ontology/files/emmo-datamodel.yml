@@ -1,0 +1,4 @@
+identifier: emmo-datamodel
+ontology_file: https://emmo-repo.github.io/datamodel-ontology/versions/0.0.2/metamodel-inferred.ttl
+namespaces:
+    datamodel: http://emmo.info/datamodel#

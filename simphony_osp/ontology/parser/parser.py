@@ -2,11 +2,13 @@
 
 Also contains a `Parser` class for backwards compatibility.
 """
+from __future__ import annotations
 
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Set, Tuple
+from pathlib import Path
+from typing import Dict, Set, Union
 
 import yaml
 from rdflib import Graph, URIRef
@@ -56,52 +58,35 @@ class OntologyParser(ABC):
         """Fetch the requirements from the ontology file."""
         pass
 
-    @property
     @abstractmethod
-    def active_relationships(self) -> Tuple[URIRef]:
-        """Fetch the active relationships from the ontology file."""
-        pass
-
-    @property
-    @abstractmethod
-    def default_relationship(self) -> Optional[URIRef]:
-        """Fetch the default relationship from the ontology file."""
-        pass
-
-    @property
-    @abstractmethod
-    def reference_style(self) -> bool:
-        """Whether to reference entities by labels or iri suffix."""
-        pass
-
-    @abstractmethod
-    def install(self, destination: str):
+    def install(self, destination: Union[str, Path]) -> None:
         """Store the parsed files at the given destination.
 
         This function is meant to copy the ontology to the SimPhoNy data
         directory. So usually the destination will be `~/.simphony-osp`.
 
         Args:
-            destination (str): the SimPhoNy data directory.
+            destination: the SimPhoNy data directory.
         """
         pass
 
     @staticmethod
-    def parse_file_path(file_identifier: str):
+    def parse_file_path(file_identifier: Union[str, Path]) -> str:
         """Get the correct file path for a given identifier.
 
         For a given one, i.e. translate non
         paths to osp/core/ontology/files/*.yml
 
         Args:
-            file_identifier (str): A filepath or file identifier
+            file_identifier: A filepath or file identifier.
 
         Returns:
-            str: The translated file path
+            The translated file path.
         """
-        if file_identifier.endswith(".yml"):
-            return file_identifier
-        file_identifier = file_identifier.lower()
+        file_identifier = Path(file_identifier)
+        if str(file_identifier).endswith(".yml"):
+            return str(file_identifier)
+        file_identifier = str(file_identifier).lower()
         a = os.path.join(
             os.path.dirname(__file__),
             "../files",
@@ -115,11 +100,11 @@ class OntologyParser(ABC):
         return os.path.abspath(b)
 
     @staticmethod
-    def load_yaml(path: str):
+    def load_yaml(path: Union[str, Path]):
         """Load the given YAML file.
 
         Args:
-            path (str): the path of the YAML file.
+            path: the path of the YAML file.
         """
         with open(path, "r") as file:
             doc = yaml.safe_load(file)
@@ -132,7 +117,7 @@ class OntologyParser(ABC):
         """Tells whether a given YAML doc is an OWL ontology config file.
 
         Args:
-            doc (dict): the doc obtained after reading the YAML config file.
+            doc: the doc obtained after reading the YAML config file.
         """
         import simphony_osp.ontology.parser.owl.keywords as keywords
 
@@ -141,11 +126,11 @@ class OntologyParser(ABC):
         )
 
     @classmethod
-    def get_parser(cls, path: str) -> "OntologyParser":
+    def get_parser(cls, path: Union[str, Path]) -> OntologyParser:
         """Parse the given YAML files.
 
         Args:
-            path (str): path to the YAML file
+            path: path to the YAML file
         """
         from simphony_osp.ontology.parser.owl.parser import OWLParser
 

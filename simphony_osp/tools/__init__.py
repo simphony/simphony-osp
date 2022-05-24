@@ -1,5 +1,6 @@
 """Module containing tools for the users of the SimPhoNy OSP."""
 
+import simphony_osp.utils.pico as pico
 from simphony_osp.tools.general import branch, get_relationships_between
 from simphony_osp.tools.import_export import export_cuds, import_cuds
 from simphony_osp.tools.pretty_print import pretty_print
@@ -18,6 +19,8 @@ __all__ = [
     # simphony_osp.tools.import_export
     "export_cuds",
     "import_cuds",
+    # simphony_osp.tools.pico
+    "pico",
     # simphony_osp.tools.pretty_print
     "pretty_print",
     # simphony_osp.tools.search

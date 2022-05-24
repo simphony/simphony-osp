@@ -1,7 +1,5 @@
 ---
 identifier: dcelements
 ontology_file: https://www.dublincore.org/specifications/dublin-core/dcmi-terms/dublin_core_elements.rdf
-reference_by_label: False
 namespaces:
     dcelements: http://purl.org/dc/elements/1.1/
-active_relationships: []
