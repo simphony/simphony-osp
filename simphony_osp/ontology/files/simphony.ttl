@@ -19,6 +19,11 @@ simphony:main rdf:type owl:AnnotationProperty ;
               rdfs:label "Main individual"@en ;
               rdfs:range xsd:boolean .
 
+###  https://www.simphony-project.eu/simphony#contains
+simphony:contains rdf:type owl:ObjectProperty ;
+                  rdf:type owl:IrreflexiveProperty ;
+                  rdfs:domain simphony:Container ;
+                  rdfs:comment "Containment relationship for the 'Container' class."@en .
 
 #################################################################
 #    Classes

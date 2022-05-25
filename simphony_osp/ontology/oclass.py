@@ -159,9 +159,6 @@ class OntologyClass(OntologyEntity):
         elif self.is_subclass_of(simphony.File):
             from simphony_osp.ontology.interactive.file import File
 
-            path = kwargs.get("path", None)
-            if "path" in kwargs:
-                del kwargs["path"]
             result = File(
                 uid=uid,
                 session=session,
@@ -169,7 +166,6 @@ class OntologyClass(OntologyEntity):
                     kwargs, _skip_checks=_force
                 ),
             )
-            result[simphony.path] = path
             return result
         # TODO: Multiclass individuals.
 
