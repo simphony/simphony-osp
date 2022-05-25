@@ -517,10 +517,10 @@ class RelationshipSet(ObjectSet):
             if rel not in allowed:
                 raise RuntimeError(
                     f"Predicate {rel} not within the set of allowed "
-                    f"predicates {allowed}"
+                    f"predicates {allowed}."
                 )
         if rel is None:
-            raise RuntimeError(f"No predicate specified.")
+            raise RuntimeError("No predicate specified.")
         rel = rel.identifier
 
         for individual in individuals:
@@ -564,7 +564,7 @@ class RelationshipSet(ObjectSet):
                     f"predicates {allowed}"
                 )
         if rel is None:
-            raise RuntimeError(f"No predicate specified.")
+            raise RuntimeError("No predicate specified.")
 
         for rel in rel.subclasses:
             for individual in individuals:
