@@ -7,7 +7,7 @@ from typing import Dict, Optional, Set, Union
 
 import requests
 import yaml
-from rdflib import Graph, URIRef
+from rdflib import RDF, RDFS, Graph, URIRef
 from rdflib.util import guess_format
 
 import simphony_osp.ontology.parser.owl.keywords as keywords
@@ -203,4 +203,28 @@ class OWLParser(OntologyParser):
         graph = Graph()
         graph.parse(file_like, format=file_format)
         file_like.close()
+
+        # Patch DCTERMS, which defines http://purl.org/dc/terms/Agent
+        # both as a class and as an instance of
+        # http://purl.org/dc/terms/AgentClass
+        if (
+            URIRef("http://purl.org/dc/terms/"),
+            URIRef("http://purl.org/dc/terms/modified"),
+            None,
+        ) in graph:
+            graph.remove(
+                (
+                    URIRef("http://purl.org/dc/terms/Agent"),
+                    RDF.type,
+                    URIRef("http://purl.org/dc/terms/AgentClass"),
+                )
+            )
+            graph.add(
+                (
+                    URIRef("http://purl.org/dc/terms/Agent"),
+                    RDFS.subClassOf,
+                    URIRef("http://purl.org/dc/terms/AgentClass"),
+                )
+            )
+
         return graph

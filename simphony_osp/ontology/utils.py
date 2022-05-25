@@ -392,9 +392,9 @@ def _compute_mappings() -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
 
 
 def compatible_classes(type_, identifier):
-    """Given a pair of a RDF type and an identifier get a Python class.
+    """Given a pair of an RDF type and an identifier get a Python class.
 
-    Given a pair of a RDF type and an identifier, the compatible Python
+    Given a pair of an RDF type and an identifier, the compatible Python
     classes are computed. In fact, for the latter only the type of
     identifier matters.
     """

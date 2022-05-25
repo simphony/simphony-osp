@@ -5,5 +5,8 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @base <http://www.w3.org/2002/07/owl#> .
 
+rdfs:Class rdf:type owl:Class .
+rdf:Property rdf:type owl:AnnotationProperty .
+
 rdfs:label rdf:type rdf:Property .
 rdfs:comment rdf:type rdf:Property .
