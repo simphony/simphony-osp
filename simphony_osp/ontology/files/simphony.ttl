@@ -13,84 +13,11 @@
 #    Annotation properties
 #################################################################
 
-###  https://www.simphony-project.eu/simphony#_default
-simphony:_default rdf:type owl:AnnotationProperty .
-
-
-###  https://www.simphony-project.eu/simphony#_default_attribute
-simphony:_default_attribute rdf:type owl:AnnotationProperty .
-
-
-###  https://www.simphony-project.eu/simphony#_default_rel
-simphony:_default_rel rdf:type owl:AnnotationProperty .
-
-
-###  https://www.simphony-project.eu/simphony#_default_value
-simphony:_default_value rdf:type owl:AnnotationProperty .
-
-
-###  https://www.simphony-project.eu/simphony#_reference_by_label
-simphony:_reference_by_label rdf:type owl:AnnotationProperty .
-
-
 ###  https://www.simphony-project.eu/simphony#main
 simphony:main rdf:type owl:AnnotationProperty ;
               rdfs:comment "When multiple ontology individuals are serialized to a file, one of them can be tagged with this proverty (whose value must be True). When the file is imported again in SimPhoNy, only such item will be returned."@en ;
               rdfs:label "Main individual"@en ;
               rdfs:range xsd:boolean .
-
-
-#################################################################
-#    Object Properties
-#################################################################
-
-###  https://www.simphony-project.eu/simphony#activeRelationship
-simphony:activeRelationship rdf:type owl:ObjectProperty ;
-                            rdfs:subPropertyOf simphony:relationship ;
-                            owl:inverseOf simphony:passiveRelationship ;
-                            rdfs:isDefinedBy "The root of all active relationships. Active relationships express that one ontology individual contains another ontology individual."@en .
-
-
-###  https://www.simphony-project.eu/simphony#contains
-simphony:contains rdf:type owl:ObjectProperty ;
-                  rdfs:subPropertyOf simphony:activeRelationship ;
-                  rdf:type owl:IrreflexiveProperty ;
-                  rdfs:domain simphony:Container ;
-                  rdfs:comment "Containment relationship for the 'Container' class."@en .
-
-
-###  https://www.simphony-project.eu/simphony#passiveRelationship
-simphony:passiveRelationship rdf:type owl:ObjectProperty ;
-                             rdfs:subPropertyOf simphony:relationship ;
-                             rdfs:isDefinedBy "The inverse of activeRelationship. Passive relationships express that one ontology individual is contained in another ontology individual."@en .
-
-
-###  https://www.simphony-project.eu/simphony#relationship
-simphony:relationship rdf:type owl:ObjectProperty ;
-                      rdfs:subPropertyOf owl:topObjectProperty ;
-                      owl:inverseOf simphony:relationship ;
-                      rdf:type owl:SymmetricProperty ;
-                      rdfs:isDefinedBy "The root of all relationships." .
-
-
-#################################################################
-#    Data properties
-#################################################################
-
-###  https://www.simphony-project.eu/simphony#attribute
-simphony:attribute rdf:type owl:DatatypeProperty ;
-                   rdfs:subPropertyOf owl:topDataProperty ;
-                   rdf:type owl:FunctionalProperty ;
-                   rdfs:isDefinedBy "The root of all attributes." .
-
-
-###  https://www.simphony-project.eu/simphony#path
-simphony:path rdf:type owl:DatatypeProperty ;
-              rdfs:subPropertyOf simphony:attribute ;
-              rdf:type owl:FunctionalProperty ;
-              rdfs:domain simphony:File ;
-              rdfs:range xsd:string ;
-              rdfs:isDefinedBy "The path to a local file." .
 
 
 #################################################################
