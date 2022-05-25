@@ -146,7 +146,8 @@ class OntologyClass(OntologyEntity):
         from simphony_osp.ontology.individual import OntologyIndividual
 
         if self.is_subclass_of(simphony.Container):
-            from simphony_osp.ontology.interactive.container import Container
+            # TODO: Also adapt the container to the actions API.
+            from simphony_osp.ontology.actions.container import Container
 
             result = Container(
                 uid=uid,
@@ -156,18 +157,6 @@ class OntologyClass(OntologyEntity):
                 ),
             )
             return result
-        elif self.is_subclass_of(simphony.File):
-            from simphony_osp.ontology.interactive.file import File
-
-            result = File(
-                uid=uid,
-                session=session,
-                attributes=self._kwargs_to_attributes(
-                    kwargs, _skip_checks=_force
-                ),
-            )
-            return result
-        # TODO: Multiclass individuals.
 
         # build attributes dictionary by combining
         # kwargs and defaults
