@@ -37,19 +37,20 @@ setup(
             "Remote = simphony_osp.interfaces.remote:Remote",
         },
         "console_scripts": {
-            "pico = simphony_osp.utils.pico:pico",
+            "pico = simphony_osp.tools.pico:terminal",
             "semantic2dot = simphony_osp.tools.semantic2dot"
             ":run_from_terminal",
         },
     },
     install_requires=[
-        "PyYaml",
-        "websockets < 10",
-        "requests",
-        "numpy",
         "graphviz",
+        "numpy",
+        "PyYaml",
         "rdflib >= 6.0.2, < 7.0.0",
         "rdflib-sqlalchemy >= 0.5.0",
+        "requests",
+        "websockets < 11",
+        "websockets >= 10; python_version >= '3.10'",
     ],
     setup_requires=[],
 )

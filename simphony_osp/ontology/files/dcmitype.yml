@@ -1,0 +1,4 @@
+identifier: dcmitype
+ontology_file: https://www.dublincore.org/specifications/dublin-core/dcmi-terms/dublin_core_type.ttl
+namespaces:
+    dcmitype: "http://purl.org/dc/dcmitype/"

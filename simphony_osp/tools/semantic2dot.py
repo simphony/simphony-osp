@@ -354,7 +354,7 @@ def run_from_terminal():
     namespaces = list()
     for x in args.to_plot:
         try:
-            namespaces.append(Session.ontology.get_namespace(x))
+            namespaces.append(Session.default_ontology.get_namespace(x))
             logger.warning("Using installed version of namespace %s" % x)
             continue
         except KeyError:
@@ -362,11 +362,11 @@ def run_from_terminal():
         parser = OntologyParser.get_parser(x)
         for iri in parser.namespaces.values():
             try:
-                namespaces.append(Session.ontology.get_namespace(iri))
+                namespaces.append(Session.default_ontology.get_namespace(iri))
                 logger.warning("Using installed version of namespace %s" % iri)
             except KeyError:
-                Session.ontology.load_parser(parser)
-                namespaces.append(Session.ontology.get_namespace(iri))
+                Session.default_ontology.load_parser(parser)
+                namespaces.append(Session.default_ontology.get_namespace(iri))
 
     # Convert the ontology to dot
     converter = Semantic2Dot(*namespaces, group=args.group)

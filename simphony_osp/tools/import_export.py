@@ -142,7 +142,7 @@ def export_cuds(
     individual_or_session: Optional = None,
     file: Optional[Union[str, TextIO]] = None,
     format: str = "text/turtle",
-    rel: "OntologyRelationship" = simphony_namespace.activeRelationship,
+    rel: "OntologyRelationship" = OWL.topObjectProperty,
     max_depth: float = float("inf"),
 ) -> Union[str, None]:
     """Exports CUDS in a variety of formats (see the `format` argument).
@@ -281,7 +281,7 @@ def _serialize_session_triples(
 
 def _serialize_individual_json(
     individual,
-    rel=simphony_namespace.activeRelationship,
+    rel=OWL.topObjectProperty,
     max_depth=float("inf"),
     json_dumps=True,
 ):
@@ -326,7 +326,7 @@ def _serialize_individual_json(
 
 def _serialize_individual_triples(
     individual,
-    rel=simphony_namespace.activeRelationship,
+    rel=OWL.topObjectProperty,
     max_depth=float("inf"),
     format: str = "ttl",
 ):
@@ -360,8 +360,8 @@ def _serialize_individual_triples(
             Literal("true", datatype=XSD.boolean),
         )
     )
-    for prefix, iri in individual.session.ontology.graph.namespaces():
-        graph.bind(prefix, iri)
+    for namespace in individual.session.namespaces:
+        graph.bind(namespace.name, namespace.iri)
     for s, p, o in itertools.chain(
         *(individual.triples for individual in individuals)
     ):

@@ -1,0 +1,5 @@
+identifier: prov
+ontology_file: http://www.w3.org/ns/prov-o
+format: ttl
+namespaces:
+    prov: http://www.w3.org/ns/prov#

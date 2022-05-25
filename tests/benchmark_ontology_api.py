@@ -13,8 +13,8 @@ from .benchmark import Benchmark
 try:
     from osp.core.namespaces import city
 except ImportError:  # When the city ontology is not installed.
-    Session.ontology.load_parser(OntologyParser.get_parser("city"))
-    city = Session.ontology.get_namespace("city")
+    Session.default_ontology.load_parser(OntologyParser.get_parser("city"))
+    city = Session.default_ontology.get_namespace("city")
 
 
 DEFAULT_SIZE = 500

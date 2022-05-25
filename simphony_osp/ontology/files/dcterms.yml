@@ -1,10 +1,6 @@
----
 identifier: dcterms
-ontology_file: https://www.dublincore.org/specifications/dublin-core/dcmi-terms/dublin_core_terms.rdf
-reference_by_label: False
-namespaces:
-    dcterms: http://purl.org/dc/terms/
-active_relationships: []
+ontology_file: https://www.dublincore.org/specifications/dublin-core/dcmi-terms/dublin_core_terms.ttl
 requirements:
-  - dctype
-  - dcelements
+    - dcmitype
+namespaces:
+    dcterms: "http://purl.org/dc/terms/"

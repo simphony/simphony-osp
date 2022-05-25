@@ -100,7 +100,7 @@ class ObjectSet(DataStructureSet, ABC):
         return self._individual
 
     @property
-    def predicate(self) -> Union[OntologyPredicate]:
+    def predicate(self) -> OntologyPredicate:
         """Predicate that this set refers to."""
         return self._predicate
 
@@ -441,9 +441,7 @@ class RelationshipSet(ObjectSet):
         # TODO: We do not take care of 3, because `.add` also does not
         #  take care of 3. This topic can be an object of discussion.
         for individual in added:
-            self._individual.relationships_connect(
-                individual, rel=self._predicate
-            )
+            self._connect(individual, rel=self._predicate)
 
     @prevent_class_filtering
     def intersection_update(self, other: Iterable[OntologyIndividual]) -> None:
@@ -455,10 +453,10 @@ class RelationshipSet(ObjectSet):
         removed = underlying_set.difference(result)
         if removed:
             for rel in self._predicates:
-                self._individual.relationships_disconnect(*removed, rel=rel)
+                self._disconnect(*removed, rel=rel)
 
         added = result.difference(underlying_set)
-        self._individual.relationships_connect(*added, rel=self._predicate)
+        self._connect(*added, rel=self._predicate)
 
     @prevent_class_filtering
     def difference_update(self, other: Iterable[OntologyIndividual]) -> None:
@@ -467,7 +465,7 @@ class RelationshipSet(ObjectSet):
         removed = set(self) & set(other)
         if removed:
             for rel in self._predicates:
-                self._individual.relationships_disconnect(*removed, rel=rel)
+                self._disconnect(*removed, rel=rel)
 
     @prevent_class_filtering
     def symmetric_difference_update(
@@ -481,10 +479,102 @@ class RelationshipSet(ObjectSet):
         removed = underlying_set.difference(result)
         if removed:
             for rel in self._predicates:
-                self._individual.relationships_disconnect(*removed, rel=rel)
+                self._disconnect(*removed, rel=rel)
 
         added = result.difference(underlying_set)
-        self._individual.relationships_connect(*added, rel=self._predicate)
+        self._connect(*added, rel=self._predicate)
+
+    @prevent_class_filtering
+    def _connect(
+        self,
+        *individuals: OntologyIndividual,
+        rel: Optional[OntologyRelationship] = None,
+    ):
+        individuals = set(individuals)
+
+        # Raise exception if any of the individuals to connect belongs to a
+        # different session.
+        different_session = set(
+            individual
+            for individual in individuals
+            if individual not in self.individual.session
+        )
+        if different_session:
+            raise RuntimeError(
+                f"Cannot connect ontology individuals belonging to a "
+                f"different session: "
+                f"{','.join(str(i) for i in different_session)}."
+                f"Please add them to this session first using `session.add`."
+            )
+
+        rel = rel or self.predicate
+        # Raise exception for predicates that are not a subclass of the
+        # RelationshipSet's ontology predicates.
+        if rel != self.predicate:
+            allowed = (
+                self._predicates if self.predicate is not None else {None}
+            )
+            if rel not in allowed:
+                raise RuntimeError(
+                    f"Predicate {rel} not within the set of allowed "
+                    f"predicates {allowed}."
+                )
+        if rel is None:
+            raise RuntimeError("No predicate specified.")
+        rel = rel.identifier
+
+        for individual in individuals:
+            self.individual.session.graph.add(
+                (self.individual.identifier, rel, individual.identifier)
+            )
+
+    @prevent_class_filtering
+    def _disconnect(
+        self,
+        *individuals: OntologyIndividual,
+        rel: Optional[OntologyRelationship] = None,
+    ):
+        individuals = set(individuals)
+
+        # Raise exception if any of the individuals to connect belongs to a
+        # different session.
+        different_session = set(
+            individual
+            for individual in individuals
+            if individual not in self.individual.session
+        )
+        if different_session:
+            raise RuntimeError(
+                f"Cannot disconnect ontology individuals belonging to a "
+                f"different session: "
+                f"{','.join(str(i) for i in different_session)}."
+                f"Please add them to this session first using `session.add`."
+            )
+
+        rel = rel or self.predicate
+        # Raise exception for predicates that are not a subclass of the
+        # RelationshipSet's ontology predicates.
+        if rel != self.predicate:
+            allowed = (
+                self._predicates if self.predicate is not None else {None}
+            )
+            if rel not in allowed:
+                raise RuntimeError(
+                    f"Predicate {rel} not within the set of allowed "
+                    f"predicates {allowed}"
+                )
+        if rel is None:
+            raise RuntimeError("No predicate specified.")
+
+        for rel in rel.subclasses:
+            for individual in individuals:
+                self.individual.session.graph.remove(
+                    (
+                        self.individual.identifier,
+                        rel.identifier,
+                        individual.identifier,
+                    )
+                )
 
     # ↑ ------ ↑
     # Public API
@@ -1207,12 +1297,6 @@ class OntologyIndividual(OntologyEntity):
                     f"Expected {OntologyIndividual}, {Identifier} or {str} "
                     f"objects, not {type(x)}."
                 )
-            elif x not in self.session:
-                raise RuntimeError(
-                    "Cannot connect an ontology individual that belongs to "
-                    "a different session, please add it to this session "
-                    "first using `session.add`."
-                )
         individuals = set(individuals)
 
         if isinstance(rel, Identifier):
@@ -1270,12 +1354,6 @@ class OntologyIndividual(OntologyEntity):
                 raise TypeError(
                     f"Expected {OntologyIndividual}, {Identifier} or {str} "
                     f"objects, not {type(x)}."
-                )
-            elif x not in self.session:
-                raise RuntimeError(
-                    "Cannot connect an ontology individual that belongs to "
-                    "a different session, please add it to this session "
-                    "first using `session.add`."
                 )
         individuals = set(individuals)
 
@@ -2059,73 +2137,6 @@ class OntologyIndividual(OntologyEntity):
 
     # Relationship handling
     # ↓ ----------------- ↓
-
-    def relationships_connect(
-        self, *other: OntologyIndividual, rel: OntologyRelationship
-    ):
-        """Connect other ontology individuals to this one.
-
-        If the connected object is associated with the same session, only a
-        link is created. Otherwise, the information associated with the
-        connected object is added to the session of this ontology individual.
-
-        Args:
-            other: The ontology individual(s) to connect.
-            rel: The relationship to use.
-
-        Raises:
-            TypeError: No relationship given.
-
-        Returns:
-            The ontology individual that has been connected,
-            associated with the session of the current ontology individual
-            object.
-        """
-        for individual in other:
-            self.session.merge(individual)
-            self.session.graph.add(
-                (self.identifier, rel.identifier, individual.identifier)
-            )
-
-    def relationships_disconnect(
-        self,
-        *other: OntologyIndividual,
-        rel: Optional[OntologyRelationship] = None,
-    ):
-        """Disconnect ontology individuals from this one.
-
-        Args:
-            other: The ontology individual(s) to disconnect. When not
-                specified, this ontology individual will be disconnected
-                from all connected individuals.
-            rel: This ontology individual will be disconnected from `other`
-                for relationship `rel`. When not specified, this ontology
-                individual will be disconnected from `other` for all
-                relationships.
-        """
-        if rel is None:
-            predicates = set()
-            for predicate in self.session.graph.predicates(
-                self.identifier, None
-            ):
-                try:
-                    relationship = self.session.ontology.from_identifier(
-                        predicate
-                    )
-                    predicates |= {relationship.identifier}
-                except KeyError:
-                    pass
-        else:
-            predicates = {rel.identifier}
-
-        other = other if other else {None}
-        for item in other:
-            s, o = (
-                self.identifier,
-                item.identifier if item is not None else None,
-            )
-            for p in predicates:
-                self.session.graph.remove((s, p, o))
 
     def relationships_iter(
         self,

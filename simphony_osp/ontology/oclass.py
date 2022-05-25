@@ -159,9 +159,6 @@ class OntologyClass(OntologyEntity):
         elif self.is_subclass_of(simphony.File):
             from simphony_osp.ontology.interactive.file import File
 
-            path = kwargs.get("path", None)
-            if "path" in kwargs:
-                del kwargs["path"]
             result = File(
                 uid=uid,
                 session=session,
@@ -169,7 +166,6 @@ class OntologyClass(OntologyEntity):
                     kwargs, _skip_checks=_force
                 ),
             )
-            result[simphony.path] = path
             return result
         # TODO: Multiclass individuals.
 
@@ -345,9 +341,7 @@ class OntologyClass(OntologyEntity):
         Returns:
             The direct superclasses.
         """
-        for o in self.session.graph_and_overlay.objects(
-            self.iri, RDFS.subClassOf
-        ):
+        for o in self.session.graph.objects(self.iri, RDFS.subClassOf):
             try:
                 yield self.session.from_identifier_typed(
                     o, typing=OntologyClass
@@ -361,9 +355,7 @@ class OntologyClass(OntologyEntity):
         Returns:
             The direct subclasses.
         """
-        for s in self.session.graph_and_overlay.subjects(
-            RDFS.subClassOf, self.iri
-        ):
+        for s in self.session.graph.subjects(RDFS.subClassOf, self.iri):
             try:
                 yield self.session.from_identifier_typed(
                     s, typing=OntologyClass
@@ -387,7 +379,7 @@ class OntologyClass(OntologyEntity):
             lambda x: isinstance(x, OntologyClass),
             (
                 self.session.from_identifier(x)
-                for x in self.session.graph_and_overlay.transitiveClosure(
+                for x in self.session.graph.transitiveClosure(
                     closure, self.identifier
                 )
             ),
@@ -411,7 +403,7 @@ class OntologyClass(OntologyEntity):
             lambda x: isinstance(x, OntologyClass),
             (
                 self.session.from_identifier(x)
-                for x in self.session.graph_and_overlay.transitiveClosure(
+                for x in self.session.graph.transitiveClosure(
                     closure, self.identifier
                 )
             ),

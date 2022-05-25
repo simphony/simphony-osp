@@ -19,7 +19,6 @@ from typing import (
     Union,
 )
 
-import rdflib
 from rdflib import OWL, RDF, RDFS, SKOS, BNode, Graph, Literal, URIRef
 from rdflib.graph import ReadOnlyGraphAggregate
 from rdflib.plugins.sparql.processor import SPARQLResult
@@ -162,17 +161,21 @@ class Session(Environment):
     Python (string representation of the session). It has no other effect.
     """
 
-    ontology: Union["Session", bool] = None
-    """Another session considered to be the T-Box of this one.
+    @property
+    def ontology(self) -> Session:
+        """Another session considered to be the T-Box of this one.
 
-    In a normal setting, a session is considered only to contain an A-Box.
-    When it is necessary to look for a class, a relationship, an attribute
-    or an annotation property, the session will look there for their
-    definition.
+        In a normal setting, a session is considered only to contain an A-Box.
+        When it is necessary to look for a class, a relationship, an attribute
+        or an annotation property, the session will look there for their
+        definition.
+        """
+        return self._ontology or Session.default_ontology
 
-    However, if instead of a session the value `True` is set, then this
-    session will also be its own T-Box.
-    """
+    @ontology.setter
+    def ontology(self, value: Optional[Session]) -> None:
+        """Set the T-Box of this session."""
+        self._ontology = value
 
     label_properties: Tuple[URIRef] = (SKOS.prefLabel, RDFS.label)
     """The identifiers of the RDF predicates to be considered as labels.
@@ -218,8 +221,6 @@ class Session(Environment):
         self._graph.commit()
         if self.ontology is not self:
             self.ontology.commit()
-        else:
-            self._overlay.commit()
         self.creation_set = set()
 
     def compute(self, *args, **kwargs) -> None:
@@ -540,8 +541,27 @@ class Session(Environment):
     def clear(self):
         """Clear all the data stored in the session."""
         self._graph.remove((None, None, None))
+        self._namespaces.clear()
+
+        # Reload the essential TBox required by ontologies.
+        if self.ontology is self:
+            for parser in (
+                OntologyParser.get_parser("simphony"),
+                OntologyParser.get_parser("owl"),
+                OntologyParser.get_parser("rdfs"),
+            ):
+                self.ontology.load_parser(parser)
 
     # ↑ --------------------- Public API --------------------- ↑ #
+
+    default_ontology: Session
+    """The default ontology.
+
+    When no T-Box is explicitly assigned to a session, this is the ontology
+    it makes use of.
+    """
+
+    _ontology: Optional[Session] = None
 
     def __init__(
         self,
@@ -579,7 +599,6 @@ class Session(Environment):
         self._storing = list()
 
         self._namespaces = dict()
-        self._overlay = Graph()
         # Load the essential TBox required by ontologies.
         if self.ontology is self:
             for parser in (
@@ -726,156 +745,9 @@ class Session(Environment):
         return result
 
     @property
-    def active_relationships(self) -> Tuple[OntologyRelationship, ...]:
-        """Get the active relationships defined in the ontology."""
-        # TODO: Transitive closure.
-        return tuple(
-            OntologyRelationship(UID(s), self)
-            for s in self.ontology._overlay.subjects(
-                RDFS.subPropertyOf, simphony_namespace.activeRelationship
-            )
-        )
-
-    @active_relationships.setter
-    def active_relationships(
-        self, value: Union[None, Iterable[OntologyRelationship]]
-    ):
-        """Set the active relationships defined in the ontology."""
-        value = iter(()) if value is None else value
-
-        for triple in self.ontology._overlay.triples(
-            (None, RDFS.subPropertyOf, simphony_namespace.activeRelationship)
-        ):
-            self.ontology._overlay.remove(triple)
-        for relationship in value:
-            self.ontology._overlay.add(
-                (
-                    relationship.iri,
-                    RDFS.subPropertyOf,
-                    simphony_namespace.activeRelationship,
-                )
-            )
-
-    @property
-    def default_relationships(
-        self,
-    ) -> Dict[OntologyNamespace, OntologyRelationship]:
-        """Get the default relationship defined in the ontology.
-
-        Each namespace can have a different default relationship.
-        """
-        default_relationships = {
-            ns: (OntologyRelationship(UID(o), self.ontology),)
-            for ns in self.namespaces
-            for o in self.ontology._overlay.objects(
-                ns.iri, simphony_namespace._default_rel
-            )
-        }
-        for key, value in default_relationships.items():
-            if len(value) > 1:
-                raise RuntimeError(
-                    f"Multiple default relationships defined"
-                    f"for namespace {key}."
-                )
-            else:
-                default_relationships[key] = value[0]
-        return default_relationships
-
-    @default_relationships.setter
-    def default_relationships(
-        self,
-        value: Union[
-            None,
-            OntologyRelationship,
-            Dict[OntologyNamespace, OntologyRelationship],
-        ],
-    ):
-        """Set the default relationships defined in the ontology.
-
-        Each namespace can have a different default relationship.
-
-        Args:
-            value: Sets the same default relationship for all namespaces
-                value is an OntologyRelationship, set different
-                relationships when a dict is provided..
-        """
-        if value is None:
-            remove = ((None, simphony_namespace._default_rel, None),)
-            add = dict()
-        elif isinstance(value, OntologyRelationship):
-            remove = ((None, simphony_namespace._default_rel, None),)
-            add = {ns.iri: value.iri for ns in self.namespaces}
-        elif isinstance(value, Dict):
-            remove = (
-                (ns.iri, simphony_namespace._default_rel, None)
-                for ns in value.keys()
-            )
-            add = {ns.iri: rel.iri for ns, rel in value.items()}
-        else:
-            raise TypeError(
-                f"Expected either None, an OntologyRelationship "
-                f"or a mapping (dictionary) from "
-                f"OntologyNamespace to OntologyRelationship, "
-                f"not {type(value)}."
-            )
-
-        for pattern in remove:
-            self.ontology._overlay.remove(pattern)
-        for ns_iri, rel_iri in add.items():
-            self.ontology._overlay.add(
-                (ns_iri, simphony_namespace._default_rel, rel_iri)
-            )
-
-    @property
-    def reference_styles(self) -> Dict[OntologyNamespace, bool]:
-        """Get the reference styles defined in the ontology.
-
-        Can be either by label (True) or by iri suffix (False).
-        """
-        reference_styles = {ns: False for ns in self.namespaces}
-        true_reference_styles = (
-            s
-            for s in self.ontology._overlay.subjects(
-                simphony_namespace._reference_by_label, Literal(True)
-            )
-        )
-        for s in true_reference_styles:
-            reference_styles[self.get_namespace(s)] = True
-        return reference_styles
-
-    @reference_styles.setter
-    def reference_styles(
-        self, value: Union[bool, Dict[OntologyNamespace, bool]]
-    ):
-        """Set the reference style defined in the ontology.
-
-        Can be either by label (True) or by iri suffix (False).
-        """
-        if isinstance(value, bool):
-            value = {ns: value for ns in self.namespaces}
-        self.ontology._overlay.remove(
-            (None, simphony_namespace._reference_by_label, None)
-        )
-        for key, value in value.items():
-            self.ontology._overlay.add(
-                (
-                    key.iri,
-                    simphony_namespace._reference_by_label,
-                    Literal(value),
-                )
-            )
-
-    @property
     def graph(self) -> Graph:
         """Returns the session's graph."""
         return self._graph
-
-    @property
-    def graph_and_overlay(self) -> Graph:
-        """Returns an aggregate of the session's graph and overlay."""
-        return ReadOnlyGraphAggregate(
-            [self.ontology._graph, self.ontology._overlay]
-        )
 
     @property
     def driver(self) -> Optional["InterfaceDriver"]:
@@ -920,12 +792,7 @@ class Session(Environment):
         Args:
             parser: the ontology parser from where to load the new namespaces.
         """
-        # Force default relationships to be installed before installing a new
-        # ontology.
-        self._check_default_relationship_installed(parser)
-
         self.ontology._graph += parser.graph
-        self.ontology._overlay += self._overlay_from_parser(parser)
         for name, iri in parser.namespaces.items():
             self.bind(name, iri)
 
@@ -1102,7 +969,6 @@ class Session(Environment):
     creation_set: Set[Identifier]
     _namespaces: Dict[URIRef, str]
     _graph: Graph
-    _overlay: Graph
     _driver: Optional["Interface"] = None
 
     @property
@@ -1120,226 +986,6 @@ class Session(Environment):
             )
             if not entity_triples_exist:
                 self.creation_set.add(identifier)
-
-    # ↓ ----------------- Legacy code ----------------- ↓ #
-    """This code should be either modernized or removed."""
-
-    def _update_overlay(self) -> Graph:
-        graph = self._graph
-        overlay = Graph()
-        for namespace, iri in ((ns, ns.iri) for ns in self.namespaces):
-            # Look for duplicate labels.
-            if self.reference_styles:
-                _check_duplicate_labels(graph, iri)
-        _check_namespaces((ns.iri for ns in self.namespaces), graph)
-        self._overlay_add_cuba_triples(self, overlay)
-        self._overlay_add_default_rel_triples(self, overlay)
-        self._overlay_add_reference_style_triples(self, overlay)
-        return overlay
-
-    def _overlay_from_parser(self, parser: OntologyParser) -> Graph:
-        graph = parser.graph
-        overlay = Graph()
-        if parser.reference_style:
-            for namespace, iri in parser.namespaces.items():
-                # Look for duplicate labels.
-                _check_duplicate_labels(graph, iri)
-        _check_namespaces(parser.namespaces.values(), graph)
-        self._overlay_add_cuba_triples(parser, overlay)
-        self._overlay_add_default_rel_triples(parser, overlay)
-        self._overlay_add_reference_style_triples(parser, overlay)
-        return overlay
-
-    def _overlay_add_default_rel_triples(
-        self, parser: Union[OntologyParser, "Session"], overlay: Graph
-    ):
-        """Add the triples to the graph that indicate the default rel.
-
-        The default rel is defined per namespace. However, only one is
-        currently supported per ontology, therefore all namespaces defined in
-        the ontology will have the same default relationship (the one of the
-        package).
-        """
-        if parser.default_relationship is None:
-            return
-        for namespace in parser.namespaces.values():
-            self._graph.remove(
-                (URIRef(namespace), simphony_namespace._default_rel, None)
-            )
-            overlay.remove(
-                (URIRef(namespace), simphony_namespace._default_rel, None)
-            )
-            overlay.add(
-                (
-                    URIRef(namespace),
-                    simphony_namespace._default_rel,
-                    URIRef(parser.default_relationship),
-                )
-            )
-
-    @staticmethod
-    def _overlay_add_cuba_triples(
-        parser: Union[OntologyParser, "Session"], overlay: Graph
-    ):
-        """Add the triples to connect the owl ontology to CUBA."""
-        for iri in parser.active_relationships:
-            # if (iri, RDF.type, OWL.ObjectProperty) not in parser.graph:
-            #     logger.warning(f"Specified relationship {iri} as "
-            #                    f"active relationship, which is not "
-            #                    f"a valid object property in the ontology."
-            #                    f"If such relationship belongs to another "
-            #                    f"ontology, and such ontology is installed, "
-            #                    f"then you may safely ignore this warning.")
-            #     # This requirement is checked later on in
-            #     # `namespace_registry.py`
-            #     # (NamespaceRegistry._check_default_relationship_installed).
-            overlay.add(
-                (
-                    iri,
-                    RDFS.subPropertyOf,
-                    simphony_namespace.activeRelationship,
-                )
-            )
-
-    @staticmethod
-    def _overlay_add_reference_style_triples(
-        parser: Union[OntologyParser, "Session"], overlay: Graph
-    ):
-        """Add a triple to store how the user should reference the entities.
-
-        The reference style (by entity label or by iri suffix) is defined per
-        namespace. However, only one is currently supported per ontology,
-        therefore all namespaces defined in the ontology will have the same
-        reference style (the one of the package).
-        """
-        for namespace in parser.namespaces.values():
-            if parser.reference_style:
-                overlay.add(
-                    (
-                        URIRef(namespace),
-                        simphony_namespace._reference_by_label,
-                        Literal(True),
-                    )
-                )
-
-    def _check_default_relationship_installed(
-        self,
-        parser: OntologyParser,
-        allow_types=frozenset(
-            {
-                rdflib.OWL.ObjectProperty,
-            }
-        ),
-    ):
-        if not parser.default_relationship:
-            return
-        found = False
-        # Check if it is in the namespace to be installed.
-        for s, p, o in parser.graph.triples(
-            (parser.default_relationship, rdflib.RDF.type, None)
-        ):
-            if o in allow_types:
-                found = True
-                break
-        # If not, found, find it in the namespace registry.
-        if not found:
-            for s, p, o in self.graph_and_overlay.triples(
-                (parser.default_relationship, rdflib.RDF.type, None)
-            ):
-                if o in allow_types:
-                    found = True
-                    break
-        if not found:
-            raise ValueError(
-                f"The default relationship "
-                f"{parser.default_relationship} defined for "
-                f"the ontology package {parser.identifier} "
-                f"is not installed."
-            )
-
-    # ↑ ----------------- Legacy code ----------------- ↑ #
-
-
-# ↓ ----------------- Legacy code ----------------- ↓ #
-"""This code should be either modernized or removed."""
-
-
-def _check_duplicate_labels(graph: Graph, namespace: Union[str, URIRef]):
-    # Recycle code methods from the Namespace class. A namespace class
-    # cannot be used directly, as the namespace is being spawned.
-    # This may be useful if the definition of containment for ontology
-    # namespaces ever changes.
-    namespace = rdflib.URIRef(namespace)
-
-    def in_namespace(item):
-        # TODO: very similar to
-        #  `simphony_osp.ontology.namespace.OntologyNamespace.__contains__`,
-        #  integrate somehow.
-        if isinstance(item, BNode):
-            return False
-        elif isinstance(item, URIRef):
-            return item.startswith(namespace)
-        else:
-            return False
-
-    mock_session = type(
-        "",
-        (object,),
-        {"_graph": graph, "label_properties": Session.label_properties},
-    )
-
-    def labels_for_iri(iri):
-        return Session.iter_labels(
-            mock_session, iri, return_prop=False, return_literal=True
-        )
-
-    # Finally, check for the duplicate labels.
-    subjects = set(
-        subject for subject in graph.subjects() if in_namespace(subject)
-    )
-    results = set(
-        ((label.toPython(), label.language or ""), iri)
-        for iri in subjects
-        for label in labels_for_iri(iri)
-    )
-    results = sorted(results)
-    labels, iris = tuple(result[0] for result in results), tuple(
-        result[1] for result in results
-    )
-    coincidence_search = tuple(
-        i for i in range(1, len(labels)) if labels[i - 1] == labels[i]
-    )
-    conflicting_labels = {labels[i]: set() for i in coincidence_search}
-    for i in coincidence_search:
-        conflicting_labels[labels[i]] |= {iris[i - 1], iris[i]}
-    if len(conflicting_labels) > 0:
-        texts = (
-            f"{label[0]}, language "
-            f'{label[1] if label[1] != "" else None}: '
-            f'{", ".join(tuple(str(iri) for iri in iris))}'
-            for label, iris in conflicting_labels.items()
-        )
-        raise KeyError(
-            f"The following labels are assigned to more than "
-            f"one entity in namespace {namespace}; "
-            f'{"; ".join(texts)} .'
-        )
-
-
-def _check_namespaces(namespace_iris: Iterable[URIRef], graph: Graph):
-    namespaces = list(namespace_iris)
-    for s, p, o in graph:
-        pop = None
-        for ns in namespaces:
-            if s.startswith(ns):
-                pop = ns
-        if pop:
-            namespaces.remove(pop)
-        if not namespaces:
-            break
-
-
-# ↑ ----------------- Legacy code ----------------- ↑ #
 
 
 class QueryResult(SPARQLResult):
@@ -1409,5 +1055,8 @@ class QueryResult(SPARQLResult):
     # ↑ --------------------- Public API --------------------- ↑ #
 
 
+Session.default_ontology = Session(
+    identifier="default ontology", ontology=True
+)
 Session.set_default_session(Session(identifier="default session"))
-Session.ontology = Session(identifier="installed ontologies", ontology=True)
+# This default ontology is later overwritten by simphony_osp/utils/pico.py
