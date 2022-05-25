@@ -177,7 +177,7 @@ class Pico:
     @property
     def namespaces(self) -> Tuple[OntologyNamespace]:
         """Returns namespace objects for all the installed namespaces."""
-        return tuple(Session.ontology.namespaces)
+        return tuple(self.ontology.namespaces)
 
     def install(
         self, *files: Union[Path, str], overwrite: bool = False
@@ -507,4 +507,4 @@ class Pico:
 # Create a pico singleton for the default directory and set the installed
 # packages as the default ontology.
 pico = Pico()
-Session.ontology = pico.ontology
+Session.default_ontology = pico.ontology

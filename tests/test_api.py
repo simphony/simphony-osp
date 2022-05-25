@@ -43,13 +43,13 @@ class TestSessionAPI(unittest.TestCase):
         """
         cls.ontology = Session(identifier="test-tbox", ontology=True)
         cls.ontology.load_parser(OntologyParser.get_parser("city"))
-        cls.prev_default_ontology = Session.ontology
-        Session.ontology = cls.ontology
+        cls.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = cls.ontology
 
     @classmethod
     def tearDownClass(cls):
         """Restore the previous default TBox."""
-        Session.ontology = cls.prev_default_ontology
+        Session.default_ontology = cls.prev_default_ontology
 
     def test_identifier(self):
         """Test the identifier attribute of the session."""
@@ -567,13 +567,13 @@ class TestOntologyAPICity(unittest.TestCase):
         """
         cls.ontology = Session(identifier="test-tbox", ontology=True)
         cls.ontology.load_parser(OntologyParser.get_parser("city"))
-        cls.prev_default_ontology = Session.ontology
-        Session.ontology = cls.ontology
+        cls.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = cls.ontology
 
     @classmethod
     def tearDownClass(cls):
         """Restore the previous default TBox."""
-        Session.ontology = cls.prev_default_ontology
+        Session.default_ontology = cls.prev_default_ontology
 
     def test_attribute(self):
         """Tests the OntologyAttribute subclass.
@@ -1385,13 +1385,13 @@ class TestOntologyAPIFOAF(unittest.TestCase):
 
         cls.ontology = Session(identifier="test-tbox", ontology=True)
         cls.ontology.load_parser(OntologyParser.get_parser(yml_path))
-        cls.prev_default_ontology = Session.ontology
-        Session.ontology = cls.ontology
+        cls.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = cls.ontology
 
     @classmethod
     def tearDownClass(cls):
         """Restore the previous default TBox."""
-        Session.ontology = cls.prev_default_ontology
+        Session.default_ontology = cls.prev_default_ontology
 
     def test_annotation(self):
         """Tests the OntologyAnnotation subclass.
@@ -1411,14 +1411,13 @@ class TestOntologyAPIFOAF(unittest.TestCase):
 
         DOES include methods inherited from OntologyEntity.
         """
-        ontology = self.ontology
         from simphony_osp.namespaces import foaf
 
         # Test annotation of ontology individuals.
         group = foaf.Group()
-        person = foaf.Person(session=ontology)
-        another_person = foaf.Person(session=ontology)
-        one_more_person = foaf.Person(session=ontology)
+        person = foaf.Person()
+        another_person = foaf.Person()
+        one_more_person = foaf.Person()
         group[foaf.member] = {person, another_person, one_more_person}
         group[foaf.membershipClass] = foaf.Person
         self.assertSetEqual({foaf.Person}, group[foaf.membershipClass])
@@ -1722,13 +1721,13 @@ class TestContainer(unittest.TestCase):
         """
         ontology = Session(identifier="test-tbox", ontology=True)
         ontology.load_parser(OntologyParser.get_parser("city"))
-        cls.prev_default_ontology = Session.ontology
-        Session.ontology = ontology
+        cls.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = ontology
 
     @classmethod
     def tearDownClass(cls):
         """Restore the previous default TBox."""
-        Session.ontology = cls.prev_default_ontology
+        Session.default_ontology = cls.prev_default_ontology
 
     def test_container(self):
         """Test the container ontology individual."""

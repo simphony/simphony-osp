@@ -170,7 +170,7 @@ class Session(Environment):
         or an annotation property, the session will look there for their
         definition.
         """
-        return self._ontology or Session.get_default_session()
+        return self._ontology or Session.default_ontology
 
     @ontology.setter
     def ontology(self, value: Optional[Session]) -> None:
@@ -553,6 +553,13 @@ class Session(Environment):
                 self.ontology.load_parser(parser)
 
     # ↑ --------------------- Public API --------------------- ↑ #
+
+    default_ontology: Session
+    """The default ontology.
+
+    When no T-Box is explicitly assigned to a session, this is the ontology
+    it makes use of.
+    """
 
     _ontology: Optional[Session] = None
 
@@ -1048,6 +1055,8 @@ class QueryResult(SPARQLResult):
     # ↑ --------------------- Public API --------------------- ↑ #
 
 
+Session.default_ontology = Session(
+    identifier="default ontology", ontology=True
+)
 Session.set_default_session(Session(identifier="default session"))
-Session.ontology = Session(identifier="default ontology", ontology=True)
 # This default ontology is later overwritten by simphony_osp/utils/pico.py

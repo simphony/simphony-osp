@@ -1,4 +1,5 @@
 """Utility resources for the ontology module."""
+from __future__ import annotations
 
 import functools
 import importlib
@@ -165,7 +166,7 @@ class DataStructureSet(ABC, MutableSet):
         """Return self^other."""
         return set(self).__xor__(other)
 
-    def __iadd__(self, other: Any) -> "DataStructureSet":
+    def __iadd__(self, other: Any) -> DataStructureSet:
         """Return self+=other (equivalent to self|=other)."""
         if isinstance(other, (Set, MutableSet)):
             # Apparently instances of MutableSet are not instances of Set.
@@ -174,7 +175,7 @@ class DataStructureSet(ABC, MutableSet):
             self.update({other})
         return self
 
-    def __isub__(self, other: Any) -> "DataStructureSet":
+    def __isub__(self, other: Any) -> DataStructureSet:
         """Return self-=other.
 
         Based on `difference_update`.
@@ -186,7 +187,7 @@ class DataStructureSet(ABC, MutableSet):
             self.difference_update({other})
         return self
 
-    def __ior__(self, other: set) -> "DataStructureSet":
+    def __ior__(self, other: set) -> DataStructureSet:
         """Return self|=other.
 
         Should perform the union on the underlying data structure.
@@ -194,7 +195,7 @@ class DataStructureSet(ABC, MutableSet):
         self.update(other)
         return self
 
-    def __iand__(self, other: set) -> "DataStructureSet":
+    def __iand__(self, other: set) -> DataStructureSet:
         """Return self&=other.
 
         Should perform the intersection on the underlying data structure.
@@ -202,7 +203,7 @@ class DataStructureSet(ABC, MutableSet):
         self.intersection_update(other)
         return self
 
-    def __ixor__(self, other: set) -> "DataStructureSet":
+    def __ixor__(self, other: set) -> DataStructureSet:
         """Return self^=other.
 
         Should perform the XOR operation on the underlying data structure.

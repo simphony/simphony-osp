@@ -39,13 +39,13 @@ class TestWrapper(unittest.TestCase):
         """
         ontology = Session(identifier="test_tbox", ontology=True)
         ontology.load_parser(OntologyParser.get_parser("city"))
-        cls.prev_default_ontology = Session.ontology
-        Session.ontology = ontology
+        cls.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = ontology
 
     @classmethod
     def tearDownClass(cls):
         """Restore the previous default TBox."""
-        Session.ontology = cls.prev_default_ontology
+        Session.default_ontology = cls.prev_default_ontology
 
     def tearDown(self) -> None:
         """Remove the database file."""
@@ -171,13 +171,13 @@ class TestDataspaceWrapper(unittest.TestCase):
         """
         ontology = Session(identifier="test_tbox", ontology=True)
         ontology.load_parser(OntologyParser.get_parser("city"))
-        cls.prev_default_ontology = Session.ontology
-        Session.ontology = ontology
+        cls.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = ontology
 
     @classmethod
     def tearDownClass(cls):
         """Restore the previous default TBox."""
-        Session.ontology = cls.prev_default_ontology
+        Session.default_ontology = cls.prev_default_ontology
 
     def setUp(self) -> None:
         """Create a temporary directory for files."""
@@ -351,13 +351,13 @@ class TestRemoteSQLite(unittest.TestCase):
         """
         ontology = Session(identifier="test_tbox", ontology=True)
         ontology.load_parser(OntologyParser.get_parser("city"))
-        cls.prev_default_ontology = Session.ontology
-        Session.ontology = ontology
+        cls.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = ontology
 
     @classmethod
     def tearDownClass(cls):
         """Restore the previous default TBox."""
-        Session.ontology = cls.prev_default_ontology
+        Session.default_ontology = cls.prev_default_ontology
 
     def setUp(self) -> None:
         """Start the InterfaceServer for a new test."""

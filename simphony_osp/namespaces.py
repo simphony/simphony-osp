@@ -22,13 +22,13 @@ _logger = _logging.getLogger(__name__)
 
 def __getattr__(name: str):
     try:
-        return _Session.ontology.get_namespace(name)
+        return _Session.default_ontology.get_namespace(name)
     except KeyError as e:
         raise AttributeError from e
 
 
 def __dir__():
-    return list((x.name for x in _Session.ontology.namespaces))
+    return list((x.name for x in _Session.default_ontology.namespaces))
 
 
 __all__ = __dir__()
@@ -51,7 +51,7 @@ def from_iri(iri: _Union[str, _URIRef]):
         iri = _URIRef(iri)
     if not isinstance(iri, _URIRef):
         raise TypeError(f"Expected {str} or {_URIRef}, not {type(iri)}.")
-    return _Session.ontology.from_identifier(iri)
+    return _Session.default_ontology.from_identifier(iri)
 
 
 # `from_identifier` as gateway to `_tbox.from_identifier`.
@@ -67,4 +67,4 @@ def from_identifier(identifier: _Identifier) -> "OntologyEntity":
     Returns:
         The OntologyEntity.
     """
-    return _Session.ontology.from_identifier(identifier)
+    return _Session.default_ontology.from_identifier(identifier)
