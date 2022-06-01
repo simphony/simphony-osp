@@ -310,9 +310,7 @@ def find_operations(
     ]
 
     operations = {
-        op
-        for path in paths
-        for op in find_operations_in_package(path)
+        op for path in paths for op in find_operations_in_package(path)
     }
 
     operations = {
