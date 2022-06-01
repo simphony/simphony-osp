@@ -1,4 +1,5 @@
 """Tools for importing and exporting data."""
+from __future__ import annotations
 
 import io
 import itertools
@@ -142,7 +143,7 @@ def export_cuds(
     individual_or_session: Optional = None,
     file: Optional[Union[str, TextIO]] = None,
     format: str = "text/turtle",
-    rel: "OntologyRelationship" = OWL.topObjectProperty,
+    rel: OntologyRelationship = OWL.topObjectProperty,
     max_depth: float = float("inf"),
 ) -> Union[str, None]:
     """Exports CUDS in a variety of formats (see the `format` argument).
