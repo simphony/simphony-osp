@@ -273,7 +273,7 @@ class TestDataspaceWrapper(unittest.TestCase):
             with Dataspace(self.dataspace_directory.name, True) as wrapper:
                 file = simphony.File()
                 file_identifier = file.identifier
-                file.actions.upload(os_file.name)
+                file.operations.upload(os_file.name)
                 file_name = b64encode(
                     bytes(file_identifier, encoding="UTF-8")
                 ).decode("UTF-8")
@@ -301,7 +301,7 @@ class TestDataspaceWrapper(unittest.TestCase):
                 with TemporaryDirectory() as temp_dir:
                     destination = Path(temp_dir) / "filename"
                     self.assertFalse(destination.is_file())
-                    file.actions.download(destination)
+                    file.operations.download(destination)
                     self.assertTrue(destination.is_file())
 
             # Test deleting the file.

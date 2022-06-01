@@ -6,8 +6,8 @@ from typing import Optional, Type, Union
 from rdflib import Graph
 
 from simphony_osp.interfaces.interface import Interface, InterfaceDriver
-from simphony_osp.ontology.actions.container import Container
 from simphony_osp.ontology.entity import OntologyEntity
+from simphony_osp.ontology.operations.container import Container
 from simphony_osp.session.session import Session
 
 

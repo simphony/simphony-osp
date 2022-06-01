@@ -25,11 +25,11 @@ from typing import (
 from rdflib import OWL, RDF, Literal, URIRef
 from rdflib.term import Identifier, Node
 
-from simphony_osp.ontology.actions.actions import ActionsNamespace
 from simphony_osp.ontology.annotation import OntologyAnnotation
 from simphony_osp.ontology.attribute import OntologyAttribute
 from simphony_osp.ontology.entity import OntologyEntity
 from simphony_osp.ontology.oclass import OntologyClass
+from simphony_osp.ontology.operations.operations import OperationsNamespace
 from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.ontology.utils import DataStructureSet
 from simphony_osp.utils.datatypes import (
@@ -1661,16 +1661,16 @@ class OntologyIndividual(OntologyEntity):
         return iterator
 
     @property
-    def actions(self) -> ActionsNamespace:
-        """Access actions specific this individual's class."""
-        if self._actions_namespace is None:
-            self._actions_namespace = ActionsNamespace(individual=self)
-        return self._actions_namespace
+    def operations(self) -> OperationsNamespace:
+        """Access operations specific this individual's class."""
+        if self._operations_namespace is None:
+            self._operations_namespace = OperationsNamespace(individual=self)
+        return self._operations_namespace
 
     # ↑ ------ ↑
     # Public API
 
-    _actions_namespace: Optional[ActionsNamespace] = None
+    _operations_namespace: Optional[OperationsNamespace] = None
 
     def _attribute_autocompletion(self) -> Iterable[str]:
         """Compute individual's attributes as autocompletion suggestions."""

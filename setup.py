@@ -36,8 +36,8 @@ setup(
             "Dataspace = simphony_osp.interfaces.dataspace:Dataspace",
             "Remote = simphony_osp.interfaces.remote:Remote",
         },
-        "simphony_osp.ontology.actions": {
-            "File = simphony_osp.ontology.actions.file:File",
+        "simphony_osp.ontology.operations": {
+            "File = simphony_osp.ontology.operations.file:File",
         },
         "console_scripts": {
             "pico = simphony_osp.tools.pico:terminal",

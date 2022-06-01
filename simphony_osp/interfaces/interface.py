@@ -211,7 +211,7 @@ class InterfaceDriver(Store):
         *args,
         interface: "Interface",
         ontology: Optional[Session] = None,
-        **kwargs
+        **kwargs,
     ):
         """Initialize the InterfaceDriver.
 
