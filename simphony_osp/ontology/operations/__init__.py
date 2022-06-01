@@ -11,8 +11,8 @@ from pathlib import Path
 from simphony_osp.ontology.operations.catalog import register
 from simphony_osp.ontology.operations.operations import (
     Operations,
-    find_operations_in_operations_folder,
     find_operations,
+    find_operations_in_operations_folder,
 )
 
 if sys.version_info < (3, 8):
