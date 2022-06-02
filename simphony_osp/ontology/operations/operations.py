@@ -70,6 +70,7 @@ def catalog(func):
     catalog, so that the installed operations can be loaded lazily on the
     first access/write. This is useful to prevent headaches with import cycles.
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         if _initialized[0] is False:

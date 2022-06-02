@@ -1686,10 +1686,7 @@ class OntologyIndividual(OntologyEntity):
                 belong to the `Container` subclass is used as a context
                 manager.
         """
-        classes = set(
-            class_.identifier
-            for class_ in self.superclasses
-        )
+        classes = set(class_.identifier for class_ in self.superclasses)
 
         if simphony_namespace.Container in classes:
             # Triggers the creation of the operations instance and thus the
