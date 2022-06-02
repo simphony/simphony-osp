@@ -1,4 +1,5 @@
 """An annotation property defined in the ontology."""
+from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING, Iterable, Iterator, Optional
@@ -32,7 +33,7 @@ class OntologyAnnotation(OntologyEntity):
     def __init__(
         self,
         uid: UID,
-        session: Optional["Session"] = None,
+        session: Optional[Session] = None,
         triples: Optional[Iterable[Triple]] = None,
         merge: bool = False,
     ) -> None:

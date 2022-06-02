@@ -1,4 +1,5 @@
 """Universal interface for wrapper developers."""
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import IntEnum
@@ -195,7 +196,7 @@ class InterfaceDriver(Store):
     _queue: Dict[URIRef, Optional[BinaryIO]]
     """Holds handles of files to be uploaded, URIs of files to be deleted."""
 
-    _ontology: Optional["Session"]
+    _ontology: Optional[Session]
     """Ontology to be used on the session's shown to the wrapper developer."""
 
     # RDFLib
@@ -587,9 +588,7 @@ class InterfaceDriver(Store):
 
     def _compute_entity_modifications(
         self,
-    ) -> Tuple[
-        Set["OntologyEntity"], Set["OntologyEntity"], Set["OntologyEntity"]
-    ]:
+    ) -> Tuple[Set[OntologyEntity], Set[OntologyEntity], Set[OntologyEntity]]:
 
         # Find out from the triples which entities were added, updated and
         # deleted.
@@ -983,6 +982,6 @@ class Interface(ABC):
     session_base: Optional[Session] = None
     session_old: Optional[Session] = None
     session_new: Optional[Session] = None
-    added: Optional[Set["OntologyEntity"]] = None
-    updated: Optional[Set["OntologyEntity"]] = None
-    deleted: Optional[Set["OntologyEntity"]] = None
+    added: Optional[Set[OntologyEntity]] = None
+    updated: Optional[Set[OntologyEntity]] = None
+    deleted: Optional[Set[OntologyEntity]] = None
