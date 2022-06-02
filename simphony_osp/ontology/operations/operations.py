@@ -83,7 +83,6 @@ def catalog(func):
 
 def _load_operations():
     """Finds the installed operations and registers them in the catalog."""
-
     # Retrieve operations from package entry points.
     package_entry_points = entry_points()
     if sys.version_info >= (3, 10):
