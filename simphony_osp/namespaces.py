@@ -1,4 +1,5 @@
 """You can import the installed namespaces from this module."""
+from __future__ import annotations
 
 import logging as _logging
 from typing import TYPE_CHECKING as _TYPE_CHECKING
@@ -55,7 +56,7 @@ def from_iri(iri: _Union[str, _URIRef]):
 
 
 # `from_identifier` as gateway to `_tbox.from_identifier`.
-def from_identifier(identifier: _Identifier) -> "OntologyEntity":
+def from_identifier(identifier: _Identifier) -> OntologyEntity:
     """Get an entity from its identifier from the default TBox.
 
     Args:

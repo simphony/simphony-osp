@@ -1,4 +1,5 @@
-"""Restrictions on on ontology classes."""
+"""Restrictions on ontology classes."""
+from __future__ import annotations
 
 import logging
 from enum import Enum
@@ -47,7 +48,7 @@ class Restriction(OntologyEntity):
     def __init__(
         self,
         uid: UID,
-        session: Optional["Session"] = None,
+        session: Optional[Session] = None,
         triples: Optional[Iterable[Triple]] = None,
         merge: bool = False,
     ) -> None:
@@ -92,7 +93,7 @@ class Restriction(OntologyEntity):
 
     @property
     # @lru_cache(maxsize=None)  # _get_quantifier_and_target already cached
-    def target(self) -> Union["OntologyClass", URIRef]:
+    def target(self) -> Union[OntologyClass, URIRef]:
         """The target ontology class or datatype.
 
         Returns:
@@ -209,18 +210,18 @@ class Restriction(OntologyEntity):
                 f"Property {prop} is not within any installed " f"ontology."
             )
 
-    def _get_direct_superclasses(self) -> Iterable["OntologyEntity"]:
+    def _get_direct_superclasses(self) -> Iterable[OntologyEntity]:
         """Restrictions have no superclasses."""
         return iter(())
 
-    def _get_direct_subclasses(self) -> Iterable["OntologyEntity"]:
+    def _get_direct_subclasses(self) -> Iterable[OntologyEntity]:
         """Restrictions have no subclasses."""
         return iter(())
 
-    def _get_superclasses(self) -> Iterable["OntologyEntity"]:
+    def _get_superclasses(self) -> Iterable[OntologyEntity]:
         """Restrictions have no superclasses."""
         return iter(())
 
-    def _get_subclasses(self) -> Iterable["OntologyEntity"]:
+    def _get_subclasses(self) -> Iterable[OntologyEntity]:
         """Restrictions have no subclasses."""
         return iter(())

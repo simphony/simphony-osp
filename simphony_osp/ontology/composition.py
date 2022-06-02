@@ -49,7 +49,7 @@ class Composition(OntologyEntity):
     @property
     def operands(
         self,
-    ) -> Tuple[Union["OntologyClass", "Composition", "Restriction"]]:
+    ) -> Tuple[Union[OntologyClass, Composition, Restriction]]:
         """The individual classes the formula is composed of.
 
         Returns:
@@ -71,7 +71,7 @@ class Composition(OntologyEntity):
     def __init__(
         self,
         uid: UID,
-        session: Optional["Session"] = None,
+        session: Optional[Session] = None,
         triples: Optional[Iterable[Triple]] = None,
         merge: bool = False,
     ) -> None:
@@ -89,7 +89,7 @@ class Composition(OntologyEntity):
         self,
     ) -> Tuple[
         Optional[OPERATOR],
-        List[Union["OntologyClass", "Composition", "Restriction"]],
+        List[Union[OntologyClass, Composition, Restriction]],
     ]:
         """Look up operator and operands in the graph."""
         for predicate, operator in [
@@ -113,11 +113,11 @@ class Composition(OntologyEntity):
 
     def _get_operand(
         self, identifier
-    ) -> Optional[Union["OntologyClass", "Composition", "Restriction"]]:
+    ) -> Optional[Union[OntologyClass, Composition, Restriction]]:
         """Get an operand to the from an identifier."""
         try:
             operand = self.session.from_identifier(identifier)
-            operand: Union["OntologyClass", "Composition", "Restriction"]
+            operand: Union[OntologyClass, Composition, Restriction]
             return operand
         except KeyError:
             pass

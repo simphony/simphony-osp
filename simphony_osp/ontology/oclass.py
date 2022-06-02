@@ -183,7 +183,7 @@ class OntologyClass(OntologyEntity):
     def __init__(
         self,
         uid: UID,
-        session: Optional["Session"] = None,
+        session: Optional[Session] = None,
         triples: Optional[Iterable[Triple]] = None,
         merge: bool = False,
     ) -> None:

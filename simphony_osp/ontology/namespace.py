@@ -1,4 +1,5 @@
 """An ontology namespace."""
+from __future__ import annotations
 
 import itertools
 import logging
@@ -26,7 +27,7 @@ class OntologyNamespace:
     def __init__(
         self,
         iri: Union[str, URIRef],
-        ontology: Optional["Session"] = None,
+        ontology: Optional[Session] = None,
         name: Optional[str] = None,
     ):
         """Initialize a namespace object.
@@ -54,11 +55,11 @@ class OntologyNamespace:
         return self._iri
 
     @property
-    def ontology(self) -> "Session":
+    def ontology(self) -> Session:
         """Returns the session that the namespace is bound to."""
         return self._ontology
 
-    def __eq__(self, other: "OntologyNamespace") -> bool:
+    def __eq__(self, other: OntologyNamespace) -> bool:
         """Check whether the two namespace objects are equal.
 
         Args:
