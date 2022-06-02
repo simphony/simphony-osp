@@ -24,6 +24,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
     Dict,
     Generator,
@@ -38,7 +39,12 @@ from typing import (
     Union,
 )
 
-from simphony_osp.ontology.operations import catalog
+from rdflib import URIRef
+
+if sys.version_info < (3, 8):
+    from importlib_metadata import entry_points
+else:
+    from importlib.metadata import entry_points
 
 if TYPE_CHECKING:
     from simphony_osp.ontology import OntologyIndividual
@@ -47,10 +53,120 @@ if TYPE_CHECKING:
 __all__ = [
     "Operations",
     "OperationsNamespace",
-    "find_operations_in_package",
-    "find_operations_in_operations_folder",
     "find_operations",
 ]
+
+_catalog: Dict[URIRef, Dict[str, Tuple[Type, Callable]]] = dict()
+"""Holds the operations associated with each ontology class."""
+
+_initialized: List[bool] = [False]
+"""True when the installed operations have already been loaded."""
+
+
+def catalog(func):
+    """Initialize the catalog lazily.
+
+    This decorator is meant to decorate functions that write to or access the
+    catalog, so that the installed operations can be loaded lazily on the
+    first access/write. This is useful to prevent headaches with import cycles.
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if _initialized[0] is False:
+            _initialized[0] = True
+            _load_operations()
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def _load_operations():
+    """Finds the installed operations and registers them in the catalog."""
+
+    # Retrieve operations from package entry points.
+    package_entry_points = entry_points()
+    if sys.version_info >= (3, 10):
+        operations = package_entry_points.select(
+            group="simphony_osp.ontology.operations"
+        )
+    else:
+        operations = package_entry_points.get(
+            "simphony_osp.ontology.operations", tuple()
+        )
+    del package_entry_points
+    operations = {
+        entry_point.name: entry_point.load() for entry_point in operations
+    }
+    for name, operations in operations.items():
+        register(operations, operations.iri)
+    del operations
+
+    # Retrieve operations from the operation folder in the user's home
+    # directory.
+    path = (
+        os.environ.get("SIMPHONY_OPERATIONS_DIR")
+        or Path.home() / ".simphony-osp" / "operations"
+    )
+    operations = find_operations_in_operations_folder(path)
+    for operations in operations:
+        register(operations, operations.iri)
+    del operations
+
+
+@catalog
+def get(
+    item: Union[str, URIRef], default: Optional[Any] = None
+) -> Union[Dict[str, Tuple[Type, Callable]], Any]:
+    """Get the methods registered for the given identifier.
+
+    Args:
+        item: Identifier to get the methods for.
+        default: Default value to return when the identifier is not registered.
+
+    Raises:
+        KeyError: Identifier not registered and no default provided.
+    """
+    item = URIRef(item)
+    return _catalog.get(item, default)
+
+
+@catalog
+def register(
+    class_: Type[Operations], identifier: Union[str, Iterable[str]]
+) -> None:
+    """Register an `Operations` class in the catalog.
+
+    Args:
+        class_: The `Operations` class to register.
+        identifier: The identifier (or identifiers) that will be
+            registered as associated with the given `Operations` class.
+
+    Raises:
+        RuntimeError: Tried to register two methods with the same name for the
+            same identifier.
+    """
+    identifiers = (
+        (URIRef(identifier),) if isinstance(identifier, str) else identifier
+    )
+
+    methods = class_.__simphony_operations__()
+
+    for identifier in identifiers:
+        catalog_entry = _catalog.get(identifier, dict())
+
+        # Raise exception if two methods with the same name are registered
+        conflicts = set(catalog_entry) & set(methods)
+        if conflicts:
+            raise RuntimeError(
+                f"Methods {','.join(conflicts)} defined twice for class "
+                f"{identifier}."
+            )
+
+        # Put the operations on the catalog
+        catalog_entry.update(
+            {name: (class_, method) for name, method in methods.items()}
+        )
+        _catalog[identifier] = catalog_entry
 
 
 class Operations(ABC):
@@ -105,7 +221,7 @@ class OperationsNamespace(Mapping):
         self._instances = dict()
         self._individual = individual
 
-    def __getattr__(self, item: str):
+    def __getattr__(self, item: str) -> Any:
         """Get an operation by name using dot notation."""
         try:
             result = self[item]
@@ -113,11 +229,60 @@ class OperationsNamespace(Mapping):
             raise AttributeError(str(e)) from e
         return result
 
-    def __getitem__(self, key: str) -> Callable:
+    def __setattr__(self, item: str, value: Any) -> None:
+        """Set the value of operation's property."""
+        if item.startswith("_"):
+            super().__setattr__(item, value)
+            return
+
+        try:
+            self[item] = value
+        except KeyError as e:
+            raise AttributeError(str(e)) from e
+
+    def __getitem__(self, key: str) -> Union[Callable, Any]:
         """Get an operation by name using brackets."""
+        method, instance = self._method_and_instance(key)
+
+        if isinstance(method, property):
+            result = getattr(instance, key)
+        else:
+
+            @wraps(method)
+            def function(*args, **kwargs):
+                return method(instance, *args, **kwargs)
+
+            result = function
+
+        return result
+
+    def __setitem__(self, key, value) -> None:
+        """Set an operation's property using brackets."""
+        method, instance = self._method_and_instance(key)
+
+        if isinstance(method, property):
+            setattr(instance, key, value)
+        else:
+            raise AttributeError(f"operation '{key}' is not writable")
+
+    def __len__(self) -> int:
+        """Number of operations available for the individual."""
+        return sum(1 for _ in self)
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterate over the names of the available operations."""
+        yield from {name for name, class_, method in self._all_methods()}
+
+    def _method_and_instance(self, key: str) -> Tuple[Callable, Operations]:
+        """Returns the method and operation instance for a given name.
+
+        Searches the catalog for methods with names that match the given key
+        and returns both the method and the instance of the `Operations`
+        class to which such method belongs.
+        """
         results = {
             (class_, method)
-            for name, class_, method in self._all_methods
+            for name, class_, method in self._all_methods()
             if name == key
         }
         if len(results) > 1:
@@ -134,31 +299,12 @@ class OperationsNamespace(Mapping):
                 f"{','.join(str(x) for x in self._individual.classes)}."
             )
         class_, method = results.pop()
-        instance = self._instances.get(class_) or class_(
-            individual=self._individual
-        )
 
-        if isinstance(method, property):
-            result = getattr(instance, key)
-        else:
+        if class_ not in self._instances:
+            self._instances[class_] = class_(individual=self._individual)
+        instance = self._instances[class_]
+        return method, instance
 
-            @wraps(method)
-            def function(*args, **kwargs):
-                return method(instance, *args, **kwargs)
-
-            result = function
-
-        return result
-
-    def __len__(self) -> int:
-        """Number of operations available for the individual."""
-        return sum(1 for _ in self)
-
-    def __iter__(self) -> Iterator[str]:
-        """Iterate over the names of the available operations."""
-        yield from {name for name, class_, method in self._all_methods}
-
-    @property
     def _all_methods(self) -> Set[Tuple[str, Type, Callable]]:
         """Get a set will all the available operations for the individual."""
         classes = (
@@ -167,9 +313,7 @@ class OperationsNamespace(Mapping):
         results = {
             (name, class_, method)
             for identifier in classes
-            for name, (class_, method) in catalog.get(
-                identifier, dict()
-            ).items()
+            for name, (class_, method) in get(identifier, dict()).items()
         }
         return results
 

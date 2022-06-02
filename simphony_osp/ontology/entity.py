@@ -445,12 +445,14 @@ class OntologyEntity(ABC):
         from simphony_osp.session.wrapper import Wrapper
 
         if session is None:
-            from simphony_osp.ontology.operations.container import Container
+            from simphony_osp.ontology.operations.container import (
+                ContainerEnvironment,
+            )
             from simphony_osp.session.session import Environment, Session
 
             environment = Environment.get_default_environment()
             session = Session.get_default_session()
-            if isinstance(environment, Container):
+            if isinstance(environment, ContainerEnvironment):
                 environment.connect(self.identifier)
         elif isinstance(session, Wrapper):
             session = session.session

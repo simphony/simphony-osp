@@ -142,21 +142,7 @@ class OntologyClass(OntologyEntity):
                 or UID()
             )
 
-        from simphony_osp.namespaces import simphony
         from simphony_osp.ontology.individual import OntologyIndividual
-
-        if self.is_subclass_of(simphony.Container):
-            # TODO: Also adapt the container to the operations API.
-            from simphony_osp.ontology.operations.container import Container
-
-            result = Container(
-                uid=uid,
-                session=session,
-                attributes=self._kwargs_to_attributes(
-                    kwargs, _skip_checks=_force
-                ),
-            )
-            return result
 
         # build attributes dictionary by combining
         # kwargs and defaults

@@ -38,6 +38,7 @@ setup(
         },
         "simphony_osp.ontology.operations": {
             "File = simphony_osp.ontology.operations.file:File",
+            "Container = simphony_osp.ontology.operations.container:Container",
         },
         "console_scripts": {
             "pico = simphony_osp.tools.pico:terminal",
