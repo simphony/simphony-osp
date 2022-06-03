@@ -1,8 +1,8 @@
 """Restrictions on on ontology classes."""
+from __future__ import annotations
 
 import logging
 from enum import Enum
-from functools import lru_cache
 from typing import TYPE_CHECKING, Iterable, Optional, Tuple, Union
 
 from rdflib import OWL, BNode, URIRef
@@ -47,7 +47,7 @@ class Restriction(OntologyEntity):
     def __init__(
         self,
         uid: UID,
-        session: Optional["Session"] = None,
+        session: Optional[Session] = None,
         triples: Optional[Iterable[Triple]] = None,
         merge: bool = False,
     ) -> None:
@@ -80,7 +80,6 @@ class Restriction(OntologyEntity):
         )
 
     @property
-    # @lru_cache(maxsize=None)  # _get_quantifier_and_target already cached
     def quantifier(self) -> QUANTIFIER:
         """Get the quantifier of the restriction.
 
@@ -91,8 +90,7 @@ class Restriction(OntologyEntity):
         return quantifier
 
     @property
-    # @lru_cache(maxsize=None)  # _get_quantifier_and_target already cached
-    def target(self) -> Union["OntologyClass", URIRef]:
+    def target(self) -> Union[OntologyClass, URIRef]:
         """The target ontology class or datatype.
 
         Returns:
@@ -106,7 +104,6 @@ class Restriction(OntologyEntity):
         return target
 
     @property
-    # @lru_cache(maxsize=None)  # _property already cached
     def relationship(self) -> OntologyRelationship:
         """The relationship the RELATIONSHIP_RESTRICTION acts on.
 
@@ -121,7 +118,6 @@ class Restriction(OntologyEntity):
         return self._property
 
     @property
-    # @lru_cache(maxsize=None)  # _property already cached
     def attribute(self) -> OntologyAttribute:
         """The attribute the restriction acts on.
 
@@ -138,7 +134,6 @@ class Restriction(OntologyEntity):
         return self._property
 
     @property
-    @lru_cache(maxsize=None)
     def rtype(self) -> RTYPE:
         """Return the type of restriction.
 
@@ -162,7 +157,6 @@ class Restriction(OntologyEntity):
     # ↑ ------ ↑
     # Public API
 
-    @lru_cache(maxsize=None)
     def _get_quantifier_and_target(
         self,
     ) -> Tuple[Optional[QUANTIFIER], Optional[Identifier]]:
@@ -192,7 +186,6 @@ class Restriction(OntologyEntity):
             return None, None
 
     @property
-    @lru_cache(maxsize=None)
     def _property(self) -> Union[OntologyRelationship, OntologyAttribute]:
         """The relationship or attribute the restriction acts on.
 
@@ -209,18 +202,18 @@ class Restriction(OntologyEntity):
                 f"Property {prop} is not within any installed " f"ontology."
             )
 
-    def _get_direct_superclasses(self) -> Iterable["OntologyEntity"]:
+    def _get_direct_superclasses(self) -> Iterable[OntologyEntity]:
         """Restrictions have no superclasses."""
         return iter(())
 
-    def _get_direct_subclasses(self) -> Iterable["OntologyEntity"]:
+    def _get_direct_subclasses(self) -> Iterable[OntologyEntity]:
         """Restrictions have no subclasses."""
         return iter(())
 
-    def _get_superclasses(self) -> Iterable["OntologyEntity"]:
+    def _get_superclasses(self) -> Iterable[OntologyEntity]:
         """Restrictions have no superclasses."""
         return iter(())
 
-    def _get_subclasses(self) -> Iterable["OntologyEntity"]:
+    def _get_subclasses(self) -> Iterable[OntologyEntity]:
         """Restrictions have no subclasses."""
         return iter(())

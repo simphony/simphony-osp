@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from functools import lru_cache
 from typing import (
     TYPE_CHECKING,
     FrozenSet,
@@ -30,11 +29,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# The properties of the instances of the class OntologyEntity defined below
-# may be cached by applying the decorator @lru_cache after the @property
-# decorator. The following parameter fixes the maximum number of different
-# instances of OntologyEntity for which a property may be cached.
-entity_cache_size = 1024
+
 
 
 class OntologyEntity(ABC):
@@ -130,7 +125,6 @@ class OntologyEntity(ABC):
         self._session = value
 
     @property
-    @lru_cache(maxsize=entity_cache_size)
     def direct_superclasses(self) -> FrozenSet[OntologyEntity]:
         """Get the direct superclasses of the entity.
 
@@ -140,7 +134,6 @@ class OntologyEntity(ABC):
         return frozenset(self._get_direct_superclasses())
 
     @property
-    @lru_cache(maxsize=entity_cache_size)
     def direct_subclasses(self) -> FrozenSet[OntologyEntity]:
         """Get the direct subclasses of the entity.
 
@@ -150,7 +143,6 @@ class OntologyEntity(ABC):
         return frozenset(self._get_direct_subclasses())
 
     @property
-    @lru_cache(maxsize=entity_cache_size)
     def superclasses(self) -> FrozenSet[OntologyEntity]:
         """Get the superclass of the entity.
 
@@ -161,7 +153,6 @@ class OntologyEntity(ABC):
         return frozenset(self._get_superclasses())
 
     @property
-    @lru_cache(maxsize=entity_cache_size)
     def subclasses(self) -> FrozenSet[OntologyEntity]:
         """Get the subclasses of the entity.
 
