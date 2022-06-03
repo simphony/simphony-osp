@@ -30,8 +30,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-
-
 class OntologyEntity(ABC):
     """Abstract superclass of any entity in the ontology."""
 

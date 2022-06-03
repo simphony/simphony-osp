@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import itertools
 import logging
+from functools import lru_cache, wraps
 from inspect import isclass
 from typing import (
     TYPE_CHECKING,
-    Dict,
     Callable,
+    Dict,
     FrozenSet,
     Iterable,
     Iterator,
@@ -19,7 +20,6 @@ from typing import (
     TypeVar,
     Union,
 )
-from functools import lru_cache, wraps
 
 from rdflib import OWL, RDF, RDFS, SKOS, BNode, Graph, Literal, URIRef
 from rdflib.graph import ReadOnlyGraphAggregate
@@ -441,7 +441,7 @@ class Session(Environment):
             lang=lang,
             return_prop=False,
             return_literal=False,
-            return_identifier=True
+            return_identifier=True,
         )
         if case_sensitive is False:
             comp_label = label.lower()
@@ -623,9 +623,11 @@ class Session(Environment):
 
             def bypass_cache(method: Callable):
                 wrapped_func = method.__wrapped__
+
                 @wraps(wrapped_func)
                 def bypassed(*args, **kwargs):
                     return wrapped_func(self, *args, **kwargs)
+
                 bypassed.cache_clear = lambda: None
                 return bypassed
 
@@ -868,7 +870,8 @@ class Session(Environment):
         yield from (
             t[0]
             for t in self._graph.triples((None, RDF.type, None))
-            if not isinstance(t[0], Literal) and any(
+            if not isinstance(t[0], Literal)
+            and any(
                 (t[2], RDF.type, supported_entity_type) in self.ontology.graph
                 for supported_entity_type in supported_entity_types
             )
