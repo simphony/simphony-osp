@@ -109,6 +109,13 @@ class Environment:
             self.subscribers.remove(environment)
         self._environment_references.remove(self)
 
+    def __bool__(self) -> bool:
+        """Evaluate the truth value of the environment.
+
+        Such value is always true.
+        """
+        return True
+
     # ↑ --------------------- Public API --------------------- ↑ #
 
     _session_linked: Optional[Session] = None
@@ -305,13 +312,6 @@ class Session(Environment):
             self.from_identifier(identifier)
             for identifier in self.iter_identifiers()
         )
-
-    def __bool__(self) -> bool:
-        """Evaluate the truth value of the session.
-
-        Such value is always true.
-        """
-        return True
 
     def __len__(self) -> int:
         """Return the number of ontology entities within the session."""

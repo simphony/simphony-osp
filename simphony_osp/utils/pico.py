@@ -423,7 +423,7 @@ class Pico:
             path = Path(path)
 
         # If the environment variable is not defined, use the default path.
-        path = path or Path.home() / ".simphony-osp"
+        path = path or Path.home() / ".simphony-osp" / "ontologies"
 
         return path
 
