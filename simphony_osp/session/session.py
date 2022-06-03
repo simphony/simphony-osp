@@ -871,12 +871,13 @@ class Session(Environment):
         lang: Optional[str] = None,
         return_prop: bool = False,
         return_literal: bool = True,
-        return_identifier: bool = False
+        return_identifier: bool = False,
     ) -> Iterator[
         Union[
-            Literal, str,
+            Literal,
+            str,
             Tuple[Union[Literal, str], Node],
-            Tuple[Union[Literal, str], Node, Node]
+            Tuple[Union[Literal, str], Node, Node],
         ]
     ]:
         """Iterate over all the labels of the entities in the session."""
