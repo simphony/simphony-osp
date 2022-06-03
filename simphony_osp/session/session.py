@@ -420,7 +420,7 @@ class Session(Environment):
         label: str,
         lang: Optional[str] = None,
         case_sensitive: bool = False,
-    ) -> Set[OntologyEntity]:
+    ) -> FrozenSet[OntologyEntity]:
         """Get an ontology entity from its label.
 
         Args:
@@ -436,40 +436,28 @@ class Session(Environment):
             The ontology entity.
         """
         results = set()
-
-        identifiers_and_labels = self.iter_labels(
-            lang=lang,
-            return_prop=False,
-            return_literal=False,
-            return_identifier=True
-        )
-        if case_sensitive is False:
-            comp_label = label.lower()
-            identifiers_and_labels = (
-                (label.lower(), identifier)
-                for label, identifier in identifiers_and_labels
+        for identifier in self.iter_identifiers():
+            entity_labels = self.iter_labels(
+                entity=identifier,
+                lang=lang,
+                return_prop=False,
+                return_literal=False,
             )
-        else:
-            comp_label = label
-
-        identifiers_and_labels = (
-            (label, identifier)
-            for label, identifier in identifiers_and_labels
-            if label == comp_label
-        )
-
-        for _, identifier in identifiers_and_labels:
-            try:
+            if case_sensitive is False:
+                entity_labels = (label.lower() for label in entity_labels)
+                comp_label = label.lower()
+            else:
+                comp_label = label
+            if comp_label in entity_labels:
                 results.add(self.from_identifier(identifier))
-            except KeyError:
-                pass
         if len(results) == 0:
             error = "No element with label %s was found in ontology %s." % (
                 label,
                 self,
             )
             raise KeyError(error)
-        return results
+
+        return frozenset(results)
 
     def add(
         self,
@@ -880,8 +868,13 @@ class Session(Environment):
         lang: Optional[str] = None,
         return_prop: bool = False,
         return_literal: bool = True,
+        return_identifier: bool = False
     ) -> Iterator[
-        Union[Literal, str, Tuple[Literal, URIRef], Tuple[str, URIRef]]
+        Union[
+            Literal, str,
+            Tuple[Union[Literal, str], Node],
+            Tuple[Union[Literal, str], Node, Node]
+        ]
     ]:
         """Iterate over all the labels of the entities in the session."""
         from simphony_osp.ontology.entity import OntologyEntity
@@ -900,19 +893,29 @@ class Session(Environment):
         labels = filter(
             lambda label_tuple: filter_language(label_tuple[1]),
             (
-                (prop, literal)
+                (prop, literal, subject)
                 for prop in self.label_properties
-                for literal in self._graph.objects(entity, prop)
+                for subject, _, literal in self._graph.triples(
+                    (entity, prop, None)
+                )
             ),
         )
-        if not return_prop and not return_literal:
+        if not return_prop and not return_literal and not return_identifier:
             return (str(x[1]) for x in labels)
-        elif return_prop and not return_literal:
+        elif return_prop and not return_literal and not return_identifier:
             return ((str(x[1]), x[0]) for x in labels)
-        elif not return_prop and return_literal:
+        elif not return_prop and return_literal and not return_identifier:
             return (x[1] for x in labels)
-        else:
+        elif return_prop and return_literal and not return_identifier:
             return ((x[1], x[0]) for x in labels)
+        elif not return_prop and not return_literal and return_identifier:
+            return ((str(x[1]), x[2]) for x in labels)
+        elif return_prop and not return_literal and return_identifier:
+            return ((str(x[1]), x[0], x[2]) for x in labels)
+        elif not return_prop and return_literal and return_identifier:
+            return ((x[1], x[2]) for x in labels)
+        else:  # everything true
+            return ((x[1], x[0], x[2]) for x in labels)
 
     def get_identifiers(self) -> Set[Identifier]:
         """Get all the identifiers in the session."""
