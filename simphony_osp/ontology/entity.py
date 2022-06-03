@@ -103,17 +103,17 @@ class OntologyEntity(ABC):
         self.label_literal = Literal(self.label_literal, lang=value)
 
     @property
-    def namespace(self) -> Optional["OntologyNamespace"]:
+    def namespace(self) -> Optional[OntologyNamespace]:
         """Return the ontology namespace to which this entity is associated."""
         return next((x for x in self.session.namespaces if self in x), None)
 
     @property
-    def session(self) -> "Session":
+    def session(self) -> Session:
         """The session where the entity is stored."""
         return self._session
 
     @session.setter
-    def session(self, value: "Session") -> None:
+    def session(self, value: Session) -> None:
         """Change the session where the entity is stored.
 
         Equivalent to removing the item from the previous session and adding it
@@ -162,7 +162,7 @@ class OntologyEntity(ABC):
         """
         return frozenset(self._get_subclasses())
 
-    def is_superclass_of(self, other: "OntologyEntity") -> bool:
+    def is_superclass_of(self, other: OntologyEntity) -> bool:
         """Perform a superclass check.
 
         Args:
@@ -173,7 +173,7 @@ class OntologyEntity(ABC):
         """
         return self in other.superclasses
 
-    def is_subclass_of(self, other: "OntologyEntity") -> bool:
+    def is_subclass_of(self, other: OntologyEntity) -> bool:
         """Perform a subclass check.
 
         Args:
@@ -205,7 +205,7 @@ class OntologyEntity(ABC):
         elements = filter(lambda x: x is not None, elements)
         return f"<{header}: {' '.join(elements)}>"
 
-    def __eq__(self, other: "OntologyEntity") -> bool:
+    def __eq__(self, other: OntologyEntity) -> bool:
         """Check whether two entities are the same.
 
         Args:
@@ -368,22 +368,22 @@ class OntologyEntity(ABC):
         return self.session.graph if self.session is not None else self.__graph
 
     @abstractmethod
-    def _get_direct_superclasses(self) -> Iterable["OntologyEntity"]:
+    def _get_direct_superclasses(self) -> Iterable[OntologyEntity]:
         """Direct superclass getter specific to the type of ontology entity."""
         pass
 
     @abstractmethod
-    def _get_direct_subclasses(self) -> Iterable["OntologyEntity"]:
+    def _get_direct_subclasses(self) -> Iterable[OntologyEntity]:
         """Direct subclass getter specific to the type of ontology entity."""
         pass
 
     @abstractmethod
-    def _get_superclasses(self) -> Iterable["OntologyEntity"]:
+    def _get_superclasses(self) -> Iterable[OntologyEntity]:
         """Superclass getter specific to the type of ontology entity."""
         pass
 
     @abstractmethod
-    def _get_subclasses(self) -> Iterable["OntologyEntity"]:
+    def _get_subclasses(self) -> Iterable[OntologyEntity]:
         """Subclass getter specific to the type of ontology entity."""
         pass
 
@@ -393,7 +393,7 @@ class OntologyEntity(ABC):
     def __init__(
         self,
         uid: UID,
-        session: Optional[Union["Session", "Container", "Wrapper"]] = None,
+        session: Optional[Union[Session, Container, Wrapper]] = None,
         triples: Optional[Iterable[Triple]] = None,
         merge: Optional[bool] = False,
     ) -> None:

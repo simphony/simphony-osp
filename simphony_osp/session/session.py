@@ -111,15 +111,15 @@ class Environment:
 
     # ↑ --------------------- Public API --------------------- ↑ #
 
-    _session_linked: Optional["Session"] = None
-    _stack_default_environment: List["Environment"] = []
-    _environment_references: Set["Environment"] = set()
+    _session_linked: Optional[Session] = None
+    _stack_default_environment: List[Environment] = []
+    _environment_references: Set[Environment] = set()
 
     _lock: int = 0
     """See the docstring of `locked` for an explanation of what locking an
     environment means."""
 
-    _subscribers: Set["Environment"]
+    _subscribers: Set[Environment]
     """A private attribute is used in order not to interfere with the
     `__getattr__`method from OntologyIndividual."""
 
@@ -129,7 +129,7 @@ class Environment:
         super().__init__(*args, **kwargs)
 
     @property
-    def subscribers(self) -> Set["Environment"]:
+    def subscribers(self) -> Set[Environment]:
         """Environments that depend on this instance.
 
         Such environments will be closed when this instance is closed.
@@ -137,12 +137,12 @@ class Environment:
         return self._subscribers
 
     @subscribers.setter
-    def subscribers(self, value: Set["Environment"]):
+    def subscribers(self, value: Set[Environment]):
         """Setter for the private  `_subscribers` attribute."""
         self._subscribers = value
 
     @classmethod
-    def get_default_environment(cls) -> Optional["Environment"]:
+    def get_default_environment(cls) -> Optional[Environment]:
         """Returns the default environment."""
         for environment in cls._stack_default_environment[::-1]:
             return environment
@@ -291,11 +291,11 @@ class Session(Environment):
         self.creation_set = set()
         return self
 
-    def __contains__(self, item: "OntologyEntity"):
+    def __contains__(self, item: OntologyEntity):
         """Check whether an ontology entity is stored on the session."""
         return item.session is self
 
-    def __iter__(self) -> Iterator["OntologyEntity"]:
+    def __iter__(self) -> Iterator[OntologyEntity]:
         """Iterate over all the ontology entities in the session.
 
         This operation can be computationally VERY expensive.
@@ -535,7 +535,7 @@ class Session(Environment):
     def delete(
         self,
         *entities: Union[
-            Union["OntologyEntity", Identifier],
+            Union[OntologyEntity, Identifier],
             Iterable[Union[OntologyEntity, Identifier]],
         ],
     ):
@@ -589,8 +589,8 @@ class Session(Environment):
     def __init__(
         self,
         base: Optional[Graph] = None,  # The graph must be OPEN already.
-        driver: Optional["InterfaceDriver"] = None,
-        ontology: Optional[Union["Session", bool]] = None,
+        driver: Optional[InterfaceDriver] = None,
+        ontology: Optional[Union[Session, bool]] = None,
         identifier: Optional[str] = None,
         namespaces: Dict[str, URIRef] = None,
         from_parser: Optional[OntologyParser] = None,
@@ -665,7 +665,7 @@ class Session(Environment):
             for key, value in namespaces.items():
                 self.bind(key, value)
 
-    def merge(self, entity: "OntologyEntity") -> None:
+    def merge(self, entity: OntologyEntity) -> None:
         """Merge a given ontology entity with what is in the session.
 
         Copies the ontology entity to the session, but does not remove any
@@ -676,7 +676,7 @@ class Session(Environment):
         """
         self._update_and_merge_helper(entity, mode=False)
 
-    def update(self, entity: "OntologyEntity") -> None:
+    def update(self, entity: OntologyEntity) -> None:
         """Store a copy of given ontology entity in the session.
 
         Args:
@@ -787,7 +787,7 @@ class Session(Environment):
         return self._graph
 
     @property
-    def driver(self) -> Optional["InterfaceDriver"]:
+    def driver(self) -> Optional[InterfaceDriver]:
         """The SimPhoNy interface on which the base graph is based on.
 
         Points to the interface response for realizing the base graph of the
@@ -797,7 +797,7 @@ class Session(Environment):
         return self._interface_driver
 
     @classmethod
-    def get_default_session(cls) -> Optional["Session"]:
+    def get_default_session(cls) -> Optional[Session]:
         """Returns the default session."""
         for environment in cls._stack_default_environment[::-1]:
             if isinstance(environment, Session):
@@ -806,7 +806,7 @@ class Session(Environment):
             return None
 
     @classmethod
-    def set_default_session(cls, session: "Session"):
+    def set_default_session(cls, session: Session):
         """Sets the first session of the stack of sessions.
 
         This effectively makes it the default. The method will not work if
@@ -876,7 +876,7 @@ class Session(Environment):
 
     def iter_labels(
         self,
-        entity: Optional[Union[Identifier, "OntologyEntity"]] = None,
+        entity: Optional[Union[Identifier, OntologyEntity]] = None,
         lang: Optional[str] = None,
         return_prop: bool = False,
         return_literal: bool = True,
@@ -918,15 +918,15 @@ class Session(Environment):
         """Get all the identifiers in the session."""
         return set(self.iter_identifiers())
 
-    def get_entities(self) -> Set["OntologyEntity"]:
+    def get_entities(self) -> Set[OntologyEntity]:
         """Get all the entities stored in the session."""
         return set(x for x in self)
 
-    _interface_driver: Optional["InterfaceDriver"] = None
+    _interface_driver: Optional[InterfaceDriver] = None
 
     def _update_and_merge_helper(
         self,
-        entity: "OntologyEntity",
+        entity: OntologyEntity,
         mode: bool,
         visited: Optional[set] = None,
     ) -> None:
@@ -1006,10 +1006,10 @@ class Session(Environment):
     creation_set: Set[Identifier]
     _namespaces: Dict[URIRef, str]
     _graph: Graph
-    _driver: Optional["Interface"] = None
+    _driver: Optional[Interface] = None
 
     @property
-    def _session_linked(self) -> "Session":
+    def _session_linked(self) -> Session:
         return self
 
     def _track_identifiers(self, identifier, delete=False):
