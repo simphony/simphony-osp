@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from functools import lru_cache
 from typing import (
     TYPE_CHECKING,
     FrozenSet,
@@ -14,6 +13,7 @@ from typing import (
     Set,
     Tuple,
     Type,
+    TypeVar,
     Union,
 )
 
@@ -29,12 +29,6 @@ if TYPE_CHECKING:
     from simphony_osp.session.wrapper import Wrapper
 
 logger = logging.getLogger(__name__)
-
-# The properties of the instances of the class OntologyEntity defined below
-# may be cached by applying the decorator @lru_cache after the @property
-# decorator. The following parameter fixes the maximum number of different
-# instances of OntologyEntity for which a property may be cached.
-entity_cache_size = 1024
 
 
 class OntologyEntity(ABC):
@@ -130,8 +124,9 @@ class OntologyEntity(ABC):
         self._session = value
 
     @property
-    @lru_cache(maxsize=entity_cache_size)
-    def direct_superclasses(self) -> FrozenSet[OntologyEntity]:
+    def direct_superclasses(
+        self: ONTOLOGY_ENTITY,
+    ) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the direct superclasses of the entity.
 
         Returns:
@@ -140,8 +135,7 @@ class OntologyEntity(ABC):
         return frozenset(self._get_direct_superclasses())
 
     @property
-    @lru_cache(maxsize=entity_cache_size)
-    def direct_subclasses(self) -> FrozenSet[OntologyEntity]:
+    def direct_subclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the direct subclasses of the entity.
 
         Returns:
@@ -150,8 +144,7 @@ class OntologyEntity(ABC):
         return frozenset(self._get_direct_subclasses())
 
     @property
-    @lru_cache(maxsize=entity_cache_size)
-    def superclasses(self) -> FrozenSet[OntologyEntity]:
+    def superclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the superclass of the entity.
 
         Returns:
@@ -161,8 +154,7 @@ class OntologyEntity(ABC):
         return frozenset(self._get_superclasses())
 
     @property
-    @lru_cache(maxsize=entity_cache_size)
-    def subclasses(self) -> FrozenSet[OntologyEntity]:
+    def subclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the subclasses of the entity.
 
         Returns:
@@ -377,22 +369,26 @@ class OntologyEntity(ABC):
         return self.session.graph if self.session is not None else self.__graph
 
     @abstractmethod
-    def _get_direct_superclasses(self) -> Iterable[OntologyEntity]:
+    def _get_direct_superclasses(
+        self: ONTOLOGY_ENTITY,
+    ) -> Iterable[ONTOLOGY_ENTITY]:
         """Direct superclass getter specific to the type of ontology entity."""
         pass
 
     @abstractmethod
-    def _get_direct_subclasses(self) -> Iterable[OntologyEntity]:
+    def _get_direct_subclasses(
+        self: ONTOLOGY_ENTITY,
+    ) -> Iterable[ONTOLOGY_ENTITY]:
         """Direct subclass getter specific to the type of ontology entity."""
         pass
 
     @abstractmethod
-    def _get_superclasses(self) -> Iterable[OntologyEntity]:
+    def _get_superclasses(self: ONTOLOGY_ENTITY) -> Iterable[ONTOLOGY_ENTITY]:
         """Superclass getter specific to the type of ontology entity."""
         pass
 
     @abstractmethod
-    def _get_subclasses(self) -> Iterable[OntologyEntity]:
+    def _get_subclasses(self: ONTOLOGY_ENTITY) -> Iterable[ONTOLOGY_ENTITY]:
         """Subclass getter specific to the type of ontology entity."""
         pass
 
@@ -466,3 +462,6 @@ class OntologyEntity(ABC):
             # Otherwise, it is None -> do not change what is stored.
         self._session = session
         self.__graph = None
+
+
+ONTOLOGY_ENTITY = TypeVar("ONTOLOGY_ENTITY", bound=OntologyEntity)

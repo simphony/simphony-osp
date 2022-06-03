@@ -42,8 +42,7 @@ setup(
         },
         "console_scripts": {
             "pico = simphony_osp.tools.pico:terminal",
-            "semantic2dot = simphony_osp.tools.semantic2dot"
-            ":run_from_terminal",
+            "semantic2dot = simphony_osp.tools.semantic2dot:terminal",
         },
     },
     install_requires=[

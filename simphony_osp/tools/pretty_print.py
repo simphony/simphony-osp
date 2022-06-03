@@ -3,9 +3,9 @@
 import sys
 from functools import reduce
 from operator import add
-from typing import Iterable, Optional, Set
+from typing import Iterable, Optional, Set, Union
 
-from simphony_osp.namespaces import simphony
+from simphony_osp.namespaces import owl
 from simphony_osp.ontology.attribute import OntologyAttribute
 from simphony_osp.ontology.composition import Composition
 from simphony_osp.ontology.entity import OntologyEntity
@@ -15,20 +15,28 @@ from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.ontology.restriction import Restriction
 
 
-def pretty_print(entity: OntologyEntity, file=sys.stdout):
+def pretty_print(
+    entity: OntologyEntity,
+    rel: Union[
+        OntologyRelationship, Iterable[OntologyRelationship]
+    ] = owl.topObjectProperty,
+    file=sys.stdout,
+):
     """Print the given ontology entity in a human-readable way.
 
-    The UID, the type, the ancestors and the content are printed.
+    The identifier, the type, the ancestors and the content are printed.
 
     Args:
-        entity (Cuds): container to be printed.
-        file (TextIOWrapper): The file to print to.
+        entity: Entity to be printed.
+        file: The file to print to.
+        rel: The relationships to consider when searching for sub-elements.
     """
     # Fix the order of each element by pre-populating a dictionary.
     pp = {
         x: ""
         for x in (
             "title",
+            "identifier",
             "classes",
             "superclasses",
             "attributes",
@@ -37,7 +45,7 @@ def pretty_print(entity: OntologyEntity, file=sys.stdout):
     }
 
     # Title
-    pp["title"] = _pp_entity_name(entity)
+    pp["title"] = f"{_pp_entity_name(entity)}:"
 
     # Superclasses
     superclasses = (
@@ -49,30 +57,32 @@ def pretty_print(entity: OntologyEntity, file=sys.stdout):
         if isinstance(entity, OntologyIndividual)
         else set(entity.superclasses)
     )
-    labels = _pp_list_of_labels_or_uids(superclasses)
+    labels = _pp_list_of_labels_or_uids(superclasses, namespace=True)
     pp["superclasses"] = "\n  superclasses: " + labels
 
     if isinstance(entity, OntologyIndividual):
         # Classes
         classes = set(entity.classes)
-        labels = _pp_list_of_labels_or_uids(classes)
+        labels = _pp_list_of_labels_or_uids(classes, namespace=True)
         pp["classes"] = f"\n  type{'s' if len(classes) > 1 else ''}: {labels}"
         # Attribute values
         values_str = _pp_individual_values(entity)
         if values_str:
             pp["attributes"] = f"\n  values: {values_str}"
         # Subelements
-        pp["subelements"] = _pp_individual_subelements(entity)
+        pp["subelements"] = _pp_individual_subelements(entity, rel)
+
+    pp["identifier"] = f"\n  identifier: {entity.uid}"
 
     pp = reduce(add, pp.values())
     print(pp, file=file)
 
 
-def _pp_entity_name(entity: OntologyEntity):
+def _pp_entity_name(entity: OntologyEntity, type_: bool = False):
     """Return the name of the given element following the pretty print format.
 
     Args:
-        entity (Cuds): element to be printed.
+        entity: element to be printed.
 
     Returns:
         String with the pretty printed text.
@@ -96,17 +106,27 @@ def _pp_entity_name(entity: OntologyEntity):
 
     title = "- %s" % type_name
 
+    if type_ is True and isinstance(entity, OntologyIndividual):
+        classes = entity.classes
+        title += (
+            f" of class{'es' if len(classes) > 1 else ''} "
+            f"{','.join(str(x) for x in classes)}"
+        )
+
     label = entity.label
     if label is not None:
         title += f" named {label}"
-    else:
-        title += f" {entity.uid}"
+    # else:
+    #     title += f" {entity.uid}"
 
     return title
 
 
 def _pp_individual_subelements(
     individual: OntologyIndividual,
+    rel: Union[
+        OntologyRelationship, Iterable[OntologyRelationship]
+    ] = owl.topObjectProperty,
     level_indentation: str = "\n  ",
     visited: Optional[Set] = None,
 ) -> str:
@@ -125,6 +145,10 @@ def _pp_individual_subelements(
 
     # Find relationships connecting the individual to its subelements.
     consider_relationships = set()
+    if isinstance(rel, OntologyRelationship):
+        rels = {rel}
+    else:
+        rels = rel
     for predicate in individual.session.graph.predicates(
         individual.identifier, None
     ):
@@ -137,7 +161,7 @@ def _pp_individual_subelements(
         except KeyError:
             pass
     filtered_relationships = filter(
-        lambda x: x.is_subclass_of(simphony.activeRelationship),
+        lambda x: any(x.is_subclass_of(r) for r in rels),
         consider_relationships,
     )
     sorted_relationships = sorted(filtered_relationships, key=str)
@@ -146,13 +170,22 @@ def _pp_individual_subelements(
     visited.add(individual.uid)
     for i, relationship in enumerate(sorted_relationships):
         relationship_name = _pp_list_of_labels_or_uids({relationship})
-        pp_sub += level_indentation + " |_Relationship %s:" % relationship_name
+        pp_sub += level_indentation + (
+            " |_Relationship %s (%s):"
+            % (relationship_name, relationship.namespace.name)
+        )
         sorted_elements = sorted(
             individual.iter(rel=relationship, return_rel=True),
             key=lambda x: (
-                f"\0{x[0].oclass.label}"
-                if x[0].oclass.label is not None
-                else f"{x[0].oclass.identifier}",
+                "\0"
+                + str(
+                    sorted(
+                        class_.label
+                        if class_.label is not None
+                        else class_.identifier
+                        for class_ in x[0].classes
+                    )[0]
+                ),
                 f"\0{x[1].label}"
                 if x[1].label is not None
                 else f"{x[1].identifier}",
@@ -166,11 +199,14 @@ def _pp_individual_subelements(
                 indentation = level_indentation + "   "
             else:
                 indentation = level_indentation + " | "
-            pp_sub += indentation + _pp_entity_name(element)
+            pp_sub += indentation + _pp_entity_name(element, type_=True)
             if j == len(sorted_elements) - 1:
                 indentation += "   "
             else:
-                indentation += ".  "
+                indentation += " . "
+
+            identifier_str = f"identifier: {element.uid}"
+            pp_sub += indentation + identifier_str
 
             if element.uid in visited:
                 pp_sub += indentation + "(already printed)"
@@ -180,7 +216,9 @@ def _pp_individual_subelements(
             if values_str:
                 pp_sub += indentation + values_str
 
-            pp_sub += _pp_individual_subelements(element, indentation, visited)
+            pp_sub += _pp_individual_subelements(
+                element, rels, indentation, visited
+            )
     return pp_sub
 
 
@@ -197,7 +235,7 @@ def _pp_individual_values(cuds_object, indentation="\n          "):
     """
     result = []
     sorted_attributes = sorted(
-        cuds_object.attributes().items(),
+        cuds_object.attributes.items(),
         key=lambda x: (
             f"\0{x[0].label}"
             if x[0].label is not None
@@ -219,9 +257,16 @@ def _pp_individual_values(cuds_object, indentation="\n          "):
         return indentation.join(result)
 
 
-def _pp_list_of_labels_or_uids(entities: Iterable[OntologyEntity]) -> str:
+def _pp_list_of_labels_or_uids(
+    entities: Iterable[OntologyEntity], namespace: bool = False
+) -> str:
     entities = set(entities)
-    labels = (entity.label for entity in entities)
+    if namespace:
+        labels = (
+            f"{entity.label} ({entity.namespace.name})" for entity in entities
+        )
+    else:
+        labels = (entity.label for entity in entities)
     labels = (
         label if label is not None else str(entity.uid)
         for label, entity in zip(labels, entities)

@@ -1,11 +1,11 @@
 """Utility resources for the ontology module."""
 from __future__ import annotations
 
-import functools
 import importlib
 import os
 import pkgutil
 from abc import ABC, abstractmethod
+from functools import lru_cache, reduce
 from typing import Any, Dict, Iterable, Iterator, MutableSet, Set, Tuple
 
 from simphony_osp.ontology.entity import OntologyEntity
@@ -302,7 +302,7 @@ Read the docstrings of the functions defined in this section for more details.
 # ↓ --------------- ↓
 
 
-@functools.lru_cache(maxsize=None)
+@lru_cache(maxsize=None)
 def _compute_mappings() -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
     """Maps RDF types and node identifier types to Python classes.
 
@@ -405,7 +405,7 @@ def compatible_classes(type_, identifier):
     # Remember that the call above is cached (see `_compute_mappings`).
 
     from_type = mapping_rdf_to_python_class.get(type_, set())
-    from_identifier = functools.reduce(
+    from_identifier = reduce(
         lambda x, y: x | y,
         (
             value

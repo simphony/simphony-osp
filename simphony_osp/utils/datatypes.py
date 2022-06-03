@@ -1,4 +1,5 @@
 """This module contains methods for datatype conversions."""
+from __future__ import annotations
 
 import logging
 import re
@@ -301,7 +302,7 @@ class UID(CustomDataType):
 
     def __init__(
         self,
-        value: Optional[Union["UID", UUID, str, URIRef, int, bytes]] = None,
+        value: Optional[Union[UID, UUID, str, Node, int, bytes]] = None,
     ):
         """Initializes a new UID from `value`."""
         super().__init__()
@@ -329,7 +330,7 @@ class UID(CustomDataType):
             value = UUID(int=value)
         elif isinstance(value, bytes):
             value = UUID(bytes=value)
-        if invalid or not isinstance(value, (UUID, URIRef, BNode)):
+        if invalid or not isinstance(value, (UUID, Node)):
             raise ValueError(f"Invalid uid: {value}.")
         self.data = value
 

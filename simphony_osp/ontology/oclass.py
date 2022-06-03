@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-from functools import lru_cache
 from itertools import chain
 from types import MappingProxyType
 from typing import (
@@ -72,7 +71,6 @@ class OntologyClass(OntologyEntity):
         return MappingProxyType(attributes)
 
     @property
-    @lru_cache(maxsize=None)
     def axioms(self) -> FrozenSet[Restriction]:
         """Get all the axioms for the ontology class.
 

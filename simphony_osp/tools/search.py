@@ -1,168 +1,219 @@
 """Utilities for searching entities."""
 
-from typing import Optional
+from itertools import chain
+from typing import Callable, Iterable, Iterator, Optional, Set, Union
 
+from rdflib.term import Node
+
+from simphony_osp.namespaces import owl
+from simphony_osp.ontology.attribute import OntologyAttribute
+from simphony_osp.ontology.individual import OntologyIndividual
+from simphony_osp.ontology.oclass import OntologyClass
+from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.session.session import QueryResult, Session
+from simphony_osp.utils.datatypes import UID, AttributeValue
 
 
-def find_cuds_object(
-    criterion,
-    root,
-    rel,
-    find_all,
-    max_depth=float("inf"),
-    current_depth=0,
-    visited=None,
-):
-    """Recursively finds an element inside a container.
+def find(
+    root: OntologyIndividual,
+    criterion: Callable[[OntologyIndividual], bool] = (lambda x: True),
+    rel: Union[
+        OntologyRelationship, Iterable[OntologyRelationship]
+    ] = owl.topObjectProperty,
+    find_all: bool = True,
+    max_depth: Union[int, float] = float("inf"),
+) -> Union[Optional[OntologyIndividual], Iterator[OntologyIndividual]]:
+    """Finds a set of ontology individuals following the given relationships.
 
     Use the given relationship for traversal.
 
     Args:
-        criterion (Callable): Function that returns True on the Cuds object
-            that is searched.
-        root (Cuds): Starting point of search
-        rel (OntologyRelationship): The relationship (incl. subrelationships)
-            to consider for traversal.
-        find_all (bool): Whether to find all cuds_objects satisfying
+        criterion: Function that returns True on the ontology individual that
+            is searched.
+        root: Starting point of the search.
+        rel: The relationship(s) (incl. sub-relationships) to consider for
+            traversal.
+        find_all: Whether to find all ontology individuals satisfying
             the criterion.
-        max_depth (int, optional): The maximum depth for the search.
-            Defaults to float("inf").
-        current_depth (int, optional): The current search depth. Defaults to 0.
-        visited (Set[Union[UUID, URIRef]], optional): The set of uids
-            already visited. Defaults to None.
+        max_depth: The maximum depth for the search. Defaults to
+            float("inf") (unlimited).
 
     Returns:
-        Union[Cuds, List[Cuds]]: The element(s) found.
+        The element(s) found. One element (or `None` is returned when
+        `find_all` is `False`, a generator when `find_all` is True.
+    """
+    if isinstance(rel, OntologyRelationship):
+        rel = {rel}
+
+    result = _iter(criterion, root, rel, max_depth)
+    if not find_all:
+        result = next(result, None)
+
+    return result
+
+
+def _iter(
+    criterion: Callable[[OntologyIndividual], bool],
+    root: OntologyIndividual,
+    rel: Iterable[OntologyRelationship],
+    max_depth=float("inf"),
+    current_depth: int = 0,
+    visited: Optional[Set[UID]] = None,
+) -> Iterator[OntologyIndividual]:
+    """Finds a set of ontology individuals following the given relationships.
+
+    Use the given relationship for traversal.
+
+    Args:
+        criterion: Function that returns True on the ontology individual that
+            is searched.
+        root: Starting point of the search.
+        rel: The relationship(s) (incl. sub-relationships) to consider for
+            traversal.
+        max_depth: The maximum depth for the search. Defaults to
+            float("inf") (unlimited).
+        current_depth: The current search depth. Defaults to 0.
+        visited: The set of UIDs already visited. Defaults to None.
+
+    Returns:
+        The element(s) found.
     """
     visited = visited or set()
     visited.add(root.uid)
-    output = [root] if criterion(root) else []
-
-    if output and not find_all:
-        return output[0]
+    if criterion(root):
+        yield root
 
     if current_depth < max_depth:
-        for sub in root.iter(rel=rel):
+        for sub in chain(*(root.iter(rel=r) for r in rel)):
             if sub.uid not in visited:
-                result = find_cuds_object(
+                yield from _iter(
                     criterion=criterion,
                     root=sub,
                     rel=rel,
-                    find_all=find_all,
                     max_depth=max_depth,
                     current_depth=current_depth + 1,
                     visited=visited,
                 )
-                if not find_all and result is not None:
-                    return result
-                if result is not None:
-                    output += result
-    return output if find_all else None
 
 
-def find_cuds_object_by_uid(uid, root, rel):
-    """Recursively finds an element with given uid inside a cuds object.
+def find_by_identifier(
+    root: OntologyIndividual,
+    identifier: Union[Node, UID, str],
+    rel: Union[
+        OntologyRelationship, Iterable[OntologyRelationship]
+    ] = owl.topObjectProperty,
+) -> Optional[OntologyIndividual]:
+    """Recursively finds an ontology individual with given identifier.
 
-    Only use the given relationship for traversal.
+    Only uses the given relationship for traversal.
 
     Args:
-        uid (Union[UUID, URIRef]): The uid of the entity
-            that is searched.
-        root (Cuds): Starting point of search.
-        rel (OntologyRelationship): The relationship (incl. subrelationships)
-            to consider.
+        root: Starting point of search.
+        identifier: The identifier of the entity that is searched.
+        rel: The relationship (incl. sub-relationships) to consider.
 
     Returns:
-        Cuds: The element found.
+        The resulting individual.
     """
-    return find_cuds_object(
-        criterion=lambda cuds_object: cuds_object.uid == uid,
+    return find(
         root=root,
+        criterion=lambda individual: individual.uid == UID(identifier),
         rel=rel,
         find_all=False,
     )
 
 
-def find_cuds_objects_by_oclass(oclass, root, rel):
-    """Recursively finds an element with given oclass inside a cuds object.
+def find_by_class(
+    root: OntologyIndividual,
+    oclass: OntologyClass,
+    rel: Union[
+        OntologyRelationship, Iterable[OntologyRelationship]
+    ] = owl.topObjectProperty,
+) -> Iterator[OntologyIndividual]:
+    """Recursively finds ontology individuals with given class.
 
-    Only use the given relationship for traversal.
+    Only uses the given relationship for traversal.
 
     Args:
-        oclass (OntologyClass): The oclass of the entity that is searched.
-        root (Cuds): Starting point of search.
-        rel (OntologyRelationship): The relationship (incl. subrelationships)
-            to consider for traversal.
+        root: Starting point of search.
+        oclass: The ontology class of the entity that is searched.
+        rel: The relationship (incl. sub-relationships) to consider for
+            traversal.
 
     Returns:
-        List[Cuds]: The elements found.
+        The individuals found.
     """
-    return find_cuds_object(
-        criterion=lambda cuds_object: cuds_object.is_a(oclass),
+    return find(
+        criterion=lambda individual: individual.is_a(oclass),
         root=root,
         rel=rel,
         find_all=True,
     )
 
 
-def find_cuds_objects_by_attribute(attribute, value, root, rel):
-    """Recursively finds a cuds object by attribute and value.
+def find_by_attribute(
+    root: OntologyIndividual,
+    attribute: OntologyAttribute,
+    value: AttributeValue,
+    rel: Union[
+        OntologyRelationship, Iterable[OntologyRelationship]
+    ] = owl.topObjectProperty,
+) -> Iterator[OntologyIndividual]:
+    """Recursively finds ontology individuals by attribute and value.
 
     Only the given relationship will be used for traversal.
 
-
     Args:
-        attribute (str): The attribute to look for
-        value (Any): The corresponding value to filter by
-        root (Cuds): The root for the search.
-        rel (OntologyRelationship): The relationship (+ subrelationships) to
-            consider.
+        root: The root for the search.
+        attribute: The attribute to look for.
+        value: The corresponding value to filter by.
+        rel: The relationship (incl. sub-relationships) to consider.
 
     Returns:
-        List[Cuds]: The found cuds objects.
+        The individuals found.
     """
-    return find_cuds_object(
-        criterion=(
-            lambda cuds_object: hasattr(cuds_object, attribute)
-            and getattr(cuds_object, attribute) == value
-        ),
+    return find(
+        criterion=(lambda individual: value in individual[attribute]),
         root=root,
         rel=rel,
         find_all=True,
     )
 
 
-def find_relationships(find_rel, root, consider_rel, find_sub_rels=False):
+def find_relationships(
+    root: OntologyIndividual,
+    find_rel: OntologyRelationship,
+    find_sub_relationships: bool = False,
+    rel: Union[
+        OntologyRelationship, Iterable[OntologyRelationship]
+    ] = owl.topObjectProperty,
+) -> Iterator[OntologyIndividual]:
     """Find the given relationship in the subtree of the given root.
 
     Args:
-        find_rel (OntologyRelationship): The relationship to find.
-        root (Cuds): Only consider the subgraph rooted in this root.
-        consider_rel (OntologyRelationship): Only consider these relationships
-            when searching.
-        find_sub_rels (bool, optional): The cuds objects having the given
-            relationship.. Defaults to False.
+        root: Only consider the subgraph rooted in this root.
+        find_rel: The relationship to find.
+        find_sub_relationships: Treat relationships that are a
+            sub-relationship of the relationship to find as valid results.
+            Defaults to `False`.
+        rel: Only consider these relationships (incl. sub-relationships) when
+            searching.
+
 
     Returns:
-        List[Cuds]: The cuds objects having the given relationship.
+        The ontology individuals having the given relationship.
     """
-    if find_sub_rels:
+    subclasses = find_rel.subclasses if find_sub_relationships else {find_rel}
 
-        def criterion(cuds_object):
-            for rel in cuds_object._neighbors.keys():
-                if find_rel.is_superclass_of(rel):
-                    return True
-            return False
+    def criterion(individual):
+        return any(
+            relationship in subclasses
+            for _, relationship in individual.relationships_iter(
+                return_rel=True
+            )
+        )
 
-    else:
-
-        def criterion(cuds_object):
-            return find_rel in cuds_object._neighbors
-
-    return find_cuds_object(
-        criterion=criterion, root=root, rel=consider_rel, find_all=True
-    )
+    return find(criterion=criterion, root=root, rel=rel, find_all=True)
 
 
 def sparql(query: str, session: Optional[Session] = None) -> QueryResult:

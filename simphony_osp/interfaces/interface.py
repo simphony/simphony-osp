@@ -22,8 +22,8 @@ from rdflib.store import Store
 from rdflib.term import Node
 
 from simphony_osp.session.session import Session
-from simphony_osp.utils import simphony_namespace
 from simphony_osp.utils.datatypes import Pattern, Triple
+from simphony_osp.utils.simphony_namespace import simphony_namespace
 
 if TYPE_CHECKING:
     from simphony_osp.ontology.entity import OntologyEntity
