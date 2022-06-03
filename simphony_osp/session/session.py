@@ -436,20 +436,33 @@ class Session(Environment):
             The ontology entity.
         """
         results = set()
-        for identifier in self.iter_identifiers():
-            entity_labels = self.iter_labels(
-                entity=identifier,
-                lang=lang,
-                return_prop=False,
-                return_literal=False,
+
+        identifiers_and_labels = self.iter_labels(
+            lang=lang,
+            return_prop=False,
+            return_literal=False,
+            return_identifier=True
+        )
+        if case_sensitive is False:
+            comp_label = label.lower()
+            identifiers_and_labels = (
+                (label.lower(), identifier)
+                for label, identifier in identifiers_and_labels
             )
-            if case_sensitive is False:
-                entity_labels = (label.lower() for label in entity_labels)
-                comp_label = label.lower()
-            else:
-                comp_label = label
-            if comp_label in entity_labels:
+        else:
+            comp_label = label
+
+        identifiers_and_labels = (
+            (label, identifier)
+            for label, identifier in identifiers_and_labels
+            if label == comp_label
+        )
+
+        for _, identifier in identifiers_and_labels:
+            try:
                 results.add(self.from_identifier(identifier))
+            except KeyError:
+                pass
         if len(results) == 0:
             error = "No element with label %s was found in ontology %s." % (
                 label,
