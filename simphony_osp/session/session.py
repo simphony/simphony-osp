@@ -441,7 +441,7 @@ class Session(Environment):
             lang=lang,
             return_prop=False,
             return_literal=False,
-            return_identifier=True
+            return_identifier=True,
         )
         if case_sensitive is False:
             comp_label = label.lower()
