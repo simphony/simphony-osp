@@ -2,10 +2,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from base64 import b64encode
 from collections.abc import Collection
 from datetime import datetime, timedelta
 from enum import IntEnum
 from itertools import chain
+import logging
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import (
     TYPE_CHECKING,
     BinaryIO,
@@ -39,6 +43,8 @@ __all__ = [
     "Interface",
     "InterfaceDriver",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 class BufferType(IntEnum):
@@ -257,6 +263,16 @@ class InterfaceDriver(Store):
     interface produces triples in chunks).
     """
 
+    _file_cache: Optional[TemporaryDirectory] = None
+    """Holds files that are accessed while queued.
+
+    Files are queued as byte streams (which can be exhausted). Therefore,
+    if a user needs to access a file before it is committed, the byte stream
+    needs to be copied somewhere to be committed later. This also applies
+    when files need to be accessed during commit by a wrapper (as they are
+    truly sent to the wrapper after the `commit` method has finished).
+    """
+
     # RDFLib
     # ↓ -- ↓
 
@@ -308,6 +324,9 @@ class InterfaceDriver(Store):
 
         # Reset cache
         self._cache.remove((None, None, None))
+
+        # Set-up file bytestream cache
+        self._file_cache = TemporaryDirectory()
 
         self.interface.open(configuration, create)
 
@@ -363,6 +382,11 @@ class InterfaceDriver(Store):
         self.interface.added = None
         self.interface.updated = None
         self.interface.deleted = None
+
+        # Clear bytestream cache
+        if self._file_cache is not None:
+            self._file_cache.cleanup()
+            self._file_cache = None
 
     def add(self, triple: Triple, context: Graph, quoted=False) -> None:
         """Adds triples to the interface.
@@ -702,7 +726,7 @@ class InterfaceDriver(Store):
         )
         self.interface.base.commit()
 
-        # Queue file removal for removed file objects.
+        # Queue file upload and removal for file objects.
         for s in chain(
             self._buffer_uncaught[BufferType.DELETED][
                 : RDF.type : simphony_namespace.File
@@ -714,9 +738,21 @@ class InterfaceDriver(Store):
             self.queue(s, None)
         for URI, file in self._queue.items():
             if file is None:
-                self.interface.delete(URI)
+                if hasattr(self.interface, 'delete'):
+                    self.interface.delete(URI)
+                else:
+                    logging.warning(
+                        f"Ignoring deletion of file {URI}, as the session "
+                        f"does not support deleting files."
+                    )
             else:
-                self.interface.save(URI, file)
+                if hasattr(self.interface, 'save'):
+                    self.interface.save(URI, file)
+                else:
+                    logging.warning(
+                        f"File {URI}, will NOT be committed to the session, "
+                        f"as it does not support the storage of new files."
+                    )
                 file.close()
 
         # Reflect changes from buffers in the cache.
@@ -825,7 +861,48 @@ class InterfaceDriver(Store):
 
     def queue(self, key: URIRef, file: Optional[BinaryIO]) -> None:
         """Queue a file to be committed."""
+        if not hasattr(self.interface, 'save'):
+            logger.warning(
+                'This session does not support saving new files. The '
+                'contents of the file will NOT be saved during the commit '
+                'operation.'
+            )
+
+        # Clear cached bytestream
+        file_name = b64encode(bytes(key, encoding="UTF-8")).decode("UTF-8")
+        file_path = Path(self._file_cache.name) / file_name
+        if file_path.exists():
+            file_path.unlink()
+
         self._queue[key] = file
+
+    def load(self, key: URIRef) -> BinaryIO:
+        """Retrieve a file."""
+        if key in self._queue:
+            file_name = b64encode(bytes(key, encoding="UTF-8")).decode("UTF-8")
+
+            # Save a temporary copy of the file and put a file handle
+            # pointing to the copy on the queue
+            if not (Path(self._file_cache.name) / file_name).exists():
+                queued = self._queue[key]
+                with open(Path(self._file_cache.name) / file_name, 'wb') as \
+                        file:
+                    file.write(queued.read())
+
+                file = open(Path(self._file_cache.name) / file_name, 'rb')
+                self._queue[key] = file
+
+            # Return a file handle pointing to the copy
+            byte_stream = open(Path(self._file_cache.name) / file_name, 'rb')
+        elif hasattr(self.interface, 'load'):
+            byte_stream = self.interface.load(key)
+        else:
+            raise FileNotFoundError(
+                'This session does not support file storage. Unable to '
+                'retrieve the file contents.'
+            )
+
+        return byte_stream
 
     def cache_clear(self):
         """Clear the interface's cache."""
