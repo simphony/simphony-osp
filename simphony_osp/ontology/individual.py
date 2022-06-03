@@ -765,12 +765,12 @@ class OntologyIndividual(OntologyEntity):
     def __init__(
         self,
         uid: Optional[UID] = None,
-        session: Optional["Session"] = None,
+        session: Optional[Session] = None,
         triples: Optional[Iterable[Triple]] = None,
         merge: bool = False,
         class_: Optional[OntologyClass] = None,
         attributes: Optional[
-            Mapping["OntologyAttribute", Iterable[AttributeValue]]
+            Mapping[OntologyAttribute, Iterable[AttributeValue]]
         ] = None,
     ) -> None:
         """Initialize the ontology individual."""
@@ -1713,20 +1713,20 @@ class OntologyIndividual(OntologyEntity):
             )
         return result
 
-    def _get_direct_superclasses(self) -> Iterable["OntologyClass"]:
+    def _get_direct_superclasses(self) -> Iterable[OntologyClass]:
         yield from (
             x for oclass in self.classes for x in oclass.direct_superclasses
         )
 
-    def _get_direct_subclasses(self) -> Iterable["OntologyClass"]:
+    def _get_direct_subclasses(self) -> Iterable[OntologyClass]:
         yield from (
             x for oclass in self.classes for x in oclass.direct_subclasses
         )
 
-    def _get_superclasses(self) -> Iterable["OntologyClass"]:
+    def _get_superclasses(self) -> Iterable[OntologyClass]:
         yield from (x for oclass in self.classes for x in oclass.superclasses)
 
-    def _get_subclasses(self) -> Iterable["OntologyClass"]:
+    def _get_subclasses(self) -> Iterable[OntologyClass]:
         yield from (x for oclass in self.classes for x in oclass.subclasses)
 
     # Annotation handling
