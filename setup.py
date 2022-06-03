@@ -36,6 +36,10 @@ setup(
             "Dataspace = simphony_osp.interfaces.dataspace:Dataspace",
             "Remote = simphony_osp.interfaces.remote:Remote",
         },
+        "simphony_osp.ontology.operations": {
+            "File = simphony_osp.ontology.operations.file:File",
+            "Container = simphony_osp.ontology.operations.container:Container",
+        },
         "console_scripts": {
             "pico = simphony_osp.tools.pico:terminal",
             "semantic2dot = simphony_osp.tools.semantic2dot"

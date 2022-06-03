@@ -29,6 +29,7 @@ from simphony_osp.ontology.annotation import OntologyAnnotation
 from simphony_osp.ontology.attribute import OntologyAttribute
 from simphony_osp.ontology.entity import OntologyEntity
 from simphony_osp.ontology.oclass import OntologyClass
+from simphony_osp.ontology.operations.operations import OperationsNamespace
 from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.ontology.utils import DataStructureSet
 from simphony_osp.utils.datatypes import (
@@ -41,8 +42,10 @@ from simphony_osp.utils.datatypes import (
     RelationshipValue,
     Triple,
 )
+from simphony_osp.utils.simphony_namespace import simphony_namespace
 
 if TYPE_CHECKING:
+    from simphony_osp.ontology.operations.container import ContainerEnvironment
     from simphony_osp.session.session import Session
 
 logger = logging.getLogger(__name__)
@@ -1659,8 +1662,83 @@ class OntologyIndividual(OntologyEntity):
             iterator = iterator()
         return iterator
 
+    @property
+    def operations(self) -> OperationsNamespace:
+        """Access operations specific this individual's class."""
+        if self._operations_namespace is None:
+            self._operations_namespace = OperationsNamespace(individual=self)
+        return self._operations_namespace
+
+    def __enter__(self) -> ContainerEnvironment:
+        """Use an ontology individual as a context manager.
+
+        At the moment, individuals cannot be used as a context manager,
+        except for containers.
+
+        Returns:
+            A `ContainerEnvironment` object when a container is used as a
+            context manager. `ContainerEnvironment` objects have the same
+            functionality as the operations defined for a container,
+            but those can be called directly.
+
+        Raises:
+            AttributeError: When an ontology individual which does not
+                belong to the `Container` subclass is used as a context
+                manager.
+        """
+        classes = set(class_.identifier for class_ in self.superclasses)
+
+        if simphony_namespace.Container in classes:
+            # Triggers the creation of the operations instance and thus the
+            # environment.
+            environment = self.operations.environment
+            self._operations_context = environment
+            return environment.__enter__()
+
+        raise AttributeError("__enter__")
+
+    def __exit__(self, *args):
+        """Leave the individual's context manager when used as such.
+
+        At the moment, individuals cannot be used as a context manager,
+        except for containers.
+
+        Raises:
+            AttributeError: When the method `__enter__` has not been called
+                on the individual before.
+        """
+        if self._operations_context is not None:
+            context_return = self._operations_context.__exit__(*args)
+            self._operations_context = None
+            return context_return
+
+        raise AttributeError("__exit__")
+
     # ↑ ------ ↑
     # Public API
+
+    _operations_namespace: Optional[OperationsNamespace] = None
+    """Holds the operations namespace instance for this ontology individual.
+
+    The namespace in turns holds the instances of any subclasses of
+    `Operation` that were defined and compatible with the classes of the
+    individual.
+    """
+
+    _operations_context: Optional[ContainerEnvironment] = None
+    """Stores the current context object.
+
+    Some individuals (currently only containers) can be used as context
+    managers through the operations API. The way this works is the
+    following: when the `with` statement is used, an operation on the
+    individual is called that retrieves the actual context manager object
+    (which is not an individual) and calls the `__enter__` method from it.
+
+    This context manager object needs to be stored somewhere so that when
+    the individual context manager is exited, the actual context manager
+    object's `__exit__` method is also called. This is the purpose of this
+    attribute.
+    """
 
     def _attribute_autocompletion(self) -> Iterable[str]:
         """Compute individual's attributes as autocompletion suggestions."""
