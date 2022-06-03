@@ -3,7 +3,8 @@
 The public API methods are the methods that are available to the users,
 and available in the user documentation.
 """
-
+import io
+import json
 import os
 import shutil
 import tempfile
@@ -12,9 +13,11 @@ from decimal import Decimal
 from importlib import import_module
 from pathlib import Path
 from types import MappingProxyType
-from typing import Hashable
+from typing import Hashable, Iterable, Optional, Tuple, Type, Union
 
 from rdflib import RDFS, SKOS, XSD, Graph, Literal, URIRef
+from rdflib.compare import isomorphic
+from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 
 from simphony_osp.ontology.annotation import OntologyAnnotation
 from simphony_osp.ontology.attribute import OntologyAttribute
@@ -24,7 +27,7 @@ from simphony_osp.ontology.oclass import OntologyClass
 from simphony_osp.ontology.parser import OntologyParser
 from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.session.session import Session
-from simphony_osp.tools import sparql
+from simphony_osp.tools import branch, export_file, import_file, sparql
 from simphony_osp.tools.pico import install, namespaces, packages, uninstall
 from simphony_osp.utils.pico import pico
 
@@ -551,6 +554,20 @@ class TestSessionAPI(unittest.TestCase):
 
         # Test the `graph` property.
         self.assertTrue(isinstance(ontology.graph, Graph))
+
+    def test_core_session(self):
+        """Tests access and use of the default session."""
+        from simphony_osp.namespaces import city
+        from simphony_osp.session import Session, core_session
+
+        fr = city.City(name="Freiburg", coordinates=[10, 28])
+
+        self.assertIs(fr.session, core_session)
+
+        with Session() as session:
+            pr = city.City(name="Paris", coordinates=[-10, 42])
+            self.assertIsNot(fr.session, pr.session)
+            self.assertIs(pr.session, session)
 
 
 class TestOntologyAPICity(unittest.TestCase):
@@ -1602,114 +1619,8 @@ class TestOntologyAPIFOAF(unittest.TestCase):
         # test_api_city.TestAPICity.test_bracket_notation.
 
 
-class TestPico(unittest.TestCase):
-    """Tests the usage of pico."""
-
-    prev_default_ontology: Session
-    path: Path
-
-    def setUp(self):
-        """Create a TBox and set it as the default ontology.
-
-        The new TBox contains SimPhoNy, OWL, RDFS and FOAF.
-        """
-        self.path = Path(".TEST_OSP_CORE_INSTALLATION").absolute()
-        os.makedirs(self.path, exist_ok=True)
-
-        pico.set_default_installation_path(self.path)
-
-    def tearDown(self):
-        """Restore the previous default TBox."""
-        pico.set_default_installation_path(None)
-        shutil.rmtree(self.path)
-
-    def test_install(self):
-        """Test the installation of ontologies."""
-        self.assertRaises(
-            ModuleNotFoundError,
-            import_module,
-            "city",
-            "simphony_osp.namespaces",
-        )
-
-        install("city")
-
-        from simphony_osp.namespaces import city
-
-        self.assertTrue(city.City)
-
-    def test_uninstall(self):
-        """Test the uninstallation of ontologies."""
-        import simphony_osp.namespaces as namespaces_module
-
-        # Install the ontology first and guarantee that it worked.
-        self.assertRaises(
-            ModuleNotFoundError,
-            import_module,
-            "city",
-            "simphony_osp.namespaces",
-        )
-        install("city")
-
-        from simphony_osp.namespaces import city
-
-        self.assertTrue(city.City)
-
-        # Now test uninstallation.
-        uninstall("city")
-        self.assertRaises(
-            ModuleNotFoundError,
-            import_module,
-            "city",
-            "simphony_osp.namespaces",
-        )
-        self.assertRaises(
-            AttributeError, lambda: getattr(namespaces_module, "city")
-        )
-        self.assertRaises(AttributeError, lambda: city.City)
-
-        # Test that reinstalling makes the existing namespace work again.
-        install("city")
-        self.assertTrue(city.City)
-
-    def test_packages(self):
-        """Test listing installed packages."""
-        self.assertTupleEqual(tuple(), packages())
-        install("city")
-        self.assertTupleEqual(("city",), packages())
-        uninstall("city")
-        self.assertTupleEqual(tuple(), packages())
-
-    def test_namespaces(self):
-        """Test listing ontology namespaces."""
-        self.assertDictEqual(
-            {
-                "simphony": URIRef(
-                    "https://www.simphony-project.eu/simphony#"
-                ),
-                "owl": URIRef("http://www.w3.org/2002/07/owl#"),
-                "rdfs": URIRef("http://www.w3.org/2000/01/rdf-schema#"),
-            },
-            {ns.name: ns.iri for ns in namespaces()},
-        )
-
-        install("city")
-
-        self.assertDictEqual(
-            {
-                "simphony": URIRef(
-                    "https://www.simphony-project.eu/simphony#"
-                ),
-                "owl": URIRef("http://www.w3.org/2002/07/owl#"),
-                "rdfs": URIRef("http://www.w3.org/2000/01/rdf-schema#"),
-                "city": URIRef("https://www.simphony-project.eu/city#"),
-            },
-            {ns.name: ns.iri for ns in namespaces()},
-        )
-
-
-class TestContainer(unittest.TestCase):
-    """Tests the containers."""
+class TestBundledOperations(unittest.TestCase):
+    """Tests the ontology operations bundled with SimPhoNy."""
 
     prev_default_ontology: Session
 
@@ -1861,14 +1772,6 @@ class TestContainer(unittest.TestCase):
                     {fr, pr}, set(container.operations.members)
                 )
 
-    def test_container_multiple_sessions(self):
-        """Test opening the container in different sessions.
-
-        Each session is meant to contain a different version of the same
-        individual.
-        """
-        from simphony_osp.namespaces import city, simphony
-
         container = simphony.Container()
 
         default_session = Session.get_default_session()
@@ -1905,6 +1808,824 @@ class TestContainer(unittest.TestCase):
             with container as context:
                 klaus_from_container = set(context).pop()
                 self.assertEqual(klaus_from_container.age, 20)
+
+
+class TestToolsPico(unittest.TestCase):
+    """Tests the usage of pico."""
+
+    prev_default_ontology: Session
+    path: Path
+
+    def setUp(self):
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SimPhoNy, OWL, RDFS and FOAF.
+        """
+        self.path = Path(".TEST_OSP_CORE_INSTALLATION").absolute()
+        os.makedirs(self.path, exist_ok=True)
+
+        pico.set_default_installation_path(self.path)
+
+    def tearDown(self):
+        """Restore the previous default TBox."""
+        pico.set_default_installation_path(None)
+        shutil.rmtree(self.path)
+
+    def test_install(self):
+        """Test the installation of ontologies."""
+        self.assertRaises(
+            ModuleNotFoundError,
+            import_module,
+            "city",
+            "simphony_osp.namespaces",
+        )
+
+        install("city")
+
+        from simphony_osp.namespaces import city
+
+        self.assertTrue(city.City)
+
+    def test_uninstall(self):
+        """Test the uninstallation of ontologies."""
+        import simphony_osp.namespaces as namespaces_module
+
+        # Install the ontology first and guarantee that it worked.
+        self.assertRaises(
+            ModuleNotFoundError,
+            import_module,
+            "city",
+            "simphony_osp.namespaces",
+        )
+        install("city")
+
+        from simphony_osp.namespaces import city
+
+        self.assertTrue(city.City)
+
+        # Now test uninstallation.
+        uninstall("city")
+        self.assertRaises(
+            ModuleNotFoundError,
+            import_module,
+            "city",
+            "simphony_osp.namespaces",
+        )
+        self.assertRaises(
+            AttributeError, lambda: getattr(namespaces_module, "city")
+        )
+        self.assertRaises(AttributeError, lambda: city.City)
+
+        # Test that reinstalling makes the existing namespace work again.
+        install("city")
+        self.assertTrue(city.City)
+
+    def test_packages(self):
+        """Test listing installed packages."""
+        self.assertTupleEqual(tuple(), packages())
+        install("city")
+        self.assertTupleEqual(("city",), packages())
+        uninstall("city")
+        self.assertTupleEqual(tuple(), packages())
+
+    def test_namespaces(self):
+        """Test listing ontology namespaces."""
+        self.assertDictEqual(
+            {
+                "simphony": URIRef(
+                    "https://www.simphony-project.eu/simphony#"
+                ),
+                "owl": URIRef("http://www.w3.org/2002/07/owl#"),
+                "rdfs": URIRef("http://www.w3.org/2000/01/rdf-schema#"),
+            },
+            {ns.name: ns.iri for ns in namespaces()},
+        )
+
+        install("city")
+
+        self.assertDictEqual(
+            {
+                "simphony": URIRef(
+                    "https://www.simphony-project.eu/simphony#"
+                ),
+                "owl": URIRef("http://www.w3.org/2002/07/owl#"),
+                "rdfs": URIRef("http://www.w3.org/2000/01/rdf-schema#"),
+                "city": URIRef("https://www.simphony-project.eu/city#"),
+            },
+            {ns.name: ns.iri for ns in namespaces()},
+        )
+
+
+class TestToolsGeneral(unittest.TestCase):
+    """Tests the methods from `simphony_osp.tools.general."""
+
+    ontology: Session
+    prev_default_ontology: Session
+
+    @classmethod
+    def setUpClass(cls):
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SimPhoNy, OWL, RDFS and City.
+        """
+        cls.ontology = Session(identifier="test-tbox", ontology=True)
+        cls.ontology.load_parser(OntologyParser.get_parser("city"))
+        cls.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = cls.ontology
+
+    @classmethod
+    def tearDownClass(cls):
+        """Restore the previous default TBox."""
+        Session.default_ontology = cls.prev_default_ontology
+
+    def test_branch(self):
+        """Tests the `branch` function."""
+        from simphony_osp.namespaces import city, owl
+        from simphony_osp.tools import branch
+
+        fr = city.City(name="Freiburg", coordinates=[1, 20])
+        marc = city.Citizen(name="Marc", age=25)
+        sveta = city.Citizen(name="Sveta", age=25)
+        klaus = city.Citizen(name="Klaus", age=1)
+        branch_output = branch(fr, marc, sveta, rel=city.hasInhabitant)
+        self.assertIs(branch_output, fr)
+        self.assertIn(marc, fr[owl.topObjectProperty])
+        self.assertIn(sveta, fr[owl.topObjectProperty])
+        self.assertIn(marc, fr[city.hasInhabitant])
+        self.assertIn(sveta, fr[city.hasInhabitant])
+        self.assertNotIn(marc, fr[city.hasWorker])
+
+        pr = branch(
+            city.City(name="Paris", coordinates=[0, 0]),
+            branch(marc, klaus, rel=city.hasChild),
+            branch(sveta, klaus, rel=city.hasChild),
+            rel=city.hasInhabitant,
+        )
+
+        self.assertIn(marc, pr[city.hasInhabitant])
+        self.assertIn(klaus, marc[city.hasChild])
+        self.assertIn(sveta, klaus[city.hasChild].inverse)
+
+    def test_relationships_between(self):
+        """Tests the `relationships_between` function."""
+        from simphony_osp.namespaces import city, owl
+        from simphony_osp.tools import relationships_between
+
+        fr = city.City(name="Freiburg", coordinates=[1, 20])
+        marc = city.Citizen(name="Marc", age=25)
+
+        fr[city.hasMajor] += marc
+        fr[city.hasInhabitant] += marc
+        fr[owl.topObjectProperty] += marc
+        marc[city.hasChild] += fr
+        self.assertSetEqual(
+            {city.hasMajor, city.hasInhabitant},
+            relationships_between(fr, marc),
+        )
+        self.assertSetEqual({city.hasChild}, relationships_between(marc, fr))
+
+
+class TestToolsImportExport(unittest.TestCase):
+    """Tests importing and exporting ontology individuals.
+
+    The loading process returns individuals in the files. Some of the
+    known information about the individuals in the file is tested against
+    the loaded data.
+    """
+
+    ontology: Session
+    prev_default_ontology: Session
+
+    @classmethod
+    def setUpClass(cls):
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SimPhoNy, OWL, RDFS and FOAF.
+        """
+        cls.ontology = Session(identifier="test-tbox", ontology=True)
+        cls.ontology.load_parser(OntologyParser.get_parser("city"))
+        cls.ontology.load_parser(
+            OntologyParser.get_parser(
+                str(Path(__file__).parent / "test_api_importexport.yml")
+            )
+        )
+        cls.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = cls.ontology
+
+    @classmethod
+    def tearDownClass(cls):
+        """Restore the previous default TBox."""
+        Session.default_ontology = cls.prev_default_ontology
+
+    def test_application_rdf_xml(self):
+        """Test importing and exporting the `application/rdf+xml` mime type."""
+        with Session() as session:
+            test_data_path = str(
+                Path(__file__).parent / "test_api_importexport_data.owl"
+            )
+            loaded_objects = import_file(
+                test_data_path, format="application/rdf+xml"
+            )
+            self.data_integrity(session, loaded_objects, label="import")
+            exported_file = io.StringIO()
+            export_file(file=exported_file, format="application/rdf+xml")
+            exported_file.seek(0)
+        with Session() as session:
+            exported_objects = import_file(
+                exported_file, format="application/rdf+xml"
+            )
+            self.data_integrity(session, exported_objects, label="export")
+
+    def test_application_rdf_xml_guess_format(self):
+        """Test guessing and importing the `application/rdf+xml` mime type."""
+        with Session() as session:
+            test_data_path = str(
+                Path(__file__).parent / "test_api_importexport_data.owl"
+            )
+            loaded_objects = import_file(test_data_path)
+            self.data_integrity(session, loaded_objects, label="import")
+
+    def test_text_turtle(self):
+        """Test importing and exporting the `text/turtle` mime type."""
+        with Session() as session:
+            test_data_path = str(
+                Path(__file__).parent / "test_api_importexport_data.ttl"
+            )
+            loaded_objects = import_file(test_data_path, format="text/turtle")
+            self.data_integrity(session, loaded_objects, label="import")
+            exported_file = io.StringIO()
+            export_file(file=exported_file, format="text/turtle")
+            exported_file.seek(0)
+        with Session() as session:
+            exported_objects = import_file(exported_file, format="text/turtle")
+            self.data_integrity(session, exported_objects, label="export")
+
+    def test_text_turtle_guess_format(self):
+        """Test guessing and importing the `text/turtle` mime type."""
+        with Session() as session:
+            test_data_path = str(
+                Path(__file__).parent / "test_api_importexport_data.ttl"
+            )
+            loaded_objects = import_file(test_data_path)
+            self.data_integrity(session, loaded_objects, label="import")
+
+    def test_application_json(self):
+        """Test importing and exporting the `application/ld+json` mime type."""
+        with Session() as session:
+            test_data_path = str(
+                Path(__file__).parent / "test_api_importexport_data.json"
+            )
+            loaded_objects = import_file(
+                test_data_path, format="application/ld+json"
+            )
+            self.data_integrity(session, loaded_objects, label="import")
+            exported_file = io.StringIO()
+            export_file(file=exported_file, format="application/ld+json")
+            exported_file.seek(0)
+            exported_file.seek(0)
+        with Session() as session:
+            exported_objects = import_file(
+                exported_file, format="application/ld+json"
+            )
+            self.data_integrity(session, exported_objects, label="export")
+
+    def test_application_json_guess_format(self):
+        """Test guessing and importing the `application/ld+json` mime type."""
+        with Session() as session:
+            test_data_path = str(
+                Path(__file__).parent / "test_api_importexport_data.json"
+            )
+            loaded_objects = import_file(test_data_path)
+            self.data_integrity(session, loaded_objects, label="import")
+
+    def test_application_json_doc_city(self):
+        """Test importing the `application/ld+json` mime type from doc dict.
+
+        This test uses a city ontology instead.
+        """
+        from simphony_osp.namespaces import city
+
+        # Importing
+        test_data_path = str(
+            Path(__file__).parent / "test_api_importexport_city_import.json"
+        )
+        with open(test_data_path, "r") as file:
+            json_doc = json.loads(file.read())
+        with Session() as session:
+            loaded_individual = import_file(
+                json_doc, format="application/ld+json"
+            )
+            self.assertTrue(loaded_individual.is_a(city.Citizen))
+            self.assertEqual(loaded_individual.name, "Peter")
+            self.assertEqual(loaded_individual.age, 23)
+            file_io = io.StringIO()
+            export_file(
+                session,
+                file=file_io,
+                format="application/ld+json",
+                main=loaded_individual,
+            )
+            file_io.seek(0)
+            self.assertTrue(
+                self.json_ld_equal(json_doc, json.loads(file_io.read()))
+            )
+
+        # Exporting
+        test_data_path = str(
+            Path(__file__).parent / "test_api_importexport_city_export.json"
+        )
+        with open(test_data_path, "r") as file:
+            json_doc = json.loads(file.read())
+        with Session() as session:
+            c = branch(
+                city.City(name="Freiburg", coordinates=[0, 0], uid=1),
+                city.Neighborhood(
+                    name="Littenweiler", coordinates=[0, 0], uid=2
+                ),
+                city.Street(
+                    name="Schwarzwaldstraße", coordinates=[0, 0], uid=3
+                ),
+                rel=city.hasPart,
+            )
+            file_io = io.StringIO()
+            export_file(
+                session, file=file_io, format="application/ld+json", main=c
+            )
+            file_io.seek(0)
+            self.assertTrue(
+                self.json_ld_equal(json.loads(file_io.read()), json_doc)
+            )
+
+    def test_text_turtle_individual_triples(self):
+        """Test exporting ontology individual with `text/turtle` mime type.
+
+        This test uses the city ontology.
+        """
+        from simphony_osp.namespaces import city
+
+        # Exporting
+        c = city.City(name="Freiburg", coordinates=[47, 7])
+        p1 = city.Citizen(name="Peter", age=25)
+        p2 = city.Citizen(name="Anne", age=25)
+        c.connect(p1, rel=city.hasInhabitant)
+        c.connect(p2, rel=city.hasInhabitant)
+        exported_file = io.StringIO()
+        export_file(c, file=exported_file, format="text/turtle")
+        exported_file.seek(0)
+        individual = import_file(exported_file, format="text/turtle")
+        self.assertIsInstance(individual, OntologyIndividual)
+
+    def test_text_turtle_file_handle(self):
+        """Test importing the `text/turtle` mime type from a file handle."""
+        with Session() as session:
+            test_data_path = str(
+                Path(__file__).parent / "test_api_importexport_data.ttl"
+            )
+            with open(test_data_path, "r") as test_data_file:
+                loaded_objects = import_file(
+                    test_data_file, format="text/turtle"
+                )
+                self.data_integrity(session, loaded_objects, label="import")
+
+    def test_text_turtle_file_stringio(self):
+        """Test importing the `text/turtle` mime type from a file-like."""
+        with Session() as session:
+            test_data_path = str(
+                Path(__file__).parent / "test_api_importexport_data.ttl"
+            )
+            with open(test_data_path, "r") as test_data_file:
+                test_data = test_data_file.read()
+            test_data = io.StringIO(test_data)
+            loaded_objects = import_file(test_data, format="text/turtle")
+            self.data_integrity(session, loaded_objects, label="import")
+
+    def test_text_turtle_another_session(self):
+        """Test to a non-default session."""
+        another_session = Session()
+        with Session() as session:
+            test_data_path = str(
+                Path(__file__).parent / "test_api_importexport_data.ttl"
+            )
+            with open(test_data_path, "r") as test_data_file:
+                test_data = test_data_file.read()
+            test_data = io.StringIO(test_data)
+            loaded_objects = import_file(
+                test_data, format="text/turtle", session=another_session
+            )
+            # The expected objects will not be found in session, they will
+            # be none.
+            for i in range(1, 5):
+                self.assertRaises(
+                    KeyError,
+                    session.from_identifier,
+                    URIRef(f"http://example.org/test-ontology#x_{i}"),
+                )
+
+            # Test correctness in the other session.
+            self.data_integrity(
+                another_session, loaded_objects, label="import"
+            )
+
+    def data_integrity(
+        self,
+        session: Session,
+        loaded_objects: Union[
+            OntologyIndividual, Iterable[OntologyIndividual]
+        ],
+        label: Optional[str] = None,
+    ):
+        """Checks that the data was loaded correctly into a session.
+
+        Args:
+            session: the session where the imported objects have been
+                loaded.
+            loaded_objects: a list with the loaded ontology individuals.
+            label: a label for the subtests (for example 'import' or
+                'export'). Makes distinguishing the different integrity checks
+                done during a test easier.
+        """
+        from simphony_osp.namespaces import test_importexport
+
+        if label:
+            label = f"({str(label)}) "
+        else:
+            label = ""
+
+        if isinstance(loaded_objects, OntologyIndividual):
+            loaded_objects = {OntologyIndividual}
+
+        # Load the expected objects from their URI, as an incorrect
+        # number of them may be loaded when calling import_file.
+        expected_objects = tuple(
+            session.from_identifier(
+                URIRef(f"http://example.org/test-ontology#x_{i}")
+            )
+            for i in range(1, 5)
+        )
+        # Each individual in the file
+        # represents a "Block" placed in a line. Therefore they may be
+        # called object[1], object[2], object[3] and object[4].
+        object = {i: obj for i, obj in enumerate(expected_objects, 1)}
+
+        # Test number of loaded ontology individuals.
+        with self.subTest(
+            msg=f"{label}"
+            f"Tests whether the number of loaded ontology individuals "
+            "objects is the expected one."
+            "\n"
+            "Each individual has its x value assigned to "
+            "the owl:DataTypeProperty 'x'."
+        ):
+            self.assertEqual(4, len(loaded_objects))
+
+        # Test attributes.
+        with self.subTest(
+            msg=f"{label}"
+            f"Tests whether attributes are correctly "
+            "retrieved."
+            "\n"
+            "Each individual has its x value assigned to "
+            "the owl:DataTypeProperty 'x'."
+        ):
+            for index, individual in object.items():
+                self.assertEqual(getattr(individual, "x"), index)
+
+        # Test classes.
+        with self.subTest(
+            msg=f"{label}"
+            "Tests that the loaded ontology individuals belong to "
+            "the correct classes."
+        ):
+            # Blocks 1, 2 and 4 are both blocks and forests.
+            expected_classes = (
+                test_importexport.Block,
+                test_importexport.Forest,
+            )
+            loaded_classes_for_object = tuple(
+                object[i].classes for i in range(1, 2, 4)
+            )
+
+            self.sub_test_classes(
+                expected_classes, loaded_classes_for_object, label=label
+            )
+
+            # Block 3 is both a block and water.
+            expected_classes = (
+                test_importexport.Block,
+                test_importexport.Water,
+            )
+            loaded_classes_for_object = (object[3].classes,)
+
+            self.sub_test_classes(
+                expected_classes, loaded_classes_for_object, label=label
+            )
+
+        # Test relationships.
+        with self.subTest(
+            msg=f"{str(label)}"
+            "Checks the loaded relationships between ontology individuals "
+            "objects."
+        ):
+            for i in range(1, 4):
+                individual = object[i]
+                neighbor = individual.get(rel=test_importexport.isLeftOf).one()
+                self.assertEqual(neighbor, object[i + 1])
+                neighbor = individual.get(rel=test_importexport.isNextTo).one()
+                self.assertEqual(neighbor, object[i + 1])
+
+    def sub_test_classes(
+        self,
+        expected_classes: Tuple[Type, ...],
+        loaded_classes_for_object: Tuple[Iterable[Type], ...],
+        label: Optional[str] = None,
+    ):
+        """Compares items on a tuple of expected classes with loaded classes.
+
+        Args:
+            expected_classes: A tuple wit the expected
+                classes, in any ordering.
+            loaded_classes_for_object: Each
+                element of the tuple is an iterable representing an ontology
+                entity, and each iterable yields the ontology classes of such
+                entity.
+            label: a label for the subtests (for example 'import' or
+                'export'). Makes distinguishing the different integrity checks
+                done during a test easier.
+        """
+        if label:
+            label = f"({str(label)}) "
+        else:
+            label = ""
+
+        # Test equality of classes (hashes).
+        expected_names = tuple(cls.__str__() for cls in expected_classes)
+        with self.subTest(
+            msg=f"{label}"
+            f"Testing that the classes of the individuals "
+            f'({", ".join(expected_names)}) '
+            f"coincide with the expectation (by hash)."
+        ):
+            for loaded_classes in loaded_classes_for_object:
+                self.assertSetEqual(set(expected_classes), set(loaded_classes))
+
+    def json_ld_equal(self, a, b):
+        """Check if to JSON documents containing JSON LD are equal."""
+        if (
+            a
+            and isinstance(a, list)
+            and isinstance(a[0], dict)
+            and "@id" in a[0]
+        ) or (a and isinstance(a, dict) and "@graph" in a):
+            return isomorphic(json_to_rdf(a, Graph()), json_to_rdf(b, Graph()))
+        elif (
+            a
+            and isinstance(a, list)
+            and isinstance(a[0], list)
+            and isinstance(a[0][0], dict)
+            and "@id" in a[0][0]
+        ) or (
+            a
+            and isinstance(a, list)
+            and isinstance(a[0], dict)
+            and "@graph" in a[0]
+        ):
+            graph_a, graph_b = Graph(), Graph()
+            for x in a:
+                json_to_rdf(x, graph_a)
+            for x in b:
+                json_to_rdf(x, graph_b)
+            return isomorphic(graph_a, graph_b)
+        elif (
+            isinstance(a, dict)
+            and isinstance(b, dict)
+            and a.keys() == b.keys()
+        ):
+            return all(self.json_ld_equal(a[k], b[k]) for k in a.keys())
+        elif isinstance(a, list) and isinstance(b, list) and len(a) == len(b):
+            return all(self.json_ld_equal(aa, bb) for aa, bb in zip(a, b))
+        else:
+            return a == b
+
+
+class TestToolsSearch(unittest.TestCase):
+    """Test the tools related to usage of SimPhoNy over the network.
+
+    Since such tools are more closely related to wrappers, they are actually
+    tested in `test_wrapper.py`. This is just a placeholder.
+    """
+
+    ontology: Session
+    prev_default_ontology: Session
+
+    @classmethod
+    def setUpClass(cls):
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SimPhoNy, OWL, RDFS and FOAF.
+        """
+        cls.ontology = Session(identifier="test-tbox", ontology=True)
+        cls.ontology.load_parser(OntologyParser.get_parser("city"))
+        cls.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = cls.ontology
+
+    @classmethod
+    def tearDownClass(cls):
+        """Restore the previous default TBox."""
+        Session.default_ontology = cls.prev_default_ontology
+
+    def test_find(self):
+        """Tests the `find` method."""
+        from simphony_osp.namespaces import city
+        from simphony_osp.tools import find
+
+        fr = city.City(name="Freiburg", coordinates=[0, 0])
+        pr = city.City(name="Paris", coordinates=[0, 1])
+        marc = city.Citizen(name="Marc", age=25)
+        sveta = city.Citizen(name="Sveta", age=25)
+        lukas = city.Citizen(name="Lukas", age=3)
+        ahmed = city.Citizen(name="Ahmed", age=30)
+
+        fr[city.hasInhabitant] += {marc, sveta, lukas}
+        sveta[city.hasChild] += lukas
+        marc[city.hasChild] += lukas
+        fr[city.hasWorker] += ahmed
+
+        pr[city.hasInhabitant] += ahmed
+        pr[city.hasWorker] += ahmed
+
+        self.assertSetEqual(
+            {fr, marc, sveta, lukas, ahmed}, set(find(fr, find_all=True))
+        )
+        self.assertSetEqual(
+            {fr, sveta, marc, lukas},
+            set(find(fr, rel=city.hasInhabitant, find_all=True)),
+        )
+        self.assertSetEqual(
+            {fr, ahmed}, set(find(fr, rel=city.hasPart, find_all=True))
+        )
+        self.assertSetEqual(
+            {fr, ahmed}, set(find(fr, rel=city.hasWorker, find_all=True))
+        )
+        self.assertSetEqual(
+            {fr, sveta, marc, lukas, ahmed},
+            set(
+                find(
+                    fr, rel={city.hasWorker, city.hasInhabitant}, find_all=True
+                )
+            ),
+        )
+        self.assertIn(
+            find(fr, rel={city.hasWorker, city.hasInhabitant}, find_all=False),
+            {fr, marc, sveta, lukas, ahmed},
+        )
+        self.assertSetEqual(
+            {fr}, set(find(fr, rel=city.hasMajor, find_all=True))
+        )
+        self.assertEqual(fr, find(fr, rel=city.hasMajor, find_all=False))
+
+        self.assertSetEqual(
+            set(), set(find(fr, lambda x: False, find_all=True))
+        )
+        self.assertIsNone(find(fr, lambda x: False, find_all=False))
+        self.assertSetEqual(set(), set(find(fr, lambda x: False)))
+
+        self.assertSetEqual(
+            {marc, sveta}, set(find(fr, lambda x: 25 in x[city.age]))
+        )
+        self.assertIsNone(find(fr, lambda x: 5 in x[city.age], find_all=False))
+
+        fr[city.hasInhabitant] -= lukas
+        self.assertSetEqual({fr, sveta, marc, lukas, ahmed}, set(find(fr)))
+        self.assertSetEqual(
+            {fr, sveta, marc, ahmed}, set(find(fr, max_depth=1))
+        )
+
+    def test_find_by_class(self):
+        """Tests the `find_by_class` method."""
+        from simphony_osp.namespaces import city
+        from simphony_osp.tools import find_by_class
+
+        fr = city.City(name="Freiburg", coordinates=[0, 0])
+        pr = city.City(name="Paris", coordinates=[0, 1])
+        marc = city.Citizen(name="Marc", age=25)
+        sveta = city.Citizen(name="Sveta", age=25)
+        lukas = city.Citizen(name="Lukas", age=3)
+        ahmed = city.Citizen(name="Ahmed", age=30)
+
+        fr[city.hasInhabitant] += {marc, sveta, lukas}
+        sveta[city.hasChild] += lukas
+        marc[city.hasChild] += lukas
+        fr[city.hasWorker] += ahmed
+
+        pr[city.hasInhabitant] += ahmed
+        pr[city.hasWorker] += ahmed
+
+        self.assertSetEqual(
+            {marc, ahmed, sveta, lukas}, set(find_by_class(fr, city.Citizen))
+        )
+
+    def test_find_by_attribute(self):
+        """Tests the `find_by_attribute` method."""
+        from simphony_osp.namespaces import city
+        from simphony_osp.tools import find_by_attribute
+
+        fr = city.City(name="Freiburg", coordinates=[0, 0])
+        pr = city.City(name="Paris", coordinates=[0, 1])
+        marc = city.Citizen(name="Marc", age=25)
+        sveta = city.Citizen(name="Sveta", age=25)
+        lukas = city.Citizen(name="Lukas", age=3)
+        ahmed = city.Citizen(name="Ahmed", age=30)
+
+        fr[city.hasInhabitant] += {marc, sveta, lukas}
+        sveta[city.hasChild] += lukas
+        marc[city.hasChild] += lukas
+        fr[city.hasWorker] += ahmed
+
+        pr[city.hasInhabitant] += ahmed
+        pr[city.hasWorker] += ahmed
+
+        self.assertSetEqual(
+            {marc, sveta},
+            set(
+                find_by_attribute(
+                    fr,
+                    city.age,
+                    25,
+                )
+            ),
+        )
+
+    def test_find_relationships(self):
+        """Tests the `find_relationships` method."""
+        from simphony_osp.namespaces import city
+        from simphony_osp.tools import find_relationships
+
+        fr = city.City(name="Freiburg", coordinates=[0, 0])
+        pr = city.City(name="Paris", coordinates=[0, 1])
+        marc = city.Citizen(name="Marc", age=25)
+        sveta = city.Citizen(name="Sveta", age=25)
+        lukas = city.Citizen(name="Lukas", age=3)
+        ahmed = city.Citizen(name="Ahmed", age=30)
+
+        fr[city.hasInhabitant] += {marc, sveta, lukas}
+        sveta[city.hasChild] += lukas
+        marc[city.hasChild] += lukas
+        fr[city.hasWorker] += ahmed
+
+        pr[city.hasInhabitant] += ahmed
+        pr[city.hasWorker] += ahmed
+
+        self.assertSetEqual(
+            {marc, sveta}, set(find_relationships(fr, city.hasChild))
+        )
+
+    def test_sparql(self):
+        """Tests the `sparql` method."""
+        from simphony_osp.namespaces import city
+        from simphony_osp.session import core_session
+        from simphony_osp.tools import sparql
+
+        core_session.clear()
+
+        fr = city.City(name="Freiburg", coordinates=[0, 0])
+        pr = city.City(name="Paris", coordinates=[0, 1])
+        marc = city.Citizen(name="Marc", age=25)
+        sveta = city.Citizen(name="Sveta", age=25)
+        lukas = city.Citizen(name="Lukas", age=3)
+        ahmed = city.Citizen(name="Ahmed", age=30)
+
+        fr[city.hasInhabitant] += {marc, sveta, lukas}
+        sveta[city.hasChild] += lukas
+        marc[city.hasChild] += lukas
+        fr[city.hasWorker] += ahmed
+
+        pr[city.hasInhabitant] += ahmed
+        pr[city.hasWorker] += ahmed
+
+        persons = set(
+            row[0]
+            for row in sparql(
+                f"""
+                SELECT ?person WHERE {{
+                    ?person rdf:type <{city.Citizen.iri}> .
+                }}
+            """
+            )(person=OntologyIndividual)
+        )
+        self.assertSetEqual({marc, sveta, lukas, ahmed}, persons)
+
+        with Session():
+            persons = set(
+                row[0]
+                for row in sparql(
+                    f"""
+                    SELECT ?person WHERE {{
+                        ?person rdf:type <{city.Citizen.iri}> .
+                    }}
+                """
+                )(person=OntologyIndividual)
+            )
+            self.assertSetEqual(set(), persons)
 
 
 if __name__ == "__main__":

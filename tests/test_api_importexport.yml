@@ -1,5 +1,5 @@
 ---
 identifier: test_importexport
-ontology_file: "./test_simphony_osp_tools_importexport_ontology.owl"
+ontology_file: "./test_api_importexport_ontology.owl"
 namespaces:
     test_importexport: "http://example.org/test-ontology#"

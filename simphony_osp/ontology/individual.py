@@ -838,6 +838,7 @@ class OntologyIndividual(OntologyEntity):
                 o, typing=OntologyClass
             )
             for o in self.session.graph.objects(self.identifier, RDF.type)
+            if o != OWL.NamedIndividual
         )
 
     @classes.setter
@@ -2221,7 +2222,10 @@ class OntologyIndividual(OntologyEntity):
         rel: Optional[OntologyRelationship] = None,
         oclass: Optional[OntologyClass] = None,
         return_rel: bool = False,
-    ) -> Iterator[OntologyIndividual]:
+    ) -> Union[
+        Iterator[OntologyIndividual],
+        Iterator[Tuple[OntologyIndividual, OntologyRelationship]],
+    ]:
         """Iterate over the connected ontology individuals.
 
         Args:
@@ -2235,31 +2239,39 @@ class OntologyIndividual(OntologyEntity):
         Returns:
             Iterator with the queried ontology individuals.
         """
-        entities_and_relationships = (
-            (
-                self.session.from_identifier(o),
-                self.session.ontology.from_identifier(p),
-            )
+
+        def individuals_and_relationships() -> Iterator[
+            OntologyIndividual, OntologyEntity
+        ]:
             for s, p, o in self.session.graph.triples(
                 (
                     self.identifier,
                     rel.identifier if rel is not None else None,
                     None,
                 )
-            )
-            if not (isinstance(o, Literal) or p == RDF.type)
-        )
+            ):
+                if isinstance(o, Literal) or p == RDF.type:
+                    continue
+                prop = self.session.ontology.from_identifier(p)
+                if not isinstance(prop, OntologyRelationship):
+                    continue
+                individual = self.session.from_identifier_typed(
+                    o, typing=OntologyIndividual
+                )
+                yield individual, prop
+
+        individuals_and_relationships = individuals_and_relationships()
         if oclass:
-            entities_and_relationships = (
+            individuals_and_relationships = (
                 (entity, relationship)
-                for entity, relationship in entities_and_relationships
+                for entity, relationship in individuals_and_relationships
                 if oclass == entity
             )
 
         if return_rel:
-            yield from entities_and_relationships
+            yield from individuals_and_relationships
         else:
-            yield from map(lambda x: x[0], entities_and_relationships)
+            yield from map(lambda x: x[0], individuals_and_relationships)
 
     # ↑ ----------------- ↑
     # Relationship handling

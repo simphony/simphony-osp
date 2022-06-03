@@ -1,40 +1,40 @@
 """Module containing tools for the users of the SimPhoNy OSP."""
 
 import simphony_osp.utils.pico as pico
-from simphony_osp.tools.general import branch, get_relationships_between
-from simphony_osp.tools.import_export import export_cuds, import_cuds
+from simphony_osp.tools.general import branch, relationships_between
+from simphony_osp.tools.import_export import export_file, import_file
 from simphony_osp.tools.pretty_print import pretty_print
 from simphony_osp.tools.remote import host
 from simphony_osp.tools.search import (
-    find_cuds_object,
-    find_cuds_object_by_uid,
-    find_cuds_objects_by_attribute,
-    find_cuds_objects_by_oclass,
+    find,
+    find_by_attribute,
+    find_by_class,
+    find_by_identifier,
     find_relationships,
     sparql,
 )
-from simphony_osp.tools.semantic2dot import Semantic2Dot
+from simphony_osp.tools.semantic2dot import semantic2dot
 
 __all__ = [
     # simphony_osp.tools.import_export
-    "export_cuds",
-    "import_cuds",
+    "export_file",
+    "import_file",
     # simphony_osp.tools.pico
     "pico",
     # simphony_osp.tools.pretty_print
     "pretty_print",
     # simphony_osp.tools.search
     "sparql",
-    "find_cuds_object",
-    "find_cuds_objects_by_attribute",
-    "find_cuds_objects_by_oclass",
-    "find_cuds_object_by_uid",
+    "find",
+    "find_by_attribute",
+    "find_by_class",
+    "find_by_identifier",
     "find_relationships",
     # simphony_osp.tools.semantic2dot
-    "Semantic2Dot",
+    "semantic2dot",
     # simphony_osp.tools.general
     "branch",
-    "get_relationships_between",
+    "relationships_between",
     # simphony_osp.utils.remote
     "host",
 ]
