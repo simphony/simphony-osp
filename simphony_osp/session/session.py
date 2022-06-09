@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import itertools
 import logging
+from functools import lru_cache, wraps
 from inspect import isclass
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Dict,
     FrozenSet,
     Iterable,
@@ -324,6 +326,9 @@ class Session(Environment):
             f"at {hex(id(self))}>"
         )
 
+    @lru_cache(maxsize=4096)
+    # On `__init__.py` there is an option to bypass this cache when the
+    # session is not a T-Box.
     def from_identifier(self, identifier: Node) -> OntologyEntity:
         """Get an ontology entity from its identifier.
 
@@ -407,12 +412,15 @@ class Session(Environment):
             raise TypeError(f"{identifier} is not of class {typing}.")
         return entity
 
+    @lru_cache(maxsize=4096)
+    # On `__init__.py` there is an option to bypass this cache when the
+    # session is not a T-Box.
     def from_label(
         self,
         label: str,
         lang: Optional[str] = None,
         case_sensitive: bool = False,
-    ) -> Set[OntologyEntity]:
+    ) -> FrozenSet[OntologyEntity]:
         """Get an ontology entity from its label.
 
         Args:
@@ -428,27 +436,41 @@ class Session(Environment):
             The ontology entity.
         """
         results = set()
-        for identifier in self.iter_identifiers():
-            entity_labels = self.iter_labels(
-                entity=identifier,
-                lang=lang,
-                return_prop=False,
-                return_literal=False,
+
+        identifiers_and_labels = self.iter_labels(
+            lang=lang,
+            return_prop=False,
+            return_literal=False,
+            return_identifier=True,
+        )
+        if case_sensitive is False:
+            comp_label = label.lower()
+            identifiers_and_labels = (
+                (label.lower(), identifier)
+                for label, identifier in identifiers_and_labels
             )
-            if case_sensitive is False:
-                entity_labels = (label.lower() for label in entity_labels)
-                comp_label = label.lower()
-            else:
-                comp_label = label
-            if comp_label in entity_labels:
+        else:
+            comp_label = label
+
+        identifiers_and_labels = (
+            (label, identifier)
+            for label, identifier in identifiers_and_labels
+            if label == comp_label
+        )
+
+        for _, identifier in identifiers_and_labels:
+            try:
                 results.add(self.from_identifier(identifier))
+            except KeyError:
+                pass
         if len(results) == 0:
             error = "No element with label %s was found in ontology %s." % (
                 label,
                 self,
             )
             raise KeyError(error)
-        return results
+
+        return frozenset(results)
 
     def add(
         self,
@@ -542,6 +564,8 @@ class Session(Environment):
         """Clear all the data stored in the session."""
         self._graph.remove((None, None, None))
         self._namespaces.clear()
+        self.from_identifier.cache_clear()
+        self.from_label.cache_clear()
 
         # Reload the essential TBox required by ontologies.
         if self.ontology is self:
@@ -594,6 +618,22 @@ class Session(Environment):
                 f"Expected either a `Session` or `bool` object, "
                 f"got {type(ontology)} instead."
             )
+
+        # Bypass cache if this session is not a T-Box
+        if self.ontology is not self:
+
+            def bypass_cache(method: Callable):
+                wrapped_func = method.__wrapped__
+
+                @wraps(wrapped_func)
+                def bypassed(*args, **kwargs):
+                    return wrapped_func(self, *args, **kwargs)
+
+                bypassed.cache_clear = lambda: None
+                return bypassed
+
+            self.from_identifier = bypass_cache(self.from_identifier)
+            self.from_label = bypass_cache(self.from_label)
 
         self.creation_set = set()
         self._storing = list()
@@ -795,6 +835,8 @@ class Session(Environment):
         self.ontology._graph += parser.graph
         for name, iri in parser.namespaces.items():
             self.bind(name, iri)
+        self.from_identifier.cache_clear()
+        self.from_label.cache_clear()
 
     def iter_identifiers(self) -> Iterator[Union[BNode, URIRef]]:
         """Iterate over all the ontology entity identifiers in the session."""
@@ -815,26 +857,25 @@ class Session(Environment):
                 OWL.Restriction,
             }
         )
-        tbox_entities = tuple(
-            s
-            for t in supported_entity_types
-            for s in self.ontology.graph.subjects(RDF.type, t)
-            if not isinstance(s, Literal)
-        )
 
         # Yield the entities from the TBox (literals filtered out above).
         if self.ontology is self:
-            yield from tbox_entities
+            yield from (
+                s
+                for t in supported_entity_types
+                for s in self.ontology.graph.subjects(RDF.type, t)
+                if not isinstance(s, Literal)
+            )
 
         # Yield the entities from the ABox (literals filtered out below).
-        yield from map(
-            lambda x: x[0],
-            filter(
-                lambda t: (
-                    not isinstance(t[0], Literal) and t[2] in tbox_entities
-                ),
-                self._graph.triples((None, RDF.type, None)),
-            ),
+        yield from (
+            t[0]
+            for t in self._graph.triples((None, RDF.type, None))
+            if not isinstance(t[0], Literal)
+            and any(
+                (t[2], RDF.type, supported_entity_type) in self.ontology.graph
+                for supported_entity_type in supported_entity_types
+            )
         )
 
     def iter_labels(
@@ -843,8 +884,14 @@ class Session(Environment):
         lang: Optional[str] = None,
         return_prop: bool = False,
         return_literal: bool = True,
+        return_identifier: bool = False,
     ) -> Iterator[
-        Union[Literal, str, Tuple[Literal, URIRef], Tuple[str, URIRef]]
+        Union[
+            Literal,
+            str,
+            Tuple[Union[Literal, str], Node],
+            Tuple[Union[Literal, str], Node, Node],
+        ]
     ]:
         """Iterate over all the labels of the entities in the session."""
         from simphony_osp.ontology.entity import OntologyEntity
@@ -863,19 +910,29 @@ class Session(Environment):
         labels = filter(
             lambda label_tuple: filter_language(label_tuple[1]),
             (
-                (prop, literal)
+                (prop, literal, subject)
                 for prop in self.label_properties
-                for literal in self._graph.objects(entity, prop)
+                for subject, _, literal in self._graph.triples(
+                    (entity, prop, None)
+                )
             ),
         )
-        if not return_prop and not return_literal:
+        if not return_prop and not return_literal and not return_identifier:
             return (str(x[1]) for x in labels)
-        elif return_prop and not return_literal:
+        elif return_prop and not return_literal and not return_identifier:
             return ((str(x[1]), x[0]) for x in labels)
-        elif not return_prop and return_literal:
+        elif not return_prop and return_literal and not return_identifier:
             return (x[1] for x in labels)
-        else:
+        elif return_prop and return_literal and not return_identifier:
             return ((x[1], x[0]) for x in labels)
+        elif not return_prop and not return_literal and return_identifier:
+            return ((str(x[1]), x[2]) for x in labels)
+        elif return_prop and not return_literal and return_identifier:
+            return ((str(x[1]), x[0], x[2]) for x in labels)
+        elif not return_prop and return_literal and return_identifier:
+            return ((x[1], x[2]) for x in labels)
+        else:  # everything true
+            return ((x[1], x[0], x[2]) for x in labels)
 
     def get_identifiers(self) -> Set[Identifier]:
         """Get all the identifiers in the session."""

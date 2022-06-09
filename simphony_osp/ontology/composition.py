@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 from enum import Enum
-from functools import lru_cache
 from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, Union
 
 from rdflib import OWL, RDF, BNode
@@ -84,7 +83,6 @@ class Composition(OntologyEntity):
             )
         super().__init__(uid, session, triples, merge=merge)
 
-    @lru_cache(maxsize=None)
     def _get_operator_and_operands(
         self,
     ) -> Tuple[
