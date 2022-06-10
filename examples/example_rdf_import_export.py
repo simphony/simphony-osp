@@ -38,7 +38,7 @@ c = branch(
 )
 
 # Export from Core Session
-export_cuds(path="test.rdf", format="ttl")
+export_cuds(file="test.rdf", format="ttl")
 
 # Check output
 with open("test.rdf", encoding="utf-8") as f:
@@ -50,7 +50,7 @@ with open("test.rdf", encoding="utf-8") as f:
 with SqliteSession(path="test.db") as session:
     w = city.CityWrapper(session=session)
     w.add(c)
-    export_cuds(session, path="test.rdf", format="ttl")
+    export_cuds(session, file="test.rdf", format="ttl")
 
     # Check output
     with open("test.rdf", encoding="utf-8") as f:
