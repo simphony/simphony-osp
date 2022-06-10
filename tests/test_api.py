@@ -2583,6 +2583,9 @@ class TestToolsSearch(unittest.TestCase):
         """Tests the `sparql` method."""
         from simphony_osp.namespaces import city
         from simphony_osp.tools import sparql
+        from simphony_osp.session import core_session
+
+        core_session.clear()
 
         fr = city.City(name="Freiburg", coordinates=[0, 0])
         pr = city.City(name="Paris", coordinates=[0, 1])
