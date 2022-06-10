@@ -2582,8 +2582,8 @@ class TestToolsSearch(unittest.TestCase):
     def test_sparql(self):
         """Tests the `sparql` method."""
         from simphony_osp.namespaces import city
-        from simphony_osp.tools import sparql
         from simphony_osp.session import core_session
+        from simphony_osp.tools import sparql
 
         core_session.clear()
 
