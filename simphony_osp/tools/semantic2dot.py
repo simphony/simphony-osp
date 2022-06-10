@@ -4,7 +4,6 @@ import argparse
 import logging
 import os
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import FrozenSet, Iterable, Optional, Union
 from uuid import UUID
 
