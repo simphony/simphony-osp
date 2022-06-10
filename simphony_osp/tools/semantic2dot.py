@@ -111,14 +111,13 @@ class Semantic2Dot:
         logger.info("Writing file %s" % filename)
         self._graph.render(filename=filename, **kwargs)
 
-    def _repr_png_(self) -> bytes:
+    def _repr_mimebundle_(
+        self,
+        include: Optional[Iterable[str]],
+        exclude: Optional[Iterable[str]],
+    ):
         """Render the graph as an image on IPython (e.g. Jupyter notebooks)."""
-        with TemporaryDirectory() as temp_dir:
-            path = Path(temp_dir) / "graph"
-            path_png = Path(temp_dir) / "graph.png"
-            self._graph.render(filename=path)
-            with open(path_png, "rb") as file:
-                return file.read()
+        return self._graph._repr_mimebundle_(include, exclude)
 
     _label = (
         "<<TABLE BORDER='0' CELLBORDER='0'>"
