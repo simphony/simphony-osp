@@ -1,11 +1,19 @@
 """Utilities for searching entities."""
 
 from itertools import chain
-from typing import Callable, Iterable, Iterator, Optional, Set, Union
+from typing import (
+    Callable,
+    FrozenSet,
+    Iterable,
+    Iterator,
+    Optional,
+    Set,
+    Union,
+)
 
+from rdflib import OWL
 from rdflib.term import Node
 
-from simphony_osp.namespaces import owl
 from simphony_osp.ontology.attribute import OntologyAttribute
 from simphony_osp.ontology.individual import OntologyIndividual
 from simphony_osp.ontology.oclass import OntologyClass
@@ -18,8 +26,9 @@ def find(
     root: OntologyIndividual,
     criterion: Callable[[OntologyIndividual], bool] = (lambda x: True),
     rel: Union[
-        OntologyRelationship, Iterable[OntologyRelationship]
-    ] = owl.topObjectProperty,
+        Union[OntologyRelationship, Node],
+        Iterable[Union[OntologyRelationship, Node]],
+    ] = OWL.topObjectProperty,
     find_all: bool = True,
     max_depth: Union[int, float] = float("inf"),
 ) -> Union[Optional[OntologyIndividual], Iterator[OntologyIndividual]]:
@@ -42,8 +51,9 @@ def find(
         The element(s) found. One element (or `None` is returned when
         `find_all` is `False`, a generator when `find_all` is True.
     """
-    if isinstance(rel, OntologyRelationship):
+    if isinstance(rel, (OntologyRelationship, Node)):
         rel = {rel}
+    rel = frozenset(rel)
 
     result = _iter(criterion, root, rel, max_depth)
     if not find_all:
@@ -55,7 +65,7 @@ def find(
 def _iter(
     criterion: Callable[[OntologyIndividual], bool],
     root: OntologyIndividual,
-    rel: Iterable[OntologyRelationship],
+    rel: FrozenSet[Union[OntologyRelationship, Node]],
     max_depth: Union[int, float] = float("inf"),
     current_depth: int = 0,
     visited: Optional[Set[UID]] = None,
@@ -100,8 +110,9 @@ def find_by_identifier(
     root: OntologyIndividual,
     identifier: Union[Node, UID, str],
     rel: Union[
-        OntologyRelationship, Iterable[OntologyRelationship]
-    ] = owl.topObjectProperty,
+        Union[OntologyRelationship, Node],
+        Iterable[Union[OntologyRelationship, Node]],
+    ] = OWL.topObjectProperty,
 ) -> Optional[OntologyIndividual]:
     """Recursively finds an ontology individual with given identifier.
 
@@ -127,8 +138,9 @@ def find_by_class(
     root: OntologyIndividual,
     oclass: OntologyClass,
     rel: Union[
-        OntologyRelationship, Iterable[OntologyRelationship]
-    ] = owl.topObjectProperty,
+        Union[OntologyRelationship, Node],
+        Iterable[Union[OntologyRelationship, Node]],
+    ] = OWL.topObjectProperty,
 ) -> Iterator[OntologyIndividual]:
     """Recursively finds ontology individuals with given class.
 
@@ -156,8 +168,9 @@ def find_by_attribute(
     attribute: OntologyAttribute,
     value: AttributeValue,
     rel: Union[
-        OntologyRelationship, Iterable[OntologyRelationship]
-    ] = owl.topObjectProperty,
+        Union[OntologyRelationship, Node],
+        Iterable[Union[OntologyRelationship, Node]],
+    ] = OWL.topObjectProperty,
 ) -> Iterator[OntologyIndividual]:
     """Recursively finds ontology individuals by attribute and value.
 
@@ -185,8 +198,9 @@ def find_relationships(
     find_rel: OntologyRelationship,
     find_sub_relationships: bool = False,
     rel: Union[
-        OntologyRelationship, Iterable[OntologyRelationship]
-    ] = owl.topObjectProperty,
+        Union[OntologyRelationship, Node],
+        Iterable[Union[OntologyRelationship, Node]],
+    ] = OWL.topObjectProperty,
 ) -> Iterator[OntologyIndividual]:
     """Find the given relationship in the subtree of the given root.
 
