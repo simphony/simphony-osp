@@ -56,7 +56,7 @@ def _iter(
     criterion: Callable[[OntologyIndividual], bool],
     root: OntologyIndividual,
     rel: Iterable[OntologyRelationship],
-    max_depth=float("inf"),
+    max_depth: Union[int, float] = float("inf"),
     current_depth: int = 0,
     visited: Optional[Set[UID]] = None,
 ) -> Iterator[OntologyIndividual]:
