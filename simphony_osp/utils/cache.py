@@ -131,7 +131,7 @@ def lru_cache_timestamp(
             external_timestamp = read_timestamp(self)
             if external_timestamp and internal_timestamp <= external_timestamp:
                 cached_function.cache_clear()
-                holder[self] = datetime.now()
+                holder[self] = datetime.now(), cached_function
 
             return cached_function(self, *args, **kwargs)
 
