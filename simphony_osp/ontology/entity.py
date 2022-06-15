@@ -20,6 +20,7 @@ from typing import (
 from rdflib import Graph, Literal, URIRef
 from rdflib.term import Identifier
 
+from simphony_osp.utils.cache import lru_cache_timestamp
 from simphony_osp.utils.datatypes import UID, Triple
 
 if TYPE_CHECKING:
@@ -102,6 +103,7 @@ class OntologyEntity(ABC):
         self.label_literal = Literal(self.label_literal, lang=value)
 
     @property
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def namespace(self) -> Optional[OntologyNamespace]:
         """Return the ontology namespace to which this entity is associated."""
         return next((x for x in self.session.namespaces if self in x), None)
@@ -124,8 +126,9 @@ class OntologyEntity(ABC):
         self._session = value
 
     @property
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def direct_superclasses(
-        self: ONTOLOGY_ENTITY,
+            self: ONTOLOGY_ENTITY
     ) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the direct superclasses of the entity.
 
@@ -135,6 +138,7 @@ class OntologyEntity(ABC):
         return frozenset(self._get_direct_superclasses())
 
     @property
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def direct_subclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the direct subclasses of the entity.
 
@@ -144,6 +148,7 @@ class OntologyEntity(ABC):
         return frozenset(self._get_direct_subclasses())
 
     @property
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def superclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the superclass of the entity.
 
@@ -154,6 +159,7 @@ class OntologyEntity(ABC):
         return frozenset(self._get_superclasses())
 
     @property
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def subclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the subclasses of the entity.
 

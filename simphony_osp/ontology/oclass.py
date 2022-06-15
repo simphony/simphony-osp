@@ -19,11 +19,12 @@ from typing import (
 from uuid import UUID
 
 from rdflib import OWL, RDF, RDFS, BNode, URIRef
-from rdflib.term import Identifier
+from rdflib.term import Identifier, Node
 
 from simphony_osp.ontology.attribute import OntologyAttribute
 from simphony_osp.ontology.entity import OntologyEntity
 from simphony_osp.ontology.restriction import Restriction
+from simphony_osp.utils.cache import lru_cache_timestamp
 from simphony_osp.utils.datatypes import UID, AttributeValue, Triple
 
 if TYPE_CHECKING:
@@ -32,6 +33,24 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 BLACKLIST = {OWL.Nothing, OWL.Thing, OWL.NamedIndividual}
+
+# The RDFLib namespace object is not as fast as it should be, so it is
+# useful to reuse some IRIs throughout the file.
+# TODO: Send PR to RDFLib to fix this upstream.
+RDF_type = RDF.type
+RDFS_domain = RDFS.domain
+RDFS_subClassOf = RDFS.subClassOf
+OWL_DatatypeProperty = OWL.DatatypeProperty
+OWL_Restriction = OWL.Restriction
+OWL_Thing = OWL.Thing
+OWL_allValuesFrom = OWL.allValuesFrom
+OWL_bottomDataProperty = OWL.bottomDataProperty
+OWL_cardinality = OWL.cardinality
+OWL_minCardinality = OWL.minCardinality
+OWL_hasValue = OWL.hasValue
+OWL_onProperty = OWL.onProperty
+OWL_someValuesFrom = OWL.someValuesFrom
+OWL_topDataProperty = OWL.topDataProperty
 
 
 class OntologyClass(OntologyEntity):
@@ -43,6 +62,7 @@ class OntologyClass(OntologyEntity):
     # ↓ --------------------- Public API --------------------- ↓ #
 
     @property
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def attributes(
         self,
     ) -> Mapping[OntologyAttribute, FrozenSet[Optional[AttributeValue]]]:
@@ -93,7 +113,7 @@ class OntologyClass(OntologyEntity):
         self,
         session=None,
         iri: Optional[Union[URIRef, str, UID]] = None,
-        uid: Optional[Union[UUID, str, UID]] = None,
+        uid: Optional[Union[UID, UUID, str, Node, int, bytes]] = None,
         _force: bool = False,
         **kwargs,
     ):
@@ -117,22 +137,22 @@ class OntologyClass(OntologyEntity):
         # TODO: Create ontology individuals, NOT CUDS objects.
         if None not in (uid, iri):
             raise ValueError(
-                "Tried to initialize a CUDS object specifying, "
-                "both its IRI and UID. A CUDS object is "
-                "constrained to have just one UID."
+                "Tried to initialize an ontology individual, both its IRI and "
+                "UID. An ontology individual is constrained to have just one "
+                "UID."
             )
-        elif uid is not None and not isinstance(uid, (UUID, int, UID)):
+        elif uid is not None and not isinstance(
+            uid, (UID, UUID, str, Node, int, bytes)
+        ):
             raise ValueError(
-                "Provide either a UUID or a URIRef object " "as UID."
+                "Provide an object of one of the following types as UID: "
+                + ",".join(str(x) for x in (UID, UUID, str, Node, int, bytes))
             )
-            # NOTE: The error message is not wrong, the user is not meant to
-            #  provide a UID object, only OSP-core itself.
         elif iri is not None and not isinstance(iri, (URIRef, str, UID)):
             raise ValueError(
-                "Provide either a string or an URIRef object as " "IRI."
+                "Provide an object of one of the following types as IRI: "
+                + ",".join(str(x) for x in (URIRef, str, UID))
             )
-            # NOTE: The error message is not wrong, the user is not meant to
-            #  provide a UID object, only OSP-core itself.
         else:
             uid = (
                 (UID(uid) if uid else None)
@@ -174,6 +194,7 @@ class OntologyClass(OntologyEntity):
         logger.debug("Instantiated ontology class %s" % self)
 
     @property
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def optional_attributes(self) -> FrozenSet[OntologyAttribute]:
         """Get the optional attributes of this class.
 
@@ -192,6 +213,7 @@ class OntologyClass(OntologyEntity):
         )
         return attributes
 
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def _compute_axioms(
         self, identifier: Identifier, predicate: URIRef
     ) -> FrozenSet[Restriction]:
@@ -218,6 +240,7 @@ class OntologyClass(OntologyEntity):
         return frozenset(axioms)
 
     @property
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def _direct_attributes(
         self,
     ) -> Dict[OntologyAttribute, FrozenSet[Optional[AttributeValue]]]:
@@ -236,14 +259,14 @@ class OntologyClass(OntologyEntity):
             (restriction_iri, prop_iri)
             # Must be a restriction.
             for restriction_iri in graph.objects(
-                self.identifier, RDFS.subClassOf
+                self.identifier, RDFS_subClassOf
             )
-            if (restriction_iri, RDF.type, OWL.Restriction) in graph
+            if (restriction_iri, RDF_type, OWL_Restriction) in graph
             # The property must be a DatatypeProperty.
             for prop_iri in (
-                graph.value(restriction_iri, OWL.onProperty, any=False),
+                graph.value(restriction_iri, OWL_onProperty, any=False),
             )
-            if (prop_iri, RDF.type, OWL.DatatypeProperty) in graph
+            if (prop_iri, RDF_type, OWL_DatatypeProperty) in graph
         )
         for restriction_iri, prop_iri in restrictions_on_data_properties:
             attribute = self.session.from_identifier_typed(
@@ -251,22 +274,22 @@ class OntologyClass(OntologyEntity):
             )
 
             # Get restriction default.
-            default = graph.value(restriction_iri, OWL.hasValue)
+            default = graph.value(restriction_iri, OWL_hasValue)
 
             # Determine if attribute is mandatory.
             obligatory = any(
                 (
                     self.session.graph.value(
-                        restriction_iri, OWL.someValuesFrom
+                        restriction_iri, OWL_someValuesFrom
                     ),
                     self.session.graph.value(
-                        restriction_iri, OWL.allValuesFrom
+                        restriction_iri, OWL_allValuesFrom
                     ),
-                    self.session.graph.value(restriction_iri, OWL.hasValue),
-                    self.session.graph.value(restriction_iri, OWL.cardinality)
+                    self.session.graph.value(restriction_iri, OWL_hasValue),
+                    self.session.graph.value(restriction_iri, OWL_cardinality)
                     != 0,
                     self.session.graph.value(
-                        restriction_iri, OWL.minCardinality != 0
+                        restriction_iri, OWL_minCardinality != 0
                     ),
                 )
             )
@@ -278,6 +301,7 @@ class OntologyClass(OntologyEntity):
         return attributes
 
     @property
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def _direct_optional_attributes(
         self,
     ) -> FrozenSet[OntologyAttribute]:
@@ -295,11 +319,11 @@ class OntologyClass(OntologyEntity):
         attributes = set()
 
         # Class is part of the domain of a DatatypeProperty.
-        blacklist = [OWL.topDataProperty, OWL.bottomDataProperty]
+        blacklist = [OWL_topDataProperty, OWL_bottomDataProperty]
         target_properties = (
             s
-            for s in graph.subjects(RDFS.domain, self.identifier)
-            if (s, RDF.type, OWL.DatatypeProperty) in graph or s in blacklist
+            for s in graph.subjects(RDFS_domain, self.identifier)
+            if (s, RDF_type, OWL_DatatypeProperty) in graph or s in blacklist
         )
         for identifier in target_properties:
             attribute = self.session.from_identifier_typed(
@@ -314,7 +338,7 @@ class OntologyClass(OntologyEntity):
         Returns:
             The direct superclasses.
         """
-        for o in self.session.graph.objects(self.iri, RDFS.subClassOf):
+        for o in self.session.graph.objects(self.iri, RDFS_subClassOf):
             try:
                 yield self.session.from_identifier_typed(
                     o, typing=OntologyClass
@@ -328,7 +352,7 @@ class OntologyClass(OntologyEntity):
         Returns:
             The direct subclasses.
         """
-        for s in self.session.graph.subjects(RDFS.subClassOf, self.iri):
+        for s in self.session.graph.subjects(RDFS_subClassOf, self.iri):
             try:
                 yield self.session.from_identifier_typed(
                     s, typing=OntologyClass
@@ -345,7 +369,7 @@ class OntologyClass(OntologyEntity):
         yield self
 
         def closure(node, graph):
-            for o in graph.objects(node, RDFS.subClassOf):
+            for o in graph.objects(node, RDFS_subClassOf):
                 yield o
 
         yield from filter(
@@ -358,7 +382,7 @@ class OntologyClass(OntologyEntity):
             ),
         )
 
-        yield self.session.from_identifier(OWL.Thing)
+        yield self.session.from_identifier(OWL_Thing)
 
     def _get_subclasses(self) -> Iterator[OntologyClass]:
         """Get all the subclasses of this ontology class.
@@ -369,7 +393,7 @@ class OntologyClass(OntologyEntity):
         yield self
 
         def closure(node, graph):
-            for s in graph.subjects(RDFS.subClassOf, node):
+            for s in graph.subjects(RDFS_subClassOf, node):
                 yield s
 
         yield from filter(

@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import itertools
 import logging
-from functools import lru_cache, wraps
+from datetime import datetime
+from functools import wraps
 from inspect import isclass
 from typing import (
     TYPE_CHECKING,
@@ -35,8 +36,9 @@ from simphony_osp.ontology.namespace import OntologyNamespace
 from simphony_osp.ontology.parser import OntologyParser
 from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.ontology.utils import compatible_classes
+from simphony_osp.utils import simphony_namespace
+from simphony_osp.utils.cache import lru_cache_weak
 from simphony_osp.utils.datatypes import UID, Triple
-from simphony_osp.utils.simphony_namespace import simphony_namespace
 
 logger = logging.getLogger(__name__)
 
@@ -330,7 +332,7 @@ class Session(Environment):
             f"at {hex(id(self))}>"
         )
 
-    @lru_cache(maxsize=4096)
+    @lru_cache_weak(maxsize=4096)
     # On `__init__.py` there is an option to bypass this cache when the
     # session is not a T-Box.
     def from_identifier(self, identifier: Node) -> OntologyEntity:
@@ -421,7 +423,7 @@ class Session(Environment):
             raise TypeError(f"{identifier} is not of class {typing}.")
         return entity
 
-    @lru_cache(maxsize=4096)
+    @lru_cache_weak(maxsize=4096)
     # On `__init__.py` there is an option to bypass this cache when the
     # session is not a T-Box.
     def from_label(
@@ -574,6 +576,7 @@ class Session(Environment):
         graph = self._graph_writable if force else self._graph
         graph.remove((None, None, None))
         self._namespaces.clear()
+        self.entity_cache_timestamp = datetime.now()
         self.from_identifier.cache_clear()
         self.from_label.cache_clear()
 
@@ -595,7 +598,22 @@ class Session(Environment):
     it makes use of.
     """
 
+    entity_cache_timestamp: Optional[datetime] = None
+    """A timestamp marking the time when the session's graph was last modified.
+
+    This timestamp is used by `OntologyEntity` and its subclasses to know
+    whether they should invalidate their cache (e.g. the cache of the
+    `superclasses` method must be invalidated when the session is cleared or a
+    new ontology is loaded into the session).
+    """
+
     _ontology: Optional[Session] = None
+    """Private pointer to the T-Box of the session.
+
+    Not `None` only when the T-Box of the session should be different from
+    the default T-Box (the one referred to by the attribute `default_ontology`,
+    which is by default a session containing all the installed ontologies).
+    """
 
     def __init__(
         self,
@@ -634,8 +652,8 @@ class Session(Environment):
                 f"got {type(ontology)} instead."
             )
 
-        # Bypass cache if this session is not a T-Box
         if self.ontology is not self:
+            """Bypass cache if this session is not a T-Box"""
 
             def bypass_cache(method: Callable):
                 wrapped_func = method.__wrapped__
@@ -649,6 +667,10 @@ class Session(Environment):
 
             self.from_identifier = bypass_cache(self.from_identifier)
             self.from_label = bypass_cache(self.from_label)
+        else:
+            """Log the time of last entity cache clearing."""
+
+            self.entity_cache_timestamp = datetime.now()
 
         self.creation_set = set()
         self._storing = list()
@@ -852,6 +874,7 @@ class Session(Environment):
         self._graph_writable += parser.graph
         for name, iri in parser.namespaces.items():
             self.bind(name, iri)
+        self.entity_cache_timestamp = datetime.now()
         self.from_identifier.cache_clear()
         self.from_label.cache_clear()
 
