@@ -9,8 +9,7 @@ from simphony_osp.utils.other import take
 
 
 def lru_cache_weak(
-        maxsize: Optional[int] = None,
-        typed: bool = False
+    maxsize: Optional[int] = None, typed: bool = False
 ) -> Callable:
     """Mimics `functools.lru_cache`, but using a weak reference.
 
@@ -105,10 +104,12 @@ def lru_cache_timestamp(
                 internal_timestamp = datetime.now()
 
                 @lru_cache_weak(maxsize=maxsize, typed=typed)
-                def cached_function(self_function, *args_function,
-                                    **kwargs_function):
-                    return func(self_function, *args_function,
-                                **kwargs_function)
+                def cached_function(
+                    self_function, *args_function, **kwargs_function
+                ):
+                    return func(
+                        self_function, *args_function, **kwargs_function
+                    )
 
                 holder[self] = internal_timestamp, cached_function
 

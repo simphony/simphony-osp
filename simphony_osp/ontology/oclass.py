@@ -24,8 +24,8 @@ from rdflib.term import Identifier, Node
 from simphony_osp.ontology.attribute import OntologyAttribute
 from simphony_osp.ontology.entity import OntologyEntity
 from simphony_osp.ontology.restriction import Restriction
-from simphony_osp.utils.datatypes import UID, AttributeValue, Triple
 from simphony_osp.utils.cache import lru_cache_timestamp
+from simphony_osp.utils.datatypes import UID, AttributeValue, Triple
 
 if TYPE_CHECKING:
     from simphony_osp.session.session import Session
