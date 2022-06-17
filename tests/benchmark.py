@@ -3,9 +3,14 @@ import time
 from abc import ABC, abstractmethod
 from typing import Union
 
+# import cProfile
+
 
 class Benchmark(ABC):
     """Abstract class that serves as a base for defining benchmarks."""
+
+    # profiler: cProfile.Profile
+    # """Include a profiler to easily track the causes of bad performance."""
 
     def __init__(self, size: int = 500, *args, **kwargs):
         """Set up the internal attributes of the benchmark.
@@ -18,6 +23,7 @@ class Benchmark(ABC):
         self._size = size
         self._iter_times = [None] * size
         self._finished = False
+        # self.profiler = cProfile.Profile()
 
     @property
     def started(self) -> bool:
@@ -105,7 +111,9 @@ class Benchmark(ABC):
             raise StopIteration("This benchmark is finished.")
         iteration = self.iterations
         start = time.process_time()
+        # self.profiler.enable()
         self._benchmark_iterate(iteration=iteration)
+        # self.profiler.disable()
         end = time.process_time()
         self._iter_times[iteration] = end - start
 
@@ -126,9 +134,11 @@ class Benchmark(ABC):
         already. It runs all of its programmed iterations.
         """
         self.set_up()
-        for i in range(self.size):
-            self.iterate()
-        self.tear_down()
+        try:
+            for i in range(self.size):
+                self.iterate()
+        finally:
+            self.tear_down()
 
     @classmethod
     def iterate_pytest_benchmark(
@@ -143,5 +153,7 @@ class Benchmark(ABC):
         kwargs["warmup_rounds"] = kwargs.get("warmup_rounds", 0)
         benchmark_instance = cls(size=size)
         benchmark_instance.set_up()
-        benchmark.pedantic(benchmark_instance.iterate, *args, **kwargs)
-        benchmark_instance.tear_down()
+        try:
+            benchmark.pedantic(benchmark_instance.iterate, *args, **kwargs)
+        finally:
+            benchmark_instance.tear_down()

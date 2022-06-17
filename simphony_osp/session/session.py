@@ -48,6 +48,10 @@ if TYPE_CHECKING:
 ENTITY = TypeVar("ENTITY", bound=OntologyEntity)
 
 
+RDF_type = RDF.type
+OWL_inverseOf = OWL.inverseOf
+
+
 class Environment:
     """Environment where ontology entities may be created.
 
@@ -353,54 +357,61 @@ class Session(Environment):
         #  optimization it gets will speed up SimPhoNy, while bad code in
         #  this method will slow it down.
 
-        """Look for compatible Python classes to spawn."""
-        compatible = set()
+        # Look for embedded classes.
+        compatible = {
+            rdf_type: compatible_classes(rdf_type, identifier)
+            for rdf_type in self._graph.objects(identifier, RDF_type)
+        }
 
-        for rdf_type in self._graph.objects(identifier, RDF.type):
-            # Look for compatible embedded classes.
-            found = compatible_classes(rdf_type, identifier)
+        # If not an embedded class, then the type may be known in
+        # the ontology. This means that an ontology individual would
+        # have to be spawned.
+        for rdf_type, found in compatible.items():
             if not found:
-                # If not an embedded class, then the type may be known in
-                # the ontology. This means that an ontology individual would
-                # have to be spawned.
                 try:
                     self.ontology.from_identifier(rdf_type)
-                    compatible |= {OntologyIndividual}
+                    found |= {OntologyIndividual}
+                    break
                 except KeyError:
                     pass
-            else:
-                compatible |= found
+
+        compatible = {
+            class_
+            for classes in compatible.values()
+            for class_ in classes
+        }
+
         if (
             OntologyRelationship not in compatible
-            and (identifier, OWL.inverseOf, None) in self._graph
+            and (identifier, OWL_inverseOf, None) in self._graph
         ):
             compatible |= {OntologyRelationship}
 
         """Some ontologies are hybrid RDFS and OWL ontologies (i.e. FOAF).
         In such cases, object and datatype properties are preferred to
         annotation properties."""
-        if OntologyAnnotation in compatible and any(
-            x in compatible for x in (OntologyRelationship, OntologyAttribute)
+        if OntologyAnnotation in compatible and (
+                compatible & {OntologyRelationship, OntologyAttribute}
         ):
             compatible.remove(OntologyAnnotation)
-        if len(compatible) == 0:
-            # The individual belongs to an unknown class.
+
+        """Finally return the single compatible class or raise an exception."""
+        if len(compatible) >= 2:
+            raise RuntimeError(
+                f"Two or more python classes ("
+                f"{', '.join(map(str, compatible))}) "
+                f"could be spawned from {identifier}."
+            )
+        try:
+            python_class = compatible.pop()
+            return python_class(uid=UID(identifier), session=self, merge=None)
+        except KeyError:
             raise KeyError(
                 f"Identifier {identifier} does not match any OWL "
                 f"entity, any entity natively supported by "
                 f"SimPhoNy, nor an ontology individual "
                 f"belonging to a class in the ontology."
             )
-        elif len(compatible) >= 2:
-            compatible = map(str, compatible)
-            raise RuntimeError(
-                f"Two or more python classes ("
-                f"{', '.join(compatible)}) "
-                f"could be spawned from {identifier}."
-            )
-        else:
-            python_class = compatible.pop()
-            return python_class(uid=UID(identifier), session=self, merge=None)
 
     def from_identifier_typed(
         self, identifier: Node, typing: Type[ENTITY]
@@ -631,9 +642,8 @@ class Session(Environment):
         if base is not None:
             self._graph_writable = base
             self._graph = base
-
         else:
-            graph = Graph()
+            graph = Graph("SimpleMemory")
             self._graph_writable = graph
             self._graph = graph
 
@@ -671,6 +681,8 @@ class Session(Environment):
             """Log the time of last entity cache clearing."""
 
             self.entity_cache_timestamp = datetime.now()
+
+        self._entity_cache = dict()
 
         self.creation_set = set()
         self._storing = list()

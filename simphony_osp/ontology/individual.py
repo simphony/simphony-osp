@@ -50,6 +50,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+RDF_type = RDF.type
+OWL_NamedIndividual = OWL.NamedIndividual
+
 
 class ResultEmptyError(Exception):
     """The result is unexpectedly empty."""
@@ -185,7 +188,7 @@ class ObjectSet(DataStructureSet, ABC):
             Such predicates, or `None` if no main predicate is
             associated with this `ObjectSet`.
         """
-        return (
+        return set(
             self._predicate.subclasses if self._predicate is not None else None
         )
 
@@ -359,32 +362,59 @@ class RelationshipSet(ObjectSet):
         Returns:
             The mentioned underlying set.
         """
+        individual = self._individual.identifier
+        graph = self._individual.session.graph
+        ontology = self._individual.session.ontology
+        predicates = self._predicates
+
+        # Get the predicate IRIs to be considered.
+        predicates = {
+            p.identifier
+            for predicate in predicates
+            for p in (
+                p for p in (predicate, predicate.inverse)
+                if p is not None
+            )
+        }
+
+        # Get the identifiers of the individuals connected to
+        # `self._individual` through the allowed predicates.
+        triples = graph.triples((individual, None, None))
+        connected = {o for s, p, o in triples if p in predicates}
+        identifiers = (
+            tuple(uid.to_identifier() for uid in self._uid_filter)
+            if self._uid_filter else tuple()
+        )
+        if identifiers:
+            connected &= set(identifiers)
+        if self._class_filter:
+            connected &= {
+                identifier
+                for identifier in connected
+                if self._class_filter in (
+                    subclass
+                    for c in graph.objects(identifier, RDF_type)
+                    if c != OWL_NamedIndividual
+                    for subclass in ontology.from_identifier_typed(
+                        c, typing=OntologyClass
+                    ).subclasses
+                )
+            }
+
         if self._uid_filter:
-            last_identifier = None
-            for i, r, t in self.iter_low_level():
-                if i == last_identifier:
-                    continue
-                elif (r, t) == (None, None):
-                    yield None
-                else:
-                    item = self._individual.session.from_identifier_typed(
-                        i, typing=OntologyIndividual
-                    )
-                    if not self._class_filter or item.is_a(self._class_filter):
-                        yield item
-                    else:
-                        yield None
-                last_identifier = i
+            yield from (
+                self._individual.session.from_identifier_typed(
+                    identifier, typing=OntologyIndividual
+                ) if identifier in connected else None
+                for identifier in identifiers
+            )
         else:
-            yielded: Set[Node] = set()
-            for i, r, t in self.iter_low_level():
-                item = self._individual.session.from_identifier(i)
-                if i in yielded or (
-                    self._class_filter and not item.is_a(self._class_filter)
-                ):
-                    continue
-                yielded.add(i)
-                yield item
+            yield from (
+                self._individual.session.from_identifier_typed(
+                    identifier, typing=OntologyIndividual
+                )
+                for identifier in connected
+            )
 
     def __contains__(self, item: OntologyIndividual) -> bool:
         """Check if an individual is connected via the relationship."""
@@ -624,7 +654,8 @@ class RelationshipSet(ObjectSet):
 
     def iter_low_level(
         self,
-    ) -> Iterator[Tuple[Node, Optional[Node], Optional[bool]]]:
+    ) -> Union[Iterator[Tuple[Node, Optional[Node], Optional[bool]]],
+               Iterator[Tuple[Node, Optional[Node], Optional[bool], Node]]]:
         """Iterate over individuals assigned to `self._predicates`.
 
         Note: no class filter.
@@ -653,13 +684,13 @@ class RelationshipSet(ObjectSet):
         if self._uid_filter is None:
             predicate_individual_direct = (
                 (o, p)
-                for p, o in graph.predicate_objects(individual)
-                if p in direct_allowed
+                for p in direct_allowed
+                for o in graph.objects(individual, p)
             )
             predicate_individual_inverse = (
                 (s, p)
-                for s, p in graph.subject_predicates(individual)
-                if p in inverse_allowed
+                for p in inverse_allowed
+                for s in graph.subjects(p, individual)
             )
             individuals_and_relationships = chain(
                 ((o, p, True) for o, p in predicate_individual_direct),
@@ -676,13 +707,13 @@ class RelationshipSet(ObjectSet):
                     found = chain(
                         (
                             (p, True)
-                            for p in graph.predicates(individual, identifier)
-                            if p in direct_allowed
+                            for p in direct_allowed
+                            if (individual, p, identifier) in graph
                         ),
                         (
                             (p, False)
-                            for p in graph.predicates(identifier, individual)
-                            if p in inverse_allowed
+                            for p in inverse_allowed
+                            if (identifier, p, individual) in graph
                         ),
                     )
                     first = next(found, (None, None))
@@ -784,7 +815,7 @@ class OntologyIndividual(OntologyEntity):
                 f"Tried to initialize an ontology individual with "
                 f"uid {uid}, which is not a UID object."
             )
-        self._ontology_classes = []
+        _ontology_classes = set()
         triples = set(triples) if triples is not None else set()
         # Attribute triples.
         attributes = attributes or dict()
@@ -800,27 +831,8 @@ class OntologyIndividual(OntologyEntity):
         # Class triples.
         if class_:
             triples |= {(uid.to_iri(), RDF.type, class_.iri)}
-            self._ontology_classes += [class_]
-        # extra_class = False
-        # Extra triples
-        # for s, p, o in triples:
-        # if p == RDF.type:
-        #     extra_class = True
-        # triples.add((s, p, o))
-        # TODO: grab extra class from tbox, add it to _ontology_classes.
 
-        # Determine whether class was assigned (currently unused).
-        # class_assigned = bool(class_) or extra_class
-        # if not class_assigned:
-        # raise TypeError(f"No ontology class associated with {self}! "
-        #                 f"Did you install the required ontology?")
-        # logger.warning(f"No ontology class associated with {self}! "
-        #               f"Did you install the required ontology?")
-        # pass
-
-        # When the construction is complete, the session is switched.
         super().__init__(uid, session, triples or None, merge=merge)
-        logger.debug("Instantiated ontology individual %s" % self)
 
     # Public API
     # ↓ ------ ↓
@@ -837,8 +849,8 @@ class OntologyIndividual(OntologyEntity):
             self.session.ontology.from_identifier_typed(
                 o, typing=OntologyClass
             )
-            for o in self.session.graph.objects(self.identifier, RDF.type)
-            if o != OWL.NamedIndividual
+            for o in self.session.graph.objects(self.identifier, RDF_type)
+            if o != OWL_NamedIndividual
         )
 
     @classes.setter
@@ -1601,12 +1613,10 @@ class OntologyIndividual(OntologyEntity):
                     "first using `session.add`."
                 )
 
-            if isinstance(x, str):
-                if not isinstance(x, Identifier):
-                    x = URIRef(x)
-                identifiers[n] = UID(x)
-            elif isinstance(x, OntologyIndividual):
-                identifiers[n] = UID(x.identifier)
+            identifiers[n] = UID(
+                x.identifier if isinstance(x, OntologyIndividual)
+                else x
+            )
 
         if isinstance(rel, Identifier):
             rel = self.session.ontology.from_identifier_typed(
@@ -1714,6 +1724,16 @@ class OntologyIndividual(OntologyEntity):
             return context_return
 
         raise AttributeError("__exit__")
+
+    @property
+    def attributes(
+        self,
+    ) -> Mapping[OntologyAttribute, FrozenSet[AttributeValue]]:
+        """Get the attributes of this individual as a dictionary."""
+        generator = self.attributes_attribute_and_value_generator()
+        return MappingProxyType(
+            {attr: frozenset(gen) for attr, gen in generator}
+        )
 
     # ↑ ------ ↑
     # Public API
@@ -1978,16 +1998,6 @@ class OntologyIndividual(OntologyEntity):
 
     # Attribute handling
     # ↓ -------------- ↓
-
-    @property
-    def attributes(
-        self,
-    ) -> Mapping[OntologyAttribute, FrozenSet[AttributeValue]]:
-        """Get the attributes of this individual as a dictionary."""
-        generator = self.attributes_attribute_and_value_generator()
-        return MappingProxyType(
-            {attr: frozenset(gen) for attr, gen in generator}
-        )
 
     def _attributes_get_by_name(self, name: str) -> Set[OntologyAttribute]:
         """Get an attribute of this individual by name."""

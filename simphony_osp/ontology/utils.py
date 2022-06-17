@@ -391,6 +391,7 @@ def _compute_mappings() -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
     return mapping_rdf_to_python_class, mapping_identifier_to_python_class
 
 
+@lru_cache(maxsize=4096)
 def compatible_classes(type_, identifier):
     """Given a pair of an RDF type and an identifier get a Python class.
 
