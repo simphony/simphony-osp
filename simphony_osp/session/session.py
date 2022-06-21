@@ -959,15 +959,16 @@ class Session(Environment):
             else:
                 return literal.language == lang
 
-        labels = filter(
-            lambda label_tuple: filter_language(label_tuple[1]),
-            (
+        labels = (
                 (prop, literal, subject)
                 for prop in self.label_properties
                 for subject, _, literal in self._graph.triples(
                     (entity, prop, None)
                 )
-            ),
+            )
+        labels = filter(
+            lambda label_tuple: filter_language(label_tuple[1]),
+            labels
         )
         if not return_prop and not return_literal and not return_identifier:
             return (str(x[1]) for x in labels)

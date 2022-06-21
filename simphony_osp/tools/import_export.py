@@ -118,7 +118,7 @@ def import_file(
     # Import the contents.
     session = session or Session.get_default_session()
 
-    buffer_session = Session()
+    buffer_session = Session(base=Graph("Memory"))
     buffer_session.graph.parse(io.StringIO(contents), format=format)
     buffer_session.graph.remove((None, RDF.type, OWL.NamedIndividual))
 

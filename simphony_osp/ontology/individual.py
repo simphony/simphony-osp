@@ -368,19 +368,27 @@ class RelationshipSet(ObjectSet):
         predicates = self._predicates
 
         # Get the predicate IRIs to be considered.
-        predicates = {
+        predicates_direct = {
+            predicate.identifier
+            for predicate in predicates
+        }
+        predicates_inverse = {
             p.identifier
             for predicate in predicates
-            for p in (
-                p for p in (predicate, predicate.inverse)
-                if p is not None
-            )
+            for p in (predicate.inverse, )
+            if p is not None
         }
+        if self._inverse:
+            predicates_direct, predicates_inverse = (predicates_inverse,
+                                                     predicates_direct)
 
         # Get the identifiers of the individuals connected to
         # `self._individual` through the allowed predicates.
+        connected = set()
         triples = graph.triples((individual, None, None))
-        connected = {o for s, p, o in triples if p in predicates}
+        connected |= {o for s, p, o in triples if p in predicates_direct}
+        triples = graph.triples((None, None, individual))
+        connected |= {s for s, p, o in triples if p in predicates_inverse}
         identifiers = (
             tuple(uid.to_identifier() for uid in self._uid_filter)
             if self._uid_filter else tuple()
@@ -397,7 +405,7 @@ class RelationshipSet(ObjectSet):
                     if c != OWL_NamedIndividual
                     for subclass in ontology.from_identifier_typed(
                         c, typing=OntologyClass
-                    ).subclasses
+                    ).superclasses
                 )
             }
 

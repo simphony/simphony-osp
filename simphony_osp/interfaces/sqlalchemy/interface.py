@@ -29,9 +29,7 @@ class SQLAlchemy(Interface):
     # Interface
     # ↓ ----- ↓
 
-    disable_entity_tracking: bool = True
-
-    root: Optional[Identifier] = None
+    entity_tracking: bool = False
 
     def open(self, configuration: str, create: bool = False):
         """Open a connection to the database.
