@@ -376,9 +376,7 @@ class Session(Environment):
                     pass
 
         compatible = {
-            class_
-            for classes in compatible.values()
-            for class_ in classes
+            class_ for classes in compatible.values() for class_ in classes
         }
 
         if (
@@ -391,7 +389,7 @@ class Session(Environment):
         In such cases, object and datatype properties are preferred to
         annotation properties."""
         if OntologyAnnotation in compatible and (
-                compatible & {OntologyRelationship, OntologyAttribute}
+            compatible & {OntologyRelationship, OntologyAttribute}
         ):
             compatible.remove(OntologyAnnotation)
 
@@ -960,15 +958,14 @@ class Session(Environment):
                 return literal.language == lang
 
         labels = (
-                (prop, literal, subject)
-                for prop in self.label_properties
-                for subject, _, literal in self._graph.triples(
-                    (entity, prop, None)
-                )
+            (prop, literal, subject)
+            for prop in self.label_properties
+            for subject, _, literal in self._graph.triples(
+                (entity, prop, None)
             )
+        )
         labels = filter(
-            lambda label_tuple: filter_language(label_tuple[1]),
-            labels
+            lambda label_tuple: filter_language(label_tuple[1]), labels
         )
         if not return_prop and not return_literal and not return_identifier:
             return (str(x[1]) for x in labels)

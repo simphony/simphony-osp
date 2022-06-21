@@ -128,7 +128,7 @@ class OntologyEntity(ABC):
     @property
     @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def direct_superclasses(
-            self: ONTOLOGY_ENTITY
+        self: ONTOLOGY_ENTITY,
     ) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the direct superclasses of the entity.
 

@@ -1,24 +1,23 @@
 """Universal interface for wrapper developers."""
 from __future__ import annotations
 
-from collections.abc import Collection
-
-from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
+from collections.abc import Collection
+from datetime import datetime, timedelta
 from enum import IntEnum
 from itertools import chain
 from typing import (
     TYPE_CHECKING,
     BinaryIO,
     Dict,
+    Iterable,
     Iterator,
     Optional,
     Set,
-    Iterable,
     Tuple,
 )
 
-from rdflib import RDF, Graph, URIRef, BNode
+from rdflib import RDF, BNode, Graph, URIRef
 from rdflib.graph import ModificationException, ReadOnlyGraphAggregate
 from rdflib.plugins.stores.memory import SimpleMemory
 from rdflib.query import Result
@@ -219,34 +218,34 @@ class InterfaceDriver(Store):
 
     _cache_time: timedelta = timedelta(seconds=0.3)
     """Maximum time to spend in caching after making a request.
-    
-    When a request for triples involving a specific subject is made, 
-    the caching algorithm asks for all the triples involving the subject. 
+
+    When a request for triples involving a specific subject is made,
+    the caching algorithm asks for all the triples involving the subject.
     This call is not subject to a time limit.
-    
-    However, in a second stage, if the interface is merely based on a base 
-    graph (meaning requests can be made using SPARQL), the algorithm will 
-    also try to cache the children of the such subject, the parent objects, 
-    and all of its neighbors. Since these operations can take a lot of extra 
-    time, this parameter fixes a time limit for the cumulative time it 
-    takes to perform all of these requests. When such caching operations 
+
+    However, in a second stage, if the interface is merely based on a base
+    graph (meaning requests can be made using SPARQL), the algorithm will
+    also try to cache the children of the such subject, the parent objects,
+    and all of its neighbors. Since these operations can take a lot of extra
+    time, this parameter fixes a time limit for the cumulative time it
+    takes to perform all of these requests. When such caching operations
     take longer than this time, they are interrupted.
     """
 
     _cache_step: int = 100
     """Number of triples to fetch at once when filling the cache.
 
-    Since SimPhoNy is single-threaded software, the queries described above 
-    (on the docstring of `_cache_time`) are blocking. This means that if one 
-    tries to fetch too many items at once from the interface, it may take 
-    significantly longer than the `_cache_time` to do so, but the operation 
+    Since SimPhoNy is single-threaded software, the queries described above
+    (on the docstring of `_cache_time`) are blocking. This means that if one
+    tries to fetch too many items at once from the interface, it may take
+    significantly longer than the `_cache_time` to do so, but the operation
     cannot be canceled until all the items have been fetched.
-    
-    That is the reason behind this parameter: if it is small enough, one can 
-    check how long has the caching algorithm been running at smaller 
-    intervals. Please note that this assumes that asking the interface to 
-    yield one triple takes a much smaller amount of time than `_cache_time`. 
-    This is not necessarily always the case (for example if the underlying 
+
+    That is the reason behind this parameter: if it is small enough, one can
+    check how long has the caching algorithm been running at smaller
+    intervals. Please note that this assumes that asking the interface to
+    yield one triple takes a much smaller amount of time than `_cache_time`.
+    This is not necessarily always the case (for example if the underlying
     interface produces triples in chunks).
     """
 
@@ -422,9 +421,9 @@ class InterfaceDriver(Store):
         # Manage the triple cache.
         if fill_cache and self.interface.cache:
             """Fill the cache using requests based on triple patterns.
-            
-            This stage caches either the requested triple pattern, or if the 
-            triple pattern contains a subject, all the information about the 
+
+            This stage caches either the requested triple pattern, or if the
+            triple pattern contains a subject, all the information about the
             subject.
             """
             timestamp = datetime.now()
@@ -435,7 +434,7 @@ class InterfaceDriver(Store):
                 cache_pattern = (s_p, None, None)
             else:
                 """No subject in the triple pattern.
-                
+
                 Cache the triple pattern only.
                 """
                 cache_pattern = triple_pattern
@@ -451,11 +450,13 @@ class InterfaceDriver(Store):
                 yield from (
                     (a, b, c)
                     for a, b, c in all_triples
-                    if all((
-                        pat_s is None or a == pat_s,
-                        pat_p is None or b == pat_p,
-                        pat_o is None or c == pat_o
-                    ))
+                    if all(
+                        (
+                            pat_s is None or a == pat_s,
+                            pat_p is None or b == pat_p,
+                            pat_o is None or c == pat_o,
+                        )
+                    )
                 )
 
             try:
@@ -467,8 +468,8 @@ class InterfaceDriver(Store):
 
             if fill_cache_sparql:
                 """Fill the cache using requests based on SPARQL.
-                
-                This stage allows additional triples related to the children of 
+
+                This stage allows additional triples related to the children of
                 the object, the parent object and the neighbors to be cached.
                 """
                 base = self.interface.base
@@ -498,9 +499,8 @@ class InterfaceDriver(Store):
                         base.query(
                             query,
                             initNs={
-                                'owl':
-                                    URIRef('http://www.w3.org/2002/07/owl#')
-                            }
+                                "owl": URIRef("http://www.w3.org/2002/07/owl#")
+                            },
                         )
                     )
 
@@ -519,16 +519,14 @@ class InterfaceDriver(Store):
                         break
 
                     result = set(result)
-                    if (
-                            self._compute_space(older_than=timestamp)
-                            >= len(result)
+                    if self._compute_space(older_than=timestamp) >= len(
+                        result
                     ):
                         pattern_dict = dict()
                         for s, p, o in result:
-                            pattern_dict[(s, None, None)] = (
-                                pattern_dict.get((s, None, None), set())
-                                | {(s, p, o)}
-                            )
+                            pattern_dict[(s, None, None)] = pattern_dict.get(
+                                (s, None, None), set()
+                            ) | {(s, p, o)}
 
                         for pattern, triples in pattern_dict.items():
                             self._fill(pattern, triples)
@@ -537,13 +535,15 @@ class InterfaceDriver(Store):
         triple_pool = query_method(triple_pattern)
         if not ignore_buffers:
             triple_pool = (
-                triple for triple in triple_pool
+                triple
+                for triple in triple_pool
                 if all(
-                    triple not in graph for graph in (
+                    triple not in graph
+                    for graph in (
                         self._buffer_uncaught[BufferType.DELETED],
                         self._buffer_caught[BufferType.DELETED],
                         self._buffer_uncaught[BufferType.ADDED],
-                        self._buffer_caught[BufferType.ADDED]
+                        self._buffer_caught[BufferType.ADDED],
                     )
                 )
             )
@@ -554,9 +554,7 @@ class InterfaceDriver(Store):
                 self._buffer_uncaught[BufferType.ADDED].triples(
                     triple_pattern
                 ),
-                self._buffer_caught[BufferType.ADDED].triples(
-                    triple_pattern
-                ),
+                self._buffer_caught[BufferType.ADDED].triples(triple_pattern),
             )
 
         yield from ((triple, iter(())) for triple in triple_pool)
@@ -712,31 +710,28 @@ class InterfaceDriver(Store):
         if self.interface.cache:
             # - remove deleted triples
             for triple in chain(
-                    self._buffer_uncaught[BufferType.DELETED],
-                    self._buffer_caught[BufferType.DELETED]
+                self._buffer_uncaught[BufferType.DELETED],
+                self._buffer_caught[BufferType.DELETED],
             ):
                 self._cache.remove(triple)
             # - add the added triples
             timestamp = datetime.now()
             cacheable_triples = dict()
             for triple in chain(
-                    self._buffer_uncaught[BufferType.ADDED],
-                    self._buffer_caught[BufferType.ADDED],
+                self._buffer_uncaught[BufferType.ADDED],
+                self._buffer_caught[BufferType.ADDED],
             ):
-                compatible_cached_patterns = (
-                    self._compatible_patterns(triple)
-                    & set(self._cached_patterns)
-                )
+                compatible_cached_patterns = self._compatible_patterns(
+                    triple
+                ) & set(self._cached_patterns)
                 for pattern in compatible_cached_patterns:
-                    cacheable_triples[pattern] = (
-                        cacheable_triples.get(pattern, set())
-                        | {triple}
-                    )
+                    cacheable_triples[pattern] = cacheable_triples.get(
+                        pattern, set()
+                    ) | {triple}
             for pattern, triples in cacheable_triples.items():
                 try:
                     self._fill(
-                        pattern, triples,
-                        older_than=timestamp, replace=False
+                        pattern, triples, older_than=timestamp, replace=False
                     )
                 except CacheSizeException:
                     self._cache.remove(pattern)
@@ -976,11 +971,11 @@ class InterfaceDriver(Store):
             raise ModificationException
 
     def _fill(
-            self,
-            triple_pattern: Pattern,
-            triples: Collection[Triple],
-            older_than: Optional[datetime] = None,
-            replace: bool = True,
+        self,
+        triple_pattern: Pattern,
+        triples: Collection[Triple],
+        older_than: Optional[datetime] = None,
+        replace: bool = True,
     ) -> None:
         """Fill the cache with new triples.
 
@@ -1000,7 +995,7 @@ class InterfaceDriver(Store):
 
         """Check if there is room for the new triples.
 
-        Also compute the patterns that should be removed to make room for 
+        Also compute the patterns that should be removed to make room for
         the new one.
         """
         if len(triples) > self._cache_size:
@@ -1008,33 +1003,35 @@ class InterfaceDriver(Store):
             raise CacheSizeException()
         elif len(triples) > (self._cache_size - len(self._cache)):
             """Not enough free space in the cache.
-            
-            Find out which cached patterns can be removed to make room for 
+
+            Find out which cached patterns can be removed to make room for
             the new triples.
             """
             to_remove = set()
             removable_patterns = dict()
             # sub-patterns of the pattern to cache are always removable
-            removable_patterns.update({
-                pattern: None
-                for pattern in set(self._cached_patterns) - {triple_pattern}
-                if self._is_sub_pattern(pattern, triple_pattern)
-            })
+            removable_patterns.update(
+                {
+                    pattern: None
+                    for pattern in set(self._cached_patterns)
+                    - {triple_pattern}
+                    if self._is_sub_pattern(pattern, triple_pattern)
+                }
+            )
             if replace:
-                removable_patterns.update({
-                    triple_pattern: None
-                })
+                removable_patterns.update({triple_pattern: None})
             to_remove |= set(removable_patterns)
             # concatenate the rest of the patterns:
             # TODO: do not sort, keep ordering when inserting
-            removable_patterns.update({
-                pattern: date
-                for pattern, date in sorted(
-                    self._cached_patterns.items(),
-                    key=lambda x: x[1]
-                )
-                if date < older_than
-            })
+            removable_patterns.update(
+                {
+                    pattern: date
+                    for pattern, date in sorted(
+                        self._cached_patterns.items(), key=lambda x: x[1]
+                    )
+                    if date < older_than
+                }
+            )
             triple_count = 0
             for pattern in removable_patterns:
                 triple_count += sum(1 for _ in self._cache.triples(pattern))
@@ -1054,15 +1051,12 @@ class InterfaceDriver(Store):
 
         """Fill the cache with the new pattern."""
         self._cache.remove(triple_pattern)
-        self._cache.addN(
-            (s, p, o, self._cache)
-            for s, p, o in triples
-        )
+        self._cache.addN((s, p, o, self._cache) for s, p, o in triples)
         self._cached_patterns[triple_pattern] = datetime.now()
 
     def _compute_space(
-            self,
-            older_than: Optional[datetime] = None,
+        self,
+        older_than: Optional[datetime] = None,
     ) -> int:
         """Compute the free space on the cache.
 
@@ -1087,14 +1081,11 @@ class InterfaceDriver(Store):
 
         return min(
             self._cache_size,
-            self._cache_size - len(self._cache) + triple_count
+            self._cache_size - len(self._cache) + triple_count,
         )
 
     @staticmethod
-    def _is_sub_pattern(
-            sub_pattern: Pattern,
-            pattern: Pattern
-    ) -> bool:
+    def _is_sub_pattern(sub_pattern: Pattern, pattern: Pattern) -> bool:
         """Determine whether a triple pattern is a sub-pattern of another.
 
         Args:
@@ -1110,9 +1101,7 @@ class InterfaceDriver(Store):
         )
 
     @staticmethod
-    def _compatible_patterns(
-            triple: Triple
-    ) -> Set[Pattern]:
+    def _compatible_patterns(triple: Triple) -> Set[Pattern]:
         """List the patterns that are compatible with a given triple."""
         s, p, o = triple
         return {
@@ -1123,7 +1112,7 @@ class InterfaceDriver(Store):
             (None, None, o),
             (s, None, None),
             (None, p, None),
-            (None, None, None)
+            (None, None, None),
         }
 
     def _cached(self, item: Pattern) -> bool:
@@ -1157,10 +1146,10 @@ class Interface(ABC):
 
     cache: bool = False
     """Whether to enable caching.
-    
-    When caching is enabled, the number of calls to the methods of the 
-    interface are reduced. This is useful if the latency of such calls is 
-    high. This is the case, for example, 
+
+    When caching is enabled, the number of calls to the methods of the
+    interface are reduced. This is useful if the latency of such calls is
+    high. This is the case, for example,
     """
 
     @abstractmethod

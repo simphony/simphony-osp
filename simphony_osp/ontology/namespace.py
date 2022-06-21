@@ -189,8 +189,9 @@ class OntologyNamespace:
         """Return the number of entities in the namespace."""
         return sum(1 for _ in self)
 
-    @lru_cache_timestamp(lambda self: self.ontology.entity_cache_timestamp,
-                         maxsize=4096)
+    @lru_cache_timestamp(
+        lambda self: self.ontology.entity_cache_timestamp, maxsize=4096
+    )
     def get(self, name: str, default: Optional[Any] = None) -> OntologyEntity:
         """Get ontology entities from the registry by suffix or label.
 
@@ -247,8 +248,9 @@ class OntologyNamespace:
         """
         return self.from_iri(str(self._iri) + suffix)
 
-    @lru_cache_timestamp(lambda self: self.ontology.entity_cache_timestamp,
-                         maxsize=4096)
+    @lru_cache_timestamp(
+        lambda self: self.ontology.entity_cache_timestamp, maxsize=4096
+    )
     def from_iri(self, iri: Union[str, URIRef]) -> OntologyEntity:
         """Get an ontology entity directly from its IRI.
 
@@ -278,8 +280,9 @@ class OntologyNamespace:
                 f"The IRI {iri} does not belong to the namespace" f"{self}."
             )
 
-    @lru_cache_timestamp(lambda self: self.ontology.entity_cache_timestamp,
-                         maxsize=4096)
+    @lru_cache_timestamp(
+        lambda self: self.ontology.entity_cache_timestamp, maxsize=4096
+    )
     def from_label(
         self,
         label: str,
@@ -348,8 +351,9 @@ class OntologyNamespace:
         """
         return "<%s: %s>" % (self.name, self.iri)
 
-    @lru_cache_timestamp(lambda self: self.ontology.entity_cache_timestamp,
-                         maxsize=4096)
+    @lru_cache_timestamp(
+        lambda self: self.ontology.entity_cache_timestamp, maxsize=4096
+    )
     def _from_label_set(
         self,
         label: str,

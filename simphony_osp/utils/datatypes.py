@@ -300,7 +300,7 @@ class UID(CustomDataType):
     iri = URIRef("https://www.simphony-project.eu/types#UID")
     data: Union[BNode, URIRef, UUID]
 
-    __slots__ = ('data', )
+    __slots__ = ("data",)
 
     def __init__(
         self,
@@ -394,8 +394,11 @@ class UID(CustomDataType):
         """Convert the UID to an rdflib Identifier."""
         data = self.data
         # logic in `to_iri` duplicated here in exchange for performance gains
-        return (URIRef(ENTITY_IRI_PREFIX + str(data))
-                if isinstance(data, UUID) else data)
+        return (
+            URIRef(ENTITY_IRI_PREFIX + str(data))
+            if isinstance(data, UUID)
+            else data
+        )
 
 
 sqlite3.register_adapter(UID, lambda x: str(x))

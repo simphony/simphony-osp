@@ -159,7 +159,7 @@ class InterfaceServer:
         interface = self._interfaces[connection_id]
         pattern = next(
             tuple(x if x != URIRef("none:None") else None for x in triple)
-            for triple in Graph().parse(io.StringIO(data), format='turtle')
+            for triple in Graph().parse(io.StringIO(data), format="turtle")
         )
         graph = Graph()
         graph.addN((s, p, o, graph) for s, p, o in interface.remove(pattern))
@@ -174,7 +174,7 @@ class InterfaceServer:
         interface = self._interfaces[connection_id]
         pattern = next(
             tuple(x if x != URIRef("none:None") else None for x in triple)
-            for triple in Graph().parse(io.StringIO(data), format='turtle')
+            for triple in Graph().parse(io.StringIO(data), format="turtle")
         )
         graph = Graph()
         graph.addN((s, p, o, graph) for s, p, o in interface.triples(pattern))
@@ -267,7 +267,7 @@ class InterfaceServer:
         interface = self._interfaces[connection_id]
         patterns = (
             tuple(x if x != URIRef("none:None") else None for x in triple)
-            for triple in Graph().parse(io.StringIO(data), format='turtle')
+            for triple in Graph().parse(io.StringIO(data), format="turtle")
         )
         for pattern in patterns:
             interface.base.remove(pattern)
@@ -277,7 +277,7 @@ class InterfaceServer:
         interface = self._interfaces[connection_id]
         pattern = next(
             tuple(x if x != URIRef("none:None") else None for x in triple)
-            for triple in Graph().parse(io.StringIO(data), format='turtle')
+            for triple in Graph().parse(io.StringIO(data), format="turtle")
         )
         graph = Graph()
         graph.addN(

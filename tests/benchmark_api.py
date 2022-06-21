@@ -71,8 +71,9 @@ class EntityIdentifier(Benchmark):
 
 def benchmark_entity_identifier(benchmark):
     """Wrapper function for the IndividualUID benchmark."""
-    return EntityIdentifier.iterate_pytest_benchmark(benchmark,
-                                                     size=DEFAULT_SIZE)
+    return EntityIdentifier.iterate_pytest_benchmark(
+        benchmark, size=DEFAULT_SIZE
+    )
 
 
 class IndividualCreate(Benchmark):
@@ -150,20 +151,15 @@ class IndividualIsA(Benchmark):
             city.ArchitecturalStructure,
             city.Building,
         )
-        stuff = tuple(
-            class_()
-            for class_ in classes
+        stuff = tuple(class_() for class_ in classes)
+        aged_stuff = tuple(
+            class_(name="name", age=25) for class_ in classes_age
         )
-        aged_stuff = tuple(class_(name="name", age=25)
-                           for class_ in classes_age)
         coordinated_stuff = tuple(
             class_(name="name", coordinates=[0, 0])
             for class_ in classes_coordinates
         )
-        named_stuff = tuple(
-            class_(name="name")
-            for class_ in classes_name
-        )
+        named_stuff = tuple(class_(name="name") for class_ in classes_name)
 
         self.iterator_stuff = itertools.cycle(
             stuff + aged_stuff + coordinated_stuff + named_stuff
@@ -277,8 +273,9 @@ class IndividualGetByIdentifier(Benchmark):
         self.citizens = tuple(
             city.Citizen(name=f"citizen {i}", age=25) for i in range(self.size)
         )
-        self.identifiers = tuple(citizen.identifier
-                                 for citizen in self.citizens)
+        self.identifiers = tuple(
+            citizen.identifier for citizen in self.citizens
+        )
         for citizen in self.citizens:
             self.city.connect(citizen, rel=city.hasInhabitant)
 
@@ -452,8 +449,9 @@ class IndividualIterByIdentifier(Benchmark):
         self.citizens = tuple(
             city.Citizen(name=f"citizen {i}", age=25) for i in range(self.size)
         )
-        self.identifiers = tuple(citizen.identifier
-                                 for citizen in self.citizens)
+        self.identifiers = tuple(
+            citizen.identifier for citizen in self.citizens
+        )
         for citizen in self.citizens:
             self.city.connect(citizen, rel=city.hasInhabitant)
         self.iterator = self.city.iter(*self.identifiers)
@@ -627,8 +625,9 @@ class IndividualGetAttr(Benchmark):
 
         self.citizen = city.Citizen(name="Lukas", age=93)
         self.city = city.City(name="Freiburg", coordinates=[108, 49])
-        self.address = city.Address(name="Street123", postalCode=79111,
-                                    number=1)
+        self.address = city.Address(
+            name="Street123", postalCode=79111, number=1
+        )
         self.things = itertools.cycle((self.citizen, self.city, self.address))
         self.attributes = itertools.cycle(
             (("age",), ("coordinates",), ("postalCode",))
