@@ -828,7 +828,6 @@ class OntologyIndividual(OntologyEntity):
                 f"Tried to initialize an ontology individual with "
                 f"uid {uid}, which is not a UID object."
             )
-        _ontology_classes = set()
         triples = set(triples) if triples is not None else set()
         # Attribute triples.
         attributes = attributes or dict()

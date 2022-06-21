@@ -10,7 +10,6 @@ from typing import (
     TYPE_CHECKING,
     BinaryIO,
     Dict,
-    Iterable,
     Iterator,
     Optional,
     Set,
@@ -798,6 +797,7 @@ class InterfaceDriver(Store):
         self._queue[key] = file
 
     def cache_clear(self):
+        """Clear the interface's cache."""
         self._cache.remove((None, None, None))
         self._cached_patterns.clear()
 
