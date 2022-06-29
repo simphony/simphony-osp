@@ -57,9 +57,9 @@ class Semantic2Dot:
         }
         for class_, element in class_identified:
             classification[class_].add(element)
-        unclassified = set(elements) - set(
+        unclassified = set(elements) - {
             item for items in classification.values() for item in items
-        )
+        }
         if unclassified:
             raise TypeError(
                 f"The object{'s' if len(unclassified) > 2 else ''} "

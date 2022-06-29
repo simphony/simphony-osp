@@ -53,7 +53,7 @@ with sqlite("test.db") as wrapper:
 # Create new session and import file
 with sqlite("test2.db") as wrapper:
     import_cuds("test.rdf", format="ttl", session=wrapper)
-    c = next((x for x in wrapper if x.is_a(city.City)))
+    c = next(x for x in wrapper if x.is_a(city.City))
     pretty_print(c)
 
 os.remove("test.db")

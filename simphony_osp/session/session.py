@@ -277,11 +277,11 @@ class SessionSet(DataStructureSet):
 
     def intersection_update(self, other: Iterable[OntologyIndividual]) -> None:
         """Update the set with the intersection of itself and another."""
-        intersection = set(
+        intersection = {
             x
             for x in other
             if (x.identifier, RDF_type, None) in self._session.graph
-        )
+        }
 
         if self._class_filter:
             for individual in intersection:
@@ -291,10 +291,10 @@ class SessionSet(DataStructureSet):
                         f"does not belong to class {self._class_filter}."
                     )
 
-        existing = set(
+        existing = {
             x.identifier for x in self._session.get(oclass=self._class_filter)
-        )
-        remove = existing - set(x.identifier for x in intersection)
+        }
+        remove = existing - {x.identifier for x in intersection}
 
         self._session.add(
             *intersection,
@@ -332,17 +332,17 @@ class SessionSet(DataStructureSet):
     ) -> None:
         """Update set with the symmetric difference of it and another."""
         other = set(other)
-        intersection = set(
+        intersection = {
             x
             for x in other
             if (x.identifier, RDF_type, None) in self._session.graph
-        )
+        }
         add = other - intersection
-        delete = set(
+        delete = {
             x
             for x in self
             if x.identifier in (x.identifier for x in intersection)
-        )
+        }
 
         if self._class_filter:
             for individual in add:
@@ -1418,7 +1418,7 @@ class Session(Environment):
 
     def get_entities(self) -> Set[OntologyEntity]:
         """Get all the entities stored in the session."""
-        return set(x for x in self)
+        return {x for x in self}
 
     _interface_driver: Optional[InterfaceDriver] = None
 

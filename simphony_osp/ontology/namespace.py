@@ -302,13 +302,13 @@ class OntologyNamespace:
             KeyError: More than one label matches the given one.
         """
         try:
-            entities = set(
+            entities = {
                 entity
                 for entity in self.ontology.from_label(
                     label, lang=lang, case_sensitive=case_sensitive
                 )
                 if entity in self
-            )
+            }
         except KeyError:
             entities = set()
         if len(entities) == 0:
@@ -341,7 +341,7 @@ class OntologyNamespace:
         Returns:
             The resulting string.
         """
-        return "%s (%s)" % (self.name, self.iri)
+        return f"{self.name} ({self.iri})"
 
     def __repr__(self) -> str:
         """Transform the namespace to a string.
@@ -349,7 +349,7 @@ class OntologyNamespace:
         Returns:
             The resulting string.
         """
-        return "<%s: %s>" % (self.name, self.iri)
+        return f"<{self.name}: {self.iri}>"
 
     @lru_cache_timestamp(
         lambda self: self.ontology.entity_cache_timestamp, maxsize=4096
@@ -369,13 +369,13 @@ class OntologyNamespace:
                 not. The default setting is a case-insensitive lookup.
         """
         try:
-            entities = set(
+            entities = {
                 entity
                 for entity in self.ontology.from_label(
                     label, lang=lang, case_sensitive=case_sensitive
                 )
                 if entity in self
-            )
+            }
         except KeyError:
             entities = set()
 

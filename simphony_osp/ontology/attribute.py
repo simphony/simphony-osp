@@ -138,8 +138,7 @@ class OntologyAttribute(OntologyEntity):
         yield self
 
         def closure(node, graph):
-            for obj in graph.objects(node, RDFS.subPropertyOf):
-                yield obj
+            yield from graph.objects(node, RDFS.subPropertyOf)
 
         for x in self.session.graph.transitiveClosure(
             closure, self.identifier
@@ -167,8 +166,7 @@ class OntologyAttribute(OntologyEntity):
         yield self
 
         def closure(node, graph):
-            for s in graph.subjects(RDFS.subPropertyOf, node):
-                yield s
+            yield from graph.subjects(RDFS.subPropertyOf, node)
 
         for x in self.session.graph.transitiveClosure(
             closure, self.identifier

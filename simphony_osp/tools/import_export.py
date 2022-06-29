@@ -122,11 +122,11 @@ def import_file(
     buffer_session.graph.parse(io.StringIO(contents), format=format)
     buffer_session.graph.remove((None, RDF.type, OWL.NamedIndividual))
 
-    individuals = set(
+    individuals = {
         individual
         for individual in buffer_session
         if isinstance(individual, OntologyIndividual)
-    )
+    }
     session.add(individuals, exists_ok=True, merge=False)
 
     main = next(
@@ -140,12 +140,12 @@ def import_file(
     if main:
         result = session.from_identifier_typed(main, typing=OntologyIndividual)
     else:
-        result = set(
+        result = {
             session.from_identifier_typed(
                 individual.identifier, typing=OntologyIndividual
             )
             for individual in individuals
-        )
+        }
 
     return result
 

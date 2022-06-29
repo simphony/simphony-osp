@@ -431,11 +431,11 @@ ENTITY_IRI_PREFIX = "https://www.simphony-project.eu/entity#"
 
 
 def _get_all_python_subclasses(cls):
-    return set(cls.__subclasses__()) | set(
+    return set(cls.__subclasses__()) | {
         sc
         for c in cls.__subclasses__()
         for sc in _get_all_python_subclasses(c)
-    )
+    }
 
 
 # OWL data types

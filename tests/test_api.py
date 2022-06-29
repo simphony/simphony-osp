@@ -2606,7 +2606,7 @@ class TestToolsSearch(unittest.TestCase):
         pr[city.hasInhabitant] += ahmed
         pr[city.hasWorker] += ahmed
 
-        persons = set(
+        persons = {
             row[0]
             for row in sparql(
                 f"""
@@ -2615,11 +2615,11 @@ class TestToolsSearch(unittest.TestCase):
                 }}
             """
             )(person=OntologyIndividual)
-        )
+        }
         self.assertSetEqual({marc, sveta, lukas, ahmed}, persons)
 
         with Session():
-            persons = set(
+            persons = {
                 row[0]
                 for row in sparql(
                     f"""
@@ -2628,7 +2628,7 @@ class TestToolsSearch(unittest.TestCase):
                     }}
                 """
                 )(person=OntologyIndividual)
-            )
+            }
             self.assertSetEqual(set(), persons)
 
 
