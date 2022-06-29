@@ -43,18 +43,28 @@ class OntologyEntity(ABC):
 
     @property
     def iri(self) -> URIRef:
-        """Get the IRI of the Entity.
+        """IRI of the Entity.
 
         Raises:
-            TypeError: When the identifier of the ontology entity is a blank
-                node.
+            TypeError: When the identifier of the ontology entity is not an
+                IRI.
         """
         return self.uid.to_iri()
 
     @property
     def identifier(self) -> Identifier:
-        """Get the Identifier (URIRef or BNode) representing the entity."""
+        """Semantic web identifier (usually URIRef or BNode) of the entity."""
         return self.uid.to_identifier()
+
+    @property
+    def uid(self) -> UID:
+        """Get a SimPhoNy identifier for this entity.
+
+        The SimPhoNy identifier is known as UID. An UID is a Python class
+        defined in SimPhoNy and can always be converted to a semantic web
+        identifier.
+        """
+        return self._uid
 
     @property
     def label(self) -> Optional[str]:
@@ -197,7 +207,7 @@ class OntologyEntity(ABC):
         return (
             f"{self.label}"
             if hasattr(self, "label") and self.label is not None
-            else f"{self.uid}"
+            else f"{self._uid}"
         )
 
     def __repr__(self) -> str:
@@ -207,7 +217,7 @@ class OntologyEntity(ABC):
             f"{self.label}"
             if hasattr(self, "label") and self.label is not None
             else None,
-            f"{self.uid}",
+            f"{self._uid}",
         ]
         elements = filter(lambda x: x is not None, elements)
         return f"<{header}: {' '.join(elements)}>"
@@ -225,12 +235,12 @@ class OntologyEntity(ABC):
         return (
             isinstance(other, OntologyEntity)
             and self.session == other.session
-            and self.uid == other.uid
+            and self.identifier == other.identifier
         )
 
     def __hash__(self) -> int:
         """Make the entity hashable."""
-        return hash((self.uid, self.session))
+        return hash((self._uid, self.session))
 
     def __bool__(self):
         """Returns the boolean value of the entity, always true."""
@@ -238,16 +248,6 @@ class OntologyEntity(ABC):
 
     # ↑ ------ ↑
     # Public API
-
-    @property
-    def uid(self) -> UID:
-        """Get the unique identifier that SimPhoNy uses for this entity."""
-        return self._uid
-
-    @uid.setter
-    def uid(self, value: UID) -> None:
-        """Set the unique identifier that SimPhoNy uses for this entity."""
-        self._uid = value
 
     @property
     def label_literal(self) -> Optional[Literal]:
