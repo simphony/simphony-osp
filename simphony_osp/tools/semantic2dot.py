@@ -321,7 +321,7 @@ class Semantic2Dot:
             elif len(value) == 0:
                 value = None
             else:
-                value = str(value).replace(":", "_").replace("/", "_")
+                value = str(set(value)).replace(":", "_").replace("/", "_")
             attributes += self._attribute.format(label, str(value))
 
         if individual in self._requested_individuals:

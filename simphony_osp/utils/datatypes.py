@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 import re
-import sqlite3
 import sys
 from abc import ABC
 from base64 import b85decode, b85encode
@@ -46,6 +45,27 @@ if python_version_supports_type_alias:
 else:
     from typing import Any as TypeAlias
 
+__all__ = [
+    "ATTRIBUTE_VALUE_TYPES",
+    "AttributeValue",
+    "AnnotationValue",
+    "Identifier",
+    "NestedList",
+    "NestedMutableSequence",
+    "NestedSequence",
+    "NestedTuple",
+    "OntologyPredicate",
+    "Pattern",
+    "PredicateValue",
+    "RelationshipValue",
+    "SimplePattern",
+    "SimpleTriple",
+    "Triple",
+    "UID",
+    "Vector",
+    "rdf_to_python",
+]
+
 # Collection type hints
 NestedSequence = Union[Sequence[Any], Sequence["NestedSequence"]]
 NestedMutableSequence = Union[
@@ -83,13 +103,8 @@ class CustomDataType(ABC):
     iri: URIRef
 
 
-"""After the custom data type has been defined, the SQL serializer or
-adapter, and the rdflib lexicalizer and constructor have to be specified.
-
-The SQL adapter tells the sqlite3 Python library how to convert the object
-to a data type that can be fit in the database. For example, for Vectors,
-a binary representation is used, so this function converts the vector to a
-binary blob.
+"""After the custom data type has been defined, the rdflib lexicalizer
+and constructor have to be specified.
 
 The rdflib lexicalizer creates a string representation of the Python object.
 For example, for vectors it is just a string representation of their binary
@@ -107,16 +122,6 @@ information, please check  the documentation and source code for
 [`rdflib.term.bind`]
 (https://rdflib.readthedocs.io/en/stable/apidocs/rdflib.html#rdflib.term.bind).
 """
-# TODO: Is the data data fetched from the SQL database being recreated with the
-#  rdflib constructor? This would not be the ideal behavior. Instead,
-#  one would want to recreate the Python object using a sqlite3 converter,
-#  just like an adapter is being used for saving.
-# sqlite3.register_adapter(CustomDataType, lambda x: convet_to_sql_data())
-# term.bind(CustomDataType.iri,
-#           CustomDataType,
-#           lexicalizer=lambda x: lexicalizer(x),
-#           constructor=constructor x: constructor(x),
-#           datatype_specific=True)
 
 
 class Vector(CustomDataType):
@@ -148,6 +153,10 @@ class Vector(CustomDataType):
         return np.frombuffer(self.__bytes, dtype=self.__dtype).reshape(
             self.__shape
         )
+
+    def __getitem__(self, item):
+        """Slice the underlying numpy array."""
+        return self.data[item]
 
     def __init__(
         self, value: Union[Literal, np.ndarray, NestedSequence, Vector]
@@ -276,7 +285,6 @@ class Vector(CustomDataType):
             raise TypeError("Only str and bytes are allowed.")
 
 
-sqlite3.register_adapter(Vector, lambda x: x.to_blob())
 for datatype in (Literal, np.ndarray, Sequence, list, tuple, Vector):
     term.bind(
         Vector.iri,
@@ -298,7 +306,7 @@ class UID(CustomDataType):
     """
 
     iri = URIRef("https://www.simphony-project.eu/types#UID")
-    data: Union[BNode, URIRef, UUID]
+    data: Union[Node, UUID]
 
     __slots__ = ("data",)
 
@@ -401,7 +409,6 @@ class UID(CustomDataType):
         )
 
 
-sqlite3.register_adapter(UID, lambda x: str(x))
 for datatype in (UID, UUID, URIRef, str, int, bytes):
     if datatype in (int, bytes):
 
@@ -524,7 +531,7 @@ def rdf_to_python(value: Any, rdf_data_type: URIRef) -> Any:
     # Converting the literal to a string  or calling Literal twice seems
     #  redundant, but is intentional.
     #
-    #  One would expect rdflib to convert the the literal to the adequate
+    #  One would expect rdflib to convert the literal to the adequate
     #  datatype by calling 'value.toPython()'. However, this is not always
     #  true. Two cases have to be considered:
     #   - The literal has been created from an arbitrary Python object. Then
@@ -551,19 +558,6 @@ def rdf_to_python(value: Any, rdf_data_type: URIRef) -> Any:
     return result
 
 
-# --- PYTHON TO RDF --- #
-# TODO: Automatically done by RDFLib, but additional bindings might be
-#  necessary, just like it was done for the custom data types.
-
-# --- YML TO RDF --- #
-YML_TO_RDF = {
-    "BOOL": XSD.boolean,
-    "INT": XSD.integer,
-    "FLOAT": XSD.float,
-    "STRING": XSD.string,
-    "VECTOR": Vector.iri,
-}
-
 # --- Various type hints and type hint aliases --- #
 
 # RDF type hints
@@ -586,7 +580,6 @@ OntologyPredicate: TypeAlias = Union[
 ]
 
 # Predicate targets
-OWLCompatibleType = Union[tuple(OWL_TO_PYTHON.values())]
 AttributeValue = Union[tuple(value for value in RDF_TO_PYTHON.values())]
 AnnotationValue: TypeAlias = Union[
     "OntologyAnnotation",

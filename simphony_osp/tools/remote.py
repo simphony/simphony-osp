@@ -1,6 +1,6 @@
 """Tools aimed at remote interfaces."""
 
-from typing import Optional, Type
+from typing import Iterable, Optional, Type, Union
 
 from simphony_osp.interfaces.remote.server import InterfaceServer
 from simphony_osp.session.wrapper import WrapperSpawner
@@ -8,12 +8,20 @@ from simphony_osp.session.wrapper import WrapperSpawner
 
 def host(
     wrapper: Type[WrapperSpawner],
-    *args,
-    hostname: str,
-    port: int,
+    configuration_string: str = "",
+    create: bool = False,
+    hostname: str = "127.0.0.1",
+    port: int = "6537",
     username: Optional[str] = None,
     password: Optional[str] = None,
-    **kwargs
+    **kwargs: Union[
+        str,
+        int,
+        float,
+        bool,
+        None,
+        Iterable[Union[str, int, float, bool, None]],
+    ]
 ):
     """Host a server based on a wrapper.
 
@@ -22,7 +30,8 @@ def host(
 
     Args:
         wrapper: The wrapper to be used.
-        *args: Positional arguments for the wrapper.
+        configuration_string: The configuration string of the wrapper.
+        create: The value of the argument `create` for the wrapper.
         hostname: Hostname where the server will listen.
         port: The port that the server will use to listen.
         username: A username for authenticating the client.
@@ -37,7 +46,7 @@ def host(
             raise PermissionError
         if password and pass_ != pass_:
             raise PermissionError
-        session = wrapper(*args, **kwargs)
+        session = wrapper(configuration_string, create, **kwargs)
         interface = session.driver.interface
         return interface
 
