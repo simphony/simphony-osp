@@ -1,4 +1,5 @@
-Copyright © 2021 Fraunhofer-Gesellschaft zur Förderung der angewandten Forschung e.V. acting on behalf of its Fraunhofer IWM. Contact: Pablo de Andrés, José Manuel Domínguez, Yoav Nahshon.
+Copyright © 2022 Fraunhofer-Gesellschaft zur Förderung der angewandten
+Forschung e.V. acting on behalf of its Fraunhofer IWM. Contact: Pablo de Andrés, José Manuel Domínguez, Yoav Nahshon.
 
 BSD 3-Clause License
 
