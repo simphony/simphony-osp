@@ -899,6 +899,9 @@ class Interface(ABC):
         the information on the data source, unless you are generating
         triples on the fly. The default session is a session based on the
         base graph.
+
+        The base graph is available on `self.base`, and a session based on
+        the base graph is available on `self.session` and `self.session_base`.
         """
         pass
 
@@ -916,13 +919,23 @@ class Interface(ABC):
             are not expected to modify it.
         - `self.session_old`: A session based on the old graph (ro).
         - `self.session_new`: A session based on the new graph (ro).
+        - `self.session`: same as `self.session_new`.
         - `self.added`: A list of added entities (rw). You are not expected
             to modify the entities.
         - `self.updated`: A list of updated entities (rw). You are not
             expected to modify the entities.
         - `self.deleted`: A list of deleted entities (rw). You are not
             expected to modify the entities.
+
+        Raises:
+            AssertionError: When the data provided by the user would produce
+                an inconsistent or unpredictable state of the data structures.
         """
+        # Before updating the data structures, check that the changes provided
+        # by the user do not leave them in a consistent state. This necessary
+        # because SimPhoNy cannot revert the changes you make to your
+        # data structures. Raise an AssertionError if the check fails.
+
         # Examine the differences between the graphs below and make a plan to
         # modify your data structures.
 
@@ -947,6 +960,9 @@ class Interface(ABC):
 
         Just compute the new information on the backend and reflect the
         changes on the base graph. The default session is the base session.
+
+        The base graph is available on `self.base`, and a session based on
+        the base graph is available on `self.session` and `self.session_base`.
         """
         pass
 
