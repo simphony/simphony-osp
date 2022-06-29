@@ -1389,8 +1389,10 @@ class TestOntologyAPIFOAF(unittest.TestCase):
         with tempfile.NamedTemporaryFile(
             "w", suffix=".yml", delete=False
         ) as file:
-            foaf_url = "https://web.archive.org/web/20220627164615/" \
-                       "http://xmlns.com/foaf/spec/index.rdf"
+            foaf_url = (
+                "https://web.archive.org/web/20220627164615/"
+                "http://xmlns.com/foaf/spec/index.rdf"
+            )
             foaf_modified: str = f"""
             identifier: foaf
             format: xml
