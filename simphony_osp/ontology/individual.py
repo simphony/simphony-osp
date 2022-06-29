@@ -497,11 +497,11 @@ class RelationshipSet(ObjectSet):
 
         # Raise exception if any of the individuals to connect belongs to a
         # different session.
-        different_session = set(
+        different_session = {
             individual
             for individual in individuals
             if individual not in self.individual.session
-        )
+        }
         if different_session:
             raise RuntimeError(
                 f"Cannot connect ontology individuals belonging to a "
@@ -541,11 +541,11 @@ class RelationshipSet(ObjectSet):
 
         # Raise exception if any of the individuals to connect belongs to a
         # different session.
-        different_session = set(
+        different_session = {
             individual
             for individual in individuals
             if individual not in self.individual.session
-        )
+        }
         if different_session:
             raise RuntimeError(
                 f"Cannot disconnect ontology individuals belonging to a "
@@ -638,11 +638,11 @@ class RelationshipSet(ObjectSet):
         #    being a candidate to be yielded.
         #  - inverse_allowed: Triples of the form (s, p, x) will result in s
         #    being a candidate to be yielded.
-        direct_allowed = set(p.identifier for p in self._predicates)
-        inverse_allowed = set(
+        direct_allowed = {p.identifier for p in self._predicates}
+        inverse_allowed = {
             rel.identifier
             for rel in filter(None, (p.inverse for p in self._predicates))
-        )
+        }
         if self._inverse:
             direct_allowed, inverse_allowed = inverse_allowed, direct_allowed
 
@@ -788,7 +788,7 @@ class OntologyIndividual(OntologyEntity):
         triples = set(triples) if triples is not None else set()
         # Attribute triples.
         attributes = attributes or dict()
-        triples |= set(
+        triples |= {
             (
                 uid.to_iri(),
                 k.iri,
@@ -796,7 +796,7 @@ class OntologyIndividual(OntologyEntity):
             )
             for k, v in attributes.items()
             for e in v
-        )
+        }
         # Class triples.
         if class_:
             triples |= {(uid.to_iri(), RDF.type, class_.iri)}
@@ -1038,22 +1038,22 @@ class OntologyIndividual(OntologyEntity):
                 pass
 
             # Try to find a matching relationship.
-            entities |= set(
+            entities |= {
                 relationship
                 for _, relationship in self.relationships_iter(return_rel=True)
                 for label in relationship.iter_labels(return_literal=False)
                 if rel == label or relationship.iri.endswith(rel)
-            )
+            }
 
             # Try to find a matching annotation.
-            entities |= set(
+            entities |= {
                 annotation
                 for _, annotation in self.annotations_iter(return_rel=True)
                 for label in annotation.iter_labels(
                     return_literal=False, return_prop=False
                 )
                 if rel == label or annotation.iri.endswith(rel)
-            )
+            }
 
             num_entities = len(entities)
             if num_entities == 0:
@@ -1166,22 +1166,22 @@ class OntologyIndividual(OntologyEntity):
                 pass
 
             # Try to find a matching relationship.
-            entities |= set(
+            entities |= {
                 relationship
                 for _, relationship in self.relationships_iter(return_rel=True)
                 for label in relationship.iter_labels(return_literal=False)
                 if rel == label or relationship.iri.endswith(rel)
-            )
+            }
 
             # Try to find a matching annotation.
-            entities |= set(
+            entities |= {
                 annotation
                 for _, annotation in self.annotations_iter(return_rel=True)
                 for label in annotation.iter_labels(
                     return_literal=False, return_prop=False
                 )
                 if rel == label or annotation.iri.endswith(rel)
-            )
+            }
 
             num_entities = len(entities)
             if num_entities == 0:
@@ -1379,7 +1379,7 @@ class OntologyIndividual(OntologyEntity):
         individuals = individuals or self[rel]
 
         if oclass:
-            individuals = set(x for x in individuals if x.is_a(oclass))
+            individuals = {x for x in individuals if x.is_a(oclass)}
 
         self[rel] -= individuals
 
@@ -1686,7 +1686,7 @@ class OntologyIndividual(OntologyEntity):
                 belong to the `Container` subclass is used as a context
                 manager.
         """
-        classes = set(class_.identifier for class_ in self.superclasses)
+        classes = {class_.identifier for class_ in self.superclasses}
 
         if simphony_namespace.Container in classes:
             # Triggers the creation of the operations instance and thus the

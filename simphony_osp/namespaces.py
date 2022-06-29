@@ -29,7 +29,7 @@ def __getattr__(name: str):
 
 
 def __dir__():
-    return list((x.name for x in _Session.default_ontology.namespaces))
+    return list(x.name for x in _Session.default_ontology.namespaces)
 
 
 __all__ = __dir__()

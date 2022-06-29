@@ -41,11 +41,11 @@ def pretty_print(entity: OntologyEntity, file=sys.stdout):
 
     # Superclasses
     superclasses = (
-        set(
+        {
             superclass
             for class_ in entity.classes
             for superclass in class_.superclasses
-        )
+        }
         if isinstance(entity, OntologyIndividual)
         else set(entity.superclasses)
     )
