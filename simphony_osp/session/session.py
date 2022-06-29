@@ -135,8 +135,8 @@ class Environment:
     _user_lock: bool = False
     """See the docstring of `locked` for an explanation of what locking an
     environment means.
-    
-    This property manages locks performed by the user (by setting the 
+
+    This property manages locks performed by the user (by setting the
     `locked` attribute).
     """
 
