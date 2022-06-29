@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf8") as readme:
     README_TEXT = readme.read()
 
 NAME = "simphony-osp"
-VERSION = "4.0.0"
+VERSION = "4.0.0-rc1"
 
 # main setup configuration class
 setup(
