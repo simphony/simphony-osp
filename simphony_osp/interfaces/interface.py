@@ -806,8 +806,6 @@ class InterfaceDriver(Store):
                 f"'{self.interface}' object has no attribute 'compute'"
             )
 
-        # TODO: Remote interface serialization of kwargs.
-
         self.commit()
 
         self.interface.session_base = Session(
