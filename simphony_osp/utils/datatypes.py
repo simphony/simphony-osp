@@ -93,10 +93,9 @@ class CustomDataType(ABC):
     Such custom data types must also have an RDF representation (the IRI
     attribute and a string representation).
 
-    Beware that any custom datatype will need to have a serializer to a
-    datatype compatible with an SQL database, as well as a "lexicalizer" and a
+    Beware that any custom datatype will need to have a "lexicalizer" and a
     "constructor" for rdflib compatibility. See the piece of code
-    immediately after the class for more details.
+    immediately after this class for more details.
     """
 
     iri: URIRef
@@ -142,6 +141,7 @@ class Vector(CustomDataType):
     #   - Implement some operations with numpy arrays that return numpy arrays,
     #     just as it was done in the AttributeSet case.
     iri = URIRef("https://www.simphony-project.eu/types#Vector")
+
     _ELEMENT_LEN: int = 3
     _DTYPE_LEN: int = 1
     _SHAPE_LEN: int = 1
@@ -153,7 +153,7 @@ class Vector(CustomDataType):
             self.__shape
         )
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int):
         """Slice the underlying numpy array."""
         return self.data[item]
 
@@ -186,7 +186,7 @@ class Vector(CustomDataType):
         """String representation for the vector (i.e. on Python console)."""
         array_repr = self.data.__repr__()
         array_repr = array_repr.replace("\n", " ")
-        array_repr = re.sub(r"[\s]{2,}", " ", array_repr)
+        array_repr = re.sub(r"\s{2,}", " ", array_repr)
         return (
             f"<{self.__class__.__module__}.{self.__class__.__name__}:"
             f" {array_repr}>"
@@ -295,13 +295,19 @@ for datatype in (Literal, np.ndarray, Sequence, list, tuple, Vector):
 
 
 class UID(CustomDataType):
-    """Custom type representing the unique identification of an individual.
+    """Custom data type representing the unique identifier of an entity.
 
-    This data type is actually not used in the RDF graph itself (an IRI is
-    used instead), but rather within SimPhoNy to identify the CUDS objects.
-    It is always translated to an IRI before being passed to a graph. However,
-    if you want to store a UID as a literal for whatever reason, you are
-    welcome to use this custom data type.
+    This data type is actually not used in the RDF graph itself (an RDF
+    identifier is used instead), but rather within SimPhoNy to identify the
+    ontology entities objects. It plays the same role as a semantic web
+    identifier, and can always be converted to one. In fact, such conversion
+    is always performed before it is used in a graph operation. The only
+    difference is that it can be based not only on semantic web identifiers
+    such as blank nodes or IRIs, but also on other datatypes that can be
+    converted on the fly to semantic-web compatible identifiers.
+
+    However, if you want to store a UID as a literal for whatever reason,
+    you are welcome to use this custom data type.
     """
 
     iri = URIRef("https://www.simphony-project.eu/types#UID")
@@ -386,7 +392,7 @@ class UID(CustomDataType):
         return return_iri
 
     def to_uuid(self) -> UUID:
-        """Convert the UID to an UUID.
+        """Convert the UID to a UUID.
 
         Will only work if the underlying data is a UUID.
         """
@@ -398,7 +404,7 @@ class UID(CustomDataType):
         return self.data
 
     def to_identifier(self) -> Identifier:
-        """Convert the UID to an rdflib Identifier."""
+        """Convert the UID to a RDFLib Identifier."""
         return self.to_iri() if isinstance(self.data, UUID) else self.data
 
 
