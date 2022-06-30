@@ -265,7 +265,7 @@ class SessionSet(DataStructureSet):
         intersection = set(
             x
             for x in other
-            if (x.identifier, RDF_type, None) in self._session.graph
+            if (x.identifier, RDF.type, None) in self._session.graph
         )
 
         if self._class_filter:
@@ -320,7 +320,7 @@ class SessionSet(DataStructureSet):
         intersection = set(
             x
             for x in other
-            if (x.identifier, RDF_type, None) in self._session.graph
+            if (x.identifier, RDF.type, None) in self._session.graph
         )
         add = other - intersection
         delete = set(
