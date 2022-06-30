@@ -368,19 +368,18 @@ class RelationshipSet(ObjectSet):
         predicates = self._predicates
 
         # Get the predicate IRIs to be considered.
-        predicates_direct = {
-            predicate.identifier
-            for predicate in predicates
-        }
+        predicates_direct = {predicate.identifier for predicate in predicates}
         predicates_inverse = {
             p.identifier
             for predicate in predicates
-            for p in (predicate.inverse, )
+            for p in (predicate.inverse,)
             if p is not None
         }
         if self._inverse:
-            predicates_direct, predicates_inverse = (predicates_inverse,
-                                                     predicates_direct)
+            predicates_direct, predicates_inverse = (
+                predicates_inverse,
+                predicates_direct,
+            )
 
         # Get the identifiers of the individuals connected to
         # `self._individual` through the allowed predicates.
@@ -391,7 +390,8 @@ class RelationshipSet(ObjectSet):
         connected |= {s for s, p, o in triples if p in predicates_inverse}
         identifiers = (
             tuple(uid.to_identifier() for uid in self._uid_filter)
-            if self._uid_filter else tuple()
+            if self._uid_filter
+            else tuple()
         )
         if identifiers:
             connected &= set(identifiers)
@@ -399,7 +399,8 @@ class RelationshipSet(ObjectSet):
             connected &= {
                 identifier
                 for identifier in connected
-                if self._class_filter in (
+                if self._class_filter
+                in (
                     subclass
                     for c in graph.objects(identifier, RDF_type)
                     if c != OWL_NamedIndividual
@@ -413,7 +414,9 @@ class RelationshipSet(ObjectSet):
             yield from (
                 self._individual.session.from_identifier_typed(
                     identifier, typing=OntologyIndividual
-                ) if identifier in connected else None
+                )
+                if identifier in connected
+                else None
                 for identifier in identifiers
             )
         else:
@@ -662,8 +665,10 @@ class RelationshipSet(ObjectSet):
 
     def iter_low_level(
         self,
-    ) -> Union[Iterator[Tuple[Node, Optional[Node], Optional[bool]]],
-               Iterator[Tuple[Node, Optional[Node], Optional[bool], Node]]]:
+    ) -> Union[
+        Iterator[Tuple[Node, Optional[Node], Optional[bool]]],
+        Iterator[Tuple[Node, Optional[Node], Optional[bool], Node]],
+    ]:
         """Iterate over individuals assigned to `self._predicates`.
 
         Note: no class filter.
@@ -1621,8 +1626,7 @@ class OntologyIndividual(OntologyEntity):
                 )
 
             identifiers[n] = UID(
-                x.identifier if isinstance(x, OntologyIndividual)
-                else x
+                x.identifier if isinstance(x, OntologyIndividual) else x
             )
 
         if isinstance(rel, Identifier):
