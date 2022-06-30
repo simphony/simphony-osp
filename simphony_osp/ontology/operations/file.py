@@ -49,8 +49,8 @@ class File(Operations):
             self._session.driver.queue(self._identifier, file)
         else:
             logger.warning(
-                'This session does not support saving new files. The '
-                'contents of the file will NOT be saved.'
+                "This session does not support saving new files. The "
+                "contents of the file will NOT be saved."
             )
 
     def download(self, path: str) -> None:
@@ -64,8 +64,8 @@ class File(Operations):
                         new_file.write(data)
         else:
             raise FileNotFoundError(
-                'This session does not support file storage. Unable to '
-                'retrieve the file contents.'
+                "This session does not support file storage. Unable to "
+                "retrieve the file contents."
             )
 
     def read(self) -> BinaryIO:
@@ -74,6 +74,6 @@ class File(Operations):
             return self._session.driver.load(self._identifier)
         else:
             raise FileNotFoundError(
-                'This session does not support file storage. Unable to '
-                'retrieve the file contents.'
+                "This session does not support file storage. Unable to "
+                "retrieve the file contents."
             )
