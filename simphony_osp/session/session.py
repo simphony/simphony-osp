@@ -489,6 +489,13 @@ class Session(Environment):
         )
         # Get the identifiers of the individuals
         identifiers = list(individual.identifier for individual in individuals)
+        # Get a list of files within the individuals to add
+        files = {
+            individual
+            for individual in individuals
+            if set(class_.identifier for class_ in individual.superclasses)
+            & {simphony_namespace.File} and individual.session is not self
+        }
 
         # Paste the individuals
         """The attributes of the individuals are always kept. The
@@ -504,6 +511,14 @@ class Session(Environment):
         ):
             raise RuntimeError(
                 "Some of the added entities already exist on the session."
+            )
+        elif merge and files and any(
+            (identifier, None, None) in self.graph
+            for identifier in {x.identifier for x in files}
+        ):
+            raise RuntimeError(
+                "Some of the added file entities already exist on the "
+                "session. File entities cannot be merged with existing ones."
             )
         delete = (
             (individual.identifier, None, None)
@@ -523,6 +538,13 @@ class Session(Environment):
             for pattern in delete:
                 self.graph.remove(pattern)
         self.graph.addN((s, p, o, self.graph) for s, p, o in add)
+        files = (
+            (file.identifier, file.operations.handle) for file in files
+        )
+        for identifier, contents in files:
+            self.from_identifier_typed(identifier,
+                                       typing=OntologyIndividual)\
+                .operations.overwrite(contents)
         added_objects = list(
             self.from_identifier_typed(identifier, typing=OntologyIndividual)
             for identifier in identifiers

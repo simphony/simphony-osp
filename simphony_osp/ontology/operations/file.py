@@ -68,12 +68,23 @@ class File(Operations):
                 "retrieve the file contents."
             )
 
-    def read(self) -> BinaryIO:
-        """Read the file contents as a byte stream."""
+    @property
+    def handle(self) -> BinaryIO:
+        """Get a file handle to operate with."""
         if self._session.driver is not None:
             return self._session.driver.load(self._identifier)
         else:
             raise FileNotFoundError(
                 "This session does not support file storage. Unable to "
                 "retrieve the file contents."
+            )
+
+    def overwrite(self, contents: BinaryIO) -> None:
+        """Overwrite the file contents with a byte stream."""
+        if self._session.driver is not None:
+            self._session.driver.queue(self._identifier, contents)
+        else:
+            logger.warning(
+                "This session does not support saving new files. The "
+                "contents of the file will NOT be saved."
             )
