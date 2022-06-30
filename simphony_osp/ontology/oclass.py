@@ -191,7 +191,6 @@ class OntologyClass(OntologyEntity):
                 the existing ones.
         """
         super().__init__(uid, session, triples, merge=merge)
-        logger.debug("Instantiated ontology class %s" % self)
 
     @property
     @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
