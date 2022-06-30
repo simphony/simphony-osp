@@ -265,10 +265,7 @@ class Pico:
             raise RuntimeError(
                 "Installation failed. Unsatisfied requirements: \n - %s"
                 % "\n - ".join(
-                    [
-                        f"{n}: {r}"
-                        for n, r in missing_requirements_dict.items()
-                    ]
+                    [f"{n}: {r}" for n, r in missing_requirements_dict.items()]
                 )
             )
 
