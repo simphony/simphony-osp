@@ -53,7 +53,10 @@ class OntologyEntity(ABC):
 
     @property
     def identifier(self) -> Identifier:
-        """Semantic web identifier (usually URIRef or BNode) of the entity."""
+        """Semantic web resource identifying the entity.
+
+        Usually an URIRef or BNode.
+        """
         return self.uid.to_identifier()
 
     @property
