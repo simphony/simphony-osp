@@ -81,8 +81,7 @@ class OntologyAnnotation(OntologyEntity):
         yield self
 
         def closure(node, graph):
-            for o in graph.objects(node, RDFS.subPropertyOf):
-                yield o
+            yield from graph.objects(node, RDFS.subPropertyOf)
 
         yield from (
             self.session.from_identifier(x)
@@ -100,8 +99,7 @@ class OntologyAnnotation(OntologyEntity):
         yield self
 
         def closure(node, graph):
-            for s in graph.subjects(RDFS.subPropertyOf, node):
-                yield s
+            yield from graph.subjects(RDFS.subPropertyOf, node)
 
         yield from (
             self.session.from_identifier(x)
