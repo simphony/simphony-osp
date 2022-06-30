@@ -232,15 +232,15 @@ class Session(Environment):
             self.ontology.commit()
         self.creation_set = set()
 
-    def compute(self, *args, **kwargs) -> None:
+    def compute(self, **kwargs) -> None:
         """Run simulations on supported graph stores."""
         from simphony_osp.interfaces.remote.client import RemoteStoreClient
 
         if self._driver is not None:
             self.commit()
-            self._driver.compute(*args, **kwargs)
+            self._driver.compute(**kwargs)
         elif isinstance(self._graph.store, RemoteStoreClient):
-            self._graph.store.execute_method("run")
+            self._graph.store.execute_method("compute")
         else:
             raise AttributeError(
                 f"Session {self} is not attached to a "
@@ -550,7 +550,7 @@ class Session(Environment):
         )
 
         for entity in entities:
-            if entity not in self:
+            if isinstance(entity, OntologyEntity) and entity not in self:
                 raise ValueError(f"Entity {entity} not contained in {self}.")
 
         for entity in entities:
@@ -1095,7 +1095,9 @@ class QueryResult(SPARQLResult):
             if isclass(value) and issubclass(value, OntologyIndividual):
                 """Replace OntologyIndividual with spawning the individual
                 from its identifier."""
-                kwargs[key] = lambda x: self.session.from_identifier(x)
+                kwargs[key] = lambda x: self.session.from_identifier_typed(
+                    x, typing=OntologyIndividual
+                )
 
         for row in self:
             """Yield the rows with the applied datatype transformation."""
