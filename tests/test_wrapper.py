@@ -299,10 +299,7 @@ class TestDataspaceWrapper(unittest.TestCase):
                         shallow=False,
                     )
                 )
-                self.assertEqual(
-                    b'text',
-                    file.operations.handle.read()
-                )
+                self.assertEqual(b"text", file.operations.handle.read())
 
             # Test recovering the previous file and downloading it.
             with Dataspace(self.dataspace_directory.name, False) as wrapper:
@@ -313,22 +310,21 @@ class TestDataspaceWrapper(unittest.TestCase):
                     file.operations.download(destination)
                     self.assertTrue(destination.is_file())
 
-            # Test copying the file among data spaces.
-                    with Dataspace(self.second_dataspace_directory.name,
-                                   True) as wrapper_2:
+                    # Test copying the file among data spaces.
+                    with Dataspace(
+                        self.second_dataspace_directory.name, True
+                    ) as wrapper_2:
                         wrapper_2.add(file)
                         wrapper_2.commit()
 
-                    with Dataspace(self.second_dataspace_directory.name,
-                                   False) as wrapper_2:
+                    with Dataspace(
+                        self.second_dataspace_directory.name, False
+                    ) as wrapper_2:
                         file_2 = wrapper_2.from_identifier(file_identifier)
                         contents_1 = file.operations.handle.read()
                         contents_2 = file_2.operations.handle.read()
                         self.assertEqual(contents_1, contents_2)
-                        self.assertEqual(
-                            b'text',
-                            contents_1
-                        )
+                        self.assertEqual(b"text", contents_1)
 
             # Test deleting the file.
             with Dataspace(self.dataspace_directory.name, False) as wrapper:
