@@ -117,10 +117,19 @@ class Environment:
 
     _user_lock: bool = False
     """See the docstring of `locked` for an explanation of what locking an
-    environment means."""
+    environment means.
+    
+    This property manages locks performed by the user (by setting the 
+    `locked` attribute).
+    """
 
     def lock(self):
         """Increase the lock count.
+
+        This way of locking is not meant to be used by end users, only
+        internally within SimPhoNy code, as it allows to lock the
+        environment several times, later requiring several unlocks, which is
+        unintuitive.
 
         See the docstring of `locked` for an explanation of what locking an
         environment means.
@@ -129,6 +138,11 @@ class Environment:
 
     def unlock(self):
         """Decrease the lock count.
+
+        This way of unlocking is not meant to be used by end users, only
+        internally within SimPhoNy code, as it is the counterpart of
+        `lock`, which allows to lock the environment several times,
+        later requiring several unlocks, which is unintuitive.
 
         See the docstring of `locked` for an explanation of what locking an
         environment means.
