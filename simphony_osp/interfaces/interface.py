@@ -1,11 +1,11 @@
 """Universal interface for wrapper developers."""
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 from base64 import b64encode
 from enum import IntEnum
 from itertools import chain
-import logging
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import (
@@ -548,7 +548,7 @@ class InterfaceDriver(Store):
             self.queue(s, None)
         for URI, file in self._queue.items():
             if file is None:
-                if hasattr(self.interface, 'delete'):
+                if hasattr(self.interface, "delete"):
                     self.interface.delete(URI)
                 else:
                     logging.warning(
@@ -556,7 +556,7 @@ class InterfaceDriver(Store):
                         f"does not support deleting files."
                     )
             else:
-                if hasattr(self.interface, 'save'):
+                if hasattr(self.interface, "save"):
                     self.interface.save(URI, file)
                 else:
                     logging.warning(
@@ -620,11 +620,11 @@ class InterfaceDriver(Store):
 
     def queue(self, key: URIRef, file: Optional[BinaryIO]) -> None:
         """Queue a file to be committed."""
-        if not hasattr(self.interface, 'save'):
+        if not hasattr(self.interface, "save"):
             logger.warning(
-                'This session does not support saving new files. The '
-                'contents of the file will NOT be saved during the commit '
-                'operation.'
+                "This session does not support saving new files. The "
+                "contents of the file will NOT be saved during the commit "
+                "operation."
             )
 
         # Clear cached bytestream
@@ -644,21 +644,22 @@ class InterfaceDriver(Store):
             # pointing to the copy on the queue
             if not (Path(self._file_cache.name) / file_name).exists():
                 queued = self._queue[key]
-                with open(Path(self._file_cache.name) / file_name, 'wb') as \
-                        file:
+                with open(
+                    Path(self._file_cache.name) / file_name, "wb"
+                ) as file:
                     file.write(queued.read())
 
-                file = open(Path(self._file_cache.name) / file_name, 'rb')
+                file = open(Path(self._file_cache.name) / file_name, "rb")
                 self._queue[key] = file
 
             # Return a file handle pointing to the copy
-            byte_stream = open(Path(self._file_cache.name) / file_name, 'rb')
-        elif hasattr(self.interface, 'load'):
+            byte_stream = open(Path(self._file_cache.name) / file_name, "rb")
+        elif hasattr(self.interface, "load"):
             byte_stream = self.interface.load(key)
         else:
             raise FileNotFoundError(
-                'This session does not support file storage. Unable to '
-                'retrieve the file contents.'
+                "This session does not support file storage. Unable to "
+                "retrieve the file contents."
             )
 
         return byte_stream
