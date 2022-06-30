@@ -54,22 +54,6 @@ class Environment:
 
     # ↓ --------------------- Public API --------------------- ↓ #
 
-    def lock(self):
-        """Increase the lock count.
-
-        See the docstring of `locked` for an explanation of what locking an
-        environment means.
-        """
-        self._lock += 1
-
-    def unlock(self):
-        """Decrease the lock count.
-
-        See the docstring of `locked` for an explanation of what locking an
-        environment means.
-        """
-        self._lock = self._lock - 1 if self._lock > 0 else 0
-
     @property
     def locked(self) -> bool:
         """Whether the environment is locked or not.
@@ -78,7 +62,12 @@ class Environment:
         manager and leaving the context. Useful for setting it as the
         default environment when it is not intended to close it afterwards.
         """
-        return self._lock > 0
+        return (self._lock + bool(self._user_lock)) > 0
+
+    @locked.setter
+    def locked(self, value: bool):
+        """Lock or unlock an environment."""
+        self._user_lock = value
 
     def __enter__(self):
         """Set this as the default environment."""
@@ -125,6 +114,26 @@ class Environment:
     _lock: int = 0
     """See the docstring of `locked` for an explanation of what locking an
     environment means."""
+
+    _user_lock: bool = False
+    """See the docstring of `locked` for an explanation of what locking an
+    environment means."""
+
+    def lock(self):
+        """Increase the lock count.
+
+        See the docstring of `locked` for an explanation of what locking an
+        environment means.
+        """
+        self._lock += 1
+
+    def unlock(self):
+        """Decrease the lock count.
+
+        See the docstring of `locked` for an explanation of what locking an
+        environment means.
+        """
+        self._lock = self._lock - 1 if self._lock > 0 else 0
 
     _subscribers: Set[Environment]
     """A private attribute is used in order not to interfere with the
