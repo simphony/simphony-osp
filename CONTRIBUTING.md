@@ -62,7 +62,7 @@ When you find that something is not working, you can submit a bug report. This s
 2. Check the [Q&A](https://github.com/simphony/osp-core/discussions/categories/q-a) section of the [discussions page](https://github.com/simphony/osp-core/discussions). Someone else might have already experienced the same issue and got an answer on how to solve it.
 3. Search for similar issues on the [issue board](https://github.com/simphony/osp-core/issues?q=is%3Aissue+sort%3Aupdated-desc+). The problem may already have been reported. If you are having issues while using a specific SimPhoNy wrapper, beware that each SimPhoNy Wrapper has its own issue board.
 
-### Submitting a bug report
+#### Submitting a bug report
 
 Bug reports should be submitted on the [SimPhoNy issue board](https://github.com/simphony/osp-core/issues?q=is%3Aissue+sort%3Aupdated-desc+).  If you suspect that the issue has its origin in the code of a specific wrapper, rather than in SimPhoNy itself, visit the issue board of the wrapper instead. To create a new report, click the green [_"New"_](https://github.com/simphony/osp-core/issues/new/choose) button.
 
