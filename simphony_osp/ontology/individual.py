@@ -2033,7 +2033,7 @@ class OntologyIndividual(OntologyEntity):
         # TODO: prevent the end result having more than one value depending on
         #  ontology cardinality restrictions and/or functional property
         #  criteria.
-        values = set(
+        values = (
             attribute.convert_to_datatype(value)
             for value in values
             if value is not None
@@ -2068,7 +2068,7 @@ class OntologyIndividual(OntologyEntity):
             TypeError: When Python objects with types incompatible with the
                 OWL standard or with SimPhoNy as custom data types are given.
         """
-        values = set(
+        values = (
             attribute.convert_to_datatype(value)
             for value in values
             if value is not None
