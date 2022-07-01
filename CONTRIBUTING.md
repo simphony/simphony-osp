@@ -13,9 +13,7 @@ Thank you for considering to improve SimPhoNy. We welcome your contribution!
             🐛✨
           </p>
           <p align="center">
-            Report <a href="#reporting-bugs">bugs</a>, propose
-            <a href="#proposing-enhancements">enhancements</a>
-            or suggest <a href="#suggesting-new-features">new features</a>
+            Report <a href="#reporting-bugs">bugs</a>, propose <a href="#proposing-enhancements">enhancements</a> or suggest <a href="#suggesting-new-features">new features</a> 
           </p>
         </td>
         <td>
