@@ -18,7 +18,7 @@ Thank you for considering to improve SimPhoNy. We welcome your contribution!
         </td>
         <td>
           <p align="center">
-            <a href="https://github.com/simphony/osp-core/pulls">Code</a><br>
+            <a href="#code">Code</a><br>
             👨‍💻
           </p>
           <p align="center">
