@@ -184,11 +184,11 @@ class OntologyClass(OntologyEntity):
         superclass: OntologyClass
         attributes = frozenset(
             self._direct_optional_attributes
-            | set(
+            | {
                 attribute
                 for superclass in self.direct_superclasses
                 for attribute in superclass.optional_attributes
-            )
+            }
         )
         return attributes
 
@@ -345,8 +345,7 @@ class OntologyClass(OntologyEntity):
         yield self
 
         def closure(node, graph):
-            for o in graph.objects(node, RDFS.subClassOf):
-                yield o
+            yield from graph.objects(node, RDFS.subClassOf)
 
         yield from filter(
             lambda x: isinstance(x, OntologyClass),
@@ -369,8 +368,7 @@ class OntologyClass(OntologyEntity):
         yield self
 
         def closure(node, graph):
-            for s in graph.subjects(RDFS.subClassOf, node):
-                yield s
+            yield from graph.subjects(RDFS.subClassOf, node)
 
         yield from filter(
             lambda x: isinstance(x, OntologyClass),
