@@ -78,7 +78,7 @@ Bug reports should be submitted on the [SimPhoNy issue board](https://github.com
 
 ### Proposing enhancements or suggesting new features
 
-Enhancements or new features should first be proposed on the [_"Ideas"_ section of the forum](https://github.com/simphony/osp-core/discussions/categories/ideas). 
+Enhancements or new features should first be proposed on the [_"Ideas"_ section of the forum](https://github.com/simphony/osp-core/discussions/categories/ideas).
 
 When proposing, discussing, and designing a feature or enhancement on the forum, always aim to steer the discussion in a direction such that the following points are addressed:
 - [ ] Motivation for the enhancement or the new feature.
@@ -107,7 +107,7 @@ Of course, even if you are not a maintainer, you are also very welcome to commen
 
 If you feel that the [SimPhoNy documentation](https://simphony.readthedocs.io) it is difficult to understand, we welcome your feedback and contributions! In general, changes to the documentation should be first proposed on the [_"Ideas"_ section of the forum](https://github.com/simphony/osp-core/discussions/categories/ideas).
 
-However, in certain cases, a change in the documentation does not need to be discussed. For example, if you find a typo you can directly [create an issue](https://github.com/simphony/docs/issues/new/choose) or even a [pull request](https://github.com/simphony/docs/compare). The same applies if the documentation needs to be changed due to the implementation of enhancements or new features for SimPhoNy in a [code contribution](#code).  
+However, in certain cases, a change in the documentation does not need to be discussed. For example, if you find a typo you can directly [create an issue](https://github.com/simphony/docs/issues/new/choose) or even a [pull request](https://github.com/simphony/docs/compare). The same applies if the documentation needs to be changed due to the implementation of enhancements or new features for SimPhoNy in a [code contribution](#code).
 
 When proposing and discussing a change on the documentation, always aim to steer the discussion in a direction such that the following points are addressed:
 
@@ -127,4 +127,4 @@ Feel free to participate on the [forum](https://github.com/simphony/osp-core/dis
 - Have [general discussions](https://github.com/simphony/osp-core/discussions/categories/general) about SimPhoNy.
 - Propose [new features or enhancements](https://github.com/simphony/osp-core/discussions/categories/ideas). Please follow the guidelines provided on [this section](#proposing-enhancements-or-suggesting-new-features).
 - [Ask other members of the community for help](https://github.com/simphony/osp-core/discussions/categories/q-a) in a [Q&A format](https://en.wikipedia.org/wiki/Q%26A_software).
-- [Share how did you benefit from using SimPhoNy](https://github.com/simphony/osp-core/discussions/categories/show-and-tell) if you used SimPhoNy in your project. 
+- [Share how did you benefit from using SimPhoNy](https://github.com/simphony/osp-core/discussions/categories/show-and-tell) if you used SimPhoNy in your project.
