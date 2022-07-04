@@ -371,9 +371,7 @@ class Session(Environment):
                 except KeyError:
                     pass
 
-        compatible = {
-            class_ for classes in compatible.values() for class_ in classes
-        }
+        compatible = set().union(*compatible.values())
 
         if (
             OntologyRelationship not in compatible
