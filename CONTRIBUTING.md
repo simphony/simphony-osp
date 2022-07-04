@@ -127,4 +127,4 @@ Feel free to participate on the [forum](https://github.com/simphony/osp-core/dis
 - Have [general discussions](https://github.com/simphony/osp-core/discussions/categories/general) about SimPhoNy.
 - Propose [new features or enhancements](https://github.com/simphony/osp-core/discussions/categories/ideas). Please follow the guidelines provided on [this section](#proposing-enhancements-or-suggesting-new-features).
 - [Ask other members of the community for help](https://github.com/simphony/osp-core/discussions/categories/q-a) in a [Q&A format](https://en.wikipedia.org/wiki/Q%26A_software).
-- [Share how did you benefit from using SimPhoNy](https://github.com/simphony/osp-core/discussions/categories/show-and-tell) if you used SimPhoNy in your project.
+- [Share how did you benefit from using SimPhoNy](https://github.com/simphony/osp-core/discussions/categories/show-and-tell) in your project.
