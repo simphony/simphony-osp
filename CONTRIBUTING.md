@@ -87,6 +87,19 @@ After this discussion phase, when the maintainers deem it appropriate, the discu
 
 ## Code
 
+Code contributions are generally aimed at fixing bugs and implementing enhancements or new features. The way to contribute code to the project are [pull requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests).
+
+If you are unsure about where to start, check the issues tagged as [_newcomer task_](https://github.com/simphony/osp-core/issues?q=label%3A%22%F0%9F%91%A9%E2%80%8D%F0%9F%8E%93+newcomer+task%22+sort%3Acomments-desc). Such issues should either be simple to solve, or be a good entry point for understanding the codebase.
+
+If you have a bugfix or have a feature/enhancement implementation that you want to contribute, please read [this page](https://simphony.readthedocs.io/en/latest/contribute.html) to understand how the code is organized, what is the meaning of the different git branches on the repository, and what automatic checks your code will have to pass in order to be accepted. After that, just fork the repository and make a new pull request.
+
+Usually, there will be an issue associated with the specific bug to solve, or feature/enhancement to implement. Please add [closing keywords](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword) to your PR so that it becomes automatically linked to the corresponding issue.
+
+In certain cases, however, you may submit a PR even if there is no associated issue. The most obvious examples are fixes for typos or improvement of docstrings. But also if you have a performance improvement that you can directly prove, or want to provide a fix for a bug that has not been spotted yet, you can skip the creation of an issue.
+
+After you submit your pull request, a maintainer will review it. It is possible that additional work is needed before the maintainer can accept the PR. To make things smoother, please consider [allowing us to directly edit your PR](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/allowing-changes-to-a-pull-request-branch-created-from-a-fork), so that we can perform minor edits without having to wait for your feedback.
+
+Of course, even if you are not a maintainer, you are also very welcome to comment on the pull requests submitted by other community members and give feedback to them.
 
 ## Documentation
 
