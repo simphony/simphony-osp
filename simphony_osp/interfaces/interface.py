@@ -736,25 +736,25 @@ class InterfaceDriver(Store):
             else False
             for s, count in deleted_subjects.items()
         }
-        deleted_subjects = set(
+        deleted_subjects = {
             s for s, deleted in deleted_subjects.items() if deleted
-        )
+        }
         # Get updated subjects.
         updated_subjects = tracker.existing_subjects.difference(
             deleted_subjects
         )
-        added_entities = set(
+        added_entities = {
             self.interface.session_new.from_identifier(s)
             for s in added_subjects
-        )
-        updated_entities = set(
+        }
+        updated_entities = {
             self.interface.session_new.from_identifier(s)
             for s in updated_subjects
-        )
-        deleted_entities = set(
+        }
+        deleted_entities = {
             self.interface.session_old.from_identifier(s)
             for s in deleted_subjects
-        )
+        }
         return added_entities, updated_entities, deleted_entities
 
     class UnbufferedInterfaceDriver(Store):

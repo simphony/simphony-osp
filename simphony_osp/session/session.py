@@ -965,7 +965,7 @@ class Session(Environment):
 
     def get_entities(self) -> Set[OntologyEntity]:
         """Get all the entities stored in the session."""
-        return set(x for x in self)
+        return {x for x in self}
 
     _interface_driver: Optional[InterfaceDriver] = None
 
