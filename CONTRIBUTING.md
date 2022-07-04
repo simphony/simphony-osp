@@ -29,7 +29,7 @@ Thank you for considering to improve SimPhoNy. We welcome your contribution!
       <tr>
         <td>
           <p align="center">
-            <a href="https://github.com/simphony/docs">Documentation</a><br>
+            <a href="#documentation">Documentation</a><br>
             📖
           </p>
           <p align="center">
@@ -105,6 +105,19 @@ Of course, even if you are not a maintainer, you are also very welcome to commen
 
 ## Documentation
 
+If you feel that the [SimPhoNy documentation](https://simphony.readthedocs.io) it is difficult to understand, we welcome your feedback and contributions! In general, changes to the documentation should be first proposed on the [_"Ideas"_ section of the forum](https://github.com/simphony/osp-core/discussions/categories/ideas).
+
+However, in certain cases, a change in the documentation does not need to be discussed. For example, if you find a typo you can directly [create an issue](https://github.com/simphony/docs/issues/new/choose) or even a [pull request](https://github.com/simphony/docs/compare). The same applies if the documentation needs to be changed due to the implementation of enhancements or new features for SimPhoNy in a [code contribution](#code).  
+
+When proposing and discussing a change on the documentation, always aim to steer the discussion in a direction such that the following points are addressed:
+
+- [ ] Motivation for the change or addition.
+- [ ] A brief description, in few sentences, of the proposed changes.
+- [ ] A mock-up of the intended changes, for example the headings, a few sentences explaining the content that should be included. If the changes involve figures, please upload a sketch too.
+
+After this discussion phase, when the maintainers deem it appropriate, the discussion on the forum can be closed and an issue referencing it can be created on the [issue board](https://github.com/simphony/docs/issues?q=is%3Aissue+sort%3Aupdated-desc+). The goal of this procedure is to separate discussion and design from implementation efforts.
+
+ The issue is now ready to be worked on. On the issue itself, the fine details and the actual contents can be more deeply discussed. Finally, a [pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) can be [submitted](https://github.com/simphony/docs/compare) to the [docs repository](https://github.com/simphony/docs/pulls?q=is%3Apr+sort%3Aupdated-desc). A maintainer will review the pull request and accept it, or request further changes if needed.
 
 ## Forum
 
