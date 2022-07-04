@@ -13,7 +13,7 @@ Thank you for considering to improve SimPhoNy. We welcome your contribution!
             🐛✨
           </p>
           <p align="center">
-            Report <a href="#reporting-bugs">bugs</a>, propose <a href="#proposing-enhancements">enhancements</a> or suggest <a href="#suggesting-new-features">new features</a>
+            Report <a href="#reporting-bugs">bugs</a>, propose <a href="#proposing-enhancements-or-suggesting-new-features">enhancements</a> or suggest <a href="#proposing-enhancements-or-suggesting-new-features">new features</a>
           </p>
         </td>
         <td>
@@ -74,10 +74,16 @@ Bug reports should be submitted on the [SimPhoNy issue board](https://github.com
 
 [Follow this link](https://github.com/simphony/osp-core/issues/740#issue-1107800007) to see an example of an accurate bug report. Providing a good bug report facilitates the work of the maintainers and enables them to solve the issue faster.
 
-### Proposing enhancements
+### Proposing enhancements or suggesting new features
 
-### Suggesting new features
+Enhancements or new features should first be proposed on the [_"Ideas"_ section of the forum](https://github.com/simphony/osp-core/discussions/categories/ideas). 
 
+When proposing, discussing, and designing a feature or enhancement on the forum, always aim to steer the discussion in a direction such that the following points are addressed:
+- [ ] Motivation for the enhancement or the new feature.
+- [ ] General overview of the enhancement or the new feature. Code snippets/mock-ups of how the feature or enhancement should work and behave.
+- [ ] Estimation of the effort that implementing such enhancement or feature might involve. Technologies that could enable the implementation. This information helps the maintainers decide whether to implement a feature or enhancement, and to estimate the timeframe for a potential implementation.
+
+After this discussion phase, when the maintainers deem it appropriate, the discussion on the forum can be closed and an issue referencing it can be created on the [issue board](https://github.com/simphony/osp-core/issues?q=is%3Aissue+sort%3Aupdated-desc+). The goal of this procedure is to separate discussion and design from implementation efforts. The issue is now ready to be worked on. The [_code section_](#Code) explains how to contribute to solve an issue.
 
 ## Code
 
