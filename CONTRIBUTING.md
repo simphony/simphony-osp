@@ -50,6 +50,8 @@ Thank you for considering to improve SimPhoNy. We welcome your contribution!
   </table>
 </div>
 
+Remember that you must adhere to the [Contributor Covenant Code of Conduct](https://github.com/simphony/osp-core/blob/master/CODE_OF_CONDUCT.md) if you decide to make a contribution.
+
 ## Issues
 
 ### Reporting bugs
