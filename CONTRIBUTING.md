@@ -38,7 +38,7 @@ Thank you for considering to improve SimPhoNy. We welcome your contribution!
         </td>
         <td>
           <p align="center">
-            <a href="https://github.com/simphony/osp-core/discussions">Forum</a><br>
+            <a href="#forum">Forum</a><br>
             💬
           </p>
           <p align="center">
@@ -107,3 +107,11 @@ Of course, even if you are not a maintainer, you are also very welcome to commen
 
 
 ## Forum
+
+Feel free to participate on the [forum](https://github.com/simphony/osp-core/discussions)! There you may:
+
+- Read [announcements](https://github.com/simphony/osp-core/discussions/categories/announcements) from the SimPhoNy team.
+- Have [general discussions](https://github.com/simphony/osp-core/discussions/categories/general) about SimPhoNy.
+- Propose [new features or enhancements](https://github.com/simphony/osp-core/discussions/categories/ideas). Please follow the guidelines provided on [this section](#proposing-enhancements-or-suggesting-new-features).
+- [Ask other members of the community for help](https://github.com/simphony/osp-core/discussions/categories/q-a) in a [Q&A format](https://en.wikipedia.org/wiki/Q%26A_software).
+- [Share how did you benefit from using SimPhoNy](https://github.com/simphony/osp-core/discussions/categories/show-and-tell) if you used SimPhoNy in your project. 
