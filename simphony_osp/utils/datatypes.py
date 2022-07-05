@@ -1,4 +1,5 @@
 """This module contains methods for datatype conversions."""
+from __future__ import annotations
 
 import logging
 import re
@@ -158,7 +159,7 @@ class Vector(CustomDataType):
         return self.data[item]
 
     def __init__(
-        self, value: Union[Literal, np.ndarray, NestedSequence, "Vector"]
+        self, value: Union[Literal, np.ndarray, NestedSequence, Vector]
     ):
         """Creates a new vector from `value`.
 
@@ -197,7 +198,7 @@ class Vector(CustomDataType):
         return hash((self.__bytes, self.__dtype, self.__shape))
 
     def __eq__(
-        self, other: Union[Literal, np.ndarray, NestedSequence, "Vector"]
+        self, other: Union[Literal, np.ndarray, NestedSequence, Vector]
     ):
         """Compare the vector to another object that can be vectorized."""
         return np.array_equal(self.data, Vector(other).data)
@@ -222,7 +223,7 @@ class Vector(CustomDataType):
         return blob
 
     @classmethod
-    def from_blob(cls, blob: bytes) -> "Vector":
+    def from_blob(cls, blob: bytes) -> Vector:
         """Convert a bytes representation of a vector into a Vector object."""
         # Get data type.
         start_dtype = 0
@@ -269,12 +270,12 @@ class Vector(CustomDataType):
         return b85encode(self.to_blob()).decode("UTF-8")
 
     @classmethod
-    def from_b85(cls, string) -> "Vector":
+    def from_b85(cls, string) -> Vector:
         """Convert a base 85 representation of a vector back into a Vector."""
         return cls.from_blob(b85decode(string.encode("UTF-8")))
 
     @classmethod
-    def from_blob_or_b85(cls, value: Union[str, bytes]) -> "Vector":
+    def from_blob_or_b85(cls, value: Union[str, bytes]) -> Vector:
         """Restore a vector from a base 85 or bytes representation of it."""
         if isinstance(value, bytes):
             return cls.from_blob(value)
@@ -313,37 +314,35 @@ class UID(CustomDataType):
     iri = URIRef("https://www.simphony-project.eu/types#UID")
     data: Union[Node, UUID]
 
+    __slots__ = ("data",)
+
     def __init__(
         self,
-        value: Optional[Union["UID", UUID, str, URIRef, int, bytes]] = None,
+        value: Optional[Union[UID, UUID, str, Node, int, bytes]] = None,
     ):
         """Initializes a new UID from `value`."""
         super().__init__()
         invalid = False
         if value is None:
             value = uuid4()
-        elif isinstance(value, UID):
-            value = value.data
-        elif isinstance(value, UUID):
-            invalid = value.int == 0
-        elif isinstance(value, BNode):
-            value = value
-        elif isinstance(value, (str, URIRef)):
+        elif isinstance(value, str):
             if value.startswith(ENTITY_IRI_PREFIX):
                 value = value[len(ENTITY_IRI_PREFIX) :]
-            split = value.split(":")
-            if len(split) > 1 and all(y != "" for y in split):
-                value = URIRef(value)
-            else:
                 try:
                     value = UUID(hex=value)
                 except ValueError:
                     invalid = True
+            elif not isinstance(value, Node):
+                value = URIRef(value)
+        elif isinstance(value, UUID):
+            invalid = value.int == 0
         elif isinstance(value, int):
             value = UUID(int=value)
         elif isinstance(value, bytes):
             value = UUID(bytes=value)
-        if invalid or not isinstance(value, (UUID, URIRef, BNode)):
+        elif isinstance(value, UID):
+            value = value.data
+        if invalid or not isinstance(value, (UUID, Node)):
             raise ValueError(f"Invalid uid: {value}.")
         self.data = value
 
@@ -378,17 +377,18 @@ class UID(CustomDataType):
 
     def to_iri(self) -> URIRef:
         """Convert the UID to an IRI."""
-        if isinstance(self.data, BNode):
+        data = self.data
+        if isinstance(data, UUID):
+            return_iri = URIRef(ENTITY_IRI_PREFIX + str(data))
+        elif isinstance(data, URIRef):
+            return_iri = data
+        elif isinstance(data, BNode):
             raise TypeError(
                 f"The UID {self} cannot be converted to an IRI, "
                 f"as it is a blank node."
             )
-        elif isinstance(self.data, URIRef):
-            return_iri = self.data
-        elif isinstance(self.data, UUID):
-            return_iri = URIRef(ENTITY_IRI_PREFIX + str(self.data))
         else:
-            raise RuntimeError(f"Illegal UID type {type(self.data)}.")
+            raise RuntimeError(f"Illegal UID type {type(data)}.")
         return return_iri
 
     def to_uuid(self) -> UUID:
@@ -396,16 +396,23 @@ class UID(CustomDataType):
 
         Will only work if the underlying data is a UUID.
         """
-        if not isinstance(self.data, UUID):
+        data = self.data
+        if not isinstance(data, UUID):
             raise Exception(
                 f"Tried to get the UUID of the UID object "
                 f"{self}, but this object is not a UUID."
             )
-        return self.data
+        return data
 
     def to_identifier(self) -> Identifier:
         """Convert the UID to a RDFLib Identifier."""
-        return self.to_iri() if isinstance(self.data, UUID) else self.data
+        data = self.data
+        # logic in `to_iri` duplicated here in exchange for performance gains
+        return (
+            URIRef(ENTITY_IRI_PREFIX + str(data))
+            if isinstance(data, UUID)
+            else data
+        )
 
 
 for datatype in (UID, UUID, URIRef, str, int, bytes):
