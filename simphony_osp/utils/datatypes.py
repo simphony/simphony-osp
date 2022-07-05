@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 import re
-import sqlite3
 import sys
 from abc import ABC
 from base64 import b85decode, b85encode
@@ -46,6 +45,27 @@ if python_version_supports_type_alias:
 else:
     from typing import Any as TypeAlias
 
+__all__ = [
+    "ATTRIBUTE_VALUE_TYPES",
+    "AttributeValue",
+    "AnnotationValue",
+    "Identifier",
+    "NestedList",
+    "NestedMutableSequence",
+    "NestedSequence",
+    "NestedTuple",
+    "OntologyPredicate",
+    "Pattern",
+    "PredicateValue",
+    "RelationshipValue",
+    "SimplePattern",
+    "SimpleTriple",
+    "Triple",
+    "UID",
+    "Vector",
+    "rdf_to_python",
+]
+
 # Collection type hints
 NestedSequence = Union[Sequence[Any], Sequence["NestedSequence"]]
 NestedMutableSequence = Union[
@@ -74,22 +94,16 @@ class CustomDataType(ABC):
     Such custom data types must also have an RDF representation (the IRI
     attribute and a string representation).
 
-    Beware that any custom datatype will need to have a serializer to a
-    datatype compatible with an SQL database, as well as a "lexicalizer" and a
+    Beware that any custom datatype will need to have a "lexicalizer" and a
     "constructor" for rdflib compatibility. See the piece of code
-    immediately after the class for more details.
+    immediately after this class for more details.
     """
 
     iri: URIRef
 
 
-"""After the custom data type has been defined, the SQL serializer or
-adapter, and the rdflib lexicalizer and constructor have to be specified.
-
-The SQL adapter tells the sqlite3 Python library how to convert the object
-to a data type that can be fit in the database. For example, for Vectors,
-a binary representation is used, so this function converts the vector to a
-binary blob.
+"""After the custom data type has been defined, the rdflib lexicalizer
+and constructor have to be specified.
 
 The rdflib lexicalizer creates a string representation of the Python object.
 For example, for vectors it is just a string representation of their binary
@@ -107,16 +121,6 @@ information, please check  the documentation and source code for
 [`rdflib.term.bind`]
 (https://rdflib.readthedocs.io/en/stable/apidocs/rdflib.html#rdflib.term.bind).
 """
-# TODO: Is the data data fetched from the SQL database being recreated with the
-#  rdflib constructor? This would not be the ideal behavior. Instead,
-#  one would want to recreate the Python object using a sqlite3 converter,
-#  just like an adapter is being used for saving.
-# sqlite3.register_adapter(CustomDataType, lambda x: convet_to_sql_data())
-# term.bind(CustomDataType.iri,
-#           CustomDataType,
-#           lexicalizer=lambda x: lexicalizer(x),
-#           constructor=constructor x: constructor(x),
-#           datatype_specific=True)
 
 
 class Vector(CustomDataType):
@@ -138,6 +142,7 @@ class Vector(CustomDataType):
     #   - Implement some operations with numpy arrays that return numpy arrays,
     #     just as it was done in the AttributeSet case.
     iri = URIRef("https://www.simphony-project.eu/types#Vector")
+
     _ELEMENT_LEN: int = 3
     _DTYPE_LEN: int = 1
     _SHAPE_LEN: int = 1
@@ -148,6 +153,10 @@ class Vector(CustomDataType):
         return np.frombuffer(self.__bytes, dtype=self.__dtype).reshape(
             self.__shape
         )
+
+    def __getitem__(self, item: int):
+        """Slice the underlying numpy array."""
+        return self.data[item]
 
     def __init__(
         self, value: Union[Literal, np.ndarray, NestedSequence, Vector]
@@ -178,7 +187,7 @@ class Vector(CustomDataType):
         """String representation for the vector (i.e. on Python console)."""
         array_repr = self.data.__repr__()
         array_repr = array_repr.replace("\n", " ")
-        array_repr = re.sub(r"[\s]{2,}", " ", array_repr)
+        array_repr = re.sub(r"\s{2,}", " ", array_repr)
         return (
             f"<{self.__class__.__module__}.{self.__class__.__name__}:"
             f" {array_repr}>"
@@ -276,7 +285,6 @@ class Vector(CustomDataType):
             raise TypeError("Only str and bytes are allowed.")
 
 
-sqlite3.register_adapter(Vector, lambda x: x.to_blob())
 for datatype in (Literal, np.ndarray, Sequence, list, tuple, Vector):
     term.bind(
         Vector.iri,
@@ -288,17 +296,23 @@ for datatype in (Literal, np.ndarray, Sequence, list, tuple, Vector):
 
 
 class UID(CustomDataType):
-    """Custom type representing the unique identification of an individual.
+    """Custom data type representing the unique identifier of an entity.
 
-    This data type is actually not used in the RDF graph itself (an IRI is
-    used instead), but rather within SimPhoNy to identify the CUDS objects.
-    It is always translated to an IRI before being passed to a graph. However,
-    if you want to store a UID as a literal for whatever reason, you are
-    welcome to use this custom data type.
+    This data type is actually not used in the RDF graph itself (an RDF
+    identifier is used instead), but rather within SimPhoNy to identify the
+    ontology entities objects. It plays the same role as a semantic web
+    identifier, and can always be converted to one. In fact, such conversion
+    is always performed before it is used in a graph operation. The only
+    difference is that it can be based not only on semantic web identifiers
+    such as blank nodes or IRIs, but also on other datatypes that can be
+    converted on the fly to semantic-web compatible identifiers.
+
+    However, if you want to store a UID as a literal for whatever reason,
+    you are welcome to use this custom data type.
     """
 
     iri = URIRef("https://www.simphony-project.eu/types#UID")
-    data: Union[BNode, URIRef, UUID]
+    data: Union[Node, UUID]
 
     __slots__ = ("data",)
 
@@ -378,7 +392,7 @@ class UID(CustomDataType):
         return return_iri
 
     def to_uuid(self) -> UUID:
-        """Convert the UID to an UUID.
+        """Convert the UID to a UUID.
 
         Will only work if the underlying data is a UUID.
         """
@@ -391,7 +405,7 @@ class UID(CustomDataType):
         return data
 
     def to_identifier(self) -> Identifier:
-        """Convert the UID to an rdflib Identifier."""
+        """Convert the UID to a RDFLib Identifier."""
         data = self.data
         # logic in `to_iri` duplicated here in exchange for performance gains
         return (
@@ -401,7 +415,6 @@ class UID(CustomDataType):
         )
 
 
-sqlite3.register_adapter(UID, lambda x: str(x))
 for datatype in (UID, UUID, URIRef, str, int, bytes):
     if datatype in (int, bytes):
 
@@ -524,7 +537,7 @@ def rdf_to_python(value: Any, rdf_data_type: URIRef) -> Any:
     # Converting the literal to a string  or calling Literal twice seems
     #  redundant, but is intentional.
     #
-    #  One would expect rdflib to convert the the literal to the adequate
+    #  One would expect rdflib to convert the literal to the adequate
     #  datatype by calling 'value.toPython()'. However, this is not always
     #  true. Two cases have to be considered:
     #   - The literal has been created from an arbitrary Python object. Then
@@ -551,19 +564,6 @@ def rdf_to_python(value: Any, rdf_data_type: URIRef) -> Any:
     return result
 
 
-# --- PYTHON TO RDF --- #
-# TODO: Automatically done by RDFLib, but additional bindings might be
-#  necessary, just like it was done for the custom data types.
-
-# --- YML TO RDF --- #
-YML_TO_RDF = {
-    "BOOL": XSD.boolean,
-    "INT": XSD.integer,
-    "FLOAT": XSD.float,
-    "STRING": XSD.string,
-    "VECTOR": Vector.iri,
-}
-
 # --- Various type hints and type hint aliases --- #
 
 # RDF type hints
@@ -586,7 +586,6 @@ OntologyPredicate: TypeAlias = Union[
 ]
 
 # Predicate targets
-OWLCompatibleType = Union[tuple(OWL_TO_PYTHON.values())]
 AttributeValue = Union[tuple(value for value in RDF_TO_PYTHON.values())]
 AnnotationValue: TypeAlias = Union[
     "OntologyAnnotation",

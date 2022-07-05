@@ -161,7 +161,7 @@ class ObjectSet(DataStructureSet, ABC):
         """
         return next(iter(self), None)
 
-    def all(self) -> "ObjectSet":
+    def all(self) -> ObjectSet:
         """Return all elements from the set.
 
         Returns:
@@ -342,7 +342,7 @@ class RelationshipSet(ObjectSet):
         def wrapper(self, *args, **kwargs):
             if self._class_filter is not None:
                 raise RuntimeError(
-                    "Cannot edit a set with a class " "filter in-place."
+                    "Cannot edit a set with a class filter in-place."
                 )
             return func(self, *args, **kwargs)
 
@@ -1453,8 +1453,9 @@ class OntologyIndividual(OntologyEntity):
                 the class filter. When only one individual or identifier is
                 specified, a single object is returned instead of a Tuple.
                 This description corresponds to the calls `get(*individuals)`,
-                `get(*uids, rel=___)`, `get(*uids, rel=___, oclass=___)`,
-                with the parameter `return_rel` unset or set to False.
+                `get(*individuals, rel=___)`,
+                `get(*individuals, rel=___, oclass=___)`, with the parameter
+                `return_rel` unset or set to False.
             Calls with `return_rel=True` (Tuple[
                     Tuple[OntologyIndividual, OntologyRelationship]]):
                 The dependence of the order of the elements is maintained
@@ -1587,8 +1588,8 @@ class OntologyIndividual(OntologyEntity):
                 can contain `None` values if a given identifier/individual is
                 not connected to this individual, or if it does not satisfy
                 the class filter. This description corresponds to the calls
-                `iter(*uids)`, `iter(*uids, rel=___)`,
-                `iter(*uids, rel=___, oclass=`___`)`.
+                `iter(*individuals)`, `iter(*individuals, rel=___)`,
+                `iter(*individuals, rel=___, oclass=`___`)`.
             Calls with `return_rel=True` (Iterator[
                     Tuple[OntologyIndividual, OntologyRelationship]]):
                 The dependence of the order of the elements is maintained
@@ -2033,41 +2034,6 @@ class OntologyIndividual(OntologyEntity):
         )
         return set(attributes)
 
-    @staticmethod
-    def _attributes_modifier(func):
-        """Decorator for functions that perform attribute modifications.
-
-        To be used with `attributes_add`, `attributes_delete` and
-        `attributes_set` exclusively. The three functions are extremely
-        similar. This decorator covers the code that they share.
-        """
-
-        @functools.wraps(func)
-        def wrapper(
-            self,
-            attribute: OntologyAttribute,
-            values: Iterable[AttributeValue],
-            *args,
-            **kwargs,
-        ):
-            values = set(values)
-            for x in values:
-                if not isinstance(x, ATTRIBUTE_VALUE_TYPES):
-                    raise TypeError(
-                        f"Type '{type(x)}' of object {x} cannot "
-                        f"be set as attribute value, as it is "
-                        f"either incompatible with the OWL "
-                        f"standard or not yet supported by "
-                        f"SimPhoNy."
-                    )
-            return func(self, attribute, values, *args, **kwargs)
-
-        return wrapper
-
-    # Bind static method to use as decorator.
-    _attribute_modifier = _attributes_modifier.__get__(object, None)
-
-    @_attribute_modifier
     def attributes_add(
         self, attribute: OntologyAttribute, values: Iterable[AttributeValue]
     ):
@@ -2089,19 +2055,23 @@ class OntologyIndividual(OntologyEntity):
         # TODO: prevent the end result having more than one value depending on
         #  ontology cardinality restrictions and/or functional property
         #  criteria.
-        for value in filter(lambda v: v is not None, values):
+        values = (
+            attribute.convert_to_datatype(value)
+            for value in values
+            if value is not None
+        )
+        for value in values:
             self.session.graph.add(
                 (
                     self.iri,
                     attribute.iri,
                     Literal(
-                        attribute.convert_to_datatype(value),
+                        value,
                         datatype=attribute.datatype,
                     ),
                 )
             )
 
-    @_attribute_modifier
     def attributes_delete(
         self, attribute: OntologyAttribute, values: Iterable[AttributeValue]
     ):
@@ -2120,19 +2090,23 @@ class OntologyIndividual(OntologyEntity):
             TypeError: When Python objects with types incompatible with the
                 OWL standard or with SimPhoNy as custom data types are given.
         """
+        values = (
+            attribute.convert_to_datatype(value)
+            for value in values
+            if value is not None
+        )
         for value in values:
             self.session.graph.remove(
                 (
                     self.iri,
                     attribute.iri,
                     Literal(
-                        attribute.convert_to_datatype(value),
+                        value,
                         datatype=attribute.datatype,
                     ),
                 )
             )
 
-    @_attribute_modifier
     def attributes_set(
         self,
         attribute: OntologyAttribute,

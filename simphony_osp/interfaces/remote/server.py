@@ -163,8 +163,8 @@ class InterfaceServer:
     def _compute(self, data: str, connection_id: UUID) -> str:
         interface = self._interfaces[connection_id]
         data = json.loads(data)
-        args, kwargs = data["args"], data["kwargs"]
-        interface.compute(*args, **kwargs)
+        kwargs = data["kwargs"]
+        interface.compute(**kwargs)
         return json.dumps({COMMAND.COMPUTE: None})
 
     def _add(self, data: str, connection_id: UUID) -> str:

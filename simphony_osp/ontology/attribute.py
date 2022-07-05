@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Iterable, Iterator, Optional
 
-from rdflib import OWL, RDFS, URIRef
+from rdflib import OWL, RDFS, Literal, URIRef
 from rdflib.term import Identifier
 
 from simphony_osp.ontology.entity import OntologyEntity
@@ -82,7 +82,14 @@ class OntologyAttribute(OntologyEntity):
         Returns:
             The converted value.
         """
-        return rdf_to_python(value, self.datatype)
+        python_object = rdf_to_python(value, self.datatype)
+        if isinstance(python_object, Literal):
+            raise TypeError(
+                f"Type '{type(value)}' of object {value} cannot be set as "
+                f"attribute value, as it is either incompatible with the "
+                f"OWL standard or not yet supported by SimPhoNy."
+            )
+        return python_object
 
     def _get_direct_superclasses(self) -> Iterator[OntologyAttribute]:
         """Get all the direct superclasses of this attribute.

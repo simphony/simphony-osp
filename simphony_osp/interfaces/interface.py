@@ -12,10 +12,12 @@ from typing import (
     TYPE_CHECKING,
     BinaryIO,
     Dict,
+    Iterable,
     Iterator,
     Optional,
     Set,
     Tuple,
+    Union,
 )
 
 from rdflib import RDF, Graph, URIRef
@@ -93,7 +95,7 @@ class BufferedSimpleMemoryStore(SimpleMemory):
         just buffered until a commit is performed.
         """
         self._buffers[BufferType.DELETED].remove(triple)
-        self._buffers[BufferType.ADDED].remove(triple)
+        self._buffers[BufferType.ADDED].add(triple)
 
     def remove(
         self, triple_pattern: Pattern, context: Optional[Graph] = None
@@ -151,13 +153,20 @@ class BufferedSimpleMemoryStore(SimpleMemory):
     def commit(self) -> None:
         """Commit buffered changes to the underlying `SimpleMemory` store."""
         # Remove triples from deleted buffer.
+        subclass_method = self.triples
+        setattr(self, "triples", super().triples)
         for triple in self._buffers[BufferType.DELETED]:
             super().remove(triple, None)
+        setattr(self, "triples", subclass_method)
 
         # Add triples from added buffer.
+        subclass_method = self.add
+        setattr(self, "add", super().add)
         super().addN(
-            (s, p, o, None) for s, p, o in self._buffers[BufferType.ADDED]
+            (s, p, o, self._buffers[BufferType.ADDED])
+            for s, p, o in self._buffers[BufferType.ADDED]
         )
+        setattr(self, "add", subclass_method)
 
         self._reset_buffers()
 
@@ -226,7 +235,7 @@ class InterfaceDriver(Store):
     def __init__(
         self,
         *args,
-        interface: "Interface",
+        interface: Interface,
         ontology: Optional[Session] = None,
         **kwargs,
     ):
@@ -280,6 +289,7 @@ class InterfaceDriver(Store):
         # Call the populate method of the interface on base graph/session.
         # The populate method is meant to act on the base graph.
         session = self.interface.session_base
+        self.interface.session = session
         try:
             session.lock()
             # Session must not close when exiting its context manager (just
@@ -287,10 +297,11 @@ class InterfaceDriver(Store):
             # populate).
             with session:
                 self.interface.populate()
+                session.commit()
         finally:
             session.unlock()
-
-        self.interface.session_base = None
+            self.interface.session_base = None
+            self.interface.session = None
 
     def close(self, commit_pending_transaction: bool = False) -> None:
         """Tells the interface to close the data source.
@@ -520,12 +531,15 @@ class InterfaceDriver(Store):
 
         # Calls commit on the interface.
         session = self.interface.session_new
+        self.interface.session = session
         try:
             session.lock()
             with session:
                 self.interface.commit()
         finally:
             session.unlock()
+            self.interface.session_new = None
+            self.interface.session = None
 
         # Copies the uncaught triples from the buffers to the base graph.
         for triple in self._buffer_uncaught[BufferType.DELETED]:
@@ -601,22 +615,39 @@ class InterfaceDriver(Store):
     # RDFLib
     # ↑ -- ↑
 
-    def compute(self, *args, **kwargs):
+    def compute(
+        self,
+        **kwargs: Union[
+            str,
+            int,
+            float,
+            bool,
+            None,
+            Iterable[Union[str, int, float, bool, None]],
+        ],
+    ):
         """Compute new information (e.g. run a simulation)."""
         if not hasattr(self.interface, "compute"):
-            return None
+            raise AttributeError(
+                f"'{self.interface}' object has no attribute 'compute'"
+            )
+
+        self.commit()
 
         self.interface.session_base = Session(
             base=self.interface.base, ontology=self._ontology
         )
         session = self.interface.session_base
+        self.interface.session = session
         try:
             session.lock()
             with session:
-                self.interface.compute(*args, **kwargs)
+                self.interface.compute(**kwargs)
+                session.commit()
         finally:
             session.unlock()
-        self.interface.session_base = None
+            self.interface.session_base = None
+            self.interface.session = None
 
     def queue(self, key: URIRef, file: Optional[BinaryIO]) -> None:
         """Queue a file to be committed."""
@@ -764,7 +795,7 @@ class InterfaceDriver(Store):
         interface without the `InterfaceDriver`'s buffers.
         """
 
-        _driver: "InterfaceDriver"
+        _driver: InterfaceDriver
 
         # RDFLib
         # ↓ -- ↓
@@ -774,7 +805,7 @@ class InterfaceDriver(Store):
         transaction_aware: bool = True
         graph_aware: bool = False
 
-        def __init__(self, *args, driver: "InterfaceDriver", **kwargs):
+        def __init__(self, *args, driver: InterfaceDriver, **kwargs):
             """Initialize the store."""
             self._driver = driver
             super().__init__(*args, **kwargs)
@@ -853,8 +884,36 @@ class Interface(ABC):
     increase performance.
     """
 
+    def __init__(
+        self,
+        **kwargs: Union[
+            str,
+            int,
+            float,
+            bool,
+            None,
+            Iterable[Union[str, int, float, bool, None]],
+        ],
+    ):
+        """Initialize the interface.
+
+        The `__init__` method accepts JSON-serializable keyword arguments
+        in order to let the user configure parameters of the interface that
+        are not configurable via the ontology. For example, the type of
+        solver used by a simulation engine.
+
+        Args:
+            kwargs: JSON-serializable keyword arguments that contain no
+                nested JSON objects (check the type hint for this argument).
+        """
+        super().__init__()
+
     @abstractmethod
-    def open(self, configuration: str, create: bool = False):
+    def open(
+        self,
+        configuration: str,
+        create: bool = False,
+    ) -> None:
         """Open the data source that the interface interacts with.
 
         You can expect calls to this method even when the data source is
@@ -886,7 +945,7 @@ class Interface(ABC):
         pass
 
     @abstractmethod
-    def close(self):
+    def close(self) -> None:
         """Close the data source that the interface interacts with.
 
         This method should NOT commit uncommitted changes.
@@ -908,7 +967,7 @@ class Interface(ABC):
         pass
 
     @abstractmethod
-    def populate(self):
+    def populate(self) -> None:
         """Populate the base graph so that it represents the data source.
 
         This command is run after the data source is opened. Here you are
@@ -916,11 +975,14 @@ class Interface(ABC):
         the information on the data source, unless you are generating
         triples on the fly. The default session is a session based on the
         base graph.
+
+        The base graph is available on `self.base`, and a session based on
+        the base graph is available on `self.session` and `self.session_base`.
         """
         pass
 
     @abstractmethod
-    def commit(self):
+    def commit(self) -> None:
         """This method commits the changes made by the user.
 
         Here, you are expected to have access to the following:
@@ -933,13 +995,23 @@ class Interface(ABC):
             are not expected to modify it.
         - `self.session_old`: A session based on the old graph (ro).
         - `self.session_new`: A session based on the new graph (ro).
+        - `self.session`: same as `self.session_new`.
         - `self.added`: A list of added entities (rw). You are not expected
             to modify the entities.
         - `self.updated`: A list of updated entities (rw). You are not
             expected to modify the entities.
         - `self.deleted`: A list of deleted entities (rw). You are not
             expected to modify the entities.
+
+        Raises:
+            AssertionError: When the data provided by the user would produce
+                an inconsistent or unpredictable state of the data structures.
         """
+        # Before updating the data structures, check that the changes provided
+        # by the user do not leave them in a consistent state. This necessary
+        # because SimPhoNy cannot revert the changes you make to your
+        # data structures. Raise an AssertionError if the check fails.
+
         # Examine the differences between the graphs below and make a plan to
         # modify your data structures.
 
@@ -949,11 +1021,24 @@ class Interface(ABC):
         # dictionary while looping over it.
         pass
 
-    def compute(self, *args, **kwargs):
+    def compute(
+        self,
+        **kwargs: Union[
+            str,
+            int,
+            float,
+            bool,
+            None,
+            Iterable[Union[str, int, float, bool, None]],
+        ],
+    ) -> None:
         """Compute new information (e.g. run a simulation).
 
         Just compute the new information on the backend and reflect the
         changes on the base graph. The default session is the base session.
+
+        The base graph is available on `self.base`, and a session based on
+        the base graph is available on `self.session` and `self.session_base`.
         """
         pass
 
@@ -1041,17 +1126,8 @@ class Interface(ABC):
 
     del rename  # By default not defined.
 
-    # def query(self, query: str):
-    #     """Custom implementation of SPARQL queries for the interface."""
-    #     pass
-    # del query   # By default not defined.
-
-    # Definition of:
-    # Interface
-    # ↑ ----- ↑
-
     # The properties below are set by the driver and accessible on the
-    # interface.
+    # interface. They are not meant to be set by the developers.
     base: Optional[Graph] = None
     old_graph: Optional[Graph] = None
     new_graph: Optional[Graph] = None
@@ -1060,6 +1136,11 @@ class Interface(ABC):
     session_base: Optional[Session] = None
     session_old: Optional[Session] = None
     session_new: Optional[Session] = None
+    session: Optional[Session] = None
     added: Optional[Set[OntologyEntity]] = None
     updated: Optional[Set[OntologyEntity]] = None
     deleted: Optional[Set[OntologyEntity]] = None
+
+    # Definition of:
+    # Interface
+    # ↑ ----- ↑

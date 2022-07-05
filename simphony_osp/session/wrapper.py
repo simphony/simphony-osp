@@ -1,7 +1,7 @@
 """A user-facing class creating a session using a specific interface."""
 
 from abc import ABC, abstractmethod
-from typing import Optional, Type, Union
+from typing import Iterable, Optional, Type, Union
 
 from rdflib import Graph
 
@@ -76,9 +76,15 @@ class WrapperSpawner(ABC, Session):
         cls,
         configuration_string: str = "",
         create: bool = False,
-        *args,
         ontology: Optional[Union[Session, bool]] = None,
-        **kwargs,
+        **kwargs: Union[
+            str,
+            int,
+            float,
+            bool,
+            None,
+            Iterable[Union[str, int, float, bool, None]],
+        ]
     ) -> Session:
         """Initialize the session using the wrapper's interface type.
 
@@ -86,7 +92,7 @@ class WrapperSpawner(ABC, Session):
         initialize the session using such store.
         """
         interface_class = cls._get_interface()
-        interface_instance = interface_class(*args, **kwargs)
+        interface_instance = interface_class(**kwargs)
         store = InterfaceDriver(interface=interface_instance)
         graph = Graph(store=store)
         graph.open(configuration_string, create=create)
