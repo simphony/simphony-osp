@@ -56,7 +56,7 @@ Remember that you must adhere to the [Contributor Covenant Code of Conduct](http
 
 ### Reporting bugs
 
-When you find that something is not working, you can submit a bug report. This section provides guidelines on how to submit your report in a way that helps maintainers understand the problem and reproduce it. Submitting a good bug report is a key to have issues solved quickly.
+When you find that something is not working, you can submit a bug report. This section provides guidelines on how to submit your report in a way that helps [maintainers](https://github.com/simphony/osp-core/blob/master/.github/CODEOWNERS) understand the problem and reproduce it. Submitting a good bug report is a key to have issues solved quickly.
 
 #### Before submitting a bug report
 
@@ -85,7 +85,7 @@ When proposing, discussing, and designing a feature or enhancement on the forum,
 - [ ] General overview of the enhancement or the new feature. Code snippets/mock-ups of how the feature or enhancement should work and behave.
 - [ ] Estimation of the effort that implementing such enhancement or feature might involve. Technologies that could enable the implementation. This information helps the maintainers decide whether to implement a feature or enhancement, and to estimate the timeframe for a potential implementation.
 
-After this discussion phase, when the maintainers deem it appropriate, the discussion on the forum can be closed and an issue referencing it can be created on the [issue board](https://github.com/simphony/osp-core/issues?q=is%3Aissue+sort%3Aupdated-desc+). The goal of this procedure is to separate discussion and design from implementation efforts. The issue is now ready to be worked on. The [_code section_](#Code) explains how to contribute to solve an issue.
+After this discussion phase, when the [maintainers](https://github.com/simphony/osp-core/blob/master/.github/CODEOWNERS) deem it appropriate, the discussion on the forum can be closed and an issue referencing it can be created on the [issue board](https://github.com/simphony/osp-core/issues?q=is%3Aissue+sort%3Aupdated-desc+). The goal of this procedure is to separate discussion and design from implementation efforts. The issue is now ready to be worked on. The [_code section_](#Code) explains how to contribute to solve an issue.
 
 ## Code
 
@@ -93,13 +93,11 @@ Code contributions are generally aimed at fixing bugs and implementing enhanceme
 
 If you are unsure about where to start, check the issues tagged as [_newcomer task_](https://github.com/simphony/osp-core/issues?q=label%3A%22%F0%9F%91%A9%E2%80%8D%F0%9F%8E%93+newcomer+task%22+sort%3Acomments-desc). Such issues should either be simple to solve, or be a good entry point for understanding the codebase.
 
-If you have a bugfix or have a feature/enhancement implementation that you want to contribute, please read [this page](https://simphony.readthedocs.io/en/latest/contribute.html) to understand how the code is organized, what is the meaning of the different git branches on the repository, and what automatic checks your code will have to pass in order to be accepted. After that, just fork the repository and make a new pull request.
+If you have a bugfix or have a feature/enhancement implementation that you want to contribute, please read [this page](https://simphony.readthedocs.io/en/latest/contribute.html) to understand how the code is organized, what the meaning of the different git branches on the repository is, and what automatic checks your code will have to pass in order to be accepted. After that, just fork the repository and make a new pull request.
 
 Usually, there will be an issue associated with the specific bug to solve, or feature/enhancement to implement. Please add [closing keywords](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword) to your PR so that it becomes automatically linked to the corresponding issue.
 
-In certain cases, however, you may submit a PR even if there is no associated issue. The most obvious examples are fixes for typos or improvement of docstrings. But also if you have a performance improvement that you can directly prove, or want to provide a fix for a bug that has not been spotted yet, you can skip the creation of an issue.
-
-After you submit your pull request, a maintainer will review it. It is possible that additional work is needed before the maintainer can accept the PR. To make things smoother, please consider [allowing us to directly edit your PR](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/allowing-changes-to-a-pull-request-branch-created-from-a-fork), so that we can perform minor edits without having to wait for your feedback.
+After you submit your pull request, a [maintainer](https://github.com/simphony/osp-core/blob/master/.github/CODEOWNERS) will review it. It is possible that additional work is needed before the maintainer can accept the PR. To make things smoother, please consider [allowing us to directly edit your PR](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/allowing-changes-to-a-pull-request-branch-created-from-a-fork), so that we can perform minor edits without having to wait for your feedback.
 
 Of course, even if you are not a maintainer, you are also very welcome to comment on the pull requests submitted by other community members and give feedback to them.
 
@@ -115,7 +113,7 @@ When proposing and discussing a change on the documentation, always aim to steer
 - [ ] A brief description, in few sentences, of the proposed changes.
 - [ ] A mock-up of the intended changes, for example the headings, a few sentences explaining the content that should be included. If the changes involve figures, please upload a sketch too.
 
-After this discussion phase, when the maintainers deem it appropriate, the discussion on the forum can be closed and an issue referencing it can be created on the [issue board](https://github.com/simphony/docs/issues?q=is%3Aissue+sort%3Aupdated-desc+). The goal of this procedure is to separate discussion and design from implementation efforts.
+After this discussion phase, when the [maintainers](https://github.com/simphony/osp-core/blob/master/.github/CODEOWNERS) deem it appropriate, the discussion on the forum can be closed and an issue referencing it can be created on the [issue board](https://github.com/simphony/docs/issues?q=is%3Aissue+sort%3Aupdated-desc+). The goal of this procedure is to separate discussion and design from implementation efforts.
 
  The issue is now ready to be worked on. On the issue itself, the fine details and the actual contents can be more deeply discussed. Finally, a [pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) can be [submitted](https://github.com/simphony/docs/compare) to the [docs repository](https://github.com/simphony/docs/pulls?q=is%3Apr+sort%3Aupdated-desc). A maintainer will review the pull request and accept it, or request further changes if needed.
 
