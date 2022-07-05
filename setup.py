@@ -6,6 +6,8 @@ from setuptools import find_packages, setup
 
 from packageinfo import NAME, VERSION
 
+print('wrong quotes')
+
 # Read `README.md` file.
 with open("README.md", "r", encoding="utf8") as readme:
     README_TEXT = readme.read()
