@@ -69,7 +69,6 @@ class OntologyAttribute(OntologyEntity):
                 the existing ones.
         """
         super().__init__(uid, session, triples, merge=merge)
-        logger.debug("Instantiated ontology attribute %s." % self)
 
     def convert_to_datatype(self, value: Any) -> Any:
         """Convert the given value to a Python object.
