@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Iterable, Iterator, Optional
 
-from rdflib import OWL, RDFS, URIRef
+from rdflib import OWL, RDFS, Literal, URIRef
 from rdflib.term import Identifier
 
 from simphony_osp.ontology.entity import OntologyEntity
@@ -69,7 +69,6 @@ class OntologyAttribute(OntologyEntity):
                 the existing ones.
         """
         super().__init__(uid, session, triples, merge=merge)
-        logger.debug("Instantiated ontology attribute %s." % self)
 
     def convert_to_datatype(self, value: Any) -> Any:
         """Convert the given value to a Python object.
@@ -83,7 +82,14 @@ class OntologyAttribute(OntologyEntity):
         Returns:
             The converted value.
         """
-        return rdf_to_python(value, self.datatype)
+        python_object = rdf_to_python(value, self.datatype)
+        if isinstance(python_object, Literal):
+            raise TypeError(
+                f"Type '{type(value)}' of object {value} cannot be set as "
+                f"attribute value, as it is either incompatible with the "
+                f"OWL standard or not yet supported by SimPhoNy."
+            )
+        return python_object
 
     def _get_direct_superclasses(self) -> Iterator[OntologyAttribute]:
         """Get all the direct superclasses of this attribute.
@@ -132,8 +138,7 @@ class OntologyAttribute(OntologyEntity):
         yield self
 
         def closure(node, graph):
-            for obj in graph.objects(node, RDFS.subPropertyOf):
-                yield obj
+            yield from graph.objects(node, RDFS.subPropertyOf)
 
         for x in self.session.graph.transitiveClosure(
             closure, self.identifier
@@ -161,8 +166,7 @@ class OntologyAttribute(OntologyEntity):
         yield self
 
         def closure(node, graph):
-            for s in graph.subjects(RDFS.subPropertyOf, node):
-                yield s
+            yield from graph.subjects(RDFS.subPropertyOf, node)
 
         for x in self.session.graph.transitiveClosure(
             closure, self.identifier

@@ -1,17 +1,23 @@
 """Universal interface for wrapper developers."""
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
+from base64 import b64encode
 from enum import IntEnum
 from itertools import chain
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import (
     TYPE_CHECKING,
     BinaryIO,
     Dict,
+    Iterable,
     Iterator,
     Optional,
     Set,
     Tuple,
+    Union,
 )
 
 from rdflib import RDF, Graph, URIRef
@@ -34,6 +40,8 @@ __all__ = [
     "Interface",
     "InterfaceDriver",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 class BufferType(IntEnum):
@@ -87,7 +95,7 @@ class BufferedSimpleMemoryStore(SimpleMemory):
         just buffered until a commit is performed.
         """
         self._buffers[BufferType.DELETED].remove(triple)
-        self._buffers[BufferType.ADDED].remove(triple)
+        self._buffers[BufferType.ADDED].add(triple)
 
     def remove(
         self, triple_pattern: Pattern, context: Optional[Graph] = None
@@ -145,13 +153,20 @@ class BufferedSimpleMemoryStore(SimpleMemory):
     def commit(self) -> None:
         """Commit buffered changes to the underlying `SimpleMemory` store."""
         # Remove triples from deleted buffer.
+        subclass_method = self.triples
+        setattr(self, "triples", super().triples)
         for triple in self._buffers[BufferType.DELETED]:
             super().remove(triple, None)
+        setattr(self, "triples", subclass_method)
 
         # Add triples from added buffer.
+        subclass_method = self.add
+        setattr(self, "add", super().add)
         super().addN(
-            (s, p, o, None) for s, p, o in self._buffers[BufferType.ADDED]
+            (s, p, o, self._buffers[BufferType.ADDED])
+            for s, p, o in self._buffers[BufferType.ADDED]
         )
+        setattr(self, "add", subclass_method)
 
         self._reset_buffers()
 
@@ -199,6 +214,16 @@ class InterfaceDriver(Store):
     _ontology: Optional[Session]
     """Ontology to be used on the session's shown to the wrapper developer."""
 
+    _file_cache: Optional[TemporaryDirectory] = None
+    """Holds files that are accessed while queued.
+
+    Files are queued as byte streams (which can be exhausted). Therefore,
+    if a user needs to access a file before it is committed, the byte stream
+    needs to be copied somewhere to be committed later. This also applies
+    when files need to be accessed during commit by a wrapper (as they are
+    truly sent to the wrapper after the `commit` method has finished).
+    """
+
     # RDFLib
     # ↓ -- ↓
 
@@ -210,7 +235,7 @@ class InterfaceDriver(Store):
     def __init__(
         self,
         *args,
-        interface: "Interface",
+        interface: Interface,
         ontology: Optional[Session] = None,
         **kwargs,
     ):
@@ -246,6 +271,9 @@ class InterfaceDriver(Store):
             buffer_type: Graph(SimpleMemory()) for buffer_type in BufferType
         }
 
+        # Set-up file bytestream cache
+        self._file_cache = TemporaryDirectory()
+
         self.interface.open(configuration, create)
 
         # The interface can set its base graph when `open` is called. If not
@@ -261,6 +289,7 @@ class InterfaceDriver(Store):
         # Call the populate method of the interface on base graph/session.
         # The populate method is meant to act on the base graph.
         session = self.interface.session_base
+        self.interface.session = session
         try:
             session.lock()
             # Session must not close when exiting its context manager (just
@@ -268,10 +297,11 @@ class InterfaceDriver(Store):
             # populate).
             with session:
                 self.interface.populate()
+                session.commit()
         finally:
             session.unlock()
-
-        self.interface.session_base = None
+            self.interface.session_base = None
+            self.interface.session = None
 
     def close(self, commit_pending_transaction: bool = False) -> None:
         """Tells the interface to close the data source.
@@ -294,6 +324,11 @@ class InterfaceDriver(Store):
         self.interface.added = None
         self.interface.updated = None
         self.interface.deleted = None
+
+        # Clear bytestream cache
+        if self._file_cache is not None:
+            self._file_cache.cleanup()
+            self._file_cache = None
 
     def add(self, triple: Triple, context: Graph, quoted=False) -> None:
         """Adds triples to the interface.
@@ -496,12 +531,15 @@ class InterfaceDriver(Store):
 
         # Calls commit on the interface.
         session = self.interface.session_new
+        self.interface.session = session
         try:
             session.lock()
             with session:
                 self.interface.commit()
         finally:
             session.unlock()
+            self.interface.session_new = None
+            self.interface.session = None
 
         # Copies the uncaught triples from the buffers to the base graph.
         for triple in self._buffer_uncaught[BufferType.DELETED]:
@@ -512,7 +550,7 @@ class InterfaceDriver(Store):
         )
         self.interface.base.commit()
 
-        # Queue file removal for removed file objects.
+        # Queue file upload and removal for file objects.
         for s in chain(
             self._buffer_uncaught[BufferType.DELETED][
                 : RDF.type : simphony_namespace.File
@@ -524,9 +562,21 @@ class InterfaceDriver(Store):
             self.queue(s, None)
         for URI, file in self._queue.items():
             if file is None:
-                self.interface.delete(URI)
+                if hasattr(self.interface, "delete"):
+                    self.interface.delete(URI)
+                else:
+                    logging.warning(
+                        f"Ignoring deletion of file {URI}, as the session "
+                        f"does not support deleting files."
+                    )
             else:
-                self.interface.save(URI, file)
+                if hasattr(self.interface, "save"):
+                    self.interface.save(URI, file)
+                else:
+                    logging.warning(
+                        f"File {URI}, will NOT be committed to the session, "
+                        f"as it does not support the storage of new files."
+                    )
                 file.close()
 
         # Reset buffers and file queue.
@@ -565,26 +615,85 @@ class InterfaceDriver(Store):
     # RDFLib
     # ↑ -- ↑
 
-    def compute(self, *args, **kwargs):
+    def compute(
+        self,
+        **kwargs: Union[
+            str,
+            int,
+            float,
+            bool,
+            None,
+            Iterable[Union[str, int, float, bool, None]],
+        ],
+    ):
         """Compute new information (e.g. run a simulation)."""
         if not hasattr(self.interface, "compute"):
-            return None
+            raise AttributeError(
+                f"'{self.interface}' object has no attribute 'compute'"
+            )
+
+        self.commit()
 
         self.interface.session_base = Session(
             base=self.interface.base, ontology=self._ontology
         )
         session = self.interface.session_base
+        self.interface.session = session
         try:
             session.lock()
             with session:
-                self.interface.compute(*args, **kwargs)
+                self.interface.compute(**kwargs)
+                session.commit()
         finally:
             session.unlock()
-        self.interface.session_base = None
+            self.interface.session_base = None
+            self.interface.session = None
 
     def queue(self, key: URIRef, file: Optional[BinaryIO]) -> None:
         """Queue a file to be committed."""
+        if not hasattr(self.interface, "save"):
+            logger.warning(
+                "This session does not support saving new files. The "
+                "contents of the file will NOT be saved during the commit "
+                "operation."
+            )
+
+        # Clear cached bytestream
+        file_name = b64encode(bytes(key, encoding="UTF-8")).decode("UTF-8")
+        file_path = Path(self._file_cache.name) / file_name
+        if file_path.exists():
+            file_path.unlink()
+
         self._queue[key] = file
+
+    def load(self, key: URIRef) -> BinaryIO:
+        """Retrieve a file."""
+        if key in self._queue:
+            file_name = b64encode(bytes(key, encoding="UTF-8")).decode("UTF-8")
+
+            # Save a temporary copy of the file and put a file handle
+            # pointing to the copy on the queue
+            if not (Path(self._file_cache.name) / file_name).exists():
+                queued = self._queue[key]
+                with open(
+                    Path(self._file_cache.name) / file_name, "wb"
+                ) as file:
+                    file.write(queued.read())
+
+                file = open(Path(self._file_cache.name) / file_name, "rb")
+                self._queue[key] = file
+
+            # Return a file handle pointing to the copy
+            byte_stream = open(Path(self._file_cache.name) / file_name, "rb")
+        elif hasattr(self.interface, "load"):
+            byte_stream = self.interface.load(key)
+        else:
+            raise FileNotFoundError(
+                "This session does not support file storage. Unable to "
+                "retrieve the file contents."
+            )
+
+        return byte_stream
 
     def _compute_entity_modifications(
         self,
@@ -658,25 +767,25 @@ class InterfaceDriver(Store):
             else False
             for s, count in deleted_subjects.items()
         }
-        deleted_subjects = set(
+        deleted_subjects = {
             s for s, deleted in deleted_subjects.items() if deleted
-        )
+        }
         # Get updated subjects.
         updated_subjects = tracker.existing_subjects.difference(
             deleted_subjects
         )
-        added_entities = set(
+        added_entities = {
             self.interface.session_new.from_identifier(s)
             for s in added_subjects
-        )
-        updated_entities = set(
+        }
+        updated_entities = {
             self.interface.session_new.from_identifier(s)
             for s in updated_subjects
-        )
-        deleted_entities = set(
+        }
+        deleted_entities = {
             self.interface.session_old.from_identifier(s)
             for s in deleted_subjects
-        )
+        }
         return added_entities, updated_entities, deleted_entities
 
     class UnbufferedInterfaceDriver(Store):
@@ -686,7 +795,7 @@ class InterfaceDriver(Store):
         interface without the `InterfaceDriver`'s buffers.
         """
 
-        _driver: "InterfaceDriver"
+        _driver: InterfaceDriver
 
         # RDFLib
         # ↓ -- ↓
@@ -696,7 +805,7 @@ class InterfaceDriver(Store):
         transaction_aware: bool = True
         graph_aware: bool = False
 
-        def __init__(self, *args, driver: "InterfaceDriver", **kwargs):
+        def __init__(self, *args, driver: InterfaceDriver, **kwargs):
             """Initialize the store."""
             self._driver = driver
             super().__init__(*args, **kwargs)
@@ -775,8 +884,36 @@ class Interface(ABC):
     increase performance.
     """
 
+    def __init__(
+        self,
+        **kwargs: Union[
+            str,
+            int,
+            float,
+            bool,
+            None,
+            Iterable[Union[str, int, float, bool, None]],
+        ],
+    ):
+        """Initialize the interface.
+
+        The `__init__` method accepts JSON-serializable keyword arguments
+        in order to let the user configure parameters of the interface that
+        are not configurable via the ontology. For example, the type of
+        solver used by a simulation engine.
+
+        Args:
+            kwargs: JSON-serializable keyword arguments that contain no
+                nested JSON objects (check the type hint for this argument).
+        """
+        super().__init__()
+
     @abstractmethod
-    def open(self, configuration: str, create: bool = False):
+    def open(
+        self,
+        configuration: str,
+        create: bool = False,
+    ) -> None:
         """Open the data source that the interface interacts with.
 
         You can expect calls to this method even when the data source is
@@ -808,7 +945,7 @@ class Interface(ABC):
         pass
 
     @abstractmethod
-    def close(self):
+    def close(self) -> None:
         """Close the data source that the interface interacts with.
 
         This method should NOT commit uncommitted changes.
@@ -830,7 +967,7 @@ class Interface(ABC):
         pass
 
     @abstractmethod
-    def populate(self):
+    def populate(self) -> None:
         """Populate the base graph so that it represents the data source.
 
         This command is run after the data source is opened. Here you are
@@ -838,11 +975,14 @@ class Interface(ABC):
         the information on the data source, unless you are generating
         triples on the fly. The default session is a session based on the
         base graph.
+
+        The base graph is available on `self.base`, and a session based on
+        the base graph is available on `self.session` and `self.session_base`.
         """
         pass
 
     @abstractmethod
-    def commit(self):
+    def commit(self) -> None:
         """This method commits the changes made by the user.
 
         Here, you are expected to have access to the following:
@@ -855,13 +995,23 @@ class Interface(ABC):
             are not expected to modify it.
         - `self.session_old`: A session based on the old graph (ro).
         - `self.session_new`: A session based on the new graph (ro).
+        - `self.session`: same as `self.session_new`.
         - `self.added`: A list of added entities (rw). You are not expected
             to modify the entities.
         - `self.updated`: A list of updated entities (rw). You are not
             expected to modify the entities.
         - `self.deleted`: A list of deleted entities (rw). You are not
             expected to modify the entities.
+
+        Raises:
+            AssertionError: When the data provided by the user would produce
+                an inconsistent or unpredictable state of the data structures.
         """
+        # Before updating the data structures, check that the changes provided
+        # by the user do not leave them in a consistent state. This necessary
+        # because SimPhoNy cannot revert the changes you make to your
+        # data structures. Raise an AssertionError if the check fails.
+
         # Examine the differences between the graphs below and make a plan to
         # modify your data structures.
 
@@ -871,11 +1021,24 @@ class Interface(ABC):
         # dictionary while looping over it.
         pass
 
-    def compute(self, *args, **kwargs):
+    def compute(
+        self,
+        **kwargs: Union[
+            str,
+            int,
+            float,
+            bool,
+            None,
+            Iterable[Union[str, int, float, bool, None]],
+        ],
+    ) -> None:
         """Compute new information (e.g. run a simulation).
 
         Just compute the new information on the backend and reflect the
         changes on the base graph. The default session is the base session.
+
+        The base graph is available on `self.base`, and a session based on
+        the base graph is available on `self.session` and `self.session_base`.
         """
         pass
 
@@ -963,17 +1126,8 @@ class Interface(ABC):
 
     del rename  # By default not defined.
 
-    # def query(self, query: str):
-    #     """Custom implementation of SPARQL queries for the interface."""
-    #     pass
-    # del query   # By default not defined.
-
-    # Definition of:
-    # Interface
-    # ↑ ----- ↑
-
     # The properties below are set by the driver and accessible on the
-    # interface.
+    # interface. They are not meant to be set by the developers.
     base: Optional[Graph] = None
     old_graph: Optional[Graph] = None
     new_graph: Optional[Graph] = None
@@ -982,6 +1136,11 @@ class Interface(ABC):
     session_base: Optional[Session] = None
     session_old: Optional[Session] = None
     session_new: Optional[Session] = None
+    session: Optional[Session] = None
     added: Optional[Set[OntologyEntity]] = None
     updated: Optional[Set[OntologyEntity]] = None
     deleted: Optional[Set[OntologyEntity]] = None
+
+    # Definition of:
+    # Interface
+    # ↑ ----- ↑
