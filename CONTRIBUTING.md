@@ -89,7 +89,7 @@ After this discussion phase, when the [maintainers](https://github.com/simphony/
 
 ## Code
 
-Code contributions are generally aimed at fixing bugs and implementing enhancements or new features. The way to contribute code to the project are [pull requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests).
+Code contributions are generally aimed at fixing bugs and implementing enhancements or new features. The way to contribute code to the project are [pull requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) (PR).
 
 If you are unsure about where to start, check the issues tagged as [_newcomer task_](https://github.com/simphony/osp-core/issues?q=label%3A%22%F0%9F%91%A9%E2%80%8D%F0%9F%8E%93+newcomer+task%22+sort%3Acomments-desc). Such issues should either be simple to solve, or be a good entry point for understanding the codebase.
 
