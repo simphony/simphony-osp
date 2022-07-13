@@ -211,7 +211,7 @@ class OntologyEntity(ABC):
             f"{self.label}"
             if hasattr(self, "label") and self.label is not None
             else None,
-            f"{self._uid}",
+            f"{self.uid}",
         ]
         elements = filter(lambda x: x is not None, elements)
         return f"<{header}: {' '.join(elements)}>"

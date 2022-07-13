@@ -219,21 +219,18 @@ class SessionSet(DataStructureSet):
                 if entity not in yielded:
                     yield entity
         elif class_:
-            # TODO: Use a generator instead of a set. A set is being used
-            #  because the query can yield repeated results, investigate the
-            #  reasons.
-            yield from {
+            yield from (
                 row[0]
                 for row in self._session.sparql(
                     f"""
-                    SELECT ?entity WHERE {{
+                    SELECT DISTINCT ?entity WHERE {{
                         ?entity rdf:type/rdfs:subClassOf*
                         <{class_.iri}> .
                     }}
                 """,
                     ontology=True,
                 )(entity=OntologyIndividual)
-            }
+            )
         else:
             yield from iter(self._session)
 
