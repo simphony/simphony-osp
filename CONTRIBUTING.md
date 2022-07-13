@@ -1,6 +1,6 @@
 # Contributing to SimPhoNy
 
-Thank you for considering to improve SimPhoNy. We welcome your contribution!
+Thank you for considering to improve SimPhoNy. We welcome your input!
 
 **How to contribute?**
 <div align="center">
@@ -56,7 +56,7 @@ Remember that you must adhere to the [Contributor Covenant Code of Conduct](http
 
 ### Reporting bugs
 
-When you find that something is not working, you can submit a bug report. This section provides guidelines on how to submit your report in a way that helps [maintainers](https://github.com/simphony/osp-core/blob/master/.github/CODEOWNERS) understand the problem and reproduce it. Submitting a good bug report is a key to have issues solved quickly.
+When you find something that is not working as it should, you can submit a bug report. This section provides guidelines on how to write your report in a way that helps [maintainers](https://github.com/simphony/osp-core/blob/master/.github/CODEOWNERS) understand the problem and reproduce it. Submitting a good bug report is a key to have issues solved quickly.
 
 #### Before submitting a bug report
 
@@ -69,10 +69,10 @@ When you find that something is not working, you can submit a bug report. This s
 Bug reports should be submitted on the [SimPhoNy issue board](https://github.com/simphony/osp-core/issues?q=is%3Aissue+sort%3Aupdated-desc+).  If you suspect that the issue has its origin in the code of a specific wrapper, rather than in SimPhoNy itself, visit the issue board of the wrapper instead. To create a new report, click the green [_"New"_](https://github.com/simphony/osp-core/issues/new/choose) button.
 
 - [ ] Choose a meaningful title.
-- [ ] Describing the problem in few words.
-- [ ] Specify which version of the `simphony-osp` is affected. Use `pip show simphony-osp` to find out which version do you have installed. If the problem involves a wrapper, provide also the version of the wrapper.
+- [ ] Describe the problem in few words.
+- [ ] Specify which version of `simphony-osp` is affected. Use `pip show simphony-osp` to find out which version you have installed. If the problem involves a wrapper, provide also the version of the wrapper.
 - [ ] Explain how to reproduce the problem, step-by-step, and include a **minimal reproducible example**. A _minimal reproducible example_ is a code snippet where the issue can be observed. Include any additional files (e.g. an ontology file) that may be needed to execute the example. Skip the example _only if it is very difficult to provide it_.
-- [ ] If the issue involves a crash or an exception, include the error message.
+- [ ] If the issue involves a crash or an exception, include the full error message (with the stacktrace).
 
 [Follow this link](https://github.com/simphony/osp-core/issues/740#issue-1107800007) to see an example of an accurate bug report. Providing a good bug report facilitates the work of the maintainers and enables them to solve the issue faster.
 
@@ -80,7 +80,7 @@ Bug reports should be submitted on the [SimPhoNy issue board](https://github.com
 
 Enhancements or new features should first be proposed on the [_"Ideas"_ section of the forum](https://github.com/simphony/osp-core/discussions/categories/ideas).
 
-When proposing, discussing, and designing a feature or enhancement on the forum, always aim to steer the discussion in a direction such that the following points are addressed:
+When proposing, discussing, and designing a feature or enhancement on the forum, always aim to address the following points:
 - [ ] Motivation for the enhancement or the new feature.
 - [ ] General overview of the enhancement or the new feature. Code snippets/mock-ups of how the feature or enhancement should work and behave.
 - [ ] Estimation of the effort that implementing such enhancement or feature might involve. Technologies that could enable the implementation. This information helps the maintainers decide whether to implement a feature or enhancement, and to estimate the timeframe for a potential implementation.
@@ -93,7 +93,7 @@ Code contributions are generally aimed at fixing bugs and implementing enhanceme
 
 If you are unsure about where to start, check the issues tagged as [_newcomer task_](https://github.com/simphony/osp-core/issues?q=label%3A%22%F0%9F%91%A9%E2%80%8D%F0%9F%8E%93+newcomer+task%22+sort%3Acomments-desc). Such issues should either be simple to solve, or be a good entry point for understanding the codebase.
 
-If you have a bugfix or have a feature/enhancement implementation that you want to contribute, please read [this page](https://simphony.readthedocs.io/en/latest/contribute.html) to understand how the code is organized, what the meaning of the different git branches on the repository is, and what automatic checks your code will have to pass in order to be accepted. After that, just fork the repository and make a new pull request.
+If you have a bugfix or a feature/enhancement implementation that you want to contribute, please read [this page](https://simphony.readthedocs.io/en/latest/contribute.html) to understand how the code is organized, what the meaning of the different git branches on the repository is, and what automatic checks your code will have to pass in order to be accepted. After that, just fork the repository and make a new pull request.
 
 Usually, there will be an issue associated with the specific bug to solve, or feature/enhancement to implement. Please add [closing keywords](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword) to your PR so that it becomes automatically linked to the corresponding issue.
 
@@ -103,14 +103,14 @@ Of course, even if you are not a maintainer, you are also very welcome to commen
 
 ## Documentation
 
-If you feel that the [SimPhoNy documentation](https://simphony.readthedocs.io) it is difficult to understand, we welcome your feedback and contributions! In general, changes to the documentation should be first proposed on the [_"Ideas"_ section of the forum](https://github.com/simphony/osp-core/discussions/categories/ideas).
+If you feel that the [SimPhoNy documentation](https://simphony.readthedocs.io) is difficult to understand, we welcome your feedback and contributions! In general, changes to the documentation should be first proposed on the [_"Ideas"_ section of the forum](https://github.com/simphony/osp-core/discussions/categories/ideas).
 
 However, in certain cases, a change in the documentation does not need to be discussed. For example, if you find a typo you can directly [create an issue](https://github.com/simphony/docs/issues/new/choose) or even a [pull request](https://github.com/simphony/docs/compare). The same applies if the documentation needs to be changed due to the implementation of enhancements or new features for SimPhoNy in a [code contribution](#code).
 
-When proposing and discussing a change on the documentation, always aim to steer the discussion in a direction such that the following points are addressed:
+When proposing and discussing a change on the documentation, always aim to always aim to address the following points:
 
 - [ ] Motivation for the change or addition.
-- [ ] A brief description, in few sentences, of the proposed changes.
+- [ ] A brief description, of the proposed changes.
 - [ ] A mock-up of the intended changes, for example the headings, a few sentences explaining the content that should be included. If the changes involve figures, please upload a sketch too.
 
 After this discussion phase, when the [maintainers](https://github.com/simphony/osp-core/blob/master/.github/CODEOWNERS) deem it appropriate, the discussion on the forum can be closed and an issue referencing it can be created on the [issue board](https://github.com/simphony/docs/issues?q=is%3Aissue+sort%3Aupdated-desc+). The goal of this procedure is to separate discussion and design from implementation efforts.
