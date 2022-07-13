@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1655189252226,
+  "lastUpdate": 1657727787720,
   "repoUrl": "https://github.com/simphony/osp-core",
   "entries": {
     "Benchmark": [
@@ -9928,6 +9928,142 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.00006595651702726143",
             "extra": "mean: 284.14629200003105 usec\nrounds: 500"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "43052541+kysrpex@users.noreply.github.com",
+            "name": "José Manuel Domínguez",
+            "username": "kysrpex"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "412903ad85f0ac558daaa211a6947db3d80bc1c8",
+          "message": "Fetch FOAF using HTTPS (`dev`) (#802)\n\n* Fetch FOAF using HTTPS\r\n\r\n* Add quotes",
+          "timestamp": "2022-07-13T17:55:29+02:00",
+          "tree_id": "e923c824ff4109a4bcbfb63355a80dfe84a95745",
+          "url": "https://github.com/simphony/osp-core/commit/412903ad85f0ac558daaa211a6947db3d80bc1c8"
+        },
+        "date": 1657727786590,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_create",
+            "value": 730.9619683470177,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0037832783208775356",
+            "extra": "mean: 1.3680602320000033 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_add_default",
+            "value": 2168.6338908535517,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000053250196749060214",
+            "extra": "mean: 461.11978799999775 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_add_rel",
+            "value": 2506.482013134112,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00007902619390748227",
+            "extra": "mean: 398.96556000000857 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_get_byuiduuid",
+            "value": 313.57650539923907,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00042131882948082296",
+            "extra": "mean: 3.1890144280000214 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byuiduriref",
+            "value": 518.4048926141376,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0001856585082644021",
+            "extra": "mean: 1.9289941399999986 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byrel",
+            "value": 1026.7790316960509,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00010126689775210099",
+            "extra": "mean: 973.9193820000231 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_get_byoclass",
+            "value": 42.135187681729484,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0017259344769953295",
+            "extra": "mean: 23.733132686000033 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byuiduuid",
+            "value": 19306.075548633224,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00028564548085738023",
+            "extra": "mean: 51.79716599994322 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byuiduriref",
+            "value": 18018.422539714014,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00021489132126259916",
+            "extra": "mean: 55.4987540000198 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iter_byrel",
+            "value": 1011.186781611118,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0001004974626169255",
+            "extra": "mean: 988.9369779999555 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_iter_byoclass",
+            "value": 43.24133459223838,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0015959142755464192",
+            "extra": "mean: 23.126020725999872 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_is_a",
+            "value": 13656.311286101345,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00004713331577619941",
+            "extra": "mean: 73.22621600005164 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_oclass",
+            "value": 16317.89185366979,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000015911326875176426",
+            "extra": "mean: 61.28242600009059 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_uid",
+            "value": 26624.649419826357,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000012564834797719775",
+            "extra": "mean: 37.559180000144465 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_iri",
+            "value": 23825.976213305625,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000010918466493059384",
+            "extra": "mean: 41.97099800013859 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_cuds_api.py::benchmark_cuds_attributes",
+            "value": 4516.039323316101,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000043993366657276484",
+            "extra": "mean: 221.4329700002935 usec\nrounds: 500"
           }
         ]
       }
