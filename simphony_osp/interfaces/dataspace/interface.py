@@ -27,9 +27,7 @@ class DataspaceInterface(Interface):
     # Interface
     # ↓ ----- ↓
 
-    disable_entity_tracking = True
-
-    root = None
+    entity_tracking: bool = False
 
     def open(self, configuration: str, create: bool = False):
         """Open the specified dataspace."""
