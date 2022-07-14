@@ -4,7 +4,7 @@ These are potentially useful for every user of SimPhoNy.
 """
 
 import logging
-from typing import Optional, Set
+from typing import Set
 
 from simphony_osp.ontology.individual import OntologyIndividual
 from simphony_osp.ontology.relationship import OntologyRelationship
@@ -13,12 +13,12 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "branch",
-    "get_relationships_between",
+    "relationships_between",
 ]
 
 
 def branch(
-    individual, *individuals, rel: Optional[OntologyRelationship] = None
+    individual, *individuals, rel: OntologyRelationship
 ) -> OntologyIndividual:
     """Like `connect`, but returns the element you connect to.
 
@@ -39,7 +39,7 @@ def branch(
     return individual
 
 
-def get_relationships_between(
+def relationships_between(
     subj: OntologyIndividual, obj: OntologyIndividual
 ) -> Set[OntologyRelationship]:
     """Get the set of relationships between two cuds objects.

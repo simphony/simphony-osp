@@ -496,7 +496,7 @@ class Pico:
         return parsers
 
     def _reload_installed_ontologies(self):
-        self._ontology.clear()
+        self._ontology.clear(force=True)
         for parser in self._topologically_sorted_parsers:
             self._ontology.load_parser(parser)
 

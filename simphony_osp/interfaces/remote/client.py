@@ -19,7 +19,6 @@ from rdflib import Graph, URIRef
 from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 from rdflib.plugins.stores.memory import SimpleMemory
 from rdflib.store import Store
-from rdflib.term import Identifier
 
 from simphony_osp.interfaces.interface import BufferType, Interface
 from simphony_osp.interfaces.remote.common import COMMAND, parse_uri
@@ -66,15 +65,9 @@ class RemoteInterface(Interface):
     # Interface
     # ↓ ----- ↓
 
-    disable_entity_tracking = True
+    entity_tracking = False
 
-    @property
-    def root(self) -> Optional[Identifier]:
-        """Implements the ROOT command."""
-        response, _ = self._engine.send(COMMAND.ROOT, json.dumps({}))
-        root = next(iter(json_to_rdf(response[COMMAND.ROOT], Graph())))[2]
-        root = None if root == URIRef("none:None") else root
-        return root
+    cache = True
 
     def open(self, configuration: str, create: bool = False) -> None:
         """Implements the OPEN command."""
@@ -184,8 +177,8 @@ class RemoteInterface(Interface):
         o = pattern[2] if pattern[2] is not None else URIRef("none:None")
         g.add((s, p, o))
         response, _ = self._engine.send(
-            COMMAND.ADD,
-            json.dumps(g.serialize(format="json-ld")),
+            COMMAND.REMOVE,
+            g.serialize(format="turtle"),
         )
         yield from json_to_rdf(response[COMMAND.REMOVE], Graph())
 
@@ -198,7 +191,7 @@ class RemoteInterface(Interface):
         g.add((s, p, o))
         response, _ = self._engine.send(
             COMMAND.TRIPLES,
-            json.dumps(g.serialize(format="json-ld")),
+            g.serialize(format="turtle"),
         )
         yield from json_to_rdf(response[COMMAND.TRIPLES], Graph())
 
@@ -422,7 +415,7 @@ class RemoteStoreClient(Store):
         )
         self._engine.send(
             COMMAND.STORE_REMOVE,
-            self._buffers[BufferType.DELETED].serialize(format="json-ld"),
+            self._buffers[BufferType.DELETED].serialize(format="turtle"),
         )
         self._engine.send(COMMAND.STORE_COMMIT, "")
 
@@ -447,7 +440,7 @@ class RemoteStoreClient(Store):
         pattern = Graph()
         pattern.add(triple_pattern)
         response, _ = self._engine.send(
-            COMMAND.STORE_TRIPLES, pattern.serialize(format="json-ld")
+            COMMAND.STORE_TRIPLES, pattern.serialize(format="turtle")
         )
         yield from json_to_rdf(response[COMMAND.STORE_TRIPLES], Graph())
 

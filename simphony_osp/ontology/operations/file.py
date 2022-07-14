@@ -7,7 +7,7 @@ from typing import BinaryIO
 from rdflib.term import URIRef
 
 from simphony_osp.ontology.operations import Operations
-from simphony_osp.utils import simphony_namespace
+from simphony_osp.utils.simphony_namespace import simphony_namespace
 
 logger = logging.getLogger(__name__)
 
