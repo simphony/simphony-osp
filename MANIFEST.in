@@ -1,3 +1,4 @@
 include simphony_osp/ontology/files/*.yml
-include simphony_osp/ontology/files/*.xml
 include simphony_osp/ontology/files/*.ttl
+include simphony_osp/ontology/files/*.xml
+include simphony_osp/ontology/files/*.owl
