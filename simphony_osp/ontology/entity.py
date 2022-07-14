@@ -13,6 +13,7 @@ from typing import (
     Set,
     Tuple,
     Type,
+    TypeVar,
     Union,
 )
 
@@ -139,7 +140,9 @@ class OntologyEntity(ABC):
 
     @property
     @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
-    def direct_superclasses(self) -> FrozenSet[OntologyEntity]:
+    def direct_superclasses(
+        self: ONTOLOGY_ENTITY,
+    ) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the direct superclasses of the entity.
 
         Returns:
@@ -149,7 +152,7 @@ class OntologyEntity(ABC):
 
     @property
     @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
-    def direct_subclasses(self) -> FrozenSet[OntologyEntity]:
+    def direct_subclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the direct subclasses of the entity.
 
         Returns:
@@ -159,7 +162,7 @@ class OntologyEntity(ABC):
 
     @property
     @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
-    def superclasses(self) -> FrozenSet[OntologyEntity]:
+    def superclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the superclass of the entity.
 
         Returns:
@@ -170,7 +173,7 @@ class OntologyEntity(ABC):
 
     @property
     @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
-    def subclasses(self) -> FrozenSet[OntologyEntity]:
+    def subclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the subclasses of the entity.
 
         Returns:
@@ -375,22 +378,26 @@ class OntologyEntity(ABC):
         return self.session.graph if self.session is not None else self.__graph
 
     @abstractmethod
-    def _get_direct_superclasses(self) -> Iterable[OntologyEntity]:
+    def _get_direct_superclasses(
+        self: ONTOLOGY_ENTITY,
+    ) -> Iterable[ONTOLOGY_ENTITY]:
         """Direct superclass getter specific to the type of ontology entity."""
         pass
 
     @abstractmethod
-    def _get_direct_subclasses(self) -> Iterable[OntologyEntity]:
+    def _get_direct_subclasses(
+        self: ONTOLOGY_ENTITY,
+    ) -> Iterable[ONTOLOGY_ENTITY]:
         """Direct subclass getter specific to the type of ontology entity."""
         pass
 
     @abstractmethod
-    def _get_superclasses(self) -> Iterable[OntologyEntity]:
+    def _get_superclasses(self: ONTOLOGY_ENTITY) -> Iterable[ONTOLOGY_ENTITY]:
         """Superclass getter specific to the type of ontology entity."""
         pass
 
     @abstractmethod
-    def _get_subclasses(self) -> Iterable[OntologyEntity]:
+    def _get_subclasses(self: ONTOLOGY_ENTITY) -> Iterable[ONTOLOGY_ENTITY]:
         """Subclass getter specific to the type of ontology entity."""
         pass
 
@@ -464,3 +471,6 @@ class OntologyEntity(ABC):
             # Otherwise, it is None -> do not change what is stored.
         self._session = session
         self.__graph = None
+
+
+ONTOLOGY_ENTITY = TypeVar("ONTOLOGY_ENTITY", bound=OntologyEntity)

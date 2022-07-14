@@ -23,7 +23,7 @@ from typing import (
 )
 
 from rdflib import OWL, RDF, RDFS, SKOS, BNode, Graph, Literal, URIRef
-from rdflib.graph import ReadOnlyGraphAggregate
+from rdflib.graph import ModificationException, ReadOnlyGraphAggregate
 from rdflib.plugins.sparql.processor import SPARQLResult
 from rdflib.query import ResultRow
 from rdflib.term import Identifier, Node, Variable
@@ -469,6 +469,10 @@ class Session(Environment):
     @ontology.setter
     def ontology(self, value: Optional[Session]) -> None:
         """Set the T-Box of this session."""
+        if not isinstance(value, (Session, type(None))):
+            raise TypeError(
+                f"Expected {Session} or {type(None)}, not type {value}."
+            )
         self._ontology = value
 
     label_properties: Tuple[URIRef] = (SKOS.prefLabel, RDFS.label)
@@ -513,8 +517,8 @@ class Session(Environment):
     def commit(self) -> None:
         """Commit pending changes to the session's graph."""
         self._graph.commit()
-        if self.ontology is not self:
-            self.ontology.commit()
+        # if self.ontology is not self:
+        #    self.ontology.commit()
         self.creation_set = set()
 
     def compute(self, **kwargs) -> None:
@@ -878,9 +882,10 @@ class Session(Environment):
             self._graph.remove((entity, None, None))
             self._graph.remove((None, None, entity))
 
-    def clear(self):
+    def clear(self, force: bool = False):
         """Clear all the data stored in the session."""
-        self._graph.remove((None, None, None))
+        graph = self._graph_writable if force else self._graph
+        graph.remove((None, None, None))
         self._namespaces.clear()
         self.entity_cache_timestamp = datetime.now()
         self.from_identifier.cache_clear()
@@ -1105,9 +1110,12 @@ class Session(Environment):
         self._environment_references.add(self)
         # Base the session graph either on a store if passed or an empty graph.
         if base is not None:
+            self._graph_writable = base
             self._graph = base
+
         else:
-            graph = Graph("SimpleMemory")
+            graph = Graph()
+            self._graph_writable = graph
             self._graph = graph
 
         self._interface_driver = driver
@@ -1116,11 +1124,12 @@ class Session(Environment):
         if isinstance(ontology, Session):
             self.ontology = ontology
         elif ontology is True:
+            self._graph = ReadOnlyGraphAggregate([self._graph_writable])
             self.ontology = self
         elif ontology is not None:
             raise TypeError(
                 f"Invalid ontology argument: {ontology}."
-                f"Expected either a `Session` or `bool` object, "
+                f"Expected either a {Session} or {bool} object, "
                 f"got {type(ontology)} instead."
             )
 
@@ -1224,7 +1233,7 @@ class Session(Environment):
                 )
         else:
             self.ontology._namespaces[iri] = name
-            self.ontology._graph.bind(name, iri)
+            self.ontology._graph_writable.bind(name, iri)
 
     def unbind(self, name: Union[str, URIRef]):
         """Unbind a namespace from this session.
@@ -1343,7 +1352,9 @@ class Session(Environment):
         Args:
             parser: the ontology parser from where to load the new namespaces.
         """
-        self.ontology._graph += parser.graph
+        if self.ontology is not self:
+            raise ModificationException()
+        self._graph_writable += parser.graph
         for name, iri in parser.namespaces.items():
             self.bind(name, iri)
         self.entity_cache_timestamp = datetime.now()
@@ -1538,6 +1549,7 @@ class Session(Environment):
     creation_set: Set[Identifier]
     _namespaces: Dict[URIRef, str]
     _graph: Graph
+    _graph_writable: Graph
     _driver: Optional[Interface] = None
 
     @property
