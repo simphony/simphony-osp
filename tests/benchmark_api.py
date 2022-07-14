@@ -4,35 +4,107 @@ import itertools
 import random
 
 import rdflib
-from osp.core.ontology.parser import OntologyParser
-from osp.core.session import Session
-from osp.core.utils.datatypes import UID
+
+from simphony_osp.ontology.namespace import OntologyNamespace
+from simphony_osp.ontology.parser import OntologyParser
+from simphony_osp.session import Session
 
 from .benchmark import Benchmark
-
-try:
-    from osp.core.namespaces import city
-except ImportError:  # When the city ontology is not installed.
-    Session.default_ontology.load_parser(OntologyParser.get_parser("city"))
-    city = Session.default_ontology.get_namespace("city")
-
 
 DEFAULT_SIZE = 500
 
 
-class IndividualCreate(Benchmark):
-    """Benchmark the creation of CUDS objects."""
+class EntityIri(Benchmark):
+    """Benchmark getting the iri of ontology entities."""
 
     def _benchmark_set_up(self):
-        pass
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
+
+        from simphony_osp.namespaces import city
+
+        self.citizen = city.Citizen(name="someone", age=25)
+
+    def _benchmark_iterate(self, iteration: int = None):
+        self.citizen.iri
+
+    def _benchmark_tear_down(self):
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
+
+
+def benchmark_entity_iri(benchmark):
+    """Wrapper function for the IndividualIri benchmark."""
+    return EntityIri.iterate_pytest_benchmark(benchmark, size=DEFAULT_SIZE)
+
+
+class EntityIdentifier(Benchmark):
+    """Benchmark getting the identifier of ontology entities."""
+
+    def _benchmark_set_up(self):
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
+
+        from simphony_osp.namespaces import city
+
+        self.citizen = city.Citizen(name="someone", age=25)
+
+    def _benchmark_iterate(self, iteration: int = None):
+        self.citizen.identifier
+
+    def _benchmark_tear_down(self):
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
+
+
+def benchmark_entity_identifier(benchmark):
+    """Wrapper function for the IndividualUID benchmark."""
+    return EntityIdentifier.iterate_pytest_benchmark(
+        benchmark, size=DEFAULT_SIZE
+    )
+
+
+class IndividualCreate(Benchmark):
+    """Benchmark the `__call__` method (creation) of ontology individuals."""
+
+    ontology: Session
+    prev_default_ontology: Session
+    city: OntologyNamespace
+
+    def _benchmark_set_up(self):
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
+
+        from simphony_osp.namespaces import city
+
+        self.city = city
 
     def _benchmark_iterate(self, iteration=None):
-        city.Citizen(
+        self.city.Citizen(
             name="citizen " + str(iteration), age=random.randint(0, 80)
         )
 
     def _benchmark_tear_down(self):
-        pass
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
 
 
 def benchmark_individual_create(benchmark):
@@ -42,112 +114,224 @@ def benchmark_individual_create(benchmark):
     )
 
 
-# `add` method.
+class IndividualIsA(Benchmark):
+    """Benchmark the `is_a` method of ontology individuals."""
 
-
-class IndividualAddDefault(Benchmark):
-    """Benchmark the `add` method using the default relationship."""
+    ontology: Session
+    prev_default_ontology: Session
 
     def _benchmark_set_up(self):
-        self.city = city.City(name="Freiburg")
-        self.neighborhoods = tuple(
-            city.Neighborhood(name=f"neighborhood {i}")
-            for i in range(self.size)
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
+
+        from simphony_osp.namespaces import city
+
+        classes = (
+            city.ArchitecturalComponent,
+            city.Floor,
+        )
+        classes_age = (
+            city.LivingBeing,
+            city.Citizen,
+            city.Person,
+        )
+        classes_coordinates = (
+            city.City,
+            city.Street,
+            city.Neighborhood,
+            city.PopulatedPlace,
+        )
+        classes_name = (
+            city.ArchitecturalStructure,
+            city.Building,
+        )
+        stuff = tuple(class_() for class_ in classes)
+        aged_stuff = tuple(
+            class_(name="name", age=25) for class_ in classes_age
+        )
+        coordinated_stuff = tuple(
+            class_(name="name", coordinates=[0, 0])
+            for class_ in classes_coordinates
+        )
+        named_stuff = tuple(class_(name="name") for class_ in classes_name)
+
+        self.iterator_stuff = itertools.cycle(
+            stuff + aged_stuff + coordinated_stuff + named_stuff
+        )
+        self.classes = (
+            classes + classes_age + classes_coordinates + named_stuff
         )
 
-    def _benchmark_iterate(self, iteration=None):
-        self.city.connect(self.neighborhoods[iteration])
+    def _benchmark_iterate(self, iteration: int = None):
+        individual = next(self.iterator_stuff)
+        class_ = random.choice(self.classes)
+        individual.is_a(class_)
 
     def _benchmark_tear_down(self):
-        pass
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
 
 
-def benchmark_individual_add_default(benchmark):
-    """Wrapper function for the IndividualAddDefault benchmark."""
-    return IndividualAddDefault.iterate_pytest_benchmark(
+def benchmark_individual_is_a(benchmark):
+    """Wrapper function for the IndividualIsA benchmark."""
+    return IndividualIsA.iterate_pytest_benchmark(benchmark, size=DEFAULT_SIZE)
+
+
+class IndividualClasses(Benchmark):
+    """Benchmark the `classes` method of ontology individuals."""
+
+    def _benchmark_set_up(self):
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
+
+        from simphony_osp.namespaces import city
+
+        self.citizen = city.Citizen(name="someone", age=25)
+
+    def _benchmark_iterate(self, iteration: int = None):
+        self.citizen.classes
+
+    def _benchmark_tear_down(self):
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
+
+
+def benchmark_individual_classes(benchmark):
+    """Wrapper function for the IndividualClasses benchmark."""
+    return IndividualClasses.iterate_pytest_benchmark(
         benchmark, size=DEFAULT_SIZE
     )
 
 
-class IndividualAddRel(Benchmark):
+class IndividualConnect(Benchmark):
     """Benchmark the `add` method, selecting the relationship."""
 
     def _benchmark_set_up(self):
-        self.city = city.City(name="Freiburg")
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
+
+        from simphony_osp.namespaces import city
+
+        self.city_namespace = city
+
+        self.city = city.City(name="Freiburg", coordinates=[0, 0])
         self.citizens = tuple(
-            city.Citizen(name=f"citizen {i}") for i in range(self.size)
+            city.Citizen(name=f"citizen {i}", age=25) for i in range(self.size)
         )
 
     def _benchmark_iterate(self, iteration=None):
-        self.city.connect(self.citizens[iteration], rel=city.hasInhabitant)
+        self.city.connect(
+            self.citizens[iteration], rel=self.city_namespace.hasInhabitant
+        )
 
     def _benchmark_tear_down(self):
-        pass
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
 
 
-def benchmark_individual_add_rel(benchmark):
+def benchmark_individual_connect(benchmark):
     """Wrapper function for the IndividualAddRel benchmark."""
-    return IndividualAddRel.iterate_pytest_benchmark(
+    return IndividualConnect.iterate_pytest_benchmark(
         benchmark, size=DEFAULT_SIZE
     )
 
 
-# `get` method
-
-
-class IndividualGetByUIDUUID(Benchmark):
+class IndividualGetByIdentifier(Benchmark):
     """Benchmark getting CUDS objects by uid (of type UUID)."""
 
     def _benchmark_set_up(self):
-        self.city = city.City(name="Freiburg")
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
+
+        from simphony_osp.namespaces import city
+
+        self.city = city.City(name="Freiburg", coordinates=[0, 0])
         self.citizens = tuple(
-            city.Citizen(name=f"citizen {i}") for i in range(self.size)
+            city.Citizen(name=f"citizen {i}", age=25) for i in range(self.size)
         )
-        self.uids = tuple(citizen.uid for citizen in self.citizens)
+        self.identifiers = tuple(
+            citizen.identifier for citizen in self.citizens
+        )
         for citizen in self.citizens:
             self.city.connect(citizen, rel=city.hasInhabitant)
 
     def _benchmark_iterate(self, iteration: int = None):
-        self.city.get(self.uids[iteration])
+        self.city.get(self.identifiers[iteration])
 
     def _benchmark_tear_down(self):
-        pass
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
 
 
-def benchmark_individual_get_byuiduuid(benchmark):
-    """Wrapper function for the IndividualGetByUIDUUID benchmark."""
-    return IndividualGetByUIDUUID.iterate_pytest_benchmark(
+def benchmark_individual_get_byidentifier(benchmark):
+    """Wrapper function for the IndividualGetByIdentifier benchmark."""
+    return IndividualGetByIdentifier.iterate_pytest_benchmark(
         benchmark, size=DEFAULT_SIZE
     )
 
 
-class IndividualGetByUIDURIRef(Benchmark):
+class IndividualGetByIdentifierURIRef(Benchmark):
     """Benchmark getting CUDS objects by uid (of type IRI)."""
 
     def _benchmark_set_up(self):
-        self.city = city.City(name="Freiburg")
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
+
+        from simphony_osp.namespaces import city
+
+        self.city = city.City(name="Freiburg", coordinates=[0, 0])
         self.iris = tuple(
             rdflib.URIRef(f"http://example.org/city#Citizen_{i}")
             for i in range(self.size)
         )
-        self.uids = tuple(UID(iri) for iri in self.iris)
         self.citizens = tuple(
-            city.Citizen(name=f"citizen {i}", iri=self.iris[i])
+            city.Citizen(name=f"citizen {i}", age=25, iri=self.iris[i])
             for i in range(self.size)
         )
         for citizen in self.citizens:
             self.city.connect(citizen, rel=city.hasInhabitant)
 
     def _benchmark_iterate(self, iteration: int = None):
-        self.city.get(self.uids[iteration])
+        self.city.get(self.iris[iteration])
 
     def _benchmark_tear_down(self):
-        pass
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
 
 
-def benchmark_individual_get_byuiduriref(benchmark):
-    """Wrapper function for the IndividualGetByUIDURIRef benchmark."""
-    return IndividualGetByUIDURIRef.iterate_pytest_benchmark(
+def benchmark_individual_get_byidentifieruriref(benchmark):
+    """Wrapper function for the IndividualGetByIdentifierURIRef benchmark."""
+    return IndividualGetByIdentifierURIRef.iterate_pytest_benchmark(
         benchmark, size=DEFAULT_SIZE
     )
 
@@ -156,10 +340,24 @@ class IndividualGetByRel(Benchmark):
     """Benchmark getting CUDS objects by relationship."""
 
     def _benchmark_set_up(self):
-        self.city = city.City(name="Freiburg")
-        citizen = city.Citizen(name="Citizen")
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
+
+        from simphony_osp.namespaces import city
+
+        self.city_namespace = city
+
+        self.city = city.City(name="Freiburg", coordinates=[0, 0])
+        citizen = city.Citizen(name="Citizen", age=25)
         streets = tuple(
-            city.Street(name=f"street {i}") for i in range(self.size - 1)
+            city.Street(name=f"street {i}", coordinates=[0, 0])
+            for i in range(self.size - 1)
         )
         position = random.randint(0, (self.size - 1) - 1)
         things = list(streets)
@@ -170,10 +368,11 @@ class IndividualGetByRel(Benchmark):
             self.city.connect(thing, rel=rel.get(i, city.hasPart))
 
     def _benchmark_iterate(self, iteration: int = None):
-        self.city.get(rel=city.hasInhabitant)
+        tuple(self.city.get(rel=self.city_namespace.hasInhabitant))
 
     def _benchmark_tear_down(self):
-        pass
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
 
 
 def benchmark_individual_get_byrel(benchmark):
@@ -187,10 +386,24 @@ class IndividualGetByOclass(Benchmark):
     """Benchmark getting CUDS objects by oclass."""
 
     def _benchmark_set_up(self):
-        self.city = city.City(name="Freiburg")
-        citizen = city.Citizen(name="Citizen")
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
+
+        from simphony_osp.namespaces import city
+
+        self.city_namespace = city
+
+        fr = city.City(name="Freiburg", coordinates=[0, 0])
+        citizen = city.Citizen(name="Citizen", age=25)
         streets = tuple(
-            city.Street(name=f"street {i}") for i in range(self.size - 1)
+            city.Street(name=f"street {i}", coordinates=[0, 0])
+            for i in range(self.size - 1)
         )
         position = random.randint(0, (self.size - 1) - 1)
         things = list(streets)
@@ -198,13 +411,16 @@ class IndividualGetByOclass(Benchmark):
         things = tuple(things)
         rel = {position: city.hasInhabitant}
         for i, thing in enumerate(things):
-            self.city.connect(thing, rel=rel.get(i, city.hasPart))
+            fr.connect(thing, rel=rel.get(i, city.hasPart))
+
+        self.city = fr
 
     def _benchmark_iterate(self, iteration: int = None):
-        self.city.get(oclass=city.Citizen)
+        tuple(self.city.get(oclass=self.city_namespace.Citizen))
 
     def _benchmark_tear_down(self):
-        pass
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
 
 
 def benchmark_individual_get_byoclass(benchmark):
@@ -214,63 +430,86 @@ def benchmark_individual_get_byoclass(benchmark):
     )
 
 
-# `iter` method
-
-
-class IndividualIterByUIDUUID(Benchmark):
+class IndividualIterByIdentifier(Benchmark):
     """Benchmark getting CUDS objects by uid (of type UUID)."""
 
     def _benchmark_set_up(self):
-        self.city = city.City(name="Freiburg")
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
+
+        from simphony_osp.namespaces import city
+
+        self.city = city.City(name="Freiburg", coordinates=[0, 0])
         self.citizens = tuple(
-            city.Citizen(name=f"citizen {i}") for i in range(self.size)
+            city.Citizen(name=f"citizen {i}", age=25) for i in range(self.size)
         )
-        self.uids = tuple(citizen.uid for citizen in self.citizens)
+        self.identifiers = tuple(
+            citizen.identifier for citizen in self.citizens
+        )
         for citizen in self.citizens:
             self.city.connect(citizen, rel=city.hasInhabitant)
-        self.iterator = self.city.iter(*self.uids)
+        self.iterator = self.city.iter(*self.identifiers)
 
     def _benchmark_iterate(self, iteration: int = None):
         next(self.iterator)
 
     def _benchmark_tear_down(self):
-        pass
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
 
 
-def benchmark_individual_iter_byuiduuid(benchmark):
-    """Wrapper function for the IndividualIterByUIDUUID benchmark."""
-    return IndividualIterByUIDUUID.iterate_pytest_benchmark(
+def benchmark_individual_iter_byidentifier(benchmark):
+    """Wrapper function for the IndividualIterByIdentifier benchmark."""
+    return IndividualIterByIdentifier.iterate_pytest_benchmark(
         benchmark, size=DEFAULT_SIZE
     )
 
 
-class IndividualIterByUIDURIRef(Benchmark):
+class IndividualIterByIdentifierURIRef(Benchmark):
     """Benchmark getting CUDS objects by uid (of type UUID)."""
 
     def _benchmark_set_up(self):
-        self.city = city.City(name="Freiburg")
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
+
+        from simphony_osp.namespaces import city
+
+        self.city = city.City(name="Freiburg", coordinates=[0, 0])
         self.iris = tuple(
             rdflib.URIRef(f"http://example.org/city#Citizen_{i}")
             for i in range(self.size)
         )
         self.citizens = tuple(
-            city.Citizen(name=f"citizen {i}", iri=self.iris[i])
+            city.Citizen(name=f"citizen {i}", age=25, iri=self.iris[i])
             for i in range(self.size)
         )
         for citizen in self.citizens:
             self.city.connect(citizen, rel=city.hasInhabitant)
-        self.iterator = self.city.iter(*map(UID, self.iris))
+        self.iterator = self.city.iter(*self.iris)
 
     def _benchmark_iterate(self, iteration: int = None):
         next(self.iterator)
 
     def _benchmark_tear_down(self):
-        pass
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
 
 
-def benchmark_individual_iter_byuiduriref(benchmark):
-    """Wrapper function for the IndividualIterByUIDURIRef benchmark."""
-    return IndividualIterByUIDURIRef.iterate_pytest_benchmark(
+def benchmark_individual_iter_byidentifieruriref(benchmark):
+    """Wrapper function for the IndividualIterByIdentifierURIRef benchmark."""
+    return IndividualIterByIdentifierURIRef.iterate_pytest_benchmark(
         benchmark, size=DEFAULT_SIZE
     )
 
@@ -279,10 +518,24 @@ class IndividualIterByRel(Benchmark):
     """Benchmark getting CUDS objects by relationship."""
 
     def _benchmark_set_up(self):
-        self.city = city.City(name="Freiburg")
-        citizen = city.Citizen(name="Citizen")
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
+
+        from simphony_osp.namespaces import city
+
+        self.city_namespace = city
+
+        self.city = city.City(name="Freiburg", coordinates=[0, 0])
+        citizen = city.Citizen(name="Citizen", age=25)
         streets = tuple(
-            city.Street(name=f"street {i}") for i in range(self.size - 1)
+            city.Street(name=f"street {i}", coordinates=[0, 0])
+            for i in range(self.size - 1)
         )
         position = random.randint(0, (self.size - 1) - 1)
         things = list(streets)
@@ -293,10 +546,11 @@ class IndividualIterByRel(Benchmark):
             self.city.connect(thing, rel=rel.get(i, city.hasPart))
 
     def _benchmark_iterate(self, iteration: int = None):
-        next(self.city.iter(rel=city.hasInhabitant))
+        next(self.city.iter(rel=self.city_namespace.hasInhabitant))
 
     def _benchmark_tear_down(self):
-        pass
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
 
 
 def benchmark_individual_iter_byrel(benchmark):
@@ -310,10 +564,24 @@ class IndividualIterByOclass(Benchmark):
     """Benchmark getting CUDS objects by oclass."""
 
     def _benchmark_set_up(self):
-        self.city = city.City(name="Freiburg")
-        citizen = city.Citizen(name="Citizen")
+        """Create a TBox and set it as the default ontology.
+
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
+
+        from simphony_osp.namespaces import city
+
+        self.city_namespace = city
+
+        fr = city.City(name="Freiburg", coordinates=[0, 0])
+        citizen = city.Citizen(name="Citizen", age=25)
         streets = tuple(
-            city.Street(name=f"street {i}") for i in range(self.size - 1)
+            city.Street(name=f"street {i}", coordinates=[0, 0])
+            for i in range(self.size - 1)
         )
         position = random.randint(0, (self.size - 1) - 1)
         things = list(streets)
@@ -321,13 +589,16 @@ class IndividualIterByOclass(Benchmark):
         things = tuple(things)
         rel = {position: city.hasInhabitant}
         for i, thing in enumerate(things):
-            self.city.connect(thing, rel=rel.get(i, city.hasPart))
+            fr.connect(thing, rel=rel.get(i, city.hasPart))
+
+        self.city = fr
 
     def _benchmark_iterate(self, iteration: int = None):
-        next(self.city.iter(oclass=city.Citizen))
+        next(self.city.iter(oclass=self.city_namespace.Citizen))
 
     def _benchmark_tear_down(self):
-        pass
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
 
 
 def benchmark_individual_iter_byoclass(benchmark):
@@ -337,122 +608,26 @@ def benchmark_individual_iter_byoclass(benchmark):
     )
 
 
-# `is_a` method
-
-
-class IndividualIsA(Benchmark):
-    """Benchmark checking the oclass of CUDS objects."""
+class IndividualGetAttr(Benchmark):
+    """Benchmark getting attributes of ontology individuals."""
 
     def _benchmark_set_up(self):
-        oclasses_noname = (
-            city.LivingBeing,
-            city.ArchitecturalComponent,
-            city.Citizen,
-            city.Person,
-            city.Floor,
-        )
-        oclasses_name = (
-            city.City,
-            city.ArchitecturalStructure,
-            city.Street,
-            city.Neighborhood,
-            city.PopulatedPlace,
-            city.Building,
-        )
-        unnamed_stuff = tuple(oclass() for oclass in oclasses_noname)
-        named_stuff = tuple(oclass(name="name") for oclass in oclasses_name)
-        self.iterator_stuff = itertools.cycle(unnamed_stuff + named_stuff)
-        self.oclasses = oclasses_noname + oclasses_name
+        """Create a TBox and set it as the default ontology.
 
-    def _benchmark_iterate(self, iteration: int = None):
-        cuds = next(self.iterator_stuff)
-        oclass = random.choice(self.oclasses)
-        cuds.is_a(oclass)
+        The new TBox contains SIMPHONY, OWL, RDFS and City.
+        """
+        self.ontology = Session(identifier="test-tbox", ontology=True)
+        self.ontology.load_parser(OntologyParser.get_parser("city"))
+        self.prev_default_ontology = Session.default_ontology
+        Session.default_ontology = self.ontology
 
-    def _benchmark_tear_down(self):
-        pass
+        from simphony_osp.namespaces import city
 
-
-def benchmark_individual_is_a(benchmark):
-    """Wrapper function for the IndividualIsA benchmark."""
-    return IndividualIsA.iterate_pytest_benchmark(benchmark, size=DEFAULT_SIZE)
-
-
-# `oclass` property
-
-
-class IndividualOclass(Benchmark):
-    """Benchmark getting the oclass of CUDS objects."""
-
-    def _benchmark_set_up(self):
-        self.citizen = city.Citizen(name="someone")
-
-    def _benchmark_iterate(self, iteration: int = None):
-        self.citizen.oclass
-
-    def _benchmark_tear_down(self):
-        pass
-
-
-def benchmark_individual_oclass(benchmark):
-    """Wrapper function for the IndividualOclass benchmark."""
-    return IndividualOclass.iterate_pytest_benchmark(
-        benchmark, size=DEFAULT_SIZE
-    )
-
-
-# `uid` property
-
-
-class IndividualUID(Benchmark):
-    """Benchmark getting the uid of CUDS objects."""
-
-    def _benchmark_set_up(self):
-        self.citizen = city.Citizen(name="someone")
-
-    def _benchmark_iterate(self, iteration: int = None):
-        self.citizen.uid
-
-    def _benchmark_tear_down(self):
-        pass
-
-
-def benchmark_individual_uid(benchmark):
-    """Wrapper function for the IndividualUID benchmark."""
-    return IndividualUID.iterate_pytest_benchmark(benchmark, size=DEFAULT_SIZE)
-
-
-# `iri` property
-
-
-class IndividualIri(Benchmark):
-    """Benchmark getting the iri of CUDS objects."""
-
-    def _benchmark_set_up(self):
-        self.citizen = city.Citizen(name="someone")
-
-    def _benchmark_iterate(self, iteration: int = None):
-        self.citizen.iri
-
-    def _benchmark_tear_down(self):
-        pass
-
-
-def benchmark_individual_iri(benchmark):
-    """Wrapper function for the IndividualIri benchmark."""
-    return IndividualIri.iterate_pytest_benchmark(benchmark, size=DEFAULT_SIZE)
-
-
-# get attributes
-
-
-class IndividualAttributes(Benchmark):
-    """Benchmark fetching attributes of CUDS objects."""
-
-    def _benchmark_set_up(self):
         self.citizen = city.Citizen(name="Lukas", age=93)
         self.city = city.City(name="Freiburg", coordinates=[108, 49])
-        self.address = city.Address(postalCode=79111)
+        self.address = city.Address(
+            name="Street123", postalCode=79111, number=1
+        )
         self.things = itertools.cycle((self.citizen, self.city, self.address))
         self.attributes = itertools.cycle(
             (("age",), ("coordinates",), ("postalCode",))
@@ -465,12 +640,13 @@ class IndividualAttributes(Benchmark):
             getattr(thing, attr)
 
     def _benchmark_tear_down(self):
-        pass
+        """Restore the previous default TBox."""
+        Session.default_ontology = self.prev_default_ontology
 
 
-def benchmark_individual_attributes(benchmark):
+def benchmark_individual_getattr(benchmark):
     """Wrapper function for the IndividualAttributes benchmark."""
-    return IndividualAttributes.iterate_pytest_benchmark(
+    return IndividualGetAttr.iterate_pytest_benchmark(
         benchmark, size=DEFAULT_SIZE
     )
 

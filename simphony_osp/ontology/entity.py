@@ -20,6 +20,7 @@ from typing import (
 from rdflib import Graph, Literal, URIRef
 from rdflib.term import Identifier
 
+from simphony_osp.utils.cache import lru_cache_timestamp
 from simphony_osp.utils.datatypes import UID, Triple
 
 if TYPE_CHECKING:
@@ -42,18 +43,31 @@ class OntologyEntity(ABC):
 
     @property
     def iri(self) -> URIRef:
-        """Get the IRI of the Entity.
+        """IRI of the Entity.
 
         Raises:
-            TypeError: When the identifier of the ontology entity is a blank
-                node.
+            TypeError: When the identifier of the ontology entity is not an
+                IRI.
         """
         return self.uid.to_iri()
 
     @property
     def identifier(self) -> Identifier:
-        """Get the Identifier (URIRef or BNode) representing the entity."""
+        """Semantic web resource identifying the entity.
+
+        Usually an URIRef or BNode.
+        """
         return self.uid.to_identifier()
+
+    @property
+    def uid(self) -> UID:
+        """Get a SimPhoNy identifier for this entity.
+
+        The SimPhoNy identifier is known as UID. An UID is a Python class
+        defined in SimPhoNy and can always be converted to a semantic web
+        identifier.
+        """
+        return self._uid
 
     @property
     def label(self) -> Optional[str]:
@@ -102,6 +116,7 @@ class OntologyEntity(ABC):
         self.label_literal = Literal(self.label_literal, lang=value)
 
     @property
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def namespace(self) -> Optional[OntologyNamespace]:
         """Return the ontology namespace to which this entity is associated."""
         return next((x for x in self.session.namespaces if self in x), None)
@@ -124,6 +139,7 @@ class OntologyEntity(ABC):
         self._session = value
 
     @property
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def direct_superclasses(
         self: ONTOLOGY_ENTITY,
     ) -> FrozenSet[ONTOLOGY_ENTITY]:
@@ -135,6 +151,7 @@ class OntologyEntity(ABC):
         return frozenset(self._get_direct_superclasses())
 
     @property
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def direct_subclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the direct subclasses of the entity.
 
@@ -144,6 +161,7 @@ class OntologyEntity(ABC):
         return frozenset(self._get_direct_subclasses())
 
     @property
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def superclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the superclass of the entity.
 
@@ -154,6 +172,7 @@ class OntologyEntity(ABC):
         return frozenset(self._get_superclasses())
 
     @property
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def subclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the subclasses of the entity.
 
@@ -191,7 +210,7 @@ class OntologyEntity(ABC):
         return (
             f"{self.label}"
             if hasattr(self, "label") and self.label is not None
-            else f"{self.uid}"
+            else f"{self._uid}"
         )
 
     def __repr__(self) -> str:
@@ -219,12 +238,12 @@ class OntologyEntity(ABC):
         return (
             isinstance(other, OntologyEntity)
             and self.session == other.session
-            and self.uid == other.uid
+            and self.identifier == other.identifier
         )
 
     def __hash__(self) -> int:
         """Make the entity hashable."""
-        return hash((self.uid, self.session))
+        return hash((self._uid, self.session))
 
     def __bool__(self):
         """Returns the boolean value of the entity, always true."""
@@ -232,16 +251,6 @@ class OntologyEntity(ABC):
 
     # ↑ ------ ↑
     # Public API
-
-    @property
-    def uid(self) -> UID:
-        """Get the unique identifier that SimPhoNy uses for this entity."""
-        return self._uid
-
-    @uid.setter
-    def uid(self, value: UID) -> None:
-        """Set the unique identifier that SimPhoNy uses for this entity."""
-        self._uid = value
 
     @property
     def label_literal(self) -> Optional[Literal]:

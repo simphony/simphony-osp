@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import itertools
 import logging
-from functools import lru_cache, wraps
+from datetime import datetime
+from functools import wraps
 from inspect import isclass
 from typing import (
     TYPE_CHECKING,
@@ -30,13 +31,25 @@ from rdflib.term import Identifier, Node, Variable
 from simphony_osp.ontology.annotation import OntologyAnnotation
 from simphony_osp.ontology.attribute import OntologyAttribute
 from simphony_osp.ontology.entity import OntologyEntity
-from simphony_osp.ontology.individual import OntologyIndividual
+from simphony_osp.ontology.individual import (
+    MultipleResultsError,
+    OntologyIndividual,
+    ResultEmptyError,
+)
 from simphony_osp.ontology.namespace import OntologyNamespace
+from simphony_osp.ontology.oclass import OntologyClass
 from simphony_osp.ontology.parser import OntologyParser
 from simphony_osp.ontology.relationship import OntologyRelationship
-from simphony_osp.ontology.utils import compatible_classes
-from simphony_osp.utils.datatypes import UID, Triple
-from simphony_osp.utils.simphony_namespace import simphony_namespace
+from simphony_osp.ontology.utils import DataStructureSet, compatible_classes
+from simphony_osp.utils import simphony_namespace
+from simphony_osp.utils.cache import lru_cache_weak
+from simphony_osp.utils.datatypes import (
+    UID,
+    AnnotationValue,
+    AttributeValue,
+    RelationshipValue,
+    Triple,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +57,10 @@ if TYPE_CHECKING:
     from simphony_osp.interfaces.interface import Interface, InterfaceDriver
 
 ENTITY = TypeVar("ENTITY", bound=OntologyEntity)
+
+
+RDF_type = RDF.type
+OWL_inverseOf = OWL.inverseOf
 
 
 class Environment:
@@ -54,22 +71,6 @@ class Environment:
 
     # ↓ --------------------- Public API --------------------- ↓ #
 
-    def lock(self):
-        """Increase the lock count.
-
-        See the docstring of `locked` for an explanation of what locking an
-        environment means.
-        """
-        self._lock += 1
-
-    def unlock(self):
-        """Decrease the lock count.
-
-        See the docstring of `locked` for an explanation of what locking an
-        environment means.
-        """
-        self._lock = self._lock - 1 if self._lock > 0 else 0
-
     @property
     def locked(self) -> bool:
         """Whether the environment is locked or not.
@@ -78,7 +79,12 @@ class Environment:
         manager and leaving the context. Useful for setting it as the
         default environment when it is not intended to close it afterwards.
         """
-        return self._lock > 0
+        return (self._lock + bool(self._user_lock)) > 0
+
+    @locked.setter
+    def locked(self, value: bool):
+        """Lock or unlock an environment."""
+        self._user_lock = value
 
     def __enter__(self):
         """Set this as the default environment."""
@@ -126,6 +132,40 @@ class Environment:
     """See the docstring of `locked` for an explanation of what locking an
     environment means."""
 
+    _user_lock: bool = False
+    """See the docstring of `locked` for an explanation of what locking an
+    environment means.
+
+    This property manages locks performed by the user (by setting the
+    `locked` attribute).
+    """
+
+    def lock(self):
+        """Increase the lock count.
+
+        This way of locking is not meant to be used by end users, only
+        internally within SimPhoNy code, as it allows to lock the
+        environment several times, later requiring several unlocks, which is
+        unintuitive.
+
+        See the docstring of `locked` for an explanation of what locking an
+        environment means.
+        """
+        self._lock += 1
+
+    def unlock(self):
+        """Decrease the lock count.
+
+        This way of unlocking is not meant to be used by end users, only
+        internally within SimPhoNy code, as it is the counterpart of
+        `lock`, which allows to lock the environment several times,
+        later requiring several unlocks, which is unintuitive.
+
+        See the docstring of `locked` for an explanation of what locking an
+        environment means.
+        """
+        self._lock = self._lock - 1 if self._lock > 0 else 0
+
     _subscribers: Set[Environment]
     """A private attribute is used in order not to interfere with the
     `__getattr__`method from OntologyIndividual."""
@@ -155,6 +195,251 @@ class Environment:
             return environment
         else:
             return None
+
+
+class SessionSet(DataStructureSet):
+    """A set interface to a session.
+
+    This class looks like and acts like the standard `set`, but it is an
+    interface to the methods from `Session` that manage the addition and
+    removal of individuals.
+
+    This class does not hold any information itself, thus it is safe to
+    spawn multiple instances linked to the same session (when
+    single-threading).
+    """
+
+    _session: Session
+
+    def __init__(
+        self,
+        session: Optional[Session] = None,
+        oclass: Optional[OntologyClass] = None,
+        uids: Optional[Iterable[UID]] = None,
+    ):
+        """Fix the linked session, the class and the identifier filter."""
+        if oclass is not None and not isinstance(oclass, OntologyClass):
+            raise TypeError(
+                "Found object of type %s passed to argument "
+                "oclass. Should be an OntologyClass." % type(oclass)
+            )
+        uids = tuple(uids) if uids is not None else None
+        if uids is not None:
+            for uid in uids:
+                if not isinstance(uid, UID):
+                    raise TypeError(
+                        "Found object of type %s. Should be an UID."
+                        % type(uid)
+                    )
+
+        self._class_filter = oclass
+        self._uid_filter = uids
+        self._session = session or Session.get_default_session()
+        super().__init__()
+
+    def __iter__(self):
+        """The entities contained in the session."""
+        identifiers = self._uid_filter
+        class_ = self._class_filter
+
+        if identifiers:
+            yielded = set()
+            for entity in self._iter_identifiers():
+                if entity not in yielded:
+                    yield entity
+        elif class_:
+            yield from (
+                row[0]
+                for row in self._session.sparql(
+                    f"""
+                    SELECT DISTINCT ?entity WHERE {{
+                        ?entity rdf:type/rdfs:subClassOf*
+                        <{class_.iri}> .
+                    }}
+                """,
+                    ontology=True,
+                )(entity=OntologyIndividual)
+            )
+        else:
+            yield from iter(self._session)
+
+    def __contains__(self, item: OntologyIndividual) -> bool:
+        """Check whether an ontology entity belongs to the session."""
+        return item in self._session and (
+            item.is_a(self._class_filter) if self._class_filter else True
+        )
+
+    def update(self, other: Iterable[OntologyIndividual]) -> None:
+        """Update the set with the union of itself and others."""
+        other = set(other)
+        if self._class_filter:
+            for individual in other:
+                if not individual.is_a(self._class_filter):
+                    raise RuntimeError(
+                        f"Cannot update {self} with {individual} because it "
+                        f"does not belong to class {self._class_filter}."
+                    )
+
+        self._session.add(
+            *other,
+            merge=True,
+            exists_ok=True,
+        )
+
+    def intersection_update(self, other: Iterable[OntologyIndividual]) -> None:
+        """Update the set with the intersection of itself and another."""
+        intersection = set(
+            x
+            for x in other
+            if (x.identifier, RDF.type, None) in self._session.graph
+        )
+
+        if self._class_filter:
+            for individual in intersection:
+                if not individual.is_a(self._class_filter):
+                    raise RuntimeError(
+                        f"Cannot update {self} with {individual} because it "
+                        f"does not belong to class {self._class_filter}."
+                    )
+
+        existing = set(
+            x.identifier for x in self._session.get(oclass=self._class_filter)
+        )
+        remove = existing - set(x.identifier for x in intersection)
+
+        self._session.add(
+            *intersection,
+            merge=True,
+            exists_ok=True,
+        )
+        self._session.delete(remove)
+
+    def difference_update(self, other: Iterable[OntologyIndividual]) -> None:
+        """Remove all elements of another set from this set."""
+        other = set(other)
+        exists = set()
+        for entity in other:
+            try:
+                exists.add(
+                    self._session.from_identifier_typed(
+                        entity.identifier, typing=OntologyIndividual
+                    )
+                )
+            except KeyError:
+                pass
+
+        if self._class_filter:
+            for individual in exists:
+                if not individual.is_a(self._class_filter):
+                    raise RuntimeError(
+                        f"Cannot delete {individual} because it "
+                        f"does not belong to class {self._class_filter}."
+                    )
+
+        self._session.delete(exists)
+
+    def symmetric_difference_update(
+        self, other: Iterable[OntologyIndividual]
+    ) -> None:
+        """Update set with the symmetric difference of it and another."""
+        other = set(other)
+        intersection = set(
+            x
+            for x in other
+            if (x.identifier, RDF.type, None) in self._session.graph
+        )
+        add = other - intersection
+        delete = set(
+            x
+            for x in self
+            if x.identifier in (x.identifier for x in intersection)
+        )
+
+        if self._class_filter:
+            for individual in add:
+                if not individual.is_a(self._class_filter):
+                    raise RuntimeError(
+                        f"Cannot add {individual} because it "
+                        f"does not belong to class {self._class_filter}."
+                    )
+            for individual in delete:
+                if not individual.is_a(self._class_filter):
+                    raise RuntimeError(
+                        f"Cannot delete {individual} because it "
+                        f"does not belong to class {self._class_filter}."
+                    )
+
+        self._session.add(add, merge=False, exists_ok=False)
+        self._session.delete(delete)
+
+    def __repr__(self) -> str:
+        """Return repr(self)."""
+        return (
+            set(self).__repr__()
+            + " <"
+            + (
+                f"class {self._class_filter} "
+                if self._class_filter is not None
+                else ""
+            )
+            + f"of session {self._session.identifier or self._session}>"
+        )
+
+    def one(
+        self,
+    ) -> OntologyIndividual:
+        """Return one element.
+
+        Return one element if the set contains one element, else raise
+        an exception.
+
+        Returns:
+            The only element contained in the set.
+
+        Raises:
+            ResultEmptyError: No elements in the set.
+            MultipleResultsError: More than one element in the set.
+        """
+        iter_self = iter(self)
+        first_element = next(iter_self, StopIteration)
+        if first_element is StopIteration:
+            raise ResultEmptyError("No elements to be yielded.")
+        second_element = next(iter_self, StopIteration)
+        if second_element is not StopIteration:
+            raise MultipleResultsError("More than one element can be yielded.")
+        return first_element
+
+    def any(
+        self,
+    ) -> Optional[Union[AnnotationValue, AttributeValue, RelationshipValue]]:
+        """Return any element of the set.
+
+        Returns:
+            Any element from the set if the set is not empty, else None.
+        """
+        return next(iter(self), None)
+
+    def all(self) -> SessionSet:
+        """Return all elements from the set.
+
+        Returns:
+            All elements from the set, namely the set itself.
+        """
+        return self
+
+    def _iter_identifiers(self) -> Iterator[Optional[OntologyIndividual]]:
+        identifiers = self._uid_filter
+        class_ = self._class_filter
+        for i, identifier in identifiers:
+            try:
+                entity = self._session.from_identifier_typed(
+                    identifier, OntologyIndividual
+                )
+            except KeyError:
+                entity = None
+            if entity and class_ and not entity.is_a(class_):
+                entity = None
+            yield entity
 
 
 class Session(Environment):
@@ -236,15 +521,15 @@ class Session(Environment):
         #    self.ontology.commit()
         self.creation_set = set()
 
-    def compute(self, *args, **kwargs) -> None:
+    def compute(self, **kwargs) -> None:
         """Run simulations on supported graph stores."""
         from simphony_osp.interfaces.remote.client import RemoteStoreClient
 
         if self._driver is not None:
             self.commit()
-            self._driver.compute(*args, **kwargs)
+            self._driver.compute(**kwargs)
         elif isinstance(self._graph.store, RemoteStoreClient):
-            self._graph.store.execute_method("run")
+            self._graph.store.execute_method("compute")
         else:
             raise AttributeError(
                 f"Session {self} is not attached to a "
@@ -330,7 +615,7 @@ class Session(Environment):
             f"at {hex(id(self))}>"
         )
 
-    @lru_cache(maxsize=4096)
+    @lru_cache_weak(maxsize=4096)
     # On `__init__.py` there is an option to bypass this cache when the
     # session is not a T-Box.
     def from_identifier(self, identifier: Node) -> OntologyEntity:
@@ -351,54 +636,57 @@ class Session(Environment):
         #  optimization it gets will speed up SimPhoNy, while bad code in
         #  this method will slow it down.
 
-        """Look for compatible Python classes to spawn."""
-        compatible = set()
+        # Look for embedded classes.
+        compatible = {
+            rdf_type: compatible_classes(rdf_type, identifier)
+            for rdf_type in self._graph.objects(identifier, RDF_type)
+        }
 
-        for rdf_type in self._graph.objects(identifier, RDF.type):
-            # Look for compatible embedded classes.
-            found = compatible_classes(rdf_type, identifier)
+        # If not an embedded class, then the type may be known in
+        # the ontology. This means that an ontology individual would
+        # have to be spawned.
+        for rdf_type, found in compatible.items():
             if not found:
-                # If not an embedded class, then the type may be known in
-                # the ontology. This means that an ontology individual would
-                # have to be spawned.
                 try:
                     self.ontology.from_identifier(rdf_type)
-                    compatible |= {OntologyIndividual}
+                    found |= {OntologyIndividual}
+                    break
                 except KeyError:
                     pass
-            else:
-                compatible |= found
+
+        compatible = set().union(*compatible.values())
+
         if (
             OntologyRelationship not in compatible
-            and (identifier, OWL.inverseOf, None) in self._graph
+            and (identifier, OWL_inverseOf, None) in self._graph
         ):
             compatible |= {OntologyRelationship}
 
         """Some ontologies are hybrid RDFS and OWL ontologies (i.e. FOAF).
         In such cases, object and datatype properties are preferred to
         annotation properties."""
-        if OntologyAnnotation in compatible and any(
-            x in compatible for x in (OntologyRelationship, OntologyAttribute)
+        if OntologyAnnotation in compatible and (
+            compatible & {OntologyRelationship, OntologyAttribute}
         ):
             compatible.remove(OntologyAnnotation)
-        if len(compatible) == 0:
-            # The individual belongs to an unknown class.
+
+        """Finally return the single compatible class or raise an exception."""
+        if len(compatible) >= 2:
+            raise RuntimeError(
+                f"Two or more python classes ("
+                f"{', '.join(map(str, compatible))}) "
+                f"could be spawned from {identifier}."
+            )
+        try:
+            python_class = compatible.pop()
+            return python_class(uid=UID(identifier), session=self, merge=None)
+        except KeyError:
             raise KeyError(
                 f"Identifier {identifier} does not match any OWL "
                 f"entity, any entity natively supported by "
                 f"SimPhoNy, nor an ontology individual "
                 f"belonging to a class in the ontology."
             )
-        elif len(compatible) >= 2:
-            compatible = map(str, compatible)
-            raise RuntimeError(
-                f"Two or more python classes ("
-                f"{', '.join(compatible)}) "
-                f"could be spawned from {identifier}."
-            )
-        else:
-            python_class = compatible.pop()
-            return python_class(uid=UID(identifier), session=self, merge=None)
 
     def from_identifier_typed(
         self, identifier: Node, typing: Type[ENTITY]
@@ -421,7 +709,7 @@ class Session(Environment):
             raise TypeError(f"{identifier} is not of class {typing}.")
         return entity
 
-    @lru_cache(maxsize=4096)
+    @lru_cache_weak(maxsize=4096)
     # On `__init__.py` there is an option to bypass this cache when the
     # session is not a T-Box.
     def from_label(
@@ -498,6 +786,14 @@ class Session(Environment):
         )
         # Get the identifiers of the individuals
         identifiers = list(individual.identifier for individual in individuals)
+        # Get a list of files within the individuals to add
+        files = {
+            individual
+            for individual in individuals
+            if set(class_.identifier for class_ in individual.superclasses)
+            & {simphony_namespace.File}
+            and individual.session is not self
+        }
 
         # Paste the individuals
         """The attributes of the individuals are always kept. The
@@ -513,6 +809,18 @@ class Session(Environment):
         ):
             raise RuntimeError(
                 "Some of the added entities already exist on the session."
+            )
+        elif (
+            merge
+            and files
+            and any(
+                (identifier, None, None) in self.graph
+                for identifier in {x.identifier for x in files}
+            )
+        ):
+            raise RuntimeError(
+                "Some of the added file entities already exist on the "
+                "session. File entities cannot be merged with existing ones."
             )
         delete = (
             (individual.identifier, None, None)
@@ -532,6 +840,11 @@ class Session(Environment):
             for pattern in delete:
                 self.graph.remove(pattern)
         self.graph.addN((s, p, o, self.graph) for s, p, o in add)
+        files = ((file.identifier, file.operations.handle) for file in files)
+        for identifier, contents in files:
+            self.from_identifier_typed(
+                identifier, typing=OntologyIndividual
+            ).operations.overwrite(contents)
         added_objects = list(
             self.from_identifier_typed(identifier, typing=OntologyIndividual)
             for identifier in identifiers
@@ -559,7 +872,7 @@ class Session(Environment):
         )
 
         for entity in entities:
-            if entity not in self:
+            if isinstance(entity, OntologyEntity) and entity not in self:
                 raise ValueError(f"Entity {entity} not contained in {self}.")
 
         for entity in entities:
@@ -574,6 +887,7 @@ class Session(Environment):
         graph = self._graph_writable if force else self._graph
         graph.remove((None, None, None))
         self._namespaces.clear()
+        self.entity_cache_timestamp = datetime.now()
         self.from_identifier.cache_clear()
         self.from_label.cache_clear()
 
@@ -586,6 +900,176 @@ class Session(Environment):
             ):
                 self.ontology.load_parser(parser)
 
+    def get(
+        self,
+        *individuals: Union[OntologyIndividual, Identifier, str],
+        oclass: Optional[OntologyClass] = None,
+    ) -> Union[
+        Set[OntologyIndividual],
+        Optional[OntologyIndividual],
+        Tuple[Optional[OntologyIndividual]],
+    ]:
+        """Return the individuals in the session.
+
+        The structure of the output can vary depending on the form used for
+        the call. See the "Returns:" section of this
+        docstring for more details on this.
+
+        Args:
+            individuals: Restrict the individuals to be returned to a certain
+                subset of the individuals in the session.
+            oclass: Only yield ontology individuals which belong to a subclass
+                of the given ontology class. Defaults to None (no filter).
+
+        Returns:
+            Calls without `*individuals` (SessionSet): The result of the
+                call is a set-like object. This corresponds to
+                the calls `get()`, `get(oclass=___)`.
+            Calls with `*individuals` (Optional[OntologyIndividual],
+                    Tuple[Optional["OntologyIndividual"], ...]):
+                The position of each element in the result is determined by the
+                position of the corresponding identifier/individual in the
+                given list of identifiers/individuals. In this case, the result
+                can contain `None` values if a given identifier/individual is
+                not in the session, or if it does not satisfy the class
+                filter. This description corresponds to the calls
+                `get(*individuals)`, `get(*individuals, oclass=`___`)`.
+
+        Raises:
+            TypeError: Objects that are not ontology individuals,
+                identifiers or strings provided as positional arguments.
+            TypeError: Object that is not an ontology class passed as
+                keyword argument `oclass`.
+            RuntimeError: Ontology individuals that belong to a different
+                session provided.
+        """
+        identifiers = list(individuals)
+        for i, x in enumerate(identifiers):
+            if not isinstance(x, (OntologyIndividual, Identifier, str)):
+                raise TypeError(
+                    f"Expected {OntologyIndividual}, {Identifier} or {str} "
+                    f"objects, not {type(x)}."
+                )
+            elif isinstance(x, OntologyIndividual) and x not in self:
+                raise RuntimeError(
+                    "Cannot get an individual that belongs to "
+                    "a different session."
+                )
+
+            if isinstance(x, str):
+                if not isinstance(x, Identifier):
+                    identifiers[i] = URIRef(x)
+            elif isinstance(x, OntologyIndividual):
+                identifiers[i] = x.identifier
+
+        if identifiers:
+            entities = [None] * len(identifiers)
+            for i, identifier in enumerate(identifiers):
+                try:
+                    entity = self.from_identifier(identifier)
+                except KeyError:
+                    entity = None
+                if entity and oclass and not entity.is_a(oclass):
+                    entity = None
+                entities[i] = entity
+
+            if len(identifiers) == 1:
+                entities = entities[0]
+            else:
+                entities = tuple(entities)
+        else:
+            entities = SessionSet(session=self, oclass=oclass)
+
+        return entities
+
+    def iter(
+        self,
+        *individuals: Union[OntologyIndividual, Identifier, str],
+        oclass: Optional[OntologyClass] = None,
+    ) -> Union[
+        Iterator[OntologyIndividual],
+        Iterator[Optional[OntologyIndividual]],
+    ]:
+        """Iterate over the ontology individuals in the session.
+
+        The structure of the output can vary depending on the form used for
+        the call. See the "Returns:" section of this docstring for more
+        details on this.
+
+        Args:
+            individuals: Restrict the individuals to be returned to a certain
+                subset of the individuals in the session.
+            oclass: Only yield ontology individuals which belong to a subclass
+                of the given ontology class. Defaults to None (no filter).
+
+        Returns:
+            Calls without `*individuals` (Iterator[OntologyIndividual]): The
+                position of each element in the result is non-deterministic.
+                This corresponds to the calls `iter()`, `iter(oclass=___)`.
+            Calls with `*individuals` (Iterator[Optional[
+                    OntologyIndividual]]):
+                The position of each element in the result is determined by the
+                position of the corresponding identifier/individual in the
+                given list of identifiers/individuals. In this case, the result
+                can contain `None` values if a given identifier/individual is
+                not in the session, or if it does not satisfy the class
+                filter. This description corresponds to the calls
+                `iter(*individuals)`, `iter(*individuals, oclass=`___`)`.
+
+        Raises:
+            TypeError: Objects that are not ontology individuals,
+                identifiers or strings provided as positional arguments.
+            TypeError: Object that is not an ontology class passed as
+                keyword argument `oclass`.
+            RuntimeError: Ontology individuals that belong to a different
+                session provided.
+        """
+        identifiers = list(individuals)
+        for i, x in enumerate(identifiers):
+            if not isinstance(x, (OntologyIndividual, Identifier, str)):
+                raise TypeError(
+                    f"Expected {OntologyIndividual}, {Identifier} or {str} "
+                    f"objects, not {type(x)}."
+                )
+            elif isinstance(x, OntologyIndividual) and x not in self:
+                raise RuntimeError(
+                    "Cannot get an individual that belongs to "
+                    "a different session."
+                )
+
+            if isinstance(x, str):
+                if not isinstance(x, Identifier):
+                    identifiers[i] = URIRef(x)
+            elif isinstance(x, OntologyIndividual):
+                identifiers[i] = x.identifier
+
+        if oclass is not None and not isinstance(oclass, OntologyClass):
+            raise TypeError(
+                "Found object of type %s passed to argument "
+                "oclass. Should be an OntologyClass." % type(oclass)
+            )
+
+        if identifiers:
+
+            # The yield statement is encapsulated inside a function so that the
+            # main function uses the return statement instead of yield. In this
+            # way, exceptions are checked when the `iter` method is called
+            # instead of when asking for the first result.
+            def iterator() -> Iterator[Optional[OntologyIndividual]]:
+                for identifier in identifiers:
+                    try:
+                        entity = self.from_identifier(identifier)
+                    except KeyError:
+                        entity = None
+                    if entity and oclass and not entity.is_a(oclass):
+                        entity = None
+                    yield entity
+
+            return iterator()
+
+        else:
+            return iter(SessionSet(session=self, oclass=oclass))
+
     # ↑ --------------------- Public API --------------------- ↑ #
 
     default_ontology: Session
@@ -595,7 +1079,22 @@ class Session(Environment):
     it makes use of.
     """
 
+    entity_cache_timestamp: Optional[datetime] = None
+    """A timestamp marking the time when the session's graph was last modified.
+
+    This timestamp is used by `OntologyEntity` and its subclasses to know
+    whether they should invalidate their cache (e.g. the cache of the
+    `superclasses` method must be invalidated when the session is cleared or a
+    new ontology is loaded into the session).
+    """
+
     _ontology: Optional[Session] = None
+    """Private pointer to the T-Box of the session.
+
+    Not `None` only when the T-Box of the session should be different from
+    the default T-Box (the one referred to by the attribute `default_ontology`,
+    which is by default a session containing all the installed ontologies).
+    """
 
     def __init__(
         self,
@@ -615,7 +1114,7 @@ class Session(Environment):
             self._graph = base
 
         else:
-            graph = Graph()
+            graph = Graph("SimpleMemory")
             self._graph_writable = graph
             self._graph = graph
 
@@ -634,8 +1133,8 @@ class Session(Environment):
                 f"got {type(ontology)} instead."
             )
 
-        # Bypass cache if this session is not a T-Box
         if self.ontology is not self:
+            """Bypass cache if this session is not a T-Box"""
 
             def bypass_cache(method: Callable):
                 wrapped_func = method.__wrapped__
@@ -649,6 +1148,12 @@ class Session(Environment):
 
             self.from_identifier = bypass_cache(self.from_identifier)
             self.from_label = bypass_cache(self.from_label)
+        else:
+            """Log the time of last entity cache clearing."""
+
+            self.entity_cache_timestamp = datetime.now()
+
+        self._entity_cache = dict()
 
         self.creation_set = set()
         self._storing = list()
@@ -852,6 +1357,7 @@ class Session(Environment):
         self._graph_writable += parser.graph
         for name, iri in parser.namespaces.items():
             self.bind(name, iri)
+        self.entity_cache_timestamp = datetime.now()
         self.from_identifier.cache_clear()
         self.from_label.cache_clear()
 
@@ -924,15 +1430,15 @@ class Session(Environment):
             else:
                 return literal.language == lang
 
+        labels = (
+            (prop, literal, subject)
+            for prop in self.label_properties
+            for subject, _, literal in self._graph.triples(
+                (entity, prop, None)
+            )
+        )
         labels = filter(
-            lambda label_tuple: filter_language(label_tuple[1]),
-            (
-                (prop, literal, subject)
-                for prop in self.label_properties
-                for subject, _, literal in self._graph.triples(
-                    (entity, prop, None)
-                )
-            ),
+            lambda label_tuple: filter_language(label_tuple[1]), labels
         )
         if not return_prop and not return_literal and not return_identifier:
             return (str(x[1]) for x in labels)
@@ -957,7 +1463,7 @@ class Session(Environment):
 
     def get_entities(self) -> Set[OntologyEntity]:
         """Get all the entities stored in the session."""
-        return set(x for x in self)
+        return {x for x in self}
 
     _interface_driver: Optional[InterfaceDriver] = None
 
@@ -1113,7 +1619,9 @@ class QueryResult(SPARQLResult):
             if isclass(value) and issubclass(value, OntologyIndividual):
                 """Replace OntologyIndividual with spawning the individual
                 from its identifier."""
-                kwargs[key] = lambda x: self.session.from_identifier(x)
+                kwargs[key] = lambda x: self.session.from_identifier_typed(
+                    x, typing=OntologyIndividual
+                )
 
         for row in self:
             """Yield the rows with the applied datatype transformation."""

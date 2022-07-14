@@ -51,7 +51,7 @@ def relationships_between(
     Returns:
         The set of relationships between subject and object.
     """
-    return set(
+    return {
         relationship
         for individual, relationship in subj.get(obj, return_rel=True)
-    )
+    }

@@ -111,7 +111,7 @@ def split_message(msg: str, block_size: int = BLOCK_SIZE):
 
     def gen(message, blocks, size):
         for i in range(blocks):
-            logger.debug("Sending message block %s of %s" % (i + 1, blocks))
+            logger.debug(f"Sending message block {i + 1} of {blocks}")
             yield message[i * size : (i + 1) * size]
         logger.debug("Done")
 
@@ -130,7 +130,7 @@ async def join_message(websocket, num_blocks: int) -> str:
     """
     data = b""
     for i in range(num_blocks):
-        logger.debug("Receiving message block %s of %s" % (i + 1, num_blocks))
+        logger.debug(f"Receiving message block {i + 1} of {num_blocks}")
         data += await websocket.recv()
     logger.debug("Done")
     data = data.decode("utf-8")
@@ -161,7 +161,7 @@ def encode_files(files: List[str]) -> bytes:
         # send the file contents
         with open(file, "rb") as f:
             for i, block in enumerate(iter(lambda: f.read(BLOCK_SIZE), b"")):
-                logger.debug("Send file block %s of %s" % (i + 1, num_blocks))
+                logger.debug(f"Send file block {i + 1} of {num_blocks}")
                 yield block
             logger.debug("Done")
 
@@ -177,7 +177,7 @@ async def receive_files(
     """
     files = []
     for i in range(num_files):
-        logger.debug("Load file %s of %s" % (i + 1, num_files))
+        logger.debug(f"Load file {i + 1} of {num_files}")
         num_blocks, filename = decode_header(
             await websocket.recv(), LEN_FILES_HEADER
         )
@@ -186,7 +186,7 @@ async def receive_files(
         logger.debug("Storing file %s with %s blocks." % file.name)
         with file:
             for j in range(num_blocks):
-                logger.debug("Receive block %s of %s" % (j + 1, num_blocks))
+                logger.debug(f"Receive block {j + 1} of {num_blocks}")
                 data = await websocket.recv()
                 file.write(data)
         file.seek(0)
@@ -383,7 +383,7 @@ class CommunicationEngineClient:
         Returns:
             The response for the client.
         """
-        logger.debug("Request %s: %s" % (command, data[:DEBUG_MAX]))
+        logger.debug(f"Request {command}: {data[:DEBUG_MAX]}")
         if self.socket is None:
             logger.debug("uri: %s" % self.uri)
             self.socket = await websockets.connect(self.uri)

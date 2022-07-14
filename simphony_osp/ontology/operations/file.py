@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import BinaryIO
 
 from rdflib.term import URIRef
 
@@ -43,18 +44,47 @@ class File(Operations):
         Queues a file to be uploaded to the server. When a commit is
         performed, the data is sent.
         """
-        if hasattr(self._session.driver, "queue"):
+        if self._session.driver is not None:
             file = open(path, "rb")
             self._session.driver.queue(self._identifier, file)
+        else:
+            logger.warning(
+                "This session does not support saving new files. The "
+                "contents of the file will NOT be saved."
+            )
 
     def download(self, path: str) -> None:
         """Download the file."""
-        if hasattr(self._session.driver, "interface") and hasattr(
-            self._session.driver.interface, "load"
-        ):
-            with self._session.driver.interface.load(self._identifier) as file:
+        if self._session.driver is not None:
+            with self._session.driver.load(self._identifier) as file:
                 with open(path, "wb") as new_file:
                     data = True
                     while data:
                         data = file.read(buf_size)
                         new_file.write(data)
+        else:
+            raise FileNotFoundError(
+                "This session does not support file storage. Unable to "
+                "retrieve the file contents."
+            )
+
+    @property
+    def handle(self) -> BinaryIO:
+        """Get a file handle to operate with."""
+        if self._session.driver is not None:
+            return self._session.driver.load(self._identifier)
+        else:
+            raise FileNotFoundError(
+                "This session does not support file storage. Unable to "
+                "retrieve the file contents."
+            )
+
+    def overwrite(self, contents: BinaryIO) -> None:
+        """Overwrite the file contents with a byte stream."""
+        if self._session.driver is not None:
+            self._session.driver.queue(self._identifier, contents)
+        else:
+            logger.warning(
+                "This session does not support saving new files. The "
+                "contents of the file will NOT be saved."
+            )

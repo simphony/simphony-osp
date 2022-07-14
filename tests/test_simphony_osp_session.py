@@ -51,14 +51,14 @@ class TestLoadParsers(unittest.TestCase):
         # Check that names of the namespaces were loaded.
         self.assertSetEqual(
             set(expected_namespaces.keys()),
-            set(ns.name for ns in self.ontology.namespaces),
+            {ns.name for ns in self.ontology.namespaces},
         )
 
         # Try to fetch all the namespaces by name.
         self.assertSetEqual(
             set(self.ontology.namespaces),
-            set(
+            {
                 self.ontology.get_namespace(name)
                 for name in expected_namespaces
-            ),
+            },
         )

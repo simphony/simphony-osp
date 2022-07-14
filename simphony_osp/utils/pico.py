@@ -265,10 +265,7 @@ class Pico:
             raise RuntimeError(
                 "Installation failed. Unsatisfied requirements: \n - %s"
                 % "\n - ".join(
-                    [
-                        "%s: %s" % (n, r)
-                        for n, r in missing_requirements_dict.items()
-                    ]
+                    [f"{n}: {r}" for n, r in missing_requirements_dict.items()]
                 )
             )
 
@@ -404,9 +401,9 @@ class Pico:
                 glob.glob(os.path.join(self.path, f"{identifier}*"))
                 for identifier in remove_identifiers
             )
-            files_to_remove = set(
+            files_to_remove = {
                 file for glob_list in files_to_remove for file in glob_list
-            )
+            }
             for file in files_to_remove:
                 os.remove(file)
 

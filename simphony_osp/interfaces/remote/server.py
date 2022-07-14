@@ -1,5 +1,6 @@
 """Implementation of a remote RDFLib store over websockets."""
 
+import io
 import json
 import logging
 import tempfile
@@ -66,9 +67,7 @@ class InterfaceServer:
     ) -> Tuple[str, list]:
         """Handle requests from the client."""
         try:
-            if command == COMMAND.ROOT:
-                response = self._root(data, connection_id)
-            elif command == COMMAND.OPEN:
+            if command == COMMAND.OPEN:
                 response = self._open(data, connection_id)
             elif command == COMMAND.CLOSE:
                 response = self._close(data, connection_id)
@@ -121,24 +120,6 @@ class InterfaceServer:
 
     # Commands
 
-    def _root(self, data: str, connection_id: UUID) -> str:
-        interface = self._interfaces[connection_id]
-
-        graph = Graph()
-        graph.add(
-            (
-                URIRef("iri:placeholder"),
-                URIRef("iri:placeholder"),
-                interface.root or URIRef("none:None"),
-            )
-        )
-        return (
-            f"{{"
-            f'"{COMMAND.ROOT}": '
-            f'{graph.serialize(format="json-ld")}'
-            f"}}"
-        )
-
     def _open(self, data: str, connection_id: UUID) -> str:
         interface = self._interfaces[connection_id]
         data = json.loads(data)
@@ -163,8 +144,8 @@ class InterfaceServer:
     def _compute(self, data: str, connection_id: UUID) -> str:
         interface = self._interfaces[connection_id]
         data = json.loads(data)
-        args, kwargs = data["args"], data["kwargs"]
-        interface.compute(*args, **kwargs)
+        kwargs = data["kwargs"]
+        interface.compute(**kwargs)
         return json.dumps({COMMAND.COMPUTE: None})
 
     def _add(self, data: str, connection_id: UUID) -> str:
@@ -178,7 +159,7 @@ class InterfaceServer:
         interface = self._interfaces[connection_id]
         pattern = next(
             tuple(x if x != URIRef("none:None") else None for x in triple)
-            for triple in json_to_rdf(json.loads(data), Graph())
+            for triple in Graph().parse(io.StringIO(data), format="turtle")
         )
         graph = Graph()
         graph.addN((s, p, o, graph) for s, p, o in interface.remove(pattern))
@@ -193,7 +174,7 @@ class InterfaceServer:
         interface = self._interfaces[connection_id]
         pattern = next(
             tuple(x if x != URIRef("none:None") else None for x in triple)
-            for triple in json_to_rdf(json.loads(data), Graph())
+            for triple in Graph().parse(io.StringIO(data), format="turtle")
         )
         graph = Graph()
         graph.addN((s, p, o, graph) for s, p, o in interface.triples(pattern))
@@ -286,7 +267,7 @@ class InterfaceServer:
         interface = self._interfaces[connection_id]
         patterns = (
             tuple(x if x != URIRef("none:None") else None for x in triple)
-            for triple in json_to_rdf(json.loads(data), Graph())
+            for triple in Graph().parse(io.StringIO(data), format="turtle")
         )
         for pattern in patterns:
             interface.base.remove(pattern)
@@ -296,7 +277,7 @@ class InterfaceServer:
         interface = self._interfaces[connection_id]
         pattern = next(
             tuple(x if x != URIRef("none:None") else None for x in triple)
-            for triple in json_to_rdf(json.loads(data), Graph())
+            for triple in Graph().parse(io.StringIO(data), format="turtle")
         )
         graph = Graph()
         graph.addN(

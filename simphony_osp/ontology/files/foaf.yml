@@ -1,4 +1,4 @@
 identifier: foaf
-ontology_file: https://web.archive.org/web/20220627164615/http://xmlns.com/foaf/spec/index.rdf
+ontology_file: "https://xmlns.com/foaf/spec/index.rdf"
 namespaces:
     foaf: "http://xmlns.com/foaf/0.1/"
