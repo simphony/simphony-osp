@@ -155,7 +155,7 @@ class OWLParser(OntologyParser):
                 "contains all of the following keys: %s."
                 % ", ".join(KEY for KEY in keywords.MANDATORY_KEYS)
             )
-        other_keys = set(KEY for KEY in doc) - set(keywords.ALL_KEYS)
+        other_keys = {KEY for KEY in doc} - set(keywords.ALL_KEYS)
         if other_keys:
             raise SyntaxError(
                 "Specified unknown keys in YAML file: %s" % other_keys

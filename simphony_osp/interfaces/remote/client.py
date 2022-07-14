@@ -4,7 +4,16 @@ import json
 import os
 import tempfile
 from itertools import chain
-from typing import Any, BinaryIO, Dict, Iterator, List, Optional
+from typing import (
+    Any,
+    BinaryIO,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Union,
+)
 
 from rdflib import Graph, URIRef
 from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
@@ -139,11 +148,21 @@ class RemoteInterface(Interface):
         )
         return response[COMMAND.COMMIT]
 
-    def compute(self, *args, **kwargs) -> None:
+    def compute(
+        self,
+        **kwargs: Union[
+            str,
+            int,
+            float,
+            bool,
+            None,
+            Iterable[Union[str, int, float, bool, None]],
+        ],
+    ) -> None:
         """Implements the COMPUTE command."""
         response, _ = self._engine.send(
             COMMAND.COMPUTE,
-            json.dumps({"args": args, "kwargs": kwargs}),
+            json.dumps({"kwargs": kwargs}),
         )
         return response.get(COMMAND.COMPUTE)
 

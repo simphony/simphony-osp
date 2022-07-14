@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import itertools
 import logging
-from functools import lru_cache, wraps
+from datetime import datetime
+from functools import wraps
 from inspect import isclass
 from typing import (
     TYPE_CHECKING,
@@ -36,6 +37,7 @@ from simphony_osp.ontology.parser import OntologyParser
 from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.ontology.utils import compatible_classes
 from simphony_osp.utils import simphony_namespace
+from simphony_osp.utils.cache import lru_cache_weak
 from simphony_osp.utils.datatypes import UID, Triple
 
 logger = logging.getLogger(__name__)
@@ -44,6 +46,10 @@ if TYPE_CHECKING:
     from simphony_osp.interfaces.interface import Interface, InterfaceDriver
 
 ENTITY = TypeVar("ENTITY", bound=OntologyEntity)
+
+
+RDF_type = RDF.type
+OWL_inverseOf = OWL.inverseOf
 
 
 class Environment:
@@ -255,15 +261,15 @@ class Session(Environment):
             self.ontology.commit()
         self.creation_set = set()
 
-    def compute(self, *args, **kwargs) -> None:
+    def compute(self, **kwargs) -> None:
         """Run simulations on supported graph stores."""
         from simphony_osp.interfaces.remote.client import RemoteStoreClient
 
         if self._driver is not None:
             self.commit()
-            self._driver.compute(*args, **kwargs)
+            self._driver.compute(**kwargs)
         elif isinstance(self._graph.store, RemoteStoreClient):
-            self._graph.store.execute_method("run")
+            self._graph.store.execute_method("compute")
         else:
             raise AttributeError(
                 f"Session {self} is not attached to a "
@@ -349,7 +355,7 @@ class Session(Environment):
             f"at {hex(id(self))}>"
         )
 
-    @lru_cache(maxsize=4096)
+    @lru_cache_weak(maxsize=4096)
     # On `__init__.py` there is an option to bypass this cache when the
     # session is not a T-Box.
     def from_identifier(self, identifier: Node) -> OntologyEntity:
@@ -370,49 +376,57 @@ class Session(Environment):
         #  optimization it gets will speed up SimPhoNy, while bad code in
         #  this method will slow it down.
 
-        """Look for compatible Python classes to spawn."""
-        compatible = set()
+        # Look for embedded classes.
+        compatible = {
+            rdf_type: compatible_classes(rdf_type, identifier)
+            for rdf_type in self._graph.objects(identifier, RDF_type)
+        }
 
-        for rdf_type in self._graph.objects(identifier, RDF.type):
-            # Look for compatible embedded classes.
-            found = compatible_classes(rdf_type, identifier)
+        # If not an embedded class, then the type may be known in
+        # the ontology. This means that an ontology individual would
+        # have to be spawned.
+        for rdf_type, found in compatible.items():
             if not found:
-                # If not an embedded class, then the type may be known in
-                # the ontology. This means that an ontology individual would
-                # have to be spawned.
                 try:
                     self.ontology.from_identifier(rdf_type)
-                    compatible |= {OntologyIndividual}
+                    found |= {OntologyIndividual}
+                    break
                 except KeyError:
                     pass
-            else:
-                compatible |= found
+
+        compatible = set().union(*compatible.values())
+
+        if (
+            OntologyRelationship not in compatible
+            and (identifier, OWL_inverseOf, None) in self._graph
+        ):
+            compatible |= {OntologyRelationship}
 
         """Some ontologies are hybrid RDFS and OWL ontologies (i.e. FOAF).
         In such cases, object and datatype properties are preferred to
         annotation properties."""
-        if OntologyAnnotation in compatible and any(
-            x in compatible for x in (OntologyRelationship, OntologyAttribute)
+        if OntologyAnnotation in compatible and (
+            compatible & {OntologyRelationship, OntologyAttribute}
         ):
             compatible.remove(OntologyAnnotation)
-        if len(compatible) == 0:
-            # The individual belongs to an unknown class.
+
+        """Finally return the single compatible class or raise an exception."""
+        if len(compatible) >= 2:
+            raise RuntimeError(
+                f"Two or more python classes ("
+                f"{', '.join(map(str, compatible))}) "
+                f"could be spawned from {identifier}."
+            )
+        try:
+            python_class = compatible.pop()
+            return python_class(uid=UID(identifier), session=self, merge=None)
+        except KeyError:
             raise KeyError(
                 f"Identifier {identifier} does not match any OWL "
                 f"entity, any entity natively supported by "
                 f"SimPhoNy, nor an ontology individual "
                 f"belonging to a class in the ontology."
             )
-        elif len(compatible) >= 2:
-            compatible = map(str, compatible)
-            raise RuntimeError(
-                f"Two or more python classes ("
-                f"{', '.join(compatible)}) "
-                f"could be spawned from {identifier}."
-            )
-        else:
-            python_class = compatible.pop()
-            return python_class(uid=UID(identifier), session=self, merge=None)
 
     def from_identifier_typed(
         self, identifier: Node, typing: Type[ENTITY]
@@ -435,7 +449,7 @@ class Session(Environment):
             raise TypeError(f"{identifier} is not of class {typing}.")
         return entity
 
-    @lru_cache(maxsize=4096)
+    @lru_cache_weak(maxsize=4096)
     # On `__init__.py` there is an option to bypass this cache when the
     # session is not a T-Box.
     def from_label(
@@ -512,6 +526,14 @@ class Session(Environment):
         )
         # Get the identifiers of the individuals
         identifiers = list(individual.identifier for individual in individuals)
+        # Get a list of files within the individuals to add
+        files = {
+            individual
+            for individual in individuals
+            if set(class_.identifier for class_ in individual.superclasses)
+            & {simphony_namespace.File}
+            and individual.session is not self
+        }
 
         # Paste the individuals
         """The attributes of the individuals are always kept. The
@@ -527,6 +549,18 @@ class Session(Environment):
         ):
             raise RuntimeError(
                 "Some of the added entities already exist on the session."
+            )
+        elif (
+            merge
+            and files
+            and any(
+                (identifier, None, None) in self.graph
+                for identifier in {x.identifier for x in files}
+            )
+        ):
+            raise RuntimeError(
+                "Some of the added file entities already exist on the "
+                "session. File entities cannot be merged with existing ones."
             )
         delete = (
             (individual.identifier, None, None)
@@ -546,6 +580,11 @@ class Session(Environment):
             for pattern in delete:
                 self.graph.remove(pattern)
         self.graph.addN((s, p, o, self.graph) for s, p, o in add)
+        files = ((file.identifier, file.operations.handle) for file in files)
+        for identifier, contents in files:
+            self.from_identifier_typed(
+                identifier, typing=OntologyIndividual
+            ).operations.overwrite(contents)
         added_objects = list(
             self.from_identifier_typed(identifier, typing=OntologyIndividual)
             for identifier in identifiers
@@ -573,7 +612,7 @@ class Session(Environment):
         )
 
         for entity in entities:
-            if entity not in self:
+            if isinstance(entity, OntologyEntity) and entity not in self:
                 raise ValueError(f"Entity {entity} not contained in {self}.")
 
         for entity in entities:
@@ -587,6 +626,7 @@ class Session(Environment):
         """Clear all the data stored in the session."""
         self._graph.remove((None, None, None))
         self._namespaces.clear()
+        self.entity_cache_timestamp = datetime.now()
         self.from_identifier.cache_clear()
         self.from_label.cache_clear()
 
@@ -608,7 +648,22 @@ class Session(Environment):
     it makes use of.
     """
 
+    entity_cache_timestamp: Optional[datetime] = None
+    """A timestamp marking the time when the session's graph was last modified.
+
+    This timestamp is used by `OntologyEntity` and its subclasses to know
+    whether they should invalidate their cache (e.g. the cache of the
+    `superclasses` method must be invalidated when the session is cleared or a
+    new ontology is loaded into the session).
+    """
+
     _ontology: Optional[Session] = None
+    """Private pointer to the T-Box of the session.
+
+    Not `None` only when the T-Box of the session should be different from
+    the default T-Box (the one referred to by the attribute `default_ontology`,
+    which is by default a session containing all the installed ontologies).
+    """
 
     def __init__(
         self,
@@ -626,7 +681,8 @@ class Session(Environment):
         if base is not None:
             self._graph = base
         else:
-            self._graph = Graph()
+            graph = Graph("SimpleMemory")
+            self._graph = graph
 
         self._interface_driver = driver
 
@@ -642,8 +698,8 @@ class Session(Environment):
                 f"got {type(ontology)} instead."
             )
 
-        # Bypass cache if this session is not a T-Box
         if self.ontology is not self:
+            """Bypass cache if this session is not a T-Box"""
 
             def bypass_cache(method: Callable):
                 wrapped_func = method.__wrapped__
@@ -657,6 +713,12 @@ class Session(Environment):
 
             self.from_identifier = bypass_cache(self.from_identifier)
             self.from_label = bypass_cache(self.from_label)
+        else:
+            """Log the time of last entity cache clearing."""
+
+            self.entity_cache_timestamp = datetime.now()
+
+        self._entity_cache = dict()
 
         self.creation_set = set()
         self._storing = list()
@@ -858,6 +920,7 @@ class Session(Environment):
         self.ontology._graph += parser.graph
         for name, iri in parser.namespaces.items():
             self.bind(name, iri)
+        self.entity_cache_timestamp = datetime.now()
         self.from_identifier.cache_clear()
         self.from_label.cache_clear()
 
@@ -930,15 +993,15 @@ class Session(Environment):
             else:
                 return literal.language == lang
 
+        labels = (
+            (prop, literal, subject)
+            for prop in self.label_properties
+            for subject, _, literal in self._graph.triples(
+                (entity, prop, None)
+            )
+        )
         labels = filter(
-            lambda label_tuple: filter_language(label_tuple[1]),
-            (
-                (prop, literal, subject)
-                for prop in self.label_properties
-                for subject, _, literal in self._graph.triples(
-                    (entity, prop, None)
-                )
-            ),
+            lambda label_tuple: filter_language(label_tuple[1]), labels
         )
         if not return_prop and not return_literal and not return_identifier:
             return (str(x[1]) for x in labels)
@@ -963,7 +1026,7 @@ class Session(Environment):
 
     def get_entities(self) -> Set[OntologyEntity]:
         """Get all the entities stored in the session."""
-        return set(x for x in self)
+        return {x for x in self}
 
     _interface_driver: Optional[InterfaceDriver] = None
 
@@ -1118,7 +1181,9 @@ class QueryResult(SPARQLResult):
             if isclass(value) and issubclass(value, OntologyIndividual):
                 """Replace OntologyIndividual with spawning the individual
                 from its identifier."""
-                kwargs[key] = lambda x: self.session.from_identifier(x)
+                kwargs[key] = lambda x: self.session.from_identifier_typed(
+                    x, typing=OntologyIndividual
+                )
 
         for row in self:
             """Yield the rows with the applied datatype transformation."""

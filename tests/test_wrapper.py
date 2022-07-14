@@ -162,6 +162,7 @@ class TestDataspaceWrapper(unittest.TestCase):
     prev_default_ontology: Session
 
     dataspace_directory: TemporaryDirectory
+    second_dataspace_directory: TemporaryDirectory
 
     @classmethod
     def setUpClass(cls):
@@ -182,10 +183,12 @@ class TestDataspaceWrapper(unittest.TestCase):
     def setUp(self) -> None:
         """Create a temporary directory for files."""
         self.dataspace_directory = TemporaryDirectory()
+        self.second_dataspace_directory = TemporaryDirectory()
 
     def tearDown(self) -> None:
         """Clean the temporary directory for files."""
         self.dataspace_directory.cleanup()
+        self.second_dataspace_directory.cleanup()
 
     def test_wrapper_city(self) -> None:
         """Test adding some entities from the city ontology."""
@@ -268,6 +271,8 @@ class TestDataspaceWrapper(unittest.TestCase):
 
         with NamedTemporaryFile("w", suffix=".txt") as os_file:
             os_file.write("text")
+            os_file.flush()
+            os.fsync(os_file)
 
             # Test creating file object and filling it with a file.
             with Dataspace(self.dataspace_directory.name, True) as wrapper:
@@ -294,6 +299,7 @@ class TestDataspaceWrapper(unittest.TestCase):
                         shallow=False,
                     )
                 )
+                self.assertEqual(b"text", file.operations.handle.read())
 
             # Test recovering the previous file and downloading it.
             with Dataspace(self.dataspace_directory.name, False) as wrapper:
@@ -303,6 +309,22 @@ class TestDataspaceWrapper(unittest.TestCase):
                     self.assertFalse(destination.is_file())
                     file.operations.download(destination)
                     self.assertTrue(destination.is_file())
+
+                    # Test copying the file among data spaces.
+                    with Dataspace(
+                        self.second_dataspace_directory.name, True
+                    ) as wrapper_2:
+                        wrapper_2.add(file)
+                        wrapper_2.commit()
+
+                    with Dataspace(
+                        self.second_dataspace_directory.name, False
+                    ) as wrapper_2:
+                        file_2 = wrapper_2.from_identifier(file_identifier)
+                        contents_1 = file.operations.handle.read()
+                        contents_2 = file_2.operations.handle.read()
+                        self.assertEqual(contents_1, contents_2)
+                        self.assertEqual(b"text", contents_1)
 
             # Test deleting the file.
             with Dataspace(self.dataspace_directory.name, False) as wrapper:
