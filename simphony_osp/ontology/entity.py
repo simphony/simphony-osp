@@ -13,6 +13,7 @@ from typing import (
     Set,
     Tuple,
     Type,
+    TypeVar,
     Union,
 )
 
@@ -42,18 +43,31 @@ class OntologyEntity(ABC):
 
     @property
     def iri(self) -> URIRef:
-        """Get the IRI of the Entity.
+        """IRI of the Entity.
 
         Raises:
-            TypeError: When the identifier of the ontology entity is a blank
-                node.
+            TypeError: When the identifier of the ontology entity is not an
+                IRI.
         """
         return self.uid.to_iri()
 
     @property
     def identifier(self) -> Identifier:
-        """Get the Identifier (URIRef or BNode) representing the entity."""
+        """Semantic web resource identifying the entity.
+
+        Usually an URIRef or BNode.
+        """
         return self.uid.to_identifier()
+
+    @property
+    def uid(self) -> UID:
+        """Get a SimPhoNy identifier for this entity.
+
+        The SimPhoNy identifier is known as UID. An UID is a Python class
+        defined in SimPhoNy and can always be converted to a semantic web
+        identifier.
+        """
+        return self._uid
 
     @property
     def label(self) -> Optional[str]:
@@ -126,7 +140,9 @@ class OntologyEntity(ABC):
 
     @property
     @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
-    def direct_superclasses(self) -> FrozenSet[OntologyEntity]:
+    def direct_superclasses(
+        self: ONTOLOGY_ENTITY,
+    ) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the direct superclasses of the entity.
 
         Returns:
@@ -136,7 +152,7 @@ class OntologyEntity(ABC):
 
     @property
     @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
-    def direct_subclasses(self) -> FrozenSet[OntologyEntity]:
+    def direct_subclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the direct subclasses of the entity.
 
         Returns:
@@ -146,7 +162,7 @@ class OntologyEntity(ABC):
 
     @property
     @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
-    def superclasses(self) -> FrozenSet[OntologyEntity]:
+    def superclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the superclass of the entity.
 
         Returns:
@@ -157,7 +173,7 @@ class OntologyEntity(ABC):
 
     @property
     @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
-    def subclasses(self) -> FrozenSet[OntologyEntity]:
+    def subclasses(self: ONTOLOGY_ENTITY) -> FrozenSet[ONTOLOGY_ENTITY]:
         """Get the subclasses of the entity.
 
         Returns:
@@ -194,7 +210,7 @@ class OntologyEntity(ABC):
         return (
             f"{self.label}"
             if hasattr(self, "label") and self.label is not None
-            else f"{self.uid}"
+            else f"{self._uid}"
         )
 
     def __repr__(self) -> str:
@@ -222,12 +238,12 @@ class OntologyEntity(ABC):
         return (
             isinstance(other, OntologyEntity)
             and self.session == other.session
-            and self.uid == other.uid
+            and self.identifier == other.identifier
         )
 
     def __hash__(self) -> int:
         """Make the entity hashable."""
-        return hash((self.uid, self.session))
+        return hash((self._uid, self.session))
 
     def __bool__(self):
         """Returns the boolean value of the entity, always true."""
@@ -235,16 +251,6 @@ class OntologyEntity(ABC):
 
     # ↑ ------ ↑
     # Public API
-
-    @property
-    def uid(self) -> UID:
-        """Get the unique identifier that SimPhoNy uses for this entity."""
-        return self._uid
-
-    @uid.setter
-    def uid(self, value: UID) -> None:
-        """Set the unique identifier that SimPhoNy uses for this entity."""
-        self._uid = value
 
     @property
     def label_literal(self) -> Optional[Literal]:
@@ -372,22 +378,26 @@ class OntologyEntity(ABC):
         return self.session.graph if self.session is not None else self.__graph
 
     @abstractmethod
-    def _get_direct_superclasses(self) -> Iterable[OntologyEntity]:
+    def _get_direct_superclasses(
+        self: ONTOLOGY_ENTITY,
+    ) -> Iterable[ONTOLOGY_ENTITY]:
         """Direct superclass getter specific to the type of ontology entity."""
         pass
 
     @abstractmethod
-    def _get_direct_subclasses(self) -> Iterable[OntologyEntity]:
+    def _get_direct_subclasses(
+        self: ONTOLOGY_ENTITY,
+    ) -> Iterable[ONTOLOGY_ENTITY]:
         """Direct subclass getter specific to the type of ontology entity."""
         pass
 
     @abstractmethod
-    def _get_superclasses(self) -> Iterable[OntologyEntity]:
+    def _get_superclasses(self: ONTOLOGY_ENTITY) -> Iterable[ONTOLOGY_ENTITY]:
         """Superclass getter specific to the type of ontology entity."""
         pass
 
     @abstractmethod
-    def _get_subclasses(self) -> Iterable[OntologyEntity]:
+    def _get_subclasses(self: ONTOLOGY_ENTITY) -> Iterable[ONTOLOGY_ENTITY]:
         """Subclass getter specific to the type of ontology entity."""
         pass
 
@@ -461,3 +471,6 @@ class OntologyEntity(ABC):
             # Otherwise, it is None -> do not change what is stored.
         self._session = session
         self.__graph = None
+
+
+ONTOLOGY_ENTITY = TypeVar("ONTOLOGY_ENTITY", bound=OntologyEntity)
