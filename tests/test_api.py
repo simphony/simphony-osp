@@ -12,13 +12,17 @@ from decimal import Decimal
 from importlib import import_module
 from pathlib import Path
 from types import MappingProxyType
-from typing import Hashable
+from typing import Hashable, Iterator
 
-from rdflib import RDFS, SKOS, XSD, Graph, Literal, URIRef
+from rdflib import RDFS, SKOS, XSD, BNode, Graph, Literal, URIRef
 
 from simphony_osp.ontology.annotation import OntologyAnnotation
 from simphony_osp.ontology.attribute import OntologyAttribute
-from simphony_osp.ontology.individual import OntologyIndividual
+from simphony_osp.ontology.individual import (
+    MultipleResultsError,
+    OntologyIndividual,
+    ResultEmptyError,
+)
 from simphony_osp.ontology.namespace import OntologyNamespace
 from simphony_osp.ontology.oclass import OntologyClass
 from simphony_osp.ontology.parser import OntologyParser
@@ -334,7 +338,7 @@ class TestSessionAPI(unittest.TestCase):
                 self.assertIn(fr_b, session_B)
                 self.assertIn(pr_b, session_B)
 
-    def test_iter(self):
+    def test_iter_magic(self):
         """Tests the __iter__ method functionality."""
         from simphony_osp.namespaces import city
 
@@ -551,6 +555,399 @@ class TestSessionAPI(unittest.TestCase):
 
         # Test the `graph` property.
         self.assertTrue(isinstance(ontology.graph, Graph))
+
+    def test_iter(self):
+        """Tests the `iter` method of the session."""
+        from simphony_osp.namespaces import city
+
+        pr = city.City(name="Paris", coordinates=[20, 10])
+
+        with Session() as session:
+            fr = city.City(name="Freiburg", coordinates=[100, 5])
+            lena = city.Citizen(name="Lena", age=90)
+            bob = city.Citizen(name="Bob", age=2)
+            stuehlinger = city.Neighborhood(
+                name="Stühlinger", coordinates=[100, 6]
+            )
+
+            # test exceptions
+            self.assertRaises(TypeError, session.iter, 89)
+            self.assertRaises(RuntimeError, session.iter, pr)
+            self.assertRaises(TypeError, session.iter, oclass=40)
+
+            # iter()
+            args = ()
+            kwargs = {}
+            self.assertIsInstance(session.iter(*args, **kwargs), Iterator)
+            self.assertEqual(4, len(tuple(session.iter(*args, **kwargs))))
+            self.assertSetEqual(
+                {lena, bob, fr, stuehlinger},
+                set(session.iter(*args, **kwargs)),
+            )
+
+            # iter(oclass=___)
+            args = ()
+            kwargs = {"oclass": city.Citizen}
+            self.assertIsInstance(session.iter(*args, **kwargs), Iterator)
+            self.assertEqual(2, len(tuple(session.iter(*args, **kwargs))))
+            self.assertSetEqual(
+                {lena, bob}, set(session.iter(*args, **kwargs))
+            )
+            kwargs = {"oclass": city.PopulatedPlace}
+            self.assertEqual(2, len(tuple(session.iter(*args, **kwargs))))
+            self.assertSetEqual(
+                {fr, stuehlinger}, set(session.iter(*args, **kwargs))
+            )
+            kwargs = {"oclass": city.City}
+            self.assertEqual(1, len(tuple(session.iter(*args, **kwargs))))
+            self.assertSetEqual({fr}, set(session.iter(*args, **kwargs)))
+
+            # iter(*individuals)
+            self.assertIsInstance(session.iter(fr), Iterator)
+            self.assertTupleEqual((fr,), tuple(session.iter(fr)))
+            self.assertTupleEqual(
+                (fr, fr, bob, bob, lena, None, None, None),
+                tuple(
+                    session.iter(
+                        fr,
+                        fr,
+                        bob,
+                        bob.identifier,
+                        str(lena.identifier),
+                        BNode(),
+                        URIRef("http://example.org/id"),
+                        "lxc",
+                    )
+                ),
+            )
+
+            # iter(*individuals, oclass=___)
+            self.assertIsInstance(session.iter(fr, oclass=city.City), Iterator)
+            self.assertTupleEqual(
+                (fr,), tuple(session.iter(fr, oclass=city.City))
+            )
+            self.assertTupleEqual(
+                (None,), tuple(session.iter(fr, oclass=city.Citizen))
+            )
+            self.assertTupleEqual(
+                (None, None, bob, bob, lena, None, None, None),
+                tuple(
+                    session.iter(
+                        fr,
+                        fr,
+                        bob,
+                        bob.identifier,
+                        str(lena.identifier),
+                        BNode(),
+                        URIRef("http://example.org/id"),
+                        "lxc",
+                        oclass=city.Citizen,
+                    )
+                ),
+            )
+            self.assertTupleEqual(
+                (fr, fr, None, None, None, None, None, None),
+                tuple(
+                    session.iter(
+                        fr,
+                        fr,
+                        bob,
+                        bob.identifier,
+                        str(lena.identifier),
+                        BNode(),
+                        URIRef("http://example.org/id"),
+                        "lxc",
+                        oclass=city.City,
+                    )
+                ),
+            )
+
+    def test_get(self):
+        """Tests the `get` method of the session."""
+        from simphony_osp.namespaces import city
+
+        pr = city.City(name="Paris", coordinates=[20, 10])
+
+        with Session() as session:
+            fr = city.City(name="Freiburg", coordinates=[100, 5])
+            lena = city.Citizen(name="Lena", age=90)
+            bob = city.Citizen(name="Bob", age=2)
+            stuehlinger = city.Neighborhood(
+                name="Stühlinger", coordinates=[100, 6]
+            )
+
+            # test exceptions
+            self.assertRaises(TypeError, session.get, 89)
+            self.assertRaises(RuntimeError, session.get, pr)
+            self.assertRaises(TypeError, session.get, oclass=40)
+
+            # get()
+            self.assertSetEqual({lena, bob, fr, stuehlinger}, session.get())
+
+            # get(oclass=___)
+            self.assertSetEqual({lena, bob}, session.get(oclass=city.Citizen))
+            self.assertSetEqual(
+                {fr, stuehlinger},
+                session.get(oclass=city.PopulatedPlace),
+            )
+            self.assertSetEqual({fr}, session.get(oclass=city.City))
+
+            # get(*individuals)
+            self.assertEqual(fr, session.get(fr))
+            self.assertEqual(None, session.get(BNode()))
+            self.assertTupleEqual(
+                (fr, fr, bob, bob, lena, None, None, None),
+                session.get(
+                    fr,
+                    fr,
+                    bob,
+                    bob.identifier,
+                    str(lena.identifier),
+                    BNode(),
+                    URIRef("http://example.org/id"),
+                    "lxc",
+                ),
+            )
+
+            # get(*individuals, oclass=___)
+            self.assertEqual(fr, session.get(fr, oclass=city.City))
+            self.assertEqual(None, session.get(fr, oclass=city.Citizen))
+            self.assertTupleEqual(
+                (None, None, bob, bob, lena, None, None, None),
+                session.get(
+                    fr,
+                    fr,
+                    bob,
+                    bob.identifier,
+                    str(lena.identifier),
+                    BNode(),
+                    URIRef("http://example.org/id"),
+                    "lxc",
+                    oclass=city.Citizen,
+                ),
+            )
+            self.assertTupleEqual(
+                (fr, fr, None, None, None, None, None, None),
+                session.get(
+                    fr,
+                    fr,
+                    bob,
+                    bob.identifier,
+                    str(lena.identifier),
+                    BNode(),
+                    URIRef("http://example.org/id"),
+                    "lxc",
+                    oclass=city.City,
+                ),
+            )
+
+    def test_session_set(self):
+        """Tests the `SessionSet` objects obtained from the `get` method.
+
+        Note that this whole file `test_api.py` only tests what the user can do
+        using the public API. This means that special characteristics of the
+        SessionSet are not tested here. Also, many of the methods of the
+        `SessionSet` are implicitly tested on `test_get`, such as the
+        `__iter__` method. Such details are omitted in this test.
+        """
+        from simphony_osp.namespaces import city
+
+        pr = city.City(name="Paris", coordinates=[20, 10])
+
+        with Session() as session:
+            fr = city.City(name="Freiburg", coordinates=[100, 5])
+            lena = city.Citizen(name="Lena", age=90)
+            bob = city.Citizen(name="Bob", age=2)
+            stuehlinger = city.Neighborhood(
+                name="Stühlinger", coordinates=[100, 6]
+            )
+
+            # Test `__contains__` method.
+            session_set = session.get()
+            self.assertNotIn(pr, session_set)
+            self.assertIn(fr, session_set)
+            self.assertIn(lena, session_set)
+            self.assertIn(bob, session_set)
+            self.assertIn(stuehlinger, session_set)
+            session_set = session.get(oclass=city.Citizen)
+            self.assertNotIn(pr, session_set)
+            self.assertNotIn(fr, session_set)
+            self.assertIn(lena, session_set)
+            self.assertIn(bob, session_set)
+            self.assertNotIn(stuehlinger, session_set)
+
+            # Test `update` method.
+            session_set = session.get()
+            session_set.update((fr, lena, bob))
+            session_set = session.get(oclass=city.Citizen)
+            self.assertRaises(RuntimeError, session_set.update, {fr})
+            session_set = session.get()
+            br_orig = city.City(
+                name="Berlin",
+                coordinates=[120, 40],
+                iri="http://example.org/cities#Berlin",
+            )
+            amir_orig = city.Citizen(
+                name="Amir", age=50, iri="http://example.org/people#Amir"
+            )
+            br_orig[city.hasInhabitant] = amir_orig
+            with Session():
+                br = city.City(
+                    name="Berlin",
+                    coordinates=[120, 40],
+                    iri="http://example.org/cities#Berlin",
+                )
+                markus = city.Citizen(
+                    name="Markus",
+                    age=37,
+                    iri="http://example.org/people#Markus",
+                )
+                amir = city.Citizen(
+                    name="Amir", age=53, iri="http://example.org/people#Amir"
+                )
+                br[city.hasInhabitant] = {amir, markus}
+
+                # verify that initial state is coherent
+                self.assertIn(amir_orig, session_set)
+                self.assertNotIn(amir, session_set)
+                self.assertSetEqual(
+                    {53},
+                    amir[city.age],
+                )
+                self.assertSetEqual({amir_orig}, br_orig[city.hasInhabitant])
+                # update with `amir` and verify state again
+                session_set.update({amir})
+                self.assertIn(amir_orig, session_set)
+                self.assertNotIn(amir, session_set)
+                self.assertSetEqual(
+                    {50, 53}, amir_orig[city.age]
+                )  # existing and new individuals are merged
+                self.assertSetEqual({53}, amir[city.age])
+                self.assertSetEqual(
+                    {amir_orig}, br_orig[city.hasInhabitant]
+                )  # updating amir does not break the connection to Berlin
+                session_set.update({markus})
+                self.assertSetEqual({amir_orig}, br_orig[city.hasInhabitant])
+                session_set.update(
+                    {markus}
+                )  # updating twice does not raise an error
+
+            # Test `intersection_update` method.
+            session_set = session.get()
+            self.assertTrue(len(session_set) > 4)
+            session_set.intersection_update({fr, lena, bob, stuehlinger})
+            self.assertSetEqual({fr, lena, bob, stuehlinger}, session_set)
+            session_set_class_filter = session.get(oclass=city.Citizen)
+            self.assertRaises(
+                RuntimeError,
+                session_set_class_filter.intersection_update,
+                {fr, stuehlinger},
+            )
+            self.assertSetEqual(
+                {fr, lena, bob, stuehlinger}, session_set
+            )  # intersection_update failed, no changes expected
+            with Session():
+                lena_new = city.Citizen(
+                    name="Lena", age=23, iri=lena.identifier
+                )
+                self.assertSetEqual(
+                    {90}, lena[city.age]
+                )  # in each session there is only one age
+                self.assertSetEqual(
+                    {23}, lena_new[city.age]
+                )  # in each session there is only one age
+                session_set.intersection_update({fr, lena_new, stuehlinger})
+                self.assertNotEqual(
+                    {fr, lena_new, stuehlinger}, session_set
+                )  # lena_new belongs to the new session
+                self.assertSetEqual(
+                    {fr, lena, stuehlinger}, session_set
+                )  # lena is the Python object pointing to the old session
+                self.assertSetEqual(
+                    {23, 90}, lena[city.age]
+                )  # in the old session now lena has two ages
+
+            # Test `difference_update` method.
+            session_set_class_filter = session.get(oclass=city.Citizen)
+            self.assertRaises(
+                RuntimeError,
+                session_set_class_filter.difference_update,
+                {stuehlinger},
+            )
+            session_set_class_filter.difference_update({pr})
+            # no error raised because Paris does not exist on the session
+            session_set.difference_update({bob})
+            self.assertSetEqual(
+                {fr, lena, stuehlinger}, session_set
+            )  # nothing happens because Bob's identifier is not in the session
+            session_set.difference_update({stuehlinger})
+            self.assertSetEqual({fr, lena}, session_set)
+
+            # Test `symmetric_difference_update` method.
+            bob = city.Citizen(name="Bob", age=2, iri=bob.identifier)
+            stuehlinger = city.Neighborhood(
+                name="Stühlinger",
+                coordinates=[100, 6],
+                iri=stuehlinger.identifier,
+            )
+            self.assertSetEqual({fr, lena, bob, stuehlinger}, session_set)
+            with Session():
+                altstadt = city.Neighborhood(
+                    name="Altstadt", coordinates=[0, 0]
+                )
+                session_set_class_filter = session.get(oclass=city.Citizen)
+                self.assertRaises(
+                    RuntimeError,
+                    session_set_class_filter.symmetric_difference_update,
+                    {altstadt},
+                )  # Altstadt has to be added
+                stuhlinger_citizen = city.Citizen(name="Stühlinger", age=18)
+                session_set_class_filter = session.get(
+                    oclass=city.Neighborhood
+                )
+                self.assertRaises(
+                    RuntimeError,
+                    session_set_class_filter.symmetric_difference_update,
+                    {stuhlinger_citizen},
+                )  # Stühlinger has to be deleted
+                br = city.City(
+                    name="Berlin",
+                    coordinates=[120, 40],
+                    iri="http://example.org/cities#Berlin",
+                )
+                markus = city.Citizen(
+                    name="Markus",
+                    age=37,
+                    iri="http://example.org/people#Markus",
+                )
+                session_set.symmetric_difference_update(
+                    {altstadt, br, markus, bob}
+                )
+                br = session.from_identifier(br.identifier)
+                altstadt = session.from_identifier(altstadt.identifier)
+                markus = session.from_identifier(markus.identifier)
+                self.assertSetEqual(
+                    {fr, br, lena, stuehlinger, markus, altstadt}, session_set
+                )
+
+            # Test `one` method.
+            session_set = session.get(oclass=city.City)
+            self.assertRaises(MultipleResultsError, session_set.one)
+            session.delete(br)
+            self.assertEqual(fr, session_set.one())
+            session_set = session.get(oclass=city.Neighborhood)
+            session.delete(altstadt, stuehlinger)
+            self.assertRaises(ResultEmptyError, session_set.one)
+
+            # Test `any` method.
+            session_set = session.get(oclass=city.Citizen)
+            self.assertIn(session_set.any(), {lena, markus})
+            session_set = session.get(oclass=city.Neighborhood)
+            self.assertIsNone(session_set.any())
+
+            # Test `all` method.
+            session_set = session.get()
+            self.assertIs(session_set.all(), session_set)
 
 
 class TestOntologyAPICity(unittest.TestCase):
