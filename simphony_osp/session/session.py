@@ -1114,7 +1114,7 @@ class Session(Environment):
             self._graph = base
 
         else:
-            graph = Graph("SimpleMemory")
+            graph = Graph()
             self._graph_writable = graph
             self._graph = graph
 
