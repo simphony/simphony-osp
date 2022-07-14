@@ -907,6 +907,8 @@ class Session(Environment):
 
             if len(identifiers) == 1:
                 entities = entities[0]
+            else:
+                entities = tuple(entities)
         else:
             entities = SessionSet(session=self, oclass=oclass)
 
@@ -969,10 +971,9 @@ class Session(Environment):
 
             if isinstance(x, str):
                 if not isinstance(x, Identifier):
-                    x = URIRef(x)
-                identifiers[i] = UID(x)
-            elif isinstance(x, OntologyEntity):
-                identifiers[i] = UID(x.identifier)
+                    identifiers[i] = URIRef(x)
+            elif isinstance(x, OntologyIndividual):
+                identifiers[i] = x.identifier
 
         if oclass is not None and not isinstance(oclass, OntologyClass):
             raise TypeError(
@@ -981,16 +982,25 @@ class Session(Environment):
             )
 
         if identifiers:
-            for i, identifier in identifiers:
-                try:
-                    entity = self.from_identifier(identifier)
-                except KeyError:
-                    entity = None
-                if entity and oclass and not entity.is_a(oclass):
-                    entity = None
-                yield entity
+
+            # The yield statement is encapsulated inside a function so that the
+            # main function uses the return statement instead of yield. In this
+            # way, exceptions are checked when the `iter` method is called
+            # instead of when asking for the first result.
+            def iterator() -> Iterator[Optional[OntologyIndividual]]:
+                for identifier in identifiers:
+                    try:
+                        entity = self.from_identifier(identifier)
+                    except KeyError:
+                        entity = None
+                    if entity and oclass and not entity.is_a(oclass):
+                        entity = None
+                    yield entity
+
+            return iterator()
+
         else:
-            yield from SessionSet(session=self, oclass=oclass)
+            return iter(SessionSet(session=self, oclass=oclass))
 
     # ↑ --------------------- Public API --------------------- ↑ #
 
