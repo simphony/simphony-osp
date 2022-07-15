@@ -14,8 +14,8 @@ setup(
     name=NAME,
     version=VERSION,
     description="Framework for creating interfaces between ontologies "
-                "and software such as simulation engines, databases and data "
-                "repositories.",
+    "and software such as simulation engines, databases and data "
+    "repositories.",
     long_description=README_TEXT,
     long_description_content_type="text/markdown",
     url="https://github.com/simphony",
@@ -42,8 +42,8 @@ setup(
         "Operating System :: Unix",
     ],
     keywords="owl, ontology, interoperability, materials-science, osp, "
-             "simphony, wrappers, open-simulation-platform,"
-             "Fraunhofer IWM",
+    "simphony, wrappers, open-simulation-platform,"
+    "Fraunhofer IWM",
     download_url="https://pypi.python.org/pypi/simphony-osp",
     project_urls={
         "Tracker": "https://github.com/simphony/simphony-osp/issues",
