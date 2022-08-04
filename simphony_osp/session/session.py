@@ -774,7 +774,7 @@ class Session(Environment):
         *individuals: Union[OntologyIndividual, Iterable[OntologyIndividual]],
         merge: bool = False,
         exists_ok: bool = False,
-        all_triples: bool = True,
+        all_triples: bool = False,
     ) -> Union[OntologyIndividual, FrozenSet[OntologyIndividual]]:
         """Copies the ontology entities to the session."""
         # Unpack iterables
