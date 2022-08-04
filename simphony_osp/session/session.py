@@ -834,8 +834,12 @@ class Session(Environment):
             for s, p, o in individual.session.graph.triples(
                 (individual.identifier, None, None)
             )
-            if (all_triples or p == RDF.type
-                or isinstance(o, Literal) or o in identifiers)
+            if (
+                all_triples
+                or p == RDF.type
+                or isinstance(o, Literal)
+                or o in identifiers
+            )
         )
         if not merge:
             """Replace previous individuals if merge is False."""

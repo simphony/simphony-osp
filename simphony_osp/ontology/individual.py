@@ -427,9 +427,9 @@ class RelationshipSet(ObjectSet):
                     )
                 except KeyError:
                     logger.warning(
-                        f'Ignoring identifier {identifier}, which does not '
-                        f'match an ontology individual belonging to a class in'
-                        f'the ontology.'
+                        f"Ignoring identifier {identifier}, which does not "
+                        f"match an ontology individual belonging to a class in"
+                        f"the ontology."
                     )
 
     def __contains__(self, item: OntologyIndividual) -> bool:

@@ -135,10 +135,9 @@ def import_file(
         for individual in buffer_session
         if isinstance(individual, OntologyIndividual)
     )
-    session.add(individuals,
-                exists_ok=True,
-                merge=False,
-                all_triples=all_triples)
+    session.add(
+        individuals, exists_ok=True, merge=False, all_triples=all_triples
+    )
 
     main = next(
         iter(
