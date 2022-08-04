@@ -774,6 +774,7 @@ class Session(Environment):
         *individuals: Union[OntologyIndividual, Iterable[OntologyIndividual]],
         merge: bool = False,
         exists_ok: bool = False,
+        all_triples: bool = True,
     ) -> Union[OntologyIndividual, FrozenSet[OntologyIndividual]]:
         """Copies the ontology entities to the session."""
         # Unpack iterables
@@ -833,7 +834,8 @@ class Session(Environment):
             for s, p, o in individual.session.graph.triples(
                 (individual.identifier, None, None)
             )
-            if (p == RDF.type or isinstance(o, Literal) or o in identifiers)
+            if (all_triples or p == RDF.type
+                or isinstance(o, Literal) or o in identifiers)
         )
         if not merge:
             """Replace previous individuals if merge is False."""

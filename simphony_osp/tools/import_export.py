@@ -25,6 +25,7 @@ def import_file(
     path_or_filelike: Union[str, TextIO, dict, List[dict]],
     session: Optional[Session] = None,
     format: str = None,
+    all_triples: bool = False,
 ) -> Union[OntologyIndividual, Set[OntologyIndividual]]:
     """Imports ontology individuals from a file and load them into a session.
 
@@ -47,6 +48,13 @@ def import_file(
             If no format is specified, then it will be guessed. Note that in
             some specific cases, the guess may be wrong. In such cases, try
             again specifying the format.
+        all_triples: When an RDF triple has an ontology relationship as
+            predicate, SimPhoNy checks that both the subject and the object
+            of such triple refer to a valid ontology individual, that is, that
+            an additional triple defining their types exist. When this is not
+            the case, SimPhoNy omits the triple. In some use cases, importing
+            those triples may be necessary. Change the value of this argument
+            to `True` to import them.
 
     Returns:
         A set with the imported ontology individuals. If an individual was
@@ -127,7 +135,10 @@ def import_file(
         for individual in buffer_session
         if isinstance(individual, OntologyIndividual)
     )
-    session.add(individuals, exists_ok=True, merge=False)
+    session.add(individuals,
+                exists_ok=True,
+                merge=False,
+                all_triples=all_triples)
 
     main = next(
         iter(
@@ -157,6 +168,7 @@ def export_file(
     file: Optional[Union[str, TextIO]] = None,
     main: Optional[Union[str, Identifier, OntologyIndividual]] = None,
     format: str = "text/turtle",
+    all_triples: bool = False,
 ) -> Union[str, None]:
     """Exports ontology individuals to a variety of formats.
 
@@ -174,6 +186,14 @@ def export_file(
         main: the identifier of an ontology individual to be marked as the
             "main" individual using the SimPhoNy ontology.
         format: the target format. Defaults to triples in turtle syntax.
+        all_triples: When an RDF triple has an ontology relationship as
+            predicate, SimPhoNy checks that both the subject and the object
+            of such triple refer to a valid ontology individual, that is, that
+            an additional triple defining their types exist. When this is not
+            the case, SimPhoNy omits the triple (unless the whole session is
+            being exported). In some use cases, exporting those triples may be
+            necessary. Change the value of this argument to `True` to export
+            them.
 
     Returns:
         The contents of the exported file as a string (if no `file` argument
@@ -246,7 +266,7 @@ def export_file(
         )
 
         # Add individuals and main individual triple
-        buffer_session.add(individuals_or_session)
+        buffer_session.add(individuals_or_session, all_triples=all_triples)
         if main:
             buffer_session.graph.add(main)
 

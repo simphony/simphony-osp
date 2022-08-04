@@ -420,12 +420,17 @@ class RelationshipSet(ObjectSet):
                 for identifier in identifiers
             )
         else:
-            yield from (
-                self._individual.session.from_identifier_typed(
-                    identifier, typing=OntologyIndividual
-                )
-                for identifier in connected
-            )
+            for identifier in connected:
+                try:
+                    yield self._individual.session.from_identifier_typed(
+                        identifier, typing=OntologyIndividual
+                    )
+                except KeyError:
+                    logger.warning(
+                        f'Ignoring identifier {identifier}, which does not '
+                        f'match an ontology individual belonging to a class in'
+                        f'the ontology.'
+                    )
 
     def __contains__(self, item: OntologyIndividual) -> bool:
         """Check if an individual is connected via the relationship."""
