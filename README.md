@@ -29,23 +29,23 @@ SimPhoNy is available on PyPI, so it can be installed using pip
 `pip install simphony-osp`
 
 Detailed installation instructions can be found
-[here](https://simphony.readthedocs.io/en/latest/installation.html).
+[here](https://simphony.readthedocs.io/en/v4.0.0rc3/introduction/installation.html).
 
 ## Documentation
 
 To learn how to use SimPhoNy, check out our documentation, which is located at
-<https://simphony.readthedocs.io>.
+<https://simphony.readthedocs.io/en/v4.0.0rc3/>.
 
 In addition, basic usage examples to
 quickly get started are available in the
-[`examples` folder](https://github.com/simphony/osp-core/tree/release/4/dev/examples).
+[`examples` folder](https://github.com/simphony/osp-core/tree/v4.0.0rc3/examples).
 
-If you want to build the documentation locally, refer to our [documentation repostitory](https://github.com/simphony/docs).
+If you want to build the documentation locally, refer to our [documentation repostitory](https://github.com/simphony/docs/tree/v4.0.0rc3).
 
 ## Contributing
 
 If you wish to contribute to SimPhoNy, please read the
-[contributing guidelines](https://github.com/simphony/osp-core/blob/release/4/dev/CONTRIBUTING.md).
+[contributing guidelines](https://github.com/simphony/osp-core/blob/v4.0.0rc3/CONTRIBUTING.md).
 
 ## Acknowledgements
 
