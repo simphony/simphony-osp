@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Iterable, Iterator, Optional
 
-from rdflib import OWL, RDFS, Literal, URIRef
+from rdflib import OWL, RDF, RDFS, Literal, URIRef
 from rdflib.term import Identifier
 
 from simphony_osp.ontology.entity import OntologyEntity
@@ -165,20 +165,29 @@ class OntologyAttribute(OntologyEntity):
         """
         yield self
 
-        def closure(node, graph):
-            yield from graph.subjects(RDFS.subPropertyOf, node)
-
-        for x in self.session.graph.transitiveClosure(
-            closure, self.identifier
-        ):
-            try:
-                yield self.session.from_identifier_typed(
-                    x, typing=OntologyAttribute
+        if self.identifier == OWL.topDataProperty:
+            yield from (
+                self.session.from_identifier_typed(s, typing=OntologyAttribute)
+                for s in self.session.graph.subjects(
+                    RDF.type, OWL.DatatypeProperty
                 )
-            except TypeError:
-                pass
-        # The filter makes sure that `OntologyAnnotation` and
-        #  `OntologyRelationship` objects are not superclasses, as
-        #  `RDFS.subPropertyOf` is used to establish class hierarchies of
-        #  rdf:Property, owl:DatatypeProperty, owl:ObjectProperty and
-        #  owl:AnnotationProperty.
+            )
+        else:
+
+            def closure(node, graph):
+                yield from graph.subjects(RDFS.subPropertyOf, node)
+
+            for x in self.session.graph.transitiveClosure(
+                closure, self.identifier
+            ):
+                try:
+                    yield self.session.from_identifier_typed(
+                        x, typing=OntologyAttribute
+                    )
+                except TypeError:
+                    pass
+            # The filter makes sure that `OntologyAnnotation` and
+            #  `OntologyRelationship` objects are not superclasses, as
+            #  `RDFS.subPropertyOf` is used to establish class hierarchies of
+            #  rdf:Property, owl:DatatypeProperty, owl:ObjectProperty and
+            #  owl:AnnotationProperty.

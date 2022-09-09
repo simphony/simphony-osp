@@ -42,7 +42,7 @@ class Composition(OntologyEntity):
         Returns:
             The operator Enum.
         """
-        operator, _ = self._get_operator_and_operands
+        operator, _ = self._get_operator_and_operands()
         return operator
 
     @property
@@ -54,7 +54,7 @@ class Composition(OntologyEntity):
         Returns:
             The operands.
         """
-        _, operands = self._get_operator_and_operands
+        _, operands = self._get_operator_and_operands()
         return tuple(operands)
 
     def __str__(self) -> str:

@@ -230,11 +230,16 @@ def find_relationships(
     return find(criterion=criterion, root=root, rel=rel, find_all=True)
 
 
-def sparql(query: str, session: Optional[Session] = None) -> QueryResult:
+def sparql(
+    query: str, ontology: bool = False, session: Optional[Session] = None
+) -> QueryResult:
     """Performs a SPARQL query on a session.
 
     Args:
         query: A string with the SPARQL query to perform.
+        ontology: Whether to include the ontology in the query or not.
+            When the ontology is included, only read-only queries are
+            possible.
         session: The session on which the SPARQL query will be performed. If no
             session is specified, then the current default session is used.
             This means that, when no session is specified, inside session
@@ -248,4 +253,4 @@ def sparql(query: str, session: Optional[Session] = None) -> QueryResult:
         variable can be retrieved as follows: `row['variable']`.
     """
     session = session or Session.get_default_session()
-    return session.sparql(query)
+    return session.sparql(query, ontology=ontology)

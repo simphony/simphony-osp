@@ -112,10 +112,7 @@ class OntologyRelationship(OntologyEntity):
         """
         yield self
 
-        def closure(node, graph):
-            yield from graph.subjects(RDFS.subPropertyOf, node)
-
-        if self.iri == OWL.topObjectProperty:
+        if self.identifier == OWL.topObjectProperty:
             yield from (
                 self.session.from_identifier_typed(
                     s, typing=OntologyRelationship
@@ -125,6 +122,10 @@ class OntologyRelationship(OntologyEntity):
                 )
             )
         else:
+
+            def closure(node, graph):
+                yield from graph.subjects(RDFS.subPropertyOf, node)
+
             yield from (
                 self.session.from_identifier_typed(
                     x, typing=OntologyRelationship

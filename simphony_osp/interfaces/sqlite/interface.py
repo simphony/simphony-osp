@@ -27,6 +27,8 @@ class SQLite(SQLAlchemy):
             raise FileNotFoundError(
                 f"Database file {configuration} does not " f"exist."
             )
-        return super().open(configuration="sqlite:///" + configuration)
+        return super().open(
+            configuration="sqlite:///" + configuration, create=create
+        )
 
     # ↑ ---------------- ↑
