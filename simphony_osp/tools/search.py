@@ -48,7 +48,7 @@ def find(
             float("inf") (unlimited).
 
     Returns:
-        The element(s) found. One element (or `None` is returned when
+        The element(s) found. One element (or `None`) is returned when
         `find_all` is `False`, a generator when `find_all` is True.
     """
     if isinstance(rel, (OntologyRelationship, Node)):
@@ -202,10 +202,11 @@ def find_relationships(
         Iterable[Union[OntologyRelationship, Node]],
     ] = OWL.topObjectProperty,
 ) -> Iterator[OntologyIndividual]:
-    """Find the given relationship in the subtree of the given root.
+    """Find given relationship in the subgraph reachable from the given root.
 
     Args:
-        root: Only consider the subgraph rooted in this root.
+        root: Only consider the subgraph of individuals reachable from this
+            root.
         find_rel: The relationship to find.
         find_sub_relationships: Treat relationships that are a
             sub-relationship of the relationship to find as valid results.

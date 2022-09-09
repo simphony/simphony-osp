@@ -1,4 +1,4 @@
-"""Pico is a commandline tool used to install ontologies."""
+"""Pico is a tool used to install ontologies."""
 
 import argparse
 import logging
@@ -25,9 +25,8 @@ def install(*files: Union[Path, str], overwrite: bool = False) -> None:
     """Install ontology packages.
 
     Args:
-        files: Paths of `yml` files describing the ontologies to install.
-            Alternatively, identifiers of ontology packages that are
-            bundled with SimPhoNy.
+        files: Paths of ontology packages to install. Alternatively,
+            identifiers of ontology packages that are bundled with SimPhoNy.
         overwrite: Whether to overwrite already installed ontology
             packages.
     """

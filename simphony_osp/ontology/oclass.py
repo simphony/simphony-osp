@@ -69,8 +69,8 @@ class OntologyClass(OntologyEntity):
         """Get the attributes of this class.
 
         The attributes that all instances of this class are expected to
-        have. A class can have attributes because one of its superclasses (
-        including itself) has a default value for an attribute, or because
+        have. A class can have attributes because one of its superclasses
+        (including itself) has a default value for an attribute, or because
         the axioms affecting the superclass explicitly state that the class has
         such an attribute.
         """
@@ -91,10 +91,31 @@ class OntologyClass(OntologyEntity):
         return MappingProxyType(attributes)
 
     @property
-    def axioms(self) -> FrozenSet[Restriction]:
+    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
+    def optional_attributes(self) -> FrozenSet[OntologyAttribute]:
+        """Get the optional attributes of this class.
+
+        The optional attributes are the non-mandatory attributes (those not
+        returned by the `attributes` property) that have the class defined
+        as their domain, or any of its superclasses.
+        """
+        superclass: OntologyClass
+        attributes = frozenset(
+            self._direct_optional_attributes
+            | {
+                attribute
+                for superclass in self.direct_superclasses
+                for attribute in superclass.optional_attributes
+            }
+        )
+        return attributes
+
+    @property
+    def axioms(self) -> FrozenSet[Union[Restriction, Composition]]:
         """Get all the axioms for the ontology class.
 
-        Includes axioms inherited from its superclasses.
+        Axioms are OWL Restrictions and Compositions. Includes axioms inherited
+        from its superclasses.
 
         Returns:
             Axioms for the ontology class.
@@ -112,37 +133,39 @@ class OntologyClass(OntologyEntity):
     def __call__(
         self,
         session=None,
-        iri: Optional[Union[URIRef, str, UID]] = None,
-        uid: Optional[Union[UID, UUID, str, Node, int, bytes]] = None,
+        iri: Optional[Union[URIRef, str]] = None,
+        identifier: Optional[Union[UUID, str, Node, int, bytes]] = None,
         _force: bool = False,
         **kwargs,
     ):
         """Create an OntologyIndividual object from this ontology class.
 
         Args:
-            uid: The identifier of the Cuds object. Should be set to None in
-                most cases. Then a new identifier is generated, defaults to
-                None. Defaults to None.
-            iri: The same as the uid, but exclusively for IRI identifiers.
-            session (Session, optional): The session to create the cuds object
-                in, defaults to None. Defaults to None.
-            _force: Skip validity checks. Defaults to False.
+            identifier: The identifier of the ontology individual. When set to
+                a string, has the same effect as the keyword argument `iri`.
+                When set to`None`, a new identifier with a random UUID is
+                generated. When set to any of the other accepted types, the
+                given value is used to generate the UUID of the identifier.
+                Defaults to None.
+            iri: The same as the identifier, but exclusively for IRI
+                identifiers.
+            session: The session that the ontology individual will be stored
+                in. Defaults to `None` (the default session).
 
         Raises:
             TypeError: Error occurred during instantiation.
 
         Returns:
-            Cuds, The created cuds object
+            The new ontology individual.
         """
-        # TODO: Create ontology individuals, NOT CUDS objects.
-        if None not in (uid, iri):
+        if None not in (identifier, iri):
             raise ValueError(
                 "Tried to initialize an ontology individual, both its IRI and "
                 "UID. An ontology individual is constrained to have just one "
                 "UID."
             )
-        elif uid is not None and not isinstance(
-            uid, (UID, UUID, str, Node, int, bytes)
+        elif identifier is not None and not isinstance(
+            identifier, (UID, UUID, str, Node, int, bytes)
         ):
             raise ValueError(
                 "Provide an object of one of the following types as UID: "
@@ -154,8 +177,8 @@ class OntologyClass(OntologyEntity):
                 + ",".join(str(x) for x in (URIRef, str, UID))
             )
         else:
-            uid = (
-                (UID(uid) if uid else None)
+            identifier = (
+                (UID(identifier) if identifier else None)
                 or (UID(iri) if iri else None)
                 or UID()
             )
@@ -165,7 +188,7 @@ class OntologyClass(OntologyEntity):
         # build attributes dictionary by combining
         # kwargs and defaults
         return OntologyIndividual(
-            uid=uid,
+            uid=identifier,
             session=session,
             class_=self,
             attributes=self._kwargs_to_attributes(kwargs, _skip_checks=_force),
@@ -192,26 +215,6 @@ class OntologyClass(OntologyEntity):
         """
         super().__init__(uid, session, triples, merge=merge)
 
-    @property
-    @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
-    def optional_attributes(self) -> FrozenSet[OntologyAttribute]:
-        """Get the optional attributes of this class.
-
-        The optional attributes are the non-mandatory attributes (those not
-        returned by the `attributes` property) that have the class defined
-        as their domain, or any of its superclasses.
-        """
-        superclass: OntologyClass
-        attributes = frozenset(
-            self._direct_optional_attributes
-            | {
-                attribute
-                for superclass in self.direct_superclasses
-                for attribute in superclass.optional_attributes
-            }
-        )
-        return attributes
-
     @lru_cache_timestamp(lambda self: self.session.entity_cache_timestamp)
     def _compute_axioms(
         self, identifier: Identifier, predicate: URIRef
@@ -228,7 +231,7 @@ class OntologyClass(OntologyEntity):
         Returns:
             Tuple of computed axioms.
         """
-        axioms: Set[Restriction] = set()
+        axioms: Set[Union[Restriction, Composition]] = set()
         for o in self.session.graph.objects(identifier, predicate):
             if not isinstance(o, BNode):
                 continue

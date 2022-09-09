@@ -82,7 +82,7 @@ class TestSessionAPI(unittest.TestCase):
                 self.assertIs(abox.ontology, ontology)
 
     def test_label_properties(self):
-        """Test the label_properties attribute of a session.
+        """Test the label_predicates attribute of a session.
 
         The test also changes the properties and verifies that the session
         reacts as expected.
@@ -90,9 +90,9 @@ class TestSessionAPI(unittest.TestCase):
         from simphony_osp.namespaces import city
 
         with Session() as session:
-            self.assertIsInstance(session.label_properties, tuple)
+            self.assertIsInstance(session.label_predicates, tuple)
             self.assertTrue(
-                all(isinstance(x, URIRef) for x in session.label_properties)
+                all(isinstance(x, URIRef) for x in session.label_predicates)
             )
 
             fr = city.City(name="Freiburg", coordinates=[0, 0])
@@ -115,7 +115,7 @@ class TestSessionAPI(unittest.TestCase):
 
             self.assertEqual(fr.label, "Freiburg prefLabel")
 
-            session.label_properties = (RDFS.label, SKOS.prefLabel)
+            session.label_predicates = (RDFS.label, SKOS.prefLabel)
             self.assertEqual(fr.label, "Freiburg label")
 
     def test_label_languages(self):
