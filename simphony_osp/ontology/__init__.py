@@ -8,9 +8,9 @@ from simphony_osp.ontology.entity import OntologyEntity
 from simphony_osp.ontology.individual import (
     AnnotationSet,
     AttributeSet,
+    MultipleResultsError,
     OntologyIndividual,
     RelationshipSet,
-    MultipleResultsError,
     ResultEmptyError,
 )
 from simphony_osp.ontology.namespace import OntologyNamespace
