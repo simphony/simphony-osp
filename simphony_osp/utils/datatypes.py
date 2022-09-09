@@ -141,7 +141,7 @@ class Vector(CustomDataType):
     #     of vector objects.
     #   - Implement some operations with numpy arrays that return numpy arrays,
     #     just as it was done in the AttributeSet case.
-    iri = URIRef("https://www.simphony-project.eu/types#Vector")
+    iri = URIRef("https://www.simphony-osp.eu/types#Vector")
 
     _ELEMENT_LEN: int = 3
     _DTYPE_LEN: int = 1
@@ -311,7 +311,7 @@ class UID(CustomDataType):
     you are welcome to use this custom data type.
     """
 
-    iri = URIRef("https://www.simphony-project.eu/types#UID")
+    iri = URIRef("https://www.simphony-osp.eu/types#UID")
     data: Union[Node, UUID]
 
     __slots__ = ("data",)
@@ -431,7 +431,7 @@ for datatype in (UID, UUID, URIRef, str, int, bytes):
         datatype_specific=True,
     )
 
-ENTITY_IRI_PREFIX = "https://www.simphony-project.eu/entity#"
+ENTITY_IRI_PREFIX = "https://www.simphony-osp.eu/entity#"
 
 # --- RDF TO PYTHON --- #
 

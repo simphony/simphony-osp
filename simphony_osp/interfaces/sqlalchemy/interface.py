@@ -11,9 +11,7 @@ from simphony_osp.interfaces.interface import BufferType, Interface
 class SQLAlchemy(Interface):
     """An interface to an SQL database using SQLAlchemy."""
 
-    _identifier: Identifier = URIRef(
-        "https://www.simphony-project.eu/SQLAlchemy"
-    )
+    _identifier: Identifier = URIRef("https://www.simphony-osp.eu/SQLAlchemy")
     """The identifier of the graph serving as context of the saved triples."""
 
     _uri: Optional[str] = None

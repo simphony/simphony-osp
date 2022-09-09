@@ -1,12 +1,12 @@
-@prefix : <https://www.simphony-project.eu/city#> .
+@prefix : <https://www.simphony-osp.eu/city#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@base <https://www.simphony-project.eu/city#> .
+@base <https://www.simphony-osp.eu/city#> .
 
-<https://www.simphony-project.eu/city#> rdf:type owl:Ontology ;
+<https://www.simphony-osp.eu/city#> rdf:type owl:Ontology ;
                                  owl:versionIRI :version_4.0.0 ;
                                  rdfs:comment "Sample ontology for SimPhoNy OSP."@en .
 
@@ -14,41 +14,41 @@
 #    Datatypes
 #################################################################
 
-###  https://www.simphony-project.eu/types#Vector
-<https://www.simphony-project.eu/types#Vector> rdf:type rdfs:Datatype .
+###  https://www.simphony-osp.eu/types#Vector
+<https://www.simphony-osp.eu/types#Vector> rdf:type rdfs:Datatype .
 
 
 #################################################################
 #    Object Properties
 #################################################################
 
-###  https://www.simphony-project.eu/city#encloses
+###  https://www.simphony-osp.eu/city#encloses
 :encloses rdf:type owl:ObjectProperty ;
           owl:inverseOf :isEnclosedBy ;
           rdfs:label "encloses"@en .
 
 
-###  https://www.simphony-project.eu/city#hasChild
+###  https://www.simphony-osp.eu/city#hasChild
 :hasChild rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf :hasPart ;
           owl:inverseOf :isChildOf ;
           rdfs:label "has child"@en .
 
 
-###  https://www.simphony-project.eu/city#hasInhabitant
+###  https://www.simphony-osp.eu/city#hasInhabitant
 :hasInhabitant rdf:type owl:ObjectProperty ;
                rdfs:subPropertyOf :encloses ;
                rdfs:label "has inhabitant"@en .
 
 
-###  https://www.simphony-project.eu/city#hasMajor
+###  https://www.simphony-osp.eu/city#hasMajor
 :hasMajor rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf :hasWorker ;
           rdfs:range :Citizen ;
           rdfs:label "has major"@en .
 
 
-###  https://www.simphony-project.eu/city#hasPart
+###  https://www.simphony-osp.eu/city#hasPart
 :hasPart rdf:type owl:ObjectProperty ;
          rdfs:subPropertyOf :encloses ;
          owl:inverseOf :isPartOf ;
@@ -56,7 +56,7 @@
          rdfs:label "has part"@en .
 
 
-###  https://www.simphony-project.eu/city#hasWorker
+###  https://www.simphony-osp.eu/city#hasWorker
 :hasWorker rdf:type owl:ObjectProperty ;
            rdfs:subPropertyOf :hasPart ;
            owl:inverseOf :worksIn ;
@@ -64,24 +64,24 @@
            rdfs:label "has worker"@en .
 
 
-###  https://www.simphony-project.eu/city#isChildOf
+###  https://www.simphony-osp.eu/city#isChildOf
 :isChildOf rdf:type owl:ObjectProperty ;
            rdfs:subPropertyOf :isPartOf ;
            rdfs:label "is child of"@en .
 
 
-###  https://www.simphony-project.eu/city#isEnclosedBy
+###  https://www.simphony-osp.eu/city#isEnclosedBy
 :isEnclosedBy rdf:type owl:ObjectProperty ;
               rdfs:label "is enclosed by"@en .
 
 
-###  https://www.simphony-project.eu/city#isPartOf
+###  https://www.simphony-osp.eu/city#isPartOf
 :isPartOf rdf:type owl:ObjectProperty ;
           rdfs:subPropertyOf :isEnclosedBy ;
           rdfs:label "is part of"@en .
 
 
-###  https://www.simphony-project.eu/city#worksIn
+###  https://www.simphony-osp.eu/city#worksIn
 :worksIn rdf:type owl:ObjectProperty ;
          rdfs:subPropertyOf :isPartOf ;
          rdfs:label "works in"@en .
@@ -91,32 +91,32 @@
 #    Data properties
 #################################################################
 
-###  https://www.simphony-project.eu/city#age
+###  https://www.simphony-osp.eu/city#age
 :age rdf:type owl:DatatypeProperty ;
      rdfs:subPropertyOf :number ;
      rdfs:label "age"@en .
 
 
-###  https://www.simphony-project.eu/city#coordinates
+###  https://www.simphony-osp.eu/city#coordinates
 :coordinates rdf:type owl:DatatypeProperty ;
-             rdfs:range <https://www.simphony-project.eu/types#Vector> ;
+             rdfs:range <https://www.simphony-osp.eu/types#Vector> ;
              rdfs:label "coordinates"@en .
 
 
-###  https://www.simphony-project.eu/city#name
+###  https://www.simphony-osp.eu/city#name
 :name rdf:type owl:DatatypeProperty ,
                owl:FunctionalProperty ;
       rdfs:range xsd:string ;
       rdfs:label "name"@en .
 
 
-###  https://www.simphony-project.eu/city#number
+###  https://www.simphony-osp.eu/city#number
 :number rdf:type owl:DatatypeProperty ;
         rdfs:range xsd:integer ;
         rdfs:label "number"@en .
 
 
-###  https://www.simphony-project.eu/city#postalCode
+###  https://www.simphony-osp.eu/city#postalCode
 :postalCode rdf:type owl:DatatypeProperty ;
             rdfs:subPropertyOf :number ;
             rdfs:label "postal code"@en .
@@ -126,7 +126,7 @@
 #    Classes
 #################################################################
 
-###  https://www.simphony-project.eu/city#Address
+###  https://www.simphony-osp.eu/city#Address
 :Address rdf:type owl:Class ;
          rdfs:subClassOf [ rdf:type owl:Restriction ;
                            owl:onProperty :isPartOf ;
@@ -148,18 +148,18 @@
          rdfs:label "Address"@en .
 
 
-###  https://www.simphony-project.eu/city#ArchitecturalComponent
+###  https://www.simphony-osp.eu/city#ArchitecturalComponent
 :ArchitecturalComponent rdf:type owl:Class ;
                         rdfs:label "Architectural Component"@en .
 
 
-###  https://www.simphony-project.eu/city#ArchitecturalStructure
+###  https://www.simphony-osp.eu/city#ArchitecturalStructure
 :ArchitecturalStructure rdf:type owl:Class ;
                         rdfs:subClassOf :GeographicalPlace ;
                         rdfs:label "Architectural Structure"@en .
 
 
-###  https://www.simphony-project.eu/city#Building
+###  https://www.simphony-osp.eu/city#Building
 :Building rdf:type owl:Class ;
           rdfs:subClassOf :ArchitecturalStructure ,
                           [ rdf:type owl:Restriction ;
@@ -179,13 +179,13 @@
           rdfs:label "Building"@en .
 
 
-###  https://www.simphony-project.eu/city#Citizen
+###  https://www.simphony-osp.eu/city#Citizen
 :Citizen rdf:type owl:Class ;
          rdfs:subClassOf :Person ;
          rdfs:label "Citizen"@en .
 
 
-###  https://www.simphony-project.eu/city#City
+###  https://www.simphony-osp.eu/city#City
 :City rdf:type owl:Class ;
       rdfs:subClassOf :PopulatedPlace ,
                       [ rdf:type owl:Restriction ;
@@ -200,13 +200,13 @@
       rdfs:label "City"@en .
 
 
-###  https://www.simphony-project.eu/city#Floor
+###  https://www.simphony-osp.eu/city#Floor
 :Floor rdf:type owl:Class ;
        rdfs:subClassOf :ArchitecturalComponent ;
        rdfs:label "Floor"@en .
 
 
-###  https://www.simphony-project.eu/city#GeographicalPlace
+###  https://www.simphony-osp.eu/city#GeographicalPlace
 :GeographicalPlace rdf:type owl:Class ;
                    rdfs:subClassOf [ rdf:type owl:Restriction ;
                                      owl:onProperty :name ;
@@ -215,7 +215,7 @@
                    rdfs:label "Geographical Place"@en .
 
 
-###  https://www.simphony-project.eu/city#LivingBeing
+###  https://www.simphony-osp.eu/city#LivingBeing
 :LivingBeing rdf:type owl:Class ;
              rdfs:subClassOf [ rdf:type owl:Restriction ;
                                owl:onProperty :isChildOf ;
@@ -234,7 +234,7 @@
              rdfs:label "Living Being"@en .
 
 
-###  https://www.simphony-project.eu/city#Neighborhood
+###  https://www.simphony-osp.eu/city#Neighborhood
 :Neighborhood rdf:type owl:Class ;
               rdfs:subClassOf :PopulatedPlace ,
                               [ rdf:type owl:Restriction ;
@@ -249,7 +249,7 @@
               rdfs:label "Neighborhood"@en .
 
 
-###  https://www.simphony-project.eu/city#Person
+###  https://www.simphony-osp.eu/city#Person
 :Person rdf:type owl:Class ;
         rdfs:subClassOf :LivingBeing ,
                         [ rdf:type owl:Restriction ;
@@ -260,7 +260,7 @@
         rdfs:label "Person"@en .
 
 
-###  https://www.simphony-project.eu/city#PopulatedPlace
+###  https://www.simphony-osp.eu/city#PopulatedPlace
 :PopulatedPlace rdf:type owl:Class ;
                 rdfs:subClassOf :GeographicalPlace ,
                                 [ rdf:type owl:Restriction ;
@@ -278,7 +278,7 @@
                 rdfs:label "Populated Place"@en .
 
 
-###  https://www.simphony-project.eu/city#Street
+###  https://www.simphony-osp.eu/city#Street
 :Street rdf:type owl:Class ;
         rdfs:subClassOf :PopulatedPlace ,
                         [ rdf:type owl:Restriction ;
