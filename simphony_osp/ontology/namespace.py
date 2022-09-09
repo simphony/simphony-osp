@@ -20,34 +20,23 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyNamespace:
-    """An ontology namespace."""
+    """An ontology namespace.
+
+    Ontology namespace objects allow access to the terminological knowledge
+    from the installed ontologies.
+    """
 
     # Public API
     # ↓ ------ ↓
 
-    def __init__(
-        self,
-        iri: Union[str, URIRef],
-        ontology: Optional[Session] = None,
-        name: Optional[str] = None,
-    ):
-        """Initialize a namespace object.
-
-        Args:
-            iri: The IRI of the namespace.
-            ontology: The ontology to which the namespace is connected.
-            name: The name of the namespace
-        """
-        from simphony_osp.session.session import Session
-
-        ontology = ontology or Session.get_default_session()
-        self._iri = URIRef(iri)
-        self._ontology = ontology
-        ontology.bind(name, iri)
-
     @property
     def name(self) -> Optional[str]:
-        """The name of the namespace."""
+        """The name of the namespace.
+
+        For namespaces that have been imported from the
+        `simphony_osp.namespaces` module, this name matches the alias given to
+        the namespace in its ontology package.
+        """
         return self.ontology.get_namespace_bind(self)
 
     @property
@@ -55,13 +44,11 @@ class OntologyNamespace:
         """The IRI of the namespace."""
         return self._iri
 
-    @property
-    def ontology(self) -> Session:
-        """Returns the session that the namespace is bound to."""
-        return self._ontology
-
     def __eq__(self, other: OntologyNamespace) -> bool:
         """Check whether the two namespace objects are equal.
+
+        Two namespace objects are considered to be equal when both have the
+        same IRI and are bound to the same session.
 
         Args:
             other: The namespace object to compare with.
@@ -75,16 +62,8 @@ class OntologyNamespace:
             and self.iri == other.iri
         )
 
-    def __hash__(self) -> int:
-        """Hash the namespace.
-
-        The namespace is defined by its IRI and its underlying data
-        structure (the ontology), which are immutable attributes.
-        """
-        return hash((self.ontology, self.iri))
-
     def __getattr__(self, name: str) -> OntologyEntity:
-        """Get an entity from the ontology associated to the namespace.
+        """Retrieve an entity by suffix or label.
 
         Args:
             name: The label or namespace suffix of the ontology entity.
@@ -101,14 +80,14 @@ class OntologyNamespace:
         except KeyError as e:
             raise AttributeError(str(e)) from e
 
-    def __getitem__(self, label: str) -> OntologyEntity:
-        """Get an entity from the ontology associated to the namespace.
+    def __getitem__(self, name: str) -> OntologyEntity:
+        """Retrieve an entity by suffix or label.
 
         Useful for entities whose labels or suffixes contain characters which
-        are not compatible with the Python syntax.
+        are not compatible with the Python syntax rules.
 
         Args:
-            label: The label of the ontology entity.
+            name: The suffix or label of the ontology entity.
 
         Raises:
             KeyError: Unknown label or suffix.
@@ -117,14 +96,14 @@ class OntologyNamespace:
         Returns:
             An ontology entity with matching label or suffix.
         """
-        if not isinstance(label, str):
+        if not isinstance(name, str):
             exception = TypeError(
                 f"{str(type(self)).capitalize()} indices must be"
                 f"of type {str}."
             )
             raise exception
 
-        return self.get(label)
+        return self.get(name)
 
     def __dir__(self) -> Iterable[str]:
         """Attributes available for the OntologyNamespace class.
@@ -159,13 +138,19 @@ class OntologyNamespace:
         return (entity for entity in iter(self.ontology) if entity in self)
 
     def __contains__(self, item: Union[OntologyEntity, Identifier]) -> bool:
-        """Check whether the given entity is part of the namespace.
+        """Check whether the given ontology entity is part of the namespace.
+
+        An ontology entity is considered to be part of a namespace if its IRI
+        starts with the namespace IRI and if it is part of the session that
+        the namespace is bound to. Identifiers are only required to start with
+        the namespace IRI to be considered part of the namespace object. Blank
+        nodes are never part of a namespace.
 
         Args:
             item: An ontology entity or identifier.
 
         Returns:
-            Whether the given entity name or IRI is part of the namespace.
+            Whether the given entity or identifier is part of the namespace.
             Blank nodes are never part of a namespace.
         """
         if isinstance(item, Identifier) and not isinstance(item, URIRef):
@@ -193,14 +178,15 @@ class OntologyNamespace:
         lambda self: self.ontology.entity_cache_timestamp, maxsize=4096
     )
     def get(self, name: str, default: Optional[Any] = None) -> OntologyEntity:
-        """Get ontology entities from the registry by suffix or label.
+        """Get ontology entities from the bounded session by suffix or label.
 
         Args:
             name: The label or suffix of the ontology entity.
-            default: The value to return if no entity is found.
+            default: The entity to return if no entity with such label or
+                suffix is found.
 
         Raises:
-            KeyError: Unknown label or suffix.
+            KeyError: Unknown label or suffix (and no default given).
             KeyError: Multiple entities for the given label or suffix.
 
         Returns:
@@ -335,6 +321,40 @@ class OntologyNamespace:
     # ↑ ------ ↑
     # Public API
 
+    @property
+    def ontology(self) -> Session:
+        """Returns the session that the namespace is bound to.
+
+        Retrieving entities from this namespace object actually implies
+        retrieving them from such session. Namespace objects imported from the
+        module `simphony_osp.namespaces` are bound to the "default ontology"
+        session, which contains all the ontology entities from the ontologies
+        that were installed using pico.
+        """
+        return self._ontology
+
+    def __init__(
+        self,
+        iri: Union[str, URIRef],
+        ontology: Optional[Session] = None,
+        name: Optional[str] = None,
+    ):
+        """Initialize a namespace object.
+
+        Args:
+            iri: The IRI of the namespace.
+            ontology: The session that the namespace object is bound to (see
+                the docstring of the `ontology` property).
+            name: The name of the namespace (see the docstring of the `name`
+                property).
+        """
+        from simphony_osp.session.session import Session
+
+        ontology = ontology or Session.get_default_session()
+        self._iri = URIRef(iri)
+        self._ontology = ontology
+        ontology.bind(name, iri)
+
     def __str__(self) -> str:
         """Transform the namespace to a human-readable string.
 
@@ -350,6 +370,14 @@ class OntologyNamespace:
             The resulting string.
         """
         return f"<{self.name}: {self.iri}>"
+
+    def __hash__(self) -> int:
+        """Hash the namespace.
+
+        The namespace is defined by its IRI and its underlying data
+        structure (the ontology), which are immutable attributes.
+        """
+        return hash((self.ontology, self.iri))
 
     @lru_cache_timestamp(
         lambda self: self.ontology.entity_cache_timestamp, maxsize=4096

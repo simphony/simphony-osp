@@ -25,7 +25,12 @@ logger = logging.getLogger(__name__)
 
 
 class Semantic2Dot:
-    """Utility for creating a dot and png representation of semantic data."""
+    """Class for ojects returned by the `semantic2dot` plotting tool.
+
+    Objects of this class produced as outcome of calling the `semantic2dot`
+    plotting tool. They hold the graph information and can be used either to
+    display it in a Jupyter notebook or render the graph to a file.
+    """
 
     def __init__(
         self,
@@ -526,11 +531,15 @@ def semantic2dot(
         Union[OntologyRelationship, Iterable[OntologyRelationship]]
     ] = None,
 ) -> Semantic2Dot:
-    """Utility for plotting ontologies.
+    """Utility for plotting ontology entities.
 
-    Plot A-Boxes (ontology individuals) and the relationships between them,
-    plot T-Boxes (classes, relationships and attributes), or a combination
-    of them.
+    Note: If you are reading the SimPhoNy documentation API Reference, it
+    is likely that you cannot read this docstring. As a workaround, click
+    the `source` button to read it in its raw form.
+
+    Plot assertional knowledge (ontology individuals and the relationships
+    between them), plot terminological knowledge
+    (classes, relationships and attributes), or a combination of them.
 
     Args:
         elements: Elements to plot:
@@ -542,7 +551,7 @@ def semantic2dot(
                 multiple are provided;
         rel: When not `None` and when plotting an ontology individual, calls
             uses the method `find(individual, rel=rel, find_all=True)` from
-            `simphony_osp.tools` to additionally plot such individuals.
+            `simphony_osp.tools.search` to additionally plot such individuals.
     """
     return Semantic2Dot(*elements, rel=rel)
 
