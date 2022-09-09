@@ -2539,12 +2539,12 @@ class TestToolsImportExport(unittest.TestCase):
             json_doc = json.loads(file.read())
         with Session() as session:
             c = branch(
-                city.City(name="Freiburg", coordinates=[0, 0], uid=1),
+                city.City(name="Freiburg", coordinates=[0, 0], identifier=1),
                 city.Neighborhood(
-                    name="Littenweiler", coordinates=[0, 0], uid=2
+                    name="Littenweiler", coordinates=[0, 0], identifier=2
                 ),
                 city.Street(
-                    name="Schwarzwaldstraße", coordinates=[0, 0], uid=3
+                    name="Schwarzwaldstraße", coordinates=[0, 0], identifier=3
                 ),
                 rel=city.hasPart,
             )
