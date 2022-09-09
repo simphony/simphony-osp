@@ -2,4 +2,4 @@ identifier: simphony
 ontology_file: simphony.ttl
 format: 'turtle'
 namespaces:
-    simphony: https://www.simphony-project.eu/simphony#
+    simphony: https://www.simphony-osp.eu/simphony#
