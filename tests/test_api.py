@@ -1786,12 +1786,16 @@ class TestOntologyAPIFOAF(unittest.TestCase):
         with tempfile.NamedTemporaryFile(
             "w", suffix=".yml", delete=False
         ) as file:
-            foaf_modified: str = """
+            foaf_url = (
+                "https://web.archive.org/web/20220614185720if_/"
+                "http://xmlns.com/foaf/spec/index.rdf"
+            )
+            foaf_modified: str = f"""
             identifier: foaf
             format: xml
             namespaces:
               foaf: http://xmlns.com/foaf/0.1/
-            ontology_file: https://xmlns.com/foaf/spec/index.rdf
+            ontology_file: {foaf_url}
             """
             file.write(foaf_modified)
             file.seek(0)
