@@ -48,7 +48,7 @@ def find(
             float("inf") (unlimited).
 
     Returns:
-        The element(s) found. One element (or `None` is returned when
+        The element(s) found. One element (or `None`) is returned when
         `find_all` is `False`, a generator when `find_all` is True.
     """
     if isinstance(rel, (OntologyRelationship, Node)):
@@ -202,10 +202,11 @@ def find_relationships(
         Iterable[Union[OntologyRelationship, Node]],
     ] = OWL.topObjectProperty,
 ) -> Iterator[OntologyIndividual]:
-    """Find the given relationship in the subtree of the given root.
+    """Find given relationship in the subgraph reachable from the given root.
 
     Args:
-        root: Only consider the subgraph rooted in this root.
+        root: Only consider the subgraph of individuals reachable from this
+            root.
         find_rel: The relationship to find.
         find_sub_relationships: Treat relationships that are a
             sub-relationship of the relationship to find as valid results.
@@ -230,11 +231,16 @@ def find_relationships(
     return find(criterion=criterion, root=root, rel=rel, find_all=True)
 
 
-def sparql(query: str, session: Optional[Session] = None) -> QueryResult:
+def sparql(
+    query: str, ontology: bool = False, session: Optional[Session] = None
+) -> QueryResult:
     """Performs a SPARQL query on a session.
 
     Args:
         query: A string with the SPARQL query to perform.
+        ontology: Whether to include the ontology in the query or not.
+            When the ontology is included, only read-only queries are
+            possible.
         session: The session on which the SPARQL query will be performed. If no
             session is specified, then the current default session is used.
             This means that, when no session is specified, inside session
@@ -248,4 +254,4 @@ def sparql(query: str, session: Optional[Session] = None) -> QueryResult:
         variable can be retrieved as follows: `row['variable']`.
     """
     session = session or Session.get_default_session()
-    return session.sparql(query)
+    return session.sparql(query, ontology=ontology)

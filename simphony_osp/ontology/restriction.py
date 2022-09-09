@@ -21,25 +21,25 @@ logger = logging.getLogger(__name__)
 
 
 class QUANTIFIER(Enum):
-    """The different quantifiers for restrictions."""
+    """Quantifiers for restrictions."""
 
-    SOME = 1
-    ONLY = 2
-    EXACTLY = 3
-    MIN = 4
-    MAX = 5
-    VALUE = 6
+    SOME: int = 1
+    ONLY: int = 2
+    EXACTLY: int = 3
+    MIN: int = 4
+    MAX: int = 5
+    VALUE: int = 6
 
 
 class RTYPE(Enum):
-    """The two types of restrictions."""
+    """Types of restrictions."""
 
     ATTRIBUTE_RESTRICTION = 1
     RELATIONSHIP_RESTRICTION = 2
 
 
 class Restriction(OntologyEntity):
-    """A class to represent restrictions on ontology classes."""
+    """Restrictions on ontology classes."""
 
     rdf_type = OWL.Restriction
     rdf_identifier = BNode
@@ -70,21 +70,21 @@ class Restriction(OntologyEntity):
             )
         super().__init__(uid, session, triples, merge=merge)
 
-    # Public API
-    # ↓ ------ ↓
-
     def __str__(self) -> str:
         """Transform to string."""
         return " ".join(
             map(str, (self._property, self.quantifier, self.target))
         )
 
+    # Public API
+    # ↓ ------ ↓
+
     @property
     def quantifier(self) -> QUANTIFIER:
         """Get the quantifier of the restriction.
 
         Returns:
-            QUANTIFIER: The quantifier of the restriction.
+            The quantifier of the restriction.
         """
         quantifier, _ = self._get_quantifier_and_target()
         return quantifier
@@ -96,7 +96,7 @@ class Restriction(OntologyEntity):
         Returns:
             The target class or datatype.
         """
-        _, target = self._get_quantifier_and_target()
+        quantifier, target = self._get_quantifier_and_target()
         try:
             target = self.session.from_identifier(target)
         except KeyError:
@@ -105,7 +105,7 @@ class Restriction(OntologyEntity):
 
     @property
     def relationship(self) -> OntologyRelationship:
-        """The relationship the RELATIONSHIP_RESTRICTION acts on.
+        """The relationship that the RELATIONSHIP_RESTRICTION acts on.
 
         Raises:
             AttributeError: Called on an ATTRIBUTE_RESTRICTION.
@@ -119,12 +119,10 @@ class Restriction(OntologyEntity):
 
     @property
     def attribute(self) -> OntologyAttribute:
-        """The attribute the restriction acts on.
-
-        Only for ATTRIBUTE_RESTRICTIONs.
+        """The attribute that the ATTRIBUTE_RESTRICTION acts on.
 
         Raises:
-            AttributeError: self is a RELATIONSHIP_RESTRICTIONs.
+            AttributeError: Called on a RELATIONSHIP_RESTRICTION.
 
         Returns:
             The attribute.
@@ -135,7 +133,7 @@ class Restriction(OntologyEntity):
 
     @property
     def rtype(self) -> RTYPE:
-        """Return the type of restriction.
+        """Type of restriction.
 
         Whether the restriction acts on attributes or relationships.
 
@@ -175,8 +173,11 @@ class Restriction(OntologyEntity):
             (OWL.someValuesFrom, QUANTIFIER.SOME),
             (OWL.allValuesFrom, QUANTIFIER.ONLY),
             (OWL.cardinality, QUANTIFIER.EXACTLY),
+            (OWL.qualifiedCardinality, QUANTIFIER.EXACTLY),
             (OWL.minCardinality, QUANTIFIER.MIN),
+            (OWL.minQualifiedCardinality, QUANTIFIER.MIN),
             (OWL.maxCardinality, QUANTIFIER.MAX),
+            (OWL.maxQualifiedCardinality, QUANTIFIER.MAX),
             (OWL.hasValue, QUANTIFIER.VALUE),
         ]:
             x = self.session.graph.value(self.identifier, predicate)

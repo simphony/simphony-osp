@@ -42,14 +42,15 @@ def branch(
 def relationships_between(
     subj: OntologyIndividual, obj: OntologyIndividual
 ) -> Set[OntologyRelationship]:
-    """Get the set of relationships between two cuds objects.
+    """Get the set of relationships between two ontology individuals.
 
     Args:
-        subj: The subject ontology individual.
-        obj: The object ontology individual.
+        subj: The subject of the relationship.
+        obj: The object (target) of the relationship.
 
     Returns:
-        The set of relationships between subject and object.
+        The set of relationships between the given subject and object
+        individuals.
     """
     return {
         relationship

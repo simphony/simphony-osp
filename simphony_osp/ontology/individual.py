@@ -206,19 +206,9 @@ class ObjectSet(DataStructureSet, ABC):
 class AttributeSet(ObjectSet):
     """A set interface to an ontology individual's attributes.
 
-    This class looks like and acts like the standard `set`, but it
-    is an interface to the `attributes_add`, attributes_set`,
-    `attributes_delete`, `attributes_value_contains` and
-    `attributes_value_generator` methods.
-
-    When an instance is read, the methods `attributes_value_generator`
-    and `attributes_value_contains` are used to fetch the data. When it
-    is modified in-place, the methods `attributes_add`, `attributes_set`,
-    and `attributes_delete` are used to reflect the changes.
-
-    This class does not hold any attribute-related information itself, thus
-    it is safe to spawn multiple instances linked to the same attribute
-    and ontology individual (when single-threading).
+    This class looks like and acts like the standard `set`, but it is an
+    interface to the methods from `OntologyIndividual` that manage the
+    attributes.
     """
 
     # Public API
@@ -246,7 +236,7 @@ class AttributeSet(ObjectSet):
                 yield value
 
     def __contains__(self, item: AttributeValue) -> bool:
-        """Check whether a value is assigned to the attribute."""
+        """Check whether a value is assigned to the set's attribute."""
         return any(
             self._individual.attributes_value_contains(attribute, item)
             for attribute in self._predicates
@@ -320,18 +310,9 @@ class AttributeSet(ObjectSet):
 class RelationshipSet(ObjectSet):
     """A set interface to an ontology individual's relationships.
 
-    This class looks like and acts like the standard `set`, but it
-    is an interface to the `relationships_connect`, `relationships_disconnect`
-    and `relationships_iter` methods.
-
-    When an instance is read, the method `relationships_iter` is used to fetch
-    the data. When it is modified in-place, the methods
-    `relationships_connect` and `relationships_disconnect` are used to
-    reflect the changes.
-
-    This class does not hold any relationship-related information itself,
-    thus it is safe to spawn multiple instances linked to the same
-    relationship and ontology individual (when single-threading).
+    This class looks like and acts like the standard `set`, but it is an
+    interface to the methods from `OntologyIndividual` that manage the
+    relationships.
     """
 
     @staticmethod
@@ -433,7 +414,7 @@ class RelationshipSet(ObjectSet):
                     )
 
     def __contains__(self, item: OntologyIndividual) -> bool:
-        """Check if an individual is connected via the relationship."""
+        """Check if an individual is connected via set's relationship."""
         if item not in self.individual.session:
             return False
 
@@ -750,10 +731,6 @@ class AnnotationSet(ObjectSet):
     This class looks like and acts like the standard `set`, but it is an
     interface to the methods from `OntologyIndividual` that manage the
     annotations.
-
-    This class does not hold any annotation-related information itself,
-    thus it is safe to spawn multiple instances linked to the same
-    relationship and ontology individual (when single-threading).
     """
 
     _predicate: OntologyAnnotation
@@ -858,6 +835,9 @@ class OntologyIndividual(OntologyEntity):
     def classes(self) -> FrozenSet[OntologyClass]:
         """Get the ontology classes of this ontology individual.
 
+        This property is writable. The classes that an ontology individual
+        belongs to can be changed writing the desired values to this property.
+
         Returns:
             A set with all the ontology classes of the ontology
             individual. When the individual has no classes, the set is empty.
@@ -894,9 +874,9 @@ class OntologyIndividual(OntologyEntity):
 
         Returns:
             Whether the ontology individual is an instance of such ontology
-                class.
+            class.
         """
-        return any(oc in ontology_class.subclasses for oc in self.classes)
+        return self.is_subclass_of(ontology_class)
 
     def __dir__(self) -> Iterable[str]:
         """Show the individual's attributes as autocompletion suggestions.
@@ -979,7 +959,7 @@ class OntologyIndividual(OntologyEntity):
 
         Args:
             name: The label or suffix of the attribute.
-            value: The new value.
+            value: The new value(s).
 
         Raises:
             AttributeError: Unknown attribute label or suffix.
@@ -1121,7 +1101,7 @@ class OntologyIndividual(OntologyEntity):
     def __setitem__(
         self,
         rel: Union[OntologyPredicate, str],
-        values: Optional[Union[PredicateValue, Set[PredicateValue]]],
+        values: Optional[Union[PredicateValue, Iterable[PredicateValue]]],
     ) -> None:
         """Manages object, data and annotation properties.
 
@@ -1178,7 +1158,9 @@ class OntologyIndividual(OntologyEntity):
 
         values = values or set()
         values = (
-            {values} if not isinstance(values, (Set, MutableSet)) else values
+            {values}
+            if not isinstance(values, (Tuple, Set, MutableSet))
+            else set(values)
         )
         # Apparently instances of MutableSet are not instances of Set.
 
@@ -1284,7 +1266,7 @@ class OntologyIndividual(OntologyEntity):
             )
 
     def __delitem__(self, rel: OntologyPredicate):
-        """Delete all objects attached through rel.
+        """Delete all objects attached through the given predicate.
 
         Args:
             rel: Either an ontology attribute, an ontology relationship or
@@ -1303,8 +1285,8 @@ class OntologyIndividual(OntologyEntity):
         """Connect ontology individuals to other ontology individuals.
 
         Args:
-            individuals: The objects to be added. Their identifiers may also
-                be used.
+            individuals: The individuals to be connected. Their identifiers may
+                also be used.
             rel: The relationship between the objects.
 
         Raises:
@@ -1430,6 +1412,10 @@ class OntologyIndividual(OntologyEntity):
         The structure of the output can vary depending on the form used for
         the call. See the "Returns:" section of this
         docstring for more details on this.
+
+        Note: If you are reading the SimPhoNy documentation API Reference, it
+        is likely that you cannot read this docstring. As a workaround, click
+        the `source` button to read it in its raw form.
 
         Args:
             individuals: Restrict the elements to be returned to a certain
@@ -1568,6 +1554,10 @@ class OntologyIndividual(OntologyEntity):
         the call. See the "Returns:" section of this docstring for more
         details on this.
 
+        Note: If you are reading the SimPhoNy documentation API Reference, it
+        is likely that you cannot read this docstring. As a workaround, click
+        the `source` button to read it in its raw form.
+
         Args:
             individuals: Restrict the elements to be returned to a certain
                 subset of the connected elements.
@@ -1697,6 +1687,31 @@ class OntologyIndividual(OntologyEntity):
             self._operations_namespace = OperationsNamespace(individual=self)
         return self._operations_namespace
 
+    @property
+    def attributes(
+        self,
+    ) -> Mapping[OntologyAttribute, FrozenSet[AttributeValue]]:
+        """Get the attributes of this individual as a dictionary."""
+        generator = self.attributes_attribute_and_value_generator()
+        return MappingProxyType(
+            {attr: frozenset(gen) for attr, gen in generator}
+        )
+
+    def is_subclass_of(self, ontology_class: OntologyEntity) -> bool:
+        """Check if the individual is an instance of the given ontology class.
+
+        Args:
+            ontology_class: The ontology class to test against.
+
+        Returns:
+            Whether the ontology individual is an instance of such ontology
+                class.
+        """
+        return bool(set(self.classes) & set(ontology_class.subclasses))
+
+    # ↑ ------ ↑
+    # Public API
+
     def __enter__(self) -> ContainerEnvironment:
         """Use an ontology individual as a context manager.
 
@@ -1741,19 +1756,6 @@ class OntologyIndividual(OntologyEntity):
             return context_return
 
         raise AttributeError("__exit__")
-
-    @property
-    def attributes(
-        self,
-    ) -> Mapping[OntologyAttribute, FrozenSet[AttributeValue]]:
-        """Get the attributes of this individual as a dictionary."""
-        generator = self.attributes_attribute_and_value_generator()
-        return MappingProxyType(
-            {attr: frozenset(gen) for attr, gen in generator}
-        )
-
-    # ↑ ------ ↑
-    # Public API
 
     _operations_namespace: Optional[OperationsNamespace] = None
     """Holds the operations namespace instance for this ontology individual.

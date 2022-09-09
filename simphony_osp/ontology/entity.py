@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class OntologyEntity(ABC):
-    """Abstract superclass of any entity in the ontology."""
+    """Abstract superclass of any entity in ontology entity."""
 
     rdf_type: Optional[Union[URIRef, Set[URIRef]]] = None
     rdf_identifier: Type
@@ -58,16 +58,6 @@ class OntologyEntity(ABC):
         Usually an URIRef or BNode.
         """
         return self.uid.to_identifier()
-
-    @property
-    def uid(self) -> UID:
-        """Get a SimPhoNy identifier for this entity.
-
-        The SimPhoNy identifier is known as UID. An UID is a Python class
-        defined in SimPhoNy and can always be converted to a semantic web
-        identifier.
-        """
-        return self._uid
 
     @property
     def label(self) -> Optional[str]:
@@ -98,20 +88,20 @@ class OntologyEntity(ABC):
 
     @property
     def label_lang(self) -> Optional[str]:
-        """Get the language of the preferred label of this entity.
+        """Get the language of the main label of this entity.
 
         See the docstring for `label_literal` for more information on the
-        definition of preferred label.
+        definition of main label.
         """
         label_literal = self.label_literal
         return label_literal.language if label_literal is not None else None
 
     @label_lang.setter
     def label_lang(self, value: str) -> None:
-        """Set the language of the preferred label of this entity.
+        """Set the language of the main label of this entity.
 
         See the docstring for `label_literal` for more information on the
-        definition of preferred label.
+        definition of main label.
         """
         self.label_literal = Literal(self.label_literal, lang=value)
 
@@ -166,7 +156,7 @@ class OntologyEntity(ABC):
         """Get the superclass of the entity.
 
         Returns:
-            The direct superclasses of the entity.
+            The superclasses of the entity.
 
         """
         return frozenset(self._get_superclasses())
@@ -177,7 +167,7 @@ class OntologyEntity(ABC):
         """Get the subclasses of the entity.
 
         Returns:
-            The direct subclasses of the entity
+            The subclasses of the entity
 
         """
         return frozenset(self._get_subclasses())
@@ -205,34 +195,17 @@ class OntologyEntity(ABC):
         """
         return self in other.subclasses
 
-    def __str__(self) -> str:
-        """Transform the entity into a human-readable string."""
-        return (
-            f"{self.label}"
-            if hasattr(self, "label") and self.label is not None
-            else f"{self._uid}"
-        )
-
-    def __repr__(self) -> str:
-        """Transform the entity into a string."""
-        header = f"{self.__class__.__name__}"
-        elements = [
-            f"{self.label}"
-            if hasattr(self, "label") and self.label is not None
-            else None,
-            f"{self.uid}",
-        ]
-        elements = filter(lambda x: x is not None, elements)
-        return f"<{header}: {' '.join(elements)}>"
-
     def __eq__(self, other: OntologyEntity) -> bool:
         """Check whether two entities are the same.
+
+        Two entities are considered equal when they have the same identifier
+        and are stored in the same session.
 
         Args:
             other: The other entity.
 
         Returns:
-            bool: Whether the two entities are the same.
+            Whether the two entities are the same.
         """
         # TODO: Blank nodes with different IDs.
         return (
@@ -241,97 +214,9 @@ class OntologyEntity(ABC):
             and self.identifier == other.identifier
         )
 
-    def __hash__(self) -> int:
-        """Make the entity hashable."""
-        return hash((self._uid, self.session))
-
     def __bool__(self):
         """Returns the boolean value of the entity, always true."""
         return True
-
-    # ↑ ------ ↑
-    # Public API
-
-    @property
-    def label_literal(self) -> Optional[Literal]:
-        """Get the preferred label for this entity.
-
-        The labels are first sorted by the property defining them (which is
-        an attribute of the session that this entity is stored on), and then by
-        their length.
-
-        Returns:
-            The first label in the resulting ordering is returned. If the
-            entity has no label, then None is returned.
-        """
-        labels = self.iter_labels(return_literal=True, return_prop=True)
-        labels = self._sort_labels_and_properties_by_preference(labels)
-        # Return the first label
-        return labels[0][0] if len(labels) > 0 else None
-
-    @label_literal.setter
-    def label_literal(self, value: Optional[Literal]) -> None:
-        """Replace the preferred label for this entity.
-
-        The labels are first sorted by the property defining them (which is
-        an attribute of the session that this entity is stored on), and then by
-        their length.
-
-        Args:
-            value: the preferred label to replace the current one with. If
-                None, then all labels for this entity are deleted.
-        """
-        labels = self.iter_labels(return_literal=True, return_prop=True)
-        labels = self._sort_labels_and_properties_by_preference(labels)
-
-        preferred_label = labels[0] if len(labels) > 0 else None
-
-        # Label deletion.
-        if value is None:
-            for label_prop in self.session.label_properties:
-                self.session.graph.remove((self.identifier, label_prop, None))
-        elif preferred_label is not None:
-            self.session.graph.remove(
-                (self.identifier, preferred_label[1], preferred_label[0])
-            )
-
-        # Label creation.
-        if value is not None:
-            if preferred_label is not None:
-                self.session.graph.add(
-                    (self.identifier, preferred_label[1], value)
-                )
-            else:
-                self.session.graph.add(
-                    (self.identifier, self.session.label_properties[0], value)
-                )
-
-    def _sort_labels_and_properties_by_preference(
-        self, labels: Iterator[Tuple[Literal, URIRef]]
-    ) -> List[Tuple[Literal, URIRef]]:
-        """Sort the labels for this entity in order of preference.
-
-        The labels are first sorted by the property defining them (which is
-        an attribute of the session that this entity is stored on),
-        then by their language, and then by their length.
-
-        Args:
-            labels: an iterator of tuples where the first element is an
-                assigned label literal (the label) and the second one the
-                property used for this assignment.
-        """
-        # Sort by label property preference, and length.
-        labels = sorted(
-            labels,
-            key=lambda x: (
-                self.session.label_properties.index(x[1]),
-                (
-                    self.session.label_languages + ("en", None, x[0].language)
-                ).index(x[0].language),
-                len(x[0]),
-            ),
-        )
-        return labels
 
     def iter_labels(
         self,
@@ -363,8 +248,63 @@ class OntologyEntity(ABC):
         )
 
     @property
+    def label_literal(self) -> Optional[Literal]:
+        """Get the main label for this entity.
+
+        The labels are first sorted by the property defining them, then by
+        their language, and then by their length.
+
+        Returns:
+            The first label in the resulting ordering is returned. If the
+            entity has no label, then None is returned.
+        """
+        labels = self.iter_labels(return_literal=True, return_prop=True)
+        labels = self._sort_labels_and_properties_by_preference(labels)
+        # Return the first label
+        return labels[0][0] if len(labels) > 0 else None
+
+    @label_literal.setter
+    def label_literal(self, value: Optional[Literal]) -> None:
+        """Replace the main label for this entity.
+
+        The labels are first sorted by the property defining them (which is
+        an attribute of the session that this entity is stored on), and then by
+        their length.
+
+        Args:
+            value: the main label to replace the current one with. If
+                None, then all labels for this entity are deleted.
+        """
+        labels = self.iter_labels(return_literal=True, return_prop=True)
+        labels = self._sort_labels_and_properties_by_preference(labels)
+
+        main_label = labels[0] if len(labels) > 0 else None
+
+        # Label deletion.
+        if value is None:
+            for label_prop in self.session.label_predicates:
+                self.session.graph.remove((self.identifier, label_prop, None))
+        elif main_label is not None:
+            self.session.graph.remove(
+                (self.identifier, main_label[1], main_label[0])
+            )
+
+        # Label creation.
+        if value is not None:
+            if main_label is not None:
+                self.session.graph.add((self.identifier, main_label[1], value))
+            else:
+                self.session.graph.add(
+                    (self.identifier, self.session.label_predicates[0], value)
+                )
+
+    @property
     def triples(self) -> Set[Triple]:
-        """Get the all the triples where the entity is the subject."""
+        """Get the all the triples where the entity is the subject.
+
+        Triples from the underlying RDFLib graph where the entity is stored
+        in which the entity's identifier is the subject.
+        """
         if self.__graph is not None:
             return set(self.__graph.triples((None, None, None)))
         else:
@@ -372,10 +312,76 @@ class OntologyEntity(ABC):
                 self.session.graph.triples((self.identifier, None, None))
             )
 
+    # ↑ ------ ↑
+    # Public API
+
+    @property
+    def uid(self) -> UID:
+        """Get a SimPhoNy identifier for this entity.
+
+        The SimPhoNy identifier is known as UID. An UID is a Python class
+        defined in SimPhoNy and can always be converted to a semantic web
+        identifier.
+        """
+        return self._uid
+
     @property
     def graph(self) -> Graph:
         """Graph where the ontology entity's data lives."""
         return self.session.graph if self.session is not None else self.__graph
+
+    __graph: Optional[Graph] = None  # Only exists during initialization.
+
+    def __hash__(self) -> int:
+        """Make the entity hashable."""
+        return hash((self._uid, self.session))
+
+    def __str__(self) -> str:
+        """Transform the entity into a human-readable string."""
+        return (
+            f"{self.label}"
+            if hasattr(self, "label") and self.label is not None
+            else f"{self._uid}"
+        )
+
+    def __repr__(self) -> str:
+        """Transform the entity into a string."""
+        header = f"{self.__class__.__name__}"
+        elements = [
+            f"{self.label}"
+            if hasattr(self, "label") and self.label is not None
+            else None,
+            f"{self.uid}",
+        ]
+        elements = filter(lambda x: x is not None, elements)
+        return f"<{header}: {' '.join(elements)}>"
+
+    def _sort_labels_and_properties_by_preference(
+        self, labels: Iterator[Tuple[Literal, URIRef]]
+    ) -> List[Tuple[Literal, URIRef]]:
+        """Sort the labels for this entity in order of preference.
+
+        The labels are first sorted by the property defining them (which is
+        an attribute of the session that this entity is stored on),
+        then by their language, and then by their length.
+
+        Args:
+            labels: an iterator of tuples where the first element is an
+                assigned label literal (the label) and the second one the
+                property used for this assignment.
+        """
+        # Sort by label property preference, and length.
+        labels = sorted(
+            labels,
+            key=lambda x: (
+                self.session.label_predicates.index(x[1]),
+                (
+                    self.session.label_languages + ("en", None, x[0].language)
+                ).index(x[0].language),
+                len(x[0]),
+            ),
+        )
+        return labels
 
     @abstractmethod
     def _get_direct_superclasses(
@@ -400,8 +406,6 @@ class OntologyEntity(ABC):
     def _get_subclasses(self: ONTOLOGY_ENTITY) -> Iterable[ONTOLOGY_ENTITY]:
         """Subclass getter specific to the type of ontology entity."""
         pass
-
-    __graph: Optional[Graph] = None  # Only exists during initialization.
 
     @abstractmethod
     def __init__(

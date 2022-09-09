@@ -29,6 +29,10 @@ def import_file(
 ) -> Union[OntologyIndividual, Set[OntologyIndividual]]:
     """Imports ontology individuals from a file and load them into a session.
 
+    Note: If you are reading the SimPhoNy documentation API Reference, it
+    is likely that you cannot read this docstring. As a workaround, click
+    the `source` button to read it in its raw form.
+
     Args:
         path_or_filelike: either,
             (str) the path of a file to import;
@@ -170,6 +174,10 @@ def export_file(
     all_triples: bool = False,
 ) -> Union[str, None]:
     """Exports ontology individuals to a variety of formats.
+
+    Note: If you are reading the SimPhoNy documentation API Reference, it
+    is likely that you cannot read this docstring. As a workaround, click
+    the `source` button to read it in its raw form.
 
     Args:
         individuals_or_session:

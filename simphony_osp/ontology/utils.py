@@ -168,7 +168,7 @@ class DataStructureSet(ABC, MutableSet):
 
     def __iadd__(self, other: Any) -> DataStructureSet:
         """Return self+=other (equivalent to self|=other)."""
-        if isinstance(other, (Set, MutableSet)):
+        if isinstance(other, (Tuple, Set, MutableSet)):
             # Apparently instances of MutableSet are not instances of Set.
             self.update(other)
         else:
@@ -180,7 +180,7 @@ class DataStructureSet(ABC, MutableSet):
 
         Based on `difference_update`.
         """
-        if isinstance(other, (Set, MutableSet)):
+        if isinstance(other, (Tuple, Set, MutableSet)):
             # Apparently instances of MutableSet are not instances of Set.
             self.difference_update(other)
         else:

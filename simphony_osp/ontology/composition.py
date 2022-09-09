@@ -27,7 +27,7 @@ class OPERATOR(Enum):
 
 
 class Composition(OntologyEntity):
-    """Combine multiple classes using logical formulae."""
+    """Combinations of multiple classes using logical formulae."""
 
     rdf_type = OWL.Class
     rdf_identifier = BNode
@@ -42,7 +42,7 @@ class Composition(OntologyEntity):
         Returns:
             The operator Enum.
         """
-        operator, _ = self._get_operator_and_operands
+        operator, _ = self._get_operator_and_operands()
         return operator
 
     @property
@@ -54,8 +54,11 @@ class Composition(OntologyEntity):
         Returns:
             The operands.
         """
-        _, operands = self._get_operator_and_operands
+        _, operands = self._get_operator_and_operands()
         return tuple(operands)
+
+    # ↑ ------ ↑
+    # Public API
 
     def __str__(self) -> str:
         """Transform to a Protege-like string."""
@@ -63,9 +66,6 @@ class Composition(OntologyEntity):
         if self.operator == OPERATOR.NOT:
             s = f"{self.operator} {s}"
         return f"({s})"
-
-    # ↑ ------ ↑
-    # Public API
 
     def __init__(
         self,

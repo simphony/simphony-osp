@@ -1,8 +1,8 @@
-identifier: dcat2
+identifier: dcat
 ontology_file: https://www.w3.org/ns/dcat2.rdf
 requirements:
     - dcterms
     - prov
     - foaf
 namespaces:
-    dcat2: http://www.w3.org/ns/dcat#
+    dcat: http://www.w3.org/ns/dcat#

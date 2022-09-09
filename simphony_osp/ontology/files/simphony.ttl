@@ -1,25 +1,25 @@
-@prefix : <https://www.simphony-project.eu/simphony##> .
+@prefix : <https://www.simphony-osp.eu/simphony##> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix simphony: <https://www.simphony-project.eu/simphony#> .
-@base <https://www.simphony-project.eu/simphony#> .
+@prefix simphony: <https://www.simphony-osp.eu/simphony#> .
+@base <https://www.simphony-osp.eu/simphony#> .
 
-<https://www.simphony-project.eu/simphony#> rdf:type owl:Ontology .
+<https://www.simphony-osp.eu/simphony#> rdf:type owl:Ontology .
 
 #################################################################
 #    Annotation properties
 #################################################################
 
-###  https://www.simphony-project.eu/simphony#main
+###  https://www.simphony-osp.eu/simphony#main
 simphony:main rdf:type owl:AnnotationProperty ;
               rdfs:comment "When multiple ontology individuals are serialized to a file, one of them can be tagged with this proverty (whose value must be True). When the file is imported again in SimPhoNy, only such item will be returned."@en ;
               rdfs:label "Main individual"@en ;
               rdfs:range xsd:boolean .
 
-###  https://www.simphony-project.eu/simphony#contains
+###  https://www.simphony-osp.eu/simphony#contains
 simphony:contains rdf:type owl:ObjectProperty ;
                   rdf:type owl:IrreflexiveProperty ;
                   rdfs:domain simphony:Container ;
@@ -29,7 +29,7 @@ simphony:contains rdf:type owl:ObjectProperty ;
 #    Classes
 #################################################################
 
-###  https://www.simphony-project.eu/simphony#Container
+###  https://www.simphony-osp.eu/simphony#Container
 simphony:Container rdf:type owl:Class ;
                    rdfs:subClassOf simphony:Entity ;
                    rdfs:comment """Class of objects that cluster ontology individuals together.
@@ -41,13 +41,13 @@ In SimPhoNy, the Wrapper Python objects that are used to interact with other sof
 For a wrapper developer it can be of interest to create a subclass of this one that adds further restrictions on what kind of objects a container might hold. For example, if one wants to create a wrapper for a tool that simulates a city, then one can specify that the container must contain exactly one city individual, one time step individual, one duration individual, etc. Any other kind of individual could be prohibited."""@en .
 
 
-###  https://www.simphony-project.eu/simphony#Entity
+###  https://www.simphony-osp.eu/simphony#Entity
 simphony:Entity rdf:type owl:Class ;
                 rdfs:subClassOf owl:Thing ;
                 rdfs:isDefinedBy "The root entity of the ontology." .
 
 
-###  https://www.simphony-project.eu/simphony#File
+###  https://www.simphony-osp.eu/simphony#File
 simphony:File rdf:type owl:Class ;
               rdfs:subClassOf simphony:Entity ;
               rdfs:isDefinedBy "An entity associated to a file." .

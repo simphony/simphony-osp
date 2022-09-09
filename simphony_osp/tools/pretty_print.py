@@ -22,14 +22,18 @@ def pretty_print(
     ] = owl.topObjectProperty,
     file=sys.stdout,
 ):
-    """Print the given ontology entity in a human-readable way.
+    """Print a tree-like, text representation stemming from an individual.
 
-    The identifier, the type, the ancestors and the content are printed.
+    Generates a tree-like, text-based representation stemming from a given
+    ontology individual, that includes the IRI, ontology classes and attributes
+    of the involved individuals, as well as the relationships connecting them.
 
     Args:
-        entity: Entity to be printed.
-        file: The file to print to.
-        rel: The relationships to consider when searching for sub-elements.
+        entity: Ontology individual to be used as starting point of the
+            text-based representation.
+        file: A file to print the text to. Defaults to the standard output.
+        rel: Restrict the relationships to consider when searching for
+            attached individuals to subclasses of the given relationships.
     """
     # Fix the order of each element by pre-populating a dictionary.
     pp = {
