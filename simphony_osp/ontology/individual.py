@@ -1121,7 +1121,7 @@ class OntologyIndividual(OntologyEntity):
     def __setitem__(
         self,
         rel: Union[OntologyPredicate, str],
-        values: Optional[Union[PredicateValue, Set[PredicateValue]]],
+        values: Optional[Union[PredicateValue, Iterable[PredicateValue]]],
     ) -> None:
         """Manages object, data and annotation properties.
 
@@ -1178,7 +1178,8 @@ class OntologyIndividual(OntologyEntity):
 
         values = values or set()
         values = (
-            {values} if not isinstance(values, (Set, MutableSet)) else values
+            {values} if not isinstance(values, (Tuple, Set, MutableSet))
+            else set(values)
         )
         # Apparently instances of MutableSet are not instances of Set.
 

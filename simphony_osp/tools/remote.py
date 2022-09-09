@@ -11,7 +11,7 @@ def host(
     configuration_string: str = "",
     create: bool = False,
     hostname: str = "127.0.0.1",
-    port: int = "6537",
+    port: int = 6537,
     username: Optional[str] = None,
     password: Optional[str] = None,
     **kwargs: Union[

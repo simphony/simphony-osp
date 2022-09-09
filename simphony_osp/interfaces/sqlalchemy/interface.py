@@ -46,7 +46,7 @@ class SQLAlchemy(Interface):
             )
 
         self.base = Graph("SQLAlchemy", identifier=self._identifier)
-        self.base.open(configuration, create=True)
+        self.base.open(configuration, create=create)
         self._uri = configuration
 
     def close(self) -> None:
