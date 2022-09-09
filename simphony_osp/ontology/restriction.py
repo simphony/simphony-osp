@@ -173,8 +173,11 @@ class Restriction(OntologyEntity):
             (OWL.someValuesFrom, QUANTIFIER.SOME),
             (OWL.allValuesFrom, QUANTIFIER.ONLY),
             (OWL.cardinality, QUANTIFIER.EXACTLY),
+            (OWL.qualifiedCardinality, QUANTIFIER.EXACTLY),
             (OWL.minCardinality, QUANTIFIER.MIN),
+            (OWL.minQualifiedCardinality, QUANTIFIER.MIN),
             (OWL.maxCardinality, QUANTIFIER.MAX),
+            (OWL.maxQualifiedCardinality, QUANTIFIER.MAX),
             (OWL.hasValue, QUANTIFIER.VALUE),
         ]:
             x = self.session.graph.value(self.identifier, predicate)

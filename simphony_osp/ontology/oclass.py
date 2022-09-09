@@ -236,10 +236,10 @@ class OntologyClass(OntologyEntity):
         for o in self.session.graph.objects(identifier, predicate):
             if not isinstance(o, BNode):
                 continue
-            try:
+            if (o, RDF_type, OWL_Restriction) in self.session.graph:
                 axioms.add(self.session.from_identifier_typed(o, Restriction))
-            except (KeyError, TypeError):
-                pass
+            elif (o, RDF_type, OWL.Class) in self.session.graph:
+                axioms.add(self.session.from_identifier_typed(o, Composition))
         return frozenset(axioms)
 
     @property
@@ -284,9 +284,6 @@ class OntologyClass(OntologyEntity):
                 (
                     self.session.graph.value(
                         restriction_iri, OWL_someValuesFrom
-                    ),
-                    self.session.graph.value(
-                        restriction_iri, OWL_allValuesFrom
                     ),
                     self.session.graph.value(restriction_iri, OWL_hasValue),
                     self.session.graph.value(restriction_iri, OWL_cardinality)
@@ -394,18 +391,30 @@ class OntologyClass(OntologyEntity):
         """
         yield self
 
-        def closure(node, graph):
-            yield from graph.subjects(RDFS_subClassOf, node)
+        if self.identifier == OWL_Thing:
+            for s in self.session.graph.subjects(RDF.type, OWL.Class):
+                try:
+                    yield self.session.from_identifier_typed(
+                        s, typing=OntologyClass
+                    )
+                except TypeError:
+                    pass
+            # The filter makes sure that `Restriction` and `Composition`
+            # objects are not returned.
+        else:
 
-        yield from filter(
-            lambda x: isinstance(x, OntologyClass),
-            (
-                self.session.from_identifier(x)
-                for x in self.session.graph.transitiveClosure(
-                    closure, self.identifier
-                )
-            ),
-        )
+            def closure(node, graph):
+                yield from graph.subjects(RDFS_subClassOf, node)
+
+            yield from filter(
+                lambda x: isinstance(x, OntologyClass),
+                (
+                    self.session.from_identifier(x)
+                    for x in self.session.graph.transitiveClosure(
+                        closure, self.identifier
+                    )
+                ),
+            )
 
     def _kwargs_to_attributes(
         self, kwargs: Mapping, _skip_checks: bool

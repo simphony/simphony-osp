@@ -531,19 +531,19 @@ class TestSessionAPI(unittest.TestCase):
         # Get relationships, attributes and classes with `from_identifier`
         # method of `Session objects`.
         has_inhabitant = ontology.from_identifier(
-            URIRef("https://www.simphony-project.eu/city#hasInhabitant")
+            URIRef("https://www.simphony-osp.eu/city#hasInhabitant")
         )
         self.assertTrue(isinstance(has_inhabitant, OntologyRelationship))
         encloses = ontology.from_identifier(
-            URIRef("https://www.simphony-project.eu/city#encloses")
+            URIRef("https://www.simphony-osp.eu/city#encloses")
         )
         self.assertTrue(isinstance(encloses, OntologyRelationship))
         has_part = ontology.from_identifier(
-            URIRef("https://www.simphony-project.eu/city#hasPart")
+            URIRef("https://www.simphony-osp.eu/city#hasPart")
         )
         self.assertTrue(isinstance(has_part, OntologyRelationship))
         name = ontology.from_identifier(
-            URIRef("https://www.simphony-project.eu/city#name")
+            URIRef("https://www.simphony-osp.eu/city#name")
         )
         self.assertTrue(isinstance(name, OntologyAttribute))
 
@@ -553,7 +553,7 @@ class TestSessionAPI(unittest.TestCase):
         self.assertTrue(isinstance(city_namespace, OntologyNamespace))
         self.assertEqual(city_namespace.name, "city")
         self.assertEqual(
-            city_namespace.iri, URIRef("https://www.simphony-project.eu/city#")
+            city_namespace.iri, URIRef("https://www.simphony-osp.eu/city#")
         )
 
         # Test the `graph` property.
@@ -1006,12 +1006,12 @@ class TestOntologyAPICity(unittest.TestCase):
         # Test `identifier property`.
         self.assertEqual(
             name.identifier,
-            URIRef("https://www.simphony-project.eu/city#name"),
+            URIRef("https://www.simphony-osp.eu/city#name"),
         )
 
         # Test `iri` property.
         self.assertEqual(
-            name.iri, URIRef("https://www.simphony-project.eu/city#name")
+            name.iri, URIRef("https://www.simphony-osp.eu/city#name")
         )
 
         # Test `label` property.
@@ -1454,7 +1454,7 @@ class TestOntologyAPICity(unittest.TestCase):
 
         # Test the `__init__` method.
         city_again = OntologyNamespace(
-            URIRef("https://www.simphony-project.eu/city#"),
+            URIRef("https://www.simphony-osp.eu/city#"),
             ontology=self.ontology,
             name="city",
         )
@@ -1464,9 +1464,7 @@ class TestOntologyAPICity(unittest.TestCase):
         self.assertEqual(city.name, "city")
 
         # Test the `iri` property.
-        self.assertEqual(
-            city.iri, URIRef("https://www.simphony-project.eu/city#")
-        )
+        self.assertEqual(city.iri, URIRef("https://www.simphony-osp.eu/city#"))
 
         # Test the `ontology` property.
         self.assertIs(city.ontology, self.ontology)
@@ -1475,13 +1473,13 @@ class TestOntologyAPICity(unittest.TestCase):
         self.assertEqual(city_again, city)
         empty_ontology = Session(ontology=True)
         city_empty_ontology = OntologyNamespace(
-            URIRef("https://www.simphony-project.eu/city#"),
+            URIRef("https://www.simphony-osp.eu/city#"),
             ontology=empty_ontology,
             name="city",
         )
         self.assertNotEqual(city, city_empty_ontology)
         city_different_iri = OntologyNamespace(
-            URIRef("https://www.simphony-project.eu/city_dif#"),
+            URIRef("https://www.simphony-osp.eu/city_dif#"),
             ontology=self.ontology,
             name="city_dif",
         )
@@ -1493,7 +1491,7 @@ class TestOntologyAPICity(unittest.TestCase):
 
         # Test the `__getattr__` method.
         has_inhabitant = self.ontology.from_identifier(
-            URIRef("https://www.simphony-project.eu/city#hasInhabitant")
+            URIRef("https://www.simphony-osp.eu/city#hasInhabitant")
         )
         self.assertEqual(has_inhabitant, getattr(city, "hasInhabitant"))
         self.assertRaises(
@@ -1502,7 +1500,7 @@ class TestOntologyAPICity(unittest.TestCase):
 
         # Test the `__getitem__` method.
         name = self.ontology.from_identifier(
-            URIRef("https://www.simphony-project.eu/city#name")
+            URIRef("https://www.simphony-osp.eu/city#name")
         )
         self.assertEqual(name, city["name"])
 
@@ -1559,12 +1557,12 @@ class TestOntologyAPICity(unittest.TestCase):
         self.assertRaises(
             KeyError,
             city.from_iri,
-            "https://www.simphony-project.eu/city#hasinhabitant",
+            "https://www.simphony-osp.eu/city#hasinhabitant",
         )
         self.assertRaises(
             ValueError,
             city.from_iri,
-            "https://www.simphony-project.eu/city#has " "Inhabitant",
+            "https://www.simphony-osp.eu/city#has " "Inhabitant",
         )
 
         # Test the `from_label` method.
@@ -2293,9 +2291,7 @@ class TestToolsPico(unittest.TestCase):
         """Test listing ontology namespaces."""
         self.assertDictEqual(
             {
-                "simphony": URIRef(
-                    "https://www.simphony-project.eu/simphony#"
-                ),
+                "simphony": URIRef("https://www.simphony-osp.eu/simphony#"),
                 "owl": URIRef("http://www.w3.org/2002/07/owl#"),
                 "rdfs": URIRef("http://www.w3.org/2000/01/rdf-schema#"),
             },
@@ -2306,12 +2302,10 @@ class TestToolsPico(unittest.TestCase):
 
         self.assertDictEqual(
             {
-                "simphony": URIRef(
-                    "https://www.simphony-project.eu/simphony#"
-                ),
+                "simphony": URIRef("https://www.simphony-osp.eu/simphony#"),
                 "owl": URIRef("http://www.w3.org/2002/07/owl#"),
                 "rdfs": URIRef("http://www.w3.org/2000/01/rdf-schema#"),
-                "city": URIRef("https://www.simphony-project.eu/city#"),
+                "city": URIRef("https://www.simphony-osp.eu/city#"),
             },
             {ns.name: ns.iri for ns in namespaces()},
         )
