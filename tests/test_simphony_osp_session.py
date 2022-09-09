@@ -18,7 +18,7 @@ class TestLoadParsers(unittest.TestCase):
         parsers = (
             OntologyParser.get_parser("foaf"),
             OntologyParser.get_parser("emmo"),
-            OntologyParser.get_parser("dcat2"),
+            OntologyParser.get_parser("dcat"),
             OntologyParser.get_parser("city"),
         )
         for parser in parsers:
@@ -32,13 +32,13 @@ class TestLoadParsers(unittest.TestCase):
         }
         city_namespaces = {"city": "https://www.simphony-osp.eu/city#"}
         foaf_namespaces = {"foaf": "http://xmlns.com/foaf/0.1/"}
-        dcat2_namespaces = {"dcat2": "http://www.w3.org/ns/dcat#"}
+        dcat_namespaces = {"dcat": "http://www.w3.org/ns/dcat#"}
         emmo_namespaces = {"emmo": "http://emmo.info/emmo#"}
         expected_namespaces = dict()
         for nss in (
             required_namespaces,
             foaf_namespaces,
-            dcat2_namespaces,
+            dcat_namespaces,
             emmo_namespaces,
             city_namespaces,
         ):
