@@ -15,9 +15,7 @@ from simphony_osp.interfaces.remote.common import get_hash
 class DataspaceInterface(Interface):
     """The data space interface connects SimPhoNy to a data space."""
 
-    _identifier: Identifier = URIRef(
-        "https://www.simphony-project.eu/SQLAlchemy"
-    )
+    _identifier: Identifier = URIRef("https://www.simphony-osp.eu/SQLAlchemy")
 
     _database_path: Optional[Path] = None
     _files_path: Optional[Path] = None

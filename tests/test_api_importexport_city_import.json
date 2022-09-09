@@ -1,40 +1,40 @@
 [
   {
-    "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-000000000003",
+    "@id": "https://www.simphony-osp.eu/entity#00000000-0000-0000-0000-000000000003",
     "@type": [
-      "https://www.simphony-project.eu/city#Person"
+      "https://www.simphony-osp.eu/city#Person"
     ]
   },
   {
-    "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-000000000002",
+    "@id": "https://www.simphony-osp.eu/entity#00000000-0000-0000-0000-000000000002",
     "@type": [
-      "https://www.simphony-project.eu/city#Person"
+      "https://www.simphony-osp.eu/city#Person"
     ]
   },
   {
-    "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-00000000007b",
+    "@id": "https://www.simphony-osp.eu/entity#00000000-0000-0000-0000-00000000007b",
     "@type": [
-      "https://www.simphony-project.eu/city#Citizen"
+      "https://www.simphony-osp.eu/city#Citizen"
     ],
-    "https://www.simphony-project.eu/city#age": [
+    "https://www.simphony-osp.eu/city#age": [
       {
         "@value": 23
       }
     ],
-    "https://www.simphony-project.eu/city#hasChild": [
+    "https://www.simphony-osp.eu/city#hasChild": [
       {
-        "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-000000000002"
+        "@id": "https://www.simphony-osp.eu/entity#00000000-0000-0000-0000-000000000002"
       },
       {
-        "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-000000000003"
+        "@id": "https://www.simphony-osp.eu/entity#00000000-0000-0000-0000-000000000003"
       }
     ],
-    "https://www.simphony-project.eu/city#name": [
+    "https://www.simphony-osp.eu/city#name": [
       {
         "@value": "Peter"
       }
     ],
-    "https://www.simphony-project.eu/simphony#main": [
+    "https://www.simphony-osp.eu/simphony#main": [
       {
         "@value": true
       }

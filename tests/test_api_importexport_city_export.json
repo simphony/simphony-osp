@@ -1,63 +1,63 @@
 [
   {
-    "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-000000000001",
+    "@id": "https://www.simphony-osp.eu/entity#00000000-0000-0000-0000-000000000001",
     "@type": [
-      "https://www.simphony-project.eu/city#City"
+      "https://www.simphony-osp.eu/city#City"
     ],
-    "https://www.simphony-project.eu/city#coordinates": [
+    "https://www.simphony-osp.eu/city#coordinates": [
       {
-        "@type": "https://www.simphony-project.eu/types#Vector",
+        "@type": "https://www.simphony-osp.eu/types#Vector",
         "@value": "13YOs0RR9300000000000000000000"
       }
     ],
-    "https://www.simphony-project.eu/city#hasPart": [
+    "https://www.simphony-osp.eu/city#hasPart": [
       {
-        "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-000000000002"
+        "@id": "https://www.simphony-osp.eu/entity#00000000-0000-0000-0000-000000000002"
       },
       {
-        "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-000000000003"
+        "@id": "https://www.simphony-osp.eu/entity#00000000-0000-0000-0000-000000000003"
       }
     ],
-    "https://www.simphony-project.eu/city#name": [
+    "https://www.simphony-osp.eu/city#name": [
       {
         "@value": "Freiburg"
       }
     ],
-    "https://www.simphony-project.eu/simphony#main": [
+    "https://www.simphony-osp.eu/simphony#main": [
       {
         "@value": true
       }
     ]
   },
   {
-    "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-000000000002",
+    "@id": "https://www.simphony-osp.eu/entity#00000000-0000-0000-0000-000000000002",
     "@type": [
-      "https://www.simphony-project.eu/city#Neighborhood"
+      "https://www.simphony-osp.eu/city#Neighborhood"
     ],
-    "https://www.simphony-project.eu/city#coordinates": [
+    "https://www.simphony-osp.eu/city#coordinates": [
       {
-        "@type": "https://www.simphony-project.eu/types#Vector",
+        "@type": "https://www.simphony-osp.eu/types#Vector",
         "@value": "13YOs0RR9300000000000000000000"
       }
     ],
-    "https://www.simphony-project.eu/city#name": [
+    "https://www.simphony-osp.eu/city#name": [
       {
         "@value": "Littenweiler"
       }
     ]
   },
   {
-    "@id": "https://www.simphony-project.eu/entity#00000000-0000-0000-0000-000000000003",
+    "@id": "https://www.simphony-osp.eu/entity#00000000-0000-0000-0000-000000000003",
     "@type": [
-      "https://www.simphony-project.eu/city#Street"
+      "https://www.simphony-osp.eu/city#Street"
     ],
-    "https://www.simphony-project.eu/city#coordinates": [
+    "https://www.simphony-osp.eu/city#coordinates": [
       {
-        "@type": "https://www.simphony-project.eu/types#Vector",
+        "@type": "https://www.simphony-osp.eu/types#Vector",
         "@value": "13YOs0RR9300000000000000000000"
       }
     ],
-    "https://www.simphony-project.eu/city#name": [
+    "https://www.simphony-osp.eu/city#name": [
       {
         "@value": "Schwarzwaldstra\u00dfe"
       }

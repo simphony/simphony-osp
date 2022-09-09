@@ -26,11 +26,11 @@ class TestLoadParsers(unittest.TestCase):
 
         # Test that all namespaces were loaded.
         required_namespaces = {
-            "simphony": "https://www.simphony-project.eu/simphony#",
+            "simphony": "https://www.simphony-osp.eu/simphony#",
             "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
             "owl": "http://www.w3.org/2002/07/owl#",
         }
-        city_namespaces = {"city": "https://www.simphony-project.eu/city#"}
+        city_namespaces = {"city": "https://www.simphony-osp.eu/city#"}
         foaf_namespaces = {"foaf": "http://xmlns.com/foaf/0.1/"}
         dcat2_namespaces = {"dcat2": "http://www.w3.org/ns/dcat#"}
         emmo_namespaces = {"emmo": "http://emmo.info/emmo#"}
