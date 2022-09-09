@@ -1178,7 +1178,8 @@ class OntologyIndividual(OntologyEntity):
 
         values = values or set()
         values = (
-            {values} if not isinstance(values, (Tuple, Set, MutableSet))
+            {values}
+            if not isinstance(values, (Tuple, Set, MutableSet))
             else set(values)
         )
         # Apparently instances of MutableSet are not instances of Set.

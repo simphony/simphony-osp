@@ -231,9 +231,7 @@ def find_relationships(
 
 
 def sparql(
-        query: str,
-        ontology: bool = False,
-        session: Optional[Session] = None
+    query: str, ontology: bool = False, session: Optional[Session] = None
 ) -> QueryResult:
     """Performs a SPARQL query on a session.
 
