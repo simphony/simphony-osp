@@ -439,7 +439,7 @@ class SessionSet(DataStructureSet):
 
 
 class Session(Environment):
-    """ "Box" that stores ontology individuals."""
+    """'Box' that stores ontology individuals."""
 
     # ↓ --------------------- Public API --------------------- ↓ #
     """These methods are meant to be available to the end-user."""

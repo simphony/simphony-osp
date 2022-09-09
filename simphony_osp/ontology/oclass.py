@@ -22,6 +22,7 @@ from rdflib import OWL, RDF, RDFS, BNode, URIRef
 from rdflib.term import Identifier, Node
 
 from simphony_osp.ontology.attribute import OntologyAttribute
+from simphony_osp.ontology.composition import Composition
 from simphony_osp.ontology.entity import OntologyEntity
 from simphony_osp.ontology.restriction import Restriction
 from simphony_osp.utils.cache import lru_cache_timestamp
