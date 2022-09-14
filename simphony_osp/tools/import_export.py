@@ -125,16 +125,13 @@ def import_file(
         # Read the contents of the object.
         if isinstance(file, str):  # Path.
             if not pathlib.Path(file).is_file():
-                raise ValueError(
-                    f"{file} is not a file or does not exist."
-                )
+                raise ValueError(f"{file} is not a file or does not exist.")
             with open(file, "r") as file_object:
                 contents = file_object.read()
         else:  # File-like object.
             if "read" not in file.__dir__():
                 raise TypeError(
-                    f"{file} is neither a path"
-                    f"or a file-like object."
+                    f"{file} is neither a path" f"or a file-like object."
                 )
             contents = file.read()
 
@@ -146,7 +143,7 @@ def import_file(
             else:
                 raise ValueError(
                     "Could not guess the file format. Please "
-                    "specify it using the \"format\" keyword "
+                    'specify it using the "format" keyword '
                     "argument."
                 )
 
@@ -161,25 +158,21 @@ def import_file(
     )
     if not all_statements:
         """Import only ontology individuals from the file.
-        
+
         Ignores classes, relationships, annotations and any other triples that
         do not have a meaning for SimPhoNy.
         """
         session.add(
-            individuals,
-            exists_ok=True,
-            merge=False,
-            all_triples=all_triples
+            individuals, exists_ok=True, merge=False, all_triples=all_triples
         )
     else:
         """Import all triples from the file.
-        
+
         Includes not only classes, relationships, annotations, but also triples
         that do not have a meaning for SimPhoNy.
         """
         session.graph.addN(
-            (s, p, o, session.graph)
-            for s, p, o in buffer_session.graph
+            (s, p, o, session.graph) for s, p, o in buffer_session.graph
         )
 
     # Find the "main" exported item.
@@ -344,9 +337,9 @@ def export_file(
     if main:
         buffer_graph.add(main)
 
-    result = buffer_graph.serialize(
-        format=format, encoding="utf-8"
-    ).decode("utf-8")
+    result = buffer_graph.serialize(format=format, encoding="utf-8").decode(
+        "utf-8"
+    )
 
     # Either save the result to a file or return it as a string.
     if file:
