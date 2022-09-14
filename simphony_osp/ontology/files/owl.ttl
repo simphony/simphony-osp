@@ -6,6 +6,8 @@
 @base <http://www.w3.org/2002/07/owl#> .
 
 owl:Thing rdf:type owl:Class.
+owl:NamedIndividual rdf:type owl:Class.
+owl:NamedIndividual rdfs:subClassOf owl:Thing.
 owl:topObjectProperty rdf:type owl:ObjectProperty.
 owl:bottomObjectProperty rdf:type owl:ObjectProperty.
 owl:topDataProperty rdf:type owl:DatatypeProperty.

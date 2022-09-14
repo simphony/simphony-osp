@@ -15,7 +15,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Hashable, Iterable, Iterator, Optional, Tuple, Type, Union
 
-from rdflib import RDFS, SKOS, XSD, BNode, Graph, Literal, URIRef
+from rdflib import RDF, RDFS, OWL, SKOS, XSD, BNode, Graph, Literal, URIRef
 from rdflib.compare import isomorphic
 from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 
@@ -2621,6 +2621,106 @@ class TestToolsImportExport(unittest.TestCase):
                 another_session, loaded_objects, label="import"
             )
 
+    def test_option_all_triples(self):
+        """Tests using the `all_triples` option."""
+        from simphony_osp.tools import import_file
+
+        rdf = self.graph_unsupported_triples
+        rdf = rdf.serialize(
+            format="turtle", encoding="utf-8"
+        ).decode("utf-8")
+
+        # Test import: `all_triples=False`.
+        file_like = io.StringIO(rdf)
+        with Session() as session:
+            import_file(file_like, format="turtle", all_triples=False)
+            self.assertEqual(1, len(session))
+            self.assertEqual(1, len(session.get().one().triples))
+            self.assertEqual(1, len(session.graph))
+
+        # Test import: `all_triples=True`.
+        file_like = io.StringIO(rdf)
+        with Session() as session:
+            import_file(file_like, format="turtle", all_triples=True)
+            self.assertEqual(1, len(session))
+            self.assertEqual(3, len(session.get().one().triples))
+            self.assertEqual(3, len(session.graph))
+
+        # Test export: `all_triples=False`.
+        file_like = io.StringIO(rdf)
+        with Session() as session:
+            import_file(file_like, format="turtle", all_triples=True)
+            exported = export_file(session, format="turtle", all_triples=False)
+            exported = io.StringIO(exported)
+        with Session() as session:
+            import_file(exported, format="turtle", all_triples=True)
+            self.assertEqual(1, len(session))
+            self.assertEqual(1, len(session.get().one().triples))
+            self.assertEqual(1, len(session.graph))
+
+        # Test export: `all_triples=True`.
+        file_like = io.StringIO(rdf)
+        with Session() as session:
+            import_file(file_like, format="turtle", all_triples=True)
+            exported = export_file(session, format="turtle", all_triples=True)
+            exported = io.StringIO(exported)
+        with Session() as session:
+            import_file(exported, format="turtle", all_triples=True)
+            self.assertEqual(1, len(session))
+            self.assertEqual(3, len(session.get().one().triples))
+            self.assertEqual(3, len(session.graph))
+
+    def test_option_all_statements(self):
+        """Tests using the `all_statements` option."""
+        from simphony_osp.tools import import_file
+
+        rdf = self.graph_unsupported_triples
+        rdf = rdf.serialize(
+            format="turtle", encoding="utf-8"
+        ).decode("utf-8")
+
+        # Test import: `all_statements=False`.
+        file_like = io.StringIO(rdf)
+        with Session() as session:
+            import_file(file_like, format="turtle", all_statements=False)
+            self.assertEqual(1, len(session))
+            self.assertEqual(1, len(session.get().one().triples))
+            self.assertEqual(1, len(session.graph))
+
+        # Test import: `all_statements=True`.
+        file_like = io.StringIO(rdf)
+        with Session() as session:
+            import_file(file_like, format="turtle", all_statements=True)
+            self.assertEqual(1, len(session))
+            self.assertEqual(3, len(session.get().one().triples))
+            self.assertEqual(4, len(session.graph))
+
+        # Test export: `all_statements=False`.
+        file_like = io.StringIO(rdf)
+        with Session() as session:
+            import_file(file_like, format="turtle", all_statements=True)
+            exported = export_file(session, format="turtle",
+                                   all_statements=False)
+            exported = io.StringIO(exported)
+        with Session() as session:
+            import_file(exported, format="turtle", all_statements=True)
+            self.assertEqual(1, len(session))
+            self.assertEqual(1, len(session.get().one().triples))
+            self.assertEqual(1, len(session.graph))
+
+        # Test export: `all_statements=True`.
+        file_like = io.StringIO(rdf)
+        with Session() as session:
+            import_file(file_like, format="turtle", all_statements=True)
+            exported = export_file(session, format="turtle",
+                                   all_statements=True)
+            exported = io.StringIO(exported)
+        with Session() as session:
+            import_file(exported, format="turtle", all_statements=True)
+            self.assertEqual(1, len(session))
+            self.assertEqual(3, len(session.get().one().triples))
+            self.assertEqual(4, len(session.graph))
+
     def data_integrity(
         self,
         session: Session,
@@ -2639,7 +2739,7 @@ class TestToolsImportExport(unittest.TestCase):
                 'export'). Makes distinguishing the different integrity checks
                 done during a test easier.
         """
-        from simphony_osp.namespaces import test_importexport
+        from simphony_osp.namespaces import owl, test_importexport
 
         if label:
             label = f"({str(label)}) "
@@ -2691,8 +2791,9 @@ class TestToolsImportExport(unittest.TestCase):
             "Tests that the loaded ontology individuals belong to "
             "the correct classes."
         ):
-            # Blocks 1, 2 and 4 are both blocks and forests.
+            # Blocks 1, 2 and 4 are named individuals, blocks and forests.
             expected_classes = (
+                owl.NamedIndividual,
                 test_importexport.Block,
                 test_importexport.Forest,
             )
@@ -2704,8 +2805,9 @@ class TestToolsImportExport(unittest.TestCase):
                 expected_classes, loaded_classes_for_object, label=label
             )
 
-            # Block 3 is both a block and water.
+            # Block 3 is a named individual, a block and water.
             expected_classes = (
+                owl.NamedIndividual,
                 test_importexport.Block,
                 test_importexport.Water,
             )
@@ -2800,6 +2902,41 @@ class TestToolsImportExport(unittest.TestCase):
             return all(self.json_ld_equal(aa, bb) for aa, bb in zip(a, b))
         else:
             return a == b
+
+    @property
+    def graph_unsupported_triples(self) -> Graph:
+        """Returns a graph that cannot be fully interpreted by SimPhoNy.
+
+        It includes:
+        - An individual that has triples that cannot be understood by SimPhoNy.
+        - Triples that do not even belong to a specific individual.
+
+        This method is meant ot be used by the following tests:
+        - test_option_all_triples
+        - test_option_all_statements
+        """
+        graph = Graph()
+        graph.add((
+            URIRef("http://example.org/individuals#1"),
+            RDF.type,
+            OWL.Thing,
+        ))
+        graph.add((
+            URIRef("http://example.org/individuals#1"),
+            URIRef("http://example.org/no_meaning#1"),
+            URIRef("http://example.org/no_meaning#2")
+        ))
+        graph.add((
+            URIRef("http://example.org/individuals#1"),
+            URIRef("http://example.org/no_meaning#3"),
+            Literal(58, datatype=URIRef("http://example.org/no_meaning#4"))
+        ))
+        graph.add((
+            Literal(18, datatype=XSD.integer),
+            URIRef("http://example.org/some_uri"),
+            OWL.Thing
+        ))
+        return graph
 
 
 class TestToolsSearch(unittest.TestCase):

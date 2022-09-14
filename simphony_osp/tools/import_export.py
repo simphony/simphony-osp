@@ -22,10 +22,11 @@ __all__ = ["export_file", "import_file"]
 
 
 def import_file(
-    path_or_filelike: Union[str, TextIO, dict, List[dict]],
+    file: Union[str, TextIO, dict, List[dict]],
     session: Optional[Session] = None,
     format: str = None,
     all_triples: bool = False,
+    all_statements: bool = False,
 ) -> Union[OntologyIndividual, Set[OntologyIndividual]]:
     """Imports ontology individuals from a file and load them into a session.
 
@@ -34,7 +35,7 @@ def import_file(
     the `source` button to read it in its raw form.
 
     Args:
-        path_or_filelike: either,
+        file: either,
             (str) the path of a file to import;
             (Union[List[dict], dict]) a dictionary representing the contents of
              a json file;
@@ -52,13 +53,35 @@ def import_file(
             If no format is specified, then it will be guessed. Note that in
             some specific cases, the guess may be wrong. In such cases, try
             again specifying the format.
-        all_triples: When an RDF triple has an ontology relationship as
-            predicate, SimPhoNy checks that both the subject and the object
-            of such triple refer to a valid ontology individual, that is, that
-            an additional triple defining their types exist. When this is not
-            the case, SimPhoNy omits the triple. In some use cases, importing
-            those triples may be necessary. Change the value of this argument
-            to `True` to import them.
+        all_triples: By default, SimPhoNy imports only ontology individuals.
+            Moreover, not all information about such individuals is imported,
+            but only the details that are relevant from an ontological point
+            of view: the individual's attributes, the classes it belongs to,
+            and its connections to other ontology individuals that are also
+            being copied at the same time.
+
+            However, in some cases, it is necessary to keep all the information
+            about an individual, even if it cannot be understood by SimPhoNy.
+            Set this option to `True` to copy all RDF statements describing
+            ontology individuals, that is, all RDF statements where the
+            individuals are the subject.
+
+            One example of a situation where this option is useful is
+            when an individual is attached through an object property to
+            another one which is not properly defined (i.e. has no type
+            assigned). This situation commonly arises when using the
+            `dcat:accessURL` object property.
+        all_statements: SimPhoNy imports only ontology individuals by default.
+            Moreover, not all information about such individuals is imported,
+            but only the details that are relevant from an ontological point
+            of view.
+
+            Set this option to `True` to import all RDF statements contained in
+            the file, even if they cannot be understood by SimPhoNy. Note that
+            this option differs from `all_triples` because it is more general:
+            the latter imports all triples where an ontology individual is the
+            subject. This one imports all RDF statements, regardless of whether
+            the subjects of the statements are individuals or not.
 
     Returns:
         A set with the imported ontology individuals. If an individual was
@@ -89,7 +112,7 @@ def import_file(
                 ) from e
 
     # Guess and/or validate the specified format.
-    if isinstance(path_or_filelike, (dict, list)):  # JSON document
+    if isinstance(file, (dict, list)):  # JSON document
         if not (
             format is None or format in ("json-ld", "application/ld+json")
         ):
@@ -97,52 +120,69 @@ def import_file(
                 f"The file to be imported do not match the specified format: "
                 f"{format}."
             )
-        contents = json.dumps(path_or_filelike)
+        contents = json.dumps(file)
     else:  # Path to a file or file-like object.
         # Read the contents of the object.
-        if isinstance(path_or_filelike, str):  # Path.
-            if not pathlib.Path(path_or_filelike).is_file():
+        if isinstance(file, str):  # Path.
+            if not pathlib.Path(file).is_file():
                 raise ValueError(
-                    f"{path_or_filelike} is not a file or does not exist."
+                    f"{file} is not a file or does not exist."
                 )
-            with open(path_or_filelike, "r") as file:
-                contents = file.read()
+            with open(file, "r") as file_object:
+                contents = file_object.read()
         else:  # File-like object.
-            if "read" not in path_or_filelike.__dir__():
+            if "read" not in file.__dir__():
                 raise TypeError(
-                    f"{path_or_filelike} is neither a path"
+                    f"{file} is neither a path"
                     f"or a file-like object."
                 )
-            contents = path_or_filelike.read()
+            contents = file.read()
 
         # Guess or validate the format.
         if format is None:
             # Let RDFLib guess (it can only guess for files)
-            if isinstance(path_or_filelike, str):
-                format = guess_format(path_or_filelike)
+            if isinstance(file, str):
+                format = guess_format(file)
             else:
                 raise ValueError(
-                    "Could not guess the file format. Please"
-                    'specify it using the "format" keyword '
+                    "Could not guess the file format. Please "
+                    "specify it using the \"format\" keyword "
                     "argument."
                 )
 
-    # Import the contents.
+    # Import the contents of the file.
     session = session or Session.get_default_session()
-
     buffer_session = Session()
     buffer_session.graph.parse(io.StringIO(contents), format=format)
-    buffer_session.graph.remove((None, RDF.type, OWL.NamedIndividual))
-
     individuals = set(
         individual
         for individual in buffer_session
         if isinstance(individual, OntologyIndividual)
     )
-    session.add(
-        individuals, exists_ok=True, merge=False, all_triples=all_triples
-    )
+    if not all_statements:
+        """Import only ontology individuals from the file.
+        
+        Ignores classes, relationships, annotations and any other triples that
+        do not have a meaning for SimPhoNy.
+        """
+        session.add(
+            individuals,
+            exists_ok=True,
+            merge=False,
+            all_triples=all_triples
+        )
+    else:
+        """Import all triples from the file.
+        
+        Includes not only classes, relationships, annotations, but also triples
+        that do not have a meaning for SimPhoNy.
+        """
+        session.graph.addN(
+            (s, p, o, session.graph)
+            for s, p, o in buffer_session.graph
+        )
 
+    # Find the "main" exported item.
     main = next(
         iter(
             buffer_session.graph.subjects(
@@ -172,6 +212,7 @@ def export_file(
     main: Optional[Union[str, Identifier, OntologyIndividual]] = None,
     format: str = "text/turtle",
     all_triples: bool = False,
+    all_statements: bool = False,
 ) -> Union[str, None]:
     """Exports ontology individuals to a variety of formats.
 
@@ -193,14 +234,36 @@ def export_file(
         main: the identifier of an ontology individual to be marked as the
             "main" individual using the SimPhoNy ontology.
         format: the target format. Defaults to triples in turtle syntax.
-        all_triples: When an RDF triple has an ontology relationship as
-            predicate, SimPhoNy checks that both the subject and the object
-            of such triple refer to a valid ontology individual, that is, that
-            an additional triple defining their types exist. When this is not
-            the case, SimPhoNy omits the triple (unless the whole session is
-            being exported). In some use cases, exporting those triples may be
-            necessary. Change the value of this argument to `True` to export
-            them.
+        all_triples: By default, SimPhoNy exports only ontology individuals.
+            Moreover, not all information about such individuals is exported,
+            but only the details that are relevant from an ontological point
+            of view: the individual's attributes, the classes it belongs to,
+            and its connections to other ontology individuals that are also
+            being copied at the same time.
+
+            However, in some cases, it is necessary to keep all the information
+            about an individual, even if it cannot be understood by SimPhoNy.
+            Set this option to `True` to export all RDF statements describing
+            ontology individuals, that is, all RDF statements where the
+            individuals are the subject.
+
+            One example of a situation where this option is useful is
+            when an individual is attached through an object property to
+            another one which is not properly defined (i.e. has no type
+            assigned). This situation commonly arises when using the
+            `dcat:accessURL` object property.
+        all_statements: SimPhoNy exports only ontology individuals by default.
+            Moreover, not all information about such individuals is exported,
+            but only the details that are relevant from an ontological point
+            of view.
+
+            Set this option to `True` to export all RDF statements contained in
+            a session, even if they cannot be understood by SimPhoNy. Note that
+            this option differs from `all_triples` because it is more general:
+            the latter exports all triples where an ontology individual is the
+            subject. This one exports all RDF statements, regardless of whether
+            the subjects of the statements are individuals or not.
+
 
     Returns:
         The contents of the exported file as a string (if no `file` argument
@@ -248,38 +311,42 @@ def export_file(
         )
 
     # Export the individuals
-    if isinstance(individuals_or_session, Session):
-        buffer_graph = Graph()
-        buffer_graph += individuals_or_session.graph
-        if main:
-            buffer_graph.add(main)
-        for ns in individuals_or_session.namespaces:
-            buffer_graph.bind(ns.name, ns.iri)
-        result = buffer_graph.serialize(
-            format=format, encoding="utf-8"
-        ).decode("utf-8")
-    else:
-        if isinstance(individuals_or_session, OntologyIndividual):
-            individuals_or_session = {individuals_or_session}
-
-        buffer_session = Session()
-
-        # Bind namespaces
-        first_individual = next(iter(individuals_or_session))
-        for ns in first_individual.session.namespaces:
-            buffer_session.bind(ns.name, ns.iri)
+    if isinstance(individuals_or_session, OntologyIndividual):
+        individuals_or_session = {individuals_or_session}
+    if not isinstance(individuals_or_session, Session):
+        individuals_or_session = iter(individuals_or_session)
+        first_individual = next(individuals_or_session)
+        session = first_individual.session
         individuals_or_session = chain(
             {first_individual}, individuals_or_session
         )
-
-        # Add individuals and main individual triple
+    else:
+        session = individuals_or_session
+    if not all_statements:
+        buffer_session = Session()
         buffer_session.add(individuals_or_session, all_triples=all_triples)
-        if main:
-            buffer_session.graph.add(main)
+        buffer_graph = Graph()
+        buffer_graph += buffer_session.graph
+    else:
+        buffer_graph = Graph()
+        if isinstance(individuals_or_session, Session):
+            buffer_graph += session.graph
+        else:
+            buffer_graph.addN(
+                (s, p, o, buffer_graph)
+                for individual in individuals_or_session
+                for s, p, o in individual.triples
+            )
 
-        result = buffer_session.graph.serialize(
-            format=format, encoding="utf-8"
-        ).decode("utf-8")
+    for ns in session.namespaces:
+        buffer_graph.bind(ns.name, ns.iri)
+
+    if main:
+        buffer_graph.add(main)
+
+    result = buffer_graph.serialize(
+        format=format, encoding="utf-8"
+    ).decode("utf-8")
 
     # Either save the result to a file or return it as a string.
     if file:

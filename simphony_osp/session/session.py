@@ -4,7 +4,7 @@ from __future__ import annotations
 import itertools
 import logging
 from datetime import datetime
-from functools import wraps
+from functools import lru_cache, wraps
 from inspect import isclass
 from typing import (
     TYPE_CHECKING,
@@ -624,13 +624,23 @@ class Session(Environment):
                 details).
             exists_ok: Merge or overwrite individuals when they already exist
                 in the session rather than raising an exception.
-            all_triples:
-                When the individual is attached through an object property
-                to another one which is not properly defined (i.e. has no type
-                assigned), such connection is generally dropped. Setting this
-                option to `True` keeps such connections on the copy. Can give
-                rise to bugs. A common case in which you might want to do this
-                involves the `dcat:accessURL` object property.
+            all_triples: When an individual is added to the session, SimPhoNy
+                only copies the details that are relevant from an ontological
+                point of view: the individual's attributes, the classes it
+                belongs to, and its connections to other ontology individuals
+                that are also being copied at the same time.
+
+                However, in some cases, it is necessary to keep all the
+                information about the individual, even if it cannot be
+                understood by SimPhoNy. Set this option to `True` to copy all
+                RDF statements describing the individual, that is, all RDF
+                statements where the individual is the subject.
+
+                One example of a situation where this option is useful is
+                when the individual is attached through an object property to
+                another one which is not properly defined (i.e. has no type
+                assigned). This situation commonly arises when using the
+                `dcat:accessURL` object property.
 
         Returns:
             The new copies of the individuals.
@@ -691,6 +701,70 @@ class Session(Environment):
             for individual in individuals
             if individual.session is not self
         )
+
+        @lru_cache(maxsize=4096)
+        def is_known(
+                p: Node
+        ) -> Optional[Union[OntologyAttribute,
+                            OntologyRelationship,
+                            OntologyAnnotation]]:
+            """Check whether a predicate is known in the session's ontology.
+
+            Args:
+                p: Predicate to be evaluated.
+
+            Returns:
+                The predicate if it is known, `None` if it is not.
+            """
+            try:
+                entity = self.ontology.from_identifier(p)
+                if not isinstance(
+                        entity,
+                        (OntologyRelationship, OntologyAttribute,
+                         OntologyAnnotation)
+                ):
+                    entity = None
+            except KeyError:
+                entity = None
+            return entity
+
+        def is_valid(
+                p: Node,
+                o: Node
+        ) -> bool:
+            """Check whether a predicate is known and has a valid target.
+
+               Check whether the predicate is a known relationship, attribute
+               or annotation in this session's ontology, and points to a
+               "valid" target:
+               - Attributes must point to literals.
+               - Relationships must point to individuals being copied
+                 simultaneously into the session.
+               - Annotations can point to anything.
+
+               The word "valid" is written with quotation marks because it is
+               arguably just a superset of what is really valid (e.g. it is
+               not checked that the data type of literals match the range of
+               the attributes).
+
+            Args:
+                p: Predicate to be evaluated.
+                o: Target of the predicate.
+
+            Returns:
+                The predicate points to a "valid" target.
+            """
+            p = is_known(p)
+            if isinstance(p, OntologyAttribute):
+                result = isinstance(o, Literal)
+            elif isinstance(p, OntologyRelationship):
+                result = o in identifiers
+            elif isinstance(p, OntologyAnnotation):
+                result = True
+            else:  # isinstance(p, type(None)):
+                result = False
+            return result
+
         add = (
             (s, p, o)
             for individual in individuals
@@ -700,8 +774,7 @@ class Session(Environment):
             if (
                 all_triples
                 or p == RDF.type
-                or isinstance(o, Literal)
-                or o in identifiers
+                or is_valid(p, o)
             )
         )
         if not merge:
@@ -1437,7 +1510,7 @@ class Session(Environment):
             }
         )
 
-        # Yield the entities from the TBox (literals filtered out above).
+        # Yield the entities from the TBox (literals filtered out).
         if self.ontology is self:
             yield from (
                 s
@@ -1446,7 +1519,7 @@ class Session(Environment):
                 if not isinstance(s, Literal)
             )
 
-        # Yield the entities from the ABox (literals filtered out below).
+        # Yield the entities from the ABox (literals filtered out).
         yield from (
             t[0]
             for t in self._graph.triples((None, RDF.type, None))
