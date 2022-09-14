@@ -7,7 +7,7 @@ import pathlib
 from itertools import chain
 from typing import Iterable, List, Optional, Set, TextIO, Union
 
-from rdflib import OWL, RDF, XSD, Graph, Literal, URIRef
+from rdflib import XSD, Graph, Literal, URIRef
 from rdflib.parser import Parser as RDFLib_Parser
 from rdflib.plugin import get as get_plugin
 from rdflib.serializer import Serializer as RDFLib_Serializer
