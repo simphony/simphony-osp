@@ -730,7 +730,8 @@ class Session(Environment):
 
         def is_valid(
                 p: Node,
-                o: Node
+                o: Node,
+                warnings: Optional[Node],
         ) -> bool:
             """Check whether a predicate is known and has a valid target.
 
@@ -750,19 +751,54 @@ class Session(Environment):
             Args:
                 p: Predicate to be evaluated.
                 o: Target of the predicate.
+                warnings: When a value is given, warnings are emitted if
+                    an "invalid" target is identified. The value is used to
+                    identify the ontology individual is related to.
 
             Returns:
                 The predicate points to a "valid" target.
             """
-            p = is_known(p)
-            if isinstance(p, OntologyAttribute):
+            predicate = is_known(p)
+            if isinstance(predicate, OntologyAttribute):
                 result = isinstance(o, Literal)
-            elif isinstance(p, OntologyRelationship):
+            elif isinstance(predicate, OntologyRelationship):
                 result = o in identifiers
-            elif isinstance(p, OntologyAnnotation):
+            elif isinstance(predicate, OntologyAnnotation):
                 result = True
-            else:  # isinstance(p, type(None)):
+            else:  # isinstance(predicate, type(None)):
                 result = False
+
+            if warnings and not result:
+                if not predicate:
+                    logger.warning(
+                        f"Ignoring RDF statement: "
+                        f"Individual {warnings} is the subject of a statement "
+                        f"that has {p} as predicate, which does not match any "
+                        f"annotation, relationship or attribute from the "
+                        f"installed ontologies. Set the keyword argument "
+                        f"`all_triples` to `True` to include this statement."
+                    )
+                else:
+                    text = {
+                        OntologyAttribute: (
+                            "is not a literal",
+                            "ontology attribute"
+                        ),
+                        OntologyRelationship: (
+                            "is not one of the individuals being added",
+                            "ontology relationship"
+                        )
+                    }
+                    logger.warning(
+                        f"Ignoring RDF statement:"
+                        f"Individual {warnings} is the subject of a RDF "
+                        f"statement that has {predicate} as predicate. "
+                        f"{predicate} is an {text[type(predicate)][1]}, but "
+                        f"the object of the statement "
+                        f"{text[type(predicate)][0]}. Set the keyword argument"
+                        f"`all_triples` to `True` to include this statement."
+                    )
+
             return result
 
         add = (
@@ -774,7 +810,7 @@ class Session(Environment):
             if (
                 all_triples
                 or p == RDF.type
-                or is_valid(p, o)
+                or is_valid(p, o, warnings=s)
             )
         )
         if not merge:
