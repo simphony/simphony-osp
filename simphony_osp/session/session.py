@@ -781,12 +781,12 @@ class Session(Environment):
                     text = {
                         OntologyAttribute: (
                             "is not a literal",
-                            "ontology attribute"
+                            "ontology attribute",
                         ),
                         OntologyRelationship: (
                             "is not one of the individuals being added",
-                            "ontology relationship"
-                        )
+                            "ontology relationship",
+                        ),
                     }
                     logger.warning(
                         f"Ignoring RDF statement:"
@@ -806,11 +806,7 @@ class Session(Environment):
             for s, p, o in individual.session.graph.triples(
                 (individual.identifier, None, None)
             )
-            if (
-                all_triples
-                or p == RDF.type
-                or is_valid(p, o, warnings=s)
-            )
+            if (all_triples or p == RDF.type or is_valid(p, o, warnings=s))
         )
         if not merge:
             """Replace previous individuals if merge is False."""
