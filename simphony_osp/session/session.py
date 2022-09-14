@@ -704,10 +704,10 @@ class Session(Environment):
 
         @lru_cache(maxsize=4096)
         def is_known(
-                p: Node
-        ) -> Optional[Union[OntologyAttribute,
-                            OntologyRelationship,
-                            OntologyAnnotation]]:
+            p: Node,
+        ) -> Optional[
+            Union[OntologyAttribute, OntologyRelationship, OntologyAnnotation]
+        ]:
             """Check whether a predicate is known in the session's ontology.
 
             Args:
@@ -719,19 +719,19 @@ class Session(Environment):
             try:
                 entity = self.ontology.from_identifier(p)
                 if not isinstance(
-                        entity,
-                        (OntologyRelationship, OntologyAttribute,
-                         OntologyAnnotation)
+                    entity,
+                    (
+                        OntologyRelationship,
+                        OntologyAttribute,
+                        OntologyAnnotation,
+                    ),
                 ):
                     entity = None
             except KeyError:
                 entity = None
             return entity
 
-        def is_valid(
-                p: Node,
-                o: Node
-        ) -> bool:
+        def is_valid(p: Node, o: Node) -> bool:
             """Check whether a predicate is known and has a valid target.
 
                Check whether the predicate is a known relationship, attribute
@@ -771,11 +771,7 @@ class Session(Environment):
             for s, p, o in individual.session.graph.triples(
                 (individual.identifier, None, None)
             )
-            if (
-                all_triples
-                or p == RDF.type
-                or is_valid(p, o)
-            )
+            if (all_triples or p == RDF.type or is_valid(p, o))
         )
         if not merge:
             """Replace previous individuals if merge is False."""

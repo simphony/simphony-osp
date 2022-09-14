@@ -15,7 +15,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Hashable, Iterable, Iterator, Optional, Tuple, Type, Union
 
-from rdflib import RDF, RDFS, OWL, SKOS, XSD, BNode, Graph, Literal, URIRef
+from rdflib import OWL, RDF, RDFS, SKOS, XSD, BNode, Graph, Literal, URIRef
 from rdflib.compare import isomorphic
 from rdflib.plugins.parsers.jsonld import to_rdf as json_to_rdf
 
@@ -2626,9 +2626,7 @@ class TestToolsImportExport(unittest.TestCase):
         from simphony_osp.tools import import_file
 
         rdf = self.graph_unsupported_triples
-        rdf = rdf.serialize(
-            format="turtle", encoding="utf-8"
-        ).decode("utf-8")
+        rdf = rdf.serialize(format="turtle", encoding="utf-8").decode("utf-8")
 
         # Test import: `all_triples=False`.
         file_like = io.StringIO(rdf)
@@ -2675,9 +2673,7 @@ class TestToolsImportExport(unittest.TestCase):
         from simphony_osp.tools import import_file
 
         rdf = self.graph_unsupported_triples
-        rdf = rdf.serialize(
-            format="turtle", encoding="utf-8"
-        ).decode("utf-8")
+        rdf = rdf.serialize(format="turtle", encoding="utf-8").decode("utf-8")
 
         # Test import: `all_statements=False`.
         file_like = io.StringIO(rdf)
@@ -2699,8 +2695,9 @@ class TestToolsImportExport(unittest.TestCase):
         file_like = io.StringIO(rdf)
         with Session() as session:
             import_file(file_like, format="turtle", all_statements=True)
-            exported = export_file(session, format="turtle",
-                                   all_statements=False)
+            exported = export_file(
+                session, format="turtle", all_statements=False
+            )
             exported = io.StringIO(exported)
         with Session() as session:
             import_file(exported, format="turtle", all_statements=True)
@@ -2712,8 +2709,9 @@ class TestToolsImportExport(unittest.TestCase):
         file_like = io.StringIO(rdf)
         with Session() as session:
             import_file(file_like, format="turtle", all_statements=True)
-            exported = export_file(session, format="turtle",
-                                   all_statements=True)
+            exported = export_file(
+                session, format="turtle", all_statements=True
+            )
             exported = io.StringIO(exported)
         with Session() as session:
             import_file(exported, format="turtle", all_statements=True)
@@ -2916,26 +2914,36 @@ class TestToolsImportExport(unittest.TestCase):
         - test_option_all_statements
         """
         graph = Graph()
-        graph.add((
-            URIRef("http://example.org/individuals#1"),
-            RDF.type,
-            OWL.Thing,
-        ))
-        graph.add((
-            URIRef("http://example.org/individuals#1"),
-            URIRef("http://example.org/no_meaning#1"),
-            URIRef("http://example.org/no_meaning#2")
-        ))
-        graph.add((
-            URIRef("http://example.org/individuals#1"),
-            URIRef("http://example.org/no_meaning#3"),
-            Literal(58, datatype=URIRef("http://example.org/no_meaning#4"))
-        ))
-        graph.add((
-            Literal(18, datatype=XSD.integer),
-            URIRef("http://example.org/some_uri"),
-            OWL.Thing
-        ))
+        graph.add(
+            (
+                URIRef("http://example.org/individuals#1"),
+                RDF.type,
+                OWL.Thing,
+            )
+        )
+        graph.add(
+            (
+                URIRef("http://example.org/individuals#1"),
+                URIRef("http://example.org/no_meaning#1"),
+                URIRef("http://example.org/no_meaning#2"),
+            )
+        )
+        graph.add(
+            (
+                URIRef("http://example.org/individuals#1"),
+                URIRef("http://example.org/no_meaning#3"),
+                Literal(
+                    58, datatype=URIRef("http://example.org/no_meaning#4")
+                ),
+            )
+        )
+        graph.add(
+            (
+                Literal(18, datatype=XSD.integer),
+                URIRef("http://example.org/some_uri"),
+                OWL.Thing,
+            )
+        )
         return graph
 
 
