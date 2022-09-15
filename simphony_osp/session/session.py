@@ -793,12 +793,12 @@ class Session(Environment):
                 if text:
                     if exception:
                         raise RuntimeError(
-                            text + f" Set the keyword argument `all_triples`"
-                            f"to `True` to ignore this error."
+                            text + " Set the keyword argument `all_triples`"
+                            "to `True` to ignore this error."
                         )
                     else:
                         logger.warning(
-                            f"Accepting uninterpretable RDF statement: " + text
+                            "Accepting uninterpretable RDF statement: " + text
                         )
 
             return result

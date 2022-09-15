@@ -204,7 +204,7 @@ def import_file(
                         )
                     else:
                         logger.warning(
-                            f"Accepting uninterpretable RDF statement: " + text
+                            "Accepting uninterpretable RDF statement: " + text
                         )
                 elif terminological:
                     text = (
@@ -430,7 +430,7 @@ def export_file(
                             )
                         else:
                             logger.warning(
-                                f"Exporting uninterpretable RDF statement: "
+                                "Exporting uninterpretable RDF statement: "
                                 + text
                             )
                     elif terminological:
@@ -440,8 +440,8 @@ def export_file(
                             f"knowledge of an ontology. Exporting "
                             f"terminological knowledge is not supported by "
                             f"SymPhoNy. You can ignore this error setting the "
-                            f"keyword argument `all_statements` to `True`, but "
-                            f"it will likely lead to errors."
+                            f"keyword argument `all_statements` to `True`, "
+                            f"but it will likely lead to errors."
                         )
                         raise RuntimeError(text)
                 elif not all_triples:
