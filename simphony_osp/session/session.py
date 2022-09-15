@@ -731,8 +731,9 @@ class Session(Environment):
                 entity = None
             return entity
 
-        def is_valid(s: Node, p: Node, o: Node,
-                     exception: bool = False) -> bool:
+        def is_valid(
+            s: Node, p: Node, o: Node, exception: bool = False
+        ) -> bool:
             """Check whether a predicate is known and has a valid target.
 
                Check whether the predicate is a known relationship, attribute
@@ -792,26 +793,27 @@ class Session(Environment):
                 if text:
                     if exception:
                         raise RuntimeError(
-                            text
-                            + f" Set the keyword argument `all_triples`"
-                              f"to `True` to ignore this error."
+                            text + f" Set the keyword argument `all_triples`"
+                            f"to `True` to ignore this error."
                         )
                     else:
                         logger.warning(
-                            f"Accepting uninterpretable RDF statement: "
-                            + text
+                            f"Accepting uninterpretable RDF statement: " + text
                         )
 
             return result
+
         add = (
             (s, p, o)
             for individual in individuals
             for s, p, o in individual.session.graph.triples(
                 (individual.identifier, None, None)
             )
-            if (p == RDF.type
+            if (
+                p == RDF.type
                 or is_valid(s, p, o, exception=not all_triples)
-                or all_triples)
+                or all_triples
+            )
         )
         if not merge:
             """Replace previous individuals if merge is False."""
