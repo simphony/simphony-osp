@@ -1,0 +1,5 @@
+identifier: skos
+ontology_file: http://www.w3.org/TR/skos-reference/skos.rdf
+format: "application/rdf+xml"
+namespaces:
+    skos: http://www.w3.org/2004/02/skos/core#
