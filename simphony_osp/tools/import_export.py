@@ -159,10 +159,7 @@ def import_file(
         for individual in buffer_session
         if isinstance(individual, OntologyIndividual)
     )
-    identifiers = set(
-        individual.identifier
-        for individual in individuals
-    )
+    identifiers = set(individual.identifier for individual in individuals)
     if not all_statements:
         """Import only ontology individuals from the file."""
 
@@ -190,8 +187,7 @@ def import_file(
         for s, p, o in buffer_session.graph.triples((None, None, None)):
             if p == RDF.type:
                 assertional = any(
-                    (o, RDF.type, entity_type)
-                    in session.ontology.graph
+                    (o, RDF.type, entity_type) in session.ontology.graph
                     for entity_type in class_types
                 )
                 terminological = o in other_types | class_types
@@ -205,12 +201,11 @@ def import_file(
                         raise RuntimeError(
                             text
                             + " Set the keyword argument `all_triples` to "
-                              "`True` to ignore this error."
+                            "`True` to ignore this error."
                         )
                     else:
                         logger.warning(
-                            f"Accepting uninterpretable RDF statement: "
-                            + text
+                            f"Accepting uninterpretable RDF statement: " + text
                         )
                 elif terminological:
                     text = (
@@ -414,12 +409,11 @@ def export_file(
                 }
             )
             for s, p, o in individuals_or_session.graph.triples(
-                    (None, None, None)
+                (None, None, None)
             ):
                 if p == RDF.type:
                     assertional = any(
-                        (o, RDF.type, entity_type)
-                        in session.ontology.graph
+                        (o, RDF.type, entity_type) in session.ontology.graph
                         for entity_type in class_types
                     )
                     terminological = o in other_types | class_types
@@ -433,7 +427,7 @@ def export_file(
                             raise RuntimeError(
                                 text
                                 + " Set the keyword argument `all_triples` to "
-                                  "`True` to ignore this error."
+                                "`True` to ignore this error."
                             )
                         else:
                             logger.warning(
@@ -461,8 +455,7 @@ def export_file(
                     if relationship:
                         try:
                             (
-                                individuals_or_session
-                                .from_identifier_typed(
+                                individuals_or_session.from_identifier_typed(
                                     o, typing=OntologyIndividual
                                 )
                             )
@@ -480,9 +473,9 @@ def export_file(
         elif not all_triples:
             individuals_or_session = set(individuals_or_session)
             for s, p, o in (
-                    triple
-                    for individual in individuals_or_session
-                    for triple in individual.triples
+                triple
+                for individual in individuals_or_session
+                for triple in individual.triples
             ):
                 try:
                     relationship = session.ontology.from_identifier_typed(
