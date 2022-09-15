@@ -48,8 +48,7 @@ def import_file(
             example, given the `str` object `string`, `import io;
             filelike = io.StringIO(string)` would create such an object.
             If not format is specified, it will be guessed.
-        session: the session in which the imported data will be
-            stored.
+        session: the session in which the imported data will be stored.
         format: the format of the content to import. The supported formats
             are the ones supported by RDFLib. See
             `https://rdflib.readthedocs.io/en/latest/plugin_parsers.html`.
@@ -289,6 +288,7 @@ def export_file(
             (Session) a session to serialize all of its ontology individuals.
             If `None` is specified, then the current session is exported.
         file: either,
+            (None) returns the exported file as a string, or
             (str) a path, to save the ontology individuals to, or
             (TextIO) any file-like object (in string mode) that provides a
             `write()` method. If this argument is not specified, a string with
