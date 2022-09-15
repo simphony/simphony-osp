@@ -240,7 +240,8 @@ def import_file(
                     )
 
         session.add(
-            individuals, exists_ok=True, merge=False, all_triples=all_triples
+            individuals, exists_ok=False, merge=False,
+            all_triples=all_triples
         )
     else:
         """Import all triples from the file."""

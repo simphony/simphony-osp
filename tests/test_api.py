@@ -2569,8 +2569,9 @@ class TestToolsImportExport(unittest.TestCase):
         exported_file = io.StringIO()
         export_file(c, file=exported_file, format="text/turtle")
         exported_file.seek(0)
-        individual = import_file(exported_file, format="text/turtle")
-        self.assertIsInstance(individual, OntologyIndividual)
+        with Session():
+            individual = import_file(exported_file, format="text/turtle")
+            self.assertIsInstance(individual, OntologyIndividual)
 
     def test_text_turtle_file_handle(self):
         """Test importing the `text/turtle` mime type from a file handle."""
