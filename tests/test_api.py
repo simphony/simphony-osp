@@ -2688,7 +2688,7 @@ class TestToolsImportExport(unittest.TestCase):
                 import_file,
                 file_like,
                 format="turtle",
-                all_statements=False
+                all_statements=False,
             )
 
         # Test import: `all_statements=True`.
