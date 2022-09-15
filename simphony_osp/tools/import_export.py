@@ -3,22 +3,25 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import pathlib
 from itertools import chain
 from typing import Iterable, List, Optional, Set, TextIO, Union
 
-from rdflib import XSD, Graph, Literal, URIRef
+from rdflib import OWL, RDF, RDFS, XSD, Graph, Literal, URIRef
 from rdflib.parser import Parser as RDFLib_Parser
 from rdflib.plugin import get as get_plugin
 from rdflib.serializer import Serializer as RDFLib_Serializer
 from rdflib.term import Identifier
 from rdflib.util import guess_format
 
-from simphony_osp.ontology import OntologyIndividual
+from simphony_osp.ontology import OntologyIndividual, OntologyRelationship
 from simphony_osp.session.session import Session
 from simphony_osp.utils.simphony_namespace import simphony_namespace
 
 __all__ = ["export_file", "import_file"]
+
+logger = logging.getLogger(__name__)
 
 
 def import_file(
@@ -156,21 +159,91 @@ def import_file(
         for individual in buffer_session
         if isinstance(individual, OntologyIndividual)
     )
+    identifiers = set(
+        individual.identifier
+        for individual in individuals
+    )
     if not all_statements:
-        """Import only ontology individuals from the file.
+        """Import only ontology individuals from the file."""
 
-        Ignores classes, relationships, annotations and any other triples that
-        do not have a meaning for SimPhoNy.
-        """
+        # Raise error/warning when individuals with undefined types are found.
+        class_types = frozenset(
+            {
+                # owl:Class
+                OWL.Class,
+                RDFS.Class,
+            }
+        )
+        other_types = frozenset(
+            {
+                # owl:AnnotationProperty
+                OWL.AnnotationProperty,
+                RDF.Property,
+                # owl:DatatypeProperty
+                OWL.DatatypeProperty,
+                # owl:ObjectProperty
+                OWL.ObjectProperty,
+                # owl:Restriction
+                OWL.Restriction,
+            }
+        )
+        for s, p, o in buffer_session.graph.triples((None, None, None)):
+            if p == RDF.type:
+                assertional = any(
+                    (o, RDF.type, entity_type)
+                    in session.ontology.graph
+                    for entity_type in class_types
+                )
+                terminological = o in other_types | class_types
+                if not (assertional or terminological):
+                    text = (
+                        f"Subject {s} is declared to be of type {o}, which "
+                        f"does not match any class from the installed "
+                        f"ontologies."
+                    )
+                    if not all_triples:
+                        raise RuntimeError(
+                            text
+                            + " Set the keyword argument `all_triples` to "
+                              "`True` to ignore this error."
+                        )
+                    else:
+                        logger.warning(
+                            f"Accepting uninterpretable RDF statement: "
+                            + text
+                        )
+                elif terminological:
+                    text = (
+                        f"Subject {s} is declared to be of type {o}, meaning "
+                        f"that it is part of the terminological knowledge of "
+                        f"an ontology. Importing terminological knowledge is "
+                        f"not supported by SymPhoNy. You can ignore this "
+                        f"error setting the keyword argument `all_statements` "
+                        f"to `True`, but it will likely lead to errors."
+                    )
+                    raise RuntimeError(text)
+            elif not all_triples:
+                try:
+                    relationship = session.ontology.from_identifier_typed(
+                        p, typing=OntologyRelationship
+                    )
+                except (KeyError, TypeError):
+                    relationship = None
+                if relationship and o not in identifiers:
+                    raise RuntimeError(
+                        f"Individual {s} is the subject of an RDF statement "
+                        f"involving the ontology relationship {relationship}. "
+                        f"However, SimPhoNy was unable to find an ontology"
+                        f"individual with identifier {o} within the file to be"
+                        f"imported. You can ignore this error setting the "
+                        f"keyword argument `all_triples` to `True`."
+                    )
+
         session.add(
             individuals, exists_ok=True, merge=False, all_triples=all_triples
         )
     else:
-        """Import all triples from the file.
-
-        Includes not only classes, relationships, annotations, but also triples
-        that do not have a meaning for SimPhoNy.
-        """
+        """Import all triples from the file."""
         session.graph.addN(
             (s, p, o, session.graph) for s, p, o in buffer_session.graph
         )
@@ -317,6 +390,123 @@ def export_file(
         session = individuals_or_session
     if not all_statements:
         buffer_session = Session()
+
+        if isinstance(individuals_or_session, Session):
+            class_types = frozenset(
+                {
+                    # owl:Class
+                    OWL.Class,
+                    RDFS.Class,
+                }
+            )
+            other_types = frozenset(
+                {
+                    # owl:AnnotationProperty
+                    OWL.AnnotationProperty,
+                    RDF.Property,
+                    # owl:DatatypeProperty
+                    OWL.DatatypeProperty,
+                    # owl:ObjectProperty
+                    OWL.ObjectProperty,
+                    # owl:Restriction
+                    OWL.Restriction,
+                }
+            )
+            for s, p, o in individuals_or_session.graph.triples(
+                    (None, None, None)
+            ):
+                if p == RDF.type:
+                    assertional = any(
+                        (o, RDF.type, entity_type)
+                        in session.ontology.graph
+                        for entity_type in class_types
+                    )
+                    terminological = o in other_types | class_types
+                    if not (assertional or terminological):
+                        text = (
+                            f"Subject {s} is declared to be of type {o}, "
+                            f"which does not match any class from the "
+                            f"installed ontologies."
+                        )
+                        if not all_triples:
+                            raise RuntimeError(
+                                text
+                                + " Set the keyword argument `all_triples` to "
+                                  "`True` to ignore this error."
+                            )
+                        else:
+                            logger.warning(
+                                f"Exporting uninterpretable RDF statement: "
+                                + text
+                            )
+                    elif terminological:
+                        text = (
+                            f"Subject {s} is declared to be of type {o}, "
+                            f"meaning that it is part of the terminological "
+                            f"knowledge of an ontology. Exporting "
+                            f"terminological knowledge is not supported by "
+                            f"SymPhoNy. You can ignore this error setting the "
+                            f"keyword argument `all_statements` to `True`, but "
+                            f"it will likely lead to errors."
+                        )
+                        raise RuntimeError(text)
+                elif not all_triples:
+                    try:
+                        relationship = session.ontology.from_identifier_typed(
+                            p, typing=OntologyRelationship
+                        )
+                    except (KeyError, TypeError):
+                        relationship = None
+                    if relationship:
+                        try:
+                            (
+                                individuals_or_session
+                                .from_identifier_typed(
+                                    o, typing=OntologyIndividual
+                                )
+                            )
+                        except (KeyError, TypeError) as e:
+                            raise RuntimeError(
+                                f"Individual {s} is the subject of an RDF "
+                                f"statement involving the ontology "
+                                f"relationship {relationship}. However, "
+                                f"SimPhoNy was unable to find an ontology "
+                                f"individual with identifier {o} within the "
+                                f"set of individuals to be exported. You can "
+                                f"ignore this error setting the keyword "
+                                f"argument `all_triples` to `True`."
+                            ) from e
+        elif not all_triples:
+            individuals_or_session = set(individuals_or_session)
+            for s, p, o in (
+                    triple
+                    for individual in individuals_or_session
+                    for triple in individual.triples
+            ):
+                try:
+                    relationship = session.ontology.from_identifier_typed(
+                        p, typing=OntologyRelationship
+                    )
+                except (KeyError, TypeError):
+                    relationship = None
+                if relationship:
+                    try:
+                        session.from_identifier_typed(
+                            o, typing=OntologyIndividual
+                        )
+                    except (KeyError, TypeError) as e:
+                        raise RuntimeError(
+                            f"Individual {s} is the subject of an RDF "
+                            f"statement involving the ontology "
+                            f"relationship {relationship}. However, "
+                            f"SimPhoNy was unable to find an ontology "
+                            f"individual with identifier {o} within the "
+                            f"session from which the individuals are being"
+                            f"exported. You can "
+                            f"ignore this error setting the keyword "
+                            f"argument `all_triples` to `True`."
+                        ) from e
+
         buffer_session.add(individuals_or_session, all_triples=all_triples)
         buffer_graph = Graph()
         buffer_graph += buffer_session.graph

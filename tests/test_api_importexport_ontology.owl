@@ -137,22 +137,6 @@
     </owl:Class>
 
 
-    <!--
-    ///////////////////////////////////////////////////////////////////////////////////////
-    //
-    // General axioms
-    //
-    ///////////////////////////////////////////////////////////////////////////////////////
-     -->
-
-    <rdf:Description>
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AllDisjointClasses"/>
-        <owl:members rdf:parseType="Collection">
-            <rdf:Description rdf:about="http://example.org/test-ontology#Forest"/>
-            <rdf:Description rdf:about="http://example.org/test-ontology#Grass"/>
-            <rdf:Description rdf:about="http://example.org/test-ontology#Water"/>
-        </owl:members>
-    </rdf:Description>
 </rdf:RDF>
 
 

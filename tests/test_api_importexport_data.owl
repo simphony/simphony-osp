@@ -7,8 +7,6 @@
      xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
      xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
      xmlns:skos="http://www.w3.org/2004/02/skos/core#">
-    <owl:Ontology rdf:about="http://example.org/test-ontology"/>
-
 
     <!--
     ///////////////////////////////////////////////////////////////////////////////////////
@@ -69,23 +67,6 @@
         <skos:prefLabel xml:lang="en">x4</skos:prefLabel>
     </owl:NamedIndividual>
 
-    <!--
-    ///////////////////////////////////////////////////////////////////////////////////////
-    //
-    // General axioms
-    //
-    ///////////////////////////////////////////////////////////////////////////////////////
-     -->
-
-    <rdf:Description>
-        <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AllDifferent"/>
-        <owl:distinctMembers rdf:parseType="Collection">
-            <rdf:Description rdf:about="http://example.org/test-ontology#x_1"/>
-            <rdf:Description rdf:about="http://example.org/test-ontology#x_2"/>
-            <rdf:Description rdf:about="http://example.org/test-ontology#x_3"/>
-            <rdf:Description rdf:about="http://example.org/test-ontology#x_4"/>
-        </owl:distinctMembers>
-    </rdf:Description>
 </rdf:RDF>
 
 

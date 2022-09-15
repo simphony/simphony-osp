@@ -2395,10 +2395,12 @@ class TestToolsImportExport(unittest.TestCase):
     def setUpClass(cls):
         """Create a TBox and set it as the default ontology.
 
-        The new TBox contains SimPhoNy, OWL, RDFS and FOAF.
+        The new TBox contains SimPhoNy, OWL, RDFS, SKOS and an ontology
+        specifically crafted for this test case.
         """
         cls.ontology = Session(identifier="test-tbox", ontology=True)
         cls.ontology.load_parser(OntologyParser.get_parser("city"))
+        cls.ontology.load_parser(OntologyParser.get_parser("skos"))
         cls.ontology.load_parser(
             OntologyParser.get_parser(
                 str(Path(__file__).parent / "test_api_importexport.yml")
@@ -2630,11 +2632,14 @@ class TestToolsImportExport(unittest.TestCase):
 
         # Test import: `all_triples=False`.
         file_like = io.StringIO(rdf)
-        with Session() as session:
-            import_file(file_like, format="turtle", all_triples=False)
-            self.assertEqual(1, len(session))
-            self.assertEqual(1, len(session.get().one().triples))
-            self.assertEqual(1, len(session.graph))
+        with Session():
+            self.assertRaises(
+                RuntimeError,
+                import_file,
+                file_like,
+                format="turtle",
+                all_triples=False,
+            )
 
         # Test import: `all_triples=True`.
         file_like = io.StringIO(rdf)
@@ -2648,13 +2653,13 @@ class TestToolsImportExport(unittest.TestCase):
         file_like = io.StringIO(rdf)
         with Session() as session:
             import_file(file_like, format="turtle", all_triples=True)
-            exported = export_file(session, format="turtle", all_triples=False)
-            exported = io.StringIO(exported)
-        with Session() as session:
-            import_file(exported, format="turtle", all_triples=True)
-            self.assertEqual(1, len(session))
-            self.assertEqual(1, len(session.get().one().triples))
-            self.assertEqual(1, len(session.graph))
+            self.assertRaises(
+                RuntimeError,
+                export_file,
+                session,
+                format="turtle",
+                all_triples=False,
+            )
 
         # Test export: `all_triples=True`.
         file_like = io.StringIO(rdf)
@@ -2677,11 +2682,14 @@ class TestToolsImportExport(unittest.TestCase):
 
         # Test import: `all_statements=False`.
         file_like = io.StringIO(rdf)
-        with Session() as session:
-            import_file(file_like, format="turtle", all_statements=False)
-            self.assertEqual(1, len(session))
-            self.assertEqual(1, len(session.get().one().triples))
-            self.assertEqual(1, len(session.graph))
+        with Session():
+            self.assertRaises(
+                RuntimeError,
+                import_file,
+                file_like,
+                format="turtle",
+                all_statements=False
+            )
 
         # Test import: `all_statements=True`.
         file_like = io.StringIO(rdf)
@@ -2695,15 +2703,13 @@ class TestToolsImportExport(unittest.TestCase):
         file_like = io.StringIO(rdf)
         with Session() as session:
             import_file(file_like, format="turtle", all_statements=True)
-            exported = export_file(
-                session, format="turtle", all_statements=False
+            self.assertRaises(
+                RuntimeError,
+                export_file,
+                session,
+                format="turtle",
+                all_statements=False,
             )
-            exported = io.StringIO(exported)
-        with Session() as session:
-            import_file(exported, format="turtle", all_statements=True)
-            self.assertEqual(1, len(session))
-            self.assertEqual(1, len(session.get().one().triples))
-            self.assertEqual(1, len(session.graph))
 
         # Test export: `all_statements=True`.
         file_like = io.StringIO(rdf)
