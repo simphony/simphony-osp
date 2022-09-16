@@ -14,6 +14,7 @@ from typing import (
 from rdflib import OWL
 from rdflib.term import Node
 
+from simphony_osp.ontology.annotation import OntologyAnnotation
 from simphony_osp.ontology.attribute import OntologyAttribute
 from simphony_osp.ontology.individual import OntologyIndividual
 from simphony_osp.ontology.oclass import OntologyClass
@@ -29,12 +30,16 @@ def find(
         Union[OntologyRelationship, Node],
         Iterable[Union[OntologyRelationship, Node]],
     ] = OWL.topObjectProperty,
+    annotation: Union[
+        Union[bool, OntologyAnnotation, Node],
+        Iterable[Union[OntologyAnnotation, Node]],
+    ] = True,
     find_all: bool = True,
     max_depth: Union[int, float] = float("inf"),
 ) -> Union[Optional[OntologyIndividual], Iterator[OntologyIndividual]]:
-    """Finds a set of ontology individuals following the given relationships.
+    """Finds a set of ontology individuals following the given predicates.
 
-    Use the given relationship for traversal.
+    Uses the given relationships and annotations for traversal.
 
     Args:
         criterion: Function that returns True on the ontology individual that
@@ -42,6 +47,10 @@ def find(
         root: Starting point of the search.
         rel: The relationship(s) (incl. sub-relationships) to consider for
             traversal.
+        annotation: The annotation(s) (incl. sub-annotations) to consider for
+            traversal. Can also take boolean values: when set to `True` any
+            annotation is followed. When set to `False` no annotations are
+            followed.
         find_all: Whether to find all ontology individuals satisfying
             the criterion.
         max_depth: The maximum depth for the search. Defaults to
@@ -55,7 +64,15 @@ def find(
         rel = {rel}
     rel = frozenset(rel)
 
-    result = _iter(criterion, root, rel, max_depth)
+    if isinstance(annotation, (OntologyAnnotation, Node, type(None))):
+        annotation = {annotation}
+    elif annotation is True:
+        annotation = {None}
+    elif annotation is False:
+        annotation = set()
+    annotation = frozenset(annotation)
+
+    result = _iter(criterion, root, rel, annotation, max_depth)
     if not find_all:
         result = next(result, None)
 
@@ -66,6 +83,7 @@ def _iter(
     criterion: Callable[[OntologyIndividual], bool],
     root: OntologyIndividual,
     rel: FrozenSet[Union[OntologyRelationship, Node]],
+    annotation: FrozenSet[Union[OntologyAnnotation, Node]],
     max_depth: Union[int, float] = float("inf"),
     current_depth: int = 0,
     visited: Optional[Set[UID]] = None,
@@ -79,6 +97,8 @@ def _iter(
             is searched.
         root: Starting point of the search.
         rel: The relationship(s) (incl. sub-relationships) to consider for
+            traversal.
+        annotation: The annotation(s) (incl. sub-annotations) to consider for
             traversal.
         max_depth: The maximum depth for the search. Defaults to
             float("inf") (unlimited).
@@ -94,12 +114,16 @@ def _iter(
         yield root
 
     if current_depth < max_depth:
-        for sub in chain(*(root.iter(rel=r) for r in rel)):
+        for sub in chain(
+            *(root.iter(rel=r) for r in rel),
+            *(root.annotations_iter(rel=r) for r in annotation)
+        ):
             if sub.uid not in visited:
                 yield from _iter(
                     criterion=criterion,
                     root=sub,
                     rel=rel,
+                    annotation=annotation,
                     max_depth=max_depth,
                     current_depth=current_depth + 1,
                     visited=visited,
@@ -113,6 +137,10 @@ def find_by_identifier(
         Union[OntologyRelationship, Node],
         Iterable[Union[OntologyRelationship, Node]],
     ] = OWL.topObjectProperty,
+    annotation: Union[
+        Union[bool, OntologyAnnotation, Node],
+        Iterable[Union[OntologyAnnotation, Node]],
+    ] = True,
 ) -> Optional[OntologyIndividual]:
     """Recursively finds an ontology individual with given identifier.
 
@@ -122,6 +150,9 @@ def find_by_identifier(
         root: Starting point of search.
         identifier: The identifier of the entity that is searched.
         rel: The relationship (incl. sub-relationships) to consider.
+        annotation: The annotation(s) (incl. sub-annotations) to consider. Can
+            also take boolean values: when set to `True` any annotation is
+            followed. When set to `False` no annotations are followed.
 
     Returns:
         The resulting individual.
@@ -130,6 +161,7 @@ def find_by_identifier(
         root=root,
         criterion=lambda individual: individual.uid == UID(identifier),
         rel=rel,
+        annotation=annotation,
         find_all=False,
     )
 
@@ -141,6 +173,10 @@ def find_by_class(
         Union[OntologyRelationship, Node],
         Iterable[Union[OntologyRelationship, Node]],
     ] = OWL.topObjectProperty,
+    annotation: Union[
+        Union[bool, OntologyAnnotation, Node],
+        Iterable[Union[OntologyAnnotation, Node]],
+    ] = True,
 ) -> Iterator[OntologyIndividual]:
     """Recursively finds ontology individuals with given class.
 
@@ -151,6 +187,10 @@ def find_by_class(
         oclass: The ontology class of the entity that is searched.
         rel: The relationship (incl. sub-relationships) to consider for
             traversal.
+        annotation: The annotation(s) (incl. sub-annotations) to consider for
+            traversal. Can also take boolean values: when set to `True` any
+            annotation is followed. When set to `False` no annotations are
+            followed.
 
     Returns:
         The individuals found.
@@ -159,6 +199,7 @@ def find_by_class(
         criterion=lambda individual: individual.is_a(oclass),
         root=root,
         rel=rel,
+        annotation=annotation,
         find_all=True,
     )
 
@@ -171,6 +212,10 @@ def find_by_attribute(
         Union[OntologyRelationship, Node],
         Iterable[Union[OntologyRelationship, Node]],
     ] = OWL.topObjectProperty,
+    annotation: Union[
+        Union[bool, OntologyAnnotation, Node],
+        Iterable[Union[OntologyAnnotation, Node]],
+    ] = True,
 ) -> Iterator[OntologyIndividual]:
     """Recursively finds ontology individuals by attribute and value.
 
@@ -181,6 +226,9 @@ def find_by_attribute(
         attribute: The attribute to look for.
         value: The corresponding value to filter by.
         rel: The relationship (incl. sub-relationships) to consider.
+        annotation: The annotation(s) (incl. sub-annotations) to consider.
+            Can also take boolean values: when set to `True` any annotation is
+            followed. When set to `False` no annotations are followed.
 
     Returns:
         The individuals found.
@@ -189,6 +237,7 @@ def find_by_attribute(
         criterion=(lambda individual: value in individual[attribute]),
         root=root,
         rel=rel,
+        annotation=annotation,
         find_all=True,
     )
 
@@ -201,6 +250,10 @@ def find_relationships(
         Union[OntologyRelationship, Node],
         Iterable[Union[OntologyRelationship, Node]],
     ] = OWL.topObjectProperty,
+    annotation: Union[
+        Union[bool, OntologyAnnotation, Node],
+        Iterable[Union[OntologyAnnotation, Node]],
+    ] = True,
 ) -> Iterator[OntologyIndividual]:
     """Find given relationship in the subgraph reachable from the given root.
 
@@ -213,7 +266,10 @@ def find_relationships(
             Defaults to `False`.
         rel: Only consider these relationships (incl. sub-relationships) when
             searching.
-
+        annotation: Only consider these annotations (incl. sub-annotations)
+            when searching. Can also take boolean values: when set to `True`
+            any annotation is followed. When set to `False` no annotations are
+            followed.
 
     Returns:
         The ontology individuals having the given relationship.
@@ -228,7 +284,13 @@ def find_relationships(
             )
         )
 
-    return find(criterion=criterion, root=root, rel=rel, find_all=True)
+    return find(
+        criterion=criterion,
+        root=root,
+        rel=rel,
+        annotation=annotation,
+        find_all=True,
+    )
 
 
 def sparql(

@@ -1975,7 +1975,7 @@ class OntologyIndividual(OntologyEntity):
 
     def annotations_iter(
         self,
-        rel: Optional[OntologyAnnotation] = None,
+        rel: Optional[Union[OntologyAnnotation, Identifier]] = None,
         return_rel: bool = False,
     ) -> Iterator[AnnotationValue]:
         """Iterate over the connected ontology individuals.
@@ -1989,22 +1989,25 @@ class OntologyIndividual(OntologyEntity):
         Returns:
             Iterator with the queried ontology individuals.
         """
+        if isinstance(rel, Identifier):
+            rel = self.session.ontology.from_identifier_typed(
+                rel, typing=OntologyAnnotation
+            )
         entities_and_annotations = (
             (
                 self.session.from_identifier(o),
                 self.session.ontology.from_identifier(p),
             )
             for s, p, o in self.session.graph.triples(
-                (
-                    self.identifier,
-                    rel.identifier if rel is not None else None,
-                    None,
-                )
+                (self.identifier, None, None)
             )
             if not (isinstance(o, Literal) or p == RDF.type)
         )
         entities_and_annotations = filter(
-            lambda x: isinstance(x, OntologyAnnotation),
+            lambda x: (
+                isinstance(x[1], OntologyAnnotation)
+                and (x[1].is_subclass_of(rel) if rel is not None else True)
+            ),
             entities_and_annotations,
         )
         if return_rel:
