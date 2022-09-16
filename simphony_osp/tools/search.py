@@ -14,9 +14,9 @@ from typing import (
 from rdflib import OWL
 from rdflib.term import Node
 
+from simphony_osp.ontology.annotation import OntologyAnnotation
 from simphony_osp.ontology.attribute import OntologyAttribute
 from simphony_osp.ontology.individual import OntologyIndividual
-from simphony_osp.ontology.annotation import OntologyAnnotation
 from simphony_osp.ontology.oclass import OntologyClass
 from simphony_osp.ontology.relationship import OntologyRelationship
 from simphony_osp.session.session import QueryResult, Session
@@ -32,7 +32,7 @@ def find(
     ] = OWL.topObjectProperty,
     annotation: Union[
         Union[bool, OntologyAnnotation, Node],
-        Iterable[Union[OntologyAnnotation, Node]]
+        Iterable[Union[OntologyAnnotation, Node]],
     ] = True,
     find_all: bool = True,
     max_depth: Union[int, float] = float("inf"),
@@ -115,8 +115,8 @@ def _iter(
 
     if current_depth < max_depth:
         for sub in chain(
-                *(root.iter(rel=r) for r in rel),
-                *(root.annotations_iter(rel=r) for r in annotation)
+            *(root.iter(rel=r) for r in rel),
+            *(root.annotations_iter(rel=r) for r in annotation)
         ):
             if sub.uid not in visited:
                 yield from _iter(
