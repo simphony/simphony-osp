@@ -2005,8 +2005,8 @@ class OntologyIndividual(OntologyEntity):
         )
         entities_and_annotations = filter(
             lambda x: (
-                    isinstance(x[1], OntologyAnnotation)
-                    and (x[1].is_subclass_of(rel) if rel is not None else True)
+                isinstance(x[1], OntologyAnnotation)
+                and (x[1].is_subclass_of(rel) if rel is not None else True)
             ),
             entities_and_annotations,
         )
