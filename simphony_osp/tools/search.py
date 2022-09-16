@@ -139,7 +139,7 @@ def find_by_identifier(
     ] = OWL.topObjectProperty,
     annotation: Union[
         Union[bool, OntologyAnnotation, Node],
-        Iterable[Union[OntologyAnnotation, Node]]
+        Iterable[Union[OntologyAnnotation, Node]],
     ] = True,
 ) -> Optional[OntologyIndividual]:
     """Recursively finds an ontology individual with given identifier.
@@ -175,7 +175,7 @@ def find_by_class(
     ] = OWL.topObjectProperty,
     annotation: Union[
         Union[bool, OntologyAnnotation, Node],
-        Iterable[Union[OntologyAnnotation, Node]]
+        Iterable[Union[OntologyAnnotation, Node]],
     ] = True,
 ) -> Iterator[OntologyIndividual]:
     """Recursively finds ontology individuals with given class.
@@ -214,7 +214,7 @@ def find_by_attribute(
     ] = OWL.topObjectProperty,
     annotation: Union[
         Union[bool, OntologyAnnotation, Node],
-        Iterable[Union[OntologyAnnotation, Node]]
+        Iterable[Union[OntologyAnnotation, Node]],
     ] = True,
 ) -> Iterator[OntologyIndividual]:
     """Recursively finds ontology individuals by attribute and value.
@@ -252,7 +252,7 @@ def find_relationships(
     ] = OWL.topObjectProperty,
     annotation: Union[
         Union[bool, OntologyAnnotation, Node],
-        Iterable[Union[OntologyAnnotation, Node]]
+        Iterable[Union[OntologyAnnotation, Node]],
     ] = True,
 ) -> Iterator[OntologyIndividual]:
     """Find given relationship in the subgraph reachable from the given root.
@@ -284,8 +284,13 @@ def find_relationships(
             )
         )
 
-    return find(criterion=criterion, root=root, rel=rel, annotation=annotation,
-                find_all=True)
+    return find(
+        criterion=criterion,
+        root=root,
+        rel=rel,
+        annotation=annotation,
+        find_all=True,
+    )
 
 
 def sparql(
