@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf8") as readme:
     README_TEXT = readme.read()
 
 NAME = "simphony-osp"
-VERSION = "4.0.0rc3"
+VERSION = "4.0.0rc4"
 
 # main setup configuration class
 setup(
@@ -18,7 +18,7 @@ setup(
     "repositories.",
     long_description=README_TEXT,
     long_description_content_type="text/markdown",
-    url="https://github.com/simphony/osp-core/tree/v4.0.0rc3",
+    url="https://github.com/simphony/osp-core/tree/v4.0.0rc4",
     author="SimPhoNy, EU FP7 Project (Nr. 604005)",
     maintainer="Fraunhofer IWM",
     maintainer_email="simphony@iwm.fraunhofer.de",
@@ -44,11 +44,11 @@ setup(
     keywords="owl, ontology, interoperability, materials-science, osp, "
     "simphony, wrappers, open-simulation-platform,"
     "Fraunhofer IWM",
-    download_url="https://pypi.org/project/simphony-osp/4.0.0rc3/",
+    download_url="https://pypi.org/project/simphony-osp/4.0.0rc4/",
     project_urls={
         "Tracker": "https://github.com/simphony/osp-core/issues",
-        "Documentation": "https://simphony.readthedocs.io/en/v4.0.0rc3/",
-        "Source": "https://github.com/simphony/osp-core/tree/v4.0.0rc3",
+        "Documentation": "https://simphony.readthedocs.io/en/v4.0.0rc4/",
+        "Source": "https://github.com/simphony/osp-core/tree/v4.0.0rc4",
     },
     packages=find_packages(exclude=("examples", "tests")),
     install_requires=[
