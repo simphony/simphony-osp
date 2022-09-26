@@ -180,7 +180,9 @@ def _get_optional_and_mandatory_subtrees(data_model_dict):
             continue
         for relationship, neighbors in relationships.items():
             for neighbor, constraints in neighbors.items():
-                min, max = _interpret_cardinality_value_from_constraints(constraints)
+                min, max = _interpret_cardinality_value_from_constraints(
+                    constraints
+                )
                 if min == 0:
                     optional_subtrees.add(neighbor)
                 if min > 0:
