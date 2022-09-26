@@ -5,6 +5,7 @@ import logging
 import yaml
 
 from osp.core.namespaces import get_entity
+from osp.core.ontology import OntologyAttribute, OntologyRelationship
 
 logger = logging.getLogger(__name__)
 
@@ -97,9 +98,24 @@ def _load_data_model_from_yaml(data_model_file):
 
 def _check_cuds_object_cardinality(origin_cuds, dest_oclass, rel, constraints):
 
-    actual_cardinality = len(
-        origin_cuds.get(rel=get_entity(rel), oclass=get_entity(dest_oclass))
-    )
+    rel_entity = get_entity(rel)
+
+    if type(rel_entity) == OntologyRelationship:
+        actual_cardinality = len(
+            origin_cuds.get(rel=rel_entity, oclass=get_entity(dest_oclass))
+        )
+    elif type(rel_entity) == OntologyAttribute:
+        # No datatype checking since this is already done when Cuds are
+        # instanciated or imported from a file
+        if rel_entity in origin_cuds.get_attributes():
+            actual_cardinality = 1
+        else:
+            actual_cardinality = 0
+        # TODO: how to apply in Simphony >= v4 for multiple data properties?
+    else:
+        raise ConsistencyError(
+            f"Relation '{rel}' not supported for {origin_cuds.oclass}."
+        )
 
     min, max = _interpret_cardinality_value_from_constraints(constraints)
     if actual_cardinality < min or actual_cardinality > max:
@@ -164,9 +180,7 @@ def _get_optional_and_mandatory_subtrees(data_model_dict):
             continue
         for relationship, neighbors in relationships.items():
             for neighbor, constraints in neighbors.items():
-                min, max = _interpret_cardinality_value_from_constraints(
-                    constraints
-                )
+                min, max = _interpret_cardinality_value_from_constraints(constraints)
                 if min == 0:
                     optional_subtrees.add(neighbor)
                 if min > 0:
