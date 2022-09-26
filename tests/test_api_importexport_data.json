@@ -39,6 +39,7 @@
     {
       "@id": "test_importexport:x_4",
       "@type": [
+        "owl:NamedIndividual",
         "test_importexport:Block",
         "test_importexport:Forest"
       ],
@@ -51,6 +52,7 @@
     {
       "@id": "test_importexport:x_3",
       "@type": [
+        "owl:NamedIndividual",
         "test_importexport:Block",
         "test_importexport:Water"
       ],
@@ -69,6 +71,7 @@
     {
       "@id": "test_importexport:x_1",
       "@type": [
+        "owl:NamedIndividual",
         "test_importexport:Forest",
         "test_importexport:Block"
       ],
@@ -87,6 +90,7 @@
     {
       "@id": "test_importexport:x_2",
       "@type": [
+        "owl:NamedIndividual",
         "test_importexport:Block",
         "test_importexport:Forest"
       ],

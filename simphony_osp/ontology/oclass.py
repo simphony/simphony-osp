@@ -33,8 +33,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-BLACKLIST = {OWL.Nothing, OWL.Thing, OWL.NamedIndividual}
-
 # The RDFLib namespace object is not as fast as it should be, so it is
 # useful to reuse some IRIs throughout the file.
 # TODO: Send PR to RDFLib to fix this upstream.

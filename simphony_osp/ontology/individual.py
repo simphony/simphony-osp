@@ -51,7 +51,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 RDF_type = RDF.type
-OWL_NamedIndividual = OWL.NamedIndividual
 
 
 class ResultEmptyError(Exception):
@@ -384,7 +383,6 @@ class RelationshipSet(ObjectSet):
                 in (
                     subclass
                     for c in graph.objects(identifier, RDF_type)
-                    if c != OWL_NamedIndividual
                     for subclass in ontology.from_identifier_typed(
                         c, typing=OntologyClass
                     ).superclasses
@@ -409,8 +407,8 @@ class RelationshipSet(ObjectSet):
                 except KeyError:
                     logger.warning(
                         f"Ignoring identifier {identifier}, which does not "
-                        f"match an ontology individual belonging to a class in"
-                        f"the ontology."
+                        f"match an ontology individual belonging to a class "
+                        f"in the ontology."
                     )
 
     def __contains__(self, item: OntologyIndividual) -> bool:
@@ -847,7 +845,6 @@ class OntologyIndividual(OntologyEntity):
                 o, typing=OntologyClass
             )
             for o in self.session.graph.objects(self.identifier, RDF_type)
-            if o != OWL_NamedIndividual
         )
 
     @classes.setter
