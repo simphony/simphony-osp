@@ -28,7 +28,6 @@ from rdflib.plugins.stores.memory import SimpleMemory
 from rdflib.query import Result
 from rdflib.store import Store
 from rdflib.term import Node
-
 from simphony_osp.session.session import Session
 from simphony_osp.utils.datatypes import Pattern, Triple
 from simphony_osp.utils.other import take
@@ -1272,12 +1271,15 @@ class Interface(ABC):
             Iterable[Union[str, int, float, bool, None]],
         ],
     ):
-        """Initialize the interface.
+        """Initialize the wrapper.
 
         The `__init__` method accepts JSON-serializable keyword arguments
-        in order to let the user configure parameters of the interface that
+        in order to let the user configure parameters of the wrapper that
         are not configurable via the ontology. For example, the type of
         solver used by a simulation engine.
+
+        Save such parameters to private attribute to use them later (e.g.
+        in the `open` method).
 
         Args:
             kwargs: JSON-serializable keyword arguments that contain no
@@ -1291,33 +1293,33 @@ class Interface(ABC):
         configuration: str,
         create: bool = False,
     ) -> None:
-        """Open the data source that the interface interacts with.
+        """Open the data source that the wrapper interacts with.
 
         You can expect calls to this method even when the data source is
-        already open, therefore, an implementation like the following is
-        recommended.
+        already accesible, therefore, an implementation similar to the one
+        below is recommended.
 
-        def open(self, configuration: str, create: bool = False):
-            if your_data_source_is_already_open:
-                return
-                # To improve the user experience you can check if the
-                # configuration string leads to a resource different from
-                # the current one and raise an error informing the user.
+        >>> def open(self, configuration: str, create: bool = False):
+        >>>    if your_data_source_is_already_open:
+        >>>        return
+        >>>        # To improve the user experience you can check if the
+        >>>        # configuration string leads to a resource different from
+        >>>        # the current one and raise an error informing the user.
+        >>>
+        >>>    # Connect to your data source...
+        >>>    # your_data_source_is_already_open is for now True.
 
-            # Connect to your data source...
-            # your_data_source_is_already_open is for now True.
-
-        If you are using a custom base graph (for example based on an RDFLib
-        store), please set `self.base = your_graph` within this method.
-        Otherwise, an empty base graph will be provided.
+        If you are using a custom base graph, please set
+        `self.base = your_graph` within this method. Otherwise, an empty base
+        graph will be created instead.
 
         Args:
-            configuration: Determines the location of the data source to be
+            configuration: Used to locate or configure the data source to be
                 opened.
-            create: Whether the data source can be created at the target
-                location if it does not exist. When false, if the data
-                source does not exist, you should raise an exception. When
-                true, create an empty data source.
+            create: Whether the data source should be created if it does not
+                exist. When false, if the data source does not exist, you
+                should raise an exception. When true, create an empty data
+                source.
         """
         pass
 
@@ -1334,24 +1336,24 @@ class Interface(ABC):
         already closed. Therefore, an implementation like the following is
         recommended.
 
-        def close(self):
-            if your_data_source_is_already_closed:
-                return
-
-            # Close the connection to your data source.
-            # your_data_source_is_already_closed is for now True
+        >>> def close(self):
+        >>>    if your_data_source_is_already_closed:
+        >>>        return
+        >>>
+        >>>    # Close the connection to your data source.
+        >>>    # your_data_source_is_already_closed is for now True
         """
         pass
 
     @abstractmethod
     def populate(self) -> None:
-        """Populate the base graph so that it represents the data source.
+        """Populate the base session so that it represents the data source.
 
         This command is run after the data source is opened. Here you are
         expected to populate the base graph so that its information mimics
         the information on the data source, unless you are generating
-        triples on the fly. The default session is a session based on the
-        base graph.
+        triples on the fly using the `triples` method. The default session
+        inside this method is a session based on the base graph.
 
         The base graph is available on `self.base`, and a session based on
         the base graph is available on `self.session` and `self.session_base`.
@@ -1362,33 +1364,35 @@ class Interface(ABC):
     def commit(self) -> None:
         """This method commits the changes made by the user.
 
-        Here, you are expected to have access to the following:
+        Within this method, you have access to the following resources:
+
         - `self.base`: The base graph (rw). You are not expected to modify it.
         - `self.old_graph`: The old graph (ro).
-        - `self.new_Graph`: The new graph (ro).
-        - `self.buffer`: The buffer of caught triples (rw) that you now have to
-            reflect on the data structures of your software.
-        - `self.session_base`: A session based on the base graph (rw). You
-            are not expected to modify it.
+        - `self.new_graph`: The new graph (ro).
+        - `self.buffer`: The buffer of triples caught by `add` and `remove`
+          (rw) that you now have to reflect on the data structures of your
+          software.
+        - `self.session_base`: A session based on the base graph (rw). You are
+          not expected to modify it.
         - `self.session_old`: A session based on the old graph (ro).
         - `self.session_new`: A session based on the new graph (ro).
         - `self.session`: same as `self.session_new`.
-        - `self.added`: A list of added entities (rw). You are not expected
-            to modify the entities.
-        - `self.updated`: A list of updated entities (rw). You are not
-            expected to modify the entities.
-        - `self.deleted`: A list of deleted entities (rw). You are not
-            expected to modify the entities.
+        - `self.added`: A list of added individuals (rw). You are not expected
+          to modify the entities.
+        - `self.updated`: A list of updated individuals (rw). You are not
+          expected to modify the entities.
+        - `self.deleted`: A list of deleted individuals (rw). You are not
+          expected to modify the entities.
+
+        Before updating the data structures, check that the changes provided
+        by the user do not leave them in a consistent state. This necessary
+        because SimPhoNy cannot revert the changes you make to your
+        data structures. Raise an AssertionError if the check fails.
 
         Raises:
             AssertionError: When the data provided by the user would produce
                 an inconsistent or unpredictable state of the data structures.
         """
-        # Before updating the data structures, check that the changes provided
-        # by the user do not leave them in a consistent state. This necessary
-        # because SimPhoNy cannot revert the changes you make to your
-        # data structures. Raise an AssertionError if the check fails.
-
         # Examine the differences between the graphs below and make a plan to
         # modify your data structures.
 
@@ -1411,15 +1415,13 @@ class Interface(ABC):
     ) -> None:
         """Compute new information (e.g. run a simulation).
 
-        Just compute the new information on the backend and reflect the
-        changes on the base graph. The default session is the base session.
+        Compute the new information on the backend and reflect the changes on
+        the base graph. The default session is the base session.
 
         The base graph is available on `self.base`, and a session based on
         the base graph is available on `self.session` and `self.session_base`.
         """
         pass
-
-    del compute  # By default not defined.
 
     # Triplestore methods.
 
@@ -1432,13 +1434,11 @@ class Interface(ABC):
         Returns:
             - True: The triple should be added to the base graph.
             - False: The triple should be caught, and therefore not added to
-                the base graph. This triple will be latter available during
-                commit on the buffer so that the changes that it introduces
-                can be translated to the data structure.
+              the base graph. This triple will be latter available during
+              commit on the buffer so that the changes that it introduces
+              can be translated to the data structure.
         """
         pass
-
-    del add  # By default not defined.
 
     def remove(self, pattern: Pattern) -> Iterator[Triple]:
         """Inspect and control the removal of triples from the base graph.
@@ -1452,8 +1452,6 @@ class Interface(ABC):
             and will be available on the buffer during commit.
         """
         pass
-
-    del remove  # By default not defined.
 
     def triples(self, pattern: Pattern) -> Iterator[Triple]:
         """Intercept a triple pattern query.
@@ -1469,39 +1467,50 @@ class Interface(ABC):
         """
         pass
 
-    del triples
-
     # File storage methods.
 
     def save(self, key: str, file: BinaryIO) -> None:
-        """Save a file."""
-        pass
+        """Save a file.
 
-    del save  # By default not defined.
+        Read the bytestream offered as a file handle and save the contents
+        somewhere, associating them with the provided key for later retrieval.
+
+        Args:
+            key: Identifier of the individual associated with the file.
+            file: File (as a file-like object) to be saved.
+        """
+        pass
 
     def load(self, key: str) -> BinaryIO:
-        """Retrieve a file."""
-        pass
+        """Retrieve a file.
 
-    del load  # By default not defined.
+        Provide a file handle associated with the provided key.
+
+        Args:
+            key: Identifier of the individual associated with the file.
+
+        Returns:
+            File handle associated with the provided key.
+        """
+        pass
 
     def delete(self, key: str) -> None:
-        """Delete a file."""
-        pass
+        """Delete a file.
 
-    del delete  # By default not defined.
+        Delete the file associated with the provided key.
+
+        Args:
+            key: Identifier of the individual associated with the file.
+        """
+        pass
 
     def hash(self, key: str) -> str:
         """Hash a file."""
         pass
 
-    del hash  # By default not defined.
-
     def rename(self, key: str, new_key: str) -> None:
         """Rename a file."""
         pass
-
-    del rename  # By default not defined.
 
     # The properties below are set by the driver and accessible on the
     # interface. They are not meant to be set by the developers.
@@ -1520,3 +1529,19 @@ class Interface(ABC):
     # Definition of:
     # Interface
     # ↑ ----- ↑
+
+    def __getattribute__(self, name: str):
+        """Return getattr(self, name)."""
+        if name in {
+            "compute",
+            "add",
+            "remove",
+            "triples",
+            "save",
+            "load",
+            "delete",
+            "hash",
+            "rename",
+        } and getattr(type(self), name) is getattr(Interface, name):
+            raise AttributeError(name)
+        return super().__getattribute__(name)
