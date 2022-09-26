@@ -28,6 +28,7 @@ from rdflib.plugins.stores.memory import SimpleMemory
 from rdflib.query import Result
 from rdflib.store import Store
 from rdflib.term import Node
+
 from simphony_osp.session.session import Session
 from simphony_osp.utils.datatypes import Pattern, Triple
 from simphony_osp.utils.other import take
