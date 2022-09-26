@@ -10,9 +10,6 @@ model:
         city.hasInhabitant:
             city.Citizen:
                 cardinality: 1-2
-        city.hasInhabitant:
-            city.Citizen:
-                cardinality: 1-2
         city.hasPart:
             city.Neighborhood:
                 cardinality: 1
