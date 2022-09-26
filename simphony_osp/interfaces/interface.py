@@ -1432,11 +1432,11 @@ class Interface(ABC):
             triple: The triple being added.
 
         Returns:
-            - True: The triple should be added to the base graph.
-            - False: The triple should be caught, and therefore not added to
-              the base graph. This triple will be latter available during
-              commit on the buffer so that the changes that it introduces
-              can be translated to the data structure.
+            True when the triple should be added to the base graph. False when
+            the triple should be caught, and therefore not added to the base
+            graph. This triple will be latter available during commit on the
+            buffer so that the changes that it introduces can be translated to
+            the data structure.
         """
         pass
 
