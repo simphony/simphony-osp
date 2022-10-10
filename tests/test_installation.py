@@ -189,9 +189,13 @@ class TestInstallation(unittest.TestCase):
         label for multiple IRIs. An error is only raised on installation if the
         reference_by_label option is set to Tue in the yml file.
         """
-        FOAF = """
+        FOAF_URL = (
+            "https://web.archive.org/web/20220614185720if_/"
+            "http://xmlns.com/foaf/spec/index.rdf"
+        )
+        FOAF = f"""
         identifier: foaf_TEST
-        ontology_file: https://xmlns.com/foaf/spec/index.rdf
+        ontology_file: "{FOAF_URL}"
         reference_by_label: True
         namespaces:
             foaf_TEST: "http://xmlns.com/foaf/0.1/"
