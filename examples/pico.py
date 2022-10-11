@@ -12,7 +12,8 @@
 > Ontologies can be added to SimPhoNy by installing ontology packages, which
 > are YAML configuration files that, in addition to pointing to the actual
 > ontology files, also define extra metadata.
--- [Installing ontologies (pico) - SimPhoNy documentation](https://simphony.readthedocs.io/en/v4.0.0rc4/usage/ontologies/pico.html)
+-- [Installing ontologies (pico) - SimPhoNy documentation]
+   (https://simphony.readthedocs.io/en/v4.0.0rc4/usage/ontologies/pico.html)
 """
 
 from simphony_osp.tools.pico import install, namespaces, packages, uninstall
