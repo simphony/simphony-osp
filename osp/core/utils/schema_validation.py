@@ -107,10 +107,9 @@ def _check_cuds_object_cardinality(origin_cuds, dest_oclass, rel, constraints):
     elif type(rel_entity) == OntologyAttribute:
         # No datatype checking since this is already done when Cuds are
         # instantiated or imported from a file
-        if rel_entity in origin_cuds.get_attributes():
-            actual_cardinality = 1
-        else:
-            actual_cardinality = 0
+        actual_cardinality = (
+            1 if rel_entity in origin_cuds.get_attributes() else 0
+        )
     else:
         raise ConsistencyError(
             f"Relation '{rel}' not supported for {origin_cuds.oclass}."
