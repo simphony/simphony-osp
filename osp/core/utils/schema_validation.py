@@ -106,7 +106,7 @@ def _check_cuds_object_cardinality(origin_cuds, dest_oclass, rel, constraints):
         )
     elif type(rel_entity) == OntologyAttribute:
         # No datatype checking since this is already done when Cuds are
-        # instanciated or imported from a file
+        # instantiated or imported from a file
         if rel_entity in origin_cuds.get_attributes():
             actual_cardinality = 1
         else:
