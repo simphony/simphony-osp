@@ -111,7 +111,6 @@ def _check_cuds_object_cardinality(origin_cuds, dest_oclass, rel, constraints):
             actual_cardinality = 1
         else:
             actual_cardinality = 0
-        # TODO: how to apply in Simphony >= v4 for multiple data properties?
     else:
         raise ConsistencyError(
             f"Relation '{rel}' not supported for {origin_cuds.oclass}."
