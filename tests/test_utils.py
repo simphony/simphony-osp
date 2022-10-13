@@ -134,6 +134,11 @@ class TestUtils(unittest.TestCase):
             "test_validation_schema_city_with_optional_subtree.yml",
         )
 
+        schema_file_with_attribute = os.path.join(
+            os.path.dirname(__file__),
+            "test_validation_schema_city_with_attribute.yml",
+        )
+
         c = city.City(name="freiburg")
 
         # empty city is not valid
@@ -187,6 +192,8 @@ class TestUtils(unittest.TestCase):
             c,
             schema_file_with_missing_entity,
         )
+
+        validate_tree_against_schema(c, schema_file_with_attribute)
 
     def test_branch(self):
         """Test the branch function."""
