@@ -58,6 +58,7 @@ setup(
         "rdflib >= 6.0.2, < 7.0.0",
         "rdflib-sqlalchemy >= 0.5.0",
         "requests",
+        "importlib-metadata >= 5, < 6; python_version <= '3.7'"
         "websockets < 11",
         "websockets >= 10; python_version >= '3.10'",
     ],

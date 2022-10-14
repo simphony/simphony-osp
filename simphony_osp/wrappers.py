@@ -23,7 +23,7 @@ else:
 
 # Retrieve all wrappers from package entry points.
 package_entry_points = entry_points()
-if sys.version_info >= (3, 10):
+if sys.version_info >= (3, 10) or sys.version_info < (3, 8):
     wrappers = package_entry_points.select(group="simphony_osp.wrappers")
 else:
     wrappers = package_entry_points.get("simphony_osp.wrappers", tuple())
