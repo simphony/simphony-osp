@@ -4,11 +4,12 @@
 > representation form. Those can be further categorized in two groups:
 > ontology individuals (assertional knowledge), and ontology classes,
 > relationships, attributes and annotations (terminological knowledge).
-> This page focuses on how to access and navigate the terminological knowledge
-> of an ontology using SimPhoNy.
 -- [Terminological knowledge - SimPhoNy documentation]
    (https://simphony.readthedocs.io/en/v4.0.0rc4/usage/
    terminological_knowledge.html)
+
+This example focuses on accessing navigating terminological knowledge using
+SimPhoNy.
 
 Before running this example, make sure that the city and emmo ontologies are
 installed. If it is not the case, install them running the following code:
