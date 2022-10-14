@@ -1,4 +1,4 @@
-"""An example showing how to use `pico` to manage ontologies.
+"""An example showing how to use `pico` to manage the installed ontologies.
 
 > SimPhoNy works with data that is based on ontologies. In particular, all
 > information is represented in terms of ontology individuals that belong to
