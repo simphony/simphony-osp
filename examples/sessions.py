@@ -40,14 +40,14 @@ assert thing not in another_session
 another_session.clear()  # clear the session's contents
 
 """
-> Sessions actually work in a way similar to databases. To start using them, 
+> Sessions actually work in a way similar to databases. To start using them,
 > one first has to “open” or “connect” to them. After that, changes can be
-> performed on the data they contain, but such changes are not made permanent 
-> until a “commit” is performed. When one finishes working with them, the 
+> performed on the data they contain, but such changes are not made permanent
+> until a “commit” is performed. When one finishes working with them, the
 > connection should be “closed”. Unconfirmed changes are lost when the
 > connection is “closed”.
 
-> In SimPhoNy, all sessions are automatically “opened” when they are created. 
+> In SimPhoNy, all sessions are automatically “opened” when they are created.
 > The “commit” and “close” operations are controlled manually.
 -- [Introduction (to sessions) - SimPhoNy documentation]
    (https://simphony.readthedocs.io/en/v4.0.0rc4/usage/sessions
@@ -69,17 +69,19 @@ with another_session:
     neighborhoods = {
         city.Neighborhood(name=name, coordinates=coordinates)
         for name, coordinates in [
-            ('Altstadt', [47.99525, 7.84726]),
-            ('Stühlinger', [47.99888, 7.83774]),
-            ('Neuburg', [48.00021, 7.86084]),
-            ('Herdern', [48.00779, 7.86268]),
-            ('Brühl', [48.01684, 7.843]),
+            ("Altstadt", [47.99525, 7.84726]),
+            ("Stühlinger", [47.99888, 7.83774]),
+            ("Neuburg", [48.00021, 7.86084]),
+            ("Herdern", [48.00779, 7.86268]),
+            ("Brühl", [48.01684, 7.843]),
         ]
     }
-    citizen_1 = city.Citizen(name='Nikola', age=35,
-                             iri="http://example.org/Nikola")
-    citizen_2 = city.Citizen(name='Lena', age=70,
-                             iri="http://example.org/Lena")
+    citizen_1 = city.Citizen(
+        name="Nikola", age=35, iri="http://example.org/Nikola"
+    )
+    citizen_2 = city.Citizen(
+        name="Lena", age=70, iri="http://example.org/Lena"
+    )
     freiburg[city.hasPart] |= neighborhoods
     freiburg[city.hasInhabitant] += citizen_1, citizen_2
     pretty_print(freiburg)
@@ -113,28 +115,30 @@ assert {
         search.find(
             freiburg,
             rel=city.hasInhabitant,
-            criterion=lambda individual: individual.is_a(city.Citizen)
-        ))
+            criterion=lambda individual: individual.is_a(city.Citizen),
+        )
+    )
 } == {"Lena", "Nikola"}
 
 # SPARQL queries are the most powerful method for getting information
 # from the session
 with session:
-    result = search.sparql(f"""
+    result = search.sparql(
+        f"""
         SELECT ?citizen ?age WHERE {{
-            <{freiburg.identifier}> <{city.hasInhabitant.identifier}> 
+            <{freiburg.identifier}> <{city.hasInhabitant.identifier}>
             ?citizen .
-            ?citizen <{city.age.identifier}> ?age.  
+            ?citizen <{city.age.identifier}> ?age.
         }}
-    """)(citizen=OntologyIndividual, age=int)
+    """
+    )(citizen=OntologyIndividual, age=int)
     for (citizen, age) in result:
         print(citizen.name, age)
 
 # Session contents can be exported to RDF,
-export_file(session, file="./session.ttl", format='turtle')
+export_file(session, file="./session.ttl", format="turtle")
 # and imported back.
 session.clear()
 assert len(session) == 0
 import_file("./session.ttl", session=session)
 assert len(session) == 8
-

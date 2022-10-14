@@ -33,15 +33,15 @@ freiburg = city.City(name="Freiburg", coordinates=[47.997791, 7.842609])
 neighborhoods = {
     city.Neighborhood(name=name, coordinates=coordinates)
     for name, coordinates in [
-        ('Altstadt', [47.99525, 7.84726]),
-        ('Stühlinger', [47.99888, 7.83774]),
-        ('Neuburg', [48.00021, 7.86084]),
-        ('Herdern', [48.00779, 7.86268]),
-        ('Brühl', [48.01684, 7.843]),
+        ("Altstadt", [47.99525, 7.84726]),
+        ("Stühlinger", [47.99888, 7.83774]),
+        ("Neuburg", [48.00021, 7.86084]),
+        ("Herdern", [48.00779, 7.86268]),
+        ("Brühl", [48.01684, 7.843]),
     ]
 }
-citizen_1 = city.Citizen(name='Nikola', age=35)
-citizen_2 = city.Citizen(name='Lena', age=70)
+citizen_1 = city.Citizen(name="Nikola", age=35)
+citizen_2 = city.Citizen(name="Lena", age=70)
 pretty_print(freiburg)
 print()
 
@@ -57,5 +57,3 @@ can_drive = {
 }
 for name, drives in can_drive.items():
     print(f"Can {name} drive? {drives}")
-
-

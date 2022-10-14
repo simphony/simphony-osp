@@ -24,7 +24,7 @@ from simphony_osp.tools import pretty_print
 from simphony_osp.wrappers import SQLite
 
 # instantiate some individuals directly in an SQLite database
-with SQLite('database.db', create=True) as sqlite:
+with SQLite("database.db", create=True) as sqlite:
     sqlite.clear()  # just in case you already ran this example
     freiburg = city.City(name="Freiburg", coordinates=[47.997791, 7.842609])
     peter = city.Citizen(name="Peter", age=30)
@@ -33,7 +33,5 @@ with SQLite('database.db', create=True) as sqlite:
     sqlite.commit()
 
 # retrieve the saved individuals and show them using pretty_print
-with SQLite('database.db', create=False) as sqlite:
-    pretty_print(
-        sqlite.get(oclass=city.City).one()
-    )
+with SQLite("database.db", create=False) as sqlite:
+    pretty_print(sqlite.get(oclass=city.City).one())
