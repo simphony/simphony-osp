@@ -85,7 +85,7 @@ def _load_operations():
     """Finds the installed operations and registers them in the catalog."""
     # Retrieve operations from package entry points.
     package_entry_points = entry_points()
-    if sys.version_info >= (3, 10):
+    if sys.version_info >= (3, 10) or sys.version_info < (3, 8):
         operations = package_entry_points.select(
             group="simphony_osp.ontology.operations"
         )
