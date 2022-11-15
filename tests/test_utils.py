@@ -146,7 +146,6 @@ class TestUtils(unittest.TestCase):
 
         c = city.City(name="Freiburg")
 
-
         # empty city is not valid
         self.assertRaises(
             ConsistencyError, validate_tree_against_schema, c, schema_file
@@ -216,7 +215,7 @@ class TestUtils(unittest.TestCase):
             validate_tree_against_schema,
             c,
             schema_file_with_attribute_value,
-            strict_check=True
+            strict_check=True,
         )
 
     def test_branch(self):

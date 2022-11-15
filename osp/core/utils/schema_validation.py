@@ -110,7 +110,9 @@ def _check_cuds_object_cardinality(origin_cuds, dest_oclass, rel, constraints):
     elif type(rel_entity) == OntologyAttribute:
         # No datatype checking since this is already done when Cuds are
         # instantiated or imported from a file
-        actual_cardinality = 1 if rel_entity in origin_cuds.get_attributes() else 0
+        actual_cardinality = (
+            1 if rel_entity in origin_cuds.get_attributes() else 0
+        )
     else:
         raise ConsistencyError(
             f"Relation '{rel}' not supported for {origin_cuds.oclass}."
@@ -131,10 +133,14 @@ def _check_cuds_object_cardinality(origin_cuds, dest_oclass, rel, constraints):
         )
         raise CardinalityError(message)
 
-    _check_attribute_contraints(origin_cuds, rel_entity, dest_oclass, constraints)
+    _check_attribute_contraints(
+        origin_cuds, rel_entity, dest_oclass, constraints
+    )
 
 
-def _check_attribute_contraints(origin_cuds, rel_entity, dest_oclass, constraints):
+def _check_attribute_contraints(
+    origin_cuds, rel_entity, dest_oclass, constraints
+):
     attribute = origin_cuds.get_attributes().get(rel_entity)
     value = constraints.get("value")
     if attribute:
@@ -232,7 +238,9 @@ def _get_optional_and_mandatory_subtrees(data_model_dict):
             continue
         for relationship, neighbors in relationships.items():
             for neighbor, constraints in neighbors.items():
-                min, max = _interpret_cardinality_value_from_constraints(constraints)
+                min, max = _interpret_cardinality_value_from_constraints(
+                    constraints
+                )
                 if min == 0 and neighbor not in YML_DATATYPES.keys():
                     optional_subtrees.add(neighbor)
                 if min > 0 and neighbor not in YML_DATATYPES.keys():
