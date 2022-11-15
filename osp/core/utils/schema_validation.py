@@ -6,6 +6,7 @@ import yaml
 
 from osp.core.namespaces import get_entity
 from osp.core.ontology import OntologyAttribute, OntologyRelationship
+from osp.core.ontology.datatypes import YML_DATATYPES
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +98,6 @@ def _load_data_model_from_yaml(data_model_file):
 
 
 def _check_cuds_object_cardinality(origin_cuds, dest_oclass, rel, constraints):
-
     rel_entity = get_entity(rel)
 
     if type(rel_entity) == OntologyRelationship:
@@ -107,9 +107,7 @@ def _check_cuds_object_cardinality(origin_cuds, dest_oclass, rel, constraints):
     elif type(rel_entity) == OntologyAttribute:
         # No datatype checking since this is already done when Cuds are
         # instantiated or imported from a file
-        actual_cardinality = (
-            1 if rel_entity in origin_cuds.get_attributes() else 0
-        )
+        actual_cardinality = 1 if rel_entity in origin_cuds.get_attributes() else 0
     else:
         raise ConsistencyError(
             f"Relation '{rel}' not supported for {origin_cuds.oclass}."
@@ -130,6 +128,58 @@ def _check_cuds_object_cardinality(origin_cuds, dest_oclass, rel, constraints):
         )
         raise CardinalityError(message)
 
+    _check_attribute_contraints(origin_cuds, rel_entity, dest_oclass, constraints)
+
+
+def _check_attribute_contraints(origin_cuds, rel_entity, dest_oclass, constraints):
+    attribute = origin_cuds.get_attributes().get(rel_entity)
+    value = constraints.get("value")
+    if attribute:
+        if value:
+            if not attribute == value:
+                message = """Found invalid attribute value between {} and {} with relationship {}.
+                The constraint says it should be valued '{}', but we found '{}'.
+                The uid of the affected cuds_object is: {}""".format(
+                    str(origin_cuds.oclass),
+                    dest_oclass,
+                    rel_entity,
+                    value,
+                    attribute,
+                    origin_cuds.uid,
+                )
+                raise ConsistencyError(message)
+
+        if type(attribute) == str:
+            attribute = len(attribute)
+            target = "length"
+        else:
+            target = "range"
+        min, max = _interpret_attribute_from_constraints(constraints, target)
+        if attribute < min or attribute > max:
+            message = """Found invalid attribute value {} between {} and {} with relationship {}.
+            The constraint says it should be between {} and {}, but we found {}.
+            The uid of the affected cuds_object is: {}""".format(
+                target,
+                str(origin_cuds.oclass),
+                dest_oclass,
+                rel_entity,
+                min,
+                max,
+                attribute,
+                origin_cuds.uid,
+            )
+            raise CardinalityError(message)
+
+
+def _interpret_attribute_from_constraints(constraints, range_or_len: str):
+    min = -float("inf")
+    if constraints is not None:
+        value = constraints.get(range_or_len)
+        min, max = _interpret_cardinality_value_from_constraints(
+            dict(cardinality=value)
+        )
+    return min, max
+
 
 def _interpret_cardinality_value_from_constraints(constraints):
     # default is arbitrary
@@ -140,11 +190,12 @@ def _interpret_cardinality_value_from_constraints(constraints):
         if isinstance(cardinality_value, int):
             min = cardinality_value
             max = cardinality_value
-        elif "-" in cardinality_value:
-            min = int(cardinality_value.split("-")[0])
-            max = int(cardinality_value.split("-")[1])
-        elif "+" in cardinality_value:
-            min = int(cardinality_value.split("+")[0])
+        elif isinstance(cardinality_value, str):
+            if "-" in cardinality_value:
+                min = int(cardinality_value.split("-")[0])
+                max = int(cardinality_value.split("-")[1])
+            elif "+" in cardinality_value:
+                min = int(cardinality_value.split("+")[0])
     return min, max
 
 
@@ -178,12 +229,10 @@ def _get_optional_and_mandatory_subtrees(data_model_dict):
             continue
         for relationship, neighbors in relationships.items():
             for neighbor, constraints in neighbors.items():
-                min, max = _interpret_cardinality_value_from_constraints(
-                    constraints
-                )
-                if min == 0:
+                min, max = _interpret_cardinality_value_from_constraints(constraints)
+                if min == 0 and neighbor not in YML_DATATYPES.keys():
                     optional_subtrees.add(neighbor)
-                if min > 0:
+                if min > 0 and neighbor not in YML_DATATYPES.keys():
                     mandatory_subtrees.add(neighbor)
 
     if optional_subtrees & mandatory_subtrees:
