@@ -29,6 +29,8 @@ def validate_tree_against_schema(root_obj, schema_file, strict_check=False):
         root_obj (Cuds): The root CUDS object of the tree
         schema_file (str): The path to the schema file that
             defines the constraints
+        strict_check (bool): whether extra cuds not listed
+            the schema_file should be tolerated or not
 
     Raise:
         Exception: Tells the user which constraint was violated
@@ -68,7 +70,7 @@ def validate_tree_against_schema(root_obj, schema_file, strict_check=False):
         # get the definition for this oclass from the model
         try:
             relationships = data_model_dict["model"][oclass]
-        except KeyError as error:
+        except KeyError:
             if strict_check:
                 message = f"An entity for {oclass} was found,"
                 " but it is not part of the provided schema"
@@ -146,9 +148,11 @@ def _check_attribute_contraints(
     if attribute:
         if value:
             if not attribute == value:
-                message = """Found invalid attribute value between {} and {} with relationship {}.
-                The constraint says it should be valued '{}', but we found '{}'.
-                The uid of the affected cuds_object is: {}""".format(
+                message = """Found invalid attribute value
+                between {} and {} with relationship {}.
+                The constraint says it should be valued '{}',
+                but we found '{}'. The uid of the affected
+                cuds_object is: {}""".format(
                     str(origin_cuds.oclass),
                     dest_oclass,
                     rel_entity,
