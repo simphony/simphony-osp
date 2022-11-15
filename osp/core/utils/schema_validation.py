@@ -122,8 +122,9 @@ def _check_cuds_object_cardinality(origin_cuds, dest_oclass, rel, constraints):
 
     min, max = _interpret_cardinality_value_from_constraints(constraints)
     if actual_cardinality < min or actual_cardinality > max:
-        message = """Found invalid cardinality between {} and {} with relationship {}.
-        The constraint says it should be between {} and {}, but we found {}.
+        message = """Found invalid cardinality between {} and {}
+        with relationship {}. The constraint says it should be
+        between {} and {}, but we found {}.
         The uid of the affected cuds_object is: {}""".format(
             str(origin_cuds.oclass),
             dest_oclass,
@@ -169,9 +170,10 @@ def _check_attribute_contraints(
             target = "range"
         min, max = _interpret_attribute_from_constraints(constraints, target)
         if attribute < min or attribute > max:
-            message = """Found invalid attribute value {} between {} and {} with relationship {}.
-            The constraint says it should be between {} and {}, but we found {}.
-            The uid of the affected cuds_object is: {}""".format(
+            message = """Found invalid attribute value {} between {} and {}
+            relationship {}. The constraint says it should be between {}
+            and {}, but we found {}. The uid of the affected
+            cuds_object is: {}""".format(
                 target,
                 str(origin_cuds.oclass),
                 dest_oclass,
