@@ -19,7 +19,7 @@ class CardinalityError(Exception):
     """A cardinality constraint is violated."""
 
 
-def validate_tree_against_schema(root_obj, schema_file):
+def validate_tree_against_schema(root_obj, schema_file, strict_check=False):
     """Test cardinality constraints on given CUDS tree.
 
     The tree that starts at root_obj.
@@ -68,10 +68,13 @@ def validate_tree_against_schema(root_obj, schema_file):
         # get the definition for this oclass from the model
         try:
             relationships = data_model_dict["model"][oclass]
-        except KeyError:
-            # TODO ask Yoav: is it ok when there is an object
-            # in the tree that is not part of the datamodel?
-            continue
+        except KeyError as error:
+            if strict_check:
+                message = f"An entity for {oclass} was found,"
+                " but it is not part of the provided schema"
+                raise ConsistencyError(message)
+            else:
+                continue
         if relationships is None:
             # if there are no relationships defined,
             # the only constraint is that the object exists

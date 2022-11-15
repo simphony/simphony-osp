@@ -205,6 +205,20 @@ class TestUtils(unittest.TestCase):
         # additionally we check the length and the value of the attribute
         validate_tree_against_schema(c, schema_file_with_attribute_value)
 
+        # and if there are more objects in tree than in the schema
+        # it can be specified if the test should be done strictly
+        c.add(wrong_object, rel=city.hasPart)
+        # first no strict check - additional cuds is tolerated:
+        validate_tree_against_schema(c, schema_file_with_attribute_value)
+        # second with strict check - additional cuds is not tolerated:
+        self.assertRaises(
+            ConsistencyError,
+            validate_tree_against_schema,
+            c,
+            schema_file_with_attribute_value,
+            strict_check=True
+        )
+
     def test_branch(self):
         """Test the branch function."""
         x = branch(
