@@ -33,7 +33,8 @@ In addition, basic usage examples to
 quickly get started are available in the
 [`examples` folder](https://github.com/simphony/simphony-osp/tree/v4.0.0/examples).
 
-If you want to build the documentation locally, refer to our [documentation repostitory](https://github.com/simphony/docs/tree/v4.0.0).
+If you want to build the documentation locally, refer to our
+[documentation repository](https://github.com/simphony/docs/tree/v4.0.0).
 
 ## Contributing
 
@@ -42,4 +43,13 @@ If you wish to contribute to SimPhoNy, please read the
 
 ## Acknowledgements
 
-The SimPhoNy Python package originates from the European Project [SimPhoNy](https://www.simphony-project.eu/) (Project Nr. 604005). We would like to acknowledge and thank our project partners, especially [Enthought, Inc](https://www.enthought.com/), [Centre Internacional de Mètodes Numèrics a l'Enginyeria (CIMNE)](https://cimne.com/) and the [University of Jyväskylä](https://www.jyu.fi/en), for their important contributions to some of the core concepts of SimPhoNy, which were originally demonstrated under the project https://github.com/simphony/simphony-common.
+The SimPhoNy Python package originates from the European Project
+[SimPhoNy](https://www.simphony-project.eu/) (Project Nr. 604005). We would
+like to acknowledge and thank our project partners, especially
+[Enthought, Inc](https://www.enthought.com/),
+[Centre Internacional de Mètodes Numèrics a l'Enginyeria (CIMNE)](https://cimne.com/)
+and the
+[University of Jyväskylä](https://www.jyu.fi/en),
+for their important contributions to some of the core concepts of SimPhoNy,
+which were originally demonstrated under the project
+[simphony-common](https://github.com/simphony/simphony-common).
