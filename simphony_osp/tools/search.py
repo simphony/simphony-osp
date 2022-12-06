@@ -114,10 +114,14 @@ def _iter(
         yield root
 
     if current_depth < max_depth:
-        for sub in chain(
+        # Originally, this function was using DFS (no `list`), but it is
+        # incompatible with the caching mechanism. See issue #820.
+        # TODO: Fix
+        #  [issue #820](https://github.com/simphony/simphony-osp/issues/820).
+        for sub in list(chain(
             *(root.iter(rel=r) for r in rel),
             *(root.annotations_iter(rel=r) for r in annotation)
-        ):
+        )):
             if sub.uid not in visited:
                 yield from _iter(
                     criterion=criterion,
