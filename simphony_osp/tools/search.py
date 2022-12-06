@@ -74,11 +74,8 @@ def find(
 
     result = iter(())
     if criterion(root):
-        result = chain(result, (root, ))
-    result = chain(
-        result,
-        _iter(criterion, root, rel, annotation, max_depth)
-    )
+        result = chain(result, (root,))
+    result = chain(result, _iter(criterion, root, rel, annotation, max_depth))
     if not find_all:
         result = next(result, None)
 
@@ -126,15 +123,8 @@ def _iter(
             *(root.iter(rel=r) for r in rel),
             *(root.annotations_iter(rel=r) for r in annotation)
         )
-        children = set(
-            child
-            for child in children
-            if child.uid not in visited
-        )
-        yield from (
-            child
-            for child in children if criterion(child)
-        )
+        children = set(child for child in children if child.uid not in visited)
+        yield from (child for child in children if criterion(child))
         for sub in children:
             yield from _iter(
                 criterion=criterion,
