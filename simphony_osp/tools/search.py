@@ -118,20 +118,26 @@ def _iter(
         # incompatible with the caching mechanism. See issue #820.
         # TODO: Fix
         #  [issue #820](https://github.com/simphony/simphony-osp/issues/820).
-        for sub in list(chain(
+        children = chain(
             *(root.iter(rel=r) for r in rel),
             *(root.annotations_iter(rel=r) for r in annotation)
-        )):
-            if sub.uid not in visited:
-                yield from _iter(
-                    criterion=criterion,
-                    root=sub,
-                    rel=rel,
-                    annotation=annotation,
-                    max_depth=max_depth,
-                    current_depth=current_depth + 1,
-                    visited=visited,
-                )
+        )
+        children = set(
+            child
+            for child in children
+            if child.uid not in visited
+        )
+        yield from children
+        for sub in children:
+            yield from _iter(
+                criterion=criterion,
+                root=sub,
+                rel=rel,
+                annotation=annotation,
+                max_depth=max_depth,
+                current_depth=current_depth + 1,
+                visited=visited,
+            )
 
 
 def find_by_identifier(
