@@ -15,13 +15,6 @@ SimPhoNy enables:
   transfer them among different software products using the wrappers, and query
   the knowledge graph
 
-⚠️ You are reading the README file for a _release candidate_ version of
-SimPhoNy. This version has not yet been thoroughly tested, and its
-functionality is not yet fully documented. Unless you are explicitly looking to
-try this version, please head to the
-[`master` branch](https://github.com/simphony/simphony-osp) of this repository to
-find the README file for the latest stable release of SimPhoNy.
-
 ## Installation
 
 SimPhoNy is available on PyPI, so it can be installed using pip
