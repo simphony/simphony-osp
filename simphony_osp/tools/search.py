@@ -72,7 +72,10 @@ def find(
         annotation = set()
     annotation = frozenset(annotation)
 
-    result = _iter(criterion, root, rel, annotation, max_depth)
+    result = iter(())
+    if criterion(root):
+        result = chain(result, (root,))
+    result = chain(result, _iter(criterion, root, rel, annotation, max_depth))
     if not find_all:
         result = next(result, None)
 
@@ -110,24 +113,28 @@ def _iter(
     """
     visited = visited or set()
     visited.add(root.uid)
-    if criterion(root):
-        yield root
 
     if current_depth < max_depth:
-        for sub in chain(
+        # Originally, this function was using DFS (no `list`), but it is
+        # incompatible with the caching mechanism. See issue #820.
+        # TODO: Fix
+        #  [issue #820](https://github.com/simphony/simphony-osp/issues/820).
+        children = chain(
             *(root.iter(rel=r) for r in rel),
             *(root.annotations_iter(rel=r) for r in annotation)
-        ):
-            if sub.uid not in visited:
-                yield from _iter(
-                    criterion=criterion,
-                    root=sub,
-                    rel=rel,
-                    annotation=annotation,
-                    max_depth=max_depth,
-                    current_depth=current_depth + 1,
-                    visited=visited,
-                )
+        )
+        children = set(child for child in children if child.uid not in visited)
+        yield from (child for child in children if criterion(child))
+        for sub in children:
+            yield from _iter(
+                criterion=criterion,
+                root=sub,
+                rel=rel,
+                annotation=annotation,
+                max_depth=max_depth,
+                current_depth=current_depth + 1,
+                visited=visited,
+            )
 
 
 def find_by_identifier(
