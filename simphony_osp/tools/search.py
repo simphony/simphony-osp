@@ -72,7 +72,13 @@ def find(
         annotation = set()
     annotation = frozenset(annotation)
 
-    result = _iter(criterion, root, rel, annotation, max_depth)
+    result = iter(())
+    if criterion(root):
+        result = chain(result, (root, ))
+    result = chain(
+        result,
+        _iter(criterion, root, rel, annotation, max_depth)
+    )
     if not find_all:
         result = next(result, None)
 
@@ -110,8 +116,6 @@ def _iter(
     """
     visited = visited or set()
     visited.add(root.uid)
-    if criterion(root):
-        yield root
 
     if current_depth < max_depth:
         # Originally, this function was using DFS (no `list`), but it is
@@ -127,7 +131,10 @@ def _iter(
             for child in children
             if child.uid not in visited
         )
-        yield from children
+        yield from (
+            child
+            for child in children if criterion(child)
+        )
         for sub in children:
             yield from _iter(
                 criterion=criterion,
