@@ -4,7 +4,7 @@ on: pull_request
 
 jobs:
   PEP8:
-    runs-on: self-hosted
+    runs-on: [self-hosted, simphony-osp]
     steps:
       - uses: actions/checkout@v3
 
@@ -16,7 +16,7 @@ jobs:
         run: pre-commit run --all-files
 
   complexity:
-    runs-on: self-hosted
+    runs-on: [self-hosted, simphony-osp]
     steps:
       - uses: actions/checkout@v3
 
@@ -26,7 +26,7 @@ jobs:
           radon mi -s .
 
   security:
-    runs-on: self-hosted
+    runs-on: [self-hosted, simphony-osp]
     steps:
       - uses: actions/checkout@v3
 
@@ -34,7 +34,7 @@ jobs:
         run: bandit -r osp --skip B101
 
   testing:
-    runs-on: self-hosted
+    runs-on: [self-hosted, simphony-osp]
     steps:
       - uses: actions/checkout@v3
       - name: tox
