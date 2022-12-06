@@ -42,7 +42,7 @@ setup(
         "Operating System :: Unix",
     ],
     keywords="owl, ontology, interoperability, materials-science, osp, "
-    "simphony, wrappers, open-simulation-platform,"
+    "simphony, wrappers, open-simulation-platform, knowledge-graph"
     "Fraunhofer IWM",
     download_url="https://pypi.org/project/simphony-osp/4.0.0/",
     project_urls={
