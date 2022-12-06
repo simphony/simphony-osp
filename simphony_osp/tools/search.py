@@ -122,11 +122,7 @@ def _iter(
             *(root.iter(rel=r) for r in rel),
             *(root.annotations_iter(rel=r) for r in annotation)
         )
-        children = set(
-            child
-            for child in children
-            if child.uid not in visited
-        )
+        children = set(child for child in children if child.uid not in visited)
         yield from children
         for sub in children:
             yield from _iter(
