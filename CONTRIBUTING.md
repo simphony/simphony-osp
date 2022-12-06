@@ -113,16 +113,16 @@ When proposing and discussing a change on the documentation, always aim to alway
 - [ ] A brief description, of the proposed changes.
 - [ ] A mock-up of the intended changes, for example the headings, a few sentences explaining the content that should be included. If the changes involve figures, please upload a sketch too.
 
-After this discussion phase, when the [maintainers](https://github.com/simphony/osp-core/blob/master/.github/CODEOWNERS) deem it appropriate, the discussion on the forum can be closed and an issue referencing it can be created on the [issue board](https://github.com/simphony/docs/issues?q=is%3Aissue+sort%3Aupdated-desc+). The goal of this procedure is to separate discussion and design from implementation efforts.
+After this discussion phase, when the [maintainers](https://github.com/simphony/simphony-osp/blob/master/.github/CODEOWNERS) deem it appropriate, the discussion on the forum can be closed and an issue referencing it can be created on the [issue board](https://github.com/simphony/docs/issues?q=is%3Aissue+sort%3Aupdated-desc+). The goal of this procedure is to separate discussion and design from implementation efforts.
 
  The issue is now ready to be worked on. On the issue itself, the fine details and the actual contents can be more deeply discussed. Finally, a [pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) can be [submitted](https://github.com/simphony/docs/compare) to the [docs repository](https://github.com/simphony/docs/pulls?q=is%3Apr+sort%3Aupdated-desc). A maintainer will review the pull request and accept it, or request further changes if needed.
 
 ## Forum
 
-Feel free to participate on the [forum](https://github.com/simphony/osp-core/discussions)! There you may:
+Feel free to participate on the [forum](https://github.com/simphony/simphony-osp/discussions)! There you may:
 
-- Read [announcements](https://github.com/simphony/osp-core/discussions/categories/announcements) from the SimPhoNy team.
-- Have [general discussions](https://github.com/simphony/osp-core/discussions/categories/general) about SimPhoNy.
-- Propose [new features or enhancements](https://github.com/simphony/osp-core/discussions/categories/ideas). Please follow the guidelines provided on [this section](#proposing-enhancements-or-suggesting-new-features).
-- [Ask other members of the community for help](https://github.com/simphony/osp-core/discussions/categories/q-a) in a [Q&A format](https://en.wikipedia.org/wiki/Q%26A_software).
-- [Share how did you benefit from using SimPhoNy](https://github.com/simphony/osp-core/discussions/categories/show-and-tell) in your project.
+- Read [announcements](https://github.com/simphony/simphony-osp/discussions/categories/announcements) from the SimPhoNy team.
+- Have [general discussions](https://github.com/simphony/simphony-osp/discussions/categories/general) about SimPhoNy.
+- Propose [new features or enhancements](https://github.com/simphony/simphony-osp/discussions/categories/ideas). Please follow the guidelines provided on [this section](#proposing-enhancements-or-suggesting-new-features).
+- [Ask other members of the community for help](https://github.com/simphony/simphony-osp/discussions/categories/q-a) in a [Q&A format](https://en.wikipedia.org/wiki/Q%26A_software).
+- [Share how did you benefit from using SimPhoNy](https://github.com/simphony/simphony-osp/discussions/categories/show-and-tell) in your project.

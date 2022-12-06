@@ -19,7 +19,7 @@ SimPhoNy enables:
 SimPhoNy. This version has not yet been thoroughly tested, and its
 functionality is not yet fully documented. Unless you are explicitly looking to
 try this version, please head to the
-[`master` branch](https://github.com/simphony/osp-core) of this repository to
+[`master` branch](https://github.com/simphony/simphony-osp) of this repository to
 find the README file for the latest stable release of SimPhoNy.
 
 ## Installation
