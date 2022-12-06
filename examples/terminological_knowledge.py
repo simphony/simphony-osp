@@ -5,7 +5,7 @@
 > ontology individuals (assertional knowledge), and ontology classes,
 > relationships, attributes and annotations (terminological knowledge).
 -- [Terminological knowledge - SimPhoNy documentation]
-   (https://simphony.readthedocs.io/en/v4.0.0rc4/usage/
+   (https://simphony.readthedocs.io/en/v4.0.0/usage/
    terminological_knowledge.html)
 
 This example focuses on accessing navigating terminological knowledge using
