@@ -7,7 +7,7 @@
 > translates the assertional knowledge to a form that is compatible with a
 > specific simulation engine, database, data repository or file format.
 -- [Introduction (to sessions) - SimPhoNy documentation]
-   (https://simphony.readthedocs.io/en/v4.0.0rc4/usage/sessions
+   (https://simphony.readthedocs.io/en/v4.0.0/usage/sessions
    /introduction.html)
 
 This example demonstrates the use of teh SQLite wrapper, which is included with

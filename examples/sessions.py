@@ -7,7 +7,7 @@
 > translates the assertional knowledge to a form that is compatible with a
 > specific simulation engine, database, data repository or file format.
 -- [Introduction (to sessions) - SimPhoNy documentation]
-   (https://simphony.readthedocs.io/en/v4.0.0rc4/usage/sessions
+   (https://simphony.readthedocs.io/en/v4.0.0/usage/sessions
    /introduction.html)
 
 This example deals, however, with sessions that are NOT connected to any
@@ -50,7 +50,7 @@ another_session.clear()  # clear the session's contents
 > In SimPhoNy, all sessions are automatically “opened” when they are created.
 > The “commit” and “close” operations are controlled manually.
 -- [Introduction (to sessions) - SimPhoNy documentation]
-   (https://simphony.readthedocs.io/en/v4.0.0rc4/usage/sessions
+   (https://simphony.readthedocs.io/en/v4.0.0/usage/sessions
    /introduction.html)
 
 Note that despite the above, sessions that are not connected to a wrapper (the
