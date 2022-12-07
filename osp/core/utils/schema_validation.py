@@ -6,6 +6,7 @@ import yaml
 
 from osp.core.namespaces import get_entity
 from osp.core.ontology import OntologyAttribute, OntologyRelationship
+from osp.core.ontology.datatypes import YML_DATATYPES
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ class CardinalityError(Exception):
     """A cardinality constraint is violated."""
 
 
-def validate_tree_against_schema(root_obj, schema_file):
+def validate_tree_against_schema(root_obj, schema_file, strict_check=False):
     """Test cardinality constraints on given CUDS tree.
 
     The tree that starts at root_obj.
@@ -28,6 +29,8 @@ def validate_tree_against_schema(root_obj, schema_file):
         root_obj (Cuds): The root CUDS object of the tree
         schema_file (str): The path to the schema file that
             defines the constraints
+        strict_check (bool): whether extra cuds not listed in
+            the schema_file should be tolerated or not
 
     Raise:
         Exception: Tells the user which constraint was violated
@@ -68,9 +71,12 @@ def validate_tree_against_schema(root_obj, schema_file):
         try:
             relationships = data_model_dict["model"][oclass]
         except KeyError:
-            # TODO ask Yoav: is it ok when there is an object
-            # in the tree that is not part of the datamodel?
-            continue
+            if strict_check:
+                message = f"An entity for {oclass} was found,"
+                " but it is not part of the provided schema"
+                raise ConsistencyError(message)
+            else:
+                continue
         if relationships is None:
             # if there are no relationships defined,
             # the only constraint is that the object exists
@@ -97,7 +103,6 @@ def _load_data_model_from_yaml(data_model_file):
 
 
 def _check_cuds_object_cardinality(origin_cuds, dest_oclass, rel, constraints):
-
     rel_entity = get_entity(rel)
 
     if type(rel_entity) == OntologyRelationship:
@@ -117,8 +122,9 @@ def _check_cuds_object_cardinality(origin_cuds, dest_oclass, rel, constraints):
 
     min, max = _interpret_cardinality_value_from_constraints(constraints)
     if actual_cardinality < min or actual_cardinality > max:
-        message = """Found invalid cardinality between {} and {} with relationship {}.
-        The constraint says it should be between {} and {}, but we found {}.
+        message = """Found invalid cardinality between {} and {}
+        with relationship {}. The constraint says it should be
+        between {} and {}, but we found {}.
         The uid of the affected cuds_object is: {}""".format(
             str(origin_cuds.oclass),
             dest_oclass,
@@ -130,6 +136,64 @@ def _check_cuds_object_cardinality(origin_cuds, dest_oclass, rel, constraints):
         )
         raise CardinalityError(message)
 
+    _check_attribute_contraints(
+        origin_cuds, rel_entity, dest_oclass, constraints
+    )
+
+
+def _check_attribute_contraints(
+    origin_cuds, rel_entity, dest_oclass, constraints
+):
+    attribute = origin_cuds.get_attributes().get(rel_entity)
+    value = constraints.get("value")
+    if attribute:
+        if value and attribute != value:
+            message = """Found invalid attribute value
+            between {} and {} with relationship {}.
+            The constraint says it should be valued '{}',
+            but we found '{}'. The uid of the affected
+            cuds_object is: {}""".format(
+                str(origin_cuds.oclass),
+                dest_oclass,
+                rel_entity,
+                value,
+                attribute,
+                origin_cuds.uid,
+            )
+            raise ConsistencyError(message)
+
+        if type(attribute) == str:
+            attribute = len(attribute)
+            target = "length"
+        else:
+            target = "range"
+        min, max = _interpret_attribute_from_constraints(constraints, target)
+        if attribute < min or attribute > max:
+            message = """Found invalid attribute value {} between {} and {}
+            relationship {}. The constraint says it should be between {}
+            and {}, but we found {}. The uid of the affected
+            cuds_object is: {}""".format(
+                target,
+                str(origin_cuds.oclass),
+                dest_oclass,
+                rel_entity,
+                min,
+                max,
+                attribute,
+                origin_cuds.uid,
+            )
+            raise CardinalityError(message)
+
+
+def _interpret_attribute_from_constraints(constraints, range_or_len: str):
+    min = -float("inf")
+    if constraints is not None:
+        value = constraints.get(range_or_len)
+        min, max = _interpret_cardinality_value_from_constraints(
+            dict(cardinality=value)
+        )
+    return min, max
+
 
 def _interpret_cardinality_value_from_constraints(constraints):
     # default is arbitrary
@@ -140,11 +204,12 @@ def _interpret_cardinality_value_from_constraints(constraints):
         if isinstance(cardinality_value, int):
             min = cardinality_value
             max = cardinality_value
-        elif "-" in cardinality_value:
-            min = int(cardinality_value.split("-")[0])
-            max = int(cardinality_value.split("-")[1])
-        elif "+" in cardinality_value:
-            min = int(cardinality_value.split("+")[0])
+        elif isinstance(cardinality_value, str):
+            if "-" in cardinality_value:
+                min = int(cardinality_value.split("-")[0])
+                max = int(cardinality_value.split("-")[1])
+            elif "+" in cardinality_value:
+                min = int(cardinality_value.split("+")[0])
     return min, max
 
 
@@ -181,9 +246,9 @@ def _get_optional_and_mandatory_subtrees(data_model_dict):
                 min, max = _interpret_cardinality_value_from_constraints(
                     constraints
                 )
-                if min == 0:
+                if min == 0 and neighbor not in YML_DATATYPES.keys():
                     optional_subtrees.add(neighbor)
-                if min > 0:
+                if min > 0 and neighbor not in YML_DATATYPES.keys():
                     mandatory_subtrees.add(neighbor)
 
     if optional_subtrees & mandatory_subtrees:
