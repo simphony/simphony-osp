@@ -29,7 +29,7 @@ def validate_tree_against_schema(root_obj, schema_file, strict_check=False):
         root_obj (Cuds): The root CUDS object of the tree
         schema_file (str): The path to the schema file that
             defines the constraints
-        strict_check (bool): whether extra cuds not listed
+        strict_check (bool): whether extra cuds not listed in
             the schema_file should be tolerated or not
 
     Raise:
