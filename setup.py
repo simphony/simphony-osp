@@ -66,7 +66,7 @@ setup(
         "PyYaml",
         "rdflib >= 6.0.0, < 7.0.0; python_version >= '3.7'",
         "requests",
-        "websockets < 11",
+        "websockets >= 9, < 11",
         "websockets >= 10; python_version >= '3.10'",
         # ↓ --- Python 3.6 support. --- ↓ #
         "pyparsing < 3.0.0; python_version < '3.7'",
