@@ -147,21 +147,20 @@ def _check_attribute_contraints(
     attribute = origin_cuds.get_attributes().get(rel_entity)
     value = constraints.get("value")
     if attribute:
-        if value:
-            if not attribute == value:
-                message = """Found invalid attribute value
-                between {} and {} with relationship {}.
-                The constraint says it should be valued '{}',
-                but we found '{}'. The uid of the affected
-                cuds_object is: {}""".format(
-                    str(origin_cuds.oclass),
-                    dest_oclass,
-                    rel_entity,
-                    value,
-                    attribute,
-                    origin_cuds.uid,
-                )
-                raise ConsistencyError(message)
+        if value and attribute != value:
+            message = """Found invalid attribute value
+            between {} and {} with relationship {}.
+            The constraint says it should be valued '{}',
+            but we found '{}'. The uid of the affected
+            cuds_object is: {}""".format(
+                str(origin_cuds.oclass),
+                dest_oclass,
+                rel_entity,
+                value,
+                attribute,
+                origin_cuds.uid,
+            )
+            raise ConsistencyError(message)
 
         if type(attribute) == str:
             attribute = len(attribute)
