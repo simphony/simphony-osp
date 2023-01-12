@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1670423703947,
+  "lastUpdate": 1673519004888,
   "repoUrl": "https://github.com/simphony/simphony-osp",
   "entries": {
     "Benchmark": [
@@ -11689,6 +11689,135 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.00009877969667034886",
             "extra": "mean: 393.5215260001854 usec\nrounds: 500"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "43052541+kysrpex@users.noreply.github.com",
+            "name": "José Manuel Domínguez",
+            "username": "kysrpex"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9458454b432c1c92f310efde64541d0433133a1a",
+          "message": "Support `skos:altLabel` as label property (`dev`) (#845)",
+          "timestamp": "2023-01-12T11:22:32+01:00",
+          "tree_id": "b994a492a602e01d902b10eeaae0ca005f5a6c28",
+          "url": "https://github.com/simphony/simphony-osp/commit/9458454b432c1c92f310efde64541d0433133a1a"
+        },
+        "date": 1673519003879,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmark_api.py::benchmark_entity_iri",
+            "value": 19332.462444564622,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00001598049616489227",
+            "extra": "mean: 51.726468000001354 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_entity_identifier",
+            "value": 18320.70981464808,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00001823842027372065",
+            "extra": "mean: 54.58303800000497 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_create",
+            "value": 1078.5174020756535,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00016266345014918037",
+            "extra": "mean: 927.1987619999979 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_is_a",
+            "value": 6381.629321095338,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0000330286000015636",
+            "extra": "mean: 156.6997940000001 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_classes",
+            "value": 13872.48429086906,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000018868156409217083",
+            "extra": "mean: 72.08514199999527 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_connect",
+            "value": 1352.9693271462827,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00033351934511363656",
+            "extra": "mean: 739.1150559999949 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_get_byidentifier",
+            "value": 703.0384607988572,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0001886506447623737",
+            "extra": "mean: 1.422397288000016 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_get_byidentifieruriref",
+            "value": 686.9716951517623,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00027232771830737045",
+            "extra": "mean: 1.4556640500000295 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_get_byrel",
+            "value": 430.0312251004894,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000364620050965926",
+            "extra": "mean: 2.325412532000021 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_get_byoclass",
+            "value": 39.92758072439657,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0029353683920285804",
+            "extra": "mean: 25.045344142000058 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_iter_byidentifier",
+            "value": 8834.382398565409,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00024189815310882954",
+            "extra": "mean: 113.1941040001152 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_iter_byidentifieruriref",
+            "value": 11254.453837559578,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00012351615184350237",
+            "extra": "mean: 88.85371200001657 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_iter_byrel",
+            "value": 877.3362314533325,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0000819931487774269",
+            "extra": "mean: 1.1398138639999758 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_iter_byoclass",
+            "value": 79.64212963236729,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0018323142821512644",
+            "extra": "mean: 12.556168508000205 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_getattr",
+            "value": 2654.8881527222306,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00005556870119542127",
+            "extra": "mean: 376.6637019998882 usec\nrounds: 500"
           }
         ]
       }
