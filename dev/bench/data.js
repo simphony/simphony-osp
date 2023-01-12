@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1673519594771,
+  "lastUpdate": 1673520335571,
   "repoUrl": "https://github.com/simphony/simphony-osp",
   "entries": {
     "Benchmark": [
@@ -12076,6 +12076,135 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.000059029264916898524",
             "extra": "mean: 376.45647599993026 usec\nrounds: 500"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "66853113+pre-commit-ci[bot]@users.noreply.github.com",
+            "name": "pre-commit-ci[bot]",
+            "username": "pre-commit-ci[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "36fb939b4b6e9af8036d9a2565c07ff5610ebba1",
+          "message": "[pre-commit.ci] pre-commit autoupdate (#842)\n\nupdates:\r\n- [github.com/pycqa/isort: 5.10.1 → 5.11.4](https://github.com/pycqa/isort/compare/5.10.1...5.11.4)\r\n- [github.com/psf/black: 22.3.0 → 22.12.0](https://github.com/psf/black/compare/22.3.0...22.12.0)\r\n\r\nCo-authored-by: pre-commit-ci[bot] <66853113+pre-commit-ci[bot]@users.noreply.github.com>\r\nCo-authored-by: José Manuel Domínguez <43052541+kysrpex@users.noreply.github.com>",
+          "timestamp": "2023-01-12T11:44:43+01:00",
+          "tree_id": "a839dd19f99b9049bd426684ce1d4cb53ea5128f",
+          "url": "https://github.com/simphony/simphony-osp/commit/36fb939b4b6e9af8036d9a2565c07ff5610ebba1"
+        },
+        "date": 1673520334725,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmark_api.py::benchmark_entity_iri",
+            "value": 16346.038040761538,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000021723978168602535",
+            "extra": "mean: 61.17690399999898 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_entity_identifier",
+            "value": 18771.059486277216,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000013837729694726043",
+            "extra": "mean: 53.27349799999626 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_create",
+            "value": 1110.1744741766352,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00014809659098669064",
+            "extra": "mean: 900.7593159999949 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_is_a",
+            "value": 11847.76793502065,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000022927105450925463",
+            "extra": "mean: 84.40408400000088 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_classes",
+            "value": 12897.379881800514,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00001871823465502549",
+            "extra": "mean: 77.53512799999784 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_connect",
+            "value": 1336.2601635681074,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0003546650642134991",
+            "extra": "mean: 748.3572639999841 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_get_byidentifier",
+            "value": 476.4985729067889,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0005721840174132373",
+            "extra": "mean: 2.098642171999992 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_get_byidentifieruriref",
+            "value": 598.1486023113015,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0003023200720657293",
+            "extra": "mean: 1.67182535600001 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_get_byrel",
+            "value": 410.63224109921055,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00032620355435955073",
+            "extra": "mean: 2.435269079999969 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_get_byoclass",
+            "value": 39.25277532910997,
+            "unit": "iter/sec",
+            "range": "stddev: 0.003100055242204361",
+            "extra": "mean: 25.475905630000057 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_iter_byidentifier",
+            "value": 7877.604462076997,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00037931481877508837",
+            "extra": "mean: 126.94214399999737 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_iter_byidentifieruriref",
+            "value": 9221.779896471427,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00012921359434671213",
+            "extra": "mean: 108.43893600004861 usec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_iter_byrel",
+            "value": 803.9373119268812,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00029591154112181787",
+            "extra": "mean: 1.2438780800000373 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_iter_byoclass",
+            "value": 78.82212716741951,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0019452161293602084",
+            "extra": "mean: 12.686792858000182 msec\nrounds: 500"
+          },
+          {
+            "name": "benchmark_api.py::benchmark_individual_getattr",
+            "value": 2583.825113196721,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00006507932636599638",
+            "extra": "mean: 387.02309800015655 usec\nrounds: 500"
           }
         ]
       }
