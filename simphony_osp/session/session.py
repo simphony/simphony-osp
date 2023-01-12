@@ -1120,7 +1120,7 @@ class Session(Environment):
     label_predicates: Tuple[URIRef] = (
         SKOS.prefLabel,
         RDFS.label,
-        SKOS.altLabel
+        SKOS.altLabel,
     )
     """The identifiers of the RDF predicates to be considered as labels.
 
@@ -1136,8 +1136,8 @@ class Session(Environment):
 
     For example, in the default case above, if an entity has an
     `SKOS.prefLabel` it will be considered to be its label, even if it also
-    has an `RDFS.label` or an `SKOS.altLabel`, which will be ignored. If 
-    another entity has no `SKOS.prefLabel` but has a `RDFS.label`, then the 
+    has an `RDFS.label` or an `SKOS.altLabel`, which will be ignored. If
+    another entity has no `SKOS.prefLabel` but has a `RDFS.label`, then the
     `RDFS.label` will define its label. Applying exactly the same logic, if the
     entity has no `RDFS.label`, then the `SKOS.altLabel` will define its label.
     This means that for some entity, one label property may be used while for
