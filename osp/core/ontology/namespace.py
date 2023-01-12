@@ -427,7 +427,11 @@ class OntologyNamespace:
         else:
             return labels
 
-    _label_properties = (rdflib.SKOS.prefLabel, rdflib.RDFS.label)
+    _label_properties = (
+        rdflib.SKOS.prefLabel,
+        rdflib.RDFS.label,
+        rdflib.SKOS.altLabel,
+    )
 
     # Backwards compatibility.
     # ↓----------------------↓

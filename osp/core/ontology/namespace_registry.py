@@ -296,6 +296,7 @@ class NamespaceRegistry:
     _get_entity_name_order_label = {
         rdflib.SKOS.prefLabel: 0,
         rdflib.RDFS.label: 1,
+        rdflib.SKOS.altLabel: 2,
     }
 
     @staticmethod
