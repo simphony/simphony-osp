@@ -1117,7 +1117,11 @@ class Session(Environment):
     which is by default a session containing all the installed ontologies).
     """
 
-    label_predicates: Tuple[URIRef] = (SKOS.prefLabel, RDFS.label)
+    label_predicates: Tuple[URIRef] = (
+        SKOS.prefLabel,
+        RDFS.label,
+        SKOS.altLabel,
+    )
     """The identifiers of the RDF predicates to be considered as labels.
 
     The entity labels are used, for example, to be able to get ontology
@@ -1132,12 +1136,13 @@ class Session(Environment):
 
     For example, in the default case above, if an entity has an
     `SKOS.prefLabel` it will be considered to be its label, even if it also
-    has an `RDFS.label`, which will be ignored. If another entity has no
-    `SKOS.prefLabel` but has a `RDFS.label`, then the `RDFS.label` will
-    define its label. This means that for some entity, one label property
-    may be used while for another, a different property can be in use. If
-    none of the properties are defined, then the entity is considered to
-    have no label.
+    has an `RDFS.label` or an `SKOS.altLabel`, which will be ignored. If
+    another entity has no `SKOS.prefLabel` but has a `RDFS.label`, then the
+    `RDFS.label` will define its label. Applying exactly the same logic, if the
+    entity has no `RDFS.label`, then the `SKOS.altLabel` will define its label.
+    This means that for some entity, one label property may be used while for
+    another, a different property can be in use. If none of the properties are
+    defined, then the entity is considered to have no label.
     """
 
     label_languages: Tuple[URIRef] = ("en",)
