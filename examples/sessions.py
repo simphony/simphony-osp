@@ -132,7 +132,7 @@ with session:
         }}
     """
     )(citizen=OntologyIndividual, age=int)
-    for (citizen, age) in result:
+    for citizen, age in result:
         print(citizen.name, age)
 
 # Session contents can be exported to RDF,
