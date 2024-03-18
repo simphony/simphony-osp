@@ -1,4 +1,5 @@
 """Utility resources for the ontology module."""
+
 from __future__ import annotations
 
 import importlib
@@ -372,22 +373,19 @@ def _compute_mappings() -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
             else {subclass.rdf_type}
         )
         for rdf_type in rdf_types:
-            mapping_rdf_to_python_class[
-                rdf_type
-            ] = mapping_rdf_to_python_class.get(rdf_type, set()) | {subclass}
+            mapping_rdf_to_python_class[rdf_type] = (
+                mapping_rdf_to_python_class.get(rdf_type, set()) | {subclass}
+            )
         rdf_identifiers = (
             subclass.rdf_identifier
             if isinstance(subclass.rdf_identifier, set)
             else {subclass.rdf_identifier}
         )
         for rdf_identifier in rdf_identifiers:
-            mapping_identifier_to_python_class[
-                rdf_identifier
-            ] = mapping_identifier_to_python_class.get(
-                rdf_identifier, set()
-            ) | {
-                subclass
-            }
+            mapping_identifier_to_python_class[rdf_identifier] = (
+                mapping_identifier_to_python_class.get(rdf_identifier, set())
+                | {subclass}
+            )
     return mapping_rdf_to_python_class, mapping_identifier_to_python_class
 
 

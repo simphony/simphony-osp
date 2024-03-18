@@ -11,6 +11,7 @@ user access the operations defined for each ontology individual. Each
 individual has an associated instance of the subclass of `Operations` that the
 wrapper or package developer has defined.
 """
+
 from __future__ import annotations
 
 import os

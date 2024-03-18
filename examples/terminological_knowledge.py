@@ -115,9 +115,11 @@ print("  - target", restriction.target)
 print("  - restriction type", restriction.rtype)
 print(
     "  - affected predicate",
-    restriction.attribute
-    if restriction.rtype == RESTRICTION_TYPE.ATTRIBUTE_RESTRICTION
-    else restriction.relationship,
+    (
+        restriction.attribute
+        if restriction.rtype == RESTRICTION_TYPE.ATTRIBUTE_RESTRICTION
+        else restriction.relationship
+    ),
 )
 print("\n`Integer` ontology class object from the `emmo` namespace")
 composition = tuple(

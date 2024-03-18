@@ -3,6 +3,7 @@
 The public API methods are the methods that are available to the users,
 and available in the user documentation.
 """
+
 import io
 import json
 import os
