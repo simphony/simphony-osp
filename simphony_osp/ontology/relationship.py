@@ -1,4 +1,5 @@
 """A relationship defined in the ontology."""
+
 from __future__ import annotations
 
 import logging

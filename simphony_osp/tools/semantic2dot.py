@@ -227,7 +227,7 @@ class Semantic2Dot:
             OntologyEntity,
             Session,
             OntologyNamespace,
-        ]
+        ],
     ) -> str:
         """Compute a label for an ontology entity, session or namespace."""
         if isinstance(element, OntologyEntity):
