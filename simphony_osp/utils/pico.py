@@ -32,7 +32,7 @@ HASHABLE = TypeVar("HASHABLE", bound=Hashable)
 
 
 def graph_set_to_dict(
-    arcs: Set[Tuple[HASHABLE, HASHABLE]]
+    arcs: Set[Tuple[HASHABLE, HASHABLE]],
 ) -> MutableMapping[HASHABLE, Set[HASHABLE]]:
     """Convert the graph from a set of arcs to a dictionary (fast lookup).
 

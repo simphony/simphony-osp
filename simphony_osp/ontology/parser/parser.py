@@ -2,6 +2,7 @@
 
 Also contains a `Parser` class for backwards compatibility.
 """
+
 from __future__ import annotations
 
 import logging

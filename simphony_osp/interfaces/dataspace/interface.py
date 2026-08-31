@@ -1,4 +1,5 @@
 """The data space store connects SimPhoNy to a data space."""
+
 import os
 import pathlib
 from base64 import b64encode

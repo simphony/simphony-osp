@@ -1,4 +1,5 @@
 """Abstract Base Class for all Sessions."""
+
 from __future__ import annotations
 
 import itertools

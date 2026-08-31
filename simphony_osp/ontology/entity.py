@@ -1,4 +1,5 @@
 """Abstract superclass of any entity in the ontology."""
+
 from __future__ import annotations
 
 import logging
@@ -348,9 +349,11 @@ class OntologyEntity(ABC):
         """Transform the entity into a string."""
         header = f"{self.__class__.__name__}"
         elements = [
-            f"{self.label}"
-            if hasattr(self, "label") and self.label is not None
-            else None,
+            (
+                f"{self.label}"
+                if hasattr(self, "label") and self.label is not None
+                else None
+            ),
             f"{self.uid}",
         ]
         elements = filter(lambda x: x is not None, elements)
