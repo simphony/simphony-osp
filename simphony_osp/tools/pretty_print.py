@@ -184,15 +184,19 @@ def _pp_individual_subelements(
                 "\0"
                 + str(
                     sorted(
-                        class_.label
-                        if class_.label is not None
-                        else class_.identifier
+                        (
+                            class_.label
+                            if class_.label is not None
+                            else class_.identifier
+                        )
                         for class_ in x[0].classes
                     )[0]
                 ),
-                f"\0{x[1].label}"
-                if x[1].label is not None
-                else f"{x[1].identifier}",
+                (
+                    f"\0{x[1].label}"
+                    if x[1].label is not None
+                    else f"{x[1].identifier}"
+                ),
                 f"\0{x[0].label}" if x[0].label is not None else f"{x[0].uid}",
             ),
         )
@@ -241,9 +245,11 @@ def _pp_individual_values(cuds_object, indentation="\n          "):
     sorted_attributes = sorted(
         cuds_object.attributes.items(),
         key=lambda x: (
-            f"\0{x[0].label}"
-            if x[0].label is not None
-            else f"{x[0].identifier}",
+            (
+                f"\0{x[0].label}"
+                if x[0].label is not None
+                else f"{x[0].identifier}"
+            ),
             str(x[1]),
         ),
     )
@@ -251,9 +257,11 @@ def _pp_individual_values(cuds_object, indentation="\n          "):
         result.append(
             "%s: %s"
             % (
-                f"\0{attribute.label}"
-                if attribute.label is not None
-                else f"{attribute.identifier}",
+                (
+                    f"\0{attribute.label}"
+                    if attribute.label is not None
+                    else f"{attribute.identifier}"
+                ),
                 value if not len(value) == 1 else next(iter(value)),
             )
         )

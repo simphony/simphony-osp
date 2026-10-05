@@ -139,15 +139,11 @@ class TestWrapper(unittest.TestCase):
             matthias = city.Citizen(name="Matthias", age=37)
             freiburg[city.hasInhabitant] = {marco, matthias}
 
-            result = list(
-                sparql(
-                    f"""
+            result = list(sparql(f"""
                 SELECT ?age WHERE {{
                     <{matthias.iri}> <{city.age.iri}> ?age .
                 }}
-            """
-                )
-            )
+            """))
             self.assertEqual(len(result), 1)
             self.assertEqual(len(result[0]), 1)
             self.assertEqual(Literal("37", datatype=XSD.integer), result[0][0])

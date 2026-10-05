@@ -1,4 +1,5 @@
 """You can import the installed namespaces from this module."""
+
 from __future__ import annotations
 
 import logging as _logging

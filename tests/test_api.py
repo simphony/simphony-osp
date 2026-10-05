@@ -3,6 +3,7 @@
 The public API methods are the methods that are available to the users,
 and available in the user documentation.
 """
+
 import io
 import json
 import os
@@ -3149,29 +3150,19 @@ class TestToolsSearch(unittest.TestCase):
         pr[city.hasInhabitant] += ahmed
         pr[city.hasWorker] += ahmed
 
-        persons = set(
-            row[0]
-            for row in sparql(
-                f"""
+        persons = set(row[0] for row in sparql(f"""
                 SELECT ?person WHERE {{
                     ?person rdf:type <{city.Citizen.iri}> .
                 }}
-            """
-            )(person=OntologyIndividual)
-        )
+            """)(person=OntologyIndividual))
         self.assertSetEqual({marc, sveta, lukas, ahmed}, persons)
 
         with Session():
-            persons = set(
-                row[0]
-                for row in sparql(
-                    f"""
+            persons = set(row[0] for row in sparql(f"""
                     SELECT ?person WHERE {{
                         ?person rdf:type <{city.Citizen.iri}> .
                     }}
-                """
-                )(person=OntologyIndividual)
-            )
+                """)(person=OntologyIndividual))
             self.assertSetEqual(set(), persons)
 
 
