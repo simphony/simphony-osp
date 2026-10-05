@@ -35,9 +35,9 @@ class InterfaceServer:
         )
         self._interfaces: Dict[UUID, Interface] = dict()
         self._directories: Dict[UUID, tempfile.TemporaryDirectory] = dict()
-        self._interface_generator: Callable[
-            [str, str], Interface
-        ] = generate_interface
+        self._interface_generator: Callable[[str, str], Interface] = (
+            generate_interface
+        )
 
     def listen(self) -> None:
         """Listen for connections from clients."""

@@ -123,16 +123,14 @@ assert {
 # SPARQL queries are the most powerful method for getting information
 # from the session
 with session:
-    result = search.sparql(
-        f"""
+    result = search.sparql(f"""
         SELECT ?citizen ?age WHERE {{
             <{freiburg.identifier}> <{city.hasInhabitant.identifier}>
             ?citizen .
             ?citizen <{city.age.identifier}> ?age.
         }}
-    """
-    )(citizen=OntologyIndividual, age=int)
-    for (citizen, age) in result:
+    """)(citizen=OntologyIndividual, age=int)
+    for citizen, age in result:
         print(citizen.name, age)
 
 # Session contents can be exported to RDF,

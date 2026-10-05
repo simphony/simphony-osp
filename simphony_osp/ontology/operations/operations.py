@@ -11,6 +11,7 @@ user access the operations defined for each ontology individual. Each
 individual has an associated instance of the subclass of `Operations` that the
 wrapper or package developer has defined.
 """
+
 from __future__ import annotations
 
 import os
@@ -322,7 +323,7 @@ OPERATIONS = TypeVar("OPERATIONS", bound=Operations)
 
 
 def find_operations_in_package(
-    path: Union[str, Path]
+    path: Union[str, Path],
 ) -> Generator[Type[OPERATIONS]]:
     """Find operations on a Python package.
 
@@ -387,7 +388,7 @@ def find_operations_in_package(
 
 
 def find_operations_in_operations_folder(
-    path: Union[str, Path]
+    path: Union[str, Path],
 ) -> Set[Type[OPERATIONS]]:
     """Find operation definitions in a folder.
 

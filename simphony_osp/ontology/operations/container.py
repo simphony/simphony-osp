@@ -1,4 +1,5 @@
 """Special kind of ontology individual designed to organize entities."""
+
 from __future__ import annotations
 
 import logging

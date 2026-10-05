@@ -1,4 +1,5 @@
 """Universal interface for wrapper developers."""
+
 from __future__ import annotations
 
 import logging
@@ -974,12 +975,15 @@ class InterfaceDriver(Store):
             if s not in added_subjects and s in tracker.existing_subjects:
                 deleted_subjects[s] = deleted_subjects.get(s, 0) + 1
         deleted_subjects = {
-            s: True
-            if count
-            >= sum(
-                1 for _ in self.interface.old_graph.triples((s, None, None))
+            s: (
+                True
+                if count
+                >= sum(
+                    1
+                    for _ in self.interface.old_graph.triples((s, None, None))
+                )
+                else False
             )
-            else False
             for s, count in deleted_subjects.items()
         }
         deleted_subjects = {

@@ -1,4 +1,5 @@
 """Contains an abstract class that serves as a base for defining benchmarks."""
+
 import time
 from abc import ABC, abstractmethod
 from typing import Union
